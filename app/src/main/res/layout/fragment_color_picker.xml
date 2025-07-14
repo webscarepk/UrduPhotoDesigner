@@ -8,16 +8,6 @@
     tools:context=".ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment">
 
     <ImageView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/ic_back"
-        android:paddingVertical="@dimen/_10sdp"
-        android:paddingEnd="@dimen/_10sdp"
-        android:id="@+id/back"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
-
-    <ImageView
         android:layout_width="@dimen/_24sdp"
         android:layout_height="@dimen/_24sdp"
         android:src="@drawable/ic_done"
@@ -32,9 +22,9 @@
         android:layout_height="wrap_content"
         android:text="@string/color_picker"
         android:fontFamily="@font/medium"
-        app:layout_constraintStart_toEndOf="@id/back"
-        app:layout_constraintTop_toTopOf="@id/back"
-        app:layout_constraintBottom_toBottomOf="@id/back"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/done"
+        app:layout_constraintBottom_toBottomOf="@id/done"
         android:textColor="@color/black"
         android:paddingHorizontal="@dimen/_5sdp"/>
 
@@ -45,7 +35,7 @@
         android:splitTrack="false"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/back"
+        app:layout_constraintTop_toBottomOf="@id/done"
         app:layout_constraintBottom_toTopOf="@id/seekbarAlpha" />
 
     <com.example.urduphotodesigner.common.views.ColorPickerBar

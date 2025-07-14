@@ -23,7 +23,6 @@ class GradientEditorFragment : Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
     private val mainViewModel: MainViewModel by activityViewModels()
 
-    private val vm: GradientViewModel by activityViewModels()
     private var isEdit: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,6 +50,7 @@ class GradientEditorFragment : Fragment() {
     private fun initObservers() {
         viewModel.gradient.observe(viewLifecycleOwner) { gradient ->
             binding.gradientBar.gradientItem = gradient
+            viewModel.finishPickingGradient(gradient)
             binding.preview.doOnLayout {
                 val w = it.width
                 val h = it.height
@@ -103,9 +103,15 @@ class GradientEditorFragment : Fragment() {
         binding.delete.visibility = if (isEdit) View.VISIBLE else View.GONE
 
         binding.delete.setOnClickListener {
+            viewModel.finishPickingGradient(null)
+            viewModel.setPagingLocked(false)
+            viewModel.stopPickingGradient()
             mainViewModel.deleteGradient(
                 viewModel.gradient.value?.id ?: -1
             )
+            parentFragment
+                ?.childFragmentManager
+                ?.popBackStack()
         }
 
         binding.linear.setOnClickListener {
@@ -116,26 +122,21 @@ class GradientEditorFragment : Fragment() {
             viewModel.setType(GradientType.RADIAL)
             updateButtonTints(binding.radial)
         }
+
         binding.sweep.setOnClickListener {
             viewModel.setType(GradientType.SWEEP)
             updateButtonTints(binding.sweep)
         }
 
-        binding.back.setOnClickListener {
-            viewModel.setPagingLocked(false)
-            viewModel.clearGradient()
-            parentFragment
-                ?.childFragmentManager
-                ?.popBackStack()
-        }
-
         // handle callbacks from the view:
         binding.gradientBar.apply {
-            onStopAdded = { idx, color, pos ->
+            onStopAdded = { _, color, pos ->
                 viewModel.addStop(pos, color)
+                mainViewModel.updateGradient(viewModel.gradient.value!!)
             }
             onStopMoved = { idx, newPos ->
                 viewModel.moveStop(idx, newPos)
+                mainViewModel.updateGradient(viewModel.gradient.value!!)
             }
             onStopSelected = { idx ->
                 viewModel.selectStop(idx)
@@ -147,6 +148,7 @@ class GradientEditorFragment : Fragment() {
             }
             onStopRemoved = { idx ->
                 viewModel.removeStop(idx)
+                mainViewModel.updateGradient(viewModel.gradient.value!!)
             }
         }
 
@@ -167,6 +169,7 @@ class GradientEditorFragment : Fragment() {
                 mainViewModel.insertGradient(viewModel.gradient.value!!)
             }
             viewModel.setPagingLocked(false)
+            viewModel.stopPickingGradient()
             viewModel.clearGradient()
             parentFragment
                 ?.childFragmentManager

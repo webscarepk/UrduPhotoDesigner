@@ -10,15 +10,6 @@
     <ImageView
         android:layout_width="@dimen/_24sdp"
         android:layout_height="@dimen/_24sdp"
-        android:src="@drawable/ic_back"
-        android:padding="@dimen/_8sdp"
-        android:id="@+id/back"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
-
-    <ImageView
-        android:layout_width="@dimen/_24sdp"
-        android:layout_height="@dimen/_24sdp"
         android:src="@drawable/ic_done"
         android:padding="@dimen/_5sdp"
         android:id="@+id/done"
@@ -35,9 +26,9 @@
         android:maxLines="1"
         android:ellipsize="end"
         app:layout_constraintEnd_toStartOf="@id/done"
-        app:layout_constraintStart_toEndOf="@id/back"
-        app:layout_constraintTop_toTopOf="@id/back"
-        app:layout_constraintBottom_toBottomOf="@id/back"
+        app:layout_constraintBottom_toBottomOf="@id/done"
+        app:layout_constraintTop_toTopOf="@id/done"
+        app:layout_constraintStart_toStartOf="parent"
         android:textColor="@color/black"
         android:paddingHorizontal="@dimen/_5sdp"/>
 
@@ -45,9 +36,9 @@
         android:id="@+id/editor"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/back"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/done"
         app:layout_constraintEnd_toEndOf="parent">
 
         <androidx.constraintlayout.widget.ConstraintLayout

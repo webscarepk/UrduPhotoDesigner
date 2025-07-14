@@ -11,15 +11,6 @@
     <ImageView
         android:layout_width="@dimen/_24sdp"
         android:layout_height="@dimen/_24sdp"
-        android:src="@drawable/ic_back"
-        android:padding="@dimen/_8sdp"
-        android:id="@+id/back"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
-
-    <ImageView
-        android:layout_width="@dimen/_24sdp"
-        android:layout_height="@dimen/_24sdp"
         android:src="@drawable/ic_swap"
         android:padding="@dimen/_7sdp"
         android:id="@+id/swap"
@@ -68,9 +59,9 @@
         android:maxLines="1"
         android:ellipsize="end"
         app:layout_constraintEnd_toStartOf="@id/settings"
-        app:layout_constraintStart_toEndOf="@id/back"
-        app:layout_constraintTop_toTopOf="@id/back"
-        app:layout_constraintBottom_toBottomOf="@id/back"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/done"
+        app:layout_constraintBottom_toBottomOf="@id/done"
         android:textColor="@color/black"
         android:paddingHorizontal="@dimen/_5sdp"/>
 
@@ -82,7 +73,7 @@
         app:cardCornerRadius="@dimen/_5sdp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintBottom_toTopOf="@id/gradientBar"
-        app:layout_constraintTop_toBottomOf="@id/back">
+        app:layout_constraintTop_toBottomOf="@id/done">
         <ImageView
             android:layout_width="match_parent"
             android:layout_height="match_parent"

@@ -14,6 +14,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.canvas.enums.GradientPickerTarget
 import com.example.urduphotodesigner.common.canvas.enums.PickerTarget
 import com.example.urduphotodesigner.common.utils.Constants
 import com.example.urduphotodesigner.databinding.FragmentFillStrokeBinding
@@ -52,15 +53,27 @@ class ColorsListFragment : Fragment() {
     private fun initObservers() {
         lifecycleScope.launch {
             mainViewModel.gradients.observe(viewLifecycleOwner) { gradients ->
-                gradientsAdapter.updateList(gradients)
+                if (gradients.isNotEmpty()){
+                    gradientsAdapter.updateList(gradients.reversed())
+                }
             }
         }
     }
 
     private fun setupRecyclerView() {
         colorsAdapter = ColorsAdapter(Constants.colorList, { color ->
+            viewModel.ensureBackgroundElement(
+                requireActivity(),
+                viewModel.canvasSize.value!!.width,
+                viewModel.canvasSize.value!!.height
+            )
             viewModel.setCanvasBackgroundColor(color.colorCode.toColorInt())
         }, {
+            viewModel.ensureBackgroundElement(
+                requireActivity(),
+                viewModel.canvasSize.value!!.width,
+                viewModel.canvasSize.value!!.height
+            )
             viewModel.setCanvasBackgroundColor(android.R.color.transparent)
         }, {
             viewModel.startPicking(PickerTarget.COLOR_PICKER_BACKGROUND)
@@ -80,13 +93,19 @@ class ColorsListFragment : Fragment() {
         gradientsAdapter = GradientsAdapter(
             gradientList = emptyList(),
             onGradientSelected = { _, gradient ->
+                viewModel.ensureBackgroundElement(
+                    requireActivity(),
+                    viewModel.canvasSize.value!!.width,
+                    viewModel.canvasSize.value!!.height
+                )
                 viewModel.setCanvasGradient(gradient)
             },
             onNoneSelected = {
-                viewModel.removeCanvasBackgroundImage()
+                viewModel.removeCanvasGradient()
             },
             onGradientEditSelected = { _, item ->
                 viewModel.setGradient(item)
+                viewModel.startPickingGradient(GradientPickerTarget.BACKGROUND)
                 childFragmentManager
                     .beginTransaction()
                     .replace(R.id.fillStroke, GradientEditorFragment().apply {
@@ -97,6 +116,7 @@ class ColorsListFragment : Fragment() {
                     .commit()
             },
             onGradientPickerClicked = {
+                viewModel.startPickingGradient(GradientPickerTarget.BACKGROUND)
                 childFragmentManager
                     .beginTransaction()
                     .replace(R.id.fillStroke, GradientEditorFragment().apply {
@@ -187,6 +207,7 @@ class ColorsListFragment : Fragment() {
     override fun onPause() {
         super.onPause()
         viewModel.stopPicking()
+        viewModel.stopPickingGradient()
     }
 
     companion object {

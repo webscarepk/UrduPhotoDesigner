@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.SeekBar
 import androidx.core.graphics.toColorInt
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -62,12 +61,6 @@ class GradientColorListFragment : Fragment() {
             adapter = colorsAdapter
         }
 
-        binding.back.setOnClickListener {
-            parentFragment
-                ?.childFragmentManager
-                ?.popBackStack()
-        }
-
         binding.done.setOnClickListener {
             viewModel.updateSelectedStopColor(selectedColor)
             parentFragment
@@ -81,43 +74,13 @@ class GradientColorListFragment : Fragment() {
                 ?.childFragmentManager
                 ?.popBackStack()
         }
-
-        binding.opacity.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(sb: SeekBar, alpha: Int, fromUser: Boolean) {
-                if (fromUser) {
-                    // extract RGB from the original stop color
-                    val rgb = selectedColor and 0x00FFFFFF
-                    binding.opacitySize.text = "$alpha"
-                    // bake new alpha in front of that
-                    selectedColor = bakeAlpha((alpha shl 24) or rgb)
-                }
-            }
-            override fun onStartTrackingTouch(sb: SeekBar) {}
-            override fun onStopTrackingTouch(sb: SeekBar) {}
-        })
     }
 
     private fun initObserver() {
         viewModel.gradientStopColor.observe(viewLifecycleOwner) { color ->
             selectedColor = color
             colorsAdapter.selectedColor = selectedColor
-            val alpha = Color.alpha(selectedColor)
-            binding.opacity.progress = alpha
         }
-    }
-
-    private fun bakeAlpha(srcColor: Int, bgColor: Int = Color.WHITE): Int {
-        val a = Color.alpha(srcColor)
-        val r = Color.red(srcColor)
-        val g = Color.green(srcColor)
-        val b = Color.blue(srcColor)
-        val br = Color.red(bgColor)
-        val bg = Color.green(bgColor)
-        val bb = Color.blue(bgColor)
-        val outR = (r * a + br * (255 - a)) / 255
-        val outG = (g * a + bg * (255 - a)) / 255
-        val outB = (b * a + bb * (255 - a)) / 255
-        return Color.rgb(outR, outG, outB)
     }
 
     override fun onDestroyView() {

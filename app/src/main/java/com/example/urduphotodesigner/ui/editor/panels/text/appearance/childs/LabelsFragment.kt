@@ -14,6 +14,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.canvas.enums.GradientPickerTarget
 import com.example.urduphotodesigner.common.canvas.enums.LabelShape
 import com.example.urduphotodesigner.common.canvas.enums.PickerTarget
 import com.example.urduphotodesigner.common.utils.Constants
@@ -106,6 +107,7 @@ class LabelsFragment : Fragment() {
             },
             onGradientEditSelected = { _, item ->
                 viewModel.setGradient(item)
+                viewModel.startPickingGradient(GradientPickerTarget.TEXT_LABEL)
                 childFragmentManager
                     .beginTransaction()
                     .replace(R.id.labelsFragment, GradientEditorFragment().apply {
@@ -119,6 +121,7 @@ class LabelsFragment : Fragment() {
                viewModel.clearLabelGradients()
             },
             onGradientPickerClicked = {
+                viewModel.startPickingGradient(GradientPickerTarget.TEXT_LABEL)
                 viewModel.setPagingLocked(true)
                 childFragmentManager
                     .beginTransaction()

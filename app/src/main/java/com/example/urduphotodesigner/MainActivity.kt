@@ -14,19 +14,26 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.ViewCompat
-import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
+import com.example.urduphotodesigner.common.canvas.model.CanvasElement
+import com.example.urduphotodesigner.common.utils.LayerImportEngine
 import com.example.urduphotodesigner.databinding.ActivityMainBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
+import com.tom_roush.pdfbox.cos.COSBase
+import com.tom_roush.pdfbox.cos.COSName
+import com.tom_roush.pdfbox.cos.COSObject
+import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.pdmodel.PDPage
+import com.tom_roush.pdfbox.pdmodel.graphics.optionalcontent.PDOptionalContentGroup
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import me.toptas.fancyshowcase.FancyShowCaseView
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
-    private var _binding: ActivityMainBinding?= null
+    private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding!!
 
     private var _navController: NavController? = null
@@ -44,7 +51,7 @@ class MainActivity : AppCompatActivity() {
                 it.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 it.hide(WindowInsets.Type.navigationBars())
             }
-        }else {
+        } else {
             window.decorView.systemUiVisibility =
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         }

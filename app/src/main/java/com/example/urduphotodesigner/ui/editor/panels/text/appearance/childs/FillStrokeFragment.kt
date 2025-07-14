@@ -17,13 +17,14 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.canvas.enums.GradientPickerTarget
 import com.example.urduphotodesigner.common.canvas.enums.PickerTarget
 import com.example.urduphotodesigner.common.utils.Constants
 import com.example.urduphotodesigner.databinding.FragmentFillStrokeBinding
-import com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.gradient.GradientsAdapter
 import com.example.urduphotodesigner.ui.editor.panels.text.appearance.adapters.ColorsAdapter
 import com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment
 import com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment
+import com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.gradient.GradientsAdapter
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -96,7 +97,7 @@ class FillStrokeFragment : Fragment() {
                 .replace(R.id.fillStroke, ColorPickerFragment())
                 .addToBackStack(null)
                 .commit()
-        }, onEyeDropperClicked =  {
+        }, onEyeDropperClicked = {
             viewModel.clearLabelGradients()
             if (currentTab?.lowercase() == "stroke") {
                 viewModel.startPicking(PickerTarget.EYE_DROPPER_TEXT_STROKE)
@@ -120,13 +121,21 @@ class FillStrokeFragment : Fragment() {
                 }
             },
             onGradientEditSelected = { _, item ->
+                when (currentTab?.lowercase()) {
+                    "stroke" -> {
+                        viewModel.startPickingGradient(GradientPickerTarget.TEXT_STROKE)
+                    }
+
+                    else -> viewModel.startPickingGradient(GradientPickerTarget.TEXT_FILL)
+                }
                 viewModel.setGradient(item)
                 childFragmentManager
                     .beginTransaction()
                     .replace(R.id.fillStroke, GradientEditorFragment().apply {
                         arguments = Bundle().apply {
                             putBoolean("IS_EDIT", true)
-                        }})
+                        }
+                    })
                     .addToBackStack(null)
                     .commit()
             },
@@ -140,13 +149,21 @@ class FillStrokeFragment : Fragment() {
                 }
             },
             onGradientPickerClicked = {
+                when (currentTab?.lowercase()) {
+                    "stroke" -> {
+                        viewModel.startPickingGradient(GradientPickerTarget.TEXT_STROKE)
+                    }
+
+                    else -> viewModel.startPickingGradient(GradientPickerTarget.TEXT_FILL)
+                }
                 viewModel.setPagingLocked(true)
                 childFragmentManager
                     .beginTransaction()
                     .replace(R.id.fillStroke, GradientEditorFragment().apply {
                         arguments = Bundle().apply {
                             putBoolean("IS_EDIT", false)
-                        }})
+                        }
+                    })
                     .addToBackStack(null)
                     .commit()
             }
@@ -289,13 +306,17 @@ class FillStrokeFragment : Fragment() {
                 binding.borderCard.visibility = View.VISIBLE
                 binding.borderSize.text = "${viewModel.borderWidth.value!!}"
                 binding.border.progress = viewModel.borderWidth.value?.toInt()!!
-                binding.gradients.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
-                binding.colors.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+                binding.gradients.layoutManager =
+                    LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+                binding.colors.layoutManager =
+                    LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
             }
 
             else -> {
-                binding.gradients.layoutManager = GridLayoutManager(requireContext(), 3, GridLayoutManager.HORIZONTAL, false)
-                binding.colors.layoutManager = GridLayoutManager(requireContext(), 3, GridLayoutManager.HORIZONTAL, false)
+                binding.gradients.layoutManager =
+                    GridLayoutManager(requireContext(), 3, GridLayoutManager.HORIZONTAL, false)
+                binding.colors.layoutManager =
+                    GridLayoutManager(requireContext(), 3, GridLayoutManager.HORIZONTAL, false)
             }
         }
     }

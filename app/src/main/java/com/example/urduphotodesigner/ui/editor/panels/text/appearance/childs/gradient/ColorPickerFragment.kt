@@ -1,7 +1,9 @@
 package com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.gradient
 
+import android.content.ContentValues.TAG
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -20,10 +22,13 @@ class ColorPickerFragment : Fragment() {
     private var currentHue = 0f
     private var tempColor: Int = Color.RED
 
-    // rainbow stops for hue bar
     private val rainbow = intArrayOf(
-        Color.RED, Color.YELLOW, Color.GREEN,
-        Color.CYAN, Color.BLUE, Color.MAGENTA,
+        Color.RED,
+        Color.YELLOW,
+        Color.GREEN,
+        Color.CYAN,
+        Color.BLUE,
+        Color.MAGENTA,
         Color.RED
     )
 
@@ -36,23 +41,25 @@ class ColorPickerFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.back.setOnClickListener { parentFragment?.childFragmentManager?.popBackStack() }
+
+        setEvents()
+    }
+
+    private fun setEvents() {
         setupHueBar()
         setupAlphaBar()
-        val hueBar   = binding.seekbarHue
+        val hueBar = binding.seekbarHue
         val alphaBar = binding.seekbarAlpha
 
-        val initialHue   = (hueBar.progress   * hueBar.max).roundToInt()
+        val initialHue = (hueBar.progress * hueBar.max).roundToInt()
         val initialAlpha = (alphaBar.progress * alphaBar.max).roundToInt()
 
-        hueBar.onProgressChanged  ?.invoke(initialHue)
+        hueBar.onProgressChanged?.invoke(initialHue)
         alphaBar.onProgressChanged?.invoke(initialAlpha)
-        binding.back.setOnClickListener {
-            viewModel.stopPicking()
-            parentFragment?.childFragmentManager?.popBackStack()
-        }
+
         binding.done.setOnClickListener {
             viewModel.finishPicking(tempColor)
+            viewModel.stopPicking()
             parentFragment?.childFragmentManager?.popBackStack()
         }
     }
@@ -65,14 +72,14 @@ class ColorPickerFragment : Fragment() {
             onProgressChanged = { hueDeg ->
                 currentHue = hueDeg.toFloat()
 
+                Log.d(TAG, "setupHueBar: $currentHue")
                 val opaque = Color.HSVToColor(floatArrayOf(currentHue, 1f, 1f))
                 val rawTransparent = opaque and 0x00FFFFFF
                 val bakedTransparent = bakeAlpha(rawTransparent)
                 binding.seekbarAlpha.setGradient(intArrayOf(bakedTransparent, opaque))
 
-                val alphaInt = binding.seekbarAlpha.progress.toInt() * binding.seekbarAlpha.max
                 binding.seekbarAlpha.progress = binding.seekbarAlpha.progress
-                tempColor = bakeAlpha((alphaInt shl 24) or (opaque and 0x00FFFFFF))
+                applyPickedColor()
             }
         }
     }
@@ -86,11 +93,21 @@ class ColorPickerFragment : Fragment() {
 
             setGradient(intArrayOf(bakedTransparent, opaque))
             progress = max.toFloat()
-            onProgressChanged = { alphaVal ->
-                val hsvRgb = Color.HSVToColor(floatArrayOf(currentHue, 1f, 1f)) and 0x00FFFFFF
-                tempColor = bakeAlpha((alphaVal shl 24) or hsvRgb)
+            onProgressChanged = {
+                applyPickedColor()
             }
         }
+    }
+
+    private fun applyPickedColor() {
+        val alphaFraction = binding.seekbarAlpha.progress
+        val alpha = (alphaFraction * 255f).roundToInt()
+        val hsv = floatArrayOf(currentHue, 1f, 1f)
+        val rawColor = Color.HSVToColor(alpha, hsv)
+        val opaqueBaked = bakeAlpha(rawColor, Color.WHITE)
+
+        tempColor = opaqueBaked
+        viewModel.finishPicking(opaqueBaked)
     }
 
     /** Composite srcColor onto white background. */

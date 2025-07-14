@@ -10,6 +10,7 @@
         android:layout_height="wrap_content"
         android:text="@string/all"
         android:textColor="@color/black"
+        android:fontFamily="@font/regular"
         android:textSize="@dimen/_10sdp"
         android:paddingVertical="@dimen/_5sdp"
         android:paddingHorizontal="@dimen/_10sdp"

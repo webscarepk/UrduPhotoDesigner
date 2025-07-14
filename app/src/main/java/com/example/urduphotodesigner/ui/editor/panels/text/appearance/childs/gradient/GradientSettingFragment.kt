@@ -103,21 +103,7 @@ class GradientSettingFragment : Fragment() {
     }
 
     private fun setEvents() {
-        binding.back.setOnClickListener {
-            parentFragment
-                ?.childFragmentManager
-                ?.popBackStack()
-        }
-
         binding.done.setOnClickListener {
-            viewModel.updateGradient(
-                pendingScale,
-                pendingAngle,
-                pendingSweepAngle,
-                pendingRadius,
-                pendingX,
-                pendingY,
-            )
             parentFragment?.childFragmentManager?.popBackStack()
         }
 
@@ -126,6 +112,7 @@ class GradientSettingFragment : Fragment() {
                 if (fromUser) {
                     pendingScale = progress / 100f
                     binding.scaleSize.text = String.format("%.2f", pendingScale)
+                    updateGradient()
                 }
             }
 
@@ -138,6 +125,7 @@ class GradientSettingFragment : Fragment() {
                 if (fromUser) {
                     pendingAngle = progress.toFloat()
                     binding.angleSize.text = "${progress}°"
+                    updateGradient()
                 }
             }
 
@@ -150,6 +138,7 @@ class GradientSettingFragment : Fragment() {
                 if (fromUser) {
                     pendingSweepAngle = progress.toFloat()
                     binding.sweepAngleSize.text = "${progress}°"
+                    updateGradient()
                 }
             }
 
@@ -162,6 +151,7 @@ class GradientSettingFragment : Fragment() {
                 if (fromUser) {
                     pendingRadius = progress / 100f
                     binding.radiusSize.text = String.format("%.2f", pendingRadius)
+                    updateGradient()
                 }
             }
 
@@ -174,6 +164,7 @@ class GradientSettingFragment : Fragment() {
                 if (fromUser) {
                     pendingX = progress / 100f
                     binding.shadowXSize.text = String.format("%.2f", pendingX)
+                    updateGradient()
                 }
             }
 
@@ -186,6 +177,7 @@ class GradientSettingFragment : Fragment() {
                 if (fromUser) {
                     pendingY = progress / 100f
                     binding.shadowYSize.text = String.format("%.2f", pendingY)
+                    updateGradient()
                 }
             }
 
@@ -193,6 +185,17 @@ class GradientSettingFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
+    }
+
+    private fun updateGradient(){
+        viewModel.updateGradient(
+            pendingScale,
+            pendingAngle,
+            pendingSweepAngle,
+            pendingRadius,
+            pendingX,
+            pendingY,
+        )
     }
 
     override fun onDestroy() {

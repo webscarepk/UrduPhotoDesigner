@@ -140,6 +140,7 @@ class EditorFragment : Fragment() {
 
         canvasSize = arguments?.getSerializable("canvas_size") as CanvasSize
         currentUnit = (arguments?.getSerializable("unit_type") as? UnitType)!!
+        viewModel.setCanvasSize(canvasSize)
 
         setEvents()
         observeViewModel()
@@ -362,11 +363,6 @@ class EditorFragment : Fragment() {
                 }
             },
             onElementChanged = { canvasElement ->
-                viewModel.ensureBackgroundElement(
-                    requireActivity(),
-                    canvasSize.width,
-                    canvasSize.height
-                )
                 viewModel.canvasElements.value?.find { it.id == canvasElement.id }?.let {
                     viewModel.updateElement(canvasElement)
                 }
@@ -387,6 +383,7 @@ class EditorFragment : Fragment() {
             onColorPicked = { colorInt ->
                 val opaque = (colorInt and 0x00FFFFFF) or (0xFF shl 24)
                 viewModel.finishPicking(opaque)
+                viewModel.stopPicking()
             }
         ).apply {
             binding.canvasContainer.addView(this)

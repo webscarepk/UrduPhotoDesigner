@@ -118,4 +118,7 @@ dependencies {
     //FancyToolTips
     implementation (libs.fancyshowcase)
 
+    //PDF Box
+    implementation (libs.pdfbox.android)
+
 }

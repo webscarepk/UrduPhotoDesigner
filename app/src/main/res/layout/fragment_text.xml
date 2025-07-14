@@ -54,7 +54,7 @@
         app:tabGravity="fill"
         app:tabSelectedTextColor="@color/appColor"
         app:tabTextColor="@color/black"
-        app:tabRippleColor="@color/appColor"
+        app:tabRippleColor="@android:color/transparent"
         app:layout_constraintStart_toEndOf="@id/centerGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/topGuide"/>

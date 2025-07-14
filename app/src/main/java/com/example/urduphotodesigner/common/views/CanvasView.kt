@@ -1128,12 +1128,12 @@ class CanvasView @JvmOverloads constructor(
                             combinedBounds.top - localSpacePadding
                         )
                         // Resize icon (bottom-left)
-                        iconMap["resize"] = Pair(
+                        iconMap["rotate"] = Pair(
                             combinedBounds.left - localSpacePadding,
                             combinedBounds.bottom + localSpacePadding
                         )
                         // Rotate icon (bottom-right)
-                        iconMap["rotate"] = Pair(
+                        iconMap["resize"] = Pair(
                             combinedBounds.right + localSpacePadding,
                             combinedBounds.bottom + localSpacePadding
                         )
@@ -1280,10 +1280,9 @@ class CanvasView @JvmOverloads constructor(
 
 
             canvas.save()
-            canvas.clipRect(0f, 0f, w, h)
             canvas.translate(left, top)
-            canvas.rotate(e.rotation, bmp.width / 2f, bmp.height / 2f)
             canvas.scale(totalScale, totalScale)
+            canvas.rotate(e.rotation, bmp.width / 2f, bmp.height / 2f)
             canvas.drawBitmap(bmp, 0f, 0f, backgroundPaint)
             canvas.restore()
             return
@@ -1297,10 +1296,9 @@ class CanvasView @JvmOverloads constructor(
         // 2) else if there's a gradient -> stretch it across the full canvas
         e.fillGradient?.let { grad ->
             canvas.save()
-            canvas.clipRect(0f, 0f, w, h)
             canvas.translate(left, top)
-            canvas.rotate(e.rotation, pivotX, pivotY)
             canvas.scale(e.scale, e.scale, pivotX, pivotY)
+            canvas.rotate(e.rotation, pivotX, pivotY)
 
             backgroundPaint.shader = createBackgroundGradientShader(grad, w, h)
             canvas.drawRect(0f, 0f, w, h, backgroundPaint)
@@ -1311,10 +1309,9 @@ class CanvasView @JvmOverloads constructor(
 
         // 3) else -> solid color
         canvas.save()
-        canvas.clipRect(0f, 0f, w, h)
         canvas.translate(left, top)
-        canvas.rotate(e.rotation, pivotX, pivotY)
         canvas.scale(e.scale, e.scale, pivotX, pivotY)
+        canvas.rotate(e.rotation, pivotX, pivotY)
 
         backgroundPaint.shader = null
         backgroundPaint.color = e.backgroundColor
@@ -1893,14 +1890,14 @@ class CanvasView @JvmOverloads constructor(
                             combinedBounds.top - localSpacePadding + adjustedIconHitSize / 2f
                         )
                         // Resize icon (bottom-left of combined bounds)
-                        globalIconRegions["resize"] = RectF(
+                        globalIconRegions["rotate"] = RectF(
                             combinedBounds.left - localSpacePadding - adjustedIconHitSize / 2f,
                             combinedBounds.bottom + localSpacePadding - adjustedIconHitSize / 2f,
                             combinedBounds.left - localSpacePadding + adjustedIconHitSize / 2f,
                             combinedBounds.bottom + localSpacePadding + adjustedIconHitSize / 2f
                         )
                         // Rotate icon (bottom-right of combined bounds)
-                        globalIconRegions["rotate"] = RectF(
+                        globalIconRegions["resize"] = RectF(
                             combinedBounds.right + localSpacePadding - adjustedIconHitSize / 2f,
                             combinedBounds.bottom + localSpacePadding - adjustedIconHitSize / 2f,
                             combinedBounds.right + localSpacePadding + adjustedIconHitSize / 2f,

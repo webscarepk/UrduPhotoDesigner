@@ -15,6 +15,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.enums.BlendType
 import com.example.urduphotodesigner.common.canvas.enums.ElementType
+import com.example.urduphotodesigner.common.canvas.enums.GradientPickerTarget
 import com.example.urduphotodesigner.common.canvas.enums.GradientType
 import com.example.urduphotodesigner.common.canvas.enums.LabelShape
 import com.example.urduphotodesigner.common.canvas.enums.LetterCasing
@@ -65,6 +66,9 @@ class CanvasViewModel @Inject constructor(
 
     private val _activePicker = MutableLiveData<PickerTarget?>(null)
     val activePicker: LiveData<PickerTarget?> = _activePicker
+
+    private val _activeGradientPicker = MutableLiveData<GradientPickerTarget?>(null)
+    val activeGradientPicker: LiveData<GradientPickerTarget?> = _activeGradientPicker
 
     private val _localFonts = MutableStateFlow<List<FontEntity>>(emptyList())
     private val localFonts: StateFlow<List<FontEntity>> = _localFonts.asStateFlow()
@@ -508,6 +512,18 @@ class CanvasViewModel @Inject constructor(
         _activePicker.value = null
     }
 
+    fun startPickingGradient(slot: GradientPickerTarget) {
+        if (_activeGradientPicker.value == null) {
+            _activeGradientPicker.value = slot
+        } else {
+            _activeGradientPicker.value = null
+        }
+    }
+
+    fun stopPickingGradient() {
+        _activeGradientPicker.value = null
+    }
+
     /** Call this when the CanvasView fires “I just picked this color: 0xAARRGGBB” */
     fun finishPicking(color: Int) {
         when (_activePicker.value) {
@@ -541,7 +557,16 @@ class CanvasViewModel @Inject constructor(
             null -> { /* nothing to do */
             }
         }
-        _activePicker.value = null
+    }
+
+    fun finishPickingGradient(gradientItem: GradientItem?){
+        when (_activeGradientPicker.value){
+            GradientPickerTarget.TEXT_FILL -> if (gradientItem!=null) setTextFillGradient(gradientItem) else clearFillGradients()
+            GradientPickerTarget.TEXT_STROKE -> if (gradientItem!=null) setTextStrokeGradient(gradientItem, _borderWidth.value ?: 1f) else clearStrokeGradients()
+            GradientPickerTarget.TEXT_LABEL -> if (gradientItem!=null) setTextLabelGradient(true, _labelShape.value ?: LabelShape.RECTANGLE_FILL, gradientItem) else clearLabelGradients()
+            GradientPickerTarget.BACKGROUND -> if (gradientItem!=null) setCanvasGradient(gradientItem) else removeCanvasGradient()
+            null -> {}
+        }
     }
 
     fun setLineSpacing(spacing: Float) {
@@ -1079,7 +1104,7 @@ class CanvasViewModel @Inject constructor(
             syncUiFormattingWithSelectedTextElement(firstText)
             _currentImageFilter.value = null
         } else {
-            resetTextFormattingToDefault()
+            syncUiFormattingWithSelectedTextElement(firstImage)
             _currentImageFilter.value = firstImage?.imageFilter
         }
     }
@@ -1273,10 +1298,8 @@ class CanvasViewModel @Inject constructor(
 
     fun removeCanvasGradient() {
         val previous = _backgroundGradient.value
-        // Only push if there is something to remove
         if (previous != null) {
-            // push a “remove” by setting gradient back to some default (or null, if you allow it)
-            val defaultGradient = GradientItem()  // or however you define “no gradient”
+            val defaultGradient = GradientItem()
             _canvasActions.push(CanvasAction.SetBackgroundGradient(defaultGradient, previous))
             _redoStack.clear()
             _backgroundGradient.value = defaultGradient
