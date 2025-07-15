@@ -53,7 +53,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun loadTemplate() {
-        val assetStream = requireActivity().assets.open("template.pdf")
+        val assetStream = requireActivity().assets.open("artboard.pdf")
         val document = PDDocument.load(assetStream).apply { assetStream.close() }
 
         // Grab the OCProperties (layers) from the catalog

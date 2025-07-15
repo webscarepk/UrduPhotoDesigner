@@ -62,8 +62,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@id/done"
         app:layout_constraintBottom_toBottomOf="@id/done"
-        android:textColor="@color/black"
-        android:paddingHorizontal="@dimen/_5sdp"/>
+        android:textColor="@color/black"/>
 
     <androidx.cardview.widget.CardView
         android:id="@+id/previewCard"

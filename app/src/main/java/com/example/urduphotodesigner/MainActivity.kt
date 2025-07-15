@@ -17,16 +17,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
-import com.example.urduphotodesigner.common.canvas.model.CanvasElement
-import com.example.urduphotodesigner.common.utils.LayerImportEngine
 import com.example.urduphotodesigner.databinding.ActivityMainBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
-import com.tom_roush.pdfbox.cos.COSBase
-import com.tom_roush.pdfbox.cos.COSName
-import com.tom_roush.pdfbox.cos.COSObject
-import com.tom_roush.pdfbox.pdmodel.PDDocument
-import com.tom_roush.pdfbox.pdmodel.PDPage
-import com.tom_roush.pdfbox.pdmodel.graphics.optionalcontent.PDOptionalContentGroup
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import me.toptas.fancyshowcase.FancyShowCaseView

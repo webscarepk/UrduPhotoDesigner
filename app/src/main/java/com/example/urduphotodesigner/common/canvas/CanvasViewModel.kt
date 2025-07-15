@@ -191,6 +191,13 @@ class CanvasViewModel @Inject constructor(
     private val _listStyle = MutableLiveData<ListStyle>(ListStyle.NONE)
     val listStyle: LiveData<ListStyle> = _listStyle
 
+    private val _groupId = MutableLiveData<String?>()
+    val groupId: LiveData<String?> = _groupId
+
+    // Track the selected group ID for grouping operations
+    private val _currentGroupId = MutableLiveData<String?>()
+    val currentGroupId: LiveData<String?> = _currentGroupId
+
     private var selectedElement: CanvasElement? = null
     private var currentBatchAction: BatchedCanvasAction? = null
     private var _isExplicitChange = false
@@ -307,16 +314,6 @@ class CanvasViewModel @Inject constructor(
         )
     }
 
-    /** For sweep gradients: rotate the start‐angle */
-    fun setSweepStartAngle(deg: Float) {
-        _gradient.value = _gradient.value?.withSweepStart(deg)
-    }
-
-    /** For radial gradients: move the center point (normalized 0f…1f) */
-    fun setRadialCenter(xNorm: Float, yNorm: Float) {
-        _gradient.value = _gradient.value?.withRadialCenter(xNorm, yNorm)
-    }
-
     /** Call when the user taps on an empty spot and you want to add a stop */
     fun addStop(position: Float, sampledColor: Int) {
         val item = _gradient.value ?: return
@@ -353,39 +350,11 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
-    /** Adjust gradient angle (in degrees) */
-    fun setAngle(deg: Float) {
-        val item = _gradient.value ?: return
-        _gradient.value = item.copy(angle = deg)
-    }
-
-    /** Adjust overall scale (0…1+) */
-    fun setScale(scale: Float) {
-        val item = _gradient.value ?: return
-        _gradient.value = item.copy(scale = scale)
-    }
 
     /** Switch between LINEAR / RADIAL / SWEEP */
     fun setType(type: GradientType) {
         val item = _gradient.value ?: return
         _gradient.value = item.copy(type = type)
-    }
-
-    /** Adjust the list of colors & their relative positions */
-    fun setStops(colors: List<Int>, positions: List<Float>) {
-        require(colors.size == positions.size) {
-            "colors and positions must have the same length"
-        }
-        val item = _gradient.value ?: return
-        _gradient.value = item.copy(
-            colors = colors, positions = positions
-        )
-    }
-
-    /** Adjust the radial radius factor (0…1) */
-    fun setRadialRadiusFactor(factor: Float) {
-        val item = _gradient.value ?: return
-        _gradient.value = item.copy(radialRadiusFactor = factor.coerceIn(0f, 1f))
     }
 
     fun updateGradient(
@@ -406,10 +375,85 @@ class CanvasViewModel @Inject constructor(
         )
     }
 
-    /** Toggle whether this gradient is selected (e.g. in a list) */
-    fun setSelected(selected: Boolean) {
-        val item = _gradient.value ?: return
-        _gradient.value = item.copy(isSelected = selected)
+    fun selectElementForGrouping() {
+        if (_selectedElements.value?.isNotEmpty() == true) {
+            // Create a new group ID
+            val newGroupId = UUID.randomUUID().toString()
+            _currentGroupId.value = newGroupId
+
+            // Update the groupId of selected elements
+            _selectedElements.value?.forEach { element ->
+                element.groupId = newGroupId
+            }
+
+            // Notify observer to update the canvas
+            _canvasElements.value = _canvasElements.value
+            // After updating the groupId, refresh the canvas view with the updated list of elements.
+        }
+    }
+
+    fun moveGroupedElements(dx: Float, dy: Float) {
+        // Move all elements that share the same groupId
+        _canvasElements.value = _canvasElements.value?.map { element ->
+            if (element.groupId == _currentGroupId.value) {
+                element.copy(
+                    x = element.x + dx,
+                    y = element.y + dy
+                )
+            } else {
+                element
+            }
+        }
+        // Notify observers to sync the updated canvas
+    }
+
+    fun ungroupElements() {
+        // Remove the group ID and reset selected elements
+        _canvasElements.value = _canvasElements.value?.map { element ->
+            if (element.groupId == _currentGroupId.value) {
+                element.copy(groupId = null)
+            } else {
+                element
+            }
+        }
+        // Reset selection and clear the group ID
+        _currentGroupId.value = null
+        _selectedElements.value = emptyList()
+        // Notify observer to update the canvas
+    }
+
+    fun syncElements(updatedElements: List<CanvasElement>) {
+        _canvasElements.value = updatedElements
+    }
+
+    // Handle updates when selecting elements (for example, during dragging or selection)
+    fun selectElement(element: CanvasElement) {
+        val currentSelection = _selectedElements.value?.toMutableList() ?: mutableListOf()
+        if (!currentSelection.contains(element)) {
+            currentSelection.add(element)
+            _selectedElements.value = currentSelection
+        }
+    }
+
+    // Optionally, handle additional canvas operations like resizing, rotating, etc.
+    fun scaleGroupedElements(scaleFactor: Float) {
+        _canvasElements.value = _canvasElements.value?.map { element ->
+            if (element.groupId == _currentGroupId.value) {
+                element.copy(scale = element.scale * scaleFactor)
+            } else {
+                element
+            }
+        }
+    }
+
+    fun rotateGroupedElements(degrees: Float) {
+        _canvasElements.value = _canvasElements.value?.map { element ->
+            if (element.groupId == _currentGroupId.value) {
+                element.copy(rotation = element.rotation + degrees)
+            } else {
+                element
+            }
+        }
     }
 
     private fun insertAt(
@@ -1309,6 +1353,9 @@ class CanvasViewModel @Inject constructor(
 
 
     fun addSticker(bitmap: Bitmap?, context: Context) {
+        val currentList = _canvasElements.value ?: emptyList()
+        val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
+
         val element = CanvasElement(
             context = context,
             type = ElementType.IMAGE,
@@ -1316,7 +1363,8 @@ class CanvasViewModel @Inject constructor(
             bitmapData = bitmap?.let { encodeBitmapToBase64(it) }, // Encode bitmap to Base64
             x = 150f,
             y = 150f,
-            paintAlpha = 255 // Ensure initial opacity is set for serialization
+            paintAlpha = 255,
+            zIndex = newZIndex
         )
         // Ensure paint properties are set correctly after construction (including context)
         element.updatePaintProperties()
@@ -1329,7 +1377,6 @@ class CanvasViewModel @Inject constructor(
             )
         ) // Push a copy for undo, without transient data
         _redoStack.clear()
-        val currentList = _canvasElements.value ?: emptyList()
         _canvasElements.value = currentList + element
         notifyUndoRedoChanged()
     }
@@ -1359,6 +1406,9 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun addText(text: String, context: Context) {
+        val currentList = _canvasElements.value ?: emptyList()
+        val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
+
         val element = CanvasElement(
             context = context,
             type = ElementType.TEXT,
@@ -1369,19 +1419,18 @@ class CanvasViewModel @Inject constructor(
             paintTextSize = 40f,
             alignment = TextAlignment.CENTER,
             paintAlpha = 255,
-            fontId = null // Default font ID
+            fontId = null,
+            zIndex = newZIndex
         )
-        // Ensure paint properties are set correctly after construction (including context)
+
         element.updatePaintProperties()
-        // If a default font is desired on add, set it here.
-        // For now, it will default to R.font.regular in CanvasElement's init if context is present.
 
         val action = CanvasAction.AddText(
             text, element.copy(context = null, bitmap = null)
         ) // Push a copy for undo, without transient data
         _canvasActions.push(action)
         _redoStack.clear()
-        _canvasElements.value = (_canvasElements.value ?: emptyList()) + element
+        _canvasElements.value = currentList + element
         selectedElement = element
         notifyUndoRedoChanged()
     }

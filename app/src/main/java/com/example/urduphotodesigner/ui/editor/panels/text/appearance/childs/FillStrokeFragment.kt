@@ -129,6 +129,7 @@ class FillStrokeFragment : Fragment() {
                     else -> viewModel.startPickingGradient(GradientPickerTarget.TEXT_FILL)
                 }
                 viewModel.setGradient(item)
+                viewModel.setPagingLocked(true)
                 childFragmentManager
                     .beginTransaction()
                     .replace(R.id.fillStroke, GradientEditorFragment().apply {

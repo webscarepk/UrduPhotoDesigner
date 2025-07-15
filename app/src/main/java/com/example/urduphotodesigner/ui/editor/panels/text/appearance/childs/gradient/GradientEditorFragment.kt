@@ -50,6 +50,9 @@ class GradientEditorFragment : Fragment() {
     private fun initObservers() {
         viewModel.gradient.observe(viewLifecycleOwner) { gradient ->
             binding.gradientBar.gradientItem = gradient
+            binding.gradientBar.post {
+                binding.gradientBar.invalidateShader()
+            }
             viewModel.finishPickingGradient(gradient)
             binding.preview.doOnLayout {
                 val w = it.width

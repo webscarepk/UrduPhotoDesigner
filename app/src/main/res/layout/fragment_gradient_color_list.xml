@@ -14,6 +14,7 @@
         android:src="@drawable/ic_delete"
         android:padding="@dimen/_5sdp"
         android:id="@+id/delete"
+        android:layout_marginEnd="@dimen/_5sdp"
         app:layout_constraintEnd_toStartOf="@id/done"
         app:layout_constraintTop_toTopOf="parent"/>
 

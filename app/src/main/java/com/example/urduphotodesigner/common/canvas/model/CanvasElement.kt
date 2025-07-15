@@ -31,6 +31,7 @@ data class CanvasElement(
     @Transient var bitmap: Bitmap? = null,
     // Add bitmapData to store the Base64 encoded string of the bitmap for serialization
     var bitmapData: String? = null,
+    var groupId: String? = null,
     var imageFilter: ImageFilter? = null,
     var x: Float = 0f,
     var y: Float = 0f,

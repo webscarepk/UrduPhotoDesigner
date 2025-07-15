@@ -116,7 +116,7 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private val canvasElements = mutableListOf<CanvasElement>()
-    private lateinit var backgroundElement : CanvasElement
+    private lateinit var backgroundElement: CanvasElement
 
     private var touchStartX = 0f
     private var touchStartY = 0f
@@ -261,9 +261,9 @@ class CanvasView @JvmOverloads constructor(
                 if (elem.type == ElementType.BACKGROUND && elem.bitmap != null) {
                     val (xRange, _) = computeBackgroundPanBounds(elem)
                     val targetX = when (align) {
-                        HAlign.LEFT   -> xRange.start
+                        HAlign.LEFT -> xRange.start
                         HAlign.CENTER -> canvasWidth / 2f
-                        HAlign.RIGHT  -> xRange.endInclusive
+                        HAlign.RIGHT -> xRange.endInclusive
                     }
                     elem.x = targetX.coerceIn(xRange.start, xRange.endInclusive)
                     onElementChanged?.invoke(elem)
@@ -274,9 +274,9 @@ class CanvasView @JvmOverloads constructor(
                 // --- your existing logic for non-background elements ---
                 val halfW = elem.getLocalContentWidth() * elem.scale / 2f
                 val rawX = when (align) {
-                    HAlign.LEFT   -> halfW
+                    HAlign.LEFT -> halfW
                     HAlign.CENTER -> canvasWidth / 2f
-                    HAlign.RIGHT  -> canvasWidth - halfW
+                    HAlign.RIGHT -> canvasWidth - halfW
                 }
                 elem.x = rawX.coerceIn(halfW, canvasWidth - halfW)
                 onElementChanged?.invoke(elem)
@@ -339,7 +339,7 @@ class CanvasView @JvmOverloads constructor(
                     // special case background
                     val (_, yRange) = computeBackgroundPanBounds(elem)
                     val targetY = when (align) {
-                        VAlign.TOP    -> yRange.start
+                        VAlign.TOP -> yRange.start
                         VAlign.MIDDLE -> canvasHeight / 2f
                         VAlign.BOTTOM -> yRange.endInclusive
                     }
@@ -1114,7 +1114,7 @@ class CanvasView @JvmOverloads constructor(
                 )
 
                 // Draw icons if elements are selected and not locked
-                if (selectedElements.any { !it.isLocked}) { // Draw icons if at least one selected element is not locked
+                if (selectedElements.any { !it.isLocked }) { // Draw icons if at least one selected element is not locked
                     val localIconDrawWidth = desiredIconScreenSizePx / scale
                     val localIconDrawHeight = desiredIconScreenSizePx / scale
 
@@ -1252,13 +1252,13 @@ class CanvasView @JvmOverloads constructor(
             val sh = bmp.height * totalScale
 
             if (!allowFreeDrag) {
-                val theta    = Math.toRadians(e.rotation.toDouble())
+                val theta = Math.toRadians(e.rotation.toDouble())
                 val cosA = abs(cos(theta))
                 val sinA = abs(sin(theta))
 
                 // half-width/height of the axis-aligned box after rotation
-                val halfW = (sw/2) * cosA + (sh/2) * sinA
-                val halfH = (sw/2) * sinA + (sh/2) * cosA
+                val halfW = (sw / 2) * cosA + (sh / 2) * sinA
+                val halfH = (sw / 2) * sinA + (sh / 2) * cosA
 
                 // valid center range so that the rotated box stays fully on-canvas
                 val xMin = halfW
@@ -1289,7 +1289,7 @@ class CanvasView @JvmOverloads constructor(
         }
 
         val left = e.x - w / 2f
-        val top  = e.y - h / 2f
+        val top = e.y - h / 2f
         val pivotX = w / 2f
         val pivotY = h / 2f
 
@@ -1626,7 +1626,7 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
-    private fun drawWithBlend(element: CanvasElement) : Xfermode{
+    private fun drawWithBlend(element: CanvasElement): Xfermode {
         val fillPaint = Paint()
         when (element.blendType) {
             BlendType.MULTIPLY -> fillPaint.xfermode =
@@ -1806,6 +1806,29 @@ class CanvasView @JvmOverloads constructor(
     }
 
 
+    /**
+     * Check if the touch is on the given element.
+     */
+    private fun isTouchOnElement(element: CanvasElement, touchX: Float, touchY: Float): Boolean {
+        val elementBounds = getElementBounds(element)
+        return elementBounds.contains(touchX, touchY)
+    }
+
+    /**
+     * Get the bounds of the element.
+     * Assuming the element has `x`, `y`, and `scale` attributes for position and size.
+     */
+    private fun getElementBounds(element: CanvasElement): RectF {
+        val width = element.getLocalContentWidth() * element.scale
+        val height = element.getLocalContentHeight() * element.scale
+        return RectF(
+            element.x - width / 2,
+            element.y - height / 2,
+            element.x + width / 2,
+            element.y + height / 2
+        )
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         gestureDetector.onTouchEvent(event)
@@ -1875,6 +1898,13 @@ class CanvasView @JvmOverloads constructor(
                 // 1. Check for icon touch (regardless of single or multi-selection, based on combined bounds)
                 if (selectedElements.isNotEmpty()) {
                     val combinedBounds = getCombinedSelectedBounds()
+                    if (selectedElements.size > 1 && combinedBounds.contains(x, y)) {
+                        // Start dragging the group of selected elements
+                        currentMode = Mode.DRAG
+                        touchStartX = x
+                        touchStartY = y
+                        return true
+                    }
                     val localSpacePadding = 10f / scale // Use the same padding as drawing
                     val adjustedIconHitSize = desiredIconScreenSizePx / scale * 1.5f
 
@@ -2015,23 +2045,41 @@ class CanvasView @JvmOverloads constructor(
                         }
 
                 if (touchedElement != null) {
-                    if (touchedElement.isSelected) {
-                        // If an already selected element is tapped, assume user wants to drag the group
-                        // Do NOT deselect others.
-                        lastTouchedElement = touchedElement // Set the one that initiated the drag
-                        currentMode = Mode.DRAG
-                        touchStartX = x
-                        touchStartY = y
+                    if (touchedElement.groupId != null) {
+                        // Select all elements in the same group
+                        val groupMembers =
+                            canvasElements.filter { it.groupId == touchedElement.groupId }
+                        // Clear any previously selected elements
+                        canvasElements.forEach { it.isSelected = false }
+                        selectedElements.clear() // Clear internal selection list
+
+                        // Add all group members to the selection
+                        groupMembers.forEach { element ->
+                            element.isSelected = true
+                            selectedElements.add(element)
+                        }
+                        currentMode = Mode.DRAG // Set to drag mode after selecting the group
                     } else {
-                        // If an unselected element is tapped, deselect all others and select only this one
-                        canvasElements.forEach { it.isSelected = false } // Deselect all
-                        selectedElements.clear() // Clear internal selected list
-                        touchedElement.isSelected = true // Select the new element
-                        selectedElements.add(touchedElement) // Add to internal selected list
-                        lastTouchedElement = touchedElement // Set for drag
-                        currentMode = Mode.DRAG
-                        touchStartX = x
-                        touchStartY = y
+                        if (touchedElement.isSelected) {
+                            // If an already selected element is tapped, assume user wants to drag the group
+                            // Do NOT deselect others.
+                            lastTouchedElement =
+                                touchedElement // Set the one that initiated the drag
+                            currentMode = Mode.DRAG
+                            touchStartX = x
+                            touchStartY = y
+
+                        } else {
+                            // If an unselected element is tapped, deselect all others and select only this one
+                            canvasElements.forEach { it.isSelected = false } // Deselect all
+                            selectedElements.clear() // Clear internal selected list
+                            touchedElement.isSelected = true // Select the new element
+                            selectedElements.add(touchedElement) // Add to internal selected list
+                            lastTouchedElement = touchedElement // Set for drag
+                            currentMode = Mode.DRAG
+                            touchStartX = x
+                            touchStartY = y
+                        }
                     }
                     onStartBatchUpdate?.invoke(touchedElement.id, "drag")
                     onElementSelected?.invoke(selectedElements)

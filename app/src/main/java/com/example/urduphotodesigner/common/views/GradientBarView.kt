@@ -60,11 +60,6 @@ class GradientBarView @JvmOverloads constructor(
         gradientItem = gradientItem
     }
 
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
-        invalidateShader()
-    }
-
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
@@ -156,13 +151,16 @@ class GradientBarView @JvmOverloads constructor(
                         val max = upper - minSeparation
 
                         val clamped = pos.coerceIn(min, max)
-                        positions[activeHandle] = clamped
-                        gradientItem.positions = positions.toList()
-                        onStopMoved?.invoke(activeHandle, clamped)
-                        invalidateShader()
+                        // Only update if there's a noticeable change (e.g., 0.001f threshold)
+                        if (abs(clamped - positions[activeHandle]) > 0.001f) {
+                            positions[activeHandle] = clamped
+                            gradientItem.positions = positions.toList()
+                            onStopMoved?.invoke(activeHandle, clamped)
+                            invalidateShader()
+                        }
+                        pendingAdd = false
+                        return true
                     }
-                    pendingAdd = false
-                    return true
                 } else if (pendingAdd) {
                     if (abs(rawX - downX) > touchSlop || abs(rawY - downY) > touchSlop) {
                         pendingAdd = false
@@ -177,6 +175,7 @@ class GradientBarView @JvmOverloads constructor(
                         && abs(rawY - downY) <= touchSlop
                     ) {
                         onStopSelected?.invoke(activeHandle)
+                        postInvalidateOnAnimation()
                     }
                 } else if (pendingAdd) {
                     if (abs(rawX - downX) <= touchSlop && abs(rawY - downY) <= touchSlop) {
@@ -200,13 +199,7 @@ class GradientBarView @JvmOverloads constructor(
         return super.onTouchEvent(ev)
     }
 
-    private fun removeHandle(index: Int) {
-        if (colors.size <= 2 || index !in colors.indices) return
-        onStopRemoved?.invoke(index)
-        invalidateShader()
-    }
-
-    private fun invalidateShader() {
+    fun invalidateShader() {
         if (width == 0 || height == 0) return
         val barLeft = barPadding + handleRadius + extraInset
         val barRight = width - barPadding - handleRadius - extraInset
@@ -216,7 +209,7 @@ class GradientBarView @JvmOverloads constructor(
             barRight, cy,
             colors.toIntArray(), positions.toFloatArray(), Shader.TileMode.CLAMP
         )
-        invalidate()
+        postInvalidateOnAnimation()
     }
 
     private fun sampleColorAt(pos: Float): Int {
@@ -230,42 +223,6 @@ class GradientBarView @JvmOverloads constructor(
         val b = lerp(Color.blue(colors[i]), Color.blue(colors[i + 1]))
         return Color.argb(a, r, g, b)
     }
-
-//    private fun invalidateShader() {
-//        if (width == 0 || height == 0) return
-//        val barLeft = barPadding + handleRadius
-//        val barRight = width - barPadding - handleRadius
-//        val extraW = extraInset + handleRadius
-//        val leftEdge = barLeft + extraW
-//        val rightEdge = barRight - extraW
-//        val w = (rightEdge - leftEdge) * gradientItem.scale
-//        val h = (height - 2 * (barPadding + handleRadius)) * gradientItem.scale
-//        val rad = Math.toRadians(gradientItem.angle.toDouble())
-//        val dx = (cos(rad) * w).toFloat()
-//        val dy = (sin(rad) * h).toFloat()
-//        val cx = leftEdge + (w / 2f)
-//        val cy = barPadding + handleRadius + ((height - 2 * (barPadding + handleRadius)) - h) / 2f
-//        fillPaint.shader = LinearGradient(
-//            cx - dx/2, cy - dy/2,
-//            cx + dx/2, cy + dy/2,
-//            colors.toIntArray(), positions.toFloatArray(), Shader.TileMode.CLAMP
-//        )
-//        invalidate()
-//    }
-//
-//    private fun sampleColorAt(pos: Float): Int {
-//        val i = positions.indexOfLast { it <= pos }.coerceAtLeast(0)
-//        if (i == positions.lastIndex) return colors.last()
-//        val start = positions[i]
-//        val end = positions[i + 1]
-//        val t = (pos - start) / (end - start)
-//        fun lerp(a: Int, b: Int) = (a + ((b - a) * t)).toInt()
-//        val a = lerp(Color.alpha(colors[i]), Color.alpha(colors[i + 1]))
-//        val r = lerp(Color.red(colors[i]), Color.red(colors[i + 1]))
-//        val g = lerp(Color.green(colors[i]), Color.green(colors[i + 1]))
-//        val b = lerp(Color.blue(colors[i]), Color.blue(colors[i + 1]))
-//        return Color.argb(a, r, g, b)
-//    }
 
     /**
      * @return true if the color is “dark”, false if it’s “light”
@@ -281,4 +238,11 @@ class GradientBarView @JvmOverloads constructor(
         // threshold at 128 (mid‐point). <128 → dark; ≥128 → light
         return luminance < 128
     }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        setLayerType(LAYER_TYPE_HARDWARE, null)
+        invalidateShader()
+    }
+
 }

@@ -1,17 +1,16 @@
 package com.example.urduphotodesigner.ui.editor.panels.layers
 
 import android.app.AlertDialog
+import android.content.ContentValues.TAG
 import android.os.Bundle
-import android.view.ActionMode
+import android.util.Log
 import android.view.LayoutInflater
-import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.example.urduphotodesigner.R
@@ -53,9 +52,9 @@ class LayersFragment : Fragment() {
 
     private fun setupToolbarInitial() {
         val selected = viewModel.selectedElements.value ?: emptyList()
-        if (selected.size>1) {
+        if (selected.size > 1) {
             enterSelectionMode()
-        }else {
+        } else {
             binding.toolbarLayers.title = getString(R.string.layers)
             binding.toolbarLayers.subtitle = getString(R.string.drag_to_rearrange)
         }
@@ -94,21 +93,32 @@ class LayersFragment : Fragment() {
                 val toPos = target.adapterPosition
                 val currentElements =
                     viewModel.canvasElements.value?.toMutableList() ?: return false
-                if (fromPos !in currentElements.indices || toPos !in currentElements.indices) return false
 
-                val dragged = currentElements[fromPos]
+                // Adjust positions if the list is reversed
+                val adjustedFromPos = currentElements.size - 1 - fromPos
+                val adjustedToPos = currentElements.size - 1 - toPos
+
+                Log.d(TAG, "onMove: from $adjustedFromPos, to $adjustedToPos")
+
+                // Prevent background layer from being moved
+                if (currentElements[adjustedFromPos].type == ElementType.BACKGROUND) return false
+                if (currentElements[adjustedToPos].type == ElementType.BACKGROUND) return false
+
+                if (adjustedFromPos !in currentElements.indices || adjustedToPos !in currentElements.indices) return false
+
+                val dragged = currentElements[adjustedFromPos]
                 val selectedBlock = currentElements.filter { it.isSelected }
                     .sortedBy { currentElements.indexOf(it) }
 
                 return if (selectedBlock.contains(dragged)) {
-                    // move block logic...
+                    // Move block logic...
                     val finalList = mutableListOf<CanvasElement>()
                     val nonSelected = currentElements.filter { !it.isSelected }.toMutableList()
                     val idxInSel = selectedBlock.indexOf(dragged)
-                    var blockStart = toPos - idxInSel
+                    var blockStart = adjustedToPos - idxInSel
                     blockStart = blockStart.coerceIn(0, currentElements.size - selectedBlock.size)
 
-                    var selIdx = 0;
+                    var selIdx = 0
                     var nonIdx = 0
                     for (i in 0 until currentElements.size) {
                         if (i >= blockStart && selIdx < selectedBlock.size) {
@@ -125,9 +135,9 @@ class LayersFragment : Fragment() {
                     viewModel.updateCanvasElementsOrderAndZIndex(finalList)
                     true
                 } else {
-                    // single-element move
-                    val moved = currentElements.removeAt(fromPos)
-                    currentElements.add(toPos, moved)
+                    // Single-element move logic
+                    val moved = currentElements.removeAt(adjustedFromPos)
+                    currentElements.add(adjustedToPos, moved)
                     viewModel.updateCanvasElementsOrderAndZIndex(currentElements)
                     true
                 }
@@ -143,7 +153,7 @@ class LayersFragment : Fragment() {
     private fun observeViewModel() {
         viewModel.canvasElements.observe(viewLifecycleOwner) { elements ->
             CoroutineScope(Dispatchers.IO).launch {
-                val sortedElements = elements.sortedBy { it.zIndex }
+                val sortedElements = elements.sortedBy { it.zIndex }.reversed()
                 withContext(Dispatchers.Main) {
                     adapter.submitList(sortedElements)
                 }
@@ -157,6 +167,7 @@ class LayersFragment : Fragment() {
                 selectedList.isEmpty() && inSelectionMode -> {
                     exitSelectionMode()
                 }
+
                 selectedList.isNotEmpty() -> {
                     if (!inSelectionMode && selectedList.size > 1) {
                         enterSelectionMode()
@@ -191,7 +202,7 @@ class LayersFragment : Fragment() {
                 }
 
                 R.id.action_visibility_toggle_all -> {
-                    viewModel.toggleVisibilityOnSelected()
+                    viewModel.selectElementForGrouping()
                     updateSelectionToolbar()
                     true
                 }
@@ -293,7 +304,7 @@ class LayersFragment : Fragment() {
         inSelectionMode = false
         adapter.setSelectionMode(false)
         clearSelection()
-        if (isAdded){
+        if (isAdded) {
             binding.toolbarLayers.menu.clear()
             binding.toolbarLayers.title = getString(R.string.layers)
             binding.toolbarLayers.subtitle = getString(R.string.drag_to_rearrange)
