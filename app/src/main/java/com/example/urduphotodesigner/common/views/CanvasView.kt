@@ -1805,30 +1805,6 @@ class CanvasView @JvmOverloads constructor(
         onElementSelected?.invoke(selectedElements)
     }
 
-
-    /**
-     * Check if the touch is on the given element.
-     */
-    private fun isTouchOnElement(element: CanvasElement, touchX: Float, touchY: Float): Boolean {
-        val elementBounds = getElementBounds(element)
-        return elementBounds.contains(touchX, touchY)
-    }
-
-    /**
-     * Get the bounds of the element.
-     * Assuming the element has `x`, `y`, and `scale` attributes for position and size.
-     */
-    private fun getElementBounds(element: CanvasElement): RectF {
-        val width = element.getLocalContentWidth() * element.scale
-        val height = element.getLocalContentHeight() * element.scale
-        return RectF(
-            element.x - width / 2,
-            element.y - height / 2,
-            element.x + width / 2,
-            element.y + height / 2
-        )
-    }
-
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         gestureDetector.onTouchEvent(event)
@@ -1973,8 +1949,7 @@ class CanvasView @JvmOverloads constructor(
 
                             "rotate" -> {
                                 currentMode = Mode.ROTATE
-                                touchStartX =
-                                    x // Store the initial touch point for angle calculation
+                                touchStartX = x
                                 touchStartY = y
 
                                 initialElementRotations.clear()

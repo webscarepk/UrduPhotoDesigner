@@ -281,7 +281,7 @@ class EditorFragment : Fragment() {
         updateIconVisibility(binding.blendIcon, anySelected)
         updateIconVisibility(binding.fontSizeIcon, showFont)
         updateIconVisibility(binding.copyIcon, showCopy)
-        updateIconVisibility(binding.alignmentKit, anySelected && !isMulti, animShow = R.anim.slide_in, animHide = R.anim.slide_out)
+        updateIconVisibility(binding.alignmentKit, anySelected, animShow = R.anim.slide_in, animHide = R.anim.slide_out)
     }
 
     private fun updateIconVisibility(
