@@ -53,31 +53,29 @@ class HomeFragment : Fragment() {
     }
 
     private fun loadTemplate() {
-        val assetStream = requireActivity().assets.open("artboard.pdf")
+        val assetStream = requireActivity().assets.open("3.pdf")
         val document = PDDocument.load(assetStream).apply { assetStream.close() }
 
-        // Grab the OCProperties (layers) from the catalog
+        // Build a lookup map if there are any layers; otherwise empty
         val ocProps = document.documentCatalog.ocProperties
-            ?: throw IllegalStateException("This PDF has no layers")
-
-        // Build a lookup map by the COSName key (what BDC/EMC will reference)
         val groupsByRef: Map<COSBase, PDOptionalContentGroup> =
-            ocProps.optionalContentGroups
-                .associateBy { it.cosObject }
+            ocProps
+                ?.optionalContentGroups
+                ?.associateBy { it.cosObject }
+                ?: emptyMap()
 
-        // Collector for all found elements
         val elements = mutableListOf<CanvasElement>()
         val engine = LayerImportEngine(groupsByRef) { elem ->
             elements.add(elem)
-            Log.d(TAG, "loadTemplate: ${elem.type}")
+            Log.d(TAG, "loadTemplate: ${elem.type} @ layer=${elem.id}")
         }
 
-        // Process every page
         document.pages.forEach { page ->
             engine.processPage(page as PDPage)
         }
-
         document.close()
+
+        // now 'elements' has every TEXT and IMAGE, layer IDs may be "default"
     }
 
     override fun onDestroy() {

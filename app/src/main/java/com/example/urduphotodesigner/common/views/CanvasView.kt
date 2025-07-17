@@ -92,6 +92,8 @@ class CanvasView @JvmOverloads constructor(
     private val light = Color.parseColor("#F5F5F5")
     private val dark = Color.parseColor("#DDDDDD")
 
+    private var activeGroupId: String? = null
+
     private val checkerShader: BitmapShader by lazy {
         // create a 2×2 tile
         val bmp = Bitmap.createBitmap(checkerSize * 2, checkerSize * 2, Bitmap.Config.ARGB_8888)
@@ -894,41 +896,6 @@ class CanvasView @JvmOverloads constructor(
 
             canvas.save()
             canvas.clipRect(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat())
-            // Draw alignment guides before elements
-            if (showVerticalGuide) {
-                drawLine(
-                    canvasWidth / 2f, 0f,
-                    canvasWidth / 2f, canvasHeight.toFloat(),
-                    alignmentPaint
-                )
-            }
-
-            if (showHorizontalGuide) {
-                drawLine(
-                    0f, canvasHeight / 2f,
-                    canvasWidth.toFloat(), canvasHeight / 2f,
-                    alignmentPaint
-                )
-            }
-
-            // Draw rotation alignment guides
-            if (showRotationVerticalGuide) {
-                // Draw a vertical line through the center of the canvas
-                drawLine(
-                    canvasWidth / 2f, 0f,
-                    canvasWidth / 2f, canvasHeight.toFloat(),
-                    alignmentPaint
-                )
-            }
-
-            if (showRotationHorizontalGuide) {
-                // Draw a horizontal line through the center of the canvas
-                drawLine(
-                    0f, canvasHeight / 2f,
-                    canvasWidth.toFloat(), canvasHeight / 2f,
-                    alignmentPaint
-                )
-            }
 
             val paint = Paint().apply { shader = checkerShader }
             canvas.drawRect(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat(), paint)
@@ -1229,6 +1196,43 @@ class CanvasView @JvmOverloads constructor(
                     }
                 )
             }
+        }
+
+        canvas.restore()
+
+        if (showVerticalGuide) {
+            canvas.drawLine(
+                width / 2f, 0f,
+                width / 2f, height.toFloat(),
+                alignmentPaint
+            )
+        }
+
+        if (showHorizontalGuide) {
+            canvas.drawLine(
+                0f, height / 2f,
+                width.toFloat(), height / 2f,
+                alignmentPaint
+            )
+        }
+
+        // Draw rotation alignment guides
+        if (showRotationVerticalGuide) {
+            // Draw a vertical line through the center of the canvas
+            canvas.drawLine(
+                width / 2f, 0f,
+                width / 2f, height.toFloat(),
+                alignmentPaint
+            )
+        }
+
+        if (showRotationHorizontalGuide) {
+            // Draw a horizontal line through the center of the canvas
+            canvas.drawLine(
+                0f, height / 2f,
+                width.toFloat(), height / 2f,
+                alignmentPaint
+            )
         }
     }
 
@@ -1748,7 +1752,35 @@ class CanvasView @JvmOverloads constructor(
                         bounds.contains(touchPoint[0], touchPoint[1])
                     }
 
-            if (touchedElement != null && touchedElement.type != ElementType.BACKGROUND) {
+            if (touchedElement != null && currentMode == Mode.GROUP_EDIT
+                && touchedElement.groupId == activeGroupId
+                && touchedElement.type != ElementType.BACKGROUND
+            ) {
+
+                canvasElements.forEach { it.isSelected = false }
+                selectedElements.clear() // Clear internal selected list as well
+                touchedElement.isSelected = true // Select the new element
+                selectedElements.add(touchedElement) // Add to internal selected list
+                onElementSelected?.invoke(selectedElements) // Notify ViewModel of the new single selection
+                onEditTextRequested?.invoke(touchedElement)
+                invalidate()
+                return true
+            }
+            if (touchedElement?.groupId != null) {
+                activeGroupId = touchedElement.groupId
+
+                // select all members of that group
+                canvasElements.forEach {
+                    it.isSelected = (it.groupId == activeGroupId)
+                }
+                selectedElements.clear()
+                selectedElements.addAll(canvasElements.filter { it.isSelected })
+
+                currentMode = Mode.GROUP_EDIT
+                onElementSelected?.invoke(selectedElements)
+                invalidate()
+                return true
+            } else if (touchedElement != null && touchedElement.type != ElementType.BACKGROUND) {
                 // Deselect all existing elements before selecting the new one
                 canvasElements.forEach { it.isSelected = false }
                 selectedElements.clear() // Clear internal selected list as well
@@ -1769,6 +1801,7 @@ class CanvasView @JvmOverloads constructor(
                     return true
                 }
             }
+
             return false
         }
     }
@@ -1870,6 +1903,52 @@ class CanvasView @JvmOverloads constructor(
                 showRotationVerticalGuide = false // Reset rotation guides
                 showRotationHorizontalGuide = false // Reset rotation guides
 
+                if (currentMode == Mode.GROUP_EDIT && activeGroupId != null) {
+                    // see if we tapped on one of the group's members
+                    val hitChild = canvasElements
+                        .filter { it.groupId == activeGroupId && !it.isLocked }
+                        .sortedByDescending { it.zIndex }
+                        .firstOrNull { element ->
+                            // reuse your hit‑test transform
+                            val matrix = Matrix().apply {
+                                postTranslate(-element.x, -element.y)
+                                postRotate(-element.rotation)
+                                postScale(1f / element.scale, 1f / element.scale)
+                            }
+                            val pt = floatArrayOf(x, y).also { matrix.mapPoints(it) }
+                            RectF(
+                                -element.getLocalContentWidth()  / 2f,
+                                -element.getLocalContentHeight() / 2f,
+                                element.getLocalContentWidth()  / 2f,
+                                element.getLocalContentHeight() / 2f
+                            ).contains(pt[0], pt[1])
+                        }
+
+                    if (hitChild != null) {
+                        activeGroupId = null
+                        currentMode   = Mode.DRAG
+
+                        // 2) Deselect everyone, select only the child
+                        canvasElements.forEach { it.isSelected = false }
+                        selectedElements.clear()
+                        hitChild.isSelected = true
+                        selectedElements.add(hitChild)
+                        onElementSelected?.invoke(selectedElements)
+
+                        // 3) Start drag
+                        touchStartX = x
+                        touchStartY = y
+                        invalidate()
+                        return true
+                    } else {
+                        // exit group‑edit if tapped outside
+                        currentMode   = Mode.NONE
+                        activeGroupId = null
+                        canvasElements.forEach { it.isSelected = false }
+                        selectedElements.clear()
+                        onElementSelected?.invoke(selectedElements)
+                    }
+                }
 
                 // 1. Check for icon touch (regardless of single or multi-selection, based on combined bounds)
                 if (selectedElements.isNotEmpty()) {
@@ -2033,6 +2112,8 @@ class CanvasView @JvmOverloads constructor(
                             element.isSelected = true
                             selectedElements.add(element)
                         }
+                        touchStartX = x
+                        touchStartY = y
                         currentMode = Mode.DRAG // Set to drag mode after selecting the group
                     } else {
                         if (touchedElement.isSelected) {
@@ -2308,6 +2389,10 @@ class CanvasView @JvmOverloads constructor(
                     Mode.NONE -> {
                         // This block handles potential tap-and-hold to drag if not immediately picking up an icon/element
                     }
+
+                    Mode.GROUP_EDIT -> {
+                        // This block handles potential tap-and-hold to drag if not immediately picking up an icon/element
+                    }
                 }
                 return true
             }
@@ -2327,8 +2412,6 @@ class CanvasView @JvmOverloads constructor(
                 }
 
                 iconTouched = null
-                lastTouchedElement = null
-                currentMode = Mode.NONE
                 initialPinchDistance = 0f
                 initialPinchAngle = 0f
                 initialScale = 1f
@@ -2338,6 +2421,10 @@ class CanvasView @JvmOverloads constructor(
                 initialAngle = 0f
                 initialGroupPivotX = 0f
                 initialGroupPivotY = 0f
+                if (currentMode != Mode.GROUP_EDIT) {
+                    lastTouchedElement = null
+                    currentMode = Mode.NONE
+                }
                 invalidate()
                 return true
             }
