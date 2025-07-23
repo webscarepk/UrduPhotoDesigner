@@ -16,6 +16,7 @@ import com.tom_roush.pdfbox.cos.COSBase
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.PDPage
 import com.tom_roush.pdfbox.pdmodel.graphics.optionalcontent.PDOptionalContentGroup
+import com.tom_roush.pdfbox.text.PDFTextStripper
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -53,29 +54,24 @@ class HomeFragment : Fragment() {
     }
 
     private fun loadTemplate() {
-        val assetStream = requireActivity().assets.open("3.pdf")
+        val assetStream = requireActivity().assets.open("1.pdf")
         val document = PDDocument.load(assetStream).apply { assetStream.close() }
 
-        // Build a lookup map if there are any layers; otherwise empty
         val ocProps = document.documentCatalog.ocProperties
         val groupsByRef: Map<COSBase, PDOptionalContentGroup> =
-            ocProps
-                ?.optionalContentGroups
-                ?.associateBy { it.cosObject }
-                ?: emptyMap()
+            ocProps?.optionalContentGroups?.associateBy { it.cosObject } ?: emptyMap()
 
         val elements = mutableListOf<CanvasElement>()
         val engine = LayerImportEngine(groupsByRef) { elem ->
             elements.add(elem)
-            Log.d(TAG, "loadTemplate: ${elem.type} @ layer=${elem.id}")
+            Log.d(TAG, "loadTemplate: ${elem.type} @ layer=${elem.id} text=${elem.text}")
         }
 
         document.pages.forEach { page ->
             engine.processPage(page as PDPage)
         }
-        document.close()
 
-        // now 'elements' has every TEXT and IMAGE, layer IDs may be "default"
+        document.close()
     }
 
     override fun onDestroy() {

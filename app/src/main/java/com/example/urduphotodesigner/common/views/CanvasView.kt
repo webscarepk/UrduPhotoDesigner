@@ -61,6 +61,7 @@ import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.math.sign
 import kotlin.math.sin
 
 class CanvasView @JvmOverloads constructor(
@@ -137,6 +138,8 @@ class CanvasView @JvmOverloads constructor(
     private var initialScale = 1f
     private var initialRotation = 0f
 
+    private val resizeLastSignX = mutableMapOf<String, Float>()
+    private val resizeLastSignY = mutableMapOf<String, Float>()
 
     private var scale = 1f
     private var offsetX = 0f
@@ -148,7 +151,7 @@ class CanvasView @JvmOverloads constructor(
 
     private val alignmentPaint = Paint().apply {
         color = Color.RED
-        strokeWidth = 2f
+        strokeWidth = 1f
         style = Paint.Style.STROKE
         pathEffect = DashPathEffect(floatArrayOf(10f, 10f), 0f)
     }
@@ -911,7 +914,9 @@ class CanvasView @JvmOverloads constructor(
                     if (!element.isVisible) return@forEach
                     canvas.withTranslation(element.x, element.y) {
                         canvas.rotate(element.rotation)
-                        canvas.scale(element.scale, element.scale)
+                        val fx = if (element.isFlippedX) -1f else 1f
+                        val fy = if (element.isFlippedY) -1f else 1f
+                        canvas.scale(element.scale * fx, element.scale * fy)
 
                         when (element.type) {
                             ElementType.TEXT -> {
@@ -2061,7 +2066,12 @@ class CanvasView @JvmOverloads constructor(
                                 currentMode = Mode.RESIZE
                                 touchStartX = x
                                 touchStartY = y
-                                selectedElements.firstOrNull()?.let { element ->
+                                val combined = getCombinedSelectedBounds()
+                                val pivotX   = combined.centerX()
+                                val pivotY   = combined.centerY()
+                                selectedElements.forEach { element ->
+                                    resizeLastSignX[element.id] = (touchStartX - pivotX).sign
+                                    resizeLastSignY[element.id] = (touchStartY - pivotY).sign
                                     onStartBatchUpdate?.invoke(element.id, "resize")
                                 }
                                 return true
@@ -2350,38 +2360,40 @@ class CanvasView @JvmOverloads constructor(
                     Mode.RESIZE -> {
                         if (selectedElements.isEmpty()) return true
 
-                        val combinedBounds = getCombinedSelectedBounds()
-                        val pivotX = combinedBounds.centerX()
-                        val pivotY = combinedBounds.centerY()
+                        val combined = getCombinedSelectedBounds()
+                        val pivotX   = combined.centerX()
+                        val pivotY   = combined.centerY()
 
-                        // Calculate distances from the pivot to the touch start and current touch points
-                        val startDist = hypot(touchStartX - pivotX, touchStartY - pivotY)
-                        val currentDist = hypot(x - pivotX, y - pivotY)
-
+                        val startDist   = hypot(touchStartX - pivotX, touchStartY - pivotY)
+                        val currentDist = hypot(x           - pivotX, y            - pivotY)
+                        val scaleChange = currentDist / startDist
                         if (startDist > 0) {
-                            val scaleChange = currentDist / startDist
                             elementsToModify.forEach { element ->
-                                // Calculate new scale for the individual element
+
                                 val newScale = (element.scale * scaleChange).coerceIn(0.1f, 5f)
-
-                                // To resize around the group's center, we need to adjust element's position as well
-                                // Calculate vector from group pivot to element's center
-                                val vecX = element.x - pivotX
-                                val vecY = element.y - pivotY
-
-                                // Scale this vector
-                                val scaledVecX = vecX * scaleChange
-                                val scaledVecY = vecY * scaleChange
-
-                                // New position of element relative to group pivot
-                                element.x = pivotX + scaledVecX
-                                element.y = pivotY + scaledVecY
                                 element.scale = newScale
 
-                                onElementChanged?.invoke(element) // Notify for each changed element
+                                val lastSignX = resizeLastSignX[element.id] ?: 0f
+                                val currSignX = (x - pivotX).sign
+                                if (currSignX != 0f && currSignX != lastSignX) {
+                                    element.isFlippedX = !element.isFlippedX
+                                    onElementChanged?.invoke(element)
+                                    resizeLastSignX[element.id] = currSignX
+                                }
+
+                                val lastSignY = resizeLastSignY[element.id] ?: 0f
+                                val currSignY = (y - pivotY).sign
+                                if (currSignY != 0f && currSignY != lastSignY) {
+                                    element.isFlippedY = !element.isFlippedY
+                                    onElementChanged?.invoke(element)
+                                    resizeLastSignY[element.id] = currSignY
+                                }
+
+                                onElementChanged?.invoke(element)
                             }
                         }
-                        touchStartX = x // Update touch start for continuous scaling
+
+                        touchStartX = x
                         touchStartY = y
                         invalidate()
                     }

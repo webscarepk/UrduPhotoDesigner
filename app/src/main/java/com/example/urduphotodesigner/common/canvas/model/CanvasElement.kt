@@ -91,7 +91,10 @@ data class CanvasElement(
     var backgroundColor: Int = Color.WHITE,
 
     var logicalContentWidth:  Float = 0f,
-    var logicalContentHeight: Float = 0f
+    var logicalContentHeight: Float = 0f,
+
+    var isFlippedX: Boolean = false,
+    var isFlippedY: Boolean = false
 ) : Serializable {
 
     @Transient

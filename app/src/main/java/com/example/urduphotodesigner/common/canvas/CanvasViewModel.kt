@@ -603,12 +603,27 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
-    fun finishPickingGradient(gradientItem: GradientItem?){
-        when (_activeGradientPicker.value){
-            GradientPickerTarget.TEXT_FILL -> if (gradientItem!=null) setTextFillGradient(gradientItem) else clearFillGradients()
-            GradientPickerTarget.TEXT_STROKE -> if (gradientItem!=null) setTextStrokeGradient(gradientItem, _borderWidth.value ?: 1f) else clearStrokeGradients()
-            GradientPickerTarget.TEXT_LABEL -> if (gradientItem!=null) setTextLabelGradient(true, _labelShape.value ?: LabelShape.RECTANGLE_FILL, gradientItem) else clearLabelGradients()
-            GradientPickerTarget.BACKGROUND -> if (gradientItem!=null) setCanvasGradient(gradientItem) else removeCanvasGradient()
+    fun finishPickingGradient(gradientItem: GradientItem?) {
+        when (_activeGradientPicker.value) {
+            GradientPickerTarget.TEXT_FILL -> if (gradientItem != null) setTextFillGradient(
+                gradientItem
+            ) else clearFillGradients()
+
+            GradientPickerTarget.TEXT_STROKE -> if (gradientItem != null) setTextStrokeGradient(
+                gradientItem,
+                _borderWidth.value ?: 1f
+            ) else clearStrokeGradients()
+
+            GradientPickerTarget.TEXT_LABEL -> if (gradientItem != null) setTextLabelGradient(
+                true,
+                _labelShape.value ?: LabelShape.RECTANGLE_FILL,
+                gradientItem
+            ) else clearLabelGradients()
+
+            GradientPickerTarget.BACKGROUND -> if (gradientItem != null) setCanvasGradient(
+                gradientItem
+            ) else removeCanvasGradient()
+
             null -> {}
         }
     }
@@ -855,6 +870,7 @@ class CanvasViewModel @Inject constructor(
                 id = newId,
                 // Deselect copies by default:
                 isSelected = false,
+                groupId = null,
                 // Offset position:
                 x = element.x + offsetX, y = element.y + offsetY
             )
@@ -1103,7 +1119,8 @@ class CanvasViewModel @Inject constructor(
         }
 
         // Handle image filter for first selected image
-        val firstSelectedImageElement = elementsToSelect.firstOrNull { it.type == ElementType.IMAGE }
+        val firstSelectedImageElement =
+            elementsToSelect.firstOrNull { it.type == ElementType.IMAGE }
         _currentImageFilter.value = firstSelectedImageElement?.imageFilter
     }
 
@@ -1387,13 +1404,13 @@ class CanvasViewModel @Inject constructor(
 
         // otherwise create and insert one
         val bg = CanvasElement(
-            context        = context,
-            type           = ElementType.BACKGROUND,
-            x              = canvasWidth  / 2f,
-            y              = canvasHeight / 2f,
-            paintColor     = Color.WHITE,
-            fillGradient   = null,
-            bitmap         = null
+            context = context,
+            type = ElementType.BACKGROUND,
+            x = canvasWidth / 2f,
+            y = canvasHeight / 2f,
+            paintColor = Color.WHITE,
+            fillGradient = null,
+            bitmap = null
         ).apply {
             isLocked = true
             logicalContentWidth = canvasWidth

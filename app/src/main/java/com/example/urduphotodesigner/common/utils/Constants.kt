@@ -167,31 +167,4 @@ object Constants {
         "#708090",
         "#4B0082"
     ).map { ColorItem(it) }
-
-    val glowColorList = listOf(
-        "#FFFFFF",
-        "#FFFF00",
-        "#00FFFF",
-        "#FF00FF",
-        "#FF0000",
-        "#00FF00",
-        "#0000FF",
-        "#FF6347",
-        "#FFD700",
-        "#FFFACD",
-        "#FFE4B5",
-        "#F0E68C",
-        "#FF7F50",
-        "#ADD8E6",
-        "#FF4500",
-        "#FF8C00",
-        "#FA8072",
-        "#FF1493",
-        "#FFFFE0",
-        "#32CD32",
-        "#98FB98",
-        "#FFDAB9"
-    ).map { ColorItem(it) }
-
-    val gradientList: List<GradientItem> = emptyList()
 }
