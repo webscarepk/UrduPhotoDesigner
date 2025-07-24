@@ -7,9 +7,13 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
+import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
+import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.utils.LayerImportEngine
 import com.example.urduphotodesigner.databinding.FragmentHomeBinding
 import com.tom_roush.pdfbox.cos.COSBase
@@ -23,6 +27,8 @@ import dagger.hilt.android.AndroidEntryPoint
 class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding?= null
     private val binding get() = _binding!!
+
+    private val viewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -57,21 +63,38 @@ class HomeFragment : Fragment() {
         val assetStream = requireActivity().assets.open("1.pdf")
         val document = PDDocument.load(assetStream).apply { assetStream.close() }
 
+        // Extract layer references (if any)
         val ocProps = document.documentCatalog.ocProperties
         val groupsByRef: Map<COSBase, PDOptionalContentGroup> =
             ocProps?.optionalContentGroups?.associateBy { it.cosObject } ?: emptyMap()
 
         val elements = mutableListOf<CanvasElement>()
-        val engine = LayerImportEngine(groupsByRef) { elem ->
-            elements.add(elem)
-            Log.d(TAG, "loadTemplate: ${elem.type} @ layer=${elem.id} text=${elem.text}")
-        }
+        var canvasSize: CanvasSize? = null
 
-        document.pages.forEach { page ->
-            engine.processPage(page as PDPage)
-        }
+        val engine = LayerImportEngine(
+            groupsByRef,
+            onElement = { elem ->
+                elements.add(elem)
+                Log.d("PDFParser", "Element: ${elem.type} @ x=${elem.x} y=${elem.y}")
+            },
+            onCanvasSize = { size ->
+                canvasSize = size
+                Log.d("PDFParser", "Canvas size: $size")
+            }
+        )
 
+        engine.processDocument(document)
         document.close()
+        Log.d("PDFParser", "${elements.size}")
+        val bundle = Bundle().apply {
+            putSerializable("canvas_size", canvasSize)
+            putSerializable("unit_type", UnitType.PIXELS)
+        }
+
+        viewModel.setCanvasSize(canvasSize!!)
+        viewModel.canvasElements.value = elements
+        findNavController().navigate(R.id.editorFragment, bundle)
+        // Use 'elements' and 'canvasSize' for rendering
     }
 
     override fun onDestroy() {
