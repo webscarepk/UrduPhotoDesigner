@@ -1,6 +1,7 @@
 package com.example.urduphotodesigner.ui.navigation.home
 
 import android.content.ContentValues.TAG
+import android.content.res.Resources
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
@@ -47,11 +48,6 @@ class HomeFragment : Fragment() {
     private fun setEvents() {
         binding.create.setOnClickListener {
             findNavController().navigate(R.id.createFragment)
-        }
-
-        binding.template.setOnClickListener {
-//            findNavController().navigate(R.id.templatesFragment)
-            loadTemplate()
         }
 
         binding.saved.setOnClickListener {

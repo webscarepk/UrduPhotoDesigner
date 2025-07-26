@@ -5,6 +5,7 @@
     <color name="white80">#80FFFFFF</color>
     <color name="whiteText">#FFFFFF</color>
     <color name="contrast">#F3F3F3</color>
-    <color name="appColor">#005D28</color>
+    <color name="appColor">#27A55B</color>
     <color name="selection">#EFEFEF</color>
+    <color name="gray">#8E94A2</color>
 </resources>

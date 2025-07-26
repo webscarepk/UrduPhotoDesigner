@@ -10,7 +10,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
-import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -34,7 +33,6 @@ import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.distinctUntilChanged
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
@@ -50,6 +48,7 @@ import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.enums.VAlign
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
+import com.example.urduphotodesigner.common.canvas.model.ExportOptions
 import com.example.urduphotodesigner.common.utils.Constants
 import com.example.urduphotodesigner.common.utils.Converter.cmToPx
 import com.example.urduphotodesigner.common.utils.Converter.inchesToPx
@@ -60,10 +59,8 @@ import com.example.urduphotodesigner.databinding.FragmentEditorBinding
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.FileOutputStream
 
 @AndroidEntryPoint
 class EditorFragment : Fragment() {
@@ -263,7 +260,7 @@ class EditorFragment : Fragment() {
 
         viewModel.selectedElements.distinctUntilChanged()
             .observe(viewLifecycleOwner) { selectedList ->
-                    updateToolbarVisibility(selectedList)
+                updateToolbarVisibility(selectedList)
             }
     }
 
@@ -281,7 +278,12 @@ class EditorFragment : Fragment() {
         updateIconVisibility(binding.blendIcon, anySelected)
         updateIconVisibility(binding.fontSizeIcon, showFont)
         updateIconVisibility(binding.copyIcon, showCopy)
-        updateIconVisibility(binding.alignmentKit, anySelected, animShow = R.anim.slide_in, animHide = R.anim.slide_out)
+        updateIconVisibility(
+            binding.alignmentKit,
+            anySelected,
+            animShow = R.anim.slide_in,
+            animHide = R.anim.slide_out
+        )
     }
 
     private fun updateIconVisibility(
@@ -296,7 +298,7 @@ class EditorFragment : Fragment() {
             view.visibility = View.VISIBLE
             view.startAnimation(AnimationUtils.loadAnimation(view.context, animShow))
         } else if (!shouldBeVisible && isVisible) {
-            if (view == binding.fontSizeIcon){
+            if (view == binding.fontSizeIcon) {
                 binding.seekBarFontSize.isVisible = false
                 binding.fontSize.isVisible = false
             }
@@ -559,7 +561,7 @@ class EditorFragment : Fragment() {
         dialog.setContentView(dialogBinding.root)
 
         val currentOptions = viewModel.exportOptions.value ?: return
-        val previewBitmap = sizedCanvasView.exportCanvasToBitmap(currentOptions)
+        val (previewBitmap, json) = sizedCanvasView.exportCanvas(currentOptions)
         dialogBinding.previewImage.setImageBitmap(previewBitmap)
 
         val availableResolutions = viewModel.exportResolutions
@@ -580,8 +582,8 @@ class EditorFragment : Fragment() {
 
         // Populate Quality RadioGroup
         val qualityOptions = mapOf(
-            "High" to 90,
-            "Medium" to 70,
+            "High" to 100,
+            "Medium" to 75,
             "Low" to 50
         )
         dialogBinding.radioGroupQuality.removeAllViews()
@@ -649,43 +651,6 @@ class EditorFragment : Fragment() {
         dialog.show()
     }
 
-    private suspend fun saveBitmapToGallery(
-        bitmap: Bitmap,
-        fileName: String,
-        format: Bitmap.CompressFormat,
-        quality: Int
-    ): Uri? = withContext(Dispatchers.IO) {
-        val resolver = requireContext().contentResolver
-        val imageCollection =
-            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-
-        val imageDetails = ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, "$fileName.jpg")
-            put(
-                MediaStore.Images.Media.MIME_TYPE, when (format) {
-                    Bitmap.CompressFormat.JPEG -> "image/jpeg"
-                    Bitmap.CompressFormat.PNG -> "image/png"
-                    Bitmap.CompressFormat.WEBP -> "image/webp"
-                    else -> "image/png"
-                }
-            )
-            put(MediaStore.Images.Media.IS_PENDING, 1)
-        }
-
-        val uri = resolver.insert(imageCollection, imageDetails)
-        if (uri != null) {
-            resolver.openOutputStream(uri)?.use { out ->
-                bitmap.compress(format, quality, out)
-            }
-
-            imageDetails.clear()
-            imageDetails.put(MediaStore.Images.Media.IS_PENDING, 0)
-            resolver.update(uri, imageDetails, null, null)
-        }
-
-        uri
-    }
-
     private fun exportCanvas() {
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) { // Android 9 and below
             if (ContextCompat.checkSelfPermission(
@@ -703,83 +668,50 @@ class EditorFragment : Fragment() {
     }
 
     private fun exportCanvasInternal() {
-        //Save Template
-        viewModel.saveTemplate()
+        val options = viewModel.exportOptions.value ?: return
+        val (bitmap, json) = sizedCanvasView.exportCanvas(options)
 
-        // Retrieve the current export options from the ViewModel, which now includes the selected quality and format
-        val currentExportOptions = viewModel.exportOptions.value
+        saveImage(bitmap, options)
+        saveJson(json)
+    }
 
-        lifecycleScope.launch(Dispatchers.IO) { // Use IO dispatcher for file operations
-            val exportedBitmap = currentExportOptions.let {
-                it?.let { it1 ->
-                    sizedCanvasView.exportCanvasToBitmap(
-                        it1
-                    )
-                }
+    private fun saveJson(json: String) {
+        val filename = "canvas_data_${System.currentTimeMillis()}.json"
+        val file = File(requireContext().filesDir, filename)
+        file.writeText(json)
+        Toast.makeText(requireContext(), "Design JSON saved", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun saveImage(bitmap: Bitmap, options: ExportOptions) {
+        val filename = "design_${System.currentTimeMillis()}.${
+            when (options.format) {
+                Bitmap.CompressFormat.PNG -> "png"
+                Bitmap.CompressFormat.JPEG -> "jpg"
+                Bitmap.CompressFormat.WEBP -> "webp"
+                else -> "png"
             }
+        }"
 
-            if (exportedBitmap != null) {
-                // Determine output file path and format
-                val fileName = "exported_image_${System.currentTimeMillis()}"
-                val fileExtension = when (currentExportOptions!!.format) {
-                    Bitmap.CompressFormat.JPEG -> ".jpg"
-                    Bitmap.CompressFormat.PNG -> ".png"
-                    Bitmap.CompressFormat.WEBP -> ".webp"
-                    else -> ".png" // Default to PNG
-                }
-                val outputPath = File(
-                    requireContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES),
-                    "$fileName$fileExtension"
-                )
+        val mimeType = when (options.format) {
+            Bitmap.CompressFormat.PNG -> "image/png"
+            Bitmap.CompressFormat.JPEG -> "image/jpeg"
+            Bitmap.CompressFormat.WEBP -> "image/webp"
+            else -> "image/png"
+        }
 
-                saveBitmapToGallery(
-                    exportedBitmap,
-                    "exported_image_${System.currentTimeMillis()}",
-                    currentExportOptions.format,
-                    currentExportOptions.quality
-                )
+        val resolver = requireContext().contentResolver
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+            put(MediaStore.Images.Media.MIME_TYPE, mimeType)
+            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
+        }
 
-
-                var success = false
-                try {
-                    FileOutputStream(outputPath).use { out ->
-                        exportedBitmap.compress(
-                            currentExportOptions.format, // Use the selected format
-                            currentExportOptions.quality, // Use the selected quality
-                            out
-                        )
-                    }
-                    success = true
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                } finally {
-                    exportedBitmap.recycle()
-                }
-
-                withContext(Dispatchers.Main) {
-                    if (success) {
-                        Toast.makeText(
-                            requireActivity(),
-                            "Canvas exported successfully to ${outputPath.absolutePath} at ${currentExportOptions.resolution.name} with ${currentExportOptions.quality}% ${currentExportOptions.format}!",
-                            Toast.LENGTH_LONG
-                        ).show()
-                        // You might want to show the saved image or offer to share it
-                    } else {
-                        Toast.makeText(
-                            requireActivity(),
-                            "Failed to export canvas.",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
-            } else {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        requireActivity(),
-                        "Failed to export canvas (bitmap null).",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+        val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+        uri?.let {
+            resolver.openOutputStream(it).use { stream ->
+                bitmap.compress(options.format, options.quality, stream!!)
+                Toast.makeText(requireContext(), "Image saved to gallery", Toast.LENGTH_SHORT)
+                    .show()
             }
         }
     }

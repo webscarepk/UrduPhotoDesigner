@@ -4,14 +4,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".ui.navigation.home.HomeFragment"
-    android:background="@color/white">
+    tools:context=".ui.navigation.home.HomeFragment">
 
     <androidx.constraintlayout.widget.Guideline
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.05"
+        app:layout_constraintGuide_percent="0.02"
         android:id="@+id/topGuide"/>
 
     <androidx.constraintlayout.widget.Guideline
@@ -36,42 +35,56 @@
         android:id="@+id/endGuide"/>
 
     <ImageView
-        android:layout_width="@dimen/_64sdp"
-        android:layout_height="@dimen/_24sdp"
+        android:layout_width="@dimen/_70sdp"
+        android:layout_height="@dimen/_27sdp"
         android:src="@drawable/ic_app_icon"
         app:layout_constraintStart_toEndOf="@id/startGuide"
-        app:layout_constraintTop_toBottomOf="@id/topGuide"/>
+        app:layout_constraintTop_toTopOf="@id/profile"
+        app:layout_constraintBottom_toBottomOf="@id/profile"/>
 
     <ImageView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:tint="@color/black"
-        android:src="@drawable/ic_search"
+        android:layout_width="@dimen/_32sdp"
+        android:layout_height="@dimen/_32sdp"
+        android:background="@drawable/button_bg_round"
+        android:src="@drawable/ic_profile"
+        android:backgroundTint="@color/white"
+        android:padding="@dimen/_8sdp"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/topGuide"
-        android:id="@+id/search"/>
+        android:id="@+id/profile"/>
 
-    <androidx.viewpager2.widget.ViewPager2
+    <ImageView
+        android:layout_width="@dimen/_32sdp"
+        android:layout_height="@dimen/_32sdp"
+        android:background="@drawable/button_bg_round"
+        android:src="@drawable/ic_notifications"
+        android:backgroundTint="@color/white"
+        android:padding="@dimen/_8sdp"
+        android:layout_marginEnd="@dimen/_5sdp"
+        app:layout_constraintEnd_toStartOf="@id/profile"
+        app:layout_constraintTop_toBottomOf="@id/topGuide"
+        android:id="@+id/notifications"/>
+
+    <EditText
         android:id="@+id/slider"
         android:layout_width="0dp"
-        android:layout_height="@dimen/_200sdp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/search"
+        android:layout_height="wrap_content"
+        android:background="@drawable/button_bg"
+        android:backgroundTint="@color/white"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
+        android:fontFamily="@font/regular"
+        android:drawableStart="@drawable/ic_search"
+        android:drawablePadding="@dimen/_10sdp"
+        android:paddingHorizontal="@dimen/_10sdp"
+        android:paddingVertical="@dimen/_5sdp"
+        android:textSize="@dimen/_12sdp"
+        android:hint="@string/search_here"
+        android:textColorHint="@color/gray"
+        android:textColor="@color/black"
+        app:layout_constraintTop_toBottomOf="@id/profile"
         android:layout_marginTop="@dimen/_20sdp"/>
 
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/tabLayout"
-        android:layout_marginBottom="@dimen/_10sdp"
-        android:layout_width="@dimen/_100sdp"
-        android:layout_height="wrap_content"
-        app:layout_constraintStart_toStartOf="@id/slider"
-        app:layout_constraintEnd_toEndOf="@id/slider"
-        app:layout_constraintBottom_toBottomOf="@id/slider"
-        android:background="@android:color/transparent"
-        app:tabIndicatorColor="@color/appColor"
-        app:tabIndicatorHeight="3dp" />
-    
     <ScrollView
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -84,25 +97,37 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/dashboard"
+                android:textSize="@dimen/_14sdp"
+                android:fontFamily="@font/bold"
+                android:textColor="@color/black"
+                android:layout_marginTop="@dimen/_10sdp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                android:id="@+id/dashboard"/>
+
             <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="@dimen/_80sdp"
+                android:layout_height="@dimen/_120sdp"
                 android:orientation="vertical"
                 android:layout_marginEnd="@dimen/_5sdp"
                 android:id="@+id/create"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/template"
-                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/saved"
+                app:layout_constraintTop_toBottomOf="@id/dashboard"
                 android:layout_marginTop="@dimen/_10sdp"
                 android:foreground="?selectableItemBackground"
                 android:background="@drawable/button_bg"
-                android:backgroundTint="@color/contrast"
+                android:backgroundTint="@color/white"
                 android:gravity="center">
                 <ImageView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:src="@drawable/ic_create"
-                    app:tint="@color/black"/>
+                    android:src="@drawable/ic_create"/>
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -116,53 +141,22 @@
 
             <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="@dimen/_80sdp"
-                android:orientation="vertical"
-                android:id="@+id/template"
-                android:foreground="?selectableItemBackground"
-                android:background="@drawable/button_bg"
-                android:backgroundTint="@color/contrast"
-                android:layout_marginHorizontal="@dimen/_5sdp"
-                app:layout_constraintStart_toEndOf="@id/create"
-                app:layout_constraintEnd_toStartOf="@id/saved"
-                app:layout_constraintTop_toTopOf="@id/create"
-                app:layout_constraintBottom_toBottomOf="@id/create"
-                android:gravity="center">
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:src="@drawable/ic_templates"
-                    app:tint="@color/black"/>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/templates"
-                    android:fontFamily="@font/regular"
-                    android:textSize="@dimen/_12sdp"
-                    android:textColor="@color/black"
-                    android:layout_marginTop="@dimen/_10sdp"/>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="@dimen/_80sdp"
+                android:layout_height="@dimen/_120sdp"
                 android:orientation="vertical"
                 android:id="@+id/saved"
                 android:foreground="?selectableItemBackground"
                 android:background="@drawable/button_bg"
-                app:layout_constraintStart_toEndOf="@id/template"
+                app:layout_constraintStart_toEndOf="@id/create"
                 android:layout_marginStart="@dimen/_5sdp"
                 app:layout_constraintTop_toTopOf="@id/create"
                 app:layout_constraintBottom_toBottomOf="@id/create"
                 app:layout_constraintEnd_toEndOf="parent"
-                android:backgroundTint="@color/contrast"
+                android:backgroundTint="@color/white"
                 android:gravity="center">
                 <ImageView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:src="@drawable/ic_saved"
-                    app:tint="@color/black"/>
+                    android:src="@drawable/ic_saved"/>
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -174,131 +168,63 @@
                     android:layout_marginTop="@dimen/_10sdp"/>
             </LinearLayout>
 
-            <TextView
-                android:layout_width="wrap_content"
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_marginTop="@dimen/_10sdp"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/create"
-                android:layout_marginTop="@dimen/_10sdp"
-                android:text="@string/categories"
-                android:fontFamily="@font/medium"
-                android:textSize="@dimen/_14sdp"
-                android:textColor="@color/black"
-                android:id="@+id/categoriesTitle"/>
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="@dimen/_80sdp"
-                android:orientation="vertical"
-                android:layout_marginEnd="@dimen/_5sdp"
-                android:id="@+id/poster"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/post"
-                app:layout_constraintTop_toBottomOf="@id/categoriesTitle"
-                android:layout_marginTop="@dimen/_10sdp"
-                android:foreground="?selectableItemBackground"
-                android:background="@drawable/button_bg"
-                android:backgroundTint="@color/contrast"
-                android:gravity="center">
-                <ImageView
-                    android:layout_width="wrap_content"
+                android:backgroundTint="@color/white"
+                android:background="@drawable/button_bg">
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:src="@drawable/ic_poster"
-                    app:tint="@color/black"/>
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    android:background="?selectableItemBackground"
+                    android:id="@+id/recentProjects">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/recent_projects"
+                        android:fontFamily="@font/medium"
+                        android:textColor="@color/black"
+                        android:textSize="@dimen/_12sdp"
+                        android:padding="@dimen/_8sdp"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:id="@+id/recentTitle"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
+                    <ImageView
+                        android:layout_width="@dimen/_12sdp"
+                        android:layout_height="@dimen/_12sdp"
+                        android:src="@drawable/ic_dropdown"
+                        android:rotation="270"
+                        app:tint="@color/gray"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="@id/recentTitle"
+                        app:layout_constraintBottom_toBottomOf="@id/recentTitle"/>
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="@string/poster_design"
-                    android:fontFamily="@font/regular"
-                    android:textSize="@dimen/_12sdp"
-                    android:textColor="@color/black"
-                    android:layout_marginTop="@dimen/_10sdp"/>
-            </LinearLayout>
+                    app:layout_constraintTop_toBottomOf="@id/recentProjects"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    android:paddingHorizontal="@dimen/_10sdp"
+                    android:clipToPadding="false"
+                    app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                    app:spanCount="2"
+                    tools:listitem="@layout/layout_recents_item"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="@dimen/_8sdp"/>
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="@dimen/_80sdp"
-                android:orientation="vertical"
-                android:id="@+id/post"
-                android:foreground="?selectableItemBackground"
-                android:background="@drawable/button_bg"
-                android:backgroundTint="@color/contrast"
-                android:layout_marginHorizontal="@dimen/_5sdp"
-                app:layout_constraintStart_toEndOf="@id/poster"
-                app:layout_constraintEnd_toStartOf="@id/story"
-                app:layout_constraintTop_toTopOf="@id/poster"
-                app:layout_constraintBottom_toBottomOf="@id/poster"
-                android:gravity="center">
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:src="@drawable/ic_post"
-                    app:tint="@color/black"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/post_design"
-                    android:fontFamily="@font/regular"
-                    android:textSize="@dimen/_12sdp"
-                    android:textColor="@color/black"
-                    android:layout_marginTop="@dimen/_10sdp"/>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="@dimen/_80sdp"
-                android:orientation="vertical"
-                android:id="@+id/story"
-                android:foreground="?selectableItemBackground"
-                android:background="@drawable/button_bg"
-                app:layout_constraintStart_toEndOf="@id/post"
-                android:layout_marginStart="@dimen/_5sdp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/poster"
-                app:layout_constraintBottom_toBottomOf="@id/poster"
-                android:backgroundTint="@color/contrast"
-                android:gravity="center">
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:src="@drawable/ic_story"
-                    app:tint="@color/black"/>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/story_design"
-                    android:fontFamily="@font/regular"
-                    android:textSize="@dimen/_12sdp"
-                    android:textColor="@color/black"
-                    android:layout_marginTop="@dimen/_10sdp"/>
-            </LinearLayout>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/poster"
-                android:layout_marginTop="@dimen/_10sdp"
-                android:text="@string/trending"
-                android:fontFamily="@font/medium"
-                android:textSize="@dimen/_14sdp"
-                android:textColor="@color/black"
-                android:id="@+id/trendingTitle"/>
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:layout_width="0dp"
-                android:layout_height="@dimen/_100sdp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/trendingTitle"
-                android:layout_marginTop="@dimen/_10sdp"
-                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                android:orientation="horizontal"
-                tools:itemCount="15"
-                tools:listitem="@layout/trending_template_item"/>
         </androidx.constraintlayout.widget.ConstraintLayout>
     </ScrollView>
 

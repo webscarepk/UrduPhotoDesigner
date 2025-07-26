@@ -26,6 +26,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.text.TextPaint
 import android.util.AttributeSet
+import android.util.Base64
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
@@ -33,6 +34,7 @@ import android.view.animation.DecelerateInterpolator
 import androidx.annotation.ColorInt
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.createBitmap
+import androidx.core.graphics.withSave
 import androidx.core.graphics.withTranslation
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.enums.BlendType
@@ -53,6 +55,8 @@ import com.example.urduphotodesigner.common.canvas.model.ExportResolution
 import com.example.urduphotodesigner.common.canvas.model.GradientItem
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
 import com.example.urduphotodesigner.data.model.FontEntity
+import com.google.gson.Gson
+import java.io.ByteArrayOutputStream
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -632,179 +636,46 @@ class CanvasView @JvmOverloads constructor(
         invalidate()
     }
 
-    /**
-     * Exports the current canvas content to a Bitmap with specified resolution and quality.
-     * @param options The export options including resolution, quality, and format.
-     * @return A Bitmap representing the exported canvas.
-     */
-    fun exportCanvasToBitmap(options: ExportOptions): Bitmap {
-        // 1) Determine logical dimensions:
-        val logicalW = if (options.resolution.width > 0) options.resolution.width else canvasWidth
-        val logicalH =
-            if (options.resolution.height > 0) options.resolution.height else canvasHeight
-        // 2) Determine scaleFactor from ExportResolution:
+    fun exportCanvas(options: ExportOptions): Pair<Bitmap, String> {
+        // Save original selection state
+        val originalSelected = canvasElements.filter { it.isSelected }
+        canvasElements.forEach { it.isSelected = false }
+        onElementSelected?.invoke(emptyList())
+
+        val viewW = this.width
+        val viewH = this.height
+
         val scaleFactor = options.resolution.scaleFactor.takeIf { it > 0f } ?: 1f
-        // 3) Compute output pixel dimensions:
-        val outW = (logicalW * scaleFactor).roundToInt().coerceAtLeast(1)
-        val outH = (logicalH * scaleFactor).roundToInt().coerceAtLeast(1)
+        val outW = (viewW * scaleFactor).roundToInt()
+        val outH = (viewH * scaleFactor).roundToInt()
 
-        // 4) Create bitmap & canvas:
-        val outputBitmap = createBitmap(outW, outH)
-        val outputCanvas = Canvas(outputBitmap)
+        val bitmap = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
 
-        // 5) Compute global scale to map logical units → pixels:
-        val scaleX = outW.toFloat() / logicalW
-        val scaleY = outH.toFloat() / logicalH
+        canvas.withSave {
+            scale(scaleFactor, scaleFactor)
+            draw(this)
+        }
 
-        // 6) Apply global scale:
-        outputCanvas.save()
-        outputCanvas.scale(scaleX, scaleY)
+        // Restore selection
+        originalSelected.forEach { it.isSelected = true }
+        onElementSelected?.invoke(originalSelected)
 
-        // 7) Draw background & content in logical space:
+        // Export element JSON
         canvasElements.forEach { element ->
-            if (element.type == ElementType.BACKGROUND) {
-                drawBackgroundElement(outputCanvas, element)
+            element.bitmap?.let {
+                element.bitmapData = encodeBitmapToBase64(it)
             }
         }
-        drawCanvasContent(outputCanvas)
 
-        outputCanvas.restore()
-        return outputBitmap
+        val json = Gson().toJson(canvasElements)
+        return Pair(bitmap, json)
     }
 
-    private fun drawCanvasContent(canvas: Canvas) {
-        canvasElements.sortedBy { it.zIndex }.forEach { element ->
-            if (!element.isVisible) return@forEach
-            canvas.save()
-            // translate to element center
-            canvas.translate(element.x, element.y)
-            // rotate around center
-            canvas.rotate(element.rotation)
-            // scale by element.scale
-            canvas.scale(element.scale, element.scale)
-
-            if (element.type == ElementType.TEXT) {
-                drawTextElement(canvas, element)
-            } else if (element.type == ElementType.IMAGE) {
-                // apply colorFilter as in onDraw
-                element.paint.colorFilter = when (element.imageFilter) {
-                    ImageFilter.Grayscale -> ColorMatrixColorFilter(ColorMatrix().apply {
-                        setSaturation(
-                            0f
-                        )
-                    })
-
-                    ImageFilter.Sepia -> ColorMatrixColorFilter(ColorMatrix().apply {
-                        set(
-                            floatArrayOf(
-                                0.393f, 0.769f, 0.189f, 0f, 0f,
-                                0.349f, 0.686f, 0.168f, 0f, 0f,
-                                0.272f, 0.534f, 0.131f, 0f, 0f,
-                                0f, 0f, 0f, 1f, 0f
-                            )
-                        )
-                    })
-
-                    ImageFilter.Invert -> ColorMatrixColorFilter(ColorMatrix().apply {
-                        set(
-                            floatArrayOf(
-                                -1f, 0f, 0f, 0f, 255f,
-                                0f, -1f, 0f, 0f, 255f,
-                                0f, 0f, -1f, 0f, 255f,
-                                0f, 0f, 0f, 1f, 0f
-                            )
-                        )
-                    })
-
-                    ImageFilter.CoolTint -> ColorMatrixColorFilter(ColorMatrix().apply {
-                        set(
-                            floatArrayOf(
-                                1.1f, 0f, 0f, 0f, -20f,
-                                0f, 1f, 0f, 0f, 0f,
-                                0f, 0f, 1.3f, 0f, 20f,
-                                0f, 0f, 0f, 1f, 0f
-                            )
-                        )
-                    })
-
-                    ImageFilter.WarmTint -> ColorMatrixColorFilter(ColorMatrix().apply {
-                        set(
-                            floatArrayOf(
-                                1.3f, 0f, 0f, 0f, 30f,
-                                0f, 1f, 0f, 0f, 0f,
-                                0f, 0f, 0.8f, 0f, -20f,
-                                0f, 0f, 0f, 1f, 0f
-                            )
-                        )
-                    })
-
-                    ImageFilter.Vintage -> ColorMatrixColorFilter(ColorMatrix().apply {
-                        set(
-                            floatArrayOf(
-                                0.9f, 0.3f, 0.1f, 0f, 5f,
-                                0.2f, 0.8f, 0.2f, 0f, 5f,
-                                0.1f, 0.2f, 0.7f, 0f, -10f,
-                                0f, 0f, 0f, 1f, 0f
-                            )
-                        )
-                    })
-
-                    ImageFilter.Film -> ColorMatrixColorFilter(ColorMatrix().apply {
-                        set(
-                            floatArrayOf(
-                                1.2f, 0.1f, 0.1f, 0f, 15f,
-                                0.1f, 1.2f, 0.1f, 0f, 10f,
-                                0.1f, 0.1f, 0.9f, 0f, -10f,
-                                0f, 0f, 0f, 1f, 0f
-                            )
-                        )
-                    })
-
-                    ImageFilter.TealOrange -> ColorMatrixColorFilter(ColorMatrix().apply {
-                        set(
-                            floatArrayOf(
-                                1.2f, 0f, 0f, 0f, 20f,
-                                0f, 1f, 0f, 0f, 0f,
-                                0f, 0f, 0.8f, 0f, -10f,
-                                0f, 0f, 0f, 1f, 0f
-                            )
-                        )
-                    })
-
-                    ImageFilter.HighContrast -> ColorMatrixColorFilter(ColorMatrix().apply {
-                        set(
-                            floatArrayOf(
-                                1.5f, 0f, 0f, 0f, -50f,
-                                0f, 1.5f, 0f, 0f, -50f,
-                                0f, 0f, 1.5f, 0f, -50f,
-                                0f, 0f, 0f, 1f, 0f
-                            )
-                        )
-                    })
-
-                    ImageFilter.BlackWhite -> ColorMatrixColorFilter(ColorMatrix().apply {
-                        setSaturation(0f)
-                        val contrast = ColorMatrix().apply {
-                            set(
-                                floatArrayOf(
-                                    1.4f, 0f, 0f, 0f, -50f,
-                                    0f, 1.4f, 0f, 0f, -50f,
-                                    0f, 0f, 1.4f, 0f, -50f,
-                                    0f, 0f, 0f, 1f, 0f
-                                )
-                            )
-                        }
-                        postConcat(contrast)
-                    })
-
-                    else -> null
-                }
-                element.bitmap?.let { bmp ->
-                    canvas.drawBitmap(bmp, -bmp.width / 2f, -bmp.height / 2f, element.paint)
-                }
-            }
-            canvas.restore()
-        }
+    private fun encodeBitmapToBase64(bitmap: Bitmap): String {
+        val stream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        return Base64.encodeToString(stream.toByteArray(), Base64.DEFAULT)
     }
 
     private fun checkAlignment(element: CanvasElement) {
@@ -1156,7 +1027,7 @@ class CanvasView @JvmOverloads constructor(
             if (isColorPickerMode) {
                 val halfIcon = desiredPickerIconSizePx / 2f
 
-                val bmp = exportCanvasToBitmap(
+                val (bmp, json) = exportCanvas(
                     ExportOptions(
                         resolution = ExportResolution("picker", canvasWidth, canvasHeight, 1f),
                         quality = 100,
@@ -1862,7 +1733,7 @@ class CanvasView @JvmOverloads constructor(
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     if (isDraggingPicker) {
                         // sample color:
-                        val bmp = exportCanvasToBitmap(
+                        val (bmp, json) = exportCanvas(
                             ExportOptions(
                                 resolution = ExportResolution(
                                     "picker",

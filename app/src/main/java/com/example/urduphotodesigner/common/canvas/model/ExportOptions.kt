@@ -4,6 +4,6 @@ import android.graphics.Bitmap
 
 data class ExportOptions(
     val resolution: ExportResolution,
-    val quality: Int = 100, // New: 0-100 for compression quality
+    val quality: ExportQuality,
     val format: Bitmap.CompressFormat = Bitmap.CompressFormat.PNG // New: PNG or JPEG
 )

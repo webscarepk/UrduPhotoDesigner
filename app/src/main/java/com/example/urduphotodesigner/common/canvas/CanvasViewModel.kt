@@ -203,14 +203,10 @@ class CanvasViewModel @Inject constructor(
     private var _isExplicitChange = false
 
     private val availableResolutions = listOf(
-        ExportResolution(
-            "Original Size", 0, 0, 1f
-        ), // Width and Height 0 indicate use canvas's current size
-        ExportResolution("HD (1280x720)", 1280, 720),
-        ExportResolution("Full HD (1920x1080)", 1920, 1080),
-        ExportResolution("4K (3840x2160)", 3840, 2160),
-        ExportResolution("Instagram Post (1080x1080)", 1080, 1080),
-        ExportResolution("Instagram Story (1080x1920)", 1080, 1920)
+        ExportResolution("Original", 0, 0, 1f, "Native", "Keep original size", 2500),
+        ExportResolution("HD", 0, 0, 2f,"1280 x 720", "Standard quality", 800),
+        ExportResolution("Full HD", 0, 0, 3f,"1920 x 1080", "High quality", 1200),
+        ExportResolution("4k", 0, 0, 4f,"3840 x 2160", "Ultra quality", 4800)
     )
 
     val exportResolutions: List<ExportResolution> = availableResolutions
@@ -477,7 +473,7 @@ class CanvasViewModel @Inject constructor(
      * @param resolution The ExportResolution object to set.
      */
     fun setExportResolution(resolution: ExportResolution) {
-        val currentOptions = _exportOptions.value ?: ExportOptions(availableResolutions[0])
+        val currentOptions = _exportOptions.value ?: ExportOptions()
         _exportOptions.value = currentOptions.copy(resolution = resolution)
     }
 

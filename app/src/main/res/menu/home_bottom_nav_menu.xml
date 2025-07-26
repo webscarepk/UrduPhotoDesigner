@@ -1,0 +1,28 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@drawable/ic_home_selector"
+        android:title="@string/home" />
+
+    <item
+        android:id="@+id/nav_templates"
+        android:icon="@drawable/ic_templates_selector"
+        android:title="@string/templates" />
+
+    <item
+        android:id="@+id/placeholder"
+        android:enabled="false"
+        android:title="" />
+
+    <item
+        android:id="@+id/nav_fav"
+        android:icon="@drawable/ic_fav_selector"
+        android:title="@string/favorites" />
+
+    <item
+        android:id="@+id/nav_settings"
+        android:icon="@drawable/ic_setting"
+        android:title="@string/settings" />
+
+</menu>
