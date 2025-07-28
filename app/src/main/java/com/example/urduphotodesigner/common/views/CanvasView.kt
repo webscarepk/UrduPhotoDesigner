@@ -50,7 +50,9 @@ import com.example.urduphotodesigner.common.canvas.enums.TextAlignment
 import com.example.urduphotodesigner.common.canvas.enums.TextDecoration
 import com.example.urduphotodesigner.common.canvas.enums.VAlign
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
+import com.example.urduphotodesigner.common.canvas.model.ExportFormat
 import com.example.urduphotodesigner.common.canvas.model.ExportOptions
+import com.example.urduphotodesigner.common.canvas.model.ExportQuality
 import com.example.urduphotodesigner.common.canvas.model.ExportResolution
 import com.example.urduphotodesigner.common.canvas.model.GradientItem
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
@@ -636,12 +638,15 @@ class CanvasView @JvmOverloads constructor(
         invalidate()
     }
 
-    fun exportCanvas(options: ExportOptions): Pair<Bitmap, String> {
-        // Save original selection state
-        val originalSelected = canvasElements.filter { it.isSelected }
+    fun clearSelection(){
         canvasElements.forEach { it.isSelected = false }
         onElementSelected?.invoke(emptyList())
+    }
 
+    fun exportCanvas(
+        options: ExportOptions,
+        onProgress: ((percent: Int, stage: String) -> Unit)? = null
+    ): Pair<Bitmap, String> {
         val viewW = this.width
         val viewH = this.height
 
@@ -649,26 +654,32 @@ class CanvasView @JvmOverloads constructor(
         val outW = (viewW * scaleFactor).roundToInt()
         val outH = (viewH * scaleFactor).roundToInt()
 
+        onProgress?.invoke(10, "Preparing canvas")
+
         val bitmap = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
+
+        onProgress?.invoke(30, "Rendering design")
 
         canvas.withSave {
             scale(scaleFactor, scaleFactor)
             draw(this)
         }
 
-        // Restore selection
-        originalSelected.forEach { it.isSelected = true }
-        onElementSelected?.invoke(originalSelected)
+        onProgress?.invoke(70, "Encoding image data")
 
-        // Export element JSON
         canvasElements.forEach { element ->
             element.bitmap?.let {
                 element.bitmapData = encodeBitmapToBase64(it)
             }
         }
 
+        onProgress?.invoke(90, "Finishing up")
+
         val json = Gson().toJson(canvasElements)
+
+        onProgress?.invoke(100, "Done")
+
         return Pair(bitmap, json)
     }
 
@@ -1027,11 +1038,11 @@ class CanvasView @JvmOverloads constructor(
             if (isColorPickerMode) {
                 val halfIcon = desiredPickerIconSizePx / 2f
 
-                val (bmp, json) = exportCanvas(
+                val (bmp, _) = exportCanvas(
                     ExportOptions(
                         resolution = ExportResolution("picker", canvasWidth, canvasHeight, 1f),
-                        quality = 100,
-                        format = Bitmap.CompressFormat.PNG
+                        quality = ExportQuality("",100, "", 0),
+                        format = ExportFormat("",Bitmap.CompressFormat.PNG, "", emptyList())
                     )
                 )
                 val px = pickerX.roundToInt().coerceIn(0, bmp.width - 1)
@@ -1733,16 +1744,11 @@ class CanvasView @JvmOverloads constructor(
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     if (isDraggingPicker) {
                         // sample color:
-                        val (bmp, json) = exportCanvas(
+                        val (bmp, _) = exportCanvas(
                             ExportOptions(
-                                resolution = ExportResolution(
-                                    "picker",
-                                    canvasWidth,
-                                    canvasHeight,
-                                    1f
-                                ),
-                                quality = 100,
-                                format = Bitmap.CompressFormat.PNG
+                                resolution = ExportResolution("picker", canvasWidth, canvasHeight, 1f),
+                                quality = ExportQuality("",100, "", 0),
+                                format = ExportFormat("",Bitmap.CompressFormat.PNG, "", emptyList())
                             )
                         )
                         val px = pickerX.roundToInt().coerceIn(0, bmp.width - 1)

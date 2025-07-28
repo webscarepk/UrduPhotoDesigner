@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="@dimen/_5sdp"
-    android:background="@drawable/card_bg"
+    android:background="@drawable/card_bg_selected"
     android:foreground="?selectableItemBackground"
     android:padding="@dimen/_10sdp">
 
@@ -119,10 +119,9 @@
         android:layout_width="@dimen/_12sdp"
         android:layout_height="@dimen/_12sdp"
         android:src="@drawable/ic_done_stroke"
-        android:layout_marginStart="@dimen/_10sdp"
+        android:layout_marginStart="@dimen/_5sdp"
         app:layout_constraintStart_toEndOf="@id/resolutionDiff"
         app:layout_constraintTop_toTopOf="@id/resolutionTitle"
-        app:layout_constraintBottom_toBottomOf="@id/resolutionTitle"
-        app:tint="@color/gray" />
+        app:layout_constraintBottom_toBottomOf="@id/resolutionTitle" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

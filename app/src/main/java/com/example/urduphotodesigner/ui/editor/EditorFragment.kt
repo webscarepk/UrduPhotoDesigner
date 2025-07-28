@@ -56,6 +56,7 @@ import com.example.urduphotodesigner.common.utils.displayName
 import com.example.urduphotodesigner.common.views.CanvasView
 import com.example.urduphotodesigner.databinding.BottomSheetExportSettingsBinding
 import com.example.urduphotodesigner.databinding.FragmentEditorBinding
+import com.example.urduphotodesigner.ui.editor.export.ExportFragment
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -79,23 +80,6 @@ class EditorFragment : Fragment() {
 
     private lateinit var sizedCanvasView: CanvasView
     private var currentMode: MultiAlignMode = MultiAlignMode.CANVAS
-
-    private var requestPermissionLauncher: ActivityResultLauncher<String> =
-        registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
-                // Permission is granted, proceed with export
-                exportCanvasInternal()
-            } else {
-                // Permission denied, show a message to the user
-                Toast.makeText(
-                    requireContext(),
-                    "Permission denied to save image. Please grant storage permission in settings.",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
 
     private val blendingOptions = listOf(
         BlendType.SRC,
@@ -492,7 +476,9 @@ class EditorFragment : Fragment() {
         }
 
         binding.done.setOnClickListener {
-            showExportSettingsDialog()
+            viewModel.setCanvasView(sizedCanvasView)
+            sizedCanvasView.clearSelection()
+            findNavController().navigate(R.id.exportFragment)
         }
     }
 
@@ -555,171 +541,9 @@ class EditorFragment : Fragment() {
         }
     }
 
-    private fun showExportSettingsDialog() {
-        val dialog = BottomSheetDialog(requireContext())
-        val dialogBinding = BottomSheetExportSettingsBinding.inflate(layoutInflater)
-        dialog.setContentView(dialogBinding.root)
-
-        val currentOptions = viewModel.exportOptions.value ?: return
-        val (previewBitmap, json) = sizedCanvasView.exportCanvas(currentOptions)
-        dialogBinding.previewImage.setImageBitmap(previewBitmap)
-
-        val availableResolutions = viewModel.exportResolutions
-        val currentExportOptions =
-            viewModel.exportOptions.value // Get current (default or selected) options
-
-        // Populate Resolution RadioGroup
-        dialogBinding.radioGroupResolution.removeAllViews()
-        availableResolutions.forEachIndexed { index, resolution ->
-            val radioButton = RadioButton(requireContext()).apply {
-                text = resolution.name
-                id = index // Use index as ID for easy mapping
-                isChecked =
-                    resolution == currentExportOptions!!.resolution // Set checked based on current options
-            }
-            dialogBinding.radioGroupResolution.addView(radioButton)
-        }
-
-        // Populate Quality RadioGroup
-        val qualityOptions = mapOf(
-            "High" to 100,
-            "Medium" to 75,
-            "Low" to 50
-        )
-        dialogBinding.radioGroupQuality.removeAllViews()
-        qualityOptions.forEach { (name, value) ->
-            val radioButton = RadioButton(requireContext()).apply {
-                text = name
-                id = value // Use quality value as ID
-                isChecked =
-                    value == currentExportOptions!!.quality // Set checked based on current options
-            }
-            dialogBinding.radioGroupQuality.addView(radioButton)
-        }
-
-        // Populate Format RadioGroup
-        val formatOptions = mapOf(
-            "PNG" to Bitmap.CompressFormat.PNG,
-            "JPEG" to Bitmap.CompressFormat.JPEG,
-            "WEBP" to Bitmap.CompressFormat.WEBP
-        )
-        dialogBinding.radioGroupFormat.removeAllViews()
-        formatOptions.forEach { (name, value) ->
-            val radioButton = RadioButton(requireContext()).apply {
-                text = name
-                // Use a unique ID, or directly store the CompressFormat as a tag if using a custom listener
-                id = if (value == Bitmap.CompressFormat.PNG) 0 else 1 // Arbitrary IDs
-                isChecked =
-                    value == currentExportOptions!!.format // Set checked based on current options
-            }
-            dialogBinding.radioGroupFormat.addView(radioButton)
-        }
-
-        // Set listeners to update ViewModel's exportOptions
-        dialogBinding.radioGroupResolution.setOnCheckedChangeListener { _, checkedId ->
-            val selectedResolution = availableResolutions[checkedId]
-            viewModel.updateExportOptions(
-                currentExportOptions!!.copy(resolution = selectedResolution)
-            )
-        }
-
-        dialogBinding.radioGroupQuality.setOnCheckedChangeListener { _, checkedId ->
-            // Use checkedId directly as it's the quality value
-            val selectedQuality = checkedId
-            viewModel.updateExportOptions(
-                currentExportOptions!!.copy(quality = selectedQuality)
-            )
-        }
-
-        dialogBinding.radioGroupFormat.setOnCheckedChangeListener { _, checkedId ->
-            val selectedFormat =
-                if (checkedId == 0) Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG
-            viewModel.updateExportOptions(
-                currentExportOptions!!.copy(format = selectedFormat)
-            )
-        }
-
-        dialogBinding.buttonCancel.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        dialogBinding.buttonExport.setOnClickListener {
-            exportCanvas()
-            dialog.dismiss()
-        }
-
-        dialog.show()
-    }
-
-    private fun exportCanvas() {
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) { // Android 9 and below
-            if (ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
-                exportCanvasInternal()
-            } else {
-                requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            }
-        } else { // Android 10 (API 29) and above: No need for WRITE_EXTERNAL_STORAGE
-            exportCanvasInternal()
-        }
-    }
-
-    private fun exportCanvasInternal() {
-        val options = viewModel.exportOptions.value ?: return
-        val (bitmap, json) = sizedCanvasView.exportCanvas(options)
-
-        saveImage(bitmap, options)
-        saveJson(json)
-    }
-
-    private fun saveJson(json: String) {
-        val filename = "canvas_data_${System.currentTimeMillis()}.json"
-        val file = File(requireContext().filesDir, filename)
-        file.writeText(json)
-        Toast.makeText(requireContext(), "Design JSON saved", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun saveImage(bitmap: Bitmap, options: ExportOptions) {
-        val filename = "design_${System.currentTimeMillis()}.${
-            when (options.format) {
-                Bitmap.CompressFormat.PNG -> "png"
-                Bitmap.CompressFormat.JPEG -> "jpg"
-                Bitmap.CompressFormat.WEBP -> "webp"
-                else -> "png"
-            }
-        }"
-
-        val mimeType = when (options.format) {
-            Bitmap.CompressFormat.PNG -> "image/png"
-            Bitmap.CompressFormat.JPEG -> "image/jpeg"
-            Bitmap.CompressFormat.WEBP -> "image/webp"
-            else -> "image/png"
-        }
-
-        val resolver = requireContext().contentResolver
-        val contentValues = ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, filename)
-            put(MediaStore.Images.Media.MIME_TYPE, mimeType)
-            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
-        }
-
-        val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-        uri?.let {
-            resolver.openOutputStream(it).use { stream ->
-                bitmap.compress(options.format, options.quality, stream!!)
-                Toast.makeText(requireContext(), "Image saved to gallery", Toast.LENGTH_SHORT)
-                    .show()
-            }
-        }
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         _navController = null
-        viewModel.clearCanvas()
         _binding = null
     }
 }

@@ -26,12 +26,16 @@ import com.example.urduphotodesigner.common.canvas.enums.TextDecoration
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.canvas.model.CanvasTemplate
+import com.example.urduphotodesigner.common.canvas.model.ExportFormat
 import com.example.urduphotodesigner.common.canvas.model.ExportOptions
+import com.example.urduphotodesigner.common.canvas.model.ExportQuality
 import com.example.urduphotodesigner.common.canvas.model.ExportResolution
+import com.example.urduphotodesigner.common.canvas.model.ExportResult
 import com.example.urduphotodesigner.common.canvas.model.GradientItem
 import com.example.urduphotodesigner.common.canvas.sealed.BatchedCanvasAction
 import com.example.urduphotodesigner.common.canvas.sealed.CanvasAction
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
+import com.example.urduphotodesigner.common.views.CanvasView
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.domain.usecase.GetFontsUseCase
 import com.google.gson.Gson
@@ -198,18 +202,35 @@ class CanvasViewModel @Inject constructor(
     private val _currentGroupId = MutableLiveData<String?>()
     val currentGroupId: LiveData<String?> = _currentGroupId
 
+    private val _exportResult = MutableLiveData<ExportResult>()
+    val exportResult: LiveData<ExportResult> = _exportResult
+
+    fun setExportResult(result: ExportResult) {
+        _exportResult.value = result
+    }
+
     private var selectedElement: CanvasElement? = null
     private var currentBatchAction: BatchedCanvasAction? = null
     private var _isExplicitChange = false
 
-    private val availableResolutions = listOf(
+    val availableResolutions = listOf(
         ExportResolution("Original", 0, 0, 1f, "Native", "Keep original size", 2500),
         ExportResolution("HD", 0, 0, 2f,"1280 x 720", "Standard quality", 800),
         ExportResolution("Full HD", 0, 0, 3f,"1920 x 1080", "High quality", 1200),
         ExportResolution("4k", 0, 0, 4f,"3840 x 2160", "Ultra quality", 4800)
     )
 
-    val exportResolutions: List<ExportResolution> = availableResolutions
+    val qualityOptions = listOf(
+        ExportQuality("High Quality", 100, "Maximum quality, larger file size", 40),
+        ExportQuality("Medium Quality", 75, "Balanced quality and size", 0),
+        ExportQuality("Low Quality", 50, "Faster export, smaller size", -30)
+    )
+
+    val formatOptions = listOf(
+        ExportFormat("PNG", Bitmap.CompressFormat.PNG, "Lossless format", listOf("Transparent", "High Quality", "Larger Size")),
+        ExportFormat("JPEG", Bitmap.CompressFormat.JPEG, "Compressed, smaller size", listOf("Small size", "Good for photos", "No transparency")),
+        ExportFormat("WEBP", Bitmap.CompressFormat.WEBP, "Modern format with balance", listOf("Efficient", "Web Friendly", "Small & sharp"))
+    )
 
     private val _gradient = MutableLiveData<GradientItem>(
         GradientItem(
@@ -228,13 +249,20 @@ class CanvasViewModel @Inject constructor(
     private val _selectedStopIndex = MutableLiveData<Int?>(null)
     val selectedStopIndex: LiveData<Int?> = _selectedStopIndex
 
+    private val _canvasView = MutableLiveData<CanvasView>()
+    val canvasView: LiveData<CanvasView> = _canvasView
+
+    fun setCanvasView(view: CanvasView) {
+        _canvasView.value = view
+    }
+
     init {
         observeLocalFonts()
         // Initialize exportOptions with a default value
         _exportOptions.value = ExportOptions(
             resolution = availableResolutions[0], // Default to "Original Size"
-            quality = 100, // Default to High quality
-            format = Bitmap.CompressFormat.PNG // Default to PNG format
+            quality = qualityOptions[0], // Default to High quality
+            format = formatOptions[0] // Default to PNG format
         )
 
         _gradientStopColor.addSource(_gradient) { gradient ->
@@ -468,31 +496,8 @@ class CanvasViewModel @Inject constructor(
         _exportOptions.value = newOptions
     }
 
-    /**
-     * Sets the desired export resolution.
-     * @param resolution The ExportResolution object to set.
-     */
-    fun setExportResolution(resolution: ExportResolution) {
-        val currentOptions = _exportOptions.value ?: ExportOptions()
-        _exportOptions.value = currentOptions.copy(resolution = resolution)
-    }
-
-    /**
-     * Sets the desired export quality (0-100).
-     * @param quality The quality percentage.
-     */
-    fun setExportQuality(quality: Int) {
-        val currentOptions = _exportOptions.value ?: ExportOptions(availableResolutions[0])
-        _exportOptions.value = currentOptions.copy(quality = quality.coerceIn(0, 100))
-    }
-
-    /**
-     * Sets the desired export format (PNG or JPEG).
-     * @param format The Bitmap.CompressFormat to set.
-     */
-    fun setExportFormat(format: Bitmap.CompressFormat) {
-        val currentOptions = _exportOptions.value ?: ExportOptions(availableResolutions[0])
-        _exportOptions.value = currentOptions.copy(format = format)
+    fun resetExportOptions() {
+        _exportOptions.value = ExportOptions(availableResolutions[0], qualityOptions[0], formatOptions[0])
     }
 
     private fun observeLocalFonts() {

@@ -67,4 +67,14 @@
         android:name="com.example.urduphotodesigner.ui.editor.EditorFragment"
         android:label="fragment_editor"
         tools:layout="@layout/fragment_editor" />
+    <fragment
+        android:id="@+id/exportFragment"
+        android:name="com.example.urduphotodesigner.ui.editor.export.ExportFragment"
+        android:label="fragment_export"
+        tools:layout="@layout/fragment_export" />
+    <fragment
+        android:id="@+id/finishExportFragment"
+        android:name="com.example.urduphotodesigner.ui.editor.export.FinishExportFragment"
+        android:label="fragment_finish_export"
+        tools:layout="@layout/fragment_finish_export" />
 </navigation>

@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@color/white"
     tools:context=".ui.editor.export.ExportOptionsFragment">
 
     <androidx.constraintlayout.widget.Guideline
@@ -11,7 +12,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.02" />
+        app:layout_constraintGuide_percent="0.05" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/bottomGuide"
@@ -41,7 +42,7 @@
         android:fontFamily="@font/bold"
         android:text="@string/export_settings"
         android:textColor="@color/black"
-        android:textSize="@dimen/_16sdp"
+        android:textSize="@dimen/_12sdp"
         app:layout_constraintTop_toBottomOf="@id/topGuide"
         app:layout_constraintStart_toEndOf="@id/startGuide"/>
 
@@ -50,12 +51,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@drawable/ic_close"
-        android:padding="@dimen/_10sdp"
+        android:paddingVertical="@dimen/_10sdp"
+        android:paddingStart="@dimen/_10sdp"
         app:layout_constraintBottom_toBottomOf="@id/title"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toTopOf="@id/title"/>
 
     <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/options"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintStart_toEndOf="@id/startGuide"

@@ -80,10 +80,9 @@
         android:layout_width="@dimen/_12sdp"
         android:layout_height="@dimen/_12sdp"
         android:src="@drawable/ic_done_stroke"
-        android:layout_marginStart="@dimen/_10sdp"
+        android:layout_marginStart="@dimen/_5sdp"
         app:layout_constraintStart_toEndOf="@id/resolutionTitle"
         app:layout_constraintTop_toTopOf="@id/resolutionTitle"
-        app:layout_constraintBottom_toBottomOf="@id/resolutionTitle"
-        app:tint="@color/gray" />
+        app:layout_constraintBottom_toBottomOf="@id/resolutionTitle" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

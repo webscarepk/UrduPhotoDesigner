@@ -149,6 +149,27 @@
     <string name="transparency">Transparency</string>
     <string name="no_artifacts">No Artifacts</string>
     <string name="larger_size">Larger size</string>
+    <string name="estimating_size">Estimating size...</string>
+    <string name="tap_to_edit">Tap to Edit</string>
+    <string name="preview">Preview</string>
+    <string name="export_complete">Export Complete</string>
+    <string name="export_successful">Export Successful!</string>
+    <string name="your_file_has_been_exported_and_is_ready_to_use">Your file has been exported and is ready to use</string>
+    <string name="export_1753699627928_png">export_1753699627928.png</string>
+    <string name="png_file">PNG File</string>
+    <string name="file_details">File Details</string>
+    <string name="file_name">File Name</string>
+    <string name="file_location">File Location</string>
+    <string name="storage_emulated_0_download_export_1">/storage/emulated/0/Download/export_1</string>
+    <string name="exported_on_jul_28_2025_03_47_am">Exported on Jul 28, 2025, 03:47 AM</string>
+    <string name="quick_actions">Quick Actions</string>
+    <string name="share">Share</string>
+    <string name="save">Save</string>
+    <string name="open">Open</string>
+    <string name="export_tips">Export Tips</string>
+    <string name="your_file_has_been_optimized_for_the_selected_quality_and_format_you_can_find_it_in_your_downloads_folder_or_use_the_path_shown_above">Your file has been optimized for the selected quality and format. You can find it in your Downloads folder or use the path shown above.</string>
+    <string name="export_another">Export Another</string>
+    <string name="go_home">Go Home</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

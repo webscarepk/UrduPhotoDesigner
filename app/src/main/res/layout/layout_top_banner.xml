@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/topBanner"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/button_bg"
+    android:elevation="@dimen/_5sdp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="@dimen/_12sdp"
+    android:visibility="gone">
+
+    <ImageView
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginEnd="8dp"
+        android:src="@drawable/ic_refresh"
+        android:tint="@color/white" />
+
+    <TextView
+        android:id="@+id/bannerText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Settings reset to defaults"
+        android:textColor="@color/white"
+        android:fontFamily="@font/regular"
+        android:textSize="@dimen/_12sdp" />
+</LinearLayout>
