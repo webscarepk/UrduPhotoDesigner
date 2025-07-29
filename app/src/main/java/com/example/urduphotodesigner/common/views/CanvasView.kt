@@ -647,27 +647,31 @@ class CanvasView @JvmOverloads constructor(
         options: ExportOptions,
         onProgress: ((percent: Int, stage: String) -> Unit)? = null
     ): Pair<Bitmap, String> {
-        val viewW = this.width
-        val viewH = this.height
+        val contentWidth = this.canvasWidth
+        val contentHeight = this.canvasHeight
 
+        // Apply scale factor from ExportOptions to get the final output size
         val scaleFactor = options.resolution.scaleFactor.takeIf { it > 0f } ?: 1f
-        val outW = (viewW * scaleFactor).roundToInt()
-        val outH = (viewH * scaleFactor).roundToInt()
+        val outputWidth = (contentWidth * scale).roundToInt()
+        val outputHeight = (contentHeight * scale).roundToInt()
 
         onProgress?.invoke(10, "Preparing canvas")
 
-        val bitmap = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
+        // Create the bitmap with the correct dimensions
+        val bitmap = Bitmap.createBitmap(outputWidth, outputHeight, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
         onProgress?.invoke(30, "Rendering design")
 
+        // Reset the canvas state, scale, and then draw the content
         canvas.withSave {
-            scale(scaleFactor, scaleFactor)
-            draw(this)
+//            scale(scaleFactor, scaleFactor)
+            draw(canvas)
         }
 
         onProgress?.invoke(70, "Encoding image data")
 
+        // Handle bitmap encoding for elements (if necessary)
         canvasElements.forEach { element ->
             element.bitmap?.let {
                 element.bitmapData = encodeBitmapToBase64(it)
@@ -675,9 +679,7 @@ class CanvasView @JvmOverloads constructor(
         }
 
         onProgress?.invoke(90, "Finishing up")
-
         val json = Gson().toJson(canvasElements)
-
         onProgress?.invoke(100, "Done")
 
         return Pair(bitmap, json)

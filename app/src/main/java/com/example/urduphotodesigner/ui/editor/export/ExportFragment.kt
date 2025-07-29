@@ -252,7 +252,7 @@ class ExportFragment : Fragment() {
                         fileSizeMB = fileSizeMB,
                         resolution = options.resolution.label,
                         format = options.format.name,
-                        quality = "${options.quality.quality}%",
+                        quality = options.quality.label,
                         exportDate = exportDate
                     )
                 )
