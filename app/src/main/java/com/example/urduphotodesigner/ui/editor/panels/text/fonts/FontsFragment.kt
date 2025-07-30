@@ -187,6 +187,12 @@ class FontsFragment : Fragment() {
                 val selectedCategory = categories[position]
                 handleFontSelection(selectedCategory)
                 binding.categories.smoothScrollToPosition(position)
+
+                if (position >= 1) {
+                    binding.categories.smoothScrollToPosition(4)
+                }else{
+                    binding.categories.smoothScrollToPosition(0)
+                }
             }
         })
 
