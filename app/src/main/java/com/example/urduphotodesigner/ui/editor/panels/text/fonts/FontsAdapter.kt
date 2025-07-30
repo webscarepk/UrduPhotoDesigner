@@ -1,6 +1,9 @@
 package com.example.urduphotodesigner.ui.editor.panels.text.fonts
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.drawable.PictureDrawable
+import android.util.Base64
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -60,12 +63,6 @@ class FontsAdapter(
                 binding.root.context,
                 R.color.appColor
             )
-//            binding.root.setCardBackgroundColor(
-//                ContextCompat.getColor(
-//                    binding.root.context,
-//                    if (isSelected) R.color.selection else R.color.white
-//                )
-//            )
 
             // Download UI
             binding.download.visibility =
@@ -83,24 +80,38 @@ class FontsAdapter(
                 }
             }
 
-            // Load font preview
-            val url = Constants.BASE_URL_GLIDE + font.image_url
-            Glide.with(binding.root.context)
-                .`as`(PictureDrawable::class.java)
-                .load(url)
-                .diskCacheStrategy(DiskCacheStrategy.DATA)
-                .listener(object : RequestListener<PictureDrawable> {
-                    override fun onLoadFailed(
-                        e: GlideException?, model: Any?, target: Target<PictureDrawable>,
-                        isFirstResource: Boolean
-                    ) = false.also { binding.progressBar.visibility = View.GONE }
+            // Check if the font_image is not empty and image_url is empty
+            if (font.image_url.isEmpty() && font.font_image.isNotEmpty()) {
+                // Parse font_image from Base64 to Bitmap
+                val decodedImage = base64ToBitmap(font.font_image)
+                binding.font.setImageBitmap(decodedImage)
+                binding.progressBar.visibility = View.GONE
+            } else {
+                // Load font preview using Glide (from image_url)
+                val url = Constants.BASE_URL_GLIDE + font.image_url
+                Glide.with(binding.root.context)
+                    .`as`(PictureDrawable::class.java)
+                    .load(url)
+                    .diskCacheStrategy(DiskCacheStrategy.DATA)
+                    .listener(object : RequestListener<PictureDrawable> {
+                        override fun onLoadFailed(
+                            e: GlideException?, model: Any?, target: Target<PictureDrawable>,
+                            isFirstResource: Boolean
+                        ) = false.also { binding.progressBar.visibility = View.GONE }
 
-                    override fun onResourceReady(
-                        resource: PictureDrawable, model: Any, target: Target<PictureDrawable>?,
-                        dataSource: DataSource, isFirstResource: Boolean
-                    ) = false.also { binding.progressBar.visibility = View.GONE }
-                })
-                .into(binding.font)
+                        override fun onResourceReady(
+                            resource: PictureDrawable, model: Any, target: Target<PictureDrawable>?,
+                            dataSource: DataSource, isFirstResource: Boolean
+                        ) = false.also { binding.progressBar.visibility = View.GONE }
+                    })
+                    .into(binding.font)
+            }
+        }
+
+        // Function to decode the Base64 string to Bitmap
+        private fun base64ToBitmap(base64String: String): Bitmap {
+            val decodedBytes = Base64.decode(base64String, Base64.DEFAULT)
+            return BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
         }
     }
 

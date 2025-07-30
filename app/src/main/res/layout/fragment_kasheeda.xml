@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    tools:context=".ui.editor.panels.text.appearance.childs.KasheedaFragment">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/kasheedaCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/_2sdp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/kasheedaBarCard">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="@dimen/_24sdp"
+            android:layout_height="@dimen/_24sdp"
+            android:layout_marginEnd="@dimen/_5sdp"
+            android:layout_marginBottom="@dimen/_5sdp"
+            app:cardCornerRadius="@dimen/_5sdp"
+            app:strokeWidth="0dp"
+            android:id="@+id/default_kasheeda"
+            app:layout_constraintEnd_toStartOf="@id/small"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:cardBackgroundColor="@color/contrast"
+            app:cardElevation="0dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/ic_none"
+                app:tint="@color/black"
+                android:padding="@dimen/_5sdp"/>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="@dimen/_24sdp"
+            android:layout_height="@dimen/_24sdp"
+            android:layout_marginEnd="@dimen/_5sdp"
+            android:layout_marginBottom="@dimen/_5sdp"
+            app:cardCornerRadius="@dimen/_5sdp"
+            app:strokeWidth="0dp"
+            android:id="@+id/small"
+            app:layout_constraintEnd_toStartOf="@id/medium"
+            app:layout_constraintStart_toEndOf="@id/default_kasheeda"
+            app:layout_constraintTop_toTopOf="parent"
+            app:cardBackgroundColor="@color/contrast"
+            app:cardElevation="0dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/ic_small"
+                android:layout_gravity="center"
+                app:tint="@color/black"
+                android:padding="@dimen/_6sdp"/>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="@dimen/_24sdp"
+            android:layout_height="@dimen/_24sdp"
+            android:layout_marginEnd="@dimen/_5sdp"
+            android:layout_marginBottom="@dimen/_5sdp"
+            app:cardCornerRadius="@dimen/_5sdp"
+            app:strokeWidth="0dp"
+            android:id="@+id/medium"
+            app:layout_constraintStart_toEndOf="@id/small"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/large"
+            app:cardBackgroundColor="@color/contrast"
+            app:cardElevation="0dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/ic_medium"
+                android:layout_gravity="center"
+                app:tint="@color/black"
+                android:padding="@dimen/_6sdp"/>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="@dimen/_24sdp"
+            android:layout_height="@dimen/_24sdp"
+            android:layout_marginEnd="@dimen/_5sdp"
+            android:layout_marginBottom="@dimen/_5sdp"
+            app:cardCornerRadius="@dimen/_5sdp"
+            app:strokeWidth="0dp"
+            android:id="@+id/large"
+            app:layout_constraintStart_toEndOf="@id/medium"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:cardBackgroundColor="@color/contrast"
+            app:cardElevation="0dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/ic_large"
+                android:layout_gravity="center"
+                app:tint="@color/black"
+                android:padding="@dimen/_6sdp"/>
+
+        </com.google.android.material.card.MaterialCardView>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/kasheedaBarCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/_2sdp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/kasheedaCard">
+
+        <TextView
+            android:id="@+id/lineTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/kashida_frequency"
+            android:fontFamily="@font/medium"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:textSize="@dimen/_10sdp"
+            android:layout_marginStart="@dimen/_10sdp"
+            android:textColor="@color/black"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1.0"
+            android:fontFamily="@font/regular"
+            app:layout_constraintTop_toTopOf="@id/lineTitle"
+            app:layout_constraintBottom_toBottomOf="@id/lineTitle"
+            app:layout_constraintStart_toEndOf="@id/lineTitle"
+            android:textSize="@dimen/_10sdp"
+            android:background="@drawable/edit_bg_stroke"
+            android:paddingHorizontal="@dimen/_5sdp"
+            android:paddingVertical="@dimen/_3sdp"
+            android:textColor="@color/black"
+            android:layout_marginStart="@dimen/_5sdp"
+            android:id="@+id/kashidaValue"/>
+
+        <SeekBar
+            android:id="@+id/kashidaSeekBar"
+            android:layout_marginTop="@dimen/_2sdp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/kashidaValue"
+            android:thumbTint="@color/appColor"
+            android:max="10"
+            android:indeterminateTint="@color/appColor"
+            android:progressTint="@color/appColor"
+            android:progress="0"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

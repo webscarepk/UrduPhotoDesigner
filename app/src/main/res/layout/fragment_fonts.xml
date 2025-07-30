@@ -13,11 +13,30 @@
         android:orientation="vertical"
         android:id="@+id/centerGuide"/>
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/_24sdp"
+        android:backgroundTint="@color/contrast"
+        android:textColor="@color/appColor"
+        app:drawableStartCompat="@drawable/ic_add_font"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:gravity="center"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:background="@drawable/button_bg"
+        android:fontFamily="@font/regular"
+        android:textSize="@dimen/_10sdp"
+        android:paddingVertical="@dimen/_5sdp"
+        android:paddingHorizontal="@dimen/_5sdp"
+        android:id="@+id/addFont"/>
+
     <androidx.recyclerview.widget.RecyclerView
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:layout_marginTop="@dimen/_5sdp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/addFont"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@id/centerGuide"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"

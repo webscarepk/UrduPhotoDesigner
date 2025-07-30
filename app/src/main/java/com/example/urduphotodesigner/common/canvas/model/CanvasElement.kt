@@ -9,12 +9,14 @@ import android.graphics.Typeface
 import android.text.TextPaint
 import com.example.urduphotodesigner.common.canvas.enums.BlendType
 import com.example.urduphotodesigner.common.canvas.enums.ElementType
+import com.example.urduphotodesigner.common.canvas.enums.KashidaSize
 import com.example.urduphotodesigner.common.canvas.enums.LabelShape
 import com.example.urduphotodesigner.common.canvas.enums.LetterCasing
 import com.example.urduphotodesigner.common.canvas.enums.ListStyle
 import com.example.urduphotodesigner.common.canvas.enums.TextAlignment
 import com.example.urduphotodesigner.common.canvas.enums.TextDecoration
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
+import com.example.urduphotodesigner.common.utils.KashidaProcessor
 import java.io.Serializable
 import java.util.UUID
 
@@ -94,7 +96,8 @@ data class CanvasElement(
     var logicalContentHeight: Float = 0f,
 
     var isFlippedX: Boolean = false,
-    var isFlippedY: Boolean = false
+    var isFlippedY: Boolean = false,
+    var kashidaSize: Int = 0
 ) : Serializable {
 
     @Transient
@@ -118,7 +121,7 @@ data class CanvasElement(
         return if (type == ElementType.BACKGROUND) {
             logicalContentWidth
         } else if (type == ElementType.TEXT) {
-            val lines = text.split("\n")
+            val lines = getTextWithKashida().split("\n")
             // Ensure paint is initialized before using it
             if (::paint.isInitialized) {
                 lines.maxOfOrNull { line -> paint.measureText(line) } ?: 0f
@@ -138,7 +141,7 @@ data class CanvasElement(
             if (::paint.isInitialized) {
                 val fm = paint.fontMetrics
                 val lineHeight = (fm.bottom - fm.top) * lineSpacing
-                val lines = text.split("\n")
+                val lines = getTextWithKashida().split("\n")
                 lines.size * lineHeight
             } else {
                 0f
@@ -161,5 +164,15 @@ data class CanvasElement(
             "rotate" to PointF(-iconOffsetX, iconOffsetY),
             "edit" to PointF(-iconOffsetX, -iconOffsetY)
         )
+    }
+
+    fun getTextWithKashida(): String {
+        return applyKashidaToText(text, kashidaSize)
+    }
+
+    private fun applyKashidaToText(inputText: String, size: Int): String {
+        val kashidaProcessor = KashidaProcessor(insertionFreq = size, insertionContrast = 0.8)
+
+        return kashidaProcessor.process(inputText)
     }
 }

@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Base64
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -18,7 +19,9 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.databinding.FragmentBackgroundsBinding
+import com.example.urduphotodesigner.viewmodels.MainViewModel
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +36,7 @@ class BackgroundsFragment : Fragment() {
     private val binding get() = _binding!!
     private var tabs = emptyList<String>()
     private val viewModel: CanvasViewModel by activityViewModels()
+    private val mainViewModel: MainViewModel by activityViewModels()
 
     private val pickImage =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -79,19 +83,40 @@ class BackgroundsFragment : Fragment() {
         // You probably don’t want to block the UI thread—do this in IO
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
+                // Load and compress the image from URI
                 val compressedBytes = loadAndCompressImage(uri)
+
+                // Encode the compressed image bytes to Base64
+                val base64EncodedImage = Base64.encodeToString(compressedBytes, Base64.DEFAULT)
+
                 withContext(Dispatchers.Main) {
-                    viewModel.setCanvasBackgroundImage(
-                        BitmapFactory.decodeByteArray(
-                            compressedBytes, 0, compressedBytes.size
+                    // Insert the image entity into the ViewModel (with the Base64 encoded bitmapData)
+                    mainViewModel.insertImage(
+                        ImageEntity(
+                            id = System.currentTimeMillis().toInt(),  // Use current timestamp as unique ID
+                            file_name = "",  // Set file name (if available)
+                            file_url = "",   // Set file URL (if available)
+                            file_size = "", // Optional field for description
+                            alt_text = "",  // Set date (if needed)
+                            category = "Background",  // For example, background category
+                            user_id = 0,        // Set image size if applicable
+                            is_selected = false,  // Set the selected state
+                            bitmapData = base64EncodedImage // Set the Base64 encoded image data
                         )
+                    )
+
+                    // Set the canvas background image (decode the compressed image bytes)
+                    viewModel.setCanvasBackgroundImage(
+                        BitmapFactory.decodeByteArray(compressedBytes, 0, compressedBytes.size)
                     )
                 }
             } catch (e: Exception) {
+                // Handle any errors that might occur during the process
                 Log.e("PhotoPicker", "Failed compressing image", e)
             }
         }
     }
+
 
     @Throws(IOException::class)
     private fun loadAndCompressImage(uri: Uri): ByteArray {

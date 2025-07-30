@@ -30,7 +30,6 @@ import com.example.urduphotodesigner.common.views.CanvasView
 import com.example.urduphotodesigner.databinding.FragmentExportBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File

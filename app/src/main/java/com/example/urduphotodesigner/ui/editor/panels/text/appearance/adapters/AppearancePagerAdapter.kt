@@ -5,6 +5,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.example.urduphotodesigner.data.model.PanelTabs
 import com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.BlendFragment
 import com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.FillStrokeFragment
+import com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.KasheedaFragment
 import com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.LabelsFragment
 import com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.ShadowsFragment
 
@@ -17,10 +18,11 @@ class AppearancePagerAdapter(
 
     override fun createFragment(position: Int): Fragment {
         return when (position) {
-            0, 1 -> FillStrokeFragment.newInstance(tabs[position].tab_name)
-            2 -> ShadowsFragment.newInstance()
-            3 -> LabelsFragment.newInstance()
-            4 -> BlendFragment.newInstance()
+            0 -> KasheedaFragment.newInstance()
+            1, 2 -> FillStrokeFragment.newInstance(tabs[position].tab_name)
+            3 -> ShadowsFragment.newInstance()
+            4 -> LabelsFragment.newInstance()
+            5 -> BlendFragment.newInstance()
             else -> BlendFragment.newInstance()
         }
     }

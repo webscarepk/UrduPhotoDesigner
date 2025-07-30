@@ -17,6 +17,7 @@ import com.example.urduphotodesigner.common.canvas.enums.BlendType
 import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.canvas.enums.GradientPickerTarget
 import com.example.urduphotodesigner.common.canvas.enums.GradientType
+import com.example.urduphotodesigner.common.canvas.enums.KashidaSize
 import com.example.urduphotodesigner.common.canvas.enums.LabelShape
 import com.example.urduphotodesigner.common.canvas.enums.LetterCasing
 import com.example.urduphotodesigner.common.canvas.enums.ListStyle
@@ -182,6 +183,9 @@ class CanvasViewModel @Inject constructor(
 
     private val _letterCasing = MutableLiveData<LetterCasing>(LetterCasing.NONE)
     val letterCasing: LiveData<LetterCasing> = _letterCasing
+
+    private val _kasheeda = MutableLiveData<Int>(0)
+    val kasheeda: LiveData<Int> = _kasheeda
 
     private val _textDecoration = MutableLiveData<Set<TextDecoration>>(setOf(TextDecoration.NONE))
     val textDecoration: LiveData<Set<TextDecoration>> = _textDecoration
@@ -644,6 +648,11 @@ class CanvasViewModel @Inject constructor(
         applyChangesToSelectedTextElements()
     }
 
+    fun setKasheeda(kasheeda: Int) {
+        _kasheeda.value = kasheeda
+        applyChangesToSelectedTextElements()
+    }
+
     fun setTextDecoration(decorations: Set<TextDecoration>) {
         _textDecoration.value = decorations
         applyChangesToSelectedTextElements()
@@ -833,7 +842,8 @@ class CanvasViewModel @Inject constructor(
                     blurValue = _blurValue.value ?: element.blurValue,
                     hasBlur = _hasBlur.value ?: element.hasBlur,
                     paintAlpha = _opacity.value ?: element.paintAlpha,
-                    blendType = _blendingType.value ?: element.blendType
+                    blendType = _blendingType.value ?: element.blendType,
+                    kashidaSize = _kasheeda.value ?: element.kashidaSize
                 ).apply {
                     paint.typeface = element.applyTypefaceFromFontList()
                 }

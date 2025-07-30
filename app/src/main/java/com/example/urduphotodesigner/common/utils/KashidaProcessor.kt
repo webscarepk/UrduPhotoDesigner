@@ -7,14 +7,12 @@ class KashidaProcessor(private val insertionFreq: Int = 3, private val insertion
         if (nudeText == null) return ""
 
         var modifiedText = remove(nudeText) // Ensure text is "nude"
-        val occurrencesArr: List<MatchResult>
+        var occurrencesArr: List<MatchResult>
         var distribution: List<Int> = emptyList()
-        var a: Double
-        var b: Double
-        var min: Double
+
         val reg = Regex("[يئهشسقفغعـضصنمكظطخحجثتب][يئهشسقفغعضصنمكظطخوـحجثتبلدرا]")
 
-        // Matches Arabic words
+        // Match Arabic words and insert Kashida
         modifiedText = modifiedText.replace(Regex("[\\u0600-\\u06FF]+")) { match ->
             var wordWithKashida = match.value
             occurrencesArr = _legacyMatch(wordWithKashida, reg)
@@ -25,23 +23,17 @@ class KashidaProcessor(private val insertionFreq: Int = 3, private val insertion
 
             // Determine insertions distribution
             if (insertionContrast == 0.0) {
-                distribution = List(occurrences) { (insertionFreq / occurrences).toInt() }
+                // Evenly distribute the Kashida insertions across the occurrences
+                distribution = List(occurrences) { insertionFreq }
             } else {
-                if (insertionContrast == 1.0) {
-                    distribution = listOf(insertionFreq)
-                } else {
-                    min = insertionFreq / occurrences.toDouble()
-                    a = min + (insertionFreq - min) * insertionContrast
-                    b = insertionFreq / a
-
-                    distribution = List(occurrences) { (-(a / b * it + a)).toInt() }
-                }
+                // Adjust the frequency for each occurrence
+                distribution = List(occurrences) { insertionFreq }
             }
 
             var countOfAddedKashida = 0
             for (i in occurrencesArr.indices) {
                 val frequency = distribution[i]
-                if (frequency < 0) continue
+                if (frequency <= 0) continue // Skip if no Kashida should be added
 
                 val occurrence = occurrencesArr[i]
                 val index = occurrence.range.first

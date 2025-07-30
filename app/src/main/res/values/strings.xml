@@ -170,6 +170,8 @@
     <string name="your_file_has_been_optimized_for_the_selected_quality_and_format_you_can_find_it_in_your_downloads_folder_or_use_the_path_shown_above">Your file has been optimized for the selected quality and format. You can find it in your Downloads folder or use the path shown above.</string>
     <string name="export_another">Export Another</string>
     <string name="go_home">Go Home</string>
+    <string name="kashida_frequency">Kashida Frequency</string>
+    <string name="import_font">Import Font</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

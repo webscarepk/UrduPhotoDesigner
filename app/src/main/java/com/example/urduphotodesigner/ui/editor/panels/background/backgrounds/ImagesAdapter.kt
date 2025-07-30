@@ -1,10 +1,12 @@
 package com.example.urduphotodesigner.ui.editor.panels.background.backgrounds
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.util.Base64
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -66,57 +68,79 @@ class ImagesAdapter(
             }
 
             binding.root.setOnClickListener {
-                // make sure we’ve got a URL to load
-                val url = Constants.BASE_URL_GLIDE + image.file_url
+                // Check if bitmapData is available (not empty)
+                if (image.bitmapData != null) {
+                    // Decode Base64 string to Bitmap
+                    val decodedBytes = Base64.decode(image.bitmapData, Base64.DEFAULT)
+                    val decodedBitmap =
+                        BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                    onImageSelected(decodedBitmap)
+                } else {
+                    // If bitmapData is empty, load image from URL
+                    val url = Constants.BASE_URL_GLIDE + image.file_url
+                    Glide.with(binding.root.context)
+                        .asBitmap()
+                        .load(url)
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .into(object : CustomTarget<Bitmap>() {
+                            override fun onResourceReady(
+                                bitmap: Bitmap,
+                                transition: Transition<in Bitmap>?
+                            ) {
+                                // this is guaranteed to be the full-size image
+                                onImageSelected(bitmap)
+                            }
 
-                // fire off a full-res bitmap request in the background
-                Glide.with(binding.root.context)
-                    .asBitmap()
-                    .load(url)
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .into(object : CustomTarget<Bitmap>() {
-                        override fun onResourceReady(bitmap: Bitmap, transition: Transition<in Bitmap>?) {
-                            // this is guaranteed to be the full-size image
-                            onImageSelected(bitmap)
-                        }
-                        override fun onLoadCleared(placeholder: Drawable?) { /* no-op */ }
-                    })
+                            override fun onLoadCleared(placeholder: Drawable?) { /* no-op */
+                            }
+                        })
+                }
             }
 
-
+            // Glide image loading logic: If bitmapData is empty, load from the URL
             val url = Constants.BASE_URL_GLIDE + image.file_url
-            Glide.with(binding.root.context)
-                .load(url)
-                .listener(object : RequestListener<Drawable> {
-                    override fun onLoadFailed(
-                        e: GlideException?,
-                        model: Any?,
-                        target: Target<Drawable>,
-                        isFirstResource: Boolean
-                    ): Boolean {
-                        Log.e("GlideDebug", "Image load failed: ${e?.message}")
-                        binding.progressBar.visibility = View.GONE
-                        currentDrawable = null
-                        return false
-                    }
+            if (image.bitmapData != null) {
+                // Decode Base64 string to Bitmap for loading directly if bitmapData exists
+                val decodedBytes = Base64.decode(image.bitmapData, Base64.DEFAULT)
+                val decodedBitmap =
+                    BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                binding.image.setImageBitmap(decodedBitmap) // Directly setting the image
+                binding.progressBar.visibility = View.GONE
+            } else {
+                // Glide to load the image from the URL if no bitmapData
+                Glide.with(binding.root.context)
+                    .load(url)
+                    .listener(object : RequestListener<Drawable> {
+                        override fun onLoadFailed(
+                            e: GlideException?,
+                            model: Any?,
+                            target: Target<Drawable>,
+                            isFirstResource: Boolean
+                        ): Boolean {
+                            Log.e("GlideDebug", "Image load failed: ${e?.message}")
+                            binding.progressBar.visibility = View.GONE
+                            currentDrawable = null
+                            return false
+                        }
 
-                    override fun onResourceReady(
-                        resource: Drawable,
-                        model: Any,
-                        target: Target<Drawable>?,
-                        dataSource: DataSource,
-                        isFirstResource: Boolean
-                    ): Boolean {
-                        Log.d("GlideDebug", "Image loaded successfully from: $url")
-                        binding.progressBar.visibility = View.GONE
-                        currentDrawable = resource
-                        return false
-                    }
-                })
-                .diskCacheStrategy(DiskCacheStrategy.ALL)
-                .thumbnail(0.1f)
-                .skipMemoryCache(false)
-                .into(binding.image)
+                        override fun onResourceReady(
+                            resource: Drawable,
+                            model: Any,
+                            target: Target<Drawable>?,
+                            dataSource: DataSource,
+                            isFirstResource: Boolean
+                        ): Boolean {
+                            Log.d("GlideDebug", "Image loaded successfully from: $url")
+                            binding.progressBar.visibility = View.GONE
+                            currentDrawable = resource
+                            return false
+                        }
+                    })
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .thumbnail(0.1f)
+                    .skipMemoryCache(false)
+                    .into(binding.image)
+            }
         }
     }
 }

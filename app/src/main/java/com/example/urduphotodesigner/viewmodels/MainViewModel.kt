@@ -13,6 +13,7 @@ import com.example.urduphotodesigner.common.sealed.Response
 import com.example.urduphotodesigner.common.utils.GradientPresets
 import com.example.urduphotodesigner.data.mapper.toEntity
 import com.example.urduphotodesigner.data.model.FontEntity
+import com.example.urduphotodesigner.data.model.FontsResponse
 import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.domain.repo.FontRepository
 import com.example.urduphotodesigner.domain.usecase.DeleteGradientUseCase
@@ -130,6 +131,24 @@ class MainViewModel @Inject constructor(
 
                     else -> {}
                 }
+            }
+        }
+    }
+
+    fun insertImage(imageEntity: ImageEntity) {
+        viewModelScope.launch {
+            insertImagesUseCase.insertSingleImage(imageEntity)
+        }
+    }
+
+    fun insertFont(fontEntity: FontEntity) {
+        viewModelScope.launch {
+            try {
+                // Call InsertFontsUseCase to insert the font
+                insertFontsUseCase.insertSingleFont(fontEntity)
+                Log.d("MainViewModel", "Font inserted successfully: ${fontEntity.file_name}")
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error inserting font: ${e.message}")
             }
         }
     }

@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Base64
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -22,6 +23,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.databinding.FragmentImagesBinding
 import com.example.urduphotodesigner.ui.editor.panels.background.BackgroundPagerAdapter
 import com.example.urduphotodesigner.viewmodels.MainViewModel
@@ -30,6 +32,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 
 @AndroidEntryPoint
@@ -92,11 +95,38 @@ class ImagesFragment : Fragment() {
     }
 
     private fun handlePickedUri(uri: Uri) {
+        // You probably don’t want to block the UI thread—do this in IO
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val compressed = bitmapCompress(getBitmapFromUri(uri))
+                // Get the Bitmap from URI and compress it
+                val bitmap = getBitmapFromUri(uri)
+                val compressed = bitmapCompress(bitmap)
+
+                // Convert the compressed Bitmap into Base64
+                val base64EncodedImage = run {
+                    val byteArrayOutputStream = ByteArrayOutputStream()
+                    compressed.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream) // JPEG compression with quality 80
+                    val compressedBytes = byteArrayOutputStream.toByteArray()
+                    Base64.encodeToString(compressedBytes, Base64.DEFAULT) // Convert to Base64
+                }
+
+                mainViewModel.insertImage(
+                    ImageEntity(
+                        id = System.currentTimeMillis().toInt(),  // Use current timestamp as unique ID
+                        file_name = "",  // Set file name (if available)
+                        file_url = "",   // Set file URL (if available)
+                        file_size = "", // Optional field for description
+                        alt_text = "",  // Set date (if needed)
+                        category = "Imported",  // For example, background category
+                        user_id = 0,        // Set image size if applicable
+                        is_selected = false,  // Set the selected state
+                        bitmapData = base64EncodedImage // Set the Base64 encoded image data
+                    )
+                )
+
                 withContext(Dispatchers.Main) {
-                    viewModel.addSticker(compressed, requireActivity())
+                    // Add sticker to the ViewModel, passing the Base64 encoded image data
+                    viewModel.addSticker(bitmap, requireActivity())
                 }
             } catch (e: Exception) {
                 Log.e("PhotoPicker", "Failed compressing image", e)
