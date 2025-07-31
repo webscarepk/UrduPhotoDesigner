@@ -195,7 +195,6 @@ class FontsFragment : Fragment() {
                 }
             }
         })
-
     }
 
     private fun initObservers() {

@@ -1,15 +1,9 @@
 package com.example.urduphotodesigner.ui.editor
 
-import android.Manifest
 import android.app.Dialog
-import android.content.ContentValues
-import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
-import android.provider.MediaStore
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -19,13 +13,9 @@ import android.view.animation.AnimationUtils
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.PopupMenu
-import android.widget.RadioButton
 import android.widget.SeekBar
 import android.widget.Toast
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.AnimRes
-import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
@@ -33,6 +23,7 @@ import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.distinctUntilChanged
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
@@ -48,18 +39,18 @@ import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.enums.VAlign
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
-import com.example.urduphotodesigner.common.canvas.model.ExportOptions
 import com.example.urduphotodesigner.common.utils.Constants
 import com.example.urduphotodesigner.common.utils.Converter.cmToPx
 import com.example.urduphotodesigner.common.utils.Converter.inchesToPx
 import com.example.urduphotodesigner.common.utils.displayName
 import com.example.urduphotodesigner.common.views.CanvasView
-import com.example.urduphotodesigner.databinding.BottomSheetExportSettingsBinding
 import com.example.urduphotodesigner.databinding.FragmentEditorBinding
-import com.example.urduphotodesigner.ui.editor.export.ExportFragment
-import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.tom_roush.fontbox.ttf.NamingTable.TAG
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -81,6 +72,8 @@ class EditorFragment : Fragment() {
     private lateinit var sizedCanvasView: CanvasView
     private var currentMode: MultiAlignMode = MultiAlignMode.CANVAS
 
+    private var jsonPath:String = "canvas_data_${System.currentTimeMillis()}.json"
+
     private val blendingOptions = listOf(
         BlendType.SRC,
         BlendType.DST,
@@ -99,6 +92,9 @@ class EditorFragment : Fragment() {
         BlendType.MULTIPLY,
         BlendType.SCREEN
     )
+
+    private var saveJsonJob: Job? = null
+    private val saveDelay = 500L
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -122,14 +118,10 @@ class EditorFragment : Fragment() {
         canvasSize = arguments?.getSerializable("canvas_size") as CanvasSize
         currentUnit = (arguments?.getSerializable("unit_type") as? UnitType)!!
         viewModel.setCanvasSize(canvasSize)
+        jsonPath = File(requireContext().filesDir, jsonPath).absolutePath
 
         setEvents()
         observeViewModel()
-
-        if (Constants.TEMPLATE.isNotEmpty()) {
-            viewModel.loadTemplate(Constants.TEMPLATE, requireContext())
-            Toast.makeText(requireContext(), "Template loaded!", Toast.LENGTH_SHORT).show()
-        }
     }
 
     private fun showTextEditDialog(element: CanvasElement) {
@@ -166,15 +158,39 @@ class EditorFragment : Fragment() {
         dialog.show()
     }
 
+    private suspend fun saveJson(json: String) {
+        withContext(Dispatchers.IO) {
+            val file = File(jsonPath)
+            file.writeText(json)
+            Log.d(TAG, "saveJson: Saved at ${file.absolutePath}")
+        }
+    }
+
     private fun observeViewModel() {
+
+        viewModel.exportResult.observe(viewLifecycleOwner){ exportResult ->
+            exportResult?.let {
+                jsonPath = it.jsonPath
+            }
+        }
+
         viewModel.canvasSize.observe(viewLifecycleOwner) { size ->
-            canvasSize = size
-            binding.canvasContainer.invalidate()
+           if (size!=null){
+               canvasSize = size
+               binding.canvasContainer.invalidate()
+           }
         }
 
         viewModel.canvasElements.observe(viewLifecycleOwner) { elements ->
-            canvasManager.syncElements(elements)
-            binding.canvasContainer.invalidate()
+            if (!elements.isNullOrEmpty()) {
+                saveJsonJob?.cancel()
+                saveJsonJob = lifecycleScope.launch {
+                    delay(saveDelay)
+                    saveJson(sizedCanvasView.exportCanvasJson())
+                }
+                canvasManager.syncElements(elements)
+                binding.canvasContainer.invalidate()
+            }
         }
 
         viewModel.backgroundColor.observe(viewLifecycleOwner) { color ->
@@ -294,7 +310,10 @@ class EditorFragment : Fragment() {
     }
 
     private fun setEvents() {
-        binding.back.setOnClickListener { findNavController().navigateUp() }
+        binding.back.setOnClickListener {
+            findNavController().navigateUp()
+            viewModel.clearCanvas()
+        }
 
         val widthPx = when (currentUnit) {
             UnitType.INCHES -> inchesToPx(canvasSize.width)
@@ -329,7 +348,6 @@ class EditorFragment : Fragment() {
                     R.id.nav_text -> navController.navigate(R.id.textFragment)
                     R.id.nav_images -> navController.navigate(R.id.imagesFragment)
                     R.id.nav_layers -> navController.navigate(R.id.layersFragment)
-                    else -> false // Should not happen with defined menu items
                 }
             }
             true
@@ -544,6 +562,7 @@ class EditorFragment : Fragment() {
     override fun onDestroy() {
         super.onDestroy()
         _navController = null
+        saveJsonJob?.cancel()
         _binding = null
     }
 }

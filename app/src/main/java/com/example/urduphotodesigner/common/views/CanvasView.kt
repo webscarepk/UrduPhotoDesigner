@@ -59,6 +59,8 @@ import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
 import com.example.urduphotodesigner.common.utils.KashidaProcessor
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.abs
@@ -693,6 +695,18 @@ class CanvasView @JvmOverloads constructor(
         return Pair(bitmap, json)
     }
 
+    suspend fun exportCanvasJson(): String {
+        return withContext(Dispatchers.IO) {
+            val canvasElementsCopy = ArrayList(canvasElements)
+            canvasElementsCopy.forEach { element ->
+                element.bitmap?.let {
+                    element.bitmapData = encodeBitmapToBase64(it)
+                }
+            }
+            Gson().toJson(canvasElementsCopy)
+        }
+    }
+
     private fun encodeBitmapToBase64(bitmap: Bitmap): String {
         val stream = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
@@ -700,12 +714,8 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private fun checkAlignment(element: CanvasElement) {
-        val centerThreshold = 5f // pixels within which we consider centered
-
-        // Check horizontal alignment
+        val centerThreshold = 5f
         showVerticalGuide = abs(element.x - canvasWidth / 2f) < centerThreshold
-
-        // Check vertical alignment
         showHorizontalGuide = abs(element.y - canvasHeight / 2f) < centerThreshold
     }
 
@@ -714,25 +724,17 @@ class CanvasView @JvmOverloads constructor(
      * and sets the rotation alignment guide flags accordingly.
      */
     private fun checkRotationAlignment(element: CanvasElement) {
-        val rotationThreshold = 5f // degrees within which we consider aligned
-
-        // Normalize rotation to be between 0 and 360
+        val rotationThreshold = 5f
         val normalizedRotation = (element.rotation % 360 + 360) % 360
-
         showRotationVerticalGuide = false
         showRotationHorizontalGuide = false
-
-        // Check for 0 or 180 degrees (vertical alignment)
         if (abs(normalizedRotation) < rotationThreshold || abs(normalizedRotation - 180) < rotationThreshold) {
             showRotationVerticalGuide = true
         }
-
-        // Check for 90 or 270 degrees (horizontal alignment)
         if (abs(normalizedRotation - 90) < rotationThreshold || abs(normalizedRotation - 270) < rotationThreshold) {
             showRotationHorizontalGuide = true
         }
     }
-
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val parentWidth = MeasureSpec.getSize(widthMeasureSpec)

@@ -6,6 +6,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import com.example.urduphotodesigner.common.canvas.model.ExportResult
 import com.example.urduphotodesigner.common.canvas.model.GradientItem
 import com.example.urduphotodesigner.common.utils.Constants
 import com.example.urduphotodesigner.common.utils.DownloadState
@@ -17,6 +18,7 @@ import com.example.urduphotodesigner.data.model.FontsResponse
 import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.domain.repo.FontRepository
 import com.example.urduphotodesigner.domain.usecase.DeleteGradientUseCase
+import com.example.urduphotodesigner.domain.usecase.ExportResultsUseCase
 import com.example.urduphotodesigner.domain.usecase.FetchAPIFontsUseCase
 import com.example.urduphotodesigner.domain.usecase.FetchAPIImagesUseCase
 import com.example.urduphotodesigner.domain.usecase.GetAllGradientsUseCase
@@ -49,7 +51,8 @@ class MainViewModel @Inject constructor(
     private val seed: SeedGradientsUseCase,
     private val delete: DeleteGradientUseCase,
     private val insert: InsertGradientUseCase,
-    private val update: UpdateGradientUseCase
+    private val update: UpdateGradientUseCase,
+    private val exportResultsUseCase: ExportResultsUseCase
 ) : ViewModel() {
 
     private val _downloadState = MutableStateFlow<DownloadState?>(null)
@@ -69,13 +72,16 @@ class MainViewModel @Inject constructor(
     private val _gradients = MutableLiveData<List<GradientItem>>()
     val gradients: LiveData<List<GradientItem>> = _gradients
 
+    private val _exportResults = MutableLiveData<List<ExportResult>>()
+    val exportResults: LiveData<List<ExportResult>> get() = _exportResults
+
     init {
         Log.d("FontsViewModel", "ViewModel initialized")
         fetchAndStoreFontsFromApi()
         observeLocalFonts()
         fetchAndStoreImagesFromApi()
         observeLocalImages()
-
+        getAllExportResults()
         viewModelScope.launch {
             seed(GradientPresets.defaultList)
         }
@@ -199,6 +205,32 @@ class MainViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _downloadState.value = DownloadState.Error(e.message ?: "Download failed")
+            }
+        }
+    }
+
+    fun insertExportResult(exportResult: ExportResult) {
+        viewModelScope.launch {
+            exportResultsUseCase.insertExportResult(exportResult)
+        }
+    }
+
+    fun updateExportResult(exportResult: ExportResult) {
+        viewModelScope.launch {
+            exportResultsUseCase.updateExportResult(exportResult)
+        }
+    }
+
+    fun deleteExportResult(exportResult: ExportResult) {
+        viewModelScope.launch {
+            exportResultsUseCase.deleteExportResult(exportResult)
+        }
+    }
+
+    fun getAllExportResults() {
+        viewModelScope.launch {
+            exportResultsUseCase.getAllExportResults().collect {
+                _exportResults.value = it
             }
         }
     }

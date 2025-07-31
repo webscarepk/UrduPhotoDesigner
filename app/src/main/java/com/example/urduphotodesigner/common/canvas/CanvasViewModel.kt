@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Typeface
 import android.util.Base64
+import android.util.Log
 import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
@@ -17,7 +18,6 @@ import com.example.urduphotodesigner.common.canvas.enums.BlendType
 import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.canvas.enums.GradientPickerTarget
 import com.example.urduphotodesigner.common.canvas.enums.GradientType
-import com.example.urduphotodesigner.common.canvas.enums.KashidaSize
 import com.example.urduphotodesigner.common.canvas.enums.LabelShape
 import com.example.urduphotodesigner.common.canvas.enums.LetterCasing
 import com.example.urduphotodesigner.common.canvas.enums.ListStyle
@@ -26,7 +26,6 @@ import com.example.urduphotodesigner.common.canvas.enums.TextAlignment
 import com.example.urduphotodesigner.common.canvas.enums.TextDecoration
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
-import com.example.urduphotodesigner.common.canvas.model.CanvasTemplate
 import com.example.urduphotodesigner.common.canvas.model.ExportFormat
 import com.example.urduphotodesigner.common.canvas.model.ExportOptions
 import com.example.urduphotodesigner.common.canvas.model.ExportQuality
@@ -46,6 +45,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.util.Stack
 import java.util.UUID
 import javax.inject.Inject
@@ -55,7 +55,7 @@ class CanvasViewModel @Inject constructor(
     private val getFontsUseCase: GetFontsUseCase,
 ) : ViewModel() {
 
-    private val _pagingLocked = MutableLiveData<Boolean>(false)
+    private val _pagingLocked = MutableLiveData(false)
     val pagingLocked: LiveData<Boolean> = _pagingLocked
 
     private val _canvasActions = Stack<CanvasAction>()
@@ -73,7 +73,6 @@ class CanvasViewModel @Inject constructor(
     val activePicker: LiveData<PickerTarget?> = _activePicker
 
     private val _activeGradientPicker = MutableLiveData<GradientPickerTarget?>(null)
-    val activeGradientPicker: LiveData<GradientPickerTarget?> = _activeGradientPicker
 
     private val _localFonts = MutableStateFlow<List<FontEntity>>(emptyList())
     private val localFonts: StateFlow<List<FontEntity>> = _localFonts.asStateFlow()
@@ -86,7 +85,7 @@ class CanvasViewModel @Inject constructor(
 
     // LiveData to hold the current background color. Useful for observers.
     private val _backgroundColor =
-        MutableLiveData<Int>(Color.WHITE) // Initialize with a default color
+        MutableLiveData(Color.WHITE) // Initialize with a default color
     val backgroundColor: LiveData<Int> = _backgroundColor
 
     private val _backgroundImage = MutableLiveData<Bitmap?>()
@@ -98,17 +97,17 @@ class CanvasViewModel @Inject constructor(
     private val _currentFont = MutableLiveData<FontEntity?>()
     val currentFont: LiveData<FontEntity?> = _currentFont
 
-    private val _currentTextColor = MutableLiveData<Int>(Color.BLACK)
+    private val _currentTextColor = MutableLiveData(Color.BLACK)
     val currentTextColor: LiveData<Int> = _currentTextColor
 
-    private val _currentTextSize = MutableLiveData<Float>(40f)  // Initialize with a default size
+    private val _currentTextSize = MutableLiveData(40f)  // Initialize with a default size
     val currentTextSize: LiveData<Float> = _currentTextSize
 
-    private val _currentTextAlignment = MutableLiveData<TextAlignment>(TextAlignment.CENTER)
+    private val _currentTextAlignment = MutableLiveData(TextAlignment.CENTER)
     val currentTextAlignment: LiveData<TextAlignment> = _currentTextAlignment
 
-    private val _canvasSize = MutableLiveData<CanvasSize>()
-    val canvasSize: LiveData<CanvasSize> = _canvasSize
+    private val _canvasSize = MutableLiveData<CanvasSize?>()
+    val canvasSize: LiveData<CanvasSize?> = _canvasSize
 
     private val _currentImageFilter = MutableLiveData<ImageFilter?>(null)
     val currentImageFilter: LiveData<ImageFilter?> = _currentImageFilter
@@ -118,96 +117,89 @@ class CanvasViewModel @Inject constructor(
 
     // Stroke gradient
     private val _strokeGradient = MutableLiveData<GradientItem?>()
-    val strokeGradient: LiveData<GradientItem?> = _strokeGradient
 
     // Stroke gradient
     private val _labelGradient = MutableLiveData<GradientItem?>()
     val labelGradient: LiveData<GradientItem?> = _labelGradient
 
     // 🔷 Shadow
-    private val _hasShadow = MutableLiveData<Boolean>(false)
-    val hasShadow: LiveData<Boolean> = _hasShadow
+    private val _hasShadow = MutableLiveData(false)
 
-    private val _shadowColor = MutableLiveData<Int>(Color.GRAY)
+    private val _shadowColor = MutableLiveData(Color.GRAY)
     val shadowColor: LiveData<Int> = _shadowColor
 
-    private val _shadowDx = MutableLiveData<Float>(1f)
+    private val _shadowDx = MutableLiveData(1f)
     val shadowDx: LiveData<Float> = _shadowDx
 
-    private val _shadowDy = MutableLiveData<Float>(1f)
+    private val _shadowDy = MutableLiveData(1f)
     val shadowDy: LiveData<Float> = _shadowDy
 
-    private val _shadowRadius = MutableLiveData<Float>(8f)
+    private val _shadowRadius = MutableLiveData(8f)
     val shadowRadius: LiveData<Float> = _shadowRadius
 
-    private val _shadowOpacity = MutableLiveData<Int>(64)
+    private val _shadowOpacity = MutableLiveData(64)
     val shadowOpacity: LiveData<Int> = _shadowOpacity
 
-    private val _blurValue = MutableLiveData<Float>(10f) // Default blur value
+    private val _blurValue = MutableLiveData(10f) // Default blur value
     val blurValue: LiveData<Float> = _blurValue
 
-    private val _opacity = MutableLiveData<Int>(255) // Default opacity
+    private val _opacity = MutableLiveData(255) // Default opacity
     val opacity: LiveData<Int> = _opacity
 
-    private val _hasBlur = MutableLiveData<Boolean>(false)
-    val hasBlur: LiveData<Boolean> = _hasBlur
+    private val _hasBlur = MutableLiveData(false)
 
-    private val _blendingType = MutableLiveData<BlendType>(BlendType.SRC_OVER) // Default blend type
+    private val _blendingType = MutableLiveData(BlendType.SRC_OVER) // Default blend type
     val blendingType: LiveData<BlendType> = _blendingType
 
     // 🔷 Border
-    private val _hasBorder = MutableLiveData<Boolean>(false)
-    val hasBorder: LiveData<Boolean> = _hasBorder
+    private val _hasBorder = MutableLiveData(false)
 
-    private val _borderColor = MutableLiveData<Int>(Color.BLACK)
+    private val _borderColor = MutableLiveData(Color.BLACK)
     val borderColor: LiveData<Int> = _borderColor
 
-    private val _borderWidth = MutableLiveData<Float>(1f)
+    private val _borderWidth = MutableLiveData(1f)
     val borderWidth: LiveData<Float> = _borderWidth
 
     // 🔷 Label
-    private val _hasLabel = MutableLiveData<Boolean>(false)
-    val hasLabel: LiveData<Boolean> = _hasLabel
+    private val _hasLabel = MutableLiveData(false)
 
-    private val _labelColor = MutableLiveData<Int>(Color.YELLOW)
+    private val _labelColor = MutableLiveData(Color.YELLOW)
     val labelColor: LiveData<Int> = _labelColor
 
-    private val _labelShape = MutableLiveData<LabelShape>(LabelShape.RECTANGLE_FILL)
+    private val _labelShape = MutableLiveData(LabelShape.RECTANGLE_FILL)
     val labelShape: LiveData<LabelShape> = _labelShape
 
-    private val _lineSpacing = MutableLiveData<Float>(1.0f)
+    private val _lineSpacing = MutableLiveData(1.0f)
     val lineSpacing: LiveData<Float> = _lineSpacing
 
-    private val _letterSpacing = MutableLiveData<Float>(0f)
+    private val _letterSpacing = MutableLiveData(0f)
     val letterSpacing: LiveData<Float> = _letterSpacing
 
-    private val _letterCasing = MutableLiveData<LetterCasing>(LetterCasing.NONE)
+    private val _letterCasing = MutableLiveData(LetterCasing.NONE)
     val letterCasing: LiveData<LetterCasing> = _letterCasing
 
-    private val _kasheeda = MutableLiveData<Int>(0)
+    private val _kasheeda = MutableLiveData(0)
     val kasheeda: LiveData<Int> = _kasheeda
 
-    private val _textDecoration = MutableLiveData<Set<TextDecoration>>(setOf(TextDecoration.NONE))
+    private val _textDecoration = MutableLiveData(setOf(TextDecoration.NONE))
     val textDecoration: LiveData<Set<TextDecoration>> = _textDecoration
 
-    private val _textAlignment = MutableLiveData<TextAlignment>(TextAlignment.CENTER)
+    private val _textAlignment = MutableLiveData(TextAlignment.CENTER)
     val textAlignment: LiveData<TextAlignment> = _textAlignment
 
-    private val _paragraphIndentation = MutableLiveData<Float>(0f)
+    private val _paragraphIndentation = MutableLiveData(0f)
     val paragraphIndentation: LiveData<Float> = _paragraphIndentation
 
-    private val _listStyle = MutableLiveData<ListStyle>(ListStyle.NONE)
+    private val _listStyle = MutableLiveData(ListStyle.NONE)
     val listStyle: LiveData<ListStyle> = _listStyle
 
     private val _groupId = MutableLiveData<String?>()
-    val groupId: LiveData<String?> = _groupId
 
     // Track the selected group ID for grouping operations
     private val _currentGroupId = MutableLiveData<String?>()
-    val currentGroupId: LiveData<String?> = _currentGroupId
 
-    private val _exportResult = MutableLiveData<ExportResult>()
-    val exportResult: LiveData<ExportResult> = _exportResult
+    private val _exportResult = MutableLiveData<ExportResult?>()
+    val exportResult: LiveData<ExportResult?> = _exportResult
 
     fun setExportResult(result: ExportResult) {
         _exportResult.value = result
@@ -219,9 +211,9 @@ class CanvasViewModel @Inject constructor(
 
     val availableResolutions = listOf(
         ExportResolution("Original", 0, 0, 1f, "Native", "Keep original size", 2500),
-        ExportResolution("HD", 0, 0, 2f,"1280 x 720", "Standard quality", 800),
-        ExportResolution("Full HD", 0, 0, 3f,"1920 x 1080", "High quality", 1200),
-        ExportResolution("4k", 0, 0, 4f,"3840 x 2160", "Ultra quality", 4800)
+        ExportResolution("HD", 0, 0, 2f, "1280 x 720", "Standard quality", 800),
+        ExportResolution("Full HD", 0, 0, 3f, "1920 x 1080", "High quality", 1200),
+        ExportResolution("4k", 0, 0, 4f, "3840 x 2160", "Ultra quality", 4800)
     )
 
     val qualityOptions = listOf(
@@ -231,12 +223,27 @@ class CanvasViewModel @Inject constructor(
     )
 
     val formatOptions = listOf(
-        ExportFormat("PNG", Bitmap.CompressFormat.PNG, "Lossless format", listOf("Transparent", "High Quality", "Larger Size")),
-        ExportFormat("JPEG", Bitmap.CompressFormat.JPEG, "Compressed, smaller size", listOf("Small size", "Good for photos", "No transparency")),
-        ExportFormat("WEBP", Bitmap.CompressFormat.WEBP, "Modern format with balance", listOf("Efficient", "Web Friendly", "Small & sharp"))
+        ExportFormat(
+            "PNG",
+            Bitmap.CompressFormat.PNG,
+            "Lossless format",
+            listOf("Transparent", "High Quality", "Larger Size")
+        ),
+        ExportFormat(
+            "JPEG",
+            Bitmap.CompressFormat.JPEG,
+            "Compressed, smaller size",
+            listOf("Small size", "Good for photos", "No transparency")
+        ),
+        ExportFormat(
+            "WEBP",
+            Bitmap.CompressFormat.WEBP,
+            "Modern format with balance",
+            listOf("Efficient", "Web Friendly", "Small & sharp")
+        )
     )
 
-    private val _gradient = MutableLiveData<GradientItem>(
+    private val _gradient = MutableLiveData(
         GradientItem(
             colors = listOf(Color.BLACK, Color.GRAY),
             positions = listOf(0f, 1f),
@@ -247,11 +254,10 @@ class CanvasViewModel @Inject constructor(
     )
     val gradient: LiveData<GradientItem> = _gradient
 
-    private val _gradientStopColor = MediatorLiveData<Int>(Color.BLACK)
+    private val _gradientStopColor = MediatorLiveData(Color.BLACK)
     val gradientStopColor: LiveData<Int> = _gradientStopColor
 
     private val _selectedStopIndex = MutableLiveData<Int?>(null)
-    val selectedStopIndex: LiveData<Int?> = _selectedStopIndex
 
     private val _canvasView = MutableLiveData<CanvasView>()
     val canvasView: LiveData<CanvasView> = _canvasView
@@ -420,21 +426,6 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
-    fun moveGroupedElements(dx: Float, dy: Float) {
-        // Move all elements that share the same groupId
-        _canvasElements.value = _canvasElements.value?.map { element ->
-            if (element.groupId == _currentGroupId.value) {
-                element.copy(
-                    x = element.x + dx,
-                    y = element.y + dy
-                )
-            } else {
-                element
-            }
-        }
-        // Notify observers to sync the updated canvas
-    }
-
     fun ungroupElements() {
         // Remove the group ID and reset selected elements
         _canvasElements.value = _canvasElements.value?.map { element ->
@@ -448,40 +439,6 @@ class CanvasViewModel @Inject constructor(
         _currentGroupId.value = null
         _selectedElements.value = emptyList()
         // Notify observer to update the canvas
-    }
-
-    fun syncElements(updatedElements: List<CanvasElement>) {
-        _canvasElements.value = updatedElements
-    }
-
-    // Handle updates when selecting elements (for example, during dragging or selection)
-    fun selectElement(element: CanvasElement) {
-        val currentSelection = _selectedElements.value?.toMutableList() ?: mutableListOf()
-        if (!currentSelection.contains(element)) {
-            currentSelection.add(element)
-            _selectedElements.value = currentSelection
-        }
-    }
-
-    // Optionally, handle additional canvas operations like resizing, rotating, etc.
-    fun scaleGroupedElements(scaleFactor: Float) {
-        _canvasElements.value = _canvasElements.value?.map { element ->
-            if (element.groupId == _currentGroupId.value) {
-                element.copy(scale = element.scale * scaleFactor)
-            } else {
-                element
-            }
-        }
-    }
-
-    fun rotateGroupedElements(degrees: Float) {
-        _canvasElements.value = _canvasElements.value?.map { element ->
-            if (element.groupId == _currentGroupId.value) {
-                element.copy(rotation = element.rotation + degrees)
-            } else {
-                element
-            }
-        }
     }
 
     private fun insertAt(
@@ -501,7 +458,8 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun resetExportOptions() {
-        _exportOptions.value = ExportOptions(availableResolutions[0], qualityOptions[0], formatOptions[0])
+        _exportOptions.value =
+            ExportOptions(availableResolutions[0], qualityOptions[0], formatOptions[0])
     }
 
     private fun observeLocalFonts() {
@@ -1279,51 +1237,6 @@ class CanvasViewModel @Inject constructor(
         _selectedElements.value = currentList.filter { it.isSelected }
     }
 
-    fun setSelectedElementsFromLayers(elementsToSelect: List<CanvasElement>) {
-        val currentElements = _canvasElements.value?.toMutableList() ?: mutableListOf()
-        val context = currentElements.firstOrNull()?.context
-        val idsToSelect = elementsToSelect.map { it.id }.toSet()
-
-        val updatedList = currentElements.map { element ->
-            val copiedElement = element.copy(
-                isSelected = idsToSelect.contains(element.id), context = context
-            )
-
-            copiedElement.paint.typeface =
-                if (copiedElement.type == ElementType.TEXT && copiedElement.fontId != null) {
-                    copiedElement.applyTypefaceFromFontList()
-                } else {
-                    context?.let { ResourcesCompat.getFont(it, R.font.regular) } ?: Typeface.DEFAULT
-                }
-
-            copiedElement
-        }
-
-        _canvasElements.value = updatedList
-
-        // Update selected elements list for observer
-        _selectedElements.value = updatedList.filter { it.isSelected }
-
-        refreshSelectedElements()
-
-        // 🛑 Don't sync formatting if more than 1 item is selected
-        val selectedTextElements = elementsToSelect.filter { it.type == ElementType.TEXT }
-
-        if (selectedTextElements.size == 1) {
-            syncUiFormattingWithSelectedTextElement(selectedTextElements.first())
-        } else {
-            resetTextFormattingToDefault()
-        }
-
-        val firstSelectedImageElement =
-            elementsToSelect.firstOrNull { it.type == ElementType.IMAGE }
-        _currentImageFilter.value = firstSelectedImageElement?.imageFilter
-    }
-
-    private fun getSelectedElement(): CanvasElement? {
-        return _canvasElements.value?.find { it.isSelected } ?: selectedElement
-    }
-
     fun setCanvasBackgroundColor(color: Int) {
         val previousColor = _backgroundColor.value ?: Color.WHITE
         if (color != previousColor) {
@@ -1341,17 +1254,6 @@ class CanvasViewModel @Inject constructor(
             _canvasActions.push(CanvasAction.SetBackgroundImage(bitmap, previousBitmap))
             _redoStack.clear()
             _backgroundImage.value = bitmap
-            notifyUndoRedoChanged()
-        }
-    }
-
-    fun removeCanvasBackgroundImage() {
-        val previousBitmap = _backgroundImage.value
-        // Only push action if there's a change
-        if (previousBitmap != null) {
-            _canvasActions.push(CanvasAction.SetBackgroundImage(null, previousBitmap))
-            _redoStack.clear()
-            _backgroundImage.value = null
             notifyUndoRedoChanged()
         }
     }
@@ -1569,37 +1471,6 @@ class CanvasViewModel @Inject constructor(
     }
 
     /**
-     * Applies text size to all currently selected text elements.
-     */
-    fun setTextSize(size: Float) {
-        val currentList = _canvasElements.value ?: return
-        val context = currentList.firstOrNull()?.context
-        var oldSize: Float? = null
-        var targetElementId: String? = null
-
-        val updatedList = currentList.map { element ->
-            if (element.isSelected && element.type == ElementType.TEXT) {
-                oldSize = oldSize ?: element.paintTextSize
-                targetElementId = targetElementId ?: element.id
-
-                element.copy(context = context).apply {
-                    paintTextSize = size
-                    paint.textSize = size
-                    paint.typeface = element.applyTypefaceFromFontList()
-                }
-            } else element
-        }
-
-        if (targetElementId != null) {
-            _currentTextSize.value = size
-            _canvasElements.value = updatedList
-            _canvasActions.push(CanvasAction.SetTextSize(size, oldSize ?: 40f, targetElementId!!))
-            _redoStack.clear()
-            notifyUndoRedoChanged()
-        }
-    }
-
-    /**
      * Applies opacity to all currently selected elements.
      */
     fun setOpacity(opacity: Int) {
@@ -1761,7 +1632,7 @@ class CanvasViewModel @Inject constructor(
         refreshSelectedElements()
 
         // Push undo actions
-        oldCopies.forEachIndexed { idx, oldElem ->
+        oldCopies.forEachIndexed { _, oldElem ->
             val newElem = updatedList.first { it.id == oldElem.id }
             _canvasActions.push(
                 CanvasAction.UpdateElement(
@@ -1910,7 +1781,6 @@ class CanvasViewModel @Inject constructor(
 
     private fun updateSingleElement(
         elementId: String,
-        isRedo: Boolean,
         getNewValue: (CanvasElement) -> Any?,
         applyValue: (CanvasElement, Any?) -> CanvasElement
     ) {
@@ -2041,7 +1911,6 @@ class CanvasViewModel @Inject constructor(
 
             is CanvasAction.SetTextColor -> {
                 updateSingleElement(elementId = action.elementId,
-                    isRedo = isRedo,
                     getNewValue = { if (isRedo) action.color else action.previousColor },
                     applyValue = { elem, raw ->
                         (raw as? Int)?.let {
@@ -2056,7 +1925,6 @@ class CanvasViewModel @Inject constructor(
 
             is CanvasAction.SetTextSize -> {
                 updateSingleElement(elementId = action.elementId,
-                    isRedo = isRedo,
                     getNewValue = { if (isRedo) action.size else action.previousSize },
                     applyValue = { elem, raw ->
                         (raw as? Float)?.let {
@@ -2071,7 +1939,6 @@ class CanvasViewModel @Inject constructor(
 
             is CanvasAction.SetTextAlignment -> {
                 updateSingleElement(elementId = action.elementId,
-                    isRedo = isRedo,
                     getNewValue = { if (isRedo) action.alignment else action.previousAlignment },
                     applyValue = { elem, raw ->
                         (raw as? TextAlignment)?.let {
@@ -2084,7 +1951,6 @@ class CanvasViewModel @Inject constructor(
 
             is CanvasAction.SetOpacity -> {
                 updateSingleElement(elementId = action.elementId,
-                    isRedo = isRedo,
                     getNewValue = { if (isRedo) action.opacity else action.previousOpacity },
                     applyValue = { elem, raw ->
                         (raw as? Int)?.let {
@@ -2099,7 +1965,6 @@ class CanvasViewModel @Inject constructor(
 
             is CanvasAction.UpdateText -> {
                 updateSingleElement(elementId = action.elementId,
-                    isRedo = isRedo,
                     getNewValue = { if (isRedo) action.text else action.previousText },
                     applyValue = { elem, raw ->
                         (raw as? String)?.let {
@@ -2135,7 +2000,7 @@ class CanvasViewModel @Inject constructor(
             }
 
             is CanvasAction.ApplyImageFilter -> {
-                updateSingleElement(elementId = action.elementId, isRedo = isRedo, getNewValue = {
+                updateSingleElement(elementId = action.elementId, getNewValue = {
                     // Note: in original code, imageFilter swap seemed inverted; ensure correct:
                     if (isRedo) action.newFilter else action.oldFilter
                 }, applyValue = { elem, raw ->
@@ -2156,20 +2021,34 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun clearCanvas() {
+        _canvasElements.value = emptyList()
+        _selectedElements.value = emptyList()
         _canvasActions.clear()
         _redoStack.clear()
-        _canvasElements.value = emptyList()
+
+        _canvasSize.value = null
         _backgroundColor.value = Color.WHITE
         _backgroundImage.value = null
         _backgroundGradient.value = null
-        _currentFont.value = null
-        _currentTextColor.value = Color.BLACK
-        _currentTextSize.value = 40f
-        _currentTextAlignment.value = TextAlignment.CENTER
-        _opacity.value = 255
-        _selectedElements.value = emptyList()
 
-        notifyUndoRedoChanged()
+        resetTextFormattingToDefault()
+        clearFillGradients()
+        clearStrokeGradients()
+        clearLabelGradients()
+        clearGradient()
+
+        _currentFont.value = null
+        _currentImageFilter.value = null
+        _groupId.value = null
+        _currentGroupId.value = null
+        _exportResult.value = null
+        resetExportOptions()
+
+        _canUndo.value = false
+        _canRedo.value = false
+
+        selectedElement = null
+        currentBatchAction = null
     }
 
     // Helper function to encode Bitmap to Base64 String
@@ -2191,85 +2070,51 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
-    // Function to save the current canvas state as a template
-    fun saveTemplate(): String {
-        val elementsToSave = _canvasElements.value?.map { element ->
-            // Create a copy without the transient context and bitmap for serialization
-            // Ensure bitmapData is populated for image elements
-            element.copy(
-                context = null,
-                bitmap = null,
-                bitmapData = if (element.type == ElementType.IMAGE && element.bitmap != null) {
-                    encodeBitmapToBase64(element.bitmap!!)
-                } else null
-            )
-        } ?: emptyList()
+    fun loadTemplateFromJsonFile(exportResult: ExportResult, context: Context) {
+        try {
+            val jsonFilePath = exportResult.jsonPath
+            val jsonFile = File(jsonFilePath)
+            if (!jsonFile.exists()) {
+                Log.e("CanvasViewModel", "Template JSON file not found: $jsonFilePath")
+                return
+            }
 
-        val template = CanvasTemplate(
-            canvasElements = elementsToSave,
-            canvasSize = _canvasSize.value ?: CanvasSize(
-                "Default", 0, 0f, 0f
-            ), // Provide a default or handle null
-            backgroundColor = _backgroundColor.value ?: Color.WHITE,
-            backgroundImage = _backgroundImage.value?.let { encodeBitmapToBase64(it) }, // Encode background image
-            backgroundGradient = _backgroundGradient.value ?: GradientItem(
-                colors = listOf(Color.BLACK, Color.GRAY),
-                positions = listOf(0f, 1f),
-                angle = 0f,
-                scale = 1f,
-                type = GradientType.LINEAR
-            )
-        )
-        return Gson().toJson(template)
-    }
+            clearCanvas()
 
-    // Function to load a template and restore the canvas state
-    fun loadTemplate(templateJson: String, context: Context) {
-        val template = Gson().fromJson(templateJson, CanvasTemplate::class.java)
+            val jsonContent = jsonFile.readText()
+            val elements = Gson().fromJson(jsonContent, Array<CanvasElement>::class.java).toList()
 
-        // Clear current state before loading
-        clearCanvas()
+            if (elements.isNotEmpty()) {
+                val backgroundElement = elements[0]
 
-        // Restore canvas size
-        _canvasSize.value = template.canvasSize
+                _backgroundColor.value = backgroundElement.paintColor ?: Color.WHITE
 
-        // Restore background properties
-        _backgroundColor.value = template.backgroundColor
-        _backgroundImage.value = template.backgroundImage?.let { decodeBase64ToBitmap(it) }
+                _backgroundGradient.value = backgroundElement.fillGradient
 
-        val loadedElements = template.canvasElements.map { serializedElement ->
-            val elementWithContext = serializedElement.copy(context = context)
-
-            if (elementWithContext.type == ElementType.TEXT && elementWithContext.fontId != null) {
-                val font = localFonts.value.find { it.id.toString() == elementWithContext.fontId }
-                if (font != null && font.file_path?.isNotBlank() == true) {
-                    try {
-                        elementWithContext.paint.typeface = Typeface.createFromFile(font.file_path)
-                    } catch (e: Exception) {
-                        println("Error re-applying typeface during loadTemplate: ${font.file_path}. Error: ${e.message}")
-                        elementWithContext.paint.typeface =
-                            ResourcesCompat.getFont(context, R.font.regular)
-                    }
-                } else {
-                    // Fallback to default font if the specific font is not found
-                    elementWithContext.paint.typeface =
-                        ResourcesCompat.getFont(context, R.font.regular)
+                if (backgroundElement.bitmapData != null) {
+                    val decodedBitmap = decodeBase64ToBitmap(backgroundElement.bitmapData!!)
+                    _backgroundImage.value = decodedBitmap
                 }
-            } else if (elementWithContext.type == ElementType.TEXT) {
-                elementWithContext.paint.typeface = ResourcesCompat.getFont(context, R.font.regular)
+
+                if (_backgroundGradient.value == null && _backgroundImage.value == null) {
+                    _backgroundColor.value = backgroundElement.paintColor ?: Color.WHITE
+                }
             }
 
-
-            // Decode bitmap data for IMAGE elements
-            if (elementWithContext.type == ElementType.IMAGE && serializedElement.bitmapData != null) {
-                elementWithContext.bitmap = decodeBase64ToBitmap(serializedElement.bitmapData!!)
+            val hydratedElements = elements.map { raw ->
+                raw.copy(context = context).restoreWithContext(context)
             }
-            elementWithContext
+
+            // Set canvas size and elements
+            _canvasSize.value = exportResult.canvasSize
+            _canvasElements.value = hydratedElements
+
+            // Optional: restore export result if you want it shown
+            _exportResult.value = exportResult
+
+        } catch (e: Exception) {
+            Log.e("CanvasViewModel", "Error loading template: ${e.message}")
         }
-        _canvasElements.value = loadedElements
-        _canvasActions.clear() // Clear undo/redo history for loaded templates
-        _redoStack.clear()
-        notifyUndoRedoChanged()
     }
 
     fun isExplicitChange(): Boolean {

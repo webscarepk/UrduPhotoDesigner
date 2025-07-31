@@ -2,28 +2,30 @@ package com.example.urduphotodesigner.di
 
 import android.content.Context
 import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.utils.Constants
-import com.example.urduphotodesigner.common.utils.SocketFactoryWithTcpNoDelay
 import com.example.urduphotodesigner.common.datastore.PreferenceDataStoreAPI
 import com.example.urduphotodesigner.common.datastore.PreferencesDataStoreHelper
+import com.example.urduphotodesigner.common.utils.Constants
+import com.example.urduphotodesigner.common.utils.SocketFactoryWithTcpNoDelay
 import com.example.urduphotodesigner.data.local.AppDatabase
+import com.example.urduphotodesigner.data.local.ExportResultsDao
 import com.example.urduphotodesigner.data.local.GradientDao
 import com.example.urduphotodesigner.data.remote.EndPointsInterface
 import com.example.urduphotodesigner.data.repository.AuthRepositoryImpl
+import com.example.urduphotodesigner.data.repository.ExportResultsRepositoryImpl
 import com.example.urduphotodesigner.data.repository.FetchFontsRepoImpl
 import com.example.urduphotodesigner.data.repository.FetchImagesRepoImpl
 import com.example.urduphotodesigner.data.repository.FontsRepoImpl
 import com.example.urduphotodesigner.data.repository.GradientRepositoryImpl
 import com.example.urduphotodesigner.data.repository.ImagesRepoImpl
-import com.example.urduphotodesigner.data.repository.TipManagerImpl
 import com.example.urduphotodesigner.domain.repo.AuthRepository
+import com.example.urduphotodesigner.domain.repo.ExportResultsRepository
 import com.example.urduphotodesigner.domain.repo.FetchFontsRepo
 import com.example.urduphotodesigner.domain.repo.FetchImagesRepo
 import com.example.urduphotodesigner.domain.repo.FontsRepo
 import com.example.urduphotodesigner.domain.repo.GradientRepository
 import com.example.urduphotodesigner.domain.repo.ImagesRepo
-import com.example.urduphotodesigner.domain.repo.TipManager
 import com.example.urduphotodesigner.domain.usecase.DeleteGradientUseCase
+import com.example.urduphotodesigner.domain.usecase.ExportResultsUseCase
 import com.example.urduphotodesigner.domain.usecase.GetAllGradientsUseCase
 import com.example.urduphotodesigner.domain.usecase.InsertGradientUseCase
 import com.example.urduphotodesigner.domain.usecase.SeedGradientsUseCase
@@ -32,7 +34,6 @@ import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.auth.api.identity.SignInClient
 import com.google.gson.GsonBuilder
-import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -125,6 +126,7 @@ object AppModule {
     fun provideImagesRepo(appDatabase: AppDatabase): ImagesRepo {
         return ImagesRepoImpl(appDatabase)
     }
+
     @Provides
     @Singleton
     fun provideSignInClient(@ApplicationContext context: Context): SignInClient {
@@ -160,30 +162,59 @@ object AppModule {
         preferenceDataStoreAPI: PreferenceDataStoreAPI,
         authApiService: EndPointsInterface
     ): AuthRepository {
-        return AuthRepositoryImpl(oneTapClient, signInRequest, preferenceDataStoreAPI, authApiService)
+        return AuthRepositoryImpl(
+            oneTapClient,
+            signInRequest,
+            preferenceDataStoreAPI,
+            authApiService
+        )
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     fun provideGradientDao(db: AppDatabase): GradientDao =
         db.gradientDao()
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     fun provideGradientRepository(dao: GradientDao): GradientRepository =
         GradientRepositoryImpl(dao)
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     fun provideGetAllUseCase(repo: GradientRepository) = GetAllGradientsUseCase(repo)
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     fun provideSeedUseCase(repo: GradientRepository) = SeedGradientsUseCase(repo)
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     fun provideDeleteUseCase(repo: GradientRepository) = DeleteGradientUseCase(repo)
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     fun provideUpdateUseCase(repo: GradientRepository) = UpdateGradientUseCase(repo)
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     fun provideInsertUseCase(repo: GradientRepository) = InsertGradientUseCase(repo)
 
+    @Provides
+    @Singleton
+    fun provideExportResultsDao(appDatabase: AppDatabase): ExportResultsDao {
+        return appDatabase.exportResultsDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideExportResultsRepository(exportResultsDao: ExportResultsDao): ExportResultsRepository {
+        return ExportResultsRepositoryImpl(exportResultsDao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideExportResultsUseCase(repository: ExportResultsRepository): ExportResultsUseCase {
+        return ExportResultsUseCase(repository)
+    }
 }

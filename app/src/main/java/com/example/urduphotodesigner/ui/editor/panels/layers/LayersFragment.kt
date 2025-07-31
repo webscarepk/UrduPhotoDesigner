@@ -202,7 +202,8 @@ class LayersFragment : Fragment() {
                 }
 
                 R.id.action_visibility_toggle_all -> {
-                    viewModel.selectElementForGrouping()
+//                    viewModel.selectElementForGrouping()
+                    viewModel.toggleVisibilityOnSelected()
                     updateSelectionToolbar()
                     true
                 }

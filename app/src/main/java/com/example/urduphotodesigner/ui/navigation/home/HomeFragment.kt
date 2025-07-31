@@ -1,35 +1,28 @@
 package com.example.urduphotodesigner.ui.navigation.home
 
-import android.content.ContentValues.TAG
-import android.content.res.Resources
 import android.os.Bundle
-import android.util.Log
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.UnitType
-import com.example.urduphotodesigner.common.canvas.model.CanvasElement
-import com.example.urduphotodesigner.common.canvas.model.CanvasSize
-import com.example.urduphotodesigner.common.utils.LayerImportEngine
 import com.example.urduphotodesigner.databinding.FragmentHomeBinding
-import com.tom_roush.pdfbox.cos.COSBase
-import com.tom_roush.pdfbox.pdmodel.PDDocument
-import com.tom_roush.pdfbox.pdmodel.PDPage
-import com.tom_roush.pdfbox.pdmodel.graphics.optionalcontent.PDOptionalContentGroup
-import com.tom_roush.pdfbox.text.PDFTextStripper
+import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class HomeFragment : Fragment() {
-    private var _binding: FragmentHomeBinding?= null
+    private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
     private val viewModel: CanvasViewModel by activityViewModels()
+    private val mainViewModel: MainViewModel by activityViewModels()
+    private lateinit var recentAdapter: RecentAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -43,9 +36,21 @@ class HomeFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setEvents()
+        initObservers()
     }
 
     private fun setEvents() {
+        recentAdapter = RecentAdapter { exportResult ->
+            viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
+            val bundle = Bundle().apply {
+                putSerializable("canvas_size", exportResult.canvasSize)
+                putSerializable("unit_type", UnitType.PIXELS)
+            }
+            findNavController().navigate(R.id.editorFragment, bundle)
+        }
+
+        binding.recentsRV.adapter = recentAdapter
+
         binding.create.setOnClickListener {
             findNavController().navigate(R.id.createFragment)
         }
@@ -55,42 +60,10 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun loadTemplate() {
-        val assetStream = requireActivity().assets.open("1.pdf")
-        val document = PDDocument.load(assetStream).apply { assetStream.close() }
-
-        // Extract layer references (if any)
-        val ocProps = document.documentCatalog.ocProperties
-        val groupsByRef: Map<COSBase, PDOptionalContentGroup> =
-            ocProps?.optionalContentGroups?.associateBy { it.cosObject } ?: emptyMap()
-
-        val elements = mutableListOf<CanvasElement>()
-        var canvasSize: CanvasSize? = null
-
-        val engine = LayerImportEngine(
-            groupsByRef,
-            onElement = { elem ->
-                elements.add(elem)
-                Log.d("PDFParser", "Element: ${elem.type} @ x=${elem.x} y=${elem.y}")
-            },
-            onCanvasSize = { size ->
-                canvasSize = size
-                Log.d("PDFParser", "Canvas size: $size")
-            }
-        )
-
-        engine.processDocument(document)
-        document.close()
-        Log.d("PDFParser", "${elements.size}")
-        val bundle = Bundle().apply {
-            putSerializable("canvas_size", canvasSize)
-            putSerializable("unit_type", UnitType.PIXELS)
-        }
-
-        viewModel.setCanvasSize(canvasSize!!)
-        viewModel.canvasElements.value = elements
-        findNavController().navigate(R.id.editorFragment, bundle)
-        // Use 'elements' and 'canvasSize' for rendering
+    private fun initObservers(){
+        mainViewModel.exportResults.observe(viewLifecycleOwner, Observer { results ->
+            recentAdapter.submitList(results)
+        })
     }
 
     override fun onDestroy() {

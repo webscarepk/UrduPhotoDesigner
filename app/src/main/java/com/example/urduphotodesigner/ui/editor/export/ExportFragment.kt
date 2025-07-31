@@ -28,6 +28,7 @@ import com.example.urduphotodesigner.common.canvas.model.ExportOptions
 import com.example.urduphotodesigner.common.canvas.model.ExportResult
 import com.example.urduphotodesigner.common.views.CanvasView
 import com.example.urduphotodesigner.databinding.FragmentExportBinding
+import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -43,6 +44,7 @@ class ExportFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: CanvasViewModel by activityViewModels()
+    private val mainViewModel: MainViewModel by activityViewModels()
 
     private lateinit var canvasView: CanvasView
     private var isFirstRender = true
@@ -74,10 +76,12 @@ class ExportFragment : Fragment() {
                     v.animate().scaleX(0.96f).scaleY(0.96f).setDuration(100).start()
                     false
                 }
+
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     v.animate().scaleX(1f).scaleY(1f).setDuration(100).start()
                     false
                 }
+
                 else -> false
             }
         }
@@ -122,7 +126,6 @@ class ExportFragment : Fragment() {
                 updateExportOptionsUI(options)
                 renderPreview()
             }
-
         }
     }
 
@@ -237,24 +240,30 @@ class ExportFragment : Fragment() {
                 updateProgress(85, "Saving JSON...")
                 val jsonPath = saveJson(json)
 
-                val fileSizeMB = estimateBitmapSize(bitmap, options.format.format, options.quality.quality) / (1024.0 * 1024.0)
-                val exportDate = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(
-                    Date()
+                val fileSizeMB = estimateBitmapSize(
+                    bitmap,
+                    options.format.format,
+                    options.quality.quality
+                ) / (1024.0 * 1024.0)
+                val exportDate =
+                    SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(
+                        Date()
+                    )
+
+                val exportResult = ExportResult(
+                    imagePath = imagePath!!,
+                    jsonPath = jsonPath,
+                    fileName = imagePath.substringAfterLast("/") ?: "design",
+                    fileSizeMB = fileSizeMB,
+                    resolution = options.resolution.label,
+                    format = options.format.name,
+                    quality = options.quality.label,
+                    canvasSize = viewModel.canvasSize.value!!,
+                    exportDate = exportDate
                 )
 
-                viewModel.setExportResult(
-                    ExportResult(
-                        bitmap = bitmap,
-                        imagePath = imagePath!!,
-                        jsonPath = jsonPath,
-                        fileName = imagePath.substringAfterLast("/") ?: "design",
-                        fileSizeMB = fileSizeMB,
-                        resolution = options.resolution.label,
-                        format = options.format.name,
-                        quality = options.quality.label,
-                        exportDate = exportDate
-                    )
-                )
+                viewModel.setExportResult(exportResult)
+                mainViewModel.insertExportResult(exportResult)
 
                 updateProgress(100, "Export complete")
 
