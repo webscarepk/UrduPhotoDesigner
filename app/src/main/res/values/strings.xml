@@ -172,6 +172,8 @@
     <string name="go_home">Go Home</string>
     <string name="kashida_frequency">Kashida Frequency</string>
     <string name="import_font">Import Font</string>
+    <string name="group_all">Group All</string>
+    <string name="un_group_all">Ungroup All</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

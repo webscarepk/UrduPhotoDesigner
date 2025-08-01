@@ -12,7 +12,7 @@ interface FontDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertFonts(fonts: FontEntity)
 
-    @Query("SELECT * FROM fonts")
+    @Query("SELECT * FROM fonts ORDER BY id DESC")
     fun getAllFonts(): Flow<List<FontEntity>>
 
     @Query("UPDATE fonts SET is_downloaded = :isDownloaded, is_downloading = :isDownloading, file_path = :filePath WHERE id = :id")

@@ -1,6 +1,7 @@
 package com.example.urduphotodesigner.ui.editor
 
 import android.app.Dialog
+import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -39,12 +40,15 @@ import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.enums.VAlign
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
+import com.example.urduphotodesigner.common.canvas.model.ExportOptions
+import com.example.urduphotodesigner.common.canvas.model.ExportResult
 import com.example.urduphotodesigner.common.utils.Constants
 import com.example.urduphotodesigner.common.utils.Converter.cmToPx
 import com.example.urduphotodesigner.common.utils.Converter.inchesToPx
 import com.example.urduphotodesigner.common.utils.displayName
 import com.example.urduphotodesigner.common.views.CanvasView
 import com.example.urduphotodesigner.databinding.FragmentEditorBinding
+import com.example.urduphotodesigner.viewmodels.MainViewModel
 import com.tom_roush.fontbox.ttf.NamingTable.TAG
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +57,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @AndroidEntryPoint
 class EditorFragment : Fragment() {
@@ -67,6 +75,7 @@ class EditorFragment : Fragment() {
     private var currentUnit = UnitType.PIXELS
 
     private val viewModel: CanvasViewModel by activityViewModels()
+    private val mainViewModel: MainViewModel by activityViewModels()
     private var currentPanelItemId: Int? = null
 
     private lateinit var sizedCanvasView: CanvasView
@@ -94,7 +103,7 @@ class EditorFragment : Fragment() {
     )
 
     private var saveJsonJob: Job? = null
-    private val saveDelay = 500L
+    private val saveDelay = 1L
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -121,6 +130,7 @@ class EditorFragment : Fragment() {
         jsonPath = File(requireContext().filesDir, jsonPath).absolutePath
 
         setEvents()
+        insertInRoom()
         observeViewModel()
     }
 
@@ -166,6 +176,77 @@ class EditorFragment : Fragment() {
         }
     }
 
+    private fun saveImage(bitmap: Bitmap, options: ExportOptions): String {
+        val formatExt = when (options.format.format) {
+            Bitmap.CompressFormat.PNG -> "png"
+            Bitmap.CompressFormat.JPEG -> "jpg"
+            Bitmap.CompressFormat.WEBP -> "webp"
+            else -> "png"
+        }
+
+        val filename = "design_${System.currentTimeMillis()}.$formatExt"
+        val dir = File(requireContext().filesDir, "exports/images")
+        if (!dir.exists()) dir.mkdirs()
+
+        val file = File(dir, filename)
+        FileOutputStream(file).use { stream ->
+            bitmap.compress(options.format.format, options.quality.quality, stream)
+        }
+
+        return file.absolutePath
+    }
+
+    private fun insertInRoom(){
+        val options = viewModel.exportOptions.value ?: return
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.Default) {
+                sizedCanvasView.exportCanvas(options)
+            }
+
+            withContext(Dispatchers.Main) {
+                val (bitmap, json) = result
+
+                val imagePath = saveImage(bitmap, options)
+                saveJson(json)
+
+                val fileSizeMB = estimateBitmapSize(
+                    bitmap,
+                    options.format.format,
+                    options.quality.quality
+                ) / (1024.0 * 1024.0)
+                val exportDate =
+                    SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(
+                        Date()
+                    )
+
+                val exportResult = ExportResult(
+                    id = 1L,
+                    imagePath = imagePath,
+                    jsonPath = jsonPath,
+                    fileName = imagePath.substringAfterLast("/") ?: "design",
+                    fileSizeMB = fileSizeMB,
+                    resolution = options.resolution.label,
+                    format = options.format.name,
+                    quality = options.quality.label,
+                    canvasSize = viewModel.canvasSize.value!!,
+                    exportDate = exportDate
+                )
+
+                mainViewModel.insertExportResult(exportResult)
+            }
+        }
+    }
+
+    private fun estimateBitmapSize(
+        bitmap: Bitmap,
+        format: Bitmap.CompressFormat,
+        quality: Int
+    ): Long {
+        val stream = java.io.ByteArrayOutputStream()
+        bitmap.compress(format, quality, stream)
+        return stream.size().toLong()
+    }
+
     private fun observeViewModel() {
 
         viewModel.exportResult.observe(viewLifecycleOwner){ exportResult ->
@@ -182,19 +263,30 @@ class EditorFragment : Fragment() {
         }
 
         viewModel.canvasElements.observe(viewLifecycleOwner) { elements ->
-            if (!elements.isNullOrEmpty()) {
-                saveJsonJob?.cancel()
-                saveJsonJob = lifecycleScope.launch {
-                    delay(saveDelay)
-                    saveJson(sizedCanvasView.exportCanvasJson())
+            if (isAdded){
+                if (!elements.isNullOrEmpty()) {
+                    canvasManager.syncElements(elements)
+                    binding.canvasContainer.invalidate()
+                    saveJsonJob?.cancel()
+                    saveJsonJob = lifecycleScope.launch {
+                        saveJson(sizedCanvasView.exportCanvasJson())
+                    }
                 }
-                canvasManager.syncElements(elements)
-                binding.canvasContainer.invalidate()
             }
         }
 
         viewModel.backgroundColor.observe(viewLifecycleOwner) { color ->
-            canvasManager.setCanvasBackgroundColor(color)
+            if (isAdded){
+                color?.let {
+                    Log.d("BG Color", "observer: ${color}")
+
+                    canvasManager.setCanvasBackgroundColor(it)
+                    saveJsonJob?.cancel()
+                    saveJsonJob = lifecycleScope.launch {
+                        saveJson(sizedCanvasView.exportCanvasJson())
+                    }
+                }
+            }
         }
 
         viewModel.canUndo.observe(viewLifecycleOwner) { canUndo ->
@@ -206,12 +298,26 @@ class EditorFragment : Fragment() {
         }
 
         viewModel.backgroundImage.observe(viewLifecycleOwner) { bitmap ->
-            bitmap?.let { canvasManager.setCanvasBackgroundImage(it) }
+            if (isAdded){
+                bitmap?.let {
+                    canvasManager.setCanvasBackgroundImage(it)
+                    saveJsonJob?.cancel()
+                    saveJsonJob = lifecycleScope.launch {
+                        saveJson(sizedCanvasView.exportCanvasJson())
+                    }
+                }
+            }
         }
 
         viewModel.backgroundGradient.observe(viewLifecycleOwner) { gradient ->
-            gradient?.let {
-                canvasManager.setCanvasBackgroundGradient(it)
+            if (isAdded){
+                gradient?.let {
+                    canvasManager.setCanvasBackgroundGradient(it)
+                    saveJsonJob?.cancel()
+                    saveJsonJob = lifecycleScope.launch {
+                        saveJson(sizedCanvasView.exportCanvasJson())
+                    }
+                }
             }
         }
 
@@ -311,8 +417,8 @@ class EditorFragment : Fragment() {
 
     private fun setEvents() {
         binding.back.setOnClickListener {
+            insertInRoom()
             findNavController().navigateUp()
-            viewModel.clearCanvas()
         }
 
         val widthPx = when (currentUnit) {

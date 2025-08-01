@@ -557,6 +557,7 @@ class CanvasView @JvmOverloads constructor(
                 element.backgroundColor = color
                 element.fillGradient = null
                 element.bitmap = null
+                element.bitmapData = null
             }
         }
         invalidate()
@@ -624,6 +625,7 @@ class CanvasView @JvmOverloads constructor(
                 element.backgroundColor = Color.WHITE
                 element.fillGradient = gradientItem
                 element.bitmap = null
+                element.bitmapData = null
             }
         }
         invalidate()

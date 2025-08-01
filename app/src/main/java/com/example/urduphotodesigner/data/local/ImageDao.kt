@@ -12,6 +12,6 @@ interface ImageDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertImage(imageEntity: ImageEntity)
 
-    @Query("SELECT * FROM images")
+    @Query("SELECT * FROM images ORDER BY id DESC")
     fun getAllImages(): Flow<List<ImageEntity>>
 }

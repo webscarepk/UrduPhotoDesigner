@@ -2,6 +2,12 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/action_group_toggle_all"
+        android:icon="@drawable/ic_group"
+        android:title="@string/group_all"
+        app:showAsAction="ifRoom"
+        app:iconTint="@color/black"/>
+    <item
         android:id="@+id/action_lock_toggle_all"
         android:icon="@drawable/ic_lock"
         android:title="@string/lock_all"

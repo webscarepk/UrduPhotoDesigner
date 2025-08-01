@@ -10,24 +10,25 @@ class KashidaProcessor(private val insertionFreq: Int = 3, private val insertion
         var occurrencesArr: List<MatchResult>
         var distribution: List<Int> = emptyList()
 
-        val reg = Regex("[يئهشسقفغعـضصنمكظطخحجثتب][يئهشسقفغعضصنمكظطخوـحجثتبلدرا]")
-
-        // Match Arabic words and insert Kashida
-        modifiedText = modifiedText.replace(Regex("[\\u0600-\\u06FF]+")) { match ->
+        // Match all Arabic words
+        modifiedText = modifiedText.replace(Regex("[\u0600-\u06FF]+")) { match ->
             var wordWithKashida = match.value
-            occurrencesArr = _legacyMatch(wordWithKashida, reg)
 
+            // Match only the "flat letters" in the word
+            occurrencesArr = _legacyMatch(wordWithKashida, Regex("[بتثسصطفلکپٹچگ]"))
+
+            // If no occurrences are found for Kashida, skip this word
             if (occurrencesArr.isEmpty()) return@replace wordWithKashida
 
             val occurrences = occurrencesArr.size
 
-            // Determine insertions distribution
-            if (insertionContrast == 0.0) {
+            // Determine the distribution of Kashida insertion
+            distribution = if (insertionContrast == 0.0) {
                 // Evenly distribute the Kashida insertions across the occurrences
-                distribution = List(occurrences) { insertionFreq }
+                List(occurrences) { insertionFreq }
             } else {
                 // Adjust the frequency for each occurrence
-                distribution = List(occurrences) { insertionFreq }
+                List(occurrences) { insertionFreq }
             }
 
             var countOfAddedKashida = 0
@@ -52,12 +53,10 @@ class KashidaProcessor(private val insertionFreq: Int = 3, private val insertion
         return modifiedText
     }
 
-    // Legacy function for regex matching
     private fun _legacyMatch(str: String, regex: Regex): List<MatchResult> {
         return regex.findAll(str).toList()
     }
 
-    // Function to remove Kashida character
     fun remove(kashidaText: String): String {
         return kashidaText.replace("ـ", "")
     }

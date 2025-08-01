@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GradientDao {
-  @Query("SELECT * FROM gradient_presets")
+  @Query("SELECT * FROM gradient_presets ORDER BY id DESC")
   fun getAll(): Flow<List<GradientEntity>>
 
   @Insert(onConflict = OnConflictStrategy.IGNORE)

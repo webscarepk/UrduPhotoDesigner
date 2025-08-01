@@ -1,6 +1,7 @@
 package com.example.urduphotodesigner.ui.navigation.home
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -40,6 +41,8 @@ class HomeFragment : Fragment() {
     }
 
     private fun setEvents() {
+        viewModel.clearCanvas()
+
         recentAdapter = RecentAdapter { exportResult ->
             viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
             val bundle = Bundle().apply {
@@ -64,6 +67,10 @@ class HomeFragment : Fragment() {
         mainViewModel.exportResults.observe(viewLifecycleOwner, Observer { results ->
             recentAdapter.submitList(results)
         })
+
+        viewModel.backgroundColor.observe(viewLifecycleOwner) { color ->
+            Log.d("BG Color", "initObservers: $color")
+        }
     }
 
     override fun onDestroy() {

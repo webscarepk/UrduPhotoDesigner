@@ -39,6 +39,7 @@ import com.example.urduphotodesigner.common.views.CanvasView
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.domain.usecase.GetFontsUseCase
 import com.google.gson.Gson
+import com.tom_roush.fontbox.ttf.NamingTable.TAG
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -1243,6 +1244,7 @@ class CanvasViewModel @Inject constructor(
             _canvasActions.push(CanvasAction.SetBackgroundColor(color, previousColor))
             _redoStack.clear()
             _backgroundColor.value = color
+            _backgroundImage.value = null
             notifyUndoRedoChanged()
         }
     }
@@ -2087,7 +2089,8 @@ class CanvasViewModel @Inject constructor(
             if (elements.isNotEmpty()) {
                 val backgroundElement = elements[0]
 
-                _backgroundColor.value = backgroundElement.paintColor ?: Color.WHITE
+                _backgroundColor.value = backgroundElement.backgroundColor
+                Log.d("BG Color", "loadTemplateFromJsonFile: ${backgroundElement.backgroundColor}")
 
                 _backgroundGradient.value = backgroundElement.fillGradient
 
@@ -2097,7 +2100,7 @@ class CanvasViewModel @Inject constructor(
                 }
 
                 if (_backgroundGradient.value == null && _backgroundImage.value == null) {
-                    _backgroundColor.value = backgroundElement.paintColor ?: Color.WHITE
+                    _backgroundColor.value = backgroundElement.backgroundColor ?: Color.WHITE
                 }
             }
 
@@ -2105,7 +2108,6 @@ class CanvasViewModel @Inject constructor(
                 raw.copy(context = context).restoreWithContext(context)
             }
 
-            // Set canvas size and elements
             _canvasSize.value = exportResult.canvasSize
             _canvasElements.value = hydratedElements
 

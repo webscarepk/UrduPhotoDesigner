@@ -202,8 +202,19 @@ class LayersFragment : Fragment() {
                 }
 
                 R.id.action_visibility_toggle_all -> {
-//                    viewModel.selectElementForGrouping()
                     viewModel.toggleVisibilityOnSelected()
+                    updateSelectionToolbar()
+                    true
+                }
+
+                R.id.action_group_toggle_all -> {
+                    val selected = viewModel.selectedElements.value.orEmpty()
+                    // if any of the selected already has a groupId → ungroup
+                    if (selected.any { it.groupId != null }) {
+                        viewModel.ungroupElements()
+                    } else {
+                        viewModel.selectElementForGrouping()
+                    }
                     updateSelectionToolbar()
                     true
                 }
@@ -248,6 +259,21 @@ class LayersFragment : Fragment() {
                 if (allLocked) getString(R.string.unlock_all) else getString(R.string.lock_all)
         }
 
+        val groupItem = menu.findItem(R.id.action_group_toggle_all)
+        groupItem?.let { item ->
+            val selected = viewModel.selectedElements.value.orEmpty()
+            val anyGrouped = selected.any { it.groupId != null }
+
+            item.icon = ContextCompat.getDrawable(
+                requireContext(),
+                if (anyGrouped) R.drawable.ic_un_group else R.drawable.ic_group
+            )
+            item.title = if (anyGrouped)
+                getString(R.string.un_group_all)
+            else
+                getString(R.string.group_all)
+        }
+
         // Update visibility icon/title
         val visItem = menu.findItem(R.id.action_visibility_toggle_all)
         if (visItem != null) {
@@ -275,7 +301,6 @@ class LayersFragment : Fragment() {
             }
         }
     }
-
 
     private fun handleItemLongClick(element: CanvasElement) {
         if (!inSelectionMode) {
