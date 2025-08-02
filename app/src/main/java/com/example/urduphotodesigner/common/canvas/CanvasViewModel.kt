@@ -35,16 +35,19 @@ import com.example.urduphotodesigner.common.canvas.model.GradientItem
 import com.example.urduphotodesigner.common.canvas.sealed.BatchedCanvasAction
 import com.example.urduphotodesigner.common.canvas.sealed.CanvasAction
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
+import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.common.views.CanvasView
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.domain.usecase.GetFontsUseCase
 import com.google.gson.Gson
 import com.tom_roush.fontbox.ttf.NamingTable.TAG
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.Stack
@@ -58,6 +61,12 @@ class CanvasViewModel @Inject constructor(
 
     private val _pagingLocked = MutableLiveData(false)
     val pagingLocked: LiveData<Boolean> = _pagingLocked
+
+    private val _isLoadingTemplate = MutableLiveData<Boolean?>()
+    val isLoadingTemplate: LiveData<Boolean?> = _isLoadingTemplate
+
+    private val _loadingStage = MutableLiveData<Pair<String, Int>>()
+    val loadingStage: LiveData<Pair<String, Int>> = _loadingStage
 
     private val _canvasActions = Stack<CanvasAction>()
     private val _redoStack = Stack<CanvasAction>()
@@ -1292,7 +1301,7 @@ class CanvasViewModel @Inject constructor(
             context = context,
             type = ElementType.IMAGE,
             bitmap = bitmap,
-            bitmapData = bitmap?.let { encodeBitmapToBase64(it) }, // Encode bitmap to Base64
+            bitmapData = ImageProcessor.bitmapToFilePath(context, bitmap!!),
             x = 150f,
             y = 150f,
             paintAlpha = 255,
@@ -1762,7 +1771,7 @@ class CanvasViewModel @Inject constructor(
 
                 ElementType.IMAGE -> {
                     bitmapData?.let { data ->
-                        bitmap = decodeBase64ToBitmap(data)
+                        bitmap = ImageProcessor.filePathToBitmap(data)
                     }
                 }
 
@@ -2053,70 +2062,71 @@ class CanvasViewModel @Inject constructor(
         currentBatchAction = null
     }
 
-    // Helper function to encode Bitmap to Base64 String
-    private fun encodeBitmapToBase64(bitmap: Bitmap): String {
-        val byteArrayOutputStream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream)
-        val byteArray = byteArrayOutputStream.toByteArray()
-        return Base64.encodeToString(byteArray, Base64.DEFAULT)
-    }
-
-    // Helper function to decode Base64 String to Bitmap
-    private fun decodeBase64ToBitmap(base64String: String): Bitmap? {
-        return try {
-            val decodedBytes = Base64.decode(base64String, Base64.DEFAULT)
-            BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-        } catch (e: IllegalArgumentException) {
-            e.printStackTrace()
-            null
-        }
-    }
-
     fun loadTemplateFromJsonFile(exportResult: ExportResult, context: Context) {
-        try {
-            val jsonFilePath = exportResult.jsonPath
-            val jsonFile = File(jsonFilePath)
-            if (!jsonFile.exists()) {
-                Log.e("CanvasViewModel", "Template JSON file not found: $jsonFilePath")
-                return
-            }
+        viewModelScope.launch(Dispatchers.Default) {
 
-            clearCanvas()
+            _isLoadingTemplate.postValue(true)
 
-            val jsonContent = jsonFile.readText()
-            val elements = Gson().fromJson(jsonContent, Array<CanvasElement>::class.java).toList()
+            try {
+                _loadingStage.postValue("Reading file" to 10)
+                val jsonFilePath = exportResult.jsonPath
+                val jsonFile = File(jsonFilePath)
 
-            if (elements.isNotEmpty()) {
-                val backgroundElement = elements[0]
-
-                _backgroundColor.value = backgroundElement.backgroundColor
-                Log.d("BG Color", "loadTemplateFromJsonFile: ${backgroundElement.backgroundColor}")
-
-                _backgroundGradient.value = backgroundElement.fillGradient
-
-                if (backgroundElement.bitmapData != null) {
-                    val decodedBitmap = decodeBase64ToBitmap(backgroundElement.bitmapData!!)
-                    _backgroundImage.value = decodedBitmap
+                if (!jsonFile.exists()) {
+                    Log.e("CanvasViewModel", "Template JSON file not found: $jsonFilePath")
+                    return@launch
                 }
 
-                if (_backgroundGradient.value == null && _backgroundImage.value == null) {
-                    _backgroundColor.value = backgroundElement.backgroundColor ?: Color.WHITE
+                _loadingStage.postValue("Parsing JSON" to 30)
+                val jsonContent = jsonFile.readText()
+                val elements = Gson().fromJson(jsonContent, Array<CanvasElement>::class.java).toList()
+
+                _loadingStage.postValue("Hydrating elements" to 60)
+                val hydratedElements = elements.map { raw ->
+                    raw.copy(context = context).restoreWithContext(context)
+                }
+
+                _loadingStage.postValue("Applying to canvas" to 90)
+                withContext(Dispatchers.Main) {
+
+                    if (elements.isNotEmpty()) {
+                        val bg = elements[0]
+
+                        _backgroundColor.value = bg.backgroundColor
+                        _backgroundGradient.value = bg.fillGradient
+
+                        if (bg.bitmapData != null) {
+                            val bitmap = ImageProcessor.filePathToBitmap(bg.bitmapData!!)
+                            if (bitmap != null) {
+                                _backgroundImage.value = bitmap
+                            } else {
+                                Log.e("CanvasViewModel", "Bitmap decoding failed for path: ${bg.bitmapData}")
+                            }
+                        }
+
+                        if (_backgroundGradient.value == null && _backgroundImage.value == null) {
+                            _backgroundColor.value = bg.backgroundColor ?: Color.WHITE
+                        }
+                    }
+
+                    _canvasSize.value = exportResult.canvasSize
+                    _canvasElements.value = hydratedElements
+                    _exportResult.value = exportResult
+                }
+                _loadingStage.value = "Done" to 100
+                _isLoadingTemplate.value = false
+            } catch (e: Exception) {
+                Log.e("CanvasViewModel", "Error loading template: ${e.message}")
+            } finally {
+                withContext(Dispatchers.Main) {
+                    _isLoadingTemplate.value = false
                 }
             }
-
-            val hydratedElements = elements.map { raw ->
-                raw.copy(context = context).restoreWithContext(context)
-            }
-
-            _canvasSize.value = exportResult.canvasSize
-            _canvasElements.value = hydratedElements
-
-            // Optional: restore export result if you want it shown
-            _exportResult.value = exportResult
-
-        } catch (e: Exception) {
-            Log.e("CanvasViewModel", "Error loading template: ${e.message}")
         }
+    }
+
+    fun clearLoading(){
+        _isLoadingTemplate.value = null
     }
 
     fun isExplicitChange(): Boolean {

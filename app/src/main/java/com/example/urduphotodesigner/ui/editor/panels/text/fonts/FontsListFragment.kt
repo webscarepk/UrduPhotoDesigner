@@ -88,23 +88,17 @@ class FontsListFragment : Fragment() {
             mainViewModel.downloadState.collect { downloadState ->
                 when (downloadState) {
                     is DownloadState.Progress -> {
-                        // Optional: Show progress in UI if needed
+                        fontEntity = downloadState.fontEntity
+                        fontEntity?.let { font ->
+                            fontsAdapter.selectedFontId = font.id.toString()
+                        }
                     }
+
                     is DownloadState.SuccessWithTypeface -> {
                         fontEntity = downloadState.fontEntity
-                        // Automatically apply the font to canvas
                         viewModel.setFont(fontEntity!!)
-                        // Update UI to show the font is selected
                         fontEntity?.let { font ->
-                            // Manually set font as downloaded and selected
-                            val updatedList = fontsAdapter.currentList.map {
-                                if (it.id == font.id) it.copy(is_downloaded = true, is_downloading = false) else it
-                            }
-
-                            fontsAdapter.submitList(updatedList) {
-                                // Post-update, set selection to trigger UI highlight
-                                fontsAdapter.selectedFontId = font.id.toString()
-                            }
+                            fontsAdapter.selectedFontId = font.id.toString()
                         }
                         mainViewModel.clearDownloadState()
                     }

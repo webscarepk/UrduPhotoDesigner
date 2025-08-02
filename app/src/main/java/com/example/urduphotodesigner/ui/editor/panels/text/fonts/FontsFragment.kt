@@ -19,6 +19,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.data.model.FontCategory
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.databinding.FragmentFontsBinding
@@ -74,51 +75,40 @@ class FontsFragment : Fragment() {
     private fun handlePickedFontUri(uri: Uri) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // Check if the file is either TTF or OTF based on the file extension
                 val fontFile = getFontFileFromUri(uri)
                 val extension = fontFile.extension.lowercase()
 
                 if (extension == "ttf" || extension == "otf") {
-                    // Proceed with processing the font
                     val typeface = Typeface.createFromFile(fontFile)
 
-                    // Create the bitmap image for the font sample text
                     val fontImageBitmap = createFontSampleBitmap(typeface)
 
-                    // Convert the bitmap to Base64 string
-                    val base64EncodedImage = bitmapToBase64(fontImageBitmap)
+                    val bitmapData = ImageProcessor.bitmapToFilePath(requireActivity(), fontImageBitmap)
 
-                    // Prepare the FontEntity
                     val fontEntity = FontEntity(
-                        id = System.currentTimeMillis().toInt(),  // Use current timestamp as unique ID
+                        id = System.currentTimeMillis().toInt(),
                         file_name = fontFile.name,
                         font_name = fontFile.nameWithoutExtension,
-                        font_category = "Imported",  // Set category
-                        file_url = "",  // Optional: If there's a file URL
+                        font_category = "Imported",
+                        file_url = "",
                         file_size = fontFile.length().toString(),
-                        font_image = base64EncodedImage,  // Base64 encoded font image
-                        image_url = "",  // Same Base64 string for image_url
-                        alt_text = "Font sample image",  // Optional: add text description
+                        font_image = bitmapData,
+                        image_url = "",
+                        alt_text = "Font sample image",
                         user_id = 0,
                         created_at = System.currentTimeMillis().toString(),
                         updated_at = System.currentTimeMillis().toString(),
                         is_selected = false,
-                        is_downloaded = true,  // Set as true since the font is processed and saved
+                        is_downloaded = true,
                         is_downloading = false,
-                        file_path = fontFile.absolutePath // Path where the font is saved
+                        file_path = fontFile.absolutePath
                     )
-
-                    // Insert into the ViewModel
                     mainViewModel.insertFont(fontEntity)
-
-                    // Optionally, add the font to the Canvas ViewModel or apply it to the canvas
                     withContext(Dispatchers.Main) {
-                        // Apply the font to the canvas or use it as needed
                         viewModel.setFont(fontEntity)
                     }
                 } else {
                     Snackbar.make(binding.root, "Unsupported font file type: $extension", Snackbar.LENGTH_SHORT).show()
-                    Log.e("FontPicker", "Unsupported font file type: $extension")
                 }
 
             } catch (e: Exception) {
@@ -132,7 +122,7 @@ class FontsFragment : Fragment() {
         val inputStream = resolver.openInputStream(uri)
         val tempFile = File.createTempFile("font", ".ttf", requireContext().cacheDir)
 
-        inputStream?.copyTo(tempFile.outputStream())  // Copy font file to temp location
+        inputStream?.copyTo(tempFile.outputStream())
 
         return tempFile
     }
@@ -140,35 +130,23 @@ class FontsFragment : Fragment() {
     private fun createFontSampleBitmap(typeface: Typeface): Bitmap {
         val paint = Paint()
         paint.typeface = typeface
-        paint.textSize = 100f  // Size for the font sample text
+        paint.textSize = 100f
         paint.color = ContextCompat.getColor(requireContext(), R.color.appColor)
-        paint.textAlign = Paint.Align.LEFT  // Set text alignment to left for easier centering
+        paint.textAlign = Paint.Align.LEFT
 
-        // Measure the text width and height
         val width = paint.measureText("Ab").toInt()
         val height = (paint.descent() - paint.ascent()).toInt()
 
-        // Create a bitmap of the required size
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
-        // Calculate the horizontal and vertical centering
-        val x = (bitmap.width - width) / 2f  // Center horizontally
-        val y = (bitmap.height - height) / 2f - paint.ascent()  // Center vertically
+        val x = (bitmap.width - width) / 2f
+        val y = (bitmap.height - height) / 2f - paint.ascent()
 
-        // Draw the text on the canvas
         canvas.drawText("Ab", x, y, paint)
 
         return bitmap
     }
-
-    private fun bitmapToBase64(bitmap: Bitmap): String {
-        val byteArrayOutputStream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.PNG, 80, byteArrayOutputStream)
-        val compressedBytes = byteArrayOutputStream.toByteArray()
-        return Base64.encodeToString(compressedBytes, Base64.DEFAULT)
-    }
-
 
     private fun setupRecyclerViews() {
         categories = ArrayList()

@@ -1,5 +1,6 @@
 package com.example.urduphotodesigner.ui.navigation.home
 
+import android.app.AlertDialog
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -8,13 +9,18 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.UnitType
+import com.example.urduphotodesigner.databinding.DialogLoadingProgressBinding
 import com.example.urduphotodesigner.databinding.FragmentHomeBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @AndroidEntryPoint
 class HomeFragment : Fragment() {
@@ -24,6 +30,10 @@ class HomeFragment : Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
     private val mainViewModel: MainViewModel by activityViewModels()
     private lateinit var recentAdapter: RecentAdapter
+
+    private var bundle: Bundle = Bundle()
+    private var loadingDialog: AlertDialog? = null
+    private var dialogBinding: DialogLoadingProgressBinding? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -40,16 +50,36 @@ class HomeFragment : Fragment() {
         initObservers()
     }
 
+    private fun showLoadingDialog() {
+        dialogBinding = DialogLoadingProgressBinding.inflate(LayoutInflater.from(requireActivity()))
+
+        loadingDialog = AlertDialog.Builder(requireActivity())
+            .setView(dialogBinding!!.root)
+            .setCancelable(false)
+            .create()
+
+        loadingDialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        loadingDialog?.show()
+    }
+
+    private fun dismissLoadingDialog() {
+        loadingDialog?.dismiss()
+        loadingDialog = null
+        dialogBinding = null
+    }
+
     private fun setEvents() {
-        viewModel.clearCanvas()
 
         recentAdapter = RecentAdapter { exportResult ->
-            viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
-            val bundle = Bundle().apply {
-                putSerializable("canvas_size", exportResult.canvasSize)
-                putSerializable("unit_type", UnitType.PIXELS)
+            lifecycleScope.launch {
+                withContext(Dispatchers.Default) {
+                    viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
+                    bundle = Bundle().apply {
+                        putSerializable("canvas_size", exportResult.canvasSize)
+                        putSerializable("unit_type", UnitType.PIXELS)
+                    }
+                }
             }
-            findNavController().navigate(R.id.editorFragment, bundle)
         }
 
         binding.recentsRV.adapter = recentAdapter
@@ -68,11 +98,29 @@ class HomeFragment : Fragment() {
             recentAdapter.submitList(results)
         })
 
-        viewModel.backgroundColor.observe(viewLifecycleOwner) { color ->
-            Log.d("BG Color", "initObservers: $color")
+        viewModel.loadingStage.observe(viewLifecycleOwner) { (message, percent) ->
+            dialogBinding?.apply {
+                progressBar.progress = percent
+                subtitle.text = "$message... $percent%"
+            }
+        }
+
+        viewModel.isLoadingTemplate.observe(viewLifecycleOwner) { isLoading ->
+            if (isLoading == true){
+                showLoadingDialog()
+            }else if (isLoading == false){
+                dismissLoadingDialog()
+                findNavController().navigate(R.id.editorFragment, bundle)
+            }
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (findNavController().currentDestination?.id!! != R.id.editorFragment) {
+            viewModel.clearCanvas()
+        }
+    }
     override fun onDestroy() {
         super.onDestroy()
         _binding = null

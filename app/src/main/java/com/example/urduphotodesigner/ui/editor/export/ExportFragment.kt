@@ -251,7 +251,6 @@ class ExportFragment : Fragment() {
                     )
 
                 val exportResult = ExportResult(
-                    id = 1L,
                     imagePath = imagePath!!,
                     jsonPath = jsonPath,
                     fileName = imagePath.substringAfterLast("/") ?: "design",

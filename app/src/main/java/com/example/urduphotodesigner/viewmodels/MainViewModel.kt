@@ -178,7 +178,7 @@ class MainViewModel @Inject constructor(
     // In MainViewModel.kt
     fun downloadFont(font: FontEntity) {
         viewModelScope.launch {
-            _downloadState.value = DownloadState.Progress(0)
+            _downloadState.value = DownloadState.Progress(0, font.copy(is_downloading = true))
             updateFontStatusUseCase.invoke(font.id.toString(), true)
 
             try {
@@ -186,7 +186,7 @@ class MainViewModel @Inject constructor(
                     fontUrl = Constants.BASE_URL_GLIDE+font.file_url,
                     fileName = font.file_name,
                     onProgress = { progress ->
-                        _downloadState.value = DownloadState.Progress(progress)
+                        _downloadState.value = DownloadState.Progress(progress, font.copy(is_downloading = true))
                     }
                 )
 
@@ -227,7 +227,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun getAllExportResults() {
+    private fun getAllExportResults() {
         viewModelScope.launch {
             exportResultsUseCase.getAllExportResults().collect {
                 _exportResults.value = it

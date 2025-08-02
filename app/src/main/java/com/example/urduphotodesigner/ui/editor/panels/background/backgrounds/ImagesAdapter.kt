@@ -26,6 +26,7 @@ import com.example.urduphotodesigner.databinding.LayoutImagesItemBinding
 import androidx.core.graphics.createBitmap
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
+import com.example.urduphotodesigner.common.utils.ImageProcessor
 
 class ImagesAdapter(
     private val onImageSelected: (Bitmap) -> Unit
@@ -71,10 +72,8 @@ class ImagesAdapter(
                 // Check if bitmapData is available (not empty)
                 if (image.bitmapData != null) {
                     // Decode Base64 string to Bitmap
-                    val decodedBytes = Base64.decode(image.bitmapData, Base64.DEFAULT)
-                    val decodedBitmap =
-                        BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-                    onImageSelected(decodedBitmap)
+                    val bitmap = ImageProcessor.filePathToBitmap(image.bitmapData!!)
+                    onImageSelected(bitmap!!)
                 } else {
                     // If bitmapData is empty, load image from URL
                     val url = Constants.BASE_URL_GLIDE + image.file_url
@@ -101,10 +100,8 @@ class ImagesAdapter(
             val url = Constants.BASE_URL_GLIDE + image.file_url
             if (image.bitmapData != null) {
                 // Decode Base64 string to Bitmap for loading directly if bitmapData exists
-                val decodedBytes = Base64.decode(image.bitmapData, Base64.DEFAULT)
-                val decodedBitmap =
-                    BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-                binding.image.setImageBitmap(decodedBitmap) // Directly setting the image
+                val bitmap = ImageProcessor.filePathToBitmap(image.bitmapData!!)
+                binding.image.setImageBitmap(bitmap) // Directly setting the image
                 binding.progressBar.visibility = View.GONE
             } else {
                 // Glide to load the image from the URL if no bitmapData

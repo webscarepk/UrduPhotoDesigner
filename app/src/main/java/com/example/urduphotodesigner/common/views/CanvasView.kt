@@ -26,7 +26,6 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.text.TextPaint
 import android.util.AttributeSet
-import android.util.Base64
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
@@ -34,7 +33,6 @@ import android.view.animation.DecelerateInterpolator
 import androidx.annotation.ColorInt
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.createBitmap
-import androidx.core.graphics.withSave
 import androidx.core.graphics.withTranslation
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.enums.BlendType
@@ -56,12 +54,11 @@ import com.example.urduphotodesigner.common.canvas.model.ExportQuality
 import com.example.urduphotodesigner.common.canvas.model.ExportResolution
 import com.example.urduphotodesigner.common.canvas.model.GradientItem
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
-import com.example.urduphotodesigner.common.utils.KashidaProcessor
+import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -643,7 +640,7 @@ class CanvasView @JvmOverloads constructor(
         invalidate()
     }
 
-    fun clearSelection(){
+    fun clearSelection() {
         canvasElements.forEach { it.isSelected = false }
         onElementSelected?.invoke(emptyList())
     }
@@ -686,7 +683,7 @@ class CanvasView @JvmOverloads constructor(
 
         canvasElements.forEach { element ->
             element.bitmap?.let {
-                element.bitmapData = encodeBitmapToBase64(it)
+                element.bitmapData = ImageProcessor.bitmapToFilePath(context, it)
             }
         }
 
@@ -702,17 +699,11 @@ class CanvasView @JvmOverloads constructor(
             val canvasElementsCopy = ArrayList(canvasElements)
             canvasElementsCopy.forEach { element ->
                 element.bitmap?.let {
-                    element.bitmapData = encodeBitmapToBase64(it)
+                    element.bitmapData = ImageProcessor.bitmapToFilePath(context, it)
                 }
             }
             Gson().toJson(canvasElementsCopy)
         }
-    }
-
-    private fun encodeBitmapToBase64(bitmap: Bitmap): String {
-        val stream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-        return Base64.encodeToString(stream.toByteArray(), Base64.DEFAULT)
     }
 
     private fun checkAlignment(element: CanvasElement) {
@@ -834,7 +825,11 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
-    private fun drawCanvasElements(canvas: Canvas, showOverlays: Boolean = true, showCheckerboard: Boolean = true) {
+    private fun drawCanvasElements(
+        canvas: Canvas,
+        showOverlays: Boolean = true,
+        showCheckerboard: Boolean = true
+    ) {
         canvas.save()
         canvas.clipRect(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat())
 
@@ -1098,8 +1093,8 @@ class CanvasView @JvmOverloads constructor(
             val (bmp, _) = exportCanvas(
                 ExportOptions(
                     resolution = ExportResolution("picker", canvasWidth, canvasHeight, 1f),
-                    quality = ExportQuality("",100, "", 0),
-                    format = ExportFormat("",Bitmap.CompressFormat.PNG, "", emptyList())
+                    quality = ExportQuality("", 100, "", 0),
+                    format = ExportFormat("", Bitmap.CompressFormat.PNG, "", emptyList())
                 )
             )
             val px = pickerX.roundToInt().coerceIn(0, bmp.width - 1)
@@ -1765,9 +1760,19 @@ class CanvasView @JvmOverloads constructor(
                         // sample color:
                         val (bmp, _) = exportCanvas(
                             ExportOptions(
-                                resolution = ExportResolution("picker", canvasWidth, canvasHeight, 1f),
-                                quality = ExportQuality("",100, "", 0),
-                                format = ExportFormat("",Bitmap.CompressFormat.PNG, "", emptyList())
+                                resolution = ExportResolution(
+                                    "picker",
+                                    canvasWidth,
+                                    canvasHeight,
+                                    1f
+                                ),
+                                quality = ExportQuality("", 100, "", 0),
+                                format = ExportFormat(
+                                    "",
+                                    Bitmap.CompressFormat.PNG,
+                                    "",
+                                    emptyList()
+                                )
                             )
                         )
                         val px = pickerX.roundToInt().coerceIn(0, bmp.width - 1)
@@ -1818,16 +1823,16 @@ class CanvasView @JvmOverloads constructor(
                             }
                             val pt = floatArrayOf(x, y).also { matrix.mapPoints(it) }
                             RectF(
-                                -element.getLocalContentWidth()  / 2f,
+                                -element.getLocalContentWidth() / 2f,
                                 -element.getLocalContentHeight() / 2f,
-                                element.getLocalContentWidth()  / 2f,
+                                element.getLocalContentWidth() / 2f,
                                 element.getLocalContentHeight() / 2f
                             ).contains(pt[0], pt[1])
                         }
 
                     if (hitChild != null) {
                         activeGroupId = null
-                        currentMode   = Mode.DRAG
+                        currentMode = Mode.DRAG
 
                         // 2) Deselect everyone, select only the child
                         canvasElements.forEach { it.isSelected = false }
@@ -1843,7 +1848,7 @@ class CanvasView @JvmOverloads constructor(
                         return true
                     } else {
                         // exit group‑edit if tapped outside
-                        currentMode   = Mode.NONE
+                        currentMode = Mode.NONE
                         activeGroupId = null
                         canvasElements.forEach { it.isSelected = false }
                         selectedElements.clear()
@@ -1963,8 +1968,8 @@ class CanvasView @JvmOverloads constructor(
                                 touchStartX = x
                                 touchStartY = y
                                 val combined = getCombinedSelectedBounds()
-                                val pivotX   = combined.centerX()
-                                val pivotY   = combined.centerY()
+                                val pivotX = combined.centerX()
+                                val pivotY = combined.centerY()
                                 selectedElements.forEach { element ->
                                     resizeLastSignX[element.id] = (touchStartX - pivotX).sign
                                     resizeLastSignY[element.id] = (touchStartY - pivotY).sign
@@ -2257,11 +2262,11 @@ class CanvasView @JvmOverloads constructor(
                         if (selectedElements.isEmpty()) return true
 
                         val combined = getCombinedSelectedBounds()
-                        val pivotX   = combined.centerX()
-                        val pivotY   = combined.centerY()
+                        val pivotX = combined.centerX()
+                        val pivotY = combined.centerY()
 
-                        val startDist   = hypot(touchStartX - pivotX, touchStartY - pivotY)
-                        val currentDist = hypot(x           - pivotX, y            - pivotY)
+                        val startDist = hypot(touchStartX - pivotX, touchStartY - pivotY)
+                        val currentDist = hypot(x - pivotX, y - pivotY)
                         val scaleChange = currentDist / startDist
                         if (startDist > 0) {
                             elementsToModify.forEach { element ->

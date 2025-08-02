@@ -23,6 +23,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.databinding.FragmentImagesBinding
 import com.example.urduphotodesigner.ui.editor.panels.background.BackgroundPagerAdapter
@@ -80,53 +81,28 @@ class ImagesFragment : Fragment() {
         }
     }
 
-    @Throws(IOException::class)
-    private fun getBitmapFromUri(uri: Uri): Bitmap {
-        val resolver = requireContext().contentResolver
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            val source = ImageDecoder.createSource(resolver, uri)
-            ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
-                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-            }
-        } else {
-            @Suppress("DEPRECATION")
-            MediaStore.Images.Media.getBitmap(resolver, uri)
-        }
-    }
-
     private fun handlePickedUri(uri: Uri) {
-        // You probably don’t want to block the UI thread—do this in IO
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // Get the Bitmap from URI and compress it
-                val bitmap = getBitmapFromUri(uri)
-                val compressed = bitmapCompress(bitmap)
-
-                // Convert the compressed Bitmap into Base64
-                val base64EncodedImage = run {
-                    val byteArrayOutputStream = ByteArrayOutputStream()
-                    compressed.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream) // JPEG compression with quality 80
-                    val compressedBytes = byteArrayOutputStream.toByteArray()
-                    Base64.encodeToString(compressedBytes, Base64.DEFAULT) // Convert to Base64
-                }
+                val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
 
                 mainViewModel.insertImage(
                     ImageEntity(
-                        id = System.currentTimeMillis().toInt(),  // Use current timestamp as unique ID
-                        file_name = "",  // Set file name (if available)
-                        file_url = "",   // Set file URL (if available)
-                        file_size = "", // Optional field for description
-                        alt_text = "",  // Set date (if needed)
-                        category = "Imported",  // For example, background category
-                        user_id = 0,        // Set image size if applicable
-                        is_selected = false,  // Set the selected state
-                        bitmapData = base64EncodedImage // Set the Base64 encoded image data
+                        id = System.currentTimeMillis().toInt(),
+                        file_name = "",
+                        file_url = "",
+                        file_size = "",
+                        alt_text = "",
+                        category = "Imported",
+                        user_id = 0,
+                        is_selected = false,
+                        bitmapData = filePath
                     )
                 )
 
                 withContext(Dispatchers.Main) {
-                    // Add sticker to the ViewModel, passing the Base64 encoded image data
-                    viewModel.addSticker(bitmap, requireActivity())
+                    viewModel.addSticker(ImageProcessor.filePathToBitmap(filePath!!)
+                        ?.let { bitmapCompress(it) }, requireActivity())
                 }
             } catch (e: Exception) {
                 Log.e("PhotoPicker", "Failed compressing image", e)

@@ -1,5 +1,6 @@
 package com.example.urduphotodesigner.ui.editor.panels.background.backgrounds
 
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -54,7 +55,6 @@ class BackgroundsListFragment : Fragment() {
             mainViewModel.localImages.collect { images ->
                 val imageList =
                     images.filter { it.category.equals("Background", ignoreCase = true) }
-
                 imagesAdapter.submitList(imageList)
             }
         }

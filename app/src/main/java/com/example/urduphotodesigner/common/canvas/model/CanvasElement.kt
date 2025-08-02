@@ -31,7 +31,6 @@ data class CanvasElement(
     var text: String = "",
     // Bitmap is also transient. It needs to be handled separately for serialization (e.g., to Base64 or URI).
     @Transient var bitmap: Bitmap? = null,
-    // Add bitmapData to store the Base64 encoded string of the bitmap for serialization
     var bitmapData: String? = null,
     var groupId: String? = null,
     var imageFilter: ImageFilter? = null,

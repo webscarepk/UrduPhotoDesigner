@@ -48,6 +48,7 @@ sealed class CanvasAction {
         CanvasAction()
 
     data class RemoveElement(val element: CanvasElement) : CanvasAction()
+
     data class UpdateCanvasElementsOrder(
         val oldList: List<CanvasElement>,
         val newList: List<CanvasElement>

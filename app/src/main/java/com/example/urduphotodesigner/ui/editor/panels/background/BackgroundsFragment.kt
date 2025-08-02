@@ -19,6 +19,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.databinding.FragmentBackgroundsBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
@@ -83,85 +84,33 @@ class BackgroundsFragment : Fragment() {
         // You probably don’t want to block the UI thread—do this in IO
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // Load and compress the image from URI
-                val compressedBytes = loadAndCompressImage(uri)
-
                 // Encode the compressed image bytes to Base64
-                val base64EncodedImage = Base64.encodeToString(compressedBytes, Base64.DEFAULT)
+                val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
 
                 withContext(Dispatchers.Main) {
-                    // Insert the image entity into the ViewModel (with the Base64 encoded bitmapData)
                     mainViewModel.insertImage(
                         ImageEntity(
-                            id = System.currentTimeMillis().toInt(),  // Use current timestamp as unique ID
-                            file_name = "",  // Set file name (if available)
-                            file_url = "",   // Set file URL (if available)
-                            file_size = "", // Optional field for description
-                            alt_text = "",  // Set date (if needed)
-                            category = "Background",  // For example, background category
-                            user_id = 0,        // Set image size if applicable
-                            is_selected = false,  // Set the selected state
-                            bitmapData = base64EncodedImage // Set the Base64 encoded image data
+                            id = System.currentTimeMillis().toInt(),
+                            file_name = "",
+                            file_url = "",
+                            file_size = "",
+                            alt_text = "",
+                            category = "Background",
+                            user_id = 0,
+                            is_selected = false,
+                            bitmapData = filePath
                         )
                     )
 
                     // Set the canvas background image (decode the compressed image bytes)
                     viewModel.setCanvasBackgroundImage(
-                        BitmapFactory.decodeByteArray(compressedBytes, 0, compressedBytes.size)
+                        ImageProcessor.filePathToBitmap(filePath!!)
                     )
                 }
             } catch (e: Exception) {
                 // Handle any errors that might occur during the process
                 Log.e("PhotoPicker", "Failed compressing image", e)
             }
-        }
-    }
-
-
-    @Throws(IOException::class)
-    private fun loadAndCompressImage(uri: Uri): ByteArray {
-        val MAX_IMAGE_BYTES = 500 * 1024 // 500 KB
-        val bmp = getBitmapFromUri(uri)
-
-        // 1) Always do at least one compress into baos
-        val baos = ByteArrayOutputStream().apply {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                // R+ supports true lossless WebP
-                bmp.compress(Bitmap.CompressFormat.WEBP_LOSSLESS, 100, this)
-            } else {
-                // older devices: high-quality JPEG as a starting point
-                bmp.compress(Bitmap.CompressFormat.JPEG, 100, this)
-            }
-        }
-
-        var data = baos.toByteArray()
-        if (data.size <= MAX_IMAGE_BYTES) {
-            return data
-        }
-
-        for (quality in listOf(90, 80, 70, 60)) {
-            baos.reset()
-            bmp.compress(Bitmap.CompressFormat.JPEG, quality, baos)
-            data = baos.toByteArray()
-            if (data.size <= MAX_IMAGE_BYTES) {
-                return data
-            }
-        }
-
-        return data
-    }
-
-    @Throws(IOException::class)
-    private fun getBitmapFromUri(uri: Uri): Bitmap {
-        val resolver = requireContext().contentResolver
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            val source = ImageDecoder.createSource(resolver, uri)
-            ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
-                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-            }
-        } else {
-            @Suppress("DEPRECATION")
-            MediaStore.Images.Media.getBitmap(resolver, uri)
         }
     }
 

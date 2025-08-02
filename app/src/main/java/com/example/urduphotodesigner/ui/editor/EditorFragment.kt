@@ -81,6 +81,7 @@ class EditorFragment : Fragment() {
     private lateinit var sizedCanvasView: CanvasView
     private var currentMode: MultiAlignMode = MultiAlignMode.CANVAS
 
+    private var exportModel: ExportResult? = null
     private var jsonPath:String = "canvas_data_${System.currentTimeMillis()}.json"
 
     private val blendingOptions = listOf(
@@ -103,7 +104,9 @@ class EditorFragment : Fragment() {
     )
 
     private var saveJsonJob: Job? = null
-    private val saveDelay = 1L
+    private var savePending = false
+    private var lastJsonSaveTime = 0L
+    private val SAVE_DEBOUNCE_MS = 500L
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -130,7 +133,7 @@ class EditorFragment : Fragment() {
         jsonPath = File(requireContext().filesDir, jsonPath).absolutePath
 
         setEvents()
-        insertInRoom()
+        saveOnExit()
         observeViewModel()
     }
 
@@ -168,11 +171,27 @@ class EditorFragment : Fragment() {
         dialog.show()
     }
 
-    private suspend fun saveJson(json: String) {
-        withContext(Dispatchers.IO) {
-            val file = File(jsonPath)
-            file.writeText(json)
-            Log.d(TAG, "saveJson: Saved at ${file.absolutePath}")
+    private fun scheduleJsonSave() {
+        savePending = true
+
+        if (saveJsonJob?.isActive != true) {
+            saveJsonJob = lifecycleScope.launch(Dispatchers.Default) {
+                while (savePending) {
+                    delay(SAVE_DEBOUNCE_MS)
+                    savePending = false
+
+                    val now = System.currentTimeMillis()
+                    if (now - lastJsonSaveTime >= SAVE_DEBOUNCE_MS) {
+                        val json = sizedCanvasView.exportCanvasJson()
+
+                        withContext(Dispatchers.IO) {
+                            File(jsonPath).writeText(json)
+                            Log.d("saveJson", "Saved JSON at $json")
+                            lastJsonSaveTime = now
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -196,31 +215,26 @@ class EditorFragment : Fragment() {
         return file.absolutePath
     }
 
-    private fun insertInRoom(){
+    private fun saveOnExit() {
         val options = viewModel.exportOptions.value ?: return
-        lifecycleScope.launch {
-            val result = withContext(Dispatchers.Default) {
-                sizedCanvasView.exportCanvas(options)
-            }
 
-            withContext(Dispatchers.Main) {
-                val (bitmap, json) = result
+        lifecycleScope.launch(Dispatchers.Default) {
+            val (bitmap, json) = sizedCanvasView.exportCanvas(options)
 
-                val imagePath = saveImage(bitmap, options)
-                saveJson(json)
+            val imagePath = saveImage(bitmap, options)
 
-                val fileSizeMB = estimateBitmapSize(
-                    bitmap,
-                    options.format.format,
-                    options.quality.quality
-                ) / (1024.0 * 1024.0)
-                val exportDate =
-                    SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(
-                        Date()
-                    )
+            File(jsonPath).writeText(json)
 
+            val fileSizeMB = estimateBitmapSize(
+                bitmap,
+                options.format.format,
+                options.quality.quality
+            ) / (1024.0 * 1024.0)
+
+            val exportDate = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(Date())
+
+            if (exportModel == null) {
                 val exportResult = ExportResult(
-                    id = 1L,
                     imagePath = imagePath,
                     jsonPath = jsonPath,
                     fileName = imagePath.substringAfterLast("/") ?: "design",
@@ -232,7 +246,9 @@ class EditorFragment : Fragment() {
                     exportDate = exportDate
                 )
 
-                mainViewModel.insertExportResult(exportResult)
+                withContext(Dispatchers.Main) {
+                    mainViewModel.insertExportResult(exportResult)
+                }
             }
         }
     }
@@ -251,6 +267,7 @@ class EditorFragment : Fragment() {
 
         viewModel.exportResult.observe(viewLifecycleOwner){ exportResult ->
             exportResult?.let {
+                exportModel = it
                 jsonPath = it.jsonPath
             }
         }
@@ -267,10 +284,7 @@ class EditorFragment : Fragment() {
                 if (!elements.isNullOrEmpty()) {
                     canvasManager.syncElements(elements)
                     binding.canvasContainer.invalidate()
-                    saveJsonJob?.cancel()
-                    saveJsonJob = lifecycleScope.launch {
-                        saveJson(sizedCanvasView.exportCanvasJson())
-                    }
+                    scheduleJsonSave()
                 }
             }
         }
@@ -278,13 +292,8 @@ class EditorFragment : Fragment() {
         viewModel.backgroundColor.observe(viewLifecycleOwner) { color ->
             if (isAdded){
                 color?.let {
-                    Log.d("BG Color", "observer: ${color}")
-
                     canvasManager.setCanvasBackgroundColor(it)
-                    saveJsonJob?.cancel()
-                    saveJsonJob = lifecycleScope.launch {
-                        saveJson(sizedCanvasView.exportCanvasJson())
-                    }
+                    scheduleJsonSave()
                 }
             }
         }
@@ -301,10 +310,7 @@ class EditorFragment : Fragment() {
             if (isAdded){
                 bitmap?.let {
                     canvasManager.setCanvasBackgroundImage(it)
-                    saveJsonJob?.cancel()
-                    saveJsonJob = lifecycleScope.launch {
-                        saveJson(sizedCanvasView.exportCanvasJson())
-                    }
+                    scheduleJsonSave()
                 }
             }
         }
@@ -313,10 +319,7 @@ class EditorFragment : Fragment() {
             if (isAdded){
                 gradient?.let {
                     canvasManager.setCanvasBackgroundGradient(it)
-                    saveJsonJob?.cancel()
-                    saveJsonJob = lifecycleScope.launch {
-                        saveJson(sizedCanvasView.exportCanvasJson())
-                    }
+                    scheduleJsonSave()
                 }
             }
         }
@@ -416,8 +419,10 @@ class EditorFragment : Fragment() {
     }
 
     private fun setEvents() {
+
+        viewModel.clearLoading()
+
         binding.back.setOnClickListener {
-            insertInRoom()
             findNavController().navigateUp()
         }
 
@@ -669,6 +674,7 @@ class EditorFragment : Fragment() {
         super.onDestroy()
         _navController = null
         saveJsonJob?.cancel()
+        saveOnExit()
         _binding = null
     }
 }
