@@ -24,6 +24,6 @@ interface ExportResultsDao {
     @Query("SELECT * FROM recent_exports WHERE id = :id LIMIT 1")
     suspend fun getCanvasTemplateById(id: Long): ExportResult?
 
-    @Query("SELECT * FROM recent_exports ORDER BY id DESC")
+    @Query("SELECT * FROM recent_exports ORDER BY updatedDate DESC")
     fun getAllCanvasTemplates(): Flow<List<ExportResult>>
 }

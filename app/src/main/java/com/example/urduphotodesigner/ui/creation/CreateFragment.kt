@@ -8,8 +8,10 @@ import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.PopupMenu
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
+import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.utils.Converter.cmToPx
 import com.example.urduphotodesigner.common.utils.Converter.inchesToPx
 import com.example.urduphotodesigner.common.utils.Converter.pxToCm
@@ -37,6 +39,7 @@ class CreateFragment : Fragment() {
     private var currentUnit = UnitType.PIXELS
     private var isLinked = false
     private var aspectRatio: Float? = null
+    private val viewModel: CanvasViewModel by activityViewModels()
 
     private lateinit var adapter: CanvasSizeAdapter
 
@@ -119,6 +122,8 @@ class CreateFragment : Fragment() {
                     putSerializable("unit_type", currentUnit)
                 }
 
+                viewModel.clearCanvas()
+                viewModel.setCanvasSize(selected)
                 findNavController().navigate(R.id.editorFragment, bundle)
             }
             sizesRV.adapter = adapter
@@ -209,6 +214,8 @@ class CreateFragment : Fragment() {
                     putSerializable("unit_type", currentUnit)
                 }
 
+                viewModel.clearCanvas()
+                viewModel.setCanvasSize(canvasSize)
                 findNavController().navigate(R.id.editorFragment, bundle)
             }
 

@@ -1,9 +1,13 @@
 package com.example.urduphotodesigner.ui.editor
 
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.app.Dialog
 import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -11,11 +15,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.animation.AnimationUtils
+import android.view.animation.LinearInterpolator
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.SeekBar
-import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.annotation.AnimRes
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -28,6 +33,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
+import com.example.urduphotodesigner.MyApplication
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasManager
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
@@ -42,16 +48,18 @@ import com.example.urduphotodesigner.common.canvas.model.CanvasElement
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.canvas.model.ExportOptions
 import com.example.urduphotodesigner.common.canvas.model.ExportResult
-import com.example.urduphotodesigner.common.utils.Constants
 import com.example.urduphotodesigner.common.utils.Converter.cmToPx
 import com.example.urduphotodesigner.common.utils.Converter.inchesToPx
+import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.common.utils.displayName
 import com.example.urduphotodesigner.common.views.CanvasView
+import com.example.urduphotodesigner.databinding.DialogAutoSavingLayoutBinding
 import com.example.urduphotodesigner.databinding.FragmentEditorBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import com.tom_roush.fontbox.ttf.NamingTable.TAG
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -82,7 +90,13 @@ class EditorFragment : Fragment() {
     private var currentMode: MultiAlignMode = MultiAlignMode.CANVAS
 
     private var exportModel: ExportResult? = null
-    private var jsonPath:String = "canvas_data_${System.currentTimeMillis()}.json"
+    private var jsonPath: String = "canvas_data_${System.currentTimeMillis()}.json"
+    private var imagePath: String = "design_data_${System.currentTimeMillis()}.png"
+
+    private var exportDialog: Dialog? = null
+    private var exportDialogBinding: DialogAutoSavingLayoutBinding? = null
+    private var rotationAnimator: ObjectAnimator? = null
+    private var isSaving = false
 
     private val blendingOptions = listOf(
         BlendType.SRC,
@@ -130,10 +144,16 @@ class EditorFragment : Fragment() {
         canvasSize = arguments?.getSerializable("canvas_size") as CanvasSize
         currentUnit = (arguments?.getSerializable("unit_type") as? UnitType)!!
         viewModel.setCanvasSize(canvasSize)
-        jsonPath = File(requireContext().filesDir, jsonPath).absolutePath
+
+        val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm", Locale.getDefault()).format(Date())
+
+        val jsonFileName = "canvas_$timestamp.json"
+        val imageFileName = "design_$timestamp.png"
+
+        jsonPath = File(requireContext().filesDir, jsonFileName).absolutePath
+        imagePath = File(requireContext().filesDir, imageFileName).absolutePath
 
         setEvents()
-        saveOnExit()
         observeViewModel()
     }
 
@@ -186,7 +206,7 @@ class EditorFragment : Fragment() {
 
                         withContext(Dispatchers.IO) {
                             File(jsonPath).writeText(json)
-                            Log.d("saveJson", "Saved JSON at $json")
+                            Log.d("saveJson", "Saved JSON at $jsonPath")
                             lastJsonSaveTime = now
                         }
                     }
@@ -195,62 +215,48 @@ class EditorFragment : Fragment() {
         }
     }
 
-    private fun saveImage(bitmap: Bitmap, options: ExportOptions): String {
-        val formatExt = when (options.format.format) {
-            Bitmap.CompressFormat.PNG -> "png"
-            Bitmap.CompressFormat.JPEG -> "jpg"
-            Bitmap.CompressFormat.WEBP -> "webp"
-            else -> "png"
-        }
+    private fun saveOnExitSafe(
+        options: ExportOptions,
+        exportBitmap: Bitmap,
+        exportJson: String,
+        canvasSize: CanvasSize
+    ) {
+            try {
+                ImageProcessor.saveBitmapToFile(exportBitmap, options, imagePath)
+                File(jsonPath).writeText(exportJson)
+                Log.d(TAG, "saveOnExitSafe: $jsonPath")
 
-        val filename = "design_${System.currentTimeMillis()}.$formatExt"
-        val dir = File(requireContext().filesDir, "exports/images")
-        if (!dir.exists()) dir.mkdirs()
+                val fileSizeMB = estimateBitmapSize(
+                    exportBitmap,
+                    options.format.format,
+                    options.quality.quality
+                ) / (1024.0 * 1024.0)
 
-        val file = File(dir, filename)
-        FileOutputStream(file).use { stream ->
-            bitmap.compress(options.format.format, options.quality.quality, stream)
-        }
+                val exportDate = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(Date())
 
-        return file.absolutePath
-    }
-
-    private fun saveOnExit() {
-        val options = viewModel.exportOptions.value ?: return
-
-        lifecycleScope.launch(Dispatchers.Default) {
-            val (bitmap, json) = sizedCanvasView.exportCanvas(options)
-
-            val imagePath = saveImage(bitmap, options)
-
-            File(jsonPath).writeText(json)
-
-            val fileSizeMB = estimateBitmapSize(
-                bitmap,
-                options.format.format,
-                options.quality.quality
-            ) / (1024.0 * 1024.0)
-
-            val exportDate = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(Date())
-
-            if (exportModel == null) {
-                val exportResult = ExportResult(
-                    imagePath = imagePath,
-                    jsonPath = jsonPath,
-                    fileName = imagePath.substringAfterLast("/") ?: "design",
-                    fileSizeMB = fileSizeMB,
-                    resolution = options.resolution.label,
-                    format = options.format.name,
-                    quality = options.quality.label,
-                    canvasSize = viewModel.canvasSize.value!!,
-                    exportDate = exportDate
-                )
-
-                withContext(Dispatchers.Main) {
-                    mainViewModel.insertExportResult(exportResult)
+                if (exportModel==null){
+                    exportModel = ExportResult(
+                        imagePath = imagePath,
+                        jsonPath = jsonPath,
+                        fileName = imagePath.substringAfterLast("/") ?: "design",
+                        fileSizeMB = fileSizeMB,
+                        resolution = options.resolution.label,
+                        format = options.format.name,
+                        quality = options.quality.label,
+                        canvasSize = canvasSize,
+                        exportDate = exportDate,
+                        updatedDate = exportDate
+                    )
+                }else{
+                    exportModel!!.canvasSize = canvasSize
+                    exportModel!!.fileSizeMB = fileSizeMB
+                    exportModel!!.updatedDate = exportDate
                 }
+                mainViewModel.insertExportResult(exportModel!!)
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Background save failed: ${e.message}")
             }
-        }
     }
 
     private fun estimateBitmapSize(
@@ -265,22 +271,23 @@ class EditorFragment : Fragment() {
 
     private fun observeViewModel() {
 
-        viewModel.exportResult.observe(viewLifecycleOwner){ exportResult ->
+        viewModel.exportResult.observe(viewLifecycleOwner) { exportResult ->
             exportResult?.let {
                 exportModel = it
                 jsonPath = it.jsonPath
+                imagePath = it.imagePath
             }
         }
 
         viewModel.canvasSize.observe(viewLifecycleOwner) { size ->
-           if (size!=null){
-               canvasSize = size
-               binding.canvasContainer.invalidate()
-           }
+            if (size != null) {
+                canvasSize = size
+                binding.canvasContainer.invalidate()
+            }
         }
 
         viewModel.canvasElements.observe(viewLifecycleOwner) { elements ->
-            if (isAdded){
+            if (isAdded) {
                 if (!elements.isNullOrEmpty()) {
                     canvasManager.syncElements(elements)
                     binding.canvasContainer.invalidate()
@@ -290,7 +297,7 @@ class EditorFragment : Fragment() {
         }
 
         viewModel.backgroundColor.observe(viewLifecycleOwner) { color ->
-            if (isAdded){
+            if (isAdded) {
                 color?.let {
                     canvasManager.setCanvasBackgroundColor(it)
                     scheduleJsonSave()
@@ -307,7 +314,7 @@ class EditorFragment : Fragment() {
         }
 
         viewModel.backgroundImage.observe(viewLifecycleOwner) { bitmap ->
-            if (isAdded){
+            if (isAdded) {
                 bitmap?.let {
                     canvasManager.setCanvasBackgroundImage(it)
                     scheduleJsonSave()
@@ -316,7 +323,7 @@ class EditorFragment : Fragment() {
         }
 
         viewModel.backgroundGradient.observe(viewLifecycleOwner) { gradient ->
-            if (isAdded){
+            if (isAdded) {
                 gradient?.let {
                     canvasManager.setCanvasBackgroundGradient(it)
                     scheduleJsonSave()
@@ -422,8 +429,14 @@ class EditorFragment : Fragment() {
 
         viewModel.clearLoading()
 
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                autoSave()
+            }
+        })
+
         binding.back.setOnClickListener {
-            findNavController().navigateUp()
+            autoSave()
         }
 
         val widthPx = when (currentUnit) {
@@ -670,11 +683,85 @@ class EditorFragment : Fragment() {
         }
     }
 
+    private fun showExportProgressDialog() {
+        if (exportDialog?.isShowing == true) return
+
+        exportDialogBinding = DialogAutoSavingLayoutBinding.inflate(layoutInflater)
+
+        exportDialog = Dialog(requireContext()).apply {
+            setContentView(exportDialogBinding!!.root)
+            setCancelable(false)
+            window?.setBackgroundDrawableResource(android.R.color.transparent)
+            window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            window?.setGravity(Gravity.CENTER)
+            show()
+        }
+        startIconRotation()
+    }
+
+    private fun updateExportDialog(percent: Int, stage: String) {
+        exportDialogBinding?.apply {
+            progressBar.progress = percent
+            tvProgressPercent.text = "$percent% complete"
+            exportValue.text = stage
+        }
+    }
+
+    private fun dismissExportDialog() {
+        stopIconRotation()
+        exportDialog?.dismiss()
+        exportDialog = null
+        exportDialogBinding = null
+    }
+
+    private fun autoSave(){
+        if (isSaving) return
+        isSaving = true
+        val options = viewModel.exportOptions.value ?: return
+        val canvasSize = viewModel.canvasSize.value ?: return
+
+        showExportProgressDialog()
+
+        lifecycleScope.launch {
+            val (bitmap, json) = withContext(Dispatchers.Default) {
+                sizedCanvasView.exportCanvas(options) { percent, stage ->
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        updateExportDialog(percent, stage)
+                    }
+                }
+            }
+            withContext(Dispatchers.IO) {
+                saveOnExitSafe(options, bitmap, json, canvasSize)
+            }
+            withContext(Dispatchers.Main) {
+                updateExportDialog(100, "Saved successfully")
+                delay(500)
+                findNavController().navigateUp()
+                dismissExportDialog()
+            }
+        }
+    }
+
+    private fun startIconRotation() {
+        exportDialogBinding?.view4?.let { icon ->
+            rotationAnimator = ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, 360f).apply {
+                duration = 1000L
+                repeatCount = ValueAnimator.INFINITE
+                interpolator = LinearInterpolator()
+                start()
+            }
+        }
+    }
+
+    private fun stopIconRotation() {
+        rotationAnimator?.cancel()
+        rotationAnimator = null
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         _navController = null
         saveJsonJob?.cancel()
-        saveOnExit()
         _binding = null
     }
 }

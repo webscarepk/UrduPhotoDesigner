@@ -19,6 +19,7 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.utils.Constants
+import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.databinding.LayoutFontItemBinding
 
@@ -83,8 +84,8 @@ class FontsAdapter(
             // Check if the font_image is not empty and image_url is empty
             if (font.image_url.isEmpty() && font.font_image.isNotEmpty()) {
                 // Parse font_image from Base64 to Bitmap
-                val decodedImage = base64ToBitmap(font.font_image)
-                binding.font.setImageBitmap(decodedImage)
+                val bitmap = ImageProcessor.filePathToBitmap(font.font_image)
+                binding.font.setImageBitmap(bitmap)
                 binding.progressBar.visibility = View.GONE
             } else {
                 // Load font preview using Glide (from image_url)
@@ -106,12 +107,6 @@ class FontsAdapter(
                     })
                     .into(binding.font)
             }
-        }
-
-        // Function to decode the Base64 string to Bitmap
-        private fun base64ToBitmap(base64String: String): Bitmap {
-            val decodedBytes = Base64.decode(base64String, Base64.DEFAULT)
-            return BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
         }
     }
 

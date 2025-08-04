@@ -8,11 +8,18 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Base64
+import com.example.urduphotodesigner.common.canvas.model.ExportOptions
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 
 object ImageProcessor {
+
+    fun saveBitmapToFile(bitmap: Bitmap, options: ExportOptions, path: String) {
+        FileOutputStream(File(path)).use { stream ->
+            bitmap.compress(options.format.format, options.quality.quality, stream)
+        }
+    }
 
     fun bitmapToFilePath(context: Context, bitmap: Bitmap, fileName: String = "img_${System.currentTimeMillis()}.jpg"): String {
         val dir = File(context.cacheDir, "images")

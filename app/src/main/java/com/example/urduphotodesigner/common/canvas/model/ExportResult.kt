@@ -10,10 +10,12 @@ data class ExportResult(
     val imagePath: String,
     val jsonPath: String,
     val fileName: String,
-    val fileSizeMB: Double,
-    val resolution: String,
-    val format: String,
-    val quality: String,
-    val canvasSize: CanvasSize,
-    val exportDate: String
+    var fileSizeMB: Double,
+    var resolution: String,
+    var format: String,
+    var quality: String,
+    var canvasSize: CanvasSize,
+    val exportDate: String,
+    var updatedDate: String,
+    var isExported: Boolean = false
 ): Serializable

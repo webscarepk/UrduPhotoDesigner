@@ -39,12 +39,14 @@ class BackgroundsListFragment : Fragment() {
 
     private fun setEvents() {
         imagesAdapter = ImagesAdapter(){ image ->
-            viewModel.ensureBackgroundElement(
-                requireActivity(),
-                viewModel.canvasSize.value!!.width,
-                viewModel.canvasSize.value!!.height
-            )
-            viewModel.setCanvasBackgroundImage(image)
+           if (isAdded){
+               viewModel.ensureBackgroundElement(
+                   requireActivity(),
+                   viewModel.canvasSize.value!!.width,
+                   viewModel.canvasSize.value!!.height
+               )
+               viewModel.setCanvasBackgroundImage(image)
+           }
         }
         binding.backgrounds.adapter = imagesAdapter
     }

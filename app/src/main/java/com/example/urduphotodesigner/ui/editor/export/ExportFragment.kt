@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.drawable.AnimatedVectorDrawable
 import android.os.Build
 import android.os.Bundle
@@ -26,6 +27,7 @@ import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.ExportViewType
 import com.example.urduphotodesigner.common.canvas.model.ExportOptions
 import com.example.urduphotodesigner.common.canvas.model.ExportResult
+import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.common.views.CanvasView
 import com.example.urduphotodesigner.databinding.FragmentExportBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
@@ -46,6 +48,7 @@ class ExportFragment : Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
     private val mainViewModel: MainViewModel by activityViewModels()
 
+    private lateinit var exportResult: ExportResult
     private lateinit var canvasView: CanvasView
     private var isFirstRender = true
     private var rotateDrawable: AnimatedVectorDrawable? = null
@@ -64,8 +67,8 @@ class ExportFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        initObservers()
         setEvents()
+        initObservers()
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -124,9 +127,31 @@ class ExportFragment : Fragment() {
             if (!isAdded) return@observe
             lifecycleScope.launch(Dispatchers.Main) {
                 updateExportOptionsUI(options)
-                renderPreview()
             }
         }
+
+        viewModel.exportResult.observe(viewLifecycleOwner) { result ->
+            result?.let {
+                renderExportResult(it)
+                exportResult = it
+            }
+        }
+    }
+
+    private fun renderExportResult(result: ExportResult) = with(binding) {
+        val bitmap = ImageProcessor.filePathToBitmap(result.imagePath)
+        previewImage.setImageBitmap(bitmap)
+
+        tvExportSize.text = "%.1f MB".format(result.fileSizeMB)
+        fileSize.text = "%.1f MB".format(result.fileSizeMB)
+
+        resolutionValue.text = "${result.resolution}"
+        qualityValue.text = "${result.quality}"
+        formatValue.text = "${result.format} • .${result.format.lowercase()}"
+
+        tvExportSummaryDetails.text = "${result.resolution} • ${result.quality} • ${result.format}"
+        resolution.text = result.resolution
+        format.text = result.format
     }
 
     private fun updateExportOptionsUI(options: ExportOptions) = with(binding) {
@@ -235,10 +260,10 @@ class ExportFragment : Fragment() {
                 binding.previewImage.setImageBitmap(bitmap)
 
                 updateProgress(70, "Saving image...")
-                val imagePath = saveImage(bitmap, options)
+                saveImage(bitmap, options)
 
                 updateProgress(85, "Saving JSON...")
-                val jsonPath = saveJson(json)
+                saveJson(json)
 
                 val fileSizeMB = estimateBitmapSize(
                     bitmap,
@@ -246,21 +271,15 @@ class ExportFragment : Fragment() {
                     options.quality.quality
                 ) / (1024.0 * 1024.0)
                 val exportDate =
-                    SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(
-                        Date()
-                    )
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(Date())
 
-                val exportResult = ExportResult(
-                    imagePath = imagePath!!,
-                    jsonPath = jsonPath,
-                    fileName = imagePath.substringAfterLast("/") ?: "design",
-                    fileSizeMB = fileSizeMB,
-                    resolution = options.resolution.label,
-                    format = options.format.name,
-                    quality = options.quality.label,
-                    canvasSize = viewModel.canvasSize.value!!,
-                    exportDate = exportDate
-                )
+                exportResult.fileSizeMB = fileSizeMB
+                exportResult.resolution = options.resolution.label
+                exportResult.format = options.format.name
+                exportResult.quality = options.quality.label
+                exportResult.updatedDate = exportDate
+                exportResult.canvasSize = viewModel.canvasSize.value!!
+                exportResult.isExported = true
 
                 viewModel.setExportResult(exportResult)
                 mainViewModel.insertExportResult(exportResult)
