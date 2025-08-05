@@ -5,12 +5,13 @@ import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.drawable.AnimatedVectorDrawable
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -21,6 +22,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
@@ -48,7 +50,7 @@ class ExportFragment : Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
     private val mainViewModel: MainViewModel by activityViewModels()
 
-    private lateinit var exportResult: ExportResult
+    private var exportResult: ExportResult? = null
     private lateinit var canvasView: CanvasView
     private var isFirstRender = true
     private var rotateDrawable: AnimatedVectorDrawable? = null
@@ -91,9 +93,13 @@ class ExportFragment : Fragment() {
     }
 
     private fun setEvents() = with(binding) {
-        binding.btnExport.addPressEffect()
+
+        Log.d("ExportFragmentOnCreate", "Received exportResult: ${viewModel.exportResult.value}")
+        btnExport.addPressEffect()
         stopIconRotation()
         btnExport.setOnClickListener { startExport() }
+
+        back.setOnClickListener { findNavController().navigateUp() }
         btnReset.setOnClickListener {
             viewModel.resetExportOptions()
             showTopBanner("Settings reset to defaults")
@@ -120,6 +126,7 @@ class ExportFragment : Fragment() {
             lifecycleScope.launch(Dispatchers.Main) {
                 canvasView = canvas
                 renderPreview()
+                Log.d("ExportFragmentCanvasView", "Received exportResult: ${viewModel.exportResult.value}")
             }
         }
 
@@ -127,13 +134,15 @@ class ExportFragment : Fragment() {
             if (!isAdded) return@observe
             lifecycleScope.launch(Dispatchers.Main) {
                 updateExportOptionsUI(options)
+                Log.d("ExportFragmentExportOptions", "Received exportResult: ${viewModel.exportResult.value}")
             }
         }
 
         viewModel.exportResult.observe(viewLifecycleOwner) { result ->
+            Log.d("ExportFragmentExportResult", "Received exportResult: ${viewModel.exportResult.value}")
             result?.let {
-                renderExportResult(it)
                 exportResult = it
+                renderExportResult(it)
             }
         }
     }
@@ -145,8 +154,8 @@ class ExportFragment : Fragment() {
         tvExportSize.text = "%.1f MB".format(result.fileSizeMB)
         fileSize.text = "%.1f MB".format(result.fileSizeMB)
 
-        resolutionValue.text = "${result.resolution}"
-        qualityValue.text = "${result.quality}"
+        resolutionValue.text = result.resolution
+        qualityValue.text = result.quality
         formatValue.text = "${result.format} • .${result.format.lowercase()}"
 
         tvExportSummaryDetails.text = "${result.resolution} • ${result.quality} • ${result.format}"
@@ -253,37 +262,62 @@ class ExportFragment : Fragment() {
                 }
             }
 
-            withContext(Dispatchers.Main) {
-                val (bitmap, json) = result
+            val (bitmap, json) = result
 
+            withContext(Dispatchers.Main) {
                 updateProgress(50, "Rendering image...")
                 binding.previewImage.setImageBitmap(bitmap)
+            }
 
-                updateProgress(70, "Saving image...")
-                saveImage(bitmap, options)
+            val imagePath: String
+            val jsonPath: String
 
-                updateProgress(85, "Saving JSON...")
-                saveJson(json)
+            // Save files on background thread
+            withContext(Dispatchers.IO) {
+                updateProgressSafe(70, "Saving image...")
+                imagePath = ImageProcessor.copyUriToTempFile(requireActivity(), saveImage(bitmap, options)!!,
+                    exportResult?.imagePath!!
+                )!!.absolutePath
 
-                val fileSizeMB = estimateBitmapSize(
-                    bitmap,
-                    options.format.format,
-                    options.quality.quality
-                ) / (1024.0 * 1024.0)
-                val exportDate =
-                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(Date())
+                updateProgressSafe(85, "Saving JSON...")
+                jsonPath = saveJson(json)
+            }
 
-                exportResult.fileSizeMB = fileSizeMB
-                exportResult.resolution = options.resolution.label
-                exportResult.format = options.format.name
-                exportResult.quality = options.quality.label
-                exportResult.updatedDate = exportDate
-                exportResult.canvasSize = viewModel.canvasSize.value!!
-                exportResult.isExported = true
+            val fileSizeMB = estimateBitmapSize(
+                bitmap,
+                options.format.format,
+                options.quality.quality
+            ) / (1024.0 * 1024.0)
 
-                viewModel.setExportResult(exportResult)
-                mainViewModel.insertExportResult(exportResult)
+            val exportDate = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
 
+            if (exportResult == null) {
+                exportResult = ExportResult(
+                    imagePath = imagePath,
+                    jsonPath = jsonPath,
+                    fileName = imagePath.substringAfterLast("/") ?: "design",
+                    fileSizeMB = fileSizeMB,
+                    resolution = options.resolution.label,
+                    format = options.format.name,
+                    quality = options.quality.label,
+                    canvasSize = viewModel.canvasSize.value!!,
+                    exportDate = exportDate,
+                    updatedDate = exportDate
+                )
+            } else {
+                exportResult!!.fileSizeMB = fileSizeMB
+                exportResult!!.resolution = options.resolution.label
+                exportResult!!.format = options.format.name
+                exportResult!!.quality = options.quality.label
+                exportResult!!.updatedDate = exportDate
+                exportResult!!.canvasSize = viewModel.canvasSize.value!!
+                exportResult!!.isExported = true
+            }
+
+            viewModel.setExportResult(exportResult!!)
+            mainViewModel.insertExportResult(exportResult!!)
+
+            withContext(Dispatchers.Main) {
                 updateProgress(100, "Export complete")
 
                 binding.exportProgress.postDelayed({
@@ -298,6 +332,13 @@ class ExportFragment : Fragment() {
 
                 findNavController().navigate(R.id.finishExportFragment)
             }
+        }
+    }
+
+    // Helper to update progress from IO thread
+    private suspend fun updateProgressSafe(percent: Int, stage: String) {
+        withContext(Dispatchers.Main) {
+            updateProgress(percent, stage)
         }
     }
 
@@ -358,14 +399,12 @@ class ExportFragment : Fragment() {
     }
 
     private fun saveJson(json: String): String {
-        val filename = "canvas_data_${System.currentTimeMillis()}.json"
-        val file = File(requireContext().filesDir, filename)
+        val file = File(exportResult?.jsonPath!!)
         file.writeText(json)
-        showTopBanner("Design JSON saved")
         return file.absolutePath
     }
 
-    private fun saveImage(bitmap: Bitmap, options: ExportOptions): String? {
+    private fun saveImage(bitmap: Bitmap, options: ExportOptions): Uri? {
         val formatExt = when (options.format.format) {
             Bitmap.CompressFormat.PNG -> "png"
             Bitmap.CompressFormat.JPEG -> "jpg"
@@ -394,10 +433,12 @@ class ExportFragment : Fragment() {
         uri?.let {
             requireContext().contentResolver.openOutputStream(it)?.use { stream ->
                 bitmap.compress(options.format.format, options.quality.quality, stream)
+            }
+            lifecycleScope.launch(Dispatchers.Main) {
                 showTopBanner("Image saved to gallery")
             }
 
-            return uri.toString() // Or return filename for simplicity
+            return uri // Or return filename for simplicity
         }
 
         return null

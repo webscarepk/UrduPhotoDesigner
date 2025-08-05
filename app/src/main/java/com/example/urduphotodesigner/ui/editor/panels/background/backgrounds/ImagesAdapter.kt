@@ -58,6 +58,8 @@ class ImagesAdapter(
         private var currentDrawable: Drawable? = null
 
         fun bind(image: ImageEntity) {
+            binding.shimmerLayout.startShimmer()
+
             if (image.is_selected) {
                 binding.root.strokeWidth = 4
                 binding.root.setCardBackgroundColor(Color.WHITE)
@@ -102,11 +104,14 @@ class ImagesAdapter(
                 // Decode Base64 string to Bitmap for loading directly if bitmapData exists
                 val bitmap = ImageProcessor.filePathToBitmap(image.bitmapData!!)
                 binding.image.setImageBitmap(bitmap) // Directly setting the image
-                binding.progressBar.visibility = View.GONE
+                binding.shimmerLayout.stopShimmer()
+                binding.shimmerLayout.setShimmer(null)
             } else {
                 // Glide to load the image from the URL if no bitmapData
                 Glide.with(binding.root.context)
                     .load(url)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .thumbnail(0.1f)
                     .listener(object : RequestListener<Drawable> {
                         override fun onLoadFailed(
                             e: GlideException?,
@@ -115,7 +120,8 @@ class ImagesAdapter(
                             isFirstResource: Boolean
                         ): Boolean {
                             Log.e("GlideDebug", "Image load failed: ${e?.message}")
-                            binding.progressBar.visibility = View.GONE
+                            binding.shimmerLayout.stopShimmer()
+                            binding.shimmerLayout.setShimmer(null)
                             currentDrawable = null
                             return false
                         }
@@ -128,14 +134,12 @@ class ImagesAdapter(
                             isFirstResource: Boolean
                         ): Boolean {
                             Log.d("GlideDebug", "Image loaded successfully from: $url")
-                            binding.progressBar.visibility = View.GONE
+                            binding.shimmerLayout.stopShimmer()
+                            binding.shimmerLayout.setShimmer(null)
                             currentDrawable = resource
                             return false
                         }
                     })
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .thumbnail(0.1f)
-                    .skipMemoryCache(false)
                     .into(binding.image)
             }
         }

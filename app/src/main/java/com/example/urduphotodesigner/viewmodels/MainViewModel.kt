@@ -204,6 +204,7 @@ class MainViewModel @Inject constructor(
                     _downloadState.value = DownloadState.SuccessWithTypeface(downloadedFile, it)
                 }
             } catch (e: Exception) {
+                updateFontStatusUseCase.invoke(font.id.toString(), false)
                 _downloadState.value = DownloadState.Error(e.message ?: "Download failed")
             }
         }

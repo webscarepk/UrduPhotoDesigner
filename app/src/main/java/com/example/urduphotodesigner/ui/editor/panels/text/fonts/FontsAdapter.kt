@@ -59,6 +59,7 @@ class FontsAdapter(
         fun bind(font: FontEntity) {
             val isSelected = font.id.toString() == selectedFontId
 
+            binding.shimmerLayout.startShimmer()
             binding.root.strokeWidth = if (isSelected) 2 else 0
             binding.root.strokeColor = ContextCompat.getColor(
                 binding.root.context,
@@ -86,7 +87,7 @@ class FontsAdapter(
                 // Parse font_image from Base64 to Bitmap
                 val bitmap = ImageProcessor.filePathToBitmap(font.font_image)
                 binding.font.setImageBitmap(bitmap)
-                binding.progressBar.visibility = View.GONE
+                binding.shimmerLayout.hideShimmer()
             } else {
                 // Load font preview using Glide (from image_url)
                 val url = Constants.BASE_URL_GLIDE + font.image_url
@@ -98,12 +99,12 @@ class FontsAdapter(
                         override fun onLoadFailed(
                             e: GlideException?, model: Any?, target: Target<PictureDrawable>,
                             isFirstResource: Boolean
-                        ) = false.also { binding.progressBar.visibility = View.GONE }
+                        ) = false.also { binding.shimmerLayout.hideShimmer() }
 
                         override fun onResourceReady(
                             resource: PictureDrawable, model: Any, target: Target<PictureDrawable>?,
                             dataSource: DataSource, isFirstResource: Boolean
-                        ) = false.also { binding.progressBar.visibility = View.GONE }
+                        ) = false.also { binding.shimmerLayout.hideShimmer() }
                     })
                     .into(binding.font)
             }

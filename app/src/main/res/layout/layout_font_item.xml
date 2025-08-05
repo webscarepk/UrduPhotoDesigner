@@ -5,22 +5,36 @@
     android:layout_height="@dimen/_45sdp"
     android:layout_marginEnd="@dimen/_5sdp"
     android:layout_marginBottom="@dimen/_5sdp"
+    app:cardBackgroundColor="@color/selection"
     app:cardCornerRadius="@dimen/_5sdp"
-    app:strokeWidth="0dp"
     app:cardElevation="0dp"
-    app:cardBackgroundColor="@color/selection">
+    app:strokeWidth="0dp">
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <ImageView
-            android:id="@+id/font"
+        <com.facebook.shimmer.ShimmerFrameLayout
+            android:id="@+id/shimmerLayout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="@dimen/_5sdp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_launcher_background"/>
+            app:shimmer_auto_start="true"
+            app:shimmer_base_alpha="0.5"
+            app:shimmer_duration="1000"
+            app:shimmer_base_color="@color/contrast"
+            app:shimmer_colored="true"
+            app:shimmer_highlight_alpha="1.0">
+
+            <ImageView
+                android:id="@+id/font"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="@dimen/_5sdp"
+                android:src="@drawable/ic_launcher_background"
+                android:background="@color/contrast"
+                android:scaleType="fitCenter" />
+
+        </com.facebook.shimmer.ShimmerFrameLayout>
 
         <ProgressBar
             android:id="@+id/progressBar"
@@ -28,8 +42,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:visibility="gone"
-            android:progressTint="@color/appColor" />
+            android:indeterminate="true"
+            android:indeterminateTint="@color/appColor"
+            android:visibility="gone" />
 
         <ImageView
             android:id="@+id/download"
@@ -38,7 +53,7 @@
             android:layout_gravity="end|bottom"
             android:layout_margin="@dimen/_3sdp"
             android:src="@drawable/ic_download"
-            app:tint="@color/appColor"
-            android:visibility="gone" />
+            android:visibility="gone"
+            app:tint="@color/appColor" />
     </FrameLayout>
 </com.google.android.material.card.MaterialCardView>

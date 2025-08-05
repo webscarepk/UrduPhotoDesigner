@@ -580,7 +580,7 @@
 
     <!-- Export Button -->
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnExport"
+        android:id="@+id/backToHome"
         android:layout_width="0dp"
         android:layout_height="@dimen/_32sdp"
         android:text="@string/go_home"

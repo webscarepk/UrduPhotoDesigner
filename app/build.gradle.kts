@@ -121,4 +121,7 @@ dependencies {
     //PDF Box
     implementation (libs.pdfbox.android)
 
+    //Shimmer
+    implementation(libs.shimmer)
+
 }

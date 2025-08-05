@@ -6,8 +6,6 @@ import android.app.Dialog
 import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -33,7 +31,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
-import com.example.urduphotodesigner.MyApplication
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasManager
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
@@ -59,13 +56,11 @@ import com.example.urduphotodesigner.viewmodels.MainViewModel
 import com.tom_roush.fontbox.ttf.NamingTable.TAG
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -145,7 +140,7 @@ class EditorFragment : Fragment() {
         currentUnit = (arguments?.getSerializable("unit_type") as? UnitType)!!
         viewModel.setCanvasSize(canvasSize)
 
-        val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm", Locale.getDefault()).format(Date())
+        val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
 
         val jsonFileName = "canvas_$timestamp.json"
         val imageFileName = "design_$timestamp.png"
@@ -221,42 +216,44 @@ class EditorFragment : Fragment() {
         exportJson: String,
         canvasSize: CanvasSize
     ) {
-            try {
-                ImageProcessor.saveBitmapToFile(exportBitmap, options, imagePath)
-                File(jsonPath).writeText(exportJson)
-                Log.d(TAG, "saveOnExitSafe: $jsonPath")
+        try {
+            ImageProcessor.saveBitmapToFile(exportBitmap, options, imagePath)
+            File(jsonPath).writeText(exportJson)
+            Log.d(TAG, "saveOnExitSafe: $jsonPath")
 
-                val fileSizeMB = estimateBitmapSize(
-                    exportBitmap,
-                    options.format.format,
-                    options.quality.quality
-                ) / (1024.0 * 1024.0)
+            val fileSizeMB = estimateBitmapSize(
+                exportBitmap,
+                options.format.format,
+                options.quality.quality
+            ) / (1024.0 * 1024.0)
 
-                val exportDate = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(Date())
+            val exportDate =
+                SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
 
-                if (exportModel==null){
-                    exportModel = ExportResult(
-                        imagePath = imagePath,
-                        jsonPath = jsonPath,
-                        fileName = imagePath.substringAfterLast("/") ?: "design",
-                        fileSizeMB = fileSizeMB,
-                        resolution = options.resolution.label,
-                        format = options.format.name,
-                        quality = options.quality.label,
-                        canvasSize = canvasSize,
-                        exportDate = exportDate,
-                        updatedDate = exportDate
-                    )
-                }else{
-                    exportModel!!.canvasSize = canvasSize
-                    exportModel!!.fileSizeMB = fileSizeMB
-                    exportModel!!.updatedDate = exportDate
-                }
-                mainViewModel.insertExportResult(exportModel!!)
-
-            } catch (e: Exception) {
-                Log.e(TAG, "Background save failed: ${e.message}")
+            if (exportModel == null) {
+                exportModel = ExportResult(
+                    imagePath = imagePath,
+                    jsonPath = jsonPath,
+                    fileName = imagePath.substringAfterLast("/") ?: "design",
+                    fileSizeMB = fileSizeMB,
+                    resolution = options.resolution.label,
+                    format = options.format.name,
+                    quality = options.quality.label,
+                    canvasSize = canvasSize,
+                    exportDate = exportDate,
+                    updatedDate = exportDate
+                )
+            } else {
+                exportModel!!.canvasSize = canvasSize
+                exportModel!!.fileSizeMB = fileSizeMB
+                exportModel!!.updatedDate = exportDate
             }
+            mainViewModel.insertExportResult(exportModel!!)
+            viewModel.setExportResult(exportModel!!)
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Background save failed: ${e.message}")
+        }
     }
 
     private fun estimateBitmapSize(
@@ -272,6 +269,7 @@ class EditorFragment : Fragment() {
     private fun observeViewModel() {
 
         viewModel.exportResult.observe(viewLifecycleOwner) { exportResult ->
+            Log.d("ExportFragment", "Received exportResult: ${viewModel.exportResult.value}")
             exportResult?.let {
                 exportModel = it
                 jsonPath = it.jsonPath
@@ -429,11 +427,13 @@ class EditorFragment : Fragment() {
 
         viewModel.clearLoading()
 
-        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                autoSave()
-            }
-        })
+        requireActivity().onBackPressedDispatcher.addCallback(
+            viewLifecycleOwner,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    autoSave()
+                }
+            })
 
         binding.back.setOnClickListener {
             autoSave()
@@ -520,6 +520,8 @@ class EditorFragment : Fragment() {
         canvasManager = CanvasManager(sizedCanvasView)
 
         viewModel.ensureBackgroundElement(requireActivity(), canvasSize.width, canvasSize.height)
+
+        autoSaveSilent()
 
         binding.undo.setOnClickListener { viewModel.undo() }
         binding.redo.setOnClickListener { viewModel.redo() }
@@ -692,7 +694,10 @@ class EditorFragment : Fragment() {
             setContentView(exportDialogBinding!!.root)
             setCancelable(false)
             window?.setBackgroundDrawableResource(android.R.color.transparent)
-            window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            window?.setLayout(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
             window?.setGravity(Gravity.CENTER)
             show()
         }
@@ -714,7 +719,21 @@ class EditorFragment : Fragment() {
         exportDialogBinding = null
     }
 
-    private fun autoSave(){
+    private fun autoSaveSilent() {
+        val options = viewModel.exportOptions.value ?: return
+        val canvasSize = viewModel.canvasSize.value ?: return
+
+        lifecycleScope.launch {
+            val (bitmap, json) = withContext(Dispatchers.Default) {
+                sizedCanvasView.exportCanvas(options) { _, _ -> }
+            }
+            withContext(Dispatchers.IO) {
+                saveOnExitSafe(options, bitmap, json, canvasSize)
+            }
+        }
+    }
+
+    private fun autoSave() {
         if (isSaving) return
         isSaving = true
         val options = viewModel.exportOptions.value ?: return

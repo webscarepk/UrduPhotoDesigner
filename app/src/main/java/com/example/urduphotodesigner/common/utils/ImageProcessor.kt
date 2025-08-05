@@ -60,7 +60,27 @@ object ImageProcessor {
             val dir = File(context.cacheDir, "images")
             if (!dir.exists()) dir.mkdirs()
 
-            val file = File(dir, "uri_compressed_${System.currentTimeMillis()}.jpg")
+            val file = File(dir, "img_${System.currentTimeMillis()}.jpg")
+            FileOutputStream(file).use { out ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+            }
+
+            file
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    fun copyUriToTempFile(context: Context, uri: Uri, path: String): File? {
+        return try {
+            // Decode and compress the bitmap from the URI
+            val bitmap = getBitmapFromUri(context, uri)
+
+            val dir = File(context.cacheDir, "images")
+            if (!dir.exists()) dir.mkdirs()
+
+            val file = File(path)
             FileOutputStream(file).use { out ->
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
             }

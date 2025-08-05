@@ -7,7 +7,11 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.navigation.NavOptions
+import androidx.navigation.fragment.findNavController
+import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.databinding.FragmentFinishExportBinding
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -41,12 +45,19 @@ class FinishExportFragment : Fragment() {
             binding.fileQualityDetail.text = result?.quality
             binding.fileLocationDetail.text = result?.imagePath
             binding.exportDate.text = result?.exportDate
-            binding.previewImage.setImageURI(Uri.parse(result?.imagePath))
+            binding.previewImage.setImageBitmap(ImageProcessor.filePathToBitmap(result?.imagePath!!))
         }
     }
 
     private fun setEvents() {
-
+        binding.back.setOnClickListener { findNavController().navigateUp() }
+        binding.btnExportAnother.setOnClickListener { findNavController().navigateUp() }
+        binding.backToHome.setOnClickListener {
+            val navOptions = NavOptions.Builder()
+                .setPopUpTo(R.id.homeFragment, false) // clear everything above Home
+                .build()
+            findNavController().navigate(R.id.homeFragment, null, navOptions)
+        }
     }
 
     override fun onDestroy() {
