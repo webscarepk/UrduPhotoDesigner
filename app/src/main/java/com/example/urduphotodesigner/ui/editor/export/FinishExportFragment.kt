@@ -1,6 +1,5 @@
 package com.example.urduphotodesigner.ui.editor.export
 
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -12,6 +11,8 @@ import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.utils.ImageProcessor
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
+import com.example.urduphotodesigner.common.utils.Utils.copyToClipboard
 import com.example.urduphotodesigner.databinding.FragmentFinishExportBinding
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -50,9 +51,11 @@ class FinishExportFragment : Fragment() {
     }
 
     private fun setEvents() {
+
+        binding.fileLocationDetail.addPressEffect { requireActivity().copyToClipboard("Exported Path", binding.fileLocationDetail.text.toString()) }
         binding.back.setOnClickListener { findNavController().navigateUp() }
-        binding.btnExportAnother.setOnClickListener { findNavController().navigateUp() }
-        binding.backToHome.setOnClickListener {
+        binding.btnExportAnother.addPressEffect { findNavController().navigateUp() }
+        binding.backToHome.addPressEffect {
             val navOptions = NavOptions.Builder()
                 .setPopUpTo(R.id.homeFragment, false) // clear everything above Home
                 .build()

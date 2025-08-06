@@ -381,7 +381,7 @@
                     android:gravity="start"
                     android:lines="1"
                     android:paddingHorizontal="@dimen/_10sdp"
-                    android:paddingVertical="@dimen/_5sdp"
+                    android:paddingVertical="@dimen/_8sdp"
                     android:singleLine="true"
                     android:text="@string/storage_emulated_0_download_export_1"
                     android:textColor="@color/black"

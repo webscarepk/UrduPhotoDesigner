@@ -6,7 +6,7 @@ import java.io.Serializable
 
 @Entity(tableName = "recent_exports")
 data class ExportResult(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey(autoGenerate = true) var id: Long = 0,
     val imagePath: String,
     val jsonPath: String,
     val fileName: String,

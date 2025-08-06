@@ -11,8 +11,8 @@ class ExportResultsUseCase @Inject constructor(
     private val repository: ExportResultsRepository
 ) {
 
-    suspend fun insertExportResult(exportResult: ExportResult) {
-        repository.insertExportResult(exportResult)
+    suspend fun insertExportResult(exportResult: ExportResult) :Long {
+        return repository.insertExportResult(exportResult)
     }
 
     suspend fun updateExportResult(exportResult: ExportResult) {

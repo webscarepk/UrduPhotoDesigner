@@ -85,8 +85,9 @@ class FontsAdapter(
             // Check if the font_image is not empty and image_url is empty
             if (font.image_url.isEmpty() && font.font_image.isNotEmpty()) {
                 // Parse font_image from Base64 to Bitmap
-                val bitmap = ImageProcessor.filePathToBitmap(font.font_image)
-                binding.font.setImageBitmap(bitmap)
+                Glide.with(itemView.context)
+                    .load(font.font_image)
+                    .into(binding.font)
                 binding.shimmerLayout.hideShimmer()
             } else {
                 // Load font preview using Glide (from image_url)

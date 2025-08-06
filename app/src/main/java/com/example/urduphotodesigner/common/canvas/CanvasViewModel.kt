@@ -212,7 +212,9 @@ class CanvasViewModel @Inject constructor(
     val exportResult: LiveData<ExportResult?> = _exportResult
 
     fun setExportResult(result: ExportResult) {
+        Log.d("CanvasVM", "Setting ExportResult: $result")
         _exportResult.value = result
+        Log.d("CanvasVM", "Post ExportResult: ${_exportResult.value}")
     }
 
     private var selectedElement: CanvasElement? = null

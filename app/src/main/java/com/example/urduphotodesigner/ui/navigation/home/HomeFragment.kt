@@ -1,19 +1,21 @@
 package com.example.urduphotodesigner.ui.navigation.home
 
 import android.app.AlertDialog
+import android.graphics.BitmapFactory
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.UnitType
+import com.example.urduphotodesigner.common.canvas.model.CanvasSize
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.DialogLoadingProgressBinding
 import com.example.urduphotodesigner.databinding.FragmentHomeBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
@@ -34,6 +36,29 @@ class HomeFragment : Fragment() {
     private var bundle: Bundle = Bundle()
     private var loadingDialog: AlertDialog? = null
     private var dialogBinding: DialogLoadingProgressBinding? = null
+
+    private val pickImageLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let {
+                val inputStream = requireContext().contentResolver.openInputStream(it)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+
+                val widthVal = bitmap.width.toFloat()
+                val heightVal = bitmap.height.toFloat()
+
+                val canvasSize = CanvasSize("From Image", 0, widthVal, heightVal)
+                val bundle = Bundle().apply {
+                    putSerializable("canvas_size", canvasSize)
+                    putSerializable("unit_type", UnitType.PIXELS)
+                }
+
+                viewModel.clearCanvas()
+                viewModel.setCanvasSize(canvasSize)
+                viewModel.setCanvasBackgroundImage(bitmap)
+                findNavController().navigate(R.id.editorFragment, bundle)
+            }
+        }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -84,19 +109,23 @@ class HomeFragment : Fragment() {
 
         binding.recentsRV.adapter = recentAdapter
 
-        binding.create.setOnClickListener {
+        binding.create.addPressEffect {
+            pickImageLauncher.launch("image/*")
+        }
+
+        binding.blankCanvas.addPressEffect {
             findNavController().navigate(R.id.createFragment)
         }
 
-        binding.saved.setOnClickListener {
-            findNavController().navigate(R.id.savedFragment)
+        binding.templates.addPressEffect {
+            findNavController().navigate(R.id.templatesFragment)
         }
     }
 
     private fun initObservers(){
-        mainViewModel.exportResults.observe(viewLifecycleOwner, Observer { results ->
+        mainViewModel.exportResults.observe(viewLifecycleOwner) { results ->
             recentAdapter.submitList(results)
-        })
+        }
 
         viewModel.loadingStage.observe(viewLifecycleOwner) { (message, percent) ->
             dialogBinding?.apply {

@@ -1,7 +1,6 @@
 package com.example.urduphotodesigner.ui.editor.export
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -13,7 +12,6 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
@@ -22,7 +20,6 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
@@ -30,6 +27,7 @@ import com.example.urduphotodesigner.common.canvas.enums.ExportViewType
 import com.example.urduphotodesigner.common.canvas.model.ExportOptions
 import com.example.urduphotodesigner.common.canvas.model.ExportResult
 import com.example.urduphotodesigner.common.utils.ImageProcessor
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.common.views.CanvasView
 import com.example.urduphotodesigner.databinding.FragmentExportBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
@@ -73,49 +71,30 @@ class ExportFragment : Fragment() {
         initObservers()
     }
 
-    @SuppressLint("ClickableViewAccessibility")
-    fun View.addPressEffect() {
-        setOnTouchListener { v, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    v.animate().scaleX(0.96f).scaleY(0.96f).setDuration(100).start()
-                    false
-                }
-
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    v.animate().scaleX(1f).scaleY(1f).setDuration(100).start()
-                    false
-                }
-
-                else -> false
-            }
-        }
-    }
-
     private fun setEvents() = with(binding) {
 
         Log.d("ExportFragmentOnCreate", "Received exportResult: ${viewModel.exportResult.value}")
-        btnExport.addPressEffect()
         stopIconRotation()
-        btnExport.setOnClickListener { startExport() }
+        btnExport.addPressEffect { startExport() }
 
         back.setOnClickListener { findNavController().navigateUp() }
-        btnReset.setOnClickListener {
+
+        btnReset.addPressEffect {
             viewModel.resetExportOptions()
             showTopBanner("Settings reset to defaults")
         }
 
-        resolutionButton.setOnClickListener {
+        resolutionButton.addPressEffect {
             ExportOptionsFragment.newInstance(ExportViewType.RESOLUTION)
                 .show(parentFragmentManager, "resolution_sheet")
         }
 
-        qualityButton.setOnClickListener {
+        qualityButton.addPressEffect {
             ExportOptionsFragment.newInstance(ExportViewType.QUALITY)
                 .show(parentFragmentManager, "quality_sheet")
         }
 
-        formatButton.setOnClickListener {
+        formatButton.addPressEffect {
             ExportOptionsFragment.newInstance(ExportViewType.FORMAT)
                 .show(parentFragmentManager, "format_sheet")
         }
@@ -126,7 +105,10 @@ class ExportFragment : Fragment() {
             lifecycleScope.launch(Dispatchers.Main) {
                 canvasView = canvas
                 renderPreview()
-                Log.d("ExportFragmentCanvasView", "Received exportResult: ${viewModel.exportResult.value}")
+                Log.d(
+                    "ExportFragmentCanvasView",
+                    "Received exportResult: ${viewModel.exportResult.value}"
+                )
             }
         }
 
@@ -134,12 +116,18 @@ class ExportFragment : Fragment() {
             if (!isAdded) return@observe
             lifecycleScope.launch(Dispatchers.Main) {
                 updateExportOptionsUI(options)
-                Log.d("ExportFragmentExportOptions", "Received exportResult: ${viewModel.exportResult.value}")
+                Log.d(
+                    "ExportFragmentExportOptions",
+                    "Received exportResult: ${viewModel.exportResult.value}"
+                )
             }
         }
 
         viewModel.exportResult.observe(viewLifecycleOwner) { result ->
-            Log.d("ExportFragmentExportResult", "Received exportResult: ${viewModel.exportResult.value}")
+            Log.d(
+                "ExportFragmentExportResult",
+                "Received exportResult: ${viewModel.exportResult.value}"
+            )
             result?.let {
                 exportResult = it
                 renderExportResult(it)
@@ -275,7 +263,8 @@ class ExportFragment : Fragment() {
             // Save files on background thread
             withContext(Dispatchers.IO) {
                 updateProgressSafe(70, "Saving image...")
-                imagePath = ImageProcessor.copyUriToTempFile(requireActivity(), saveImage(bitmap, options)!!,
+                imagePath = ImageProcessor.copyUriToTempFile(
+                    requireActivity(), saveImage(bitmap, options)!!,
                     exportResult?.imagePath!!
                 )!!.absolutePath
 
@@ -289,7 +278,8 @@ class ExportFragment : Fragment() {
                 options.quality.quality
             ) / (1024.0 * 1024.0)
 
-            val exportDate = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+            val exportDate =
+                SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
 
             if (exportResult == null) {
                 exportResult = ExportResult(

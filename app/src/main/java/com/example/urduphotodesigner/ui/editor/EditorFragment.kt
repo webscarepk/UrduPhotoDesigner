@@ -92,6 +92,7 @@ class EditorFragment : Fragment() {
     private var exportDialogBinding: DialogAutoSavingLayoutBinding? = null
     private var rotationAnimator: ObjectAnimator? = null
     private var isSaving = false
+    private var hasChanges = false
 
     private val blendingOptions = listOf(
         BlendType.SRC,
@@ -248,8 +249,11 @@ class EditorFragment : Fragment() {
                 exportModel!!.fileSizeMB = fileSizeMB
                 exportModel!!.updatedDate = exportDate
             }
-            mainViewModel.insertExportResult(exportModel!!)
-            viewModel.setExportResult(exportModel!!)
+            lifecycleScope.launch {
+                val id = mainViewModel.insertExportResult(exportModel!!)
+                exportModel!!.id = id
+                viewModel.setExportResult(exportModel!!)
+            }
 
         } catch (e: Exception) {
             Log.e(TAG, "Background save failed: ${e.message}")
@@ -269,7 +273,6 @@ class EditorFragment : Fragment() {
     private fun observeViewModel() {
 
         viewModel.exportResult.observe(viewLifecycleOwner) { exportResult ->
-            Log.d("ExportFragment", "Received exportResult: ${viewModel.exportResult.value}")
             exportResult?.let {
                 exportModel = it
                 jsonPath = it.jsonPath
@@ -289,6 +292,7 @@ class EditorFragment : Fragment() {
                 if (!elements.isNullOrEmpty()) {
                     canvasManager.syncElements(elements)
                     binding.canvasContainer.invalidate()
+                    hasChanges = true
                     scheduleJsonSave()
                 }
             }
@@ -734,6 +738,10 @@ class EditorFragment : Fragment() {
     }
 
     private fun autoSave() {
+        if (!hasChanges) {
+            findNavController().navigateUp()
+            return
+        }
         if (isSaving) return
         isSaving = true
         val options = viewModel.exportOptions.value ?: return

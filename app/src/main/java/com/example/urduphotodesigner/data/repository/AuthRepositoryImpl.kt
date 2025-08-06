@@ -5,7 +5,7 @@ import android.util.Log
 import com.example.urduphotodesigner.common.sealed.GoogleSignInResult
 import com.example.urduphotodesigner.common.datastore.PreferenceDataStoreAPI
 import com.example.urduphotodesigner.common.datastore.PreferenceDataStoreKeysConstants
-import com.example.urduphotodesigner.common.utils.await
+import com.example.urduphotodesigner.common.utils.Utils.await
 import com.example.urduphotodesigner.data.model.LoginResponse
 import com.example.urduphotodesigner.data.model.RegistrationResponse
 import com.example.urduphotodesigner.data.remote.EndPointsInterface

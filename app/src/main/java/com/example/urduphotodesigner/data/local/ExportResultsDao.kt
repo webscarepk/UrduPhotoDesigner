@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.Flow
 interface ExportResultsDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertCanvasTemplate(canvasTemplate: ExportResult)
+    suspend fun insertCanvasTemplate(canvasTemplate: ExportResult):Long
 
     @Update
     suspend fun updateCanvasTemplate(canvasTemplate: ExportResult)

@@ -175,6 +175,10 @@
     <string name="group_all">Group All</string>
     <string name="un_group_all">Ungroup All</string>
     <string name="auto_saving_changes">Auto saving changes ...</string>
+    <string name="upload_photo">Upload Photo</string>
+    <string name="blank_canvas">Blank Canvas</string>
+    <string name="manage_custom_fonts_assets_and_imports_in_files_tab">Manage custom fonts, assets and imports in Files tab</string>
+    <string name="see_all">See all</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

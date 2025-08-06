@@ -12,8 +12,8 @@ class ExportResultsRepositoryImpl @Inject constructor(
     private val exportResultsDao: ExportResultsDao
 ) : ExportResultsRepository {
 
-    override suspend fun insertExportResult(exportResult: ExportResult) {
-        exportResultsDao.insertCanvasTemplate(exportResult)
+    override suspend fun insertExportResult(exportResult: ExportResult) :Long  {
+        return exportResultsDao.insertCanvasTemplate(exportResult)
     }
 
     override suspend fun updateExportResult(exportResult: ExportResult) {

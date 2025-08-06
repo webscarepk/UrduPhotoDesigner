@@ -1,11 +1,12 @@
 package com.example.urduphotodesigner.ui.navigation.home
 
-import android.net.Uri
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.example.urduphotodesigner.common.canvas.model.ExportResult
 import com.example.urduphotodesigner.common.utils.ImageProcessor
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.LayoutRecentsItemBinding
 
 class RecentAdapter (private val onClick: (ExportResult) -> Unit) : RecyclerView.Adapter<RecentAdapter.RecentViewHolder>() {
@@ -32,13 +33,13 @@ class RecentAdapter (private val onClick: (ExportResult) -> Unit) : RecyclerView
     inner class RecentViewHolder(private val binding: LayoutRecentsItemBinding) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: ExportResult) {
-            // Bind ExportResult data to UI elements
-            binding.thumbnail.setImageBitmap(ImageProcessor.filePathToBitmap(item.imagePath)) // Use an appropriate resource
-            binding.title.text = item.fileName
-            binding.date.text = item.updatedDate
-            binding.size.text = "%.1f MB".format(item.fileSizeMB)
+            Glide.with(itemView.context)
+                .load(item.imagePath)
+                .into(binding.thumbnail)
 
-            binding.root.setOnClickListener {
+            binding.title.text = item.fileName
+
+            binding.root.addPressEffect {
                 onClick(item)
             }
         }

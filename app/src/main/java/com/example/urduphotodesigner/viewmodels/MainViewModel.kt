@@ -210,10 +210,8 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun insertExportResult(exportResult: ExportResult) {
-        viewModelScope.launch {
-            exportResultsUseCase.insertExportResult(exportResult)
-        }
+    suspend fun insertExportResult(exportResult: ExportResult): Long {
+        return exportResultsUseCase.insertExportResult(exportResult)
     }
 
     fun updateExportResult(exportResult: ExportResult) {

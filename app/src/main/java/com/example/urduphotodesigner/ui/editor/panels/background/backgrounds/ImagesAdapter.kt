@@ -73,7 +73,6 @@ class ImagesAdapter(
             binding.root.setOnClickListener {
                 // Check if bitmapData is available (not empty)
                 if (image.bitmapData != null) {
-                    // Decode Base64 string to Bitmap
                     val bitmap = ImageProcessor.filePathToBitmap(image.bitmapData!!)
                     onImageSelected(bitmap!!)
                 } else {
@@ -102,8 +101,11 @@ class ImagesAdapter(
             val url = Constants.BASE_URL_GLIDE + image.file_url
             if (image.bitmapData != null) {
                 // Decode Base64 string to Bitmap for loading directly if bitmapData exists
-                val bitmap = ImageProcessor.filePathToBitmap(image.bitmapData!!)
-                binding.image.setImageBitmap(bitmap) // Directly setting the image
+                // Decode Base64 string to Bitmap
+                Glide.with(itemView.context)
+                    .load(image.bitmapData)
+                    .into(binding.image)
+
                 binding.shimmerLayout.stopShimmer()
                 binding.shimmerLayout.setShimmer(null)
             } else {
