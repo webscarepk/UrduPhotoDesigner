@@ -10,6 +10,7 @@ import com.example.urduphotodesigner.common.canvas.enums.ExportViewType
 import com.example.urduphotodesigner.common.canvas.model.ExportFormat
 import com.example.urduphotodesigner.common.canvas.model.ExportQuality
 import com.example.urduphotodesigner.common.canvas.model.ExportResolution
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentExportOptionsBinding
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 
@@ -91,7 +92,7 @@ class ExportOptionsFragment : BottomSheetDialogFragment() {
             adapter.notifyDataSetChanged()
         }
 
-        binding.back.setOnClickListener { dismiss() }
+        binding.back.addPressEffect { dismiss() }
     }
 
     override fun onDestroyView() {

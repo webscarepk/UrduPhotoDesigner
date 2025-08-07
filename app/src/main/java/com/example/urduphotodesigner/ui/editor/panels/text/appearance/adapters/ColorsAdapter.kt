@@ -8,6 +8,7 @@ import androidx.core.graphics.toColorInt
 import androidx.recyclerview.widget.RecyclerView
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.model.ColorItem
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.LayoutColorItemBinding
 import com.example.urduphotodesigner.databinding.LayoutColorPickerItemBinding // Assuming you create this layout
 import com.example.urduphotodesigner.databinding.LayoutEyeDropperItemBinding // New layout for eye dropper
@@ -35,20 +36,20 @@ class ColorsAdapter(
 
     inner class EyeDropperViewHolder(val binding: LayoutEyeDropperItemBinding) : RecyclerView.ViewHolder(binding.root) {
         init {
-            binding.root.setOnClickListener { onEyeDropperClicked.invoke() }
+            binding.root.addPressEffect { onEyeDropperClicked.invoke() }
         }
     }
 
     inner class NoneViewHolder(val binding: LayoutColorPickerItemBinding) : RecyclerView.ViewHolder(binding.root) {
         init {
             binding.colorView.setImageResource(R.drawable.ic_none)
-            binding.root.setOnClickListener { onNoneSelected.invoke() }
+            binding.root.addPressEffect { onNoneSelected.invoke() }
         }
     }
 
     inner class ColorPickerViewHolder(val binding: LayoutColorPickerItemBinding) : RecyclerView.ViewHolder(binding.root) {
         init {
-            binding.root.setOnClickListener { onColorPickerClicked.invoke() }
+            binding.root.addPressEffect { onColorPickerClicked.invoke() }
         }
     }
 
@@ -64,7 +65,7 @@ class ColorsAdapter(
                 binding.root.strokeWidth = 0
                 binding.root.setCardBackgroundColor(Color.WHITE)
             }
-            binding.root.setOnClickListener { onColorSelected.invoke(colorItem) }
+            binding.root.addPressEffect { onColorSelected.invoke(colorItem) }
         }
     }
 

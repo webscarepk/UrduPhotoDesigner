@@ -1,0 +1,84 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:background="@drawable/button_bg"
+    android:backgroundTint="@color/white"
+    android:layout_width="@dimen/_120sdp"
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        style="@style/PopupItemStyle"
+        android:text="@string/open"
+        android:paddingHorizontal="@dimen/_16sdp"
+        android:paddingVertical="@dimen/_8sdp"
+        android:id="@+id/actionOpen"
+        app:drawableStartCompat="@drawable/ic_show_pass"
+        app:drawableTint="@color/black" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/contrast"/>
+
+    <TextView
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        style="@style/PopupItemStyle"
+        android:paddingHorizontal="@dimen/_16sdp"
+        android:paddingVertical="@dimen/_8sdp"
+        android:text="@string/duplicate"
+        android:id="@+id/actionDuplicate"
+        app:drawableStartCompat="@drawable/ic_copy"
+        app:drawableTint="@color/black" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/contrast"/>
+
+    <TextView
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        style="@style/PopupItemStyle"
+        android:text="@string/share"
+        android:id="@+id/actionShare"
+        android:paddingHorizontal="@dimen/_16sdp"
+        android:paddingVertical="@dimen/_8sdp"
+        app:drawableStartCompat="@drawable/ic_share"
+        app:drawableTint="@color/black" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/contrast"/>
+
+    <TextView
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        style="@style/PopupItemStyle"
+        android:text="@string/rename"
+        android:id="@+id/actionRename"
+        android:paddingHorizontal="@dimen/_16sdp"
+        android:paddingVertical="@dimen/_8sdp"
+        app:drawableStartCompat="@drawable/ic_edit"
+        app:drawableTint="@color/black"  />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/contrast"/>
+
+    <TextView
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        style="@style/PopupItemStyle"
+        android:text="@string/delete"
+        android:paddingHorizontal="@dimen/_16sdp"
+        android:paddingVertical="@dimen/_8sdp"
+        app:drawableStartCompat="@drawable/ic_delete"
+        app:drawableTint="@android:color/holo_red_dark"
+        android:textColor="@android:color/holo_red_dark"
+        android:id="@+id/actionDelete" />
+</LinearLayout>

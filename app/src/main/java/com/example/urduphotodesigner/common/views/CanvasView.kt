@@ -679,17 +679,23 @@ class CanvasView @JvmOverloads constructor(
         renderCanvasTo(canvas, scaleFactor)
         onProgress?.invoke(50, "Please wait")
 
-        onProgress?.invoke(70, "Encoding image data")
+        val elementsWithBitmap = canvasElements.filter { it.bitmap != null }
+        val total = elementsWithBitmap.size
+        if (total > 0) {
+            onProgress?.invoke(70, "Encoding image data")
+            elementsWithBitmap.forEachIndexed { index, element ->
+                element.bitmap?.let {
+                    element.bitmapData = ImageProcessor.bitmapToFilePath(context, it)
+                }
 
-        canvasElements.forEach { element ->
-            element.bitmap?.let {
-                element.bitmapData = ImageProcessor.bitmapToFilePath(context, it)
+                val progress = 70 + ((index + 1) * 20 / total)
+                onProgress?.invoke(progress, "Saving ${index + 1} of $total")
             }
+        } else {
+            onProgress?.invoke(90, "No bitmaps to encode")
         }
 
-        onProgress?.invoke(90, "Finishing up")
         val json = Gson().toJson(canvasElements)
-        onProgress?.invoke(100, "Done")
 
         return Pair(bitmap, json)
     }

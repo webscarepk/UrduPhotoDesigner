@@ -214,12 +214,6 @@ class MainViewModel @Inject constructor(
         return exportResultsUseCase.insertExportResult(exportResult)
     }
 
-    fun updateExportResult(exportResult: ExportResult) {
-        viewModelScope.launch {
-            exportResultsUseCase.updateExportResult(exportResult)
-        }
-    }
-
     fun deleteExportResult(exportResult: ExportResult) {
         viewModelScope.launch {
             exportResultsUseCase.deleteExportResult(exportResult)

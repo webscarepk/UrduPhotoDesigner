@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.viewpager2.widget.ViewPager2
 import com.example.urduphotodesigner.R
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentSavedBinding
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
@@ -63,7 +64,7 @@ class SavedFragment : Fragment() {
             }
         })
 
-        binding.back.setOnClickListener { findNavController().navigateUp() }
+        binding.back.addPressEffect { findNavController().navigateUp() }
     }
 
     fun updateTabStyles(selectedPosition: Int) {

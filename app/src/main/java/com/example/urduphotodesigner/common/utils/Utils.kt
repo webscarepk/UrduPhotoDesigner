@@ -4,10 +4,18 @@ import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.widget.Toast
 import com.google.android.gms.tasks.Task
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resumeWithException
 
@@ -81,6 +89,119 @@ object Utils {
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
+    fun View.addPressEffectWithLongClick(
+        onClick: (() -> Unit)? = null,
+        onLongClick: (() -> Unit)? = null
+    ) {
+        var isInside = false
+        var longPressed = false
+        val longPressTimeout = ViewConfiguration.getLongPressTimeout().toLong()
+        val handler = Handler(Looper.getMainLooper())
+
+        val longPressRunnable = Runnable {
+            if (isInside) {
+                longPressed = true
+                this.vibrateSoft()
+                onLongClick?.invoke()
+            }
+        }
+
+        setOnTouchListener { v, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    isInside = true
+                    longPressed = false
+                    handler.postDelayed(longPressRunnable, longPressTimeout)
+
+                    v.animate()
+                        .scaleX(0.9f)
+                        .scaleY(0.9f)
+                        .setDuration(80)
+                        .start()
+
+                    true // We consume the touch
+                }
+
+                MotionEvent.ACTION_MOVE -> {
+                    val insideNow = event.x in 0f..v.width.toFloat() &&
+                            event.y in 0f..v.height.toFloat()
+
+                    if (!insideNow && isInside) {
+                        isInside = false
+                        handler.removeCallbacks(longPressRunnable)
+                        v.animate()
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .setDuration(120)
+                            .start()
+                    } else if (insideNow && !isInside) {
+                        isInside = true
+                        handler.postDelayed(longPressRunnable, longPressTimeout)
+                        v.animate()
+                            .scaleX(0.9f)
+                            .scaleY(0.9f)
+                            .setDuration(80)
+                            .start()
+                    }
+                    true
+                }
+
+                MotionEvent.ACTION_UP -> {
+                    handler.removeCallbacks(longPressRunnable)
+
+                    v.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setDuration(120)
+                        .withEndAction {
+                            if (isInside && !longPressed) {
+                                onClick?.invoke()
+                            }
+                        }
+                        .start()
+
+                    isInside = false
+                    true
+                }
+
+                MotionEvent.ACTION_CANCEL -> {
+                    handler.removeCallbacks(longPressRunnable)
+                    isInside = false
+                    v.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setDuration(120)
+                        .start()
+                    true
+                }
+
+                else -> false
+            }
+        }
+
+        // Force accessibility and keyboard interaction to register clicks too
+        isClickable = true
+        isFocusable = true
+    }
+
+    private fun View.vibrateSoft(durationMs: Long = 30L, amplitude: Int = 40) {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val manager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            manager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(durationMs, amplitude))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(durationMs)
+        }
+    }
+
     fun Context.copyToClipboard(label: String, text: String) {
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText(label, text)
@@ -88,6 +209,7 @@ object Utils {
         Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show()
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     suspend fun <T> Task<T>.await(): T {
         return suspendCancellableCoroutine { cont ->
             addOnCompleteListener {

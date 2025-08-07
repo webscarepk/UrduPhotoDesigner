@@ -18,6 +18,7 @@ import com.example.urduphotodesigner.common.utils.Converter.pxToCm
 import com.example.urduphotodesigner.common.utils.Converter.pxToInches
 import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentCreateBinding
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
@@ -59,7 +60,7 @@ class CreateFragment : Fragment() {
 
     private fun setEvents() {
         binding.apply {
-            unitBox.setOnClickListener {
+            unitBox.addPressEffect {
                 spinner.rotation = 180f
                 val popup = PopupMenu(requireContext(), unit)
                 unitList.forEachIndexed { index, unit ->
@@ -128,7 +129,7 @@ class CreateFragment : Fragment() {
             }
             sizesRV.adapter = adapter
 
-            incWidth.setOnClickListener {
+            incWidth.addPressEffect {
                 val newWidth = getSafeIntValue(width) + 1
                 width.setText(newWidth.toString())
 
@@ -138,7 +139,7 @@ class CreateFragment : Fragment() {
                 }
             }
 
-            decWidth.setOnClickListener {
+            decWidth.addPressEffect {
                 val current = getSafeIntValue(width)
                 if (current > 1) {
                     val newWidth = current - 1
@@ -151,7 +152,7 @@ class CreateFragment : Fragment() {
                 }
             }
 
-            incHeight.setOnClickListener {
+            incHeight.addPressEffect {
                 val newHeight = getSafeIntValue(height) + 1
                 height.setText(newHeight.toString())
 
@@ -161,7 +162,7 @@ class CreateFragment : Fragment() {
                 }
             }
 
-            decHeight.setOnClickListener {
+            decHeight.addPressEffect {
                 val current = getSafeIntValue(height)
                 if (current > 1) {
                     val newHeight = current - 1
@@ -174,7 +175,7 @@ class CreateFragment : Fragment() {
                 }
             }
 
-            link.setOnClickListener {
+            link.addPressEffect {
                 isLinked = !isLinked
                 link.setImageResource(
                     if (isLinked) R.drawable.ic_link else R.drawable.ic_unlink
@@ -192,17 +193,17 @@ class CreateFragment : Fragment() {
             }
 
             // Create button click
-            binding.create.setOnClickListener {
+            binding.create.addPressEffect {
                 val widthText = width.text.toString().trim()
                 val heightText = height.text.toString().trim()
 
                 if (widthText.isEmpty() || widthText.toFloatOrNull() == 0f ) {
                     Snackbar.make(binding.root, "Width cannot be 0", Snackbar.LENGTH_SHORT).show()
-                    return@setOnClickListener
+                    return@addPressEffect
                 }
                 if (heightText.isEmpty() || heightText.toFloatOrNull() == 0f){
                     Snackbar.make(binding.root, "Height cannot be 0", Snackbar.LENGTH_SHORT).show()
-                    return@setOnClickListener
+                    return@addPressEffect
                 }
 
                 val widthVal = getSafeIntValue(width)
@@ -219,7 +220,7 @@ class CreateFragment : Fragment() {
                 findNavController().navigate(R.id.editorFragment, bundle)
             }
 
-            back.setOnClickListener { findNavController().navigateUp() }
+            back.addPressEffect { findNavController().navigateUp() }
         }
     }
 

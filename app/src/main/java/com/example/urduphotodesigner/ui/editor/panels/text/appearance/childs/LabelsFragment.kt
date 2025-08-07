@@ -18,6 +18,7 @@ import com.example.urduphotodesigner.common.canvas.enums.GradientPickerTarget
 import com.example.urduphotodesigner.common.canvas.enums.LabelShape
 import com.example.urduphotodesigner.common.canvas.enums.PickerTarget
 import com.example.urduphotodesigner.common.utils.Constants
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.data.model.ShapeItem
 import com.example.urduphotodesigner.databinding.FragmentLabelsBinding
 import com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.gradient.GradientsAdapter
@@ -146,13 +147,13 @@ class LabelsFragment : Fragment() {
             adapter = shapesAdapter
         }
 
-        binding.solid.setOnClickListener {
+        binding.solid.addPressEffect {
             if (!binding.colors.isVisible) {
                 togglePanels()
             }
         }
 
-        binding.gradient.setOnClickListener {
+        binding.gradient.addPressEffect {
             if (!binding.gradients.isVisible) {
                 togglePanels()
             }

@@ -24,6 +24,7 @@ import androidx.viewpager2.widget.ViewPager2
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.utils.ImageProcessor
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.databinding.FragmentImagesBinding
 import com.example.urduphotodesigner.ui.editor.panels.background.BackgroundPagerAdapter
@@ -76,7 +77,7 @@ class ImagesFragment : Fragment() {
         binding.viewPager.adapter = adapter
         binding.viewPager.isUserInputEnabled = false
 
-        binding.addImage.setOnClickListener {
+        binding.addImage.addPressEffect {
             pickImage.launch("image/*")
         }
     }
@@ -130,7 +131,7 @@ class ImagesFragment : Fragment() {
             mainViewModel.localImages.collect { images ->
                 val additionalTabs = images
                     .map { it.category.trim() }
-                    .filterNot { it.equals("Background", true) || it.equals("Image", true) }
+                    .filterNot { it.equals("Backgrounds", true) || it.equals("Images", true) }
                     .distinct()
 
                 tabs.clear()

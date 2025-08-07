@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.model.FilterItem
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.LayoutFilterItemBinding // You'll need to create this layout
 
 class ImageFiltersAdapter(
@@ -53,7 +54,7 @@ class ImageFiltersAdapter(
                 binding.card.setCardBackgroundColor(Color.WHITE)
             }
 
-            binding.card.setOnClickListener {
+            binding.card.addPressEffect {
                 onFilterSelected.invoke(filterItem)
             }
         }

@@ -130,7 +130,7 @@ class ObjectsListFragment : Fragment() {
     private fun refreshImages() {
         val filtered = allLocalImages
             .filter { img ->
-                img.category.equals("Image", true) || img.category.equals("Sticker", true) &&
+                img.category.equals("Images", true) || img.category.equals("Stickers", true) &&
                         img.alt_text.contains(filterText, ignoreCase = true)
             }
         if (filtered.isEmpty()){

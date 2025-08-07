@@ -2,10 +2,16 @@ package com.example.urduphotodesigner.ui.navigation.home
 
 import android.app.AlertDialog
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.PopupWindow
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -15,9 +21,11 @@ import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
+import com.example.urduphotodesigner.common.canvas.model.ExportResult
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.DialogLoadingProgressBinding
 import com.example.urduphotodesigner.databinding.FragmentHomeBinding
+import com.example.urduphotodesigner.databinding.LayoutProjectPopupBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -95,7 +103,7 @@ class HomeFragment : Fragment() {
 
     private fun setEvents() {
 
-        recentAdapter = RecentAdapter { exportResult ->
+        recentAdapter = RecentAdapter(onClick = { exportResult ->
             lifecycleScope.launch {
                 withContext(Dispatchers.Default) {
                     viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
@@ -105,7 +113,9 @@ class HomeFragment : Fragment() {
                     }
                 }
             }
-        }
+        }, onLongClick = { view, exportResult ->
+            showPopupMenu(view, exportResult)
+        })
 
         binding.recentsRV.adapter = recentAdapter
 
@@ -142,6 +152,60 @@ class HomeFragment : Fragment() {
                 findNavController().navigate(R.id.editorFragment, bundle)
             }
         }
+    }
+
+    private fun showPopupMenu(
+        anchorView: View,
+        item: ExportResult,
+    ) {
+        val binding = LayoutProjectPopupBinding.inflate(LayoutInflater.from(context))
+        val popupWindow = PopupWindow(
+            binding.root,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            true
+        )
+
+        popupWindow.elevation = 10f
+        popupWindow.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        popupWindow.isOutsideTouchable = true
+        popupWindow.animationStyle = R.style.PopupFadeAnimation
+
+        // -- Handle actions
+        binding.actionOpen.setOnClickListener {
+            popupWindow.dismiss()
+            lifecycleScope.launch {
+                withContext(Dispatchers.Default) {
+                    viewModel.loadTemplateFromJsonFile(item, requireContext())
+                    bundle = Bundle().apply {
+                        putSerializable("canvas_size", item.canvasSize)
+                        putSerializable("unit_type", UnitType.PIXELS)
+                    }
+                }
+            }
+        }
+
+        binding.actionDuplicate.setOnClickListener {
+            popupWindow.dismiss()
+            lifecycleScope.launch { mainViewModel.insertExportResult(item.copy()) }
+        }
+
+        binding.actionShare.setOnClickListener {
+            popupWindow.dismiss()
+            // Share logic
+        }
+
+        binding.actionRename.setOnClickListener {
+            popupWindow.dismiss()
+            // Rename logic
+        }
+
+        binding.actionDelete.setOnClickListener {
+            popupWindow.dismiss()
+            mainViewModel.deleteExportResult(item)
+        }
+
+        popupWindow.showAsDropDown(anchorView, 0, -anchorView.height)
     }
 
     override fun onResume() {

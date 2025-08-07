@@ -13,6 +13,7 @@ import com.example.urduphotodesigner.common.canvas.enums.ListStyle
 import com.example.urduphotodesigner.common.canvas.enums.ParagraphIndentation
 import com.example.urduphotodesigner.common.canvas.enums.TextAlignment
 import com.example.urduphotodesigner.common.canvas.enums.TextDecoration
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentFormattingBinding
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -55,7 +56,7 @@ class FormattingFragment : Fragment() {
         )
 
         caseCards.forEach { (card, caseType) ->
-            card.setOnClickListener {
+            card.addPressEffect {
                 val currentCase = viewModel.letterCasing.value ?: LetterCasing.NONE
                 // Set letter casing only if the card is different
                 if (currentCase != caseType) {
@@ -76,11 +77,11 @@ class FormattingFragment : Fragment() {
         )
 
         decorationCards.forEach { (card, decorationType) ->
-            card.setOnClickListener {
+            card.addPressEffect {
                 val currentDecorations = viewModel.textDecoration.value ?: emptySet()
 
                 if (decorationType == TextDecoration.NONE) {
-                    if (currentDecorations.isEmpty()) return@setOnClickListener
+                    if (currentDecorations.isEmpty()) return@addPressEffect
                     viewModel.setTextDecoration(emptySet())
                     decorationCards.forEach { (otherCard, _) ->
                         otherCard.strokeWidth = if (otherCard == card) 4 else 0
@@ -110,7 +111,7 @@ class FormattingFragment : Fragment() {
         )
 
         alignCards.forEach { (card, alignType) ->
-            card.setOnClickListener {
+            card.addPressEffect {
                 val currentAlign = viewModel.textAlignment.value ?: TextAlignment.LEFT
                 if (currentAlign != alignType) {
                     viewModel.setTextAlignment(alignType)
@@ -128,7 +129,7 @@ class FormattingFragment : Fragment() {
         )
 
         paraCards.forEach { (card, indent) ->
-            card.setOnClickListener {
+            card.addPressEffect {
                 when (indent) {
                     ParagraphIndentation.NONE -> {
                         viewModel.setIndentNone()
@@ -155,7 +156,7 @@ class FormattingFragment : Fragment() {
         )
 
         listCards.forEach { (card, listType) ->
-            card.setOnClickListener {
+            card.addPressEffect {
                 val currentList = viewModel.listStyle.value ?: ListStyle.NONE
                 // Set list style only if it's a different selection
                 if (currentList != listType) {

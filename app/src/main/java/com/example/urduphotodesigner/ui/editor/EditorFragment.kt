@@ -48,6 +48,7 @@ import com.example.urduphotodesigner.common.canvas.model.ExportResult
 import com.example.urduphotodesigner.common.utils.Converter.cmToPx
 import com.example.urduphotodesigner.common.utils.Converter.inchesToPx
 import com.example.urduphotodesigner.common.utils.ImageProcessor
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.common.utils.displayName
 import com.example.urduphotodesigner.common.views.CanvasView
 import com.example.urduphotodesigner.databinding.DialogAutoSavingLayoutBinding
@@ -163,7 +164,7 @@ class EditorFragment : Fragment() {
         editText.requestFocus()
         dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
 
-        done.setOnClickListener {
+        done.addPressEffect {
             val newText = editText.text.toString()
             if (newText.isNotBlank()) {
                 element.text = newText
@@ -221,6 +222,7 @@ class EditorFragment : Fragment() {
             ImageProcessor.saveBitmapToFile(exportBitmap, options, imagePath)
             File(jsonPath).writeText(exportJson)
             Log.d(TAG, "saveOnExitSafe: $jsonPath")
+            Log.d("ImagePath", "bind: $imagePath")
 
             val fileSizeMB = estimateBitmapSize(
                 exportBitmap,
@@ -439,7 +441,7 @@ class EditorFragment : Fragment() {
                 }
             })
 
-        binding.back.setOnClickListener {
+        binding.back.addPressEffect {
             autoSave()
         }
 
@@ -527,34 +529,34 @@ class EditorFragment : Fragment() {
 
         autoSaveSilent()
 
-        binding.undo.setOnClickListener { viewModel.undo() }
-        binding.redo.setOnClickListener { viewModel.redo() }
+        binding.undo.addPressEffect { viewModel.undo() }
+        binding.redo.addPressEffect { viewModel.redo() }
 
-        binding.opacityIcon.setOnClickListener {
+        binding.opacityIcon.addPressEffect {
             togglePanel(showOpacityPanel = true)
         }
-        binding.fontSizeIcon.setOnClickListener {
+        binding.fontSizeIcon.addPressEffect {
             togglePanel(showOpacityPanel = false)
         }
 
-        binding.blendIcon.setOnClickListener {
+        binding.blendIcon.addPressEffect {
             toggleBlendPanel()
         }
 
-        binding.artBoard.setOnClickListener {
+        binding.artBoard.addPressEffect {
             if (currentMode != MultiAlignMode.CANVAS) {
                 currentMode = MultiAlignMode.CANVAS
                 updateModeDrawables()
             }
         }
-        binding.selection.setOnClickListener {
+        binding.selection.addPressEffect {
             if (currentMode != MultiAlignMode.SELECTION) {
                 currentMode = MultiAlignMode.SELECTION
                 updateModeDrawables()
             }
         }
 
-        binding.blendSpinner.setOnClickListener {
+        binding.blendSpinner.addPressEffect {
             val popupMenu = PopupMenu(requireActivity(), binding.blendSpinner)
             blendingOptions.forEachIndexed { index, blendType ->
                 popupMenu.menu.add(0, index, index, blendType.displayName())
@@ -567,23 +569,23 @@ class EditorFragment : Fragment() {
             popupMenu.show()
         }
 
-        binding.leftAlign.setOnClickListener {
+        binding.leftAlign.addPressEffect {
             sizedCanvasView.alignHorizontal(HAlign.LEFT, currentMode)
         }
-        binding.centerHorizontal.setOnClickListener {
+        binding.centerHorizontal.addPressEffect {
             sizedCanvasView.alignHorizontal(HAlign.CENTER, currentMode)
         }
-        binding.rightAlign.setOnClickListener {
+        binding.rightAlign.addPressEffect {
             sizedCanvasView.alignHorizontal(HAlign.RIGHT, currentMode)
         }
 
-        binding.topAlign.setOnClickListener {
+        binding.topAlign.addPressEffect {
             sizedCanvasView.alignVertical(VAlign.TOP, currentMode)
         }
-        binding.centerVertical.setOnClickListener {
+        binding.centerVertical.addPressEffect {
             sizedCanvasView.alignVertical(VAlign.MIDDLE, currentMode)
         }
-        binding.bottomAlign.setOnClickListener {
+        binding.bottomAlign.addPressEffect {
             sizedCanvasView.alignVertical(VAlign.BOTTOM, currentMode)
         }
 
@@ -619,11 +621,11 @@ class EditorFragment : Fragment() {
         }
 
 
-        binding.copyIcon.setOnClickListener {
+        binding.copyIcon.addPressEffect {
             viewModel.copySelectedElementsGroup()
         }
 
-        binding.done.setOnClickListener {
+        binding.done.addPressEffect {
             viewModel.setCanvasView(sizedCanvasView)
             sizedCanvasView.clearSelection()
             findNavController().navigate(R.id.exportFragment)
@@ -757,14 +759,17 @@ class EditorFragment : Fragment() {
                     }
                 }
             }
+            withContext(Dispatchers.Main) {
+                updateExportDialog(95, "Saving files...")
+            }
             withContext(Dispatchers.IO) {
                 saveOnExitSafe(options, bitmap, json, canvasSize)
             }
             withContext(Dispatchers.Main) {
                 updateExportDialog(100, "Saved successfully")
                 delay(500)
-                findNavController().navigateUp()
                 dismissExportDialog()
+                findNavController().navigateUp()
             }
         }
     }

@@ -4,6 +4,7 @@ import com.example.urduphotodesigner.common.canvas.model.ExportResult
 import com.example.urduphotodesigner.data.local.ExportResultsDao
 import com.example.urduphotodesigner.domain.repo.ExportResultsRepository
 import kotlinx.coroutines.flow.Flow
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,6 +22,20 @@ class ExportResultsRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteExportResult(exportResult: ExportResult) {
+        try {
+            exportResult.imagePath.let {
+                val imageFile = File(it)
+                if (imageFile.exists()) imageFile.delete()
+            }
+
+            exportResult.jsonPath.let {
+                val jsonFile = File(it)
+                if (jsonFile.exists()) jsonFile.delete()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
         exportResultsDao.deleteCanvasTemplate(exportResult)
     }
 

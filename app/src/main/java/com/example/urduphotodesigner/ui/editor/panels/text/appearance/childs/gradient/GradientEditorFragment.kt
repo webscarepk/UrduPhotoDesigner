@@ -12,6 +12,7 @@ import androidx.fragment.app.activityViewModels
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.GradientType
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentGradientEditorBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -105,7 +106,7 @@ class GradientEditorFragment : Fragment() {
 
         binding.delete.visibility = if (isEdit) View.VISIBLE else View.GONE
 
-        binding.delete.setOnClickListener {
+        binding.delete.addPressEffect {
             viewModel.finishPickingGradient(null)
             viewModel.setPagingLocked(false)
             viewModel.stopPickingGradient()
@@ -117,16 +118,16 @@ class GradientEditorFragment : Fragment() {
                 ?.popBackStack()
         }
 
-        binding.linear.setOnClickListener {
+        binding.linear.addPressEffect {
             viewModel.setType(GradientType.LINEAR)
             updateButtonTints(binding.linear)
         }
-        binding.radial.setOnClickListener {
+        binding.radial.addPressEffect {
             viewModel.setType(GradientType.RADIAL)
             updateButtonTints(binding.radial)
         }
 
-        binding.sweep.setOnClickListener {
+        binding.sweep.addPressEffect {
             viewModel.setType(GradientType.SWEEP)
             updateButtonTints(binding.sweep)
         }
@@ -155,9 +156,9 @@ class GradientEditorFragment : Fragment() {
             }
         }
 
-        binding.swap.setOnClickListener { viewModel.swapGradientStops() }
+        binding.swap.addPressEffect { viewModel.swapGradientStops() }
 
-        binding.settings.setOnClickListener {
+        binding.settings.addPressEffect {
             childFragmentManager
                 .beginTransaction()
                 .replace(R.id.gradientEditor, GradientSettingFragment())
@@ -165,7 +166,7 @@ class GradientEditorFragment : Fragment() {
                 .commit()
         }
 
-        binding.done.setOnClickListener {
+        binding.done.addPressEffect {
             if (isEdit) {
                 mainViewModel.updateGradient(viewModel.gradient.value!!)
             } else {

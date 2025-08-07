@@ -20,6 +20,7 @@ import com.bumptech.glide.request.target.Target
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.utils.Constants
 import com.example.urduphotodesigner.common.utils.ImageProcessor
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.databinding.LayoutFontItemBinding
 
@@ -73,7 +74,7 @@ class FontsAdapter(
             binding.progressBar.visibility =
                 if (font.is_downloading) View.VISIBLE else View.GONE
 
-            binding.root.setOnClickListener {
+            binding.root.addPressEffect {
                 selectedFontId = font.id.toString()
                 if (font.is_downloaded) {
                     onFontSelected(font, true)

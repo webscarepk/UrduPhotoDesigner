@@ -10,6 +10,7 @@ import androidx.fragment.app.activityViewModels
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.KashidaSize
 import com.example.urduphotodesigner.common.canvas.enums.LetterCasing
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentKasheedaBinding
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -64,7 +65,7 @@ class KasheedaFragment : Fragment() {
 
         // Handle clicks on Kashida size cards (predefined sizes)
         kasheedaCards.forEach { (card, kasheedaType) ->
-            card.setOnClickListener {
+            card.addPressEffect {
                 val currentFrequency = viewModel.kasheeda.value ?: 0
                 val newFrequency = mapKasheedaSizeToFrequency(kasheedaType)
 

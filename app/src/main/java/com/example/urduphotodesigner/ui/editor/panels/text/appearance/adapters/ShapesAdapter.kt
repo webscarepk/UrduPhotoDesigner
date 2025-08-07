@@ -7,6 +7,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.enums.LabelShape
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.data.model.ShapeItem
 import com.example.urduphotodesigner.databinding.LayoutShapeItemBinding
 
@@ -36,7 +37,7 @@ class ShapesAdapter(
             }
 
             // Set on click listener to select the shape
-            binding.root.setOnClickListener {
+            binding.root.addPressEffect {
                 selectedShape = shapeItem.shape
                 onShapeSelected(shapeItem.shape)
                 notifyDataSetChanged() // Update the UI to show the selected shape

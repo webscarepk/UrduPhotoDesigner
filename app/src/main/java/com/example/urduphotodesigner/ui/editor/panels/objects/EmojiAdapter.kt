@@ -11,6 +11,7 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.model.EmojiMeta
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.ItemEmojiBinding
 
 class EmojiAdapter(
@@ -24,7 +25,7 @@ class EmojiAdapter(
         : RecyclerView.ViewHolder(binding.root) {
         fun bind(emoji: EmojiMeta) {
             binding.emojiText.text = emoji.char
-            binding.root.setOnClickListener {
+            binding.root.addPressEffect {
                 val bmp = emojiToBitmap(emoji.char, emojiSizePx)
                 onEmojiClicked(bmp)
             }

@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentTextBinding
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
@@ -52,7 +53,7 @@ class TextFragment : Fragment() {
             tab.customView = tabView
         }.attach()
 
-        binding.addText.setOnClickListener { viewModel.addText("Tap to edit", requireActivity()) }
+        binding.addText.addPressEffect { viewModel.addText("Tap to edit", requireActivity()) }
     }
 
     override fun onDestroy() {

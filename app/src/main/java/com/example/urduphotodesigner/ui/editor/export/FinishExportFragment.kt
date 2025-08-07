@@ -53,7 +53,7 @@ class FinishExportFragment : Fragment() {
     private fun setEvents() {
 
         binding.fileLocationDetail.addPressEffect { requireActivity().copyToClipboard("Exported Path", binding.fileLocationDetail.text.toString()) }
-        binding.back.setOnClickListener { findNavController().navigateUp() }
+        binding.back.addPressEffect { findNavController().navigateUp() }
         binding.btnExportAnother.addPressEffect { findNavController().navigateUp() }
         binding.backToHome.addPressEffect {
             val navOptions = NavOptions.Builder()

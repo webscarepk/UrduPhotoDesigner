@@ -20,6 +20,7 @@ import androidx.viewpager2.widget.ViewPager2
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.utils.ImageProcessor
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.data.model.FontCategory
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.databinding.FragmentFontsBinding
@@ -67,7 +68,7 @@ class FontsFragment : Fragment() {
 
     private fun setEvents() {
         // Open font picker when button is clicked
-        binding.addFont.setOnClickListener {
+        binding.addFont.addPressEffect {
             pickFont.launch("*/*")
         }
     }

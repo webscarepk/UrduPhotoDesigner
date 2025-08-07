@@ -27,6 +27,7 @@ import androidx.core.graphics.createBitmap
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
 import com.example.urduphotodesigner.common.utils.ImageProcessor
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 
 class ImagesAdapter(
     private val onImageSelected: (Bitmap) -> Unit
@@ -70,7 +71,7 @@ class ImagesAdapter(
                 binding.root.setCardBackgroundColor(Color.WHITE)
             }
 
-            binding.root.setOnClickListener {
+            binding.root.addPressEffect {
                 // Check if bitmapData is available (not empty)
                 if (image.bitmapData != null) {
                     val bitmap = ImageProcessor.filePathToBitmap(image.bitmapData!!)

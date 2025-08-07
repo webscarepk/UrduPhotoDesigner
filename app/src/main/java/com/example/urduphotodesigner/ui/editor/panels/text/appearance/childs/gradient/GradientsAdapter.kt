@@ -13,6 +13,7 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.model.GradientItem
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.LayoutColorItemBinding
 import com.example.urduphotodesigner.databinding.LayoutColorPickerItemBinding
 
@@ -43,16 +44,7 @@ class GradientsAdapter(
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: GradientItem, isSelected: Boolean) {
-//            binding.colorView.doOnLayout {
-//                val w = it.width
-//                val h = it.height
-//                val drawable = item.createGradientPreviewDrawable(
-//                    item,
-//                    width = w,
-//                    height = h
-//                )
-//                it.background = drawable
-//            }
+
             binding.colorView.background = GradientDrawable(
                 GradientDrawable.Orientation.RIGHT_LEFT,
                 item.colors.toIntArray()
@@ -70,7 +62,7 @@ class GradientsAdapter(
                 binding.root.setCardBackgroundColor(Color.WHITE)
             }
 
-            binding.root.setOnClickListener {
+            binding.root.addPressEffect {
                 val previousSelected = selectedPosition
                 selectedPosition = adapterPosition
 
@@ -106,7 +98,7 @@ class GradientsAdapter(
 
         init {
             binding.colorView.setImageResource(R.drawable.ic_none) // your "none" icon
-            binding.root.setOnClickListener {
+            binding.root.addPressEffect {
                 val prevSelected = selectedPosition
                 selectedPosition = RecyclerView.NO_POSITION
                 if (prevSelected != RecyclerView.NO_POSITION) notifyItemChanged(prevSelected)
@@ -121,7 +113,7 @@ class GradientsAdapter(
 
         init {
             binding.colorView.setImageResource(R.drawable.ic_add)
-            binding.root.setOnClickListener {
+            binding.root.addPressEffect {
                 onGradientPickerClicked()
             }
         }

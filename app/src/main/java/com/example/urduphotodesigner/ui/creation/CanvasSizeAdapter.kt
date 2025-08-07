@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.LayoutSizesItemBinding
 
 class CanvasSizeAdapter(
@@ -30,7 +31,7 @@ class CanvasSizeAdapter(
         val item = items[position]
         holder.bind(item)
 
-        holder.itemView.setOnClickListener {
+        holder.itemView.addPressEffect {
             onClick(item)
         }
     }

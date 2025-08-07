@@ -16,6 +16,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.sealed.SignInUiState
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentSignupBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
@@ -46,11 +47,11 @@ class SignupFragment : Fragment() {
 
     @SuppressLint("ClickableViewAccessibility")
     private fun setupClickListeners() {
-        binding.register.setOnClickListener {
+        binding.register.addPressEffect {
             validateAndRegister()
         }
 
-        binding.login.setOnClickListener {
+        binding.login.addPressEffect {
             navigateToLogin()
         }
 

@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentColorPickerBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlin.math.roundToInt
@@ -57,7 +58,7 @@ class ColorPickerFragment : Fragment() {
         hueBar.onProgressChanged?.invoke(initialHue)
         alphaBar.onProgressChanged?.invoke(initialAlpha)
 
-        binding.done.setOnClickListener {
+        binding.done.addPressEffect {
             viewModel.finishPicking(tempColor)
             viewModel.stopPicking()
             parentFragment?.childFragmentManager?.popBackStack()

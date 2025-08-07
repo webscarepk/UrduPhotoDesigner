@@ -62,7 +62,7 @@ class AppearanceFragment : Fragment() {
                 binding.categories.smoothScrollToPosition(position)
 
                 if (position >= 2) {
-                    binding.categories.smoothScrollToPosition(4)
+                    binding.categories.smoothScrollToPosition(5)
                 }else{
                     binding.categories.smoothScrollToPosition(0)
                 }

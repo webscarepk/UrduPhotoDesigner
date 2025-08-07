@@ -12,6 +12,7 @@ import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.PickerTarget
 import com.example.urduphotodesigner.common.utils.Constants
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentGradientColorListBinding
 import com.example.urduphotodesigner.ui.editor.panels.text.appearance.adapters.ColorsAdapter
 import dagger.hilt.android.AndroidEntryPoint
@@ -61,14 +62,14 @@ class GradientColorListFragment : Fragment() {
             adapter = colorsAdapter
         }
 
-        binding.done.setOnClickListener {
+        binding.done.addPressEffect {
             viewModel.updateSelectedStopColor(selectedColor)
             parentFragment
                 ?.childFragmentManager
                 ?.popBackStack()
         }
 
-        binding.delete.setOnClickListener {
+        binding.delete.addPressEffect {
             viewModel.removeSelectedStop()
             parentFragment
                 ?.childFragmentManager

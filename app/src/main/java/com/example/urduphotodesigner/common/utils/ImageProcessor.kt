@@ -16,13 +16,19 @@ import java.io.IOException
 object ImageProcessor {
 
     fun saveBitmapToFile(bitmap: Bitmap, options: ExportOptions, path: String) {
-        FileOutputStream(File(path)).use { stream ->
+        val file = File(path)
+        val parentDir = file.parentFile
+        if (parentDir != null && !parentDir.exists()) {
+            parentDir.mkdirs()
+        }
+
+        FileOutputStream(file).use { stream ->
             bitmap.compress(options.format.format, options.quality.quality, stream)
         }
     }
 
     fun bitmapToFilePath(context: Context, bitmap: Bitmap, fileName: String = "img_${System.currentTimeMillis()}.jpg"): String {
-        val dir = File(context.cacheDir, "images")
+        val dir = File(context.filesDir, "images")
         if (!dir.exists()) dir.mkdirs()
 
         val file = File(dir, fileName)
@@ -41,7 +47,7 @@ object ImageProcessor {
 
     fun base64ToFilePath(context: Context, base64: String, fileName: String = "img_${System.currentTimeMillis()}.jpg"): String {
         val bytes = Base64.decode(base64, Base64.DEFAULT)
-        val dir = File(context.cacheDir, "images")
+        val dir = File(context.filesDir, "images")
         if (!dir.exists()) dir.mkdirs()
 
         val file = File(dir, fileName)
@@ -57,7 +63,7 @@ object ImageProcessor {
             // Decode and compress the bitmap from the URI
             val bitmap = getBitmapFromUri(context, uri)
 
-            val dir = File(context.cacheDir, "images")
+            val dir = File(context.filesDir, "images")
             if (!dir.exists()) dir.mkdirs()
 
             val file = File(dir, "img_${System.currentTimeMillis()}.jpg")
@@ -77,7 +83,7 @@ object ImageProcessor {
             // Decode and compress the bitmap from the URI
             val bitmap = getBitmapFromUri(context, uri)
 
-            val dir = File(context.cacheDir, "images")
+            val dir = File(context.filesDir, "images")
             if (!dir.exists()) dir.mkdirs()
 
             val file = File(path)

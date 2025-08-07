@@ -25,6 +25,7 @@ import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.sealed.SignInUiState
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentLoginBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -85,14 +86,14 @@ class LoginFragment : Fragment() {
 
     @SuppressLint("ClickableViewAccessibility")
     private fun setClickListeners() {
-        binding.googleSignIn.setOnClickListener {
+        binding.googleSignIn.addPressEffect {
             authViewModel.startGoogleSignIn()
         }
-        binding.login.setOnClickListener {
+        binding.login.addPressEffect {
             validateAndRegister()
         }
 
-        binding.signup.setOnClickListener {
+        binding.signup.addPressEffect {
             findNavController().navigate(R.id.signupFragment)
         }
 

@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.urduphotodesigner.R
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.data.model.FontCategory
 import com.example.urduphotodesigner.databinding.LayoutTabsItemBinding
 
@@ -55,7 +56,7 @@ class FontCategoryAdapter(
 
             binding.tabTitle.text = font.font_category
 
-            binding.root.setOnClickListener {
+            binding.root.addPressEffect {
                 onFontSelected.invoke(font)
             }
         }

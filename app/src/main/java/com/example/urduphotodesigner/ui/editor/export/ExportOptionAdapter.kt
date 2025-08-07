@@ -10,6 +10,7 @@ import com.example.urduphotodesigner.common.canvas.enums.ExportViewType
 import com.example.urduphotodesigner.common.canvas.model.ExportFormat
 import com.example.urduphotodesigner.common.canvas.model.ExportQuality
 import com.example.urduphotodesigner.common.canvas.model.ExportResolution
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.LayoutFormatsItemBinding
 import com.example.urduphotodesigner.databinding.LayoutQualityItemBinding
 import com.example.urduphotodesigner.databinding.LayoutResolutionsItemBinding
@@ -75,7 +76,7 @@ class ExportOptionAdapter<T>(
                 )
             }
 
-            binding.root.setOnClickListener {
+            binding.root.addPressEffect {
                 onItemSelected(item as T)
             }
         }
@@ -116,7 +117,7 @@ class ExportOptionAdapter<T>(
                 binding.done.visibility = View.GONE
             }
 
-            binding.root.setOnClickListener {
+            binding.root.addPressEffect {
                 onItemSelected(item as T)
             }
         }
@@ -158,7 +159,7 @@ class ExportOptionAdapter<T>(
                 )
             }
 
-            binding.root.setOnClickListener {
+            binding.root.addPressEffect {
                 onItemSelected(item as T)
             }
         }

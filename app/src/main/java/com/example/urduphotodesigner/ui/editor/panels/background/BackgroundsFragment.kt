@@ -20,6 +20,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.utils.ImageProcessor
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.databinding.FragmentBackgroundsBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
@@ -76,7 +77,7 @@ class BackgroundsFragment : Fragment() {
             tab.customView = tabView
         }.attach()
 
-        binding.addImage.setOnClickListener { pickImage.launch("image/*") }
+        binding.addImage.addPressEffect { pickImage.launch("image/*") }
 
     }
 

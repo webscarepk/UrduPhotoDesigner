@@ -20,6 +20,7 @@ import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.GradientPickerTarget
 import com.example.urduphotodesigner.common.canvas.enums.PickerTarget
 import com.example.urduphotodesigner.common.utils.Constants
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentFillStrokeBinding
 import com.example.urduphotodesigner.ui.editor.panels.text.appearance.adapters.ColorsAdapter
 import com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment
@@ -232,13 +233,13 @@ class FillStrokeFragment : Fragment() {
             })
         }
 
-        binding.solid.setOnClickListener {
+        binding.solid.addPressEffect {
             if (!binding.colors.isVisible) {
                 togglePanels()
             }
         }
 
-        binding.gradient.setOnClickListener {
+        binding.gradient.addPressEffect {
             if (!binding.gradients.isVisible) {
                 togglePanels()
             }

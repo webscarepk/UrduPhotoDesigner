@@ -179,6 +179,8 @@
     <string name="blank_canvas">Blank Canvas</string>
     <string name="manage_custom_fonts_assets_and_imports_in_files_tab">Manage custom fonts, assets and imports in Files tab</string>
     <string name="see_all">See all</string>
+    <string name="duplicate">Duplicate</string>
+    <string name="rename">Rename</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
 import com.example.urduphotodesigner.common.canvas.enums.ElementType
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.LayoutLayersItemBinding
 
 /**
@@ -115,18 +116,18 @@ class LayersAdapter(
                 binding.options.visibility = if (hideDragOrOptions) View.GONE else View.VISIBLE
 
                 // Click listeners:
-                lock.setOnClickListener {
+                lock.addPressEffect {
                     element.isLocked = !element.isLocked
                     onLockToggle(element)
                 }
                 options.setOnClickListener { v ->
                     onMoreOptions(element, v)
                 }
-                drag.setOnTouchListener { v, event ->
+                drag.setOnTouchListener { _, _ ->
                     onStartDrag(this@CanvasElementViewHolder)
                     false
                 }
-                root.setOnClickListener {
+                root.addPressEffect {
                     onItemClick(element)
                 }
                 root.setOnLongClickListener {

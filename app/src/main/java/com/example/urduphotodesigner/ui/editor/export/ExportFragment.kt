@@ -77,7 +77,7 @@ class ExportFragment : Fragment() {
         stopIconRotation()
         btnExport.addPressEffect { startExport() }
 
-        back.setOnClickListener { findNavController().navigateUp() }
+        back.addPressEffect { findNavController().navigateUp() }
 
         btnReset.addPressEffect {
             viewModel.resetExportOptions()
