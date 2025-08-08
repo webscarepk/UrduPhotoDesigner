@@ -14,6 +14,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.widget.Toast
+import com.example.urduphotodesigner.R
 import com.google.android.gms.tasks.Task
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -213,6 +214,23 @@ object Utils {
                     cont.resumeWithException(it.exception!!)
                 }
             }
+        }
+    }
+
+    fun getIconForSize(sizeName: String): Int {
+        val lower = sizeName.lowercase()
+
+        return when {
+            // Social Media
+            "instagram" in lower -> R.drawable.ic_instagram
+            "facebook" in lower -> R.drawable.ic_facebook
+            "youtube" in lower || "thumbnail" in lower || "channel art" in lower -> R.drawable.ic_youtube
+
+            // Printing
+            listOf("a4", "letter", "poster", "flyer", "business card", "invitation", "resume").any { it in lower } -> R.drawable.ic_print
+
+            // Fallback
+            else -> R.drawable.ic_image_layer
         }
     }
 

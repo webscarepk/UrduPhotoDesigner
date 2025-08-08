@@ -39,6 +39,23 @@ object ImageProcessor {
         return file.absolutePath
     }
 
+    fun bitmapToBase64(bitmap: Bitmap): String {
+        val outputStream = java.io.ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+        val byteArray = outputStream.toByteArray()
+        return Base64.encodeToString(byteArray, Base64.NO_WRAP)
+    }
+
+    fun base64ToBitmap(base64: String): Bitmap? {
+        return try {
+            val decodedBytes = Base64.decode(base64, Base64.DEFAULT)
+            BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
     fun filePathToBase64(filePath: String): String {
         val file = File(filePath)
         val bytes = file.readBytes()

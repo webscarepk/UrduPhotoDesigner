@@ -31,12 +31,23 @@ class CreateFragment : Fragment() {
     private val unitList = listOf("Pixels", "Inches", "Centimeters")
 
     private val sizeList = listOf(
-        CanvasSize("Billboard", R.drawable.ic_bill_board, 1920f, 1080f),
-        CanvasSize("Vertical Banner", R.drawable.ic_vertical_banner, 1080f, 1920f),
-        CanvasSize("Horizontal Banner", R.drawable.ic_horizontal_banner, 1920f, 600f),
-        CanvasSize("A4", R.drawable.ic_a_four, 2480f, 3508f),
-        CanvasSize("Letter", R.drawable.ic_letter, 2550f, 3300f)
+        CanvasSize("Instagram Story", 1080f, 1920f),
+        CanvasSize("Instagram Post", 1080f, 1080f),
+        CanvasSize("YouTube Thumbnail", 1280f, 720f),
+        CanvasSize("Facebook Cover", 820f, 312f),
+        CanvasSize("YouTube Channel Art", 2560f, 1440f),
+        CanvasSize("A4", 2480f, 3508f),               // 210mm × 297mm
+        CanvasSize("Letter", 2550f, 3300f),          // 8.5in × 11in
+        CanvasSize("Poster",3600f, 5400f),          // 12in × 18in
+        CanvasSize("Business Card", 1050f, 600f), // 3.5in × 2in
+        CanvasSize("Billboard", 1920f, 1080f),
+        CanvasSize("Vertical Banner", 1080f, 1920f),
+        CanvasSize("Horizontal Banner", 1920f, 600f),
+        CanvasSize("Flyer (US Letter)", 2550f, 3300f),
+        CanvasSize("Resume", 2480f, 3508f),
+        CanvasSize("Invitation", 1500f, 2100f)   // 5in × 7in
     )
+
     private var currentUnit = UnitType.PIXELS
     private var isLinked = false
     private var aspectRatio: Float? = null
@@ -209,7 +220,7 @@ class CreateFragment : Fragment() {
                 val widthVal = getSafeIntValue(width)
                 val heightVal = getSafeIntValue(height)
 
-                val canvasSize = CanvasSize("Custom", 0, widthVal, heightVal)
+                val canvasSize = CanvasSize("Custom", widthVal, heightVal)
                 val bundle = Bundle().apply {
                     putSerializable("canvas_size", canvasSize)
                     putSerializable("unit_type", currentUnit)

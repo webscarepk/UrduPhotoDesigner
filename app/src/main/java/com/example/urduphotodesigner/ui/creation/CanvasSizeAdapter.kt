@@ -2,9 +2,11 @@ package com.example.urduphotodesigner.ui.creation
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
+import com.example.urduphotodesigner.common.utils.Utils.getIconForSize
 import com.example.urduphotodesigner.databinding.LayoutSizesItemBinding
 
 class CanvasSizeAdapter(
@@ -15,9 +17,11 @@ class CanvasSizeAdapter(
     inner class SizeViewHolder(private val binding: LayoutSizesItemBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(item: CanvasSize){
             binding.apply {
-                image.setImageResource(item.drawableResId)
+                val icon = ContextCompat.getDrawable(itemView.context, getIconForSize(item.name))
+                icon?.let { image.setIcon(it) }
+                image.setCanvasSize(item.width, item.height)
                 title.text = item.name
-                size.text = "${item.width} x ${item.height}"
+                size.text = "${item.width.toInt()} x ${item.height.toInt()}"
             }
         }
     }

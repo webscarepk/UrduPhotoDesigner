@@ -55,7 +55,7 @@ class HomeFragment : Fragment() {
                 val widthVal = bitmap.width.toFloat()
                 val heightVal = bitmap.height.toFloat()
 
-                val canvasSize = CanvasSize("From Image", 0, widthVal, heightVal)
+                val canvasSize = CanvasSize("From Image", widthVal, heightVal)
                 val bundle = Bundle().apply {
                     putSerializable("canvas_size", canvasSize)
                     putSerializable("unit_type", UnitType.PIXELS)

@@ -44,7 +44,7 @@ class LayerImportEngine(
                 val box = page.mediaBox
                 pdfHeight = box.height
                 pdfWidth = box.width
-                onCanvasSize(CanvasSize("", 0, ptToPx(box.width), ptToPx(box.height)))
+                onCanvasSize(CanvasSize("", ptToPx(box.width), ptToPx(box.height)))
             }
             processPage(page as PDPage)
         }

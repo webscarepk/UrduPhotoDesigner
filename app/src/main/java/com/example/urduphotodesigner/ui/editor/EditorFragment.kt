@@ -142,7 +142,7 @@ class EditorFragment : Fragment() {
         currentUnit = (arguments?.getSerializable("unit_type") as? UnitType)!!
         viewModel.setCanvasSize(canvasSize)
 
-        val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+        val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
 
         val jsonFileName = "canvas_$timestamp.json"
         val imageFileName = "design_$timestamp.png"
@@ -234,7 +234,7 @@ class EditorFragment : Fragment() {
             ) / (1024.0 * 1024.0)
 
             val exportDate =
-                SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+                SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
 
             if (exportModel == null) {
                 exportModel = ExportResult(

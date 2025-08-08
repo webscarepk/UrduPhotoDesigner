@@ -1773,7 +1773,7 @@ class CanvasViewModel @Inject constructor(
 
                 ElementType.IMAGE -> {
                     bitmapData?.let { data ->
-                        bitmap = ImageProcessor.filePathToBitmap(data)
+                        bitmap = ImageProcessor.base64ToBitmap(data)
                     }
                 }
 
@@ -2098,7 +2098,8 @@ class CanvasViewModel @Inject constructor(
                         _backgroundGradient.value = bg.fillGradient
 
                         if (bg.bitmapData != null) {
-                            val bitmap = ImageProcessor.filePathToBitmap(bg.bitmapData!!)
+//                            val bitmap = ImageProcessor.filePathToBitmap(bg.bitmapData!!)
+                            val bitmap = ImageProcessor.base64ToBitmap(bg.bitmapData!!)
                             if (bitmap != null) {
                                 _backgroundImage.value = bitmap
                             } else {

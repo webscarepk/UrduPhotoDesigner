@@ -695,7 +695,8 @@ class CanvasView @JvmOverloads constructor(
             onProgress?.invoke(70, "Encoding image data")
             elementsWithBitmap.forEachIndexed { index, element ->
                 element.bitmap?.let {
-                    element.bitmapData = ImageProcessor.bitmapToFilePath(context, it)
+//                    element.bitmapData = ImageProcessor.bitmapToFilePath(context, it)
+                    element.bitmapData = ImageProcessor.bitmapToBase64(it)
                 }
 
                 val progress = 70 + ((index + 1) * 20 / total)

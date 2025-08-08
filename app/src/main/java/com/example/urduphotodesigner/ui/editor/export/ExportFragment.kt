@@ -279,7 +279,7 @@ class ExportFragment : Fragment() {
             ) / (1024.0 * 1024.0)
 
             val exportDate =
-                SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+                SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
 
             if (exportResult == null) {
                 exportResult = ExportResult(
