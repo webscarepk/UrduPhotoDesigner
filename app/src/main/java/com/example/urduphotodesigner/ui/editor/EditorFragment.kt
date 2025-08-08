@@ -216,10 +216,13 @@ class EditorFragment : Fragment() {
         options: ExportOptions,
         exportBitmap: Bitmap,
         exportJson: String,
+        exportImage: Boolean,
         canvasSize: CanvasSize
     ) {
         try {
-            ImageProcessor.saveBitmapToFile(exportBitmap, options, imagePath)
+            if (exportImage) {
+                ImageProcessor.saveBitmapToFile(exportBitmap, options, imagePath)
+            }
             File(jsonPath).writeText(exportJson)
             Log.d(TAG, "saveOnExitSafe: $jsonPath")
             Log.d("ImagePath", "bind: $imagePath")
@@ -620,7 +623,6 @@ class EditorFragment : Fragment() {
             })
         }
 
-
         binding.copyIcon.addPressEffect {
             viewModel.copySelectedElementsGroup()
         }
@@ -734,7 +736,7 @@ class EditorFragment : Fragment() {
                 sizedCanvasView.exportCanvas(options) { _, _ -> }
             }
             withContext(Dispatchers.IO) {
-                saveOnExitSafe(options, bitmap, json, canvasSize)
+                saveOnExitSafe(options, bitmap, json, false, canvasSize)
             }
         }
     }
@@ -763,7 +765,7 @@ class EditorFragment : Fragment() {
                 updateExportDialog(95, "Saving files...")
             }
             withContext(Dispatchers.IO) {
-                saveOnExitSafe(options, bitmap, json, canvasSize)
+                saveOnExitSafe(options, bitmap, json, true, canvasSize)
             }
             withContext(Dispatchers.Main) {
                 updateExportDialog(100, "Saved successfully")
