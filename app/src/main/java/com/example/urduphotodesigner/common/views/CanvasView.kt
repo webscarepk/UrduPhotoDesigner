@@ -86,6 +86,7 @@ class CanvasView @JvmOverloads constructor(
 
     private var gestureDetector: GestureDetector
 
+    private var colorPickerBitmap: Bitmap? = null
     private var isColorPickerMode = false
     private var pickerX = 0f
     private var pickerY = 0f
@@ -210,13 +211,22 @@ class CanvasView @JvmOverloads constructor(
         val marginPx = 100f.dpToPx()
         pickerX = marginPx
         pickerY = marginPx
-
+        val (bmp, _) = exportCanvas(
+            ExportOptions(
+                resolution = ExportResolution("picker", canvasWidth, canvasHeight, 1f),
+                quality = ExportQuality("", 100, "", 0),
+                format = ExportFormat("", Bitmap.CompressFormat.PNG, "", emptyList())
+            )
+        )
+        colorPickerBitmap = bmp
         invalidate()
     }
 
     fun disableColorPicker() {
         isColorPickerMode = false
         isDraggingPicker = false
+        colorPickerBitmap?.recycle()
+        colorPickerBitmap = null
         invalidate()
     }
 
@@ -1096,24 +1106,17 @@ class CanvasView @JvmOverloads constructor(
         if (showOverlays && isColorPickerMode) {
             val halfIcon = desiredPickerIconSizePx / 2f
 
-            val (bmp, _) = exportCanvas(
-                ExportOptions(
-                    resolution = ExportResolution("picker", canvasWidth, canvasHeight, 1f),
-                    quality = ExportQuality("", 100, "", 0),
-                    format = ExportFormat("", Bitmap.CompressFormat.PNG, "", emptyList())
-                )
-            )
-            val px = pickerX.roundToInt().coerceIn(0, bmp.width - 1)
-            val py = pickerY.roundToInt().coerceIn(0, bmp.height - 1)
-            val pixelColor = bmp.getPixel(px, py)
-            val dark = isColorDark(pixelColor)
+            val px = pickerX.roundToInt().coerceIn(0, colorPickerBitmap?.width!! - 1)
+            val py = pickerY.roundToInt().coerceIn(0, colorPickerBitmap?.height!! - 1)
+            val pixelColor = colorPickerBitmap?.getPixel(px, py)
+            val dark = pixelColor?.let { isColorDark(it) }
 
             canvas.drawCircle(
                 pickerX,
                 pickerY - halfIcon * 3,
                 halfIcon + 10f,
                 Paint().apply {
-                    color = pixelColor
+                    color = pixelColor!!
                     style = Paint.Style.FILL
                     isAntiAlias = true
                 }
@@ -1124,7 +1127,7 @@ class CanvasView @JvmOverloads constructor(
                 pickerY - halfIcon * 3,
                 halfIcon + 10f,
                 Paint().apply {
-                    color = if (dark) Color.WHITE else Color.BLACK
+                    color = if (dark!!) Color.WHITE else Color.BLACK
                     style = Paint.Style.STROKE
                     strokeWidth = 4f
                 }
@@ -1763,28 +1766,11 @@ class CanvasView @JvmOverloads constructor(
 
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     if (isDraggingPicker) {
-                        // sample color:
-                        val (bmp, _) = exportCanvas(
-                            ExportOptions(
-                                resolution = ExportResolution(
-                                    "picker",
-                                    canvasWidth,
-                                    canvasHeight,
-                                    1f
-                                ),
-                                quality = ExportQuality("", 100, "", 0),
-                                format = ExportFormat(
-                                    "",
-                                    Bitmap.CompressFormat.PNG,
-                                    "",
-                                    emptyList()
-                                )
-                            )
-                        )
-                        val px = pickerX.roundToInt().coerceIn(0, bmp.width - 1)
-                        val py = pickerY.roundToInt().coerceIn(0, bmp.height - 1)
-                        val color = bmp.getPixel(px, py)
-                        onColorPicked?.invoke(color)
+
+                        val px = pickerX.roundToInt().coerceIn(0, colorPickerBitmap?.width!! - 1)
+                        val py = pickerY.roundToInt().coerceIn(0, colorPickerBitmap?.height!! - 1)
+                        val color = colorPickerBitmap?.getPixel(px, py)
+                        color?.let { onColorPicked?.invoke(it) }
                         isDraggingPicker = false
                         invalidate()
                     }

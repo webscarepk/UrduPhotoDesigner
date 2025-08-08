@@ -102,7 +102,7 @@ object Utils {
         val longPressRunnable = Runnable {
             if (isInside) {
                 longPressed = true
-                this.vibrateSoft()
+                vibrateSoft()
                 onLongClick?.invoke()
             }
         }
@@ -120,7 +120,7 @@ object Utils {
                         .setDuration(80)
                         .start()
 
-                    true // We consume the touch
+                    true
                 }
 
                 MotionEvent.ACTION_MOVE -> {
@@ -130,35 +130,28 @@ object Utils {
                     if (!insideNow && isInside) {
                         isInside = false
                         handler.removeCallbacks(longPressRunnable)
-                        v.animate()
-                            .scaleX(1f)
-                            .scaleY(1f)
-                            .setDuration(120)
-                            .start()
+                        v.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
                     } else if (insideNow && !isInside) {
                         isInside = true
                         handler.postDelayed(longPressRunnable, longPressTimeout)
-                        v.animate()
-                            .scaleX(0.9f)
-                            .scaleY(0.9f)
-                            .setDuration(80)
-                            .start()
+                        v.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80).start()
                     }
+
                     true
                 }
 
                 MotionEvent.ACTION_UP -> {
                     handler.removeCallbacks(longPressRunnable)
 
+                    if (isInside && !longPressed) {
+                        // Trigger click directly here instead of relying on animation
+                        onClick?.invoke()
+                    }
+
                     v.animate()
                         .scaleX(1f)
                         .scaleY(1f)
                         .setDuration(120)
-                        .withEndAction {
-                            if (isInside && !longPressed) {
-                                onClick?.invoke()
-                            }
-                        }
                         .start()
 
                     isInside = false
@@ -180,7 +173,6 @@ object Utils {
             }
         }
 
-        // Force accessibility and keyboard interaction to register clicks too
         isClickable = true
         isFocusable = true
     }
