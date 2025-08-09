@@ -716,7 +716,8 @@ class CanvasView @JvmOverloads constructor(
             val canvasElementsCopy = ArrayList(canvasElements)
             canvasElementsCopy.forEach { element ->
                 element.bitmap?.let {
-                    element.bitmapData = ImageProcessor.bitmapToFilePath(context, it)
+//                    element.bitmapData = ImageProcessor.bitmapToFilePath(context, it)
+                    element.bitmapData = ImageProcessor.bitmapToBase64(it)
                 }
             }
             Gson().toJson(canvasElementsCopy)

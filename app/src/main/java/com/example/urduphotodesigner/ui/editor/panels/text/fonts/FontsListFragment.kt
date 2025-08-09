@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import com.example.urduphotodesigner.common.utils.DownloadState
+import com.example.urduphotodesigner.common.canvas.sealed.FontDownloadState
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.databinding.FragmentFontsListBinding
@@ -87,14 +87,14 @@ class FontsListFragment : Fragment() {
         lifecycleScope.launch {
             mainViewModel.downloadState.collect { downloadState ->
                 when (downloadState) {
-                    is DownloadState.Progress -> {
+                    is FontDownloadState.Progress -> {
                         fontEntity = downloadState.fontEntity
                         fontEntity?.let { font ->
                             fontsAdapter.selectedFontId = font.id.toString()
                         }
                     }
 
-                    is DownloadState.SuccessWithTypeface -> {
+                    is FontDownloadState.SuccessWithTypeface -> {
                         fontEntity = downloadState.fontEntity
                         viewModel.setFont(fontEntity!!)
                         fontEntity?.let { font ->
@@ -102,7 +102,7 @@ class FontsListFragment : Fragment() {
                         }
                         mainViewModel.clearDownloadState()
                     }
-                    is DownloadState.Success -> {
+                    is FontDownloadState.Success -> {
                         // This case is for non-font downloads or if typeface creation failed
                         fontEntity?.let { font ->
                             if (font.is_downloaded) {
@@ -110,7 +110,7 @@ class FontsListFragment : Fragment() {
                             }
                         }
                     }
-                    is DownloadState.Error -> {
+                    is FontDownloadState.Error -> {
                         view?.let { Snackbar.make(it, "Download failed!", Snackbar.LENGTH_SHORT).show() }
                         fontEntity = null
                     }

@@ -62,4 +62,19 @@ object Converters {
         val type = object : TypeToken<CanvasSize>() {}.type
         return gson.fromJson(data, type)
     }
+
+    // Convert List<String> <-> JSON
+    @TypeConverter
+    @JvmStatic
+    fun fromStringList(list: List<String>?): String =
+        gson.toJson(list ?: emptyList<String>())
+
+    @TypeConverter
+    @JvmStatic
+    fun toStringList(data: String?): List<String> {
+        if (data.isNullOrBlank()) return emptyList()
+        val type = object : TypeToken<List<String>>() {}.type
+        return gson.fromJson<List<String>>(data, type) ?: emptyList()
+    }
+
 }

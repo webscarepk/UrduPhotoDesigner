@@ -3,6 +3,7 @@ package com.example.urduphotodesigner.ui.editor
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.app.Dialog
+import android.content.ContentValues.TAG
 import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
@@ -54,7 +55,6 @@ import com.example.urduphotodesigner.common.views.CanvasView
 import com.example.urduphotodesigner.databinding.DialogAutoSavingLayoutBinding
 import com.example.urduphotodesigner.databinding.FragmentEditorBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
-import com.tom_roush.fontbox.ttf.NamingTable.TAG
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

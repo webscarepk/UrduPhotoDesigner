@@ -1,17 +1,59 @@
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_margin="@dimen/_5sdp"
-    app:cardBackgroundColor="@color/contrast"
+    android:id="@+id/fontCard"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/_56sdp"
+    android:layout_marginEnd="@dimen/_5sdp"
+    android:layout_marginBottom="@dimen/_5sdp"
+    app:cardBackgroundColor="@color/selection"
+    app:cardCornerRadius="@dimen/_5sdp"
     app:cardElevation="0dp"
-    app:cardCornerRadius="@dimen/_5sdp">
+    app:strokeWidth="0dp">
 
-    <ImageView
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:scaleType="centerCrop"
-        android:src="@drawable/ic_launcher_background"
-        android:id="@+id/image"/>
-</androidx.cardview.widget.CardView>
+        android:layout_height="match_parent">
+
+        <com.facebook.shimmer.ShimmerFrameLayout
+            android:id="@+id/shimmerLayout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:shimmer_auto_start="true"
+            app:shimmer_base_alpha="0.5"
+            app:shimmer_duration="1000"
+            app:shimmer_base_color="@color/contrast"
+            app:shimmer_colored="true"
+            app:shimmer_highlight_alpha="1.0">
+
+            <ImageView
+                android:id="@+id/template"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="@dimen/_5sdp"
+                android:src="@drawable/ic_launcher_background"
+                android:background="@color/contrast"
+                android:scaleType="fitCenter" />
+
+        </com.facebook.shimmer.ShimmerFrameLayout>
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:indeterminate="true"
+            android:indeterminateTint="@color/appColor"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/download"
+            android:layout_width="@dimen/_12sdp"
+            android:layout_height="@dimen/_12sdp"
+            android:layout_gravity="end|bottom"
+            android:layout_margin="@dimen/_3sdp"
+            android:src="@drawable/ic_download"
+            android:visibility="gone"
+            app:tint="@color/appColor" />
+    </FrameLayout>
+</com.google.android.material.card.MaterialCardView>

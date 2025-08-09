@@ -5,6 +5,7 @@ import com.example.urduphotodesigner.data.model.FontsResponse
 import com.example.urduphotodesigner.data.model.ImageResponse
 import com.example.urduphotodesigner.data.model.LoginResponse
 import com.example.urduphotodesigner.data.model.RegistrationResponse
+import com.example.urduphotodesigner.data.model.TemplatesResponse
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
@@ -38,4 +39,9 @@ interface EndPointsInterface {
         @Field("password") password: String,
         @Header("X-API-KEY") apiKey: String = Constants.X_API_KEY
     ): RegistrationResponse
+
+    @GET("templates")
+    suspend fun getAllTemplates(
+        @Header("X-API-KEY") apiKey: String = Constants.X_API_KEY
+    ): TemplatesResponse
 }

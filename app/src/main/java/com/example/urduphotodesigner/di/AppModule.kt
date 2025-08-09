@@ -14,16 +14,20 @@ import com.example.urduphotodesigner.data.repository.AuthRepositoryImpl
 import com.example.urduphotodesigner.data.repository.ExportResultsRepositoryImpl
 import com.example.urduphotodesigner.data.repository.FetchFontsRepoImpl
 import com.example.urduphotodesigner.data.repository.FetchImagesRepoImpl
+import com.example.urduphotodesigner.data.repository.FetchTemplatesRepoImpl
 import com.example.urduphotodesigner.data.repository.FontsRepoImpl
 import com.example.urduphotodesigner.data.repository.GradientRepositoryImpl
 import com.example.urduphotodesigner.data.repository.ImagesRepoImpl
+import com.example.urduphotodesigner.data.repository.TemplatesRepoImpl
 import com.example.urduphotodesigner.domain.repo.AuthRepository
 import com.example.urduphotodesigner.domain.repo.ExportResultsRepository
 import com.example.urduphotodesigner.domain.repo.FetchFontsRepo
 import com.example.urduphotodesigner.domain.repo.FetchImagesRepo
+import com.example.urduphotodesigner.domain.repo.FetchTemplatesRepo
 import com.example.urduphotodesigner.domain.repo.FontsRepo
 import com.example.urduphotodesigner.domain.repo.GradientRepository
 import com.example.urduphotodesigner.domain.repo.ImagesRepo
+import com.example.urduphotodesigner.domain.repo.TemplatesRepo
 import com.example.urduphotodesigner.domain.usecase.DeleteGradientUseCase
 import com.example.urduphotodesigner.domain.usecase.ExportResultsUseCase
 import com.example.urduphotodesigner.domain.usecase.GetAllGradientsUseCase
@@ -102,6 +106,12 @@ object AppModule {
     }
 
     @Provides
+    @Singleton
+    fun provideFetchTemplatesRepo(api: EndPointsInterface): FetchTemplatesRepo {
+        return FetchTemplatesRepoImpl(api)
+    }
+
+    @Provides
     fun provideOkHttpClient(): OkHttpClient {
         return OkHttpClient.Builder().build()
     }
@@ -113,6 +123,12 @@ object AppModule {
     @Singleton
     fun provideFontsRepo(appDatabase: AppDatabase): FontsRepo {
         return FontsRepoImpl(appDatabase)
+    }
+
+    @Provides
+    @Singleton
+    fun provideTemplatesRepo(appDatabase: AppDatabase): TemplatesRepo {
+        return TemplatesRepoImpl(appDatabase)
     }
 
     @Provides

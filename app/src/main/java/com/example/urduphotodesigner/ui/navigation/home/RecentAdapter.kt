@@ -7,9 +7,11 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.signature.ObjectKey
 import com.example.urduphotodesigner.common.canvas.model.ExportResult
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffectWithLongClick
 import com.example.urduphotodesigner.databinding.LayoutRecentsItemBinding
+import java.io.File
 
 class RecentAdapter(private val onClick: (ExportResult) -> Unit,
                     private val onLongClick: (View, ExportResult) -> Unit) :
@@ -40,17 +42,15 @@ class RecentAdapter(private val onClick: (ExportResult) -> Unit,
 
         fun bind(item: ExportResult) {
             Log.d("ImagePath", "bind: ${item.imagePath}")
-            Glide.with(itemView.context)
-                .load(item.imagePath)
-                .skipMemoryCache(true)
-                .diskCacheStrategy(DiskCacheStrategy.NONE)
+            val file = File(item.imagePath)
+            Glide.with(binding.thumbnail)
+                .load(file)
+                .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                .skipMemoryCache(false)
+                .signature(ObjectKey("${file.length()}_${file.lastModified()}"))
                 .into(binding.thumbnail)
 
             binding.title.text = item.fileName
-
-//            binding.root.addPressEffect {
-//                onClick(item)
-//            }
 
             binding.root.addPressEffectWithLongClick(
                 onClick = {onClick(item)},

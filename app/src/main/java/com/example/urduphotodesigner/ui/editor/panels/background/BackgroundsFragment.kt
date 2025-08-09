@@ -96,7 +96,7 @@ class BackgroundsFragment : Fragment() {
                             file_url = "",
                             file_size = "",
                             alt_text = "",
-                            category = "Background",
+                            category = "Backgrounds",
                             user_id = 0,
                             is_selected = false,
                             bitmapData = filePath

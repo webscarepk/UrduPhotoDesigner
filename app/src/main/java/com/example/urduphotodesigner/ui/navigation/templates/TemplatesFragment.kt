@@ -1,28 +1,34 @@
 package com.example.urduphotodesigner.ui.navigation.templates
 
-import android.content.res.ColorStateList
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.viewpager2.widget.ViewPager2
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentTemplatesBinding
-import com.google.android.material.tabs.TabLayout
+import com.example.urduphotodesigner.viewmodels.MainViewModel
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class TemplatesFragment : Fragment() {
-    private var _binding: FragmentTemplatesBinding?= null
+    private var _binding: FragmentTemplatesBinding? = null
     private val binding get() = _binding!!
-    private var tabs = emptyList<String>()
+    private val mainViewModel: MainViewModel by activityViewModels()
+
+    private var tabs: List<String> = emptyList()
+    private var mediator: TabLayoutMediator? = null
+    private var pagerAdapter: TemplatesPagerAdapter? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -35,29 +41,12 @@ class TemplatesFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        setupPager(emptyList())   // init with no tabs; will update after first collect
+        observeTemplateCategories()
         setEvents()
     }
 
     private fun setEvents() {
-        tabs = listOf("All", "Post", "Poster", "Banner", "Story")
-
-        val adapter = TemplatesPagerAdapter(
-            requireActivity().supportFragmentManager,
-            lifecycle,
-            tabs
-        )
-        binding.viewPager.adapter = adapter
-
-        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
-            val tabView = LayoutInflater.from(context).inflate(R.layout.custom_tab, null)
-            tabView.findViewById<TextView>(R.id.tabTitle).text = tabs[position]
-            tab.customView = tabView
-        }.attach()
-
-        // Initial style
-        updateTabStyles(binding.tabLayout.selectedTabPosition)
-
-        // Apply styles on swipe
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 updateTabStyles(position)
@@ -67,6 +56,41 @@ class TemplatesFragment : Fragment() {
         binding.back.addPressEffect { findNavController().navigateUp() }
     }
 
+    private fun observeTemplateCategories() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            mainViewModel.localTemplates.collect { templates ->
+                // Build distinct categories from DB items
+                val distinct = templates.map { it.category }.filter { !it.isNullOrBlank() }.distinct()
+                val newTabs = listOf("All") + distinct
+
+                if (newTabs != tabs) {
+                    tabs = newTabs
+                    setupPager(tabs)
+                    updateTabStyles(binding.tabLayout.selectedTabPosition)
+                }
+            }
+        }
+    }
+
+    private fun setupPager(tabTitles: List<String>) {
+        // Clean up existing mediator to avoid duplicates
+        mediator?.detach()
+
+        // (Re)create adapter with latest tabs
+        pagerAdapter = TemplatesPagerAdapter(
+            requireActivity().supportFragmentManager,
+            lifecycle,
+            tabTitles
+        )
+        binding.viewPager.adapter = pagerAdapter
+
+        mediator = TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
+            val tabView = LayoutInflater.from(context).inflate(R.layout.layout_tabs_bar_item, null)
+            tabView.findViewById<TextView>(R.id.tabTitle).text = tabTitles.getOrNull(position) ?: ""
+            tab.customView = tabView
+        }.also { it.attach() }
+    }
+
     fun updateTabStyles(selectedPosition: Int) {
         for (i in 0 until binding.tabLayout.tabCount) {
             val tabView = binding.tabLayout.getTabAt(i)?.customView
@@ -74,10 +98,16 @@ class TemplatesFragment : Fragment() {
             val text = tabView?.findViewById<TextView>(R.id.tabTitle)
 
             if (i == selectedPosition) {
-                root?.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.appColor))
+                root?.background = ContextCompat.getDrawable(
+                    requireActivity(),
+                    R.drawable.button_bg_stroke_fill_dark
+                )
                 text?.setTextColor(ContextCompat.getColor(requireContext(), R.color.whiteText))
             } else {
-                root?.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.contrast))
+                root?.background = ContextCompat.getDrawable(
+                    requireActivity(),
+                    R.drawable.button_bg_round_stroke_fill
+                )
                 text?.setTextColor(ContextCompat.getColor(requireContext(), R.color.black))
             }
         }

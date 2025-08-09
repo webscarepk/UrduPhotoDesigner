@@ -1,9 +1,6 @@
 package com.example.urduphotodesigner.ui.editor.panels.text.fonts
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.drawable.PictureDrawable
-import android.util.Base64
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,7 +16,6 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.utils.Constants
-import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.databinding.LayoutFontItemBinding
@@ -93,24 +89,58 @@ class FontsAdapter(
             } else {
                 // Load font preview using Glide (from image_url)
                 val url = Constants.BASE_URL_GLIDE + font.image_url
-                Glide.with(binding.root.context)
-                    .`as`(PictureDrawable::class.java)
-                    .load(url)
-                    .diskCacheStrategy(DiskCacheStrategy.DATA)
-                    .listener(object : RequestListener<PictureDrawable> {
-                        override fun onLoadFailed(
-                            e: GlideException?, model: Any?, target: Target<PictureDrawable>,
-                            isFirstResource: Boolean
-                        ) = false.also { binding.shimmerLayout.hideShimmer() }
+                if (isSvgUrl(url)) {
+                    Glide.with(binding.root.context)
+                        .`as`(PictureDrawable::class.java)
+                        .load(url)
+                        .diskCacheStrategy(DiskCacheStrategy.DATA)
+                        .listener(object : RequestListener<PictureDrawable> {
+                            override fun onLoadFailed(
+                                e: GlideException?, model: Any?, target: Target<PictureDrawable>,
+                                isFirstResource: Boolean
+                            ) = false.also { binding.shimmerLayout.hideShimmer() }
 
-                        override fun onResourceReady(
-                            resource: PictureDrawable, model: Any, target: Target<PictureDrawable>?,
-                            dataSource: DataSource, isFirstResource: Boolean
-                        ) = false.also { binding.shimmerLayout.hideShimmer() }
-                    })
-                    .into(binding.font)
+                            override fun onResourceReady(
+                                resource: PictureDrawable,
+                                model: Any,
+                                target: Target<PictureDrawable>?,
+                                dataSource: DataSource,
+                                isFirstResource: Boolean
+                            ) = false.also { binding.shimmerLayout.hideShimmer() }
+                        })
+                        .into(binding.font)
+                }else{
+                    Glide.with(binding.root.context)
+                        .load(url)
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .thumbnail(0.1f)
+                        .listener(object : RequestListener<android.graphics.drawable.Drawable> {
+                            override fun onLoadFailed(
+                                e: GlideException?, model: Any?, target: Target<android.graphics.drawable.Drawable>,
+                                isFirstResource: Boolean
+                            ): Boolean {
+                                binding.shimmerLayout.hideShimmer()
+                                return false
+                            }
+
+                            override fun onResourceReady(
+                                resource: android.graphics.drawable.Drawable, model: Any,
+                                target: Target<android.graphics.drawable.Drawable>?, dataSource: DataSource,
+                                isFirstResource: Boolean
+                            ): Boolean {
+                                binding.shimmerLayout.hideShimmer()
+                                return false
+                            }
+                        })
+                        .into(binding.font)
+                }
             }
         }
+    }
+
+    private fun isSvgUrl(raw: String): Boolean {
+        val q = raw.substringBefore('#').substringBefore('?').lowercase()
+        return q.endsWith(".svg")
     }
 
     class DiffCallback : DiffUtil.ItemCallback<FontEntity>() {

@@ -181,6 +181,7 @@
     <string name="see_all">See all</string>
     <string name="duplicate">Duplicate</string>
     <string name="rename">Rename</string>
+    <string name="browse_by_size">Browse by Size</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

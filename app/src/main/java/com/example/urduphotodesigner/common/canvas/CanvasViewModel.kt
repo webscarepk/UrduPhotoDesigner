@@ -40,7 +40,6 @@ import com.example.urduphotodesigner.common.views.CanvasView
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.domain.usecase.GetFontsUseCase
 import com.google.gson.Gson
-import com.tom_roush.fontbox.ttf.NamingTable.TAG
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,7 +47,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.Stack
 import java.util.UUID
@@ -1303,7 +1301,8 @@ class CanvasViewModel @Inject constructor(
             context = context,
             type = ElementType.IMAGE,
             bitmap = bitmap,
-            bitmapData = ImageProcessor.bitmapToFilePath(context, bitmap!!),
+//            bitmapData = ImageProcessor.bitmapToFilePath(context, bitmap!!),
+            bitmapData = ImageProcessor.bitmapToBase64(bitmap!!),
             x = 150f,
             y = 150f,
             paintAlpha = 255,
@@ -1773,6 +1772,7 @@ class CanvasViewModel @Inject constructor(
 
                 ElementType.IMAGE -> {
                     bitmapData?.let { data ->
+//                        bitmap = ImageProcessor.filePathToBitmap(data)
                         bitmap = ImageProcessor.base64ToBitmap(data)
                     }
                 }

@@ -6,6 +6,8 @@ import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.View
+import androidx.core.content.ContextCompat
+import com.example.urduphotodesigner.R
 import kotlin.math.min
 
 class FramePreviewView @JvmOverloads constructor(
@@ -17,14 +19,14 @@ class FramePreviewView @JvmOverloads constructor(
     private var iconDrawable: Drawable? = null
 
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#F3F3F3")
+        color = ContextCompat.getColor(context, R.color.contrast)
         style = Paint.Style.FILL
     }
 
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#FFC2C2C2")
+        color = ContextCompat.getColor(context, R.color.gray)
         style = Paint.Style.STROKE
-        strokeWidth = dpToPx(1f)
+        strokeWidth = dpToPx(0.5f)
     }
 
     private val maxSizePx = dpToPx(32f)  // max width or height

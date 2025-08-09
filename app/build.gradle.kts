@@ -112,15 +112,6 @@ dependencies {
     //Google Sign in
     implementation(libs.play.services.auth)
 
-    //ColorPicker
-    implementation(libs.colorpicker)
-
-    //FancyToolTips
-    implementation (libs.fancyshowcase)
-
-    //PDF Box
-    implementation (libs.pdfbox.android)
-
     //Shimmer
     implementation(libs.shimmer)
 

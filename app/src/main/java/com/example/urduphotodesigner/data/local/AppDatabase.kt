@@ -8,9 +8,10 @@ import com.example.urduphotodesigner.common.canvas.model.ExportResult
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.data.model.GradientEntity
 import com.example.urduphotodesigner.data.model.ImageEntity
+import com.example.urduphotodesigner.data.model.TemplateEntity
 
 @androidx.room.Database(
-    entities = [FontEntity::class, ImageEntity::class, GradientEntity::class, ExportResult::class],
+    entities = [FontEntity::class, ImageEntity::class, GradientEntity::class, ExportResult::class, TemplateEntity::class],
     version = 1
 )
 @TypeConverters(Converters::class)
@@ -20,6 +21,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun imagesDao(): ImageDao
     abstract fun gradientDao(): GradientDao
     abstract fun exportResultsDao(): ExportResultsDao
+    abstract fun allTemplatesDao(): AllTemplatesDao
 
     companion object {
         @Volatile

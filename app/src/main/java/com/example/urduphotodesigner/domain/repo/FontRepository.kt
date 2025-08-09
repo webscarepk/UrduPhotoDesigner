@@ -63,9 +63,4 @@ class FontRepository @Inject constructor(
         }
         return@withContext outputFile
     }
-
-    fun getLocalFontFile(fileName: String): File? {
-        val file = File(fontsDir, fileName)
-        return if (file.exists()) file else null
-    }
 }

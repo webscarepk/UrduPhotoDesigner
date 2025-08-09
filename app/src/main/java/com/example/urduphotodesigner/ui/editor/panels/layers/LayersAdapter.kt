@@ -11,6 +11,7 @@ import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
 import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffectWithLongClick
 import com.example.urduphotodesigner.databinding.LayoutLayersItemBinding
 
 /**
@@ -127,15 +128,15 @@ class LayersAdapter(
                     onStartDrag(this@CanvasElementViewHolder)
                     false
                 }
-                root.addPressEffect {
-                    onItemClick(element)
-                }
-                root.setOnLongClickListener {
-                    if (element.type!=ElementType.BACKGROUND){
-                        onItemLongClick(element)
+                root.addPressEffectWithLongClick(
+                    onClick = {
+                        onItemClick(element)
+                    }, onLongClick = {
+                        if (element.type!=ElementType.BACKGROUND){
+                            onItemLongClick(element)
+                        }
                     }
-                    true
-                }
+                )
             }
         }
     }
