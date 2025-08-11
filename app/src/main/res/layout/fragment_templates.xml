@@ -91,29 +91,11 @@
         android:translationZ="@dimen/_1sdp"
         android:background="@drawable/button_bg_stroke_fill"/>
 
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/tabLayout"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
-        app:tabGravity="fill"
-        app:tabMode="auto"
-        app:tabIndicatorColor="@null"
-        app:tabIndicatorHeight="0dp"
-        app:tabRippleColor="@android:color/transparent"
-        app:tabTextColor="@color/black"
-        app:tabSelectedTextColor="@color/whiteText"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:paddingHorizontal="@dimen/_10sdp"
-        android:clipToPadding="false"
-        app:layout_constraintTop_toBottomOf="@id/searchBar"
-        android:layout_marginTop="@dimen/_10sdp"/>
-
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/tabLayout"
+        app:layout_constraintTop_toBottomOf="@id/searchBar"
+        android:layout_marginTop="@dimen/_10sdp"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         android:text="@string/browse_by_size"
         android:fontFamily="@font/bold"
@@ -122,6 +104,7 @@
         android:id="@+id/sizeTitle"/>
 
     <androidx.recyclerview.widget.RecyclerView
+        android:layout_marginTop="@dimen/_5sdp"
         android:id="@+id/sizesRV"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -134,12 +117,18 @@
         tools:listitem="@layout/layout_sizes_filter_item"
         app:layout_constraintTop_toBottomOf="@id/sizeTitle"/>
 
-    <androidx.viewpager2.widget.ViewPager2
-        android:id="@+id/viewPager"
+    <androidx.recyclerview.widget.RecyclerView
+        android:layout_marginTop="@dimen/_10sdp"
+        android:id="@+id/categoriesRV"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        tools:listitem="@layout/layout_category_row"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        android:orientation="vertical"
         app:layout_constraintTop_toBottomOf="@id/sizesRV"
         app:layout_constraintBottom_toTopOf="@id/bottomGuide"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
-        app:layout_constraintEnd_toStartOf="@id/endGuide" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:paddingHorizontal="@dimen/_18sdp"
+        android:clipToPadding="false"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

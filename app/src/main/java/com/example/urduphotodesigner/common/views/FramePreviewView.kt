@@ -24,7 +24,7 @@ class FramePreviewView @JvmOverloads constructor(
     }
 
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = ContextCompat.getColor(context, R.color.gray)
+        color = ContextCompat.getColor(context, R.color.light_gray)
         style = Paint.Style.STROKE
         strokeWidth = dpToPx(0.5f)
     }

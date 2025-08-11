@@ -128,7 +128,7 @@ class CreateFragment : Fragment() {
                 popup.show()
             }
 
-            adapter = CanvasSizeAdapter(sizeList) { selected ->
+            adapter = CanvasSizeAdapter(sizeList, onClick =  { selected ->
                 val bundle = Bundle().apply {
                     putSerializable("canvas_size", selected)
                     putSerializable("unit_type", currentUnit)
@@ -137,7 +137,7 @@ class CreateFragment : Fragment() {
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(selected)
                 findNavController().navigate(R.id.editorFragment, bundle)
-            }
+            }, true)
             sizesRV.adapter = adapter
 
             incWidth.addPressEffect {

@@ -10,6 +10,9 @@ import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.SimpleItemAnimator
+import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.UnitType
@@ -100,6 +103,7 @@ class TemplatesListFragment : Fragment() {
             adapter.submitList(newList)
             mainViewModel.downloadTemplate(template)
         }
+
         binding.templatesRV.adapter = adapter
     }
 

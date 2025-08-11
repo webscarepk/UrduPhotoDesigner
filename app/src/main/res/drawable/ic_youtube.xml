@@ -4,11 +4,11 @@
     android:viewportWidth="14"
     android:viewportHeight="12">
     <path
-        android:strokeColor="#FFC2C2C2"
+        android:strokeColor="@color/light_gray"
         android:strokeWidth="1"
         android:pathData="M1 3.5c0-1.38 1.12-2.5 2.5-2.5h7c1.38 0 2.5 1.12 2.5 2.5v5c0 1.38-1.12 2.5-2.5 2.5h-7c-1.38 0-2.5-1.12-2.5-2.5z"/>
     <path
-        android:strokeColor="#FFC2C2C2"
+        android:strokeColor="@color/light_gray"
         android:strokeWidth="1"
         android:strokeLineCap="round"
         android:pathData="M5.69 4.27l3.15 1.27c0.42 0.16 0.42 0.76 0 0.92L5.69 7.73C5.36 7.86 5 7.62 5 7.26V4.74c0-0.36 0.36-0.6 0.69-0.47Z"/>

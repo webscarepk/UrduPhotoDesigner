@@ -1,12 +1,10 @@
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/fontCard"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_width="@dimen/_60sdp"
+    android:layout_height="@dimen/_60sdp"
     android:layout_marginEnd="@dimen/_5sdp"
-    android:layout_marginBottom="@dimen/_5sdp"
     app:cardBackgroundColor="@color/selection"
-    android:maxHeight="@dimen/_140sdp"
     app:cardCornerRadius="@dimen/_5sdp"
     app:cardElevation="0dp"
     app:strokeWidth="0dp">
@@ -27,12 +25,12 @@
             app:shimmer_highlight_alpha="1.0">
 
             <ImageView
-                android:id="@+id/template"
+                android:id="@+id/image"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:adjustViewBounds="true"
+                android:layout_height="match_parent"
                 android:src="@drawable/ic_launcher_background"
-                android:background="@color/contrast" />
+                android:background="@color/contrast"
+                android:scaleType="centerCrop" />
 
         </com.facebook.shimmer.ShimmerFrameLayout>
 
