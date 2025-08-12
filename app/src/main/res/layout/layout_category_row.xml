@@ -9,6 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingTop="@dimen/_5sdp"
+        android:paddingHorizontal="@dimen/_20sdp"
         android:gravity="center_vertical">
 
         <TextView
@@ -25,14 +26,17 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/see_all"
-            android:textColor="@color/appColor" />
+            android:fontFamily="@font/medium"
+            android:textColor="@color/gray" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:layout_marginTop="@dimen/_5sdp"
         android:id="@+id/listRV"
+        android:paddingHorizontal="@dimen/_18sdp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:clipToPadding="false"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         android:orientation="horizontal"
         tools:listitem="@layout/layout_template_category"

@@ -6,17 +6,129 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".ui.navigation.templates.TemplatesListFragment">
 
+    <androidx.constraintlayout.widget.Guideline
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.02"
+        android:id="@+id/topGuide"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintGuide_percent="0.95"
+        android:orientation="horizontal"
+        android:id="@+id/bottomGuide"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintGuide_percent="0.05"
+        android:orientation="vertical"
+        android:id="@+id/startGuide"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintGuide_percent="0.95"
+        android:orientation="vertical"
+        android:id="@+id/endGuide"/>
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_back"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintTop_toBottomOf="@id/topGuide"
+        android:id="@+id/back"
+        android:paddingVertical="@dimen/_10sdp"
+        android:paddingEnd="@dimen/_10sdp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toEndOf="@id/back"
+        app:layout_constraintTop_toTopOf="@id/back"
+        app:layout_constraintBottom_toBottomOf="@id/back"
+        android:layout_marginStart="@dimen/_5sdp"
+        android:text="@string/templates"
+        android:fontFamily="@font/bold"
+        android:textSize="@dimen/_15sdp"
+        android:textColor="@color/black"
+        android:id="@+id/title"/>
+
+    <EditText
+        android:id="@+id/searchBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/button_bg_stroke_fill"
+        android:fontFamily="@font/regular"
+        android:drawableEnd="@drawable/ic_search"
+        android:drawablePadding="@dimen/_10sdp"
+        android:paddingHorizontal="@dimen/_10sdp"
+        android:paddingVertical="@dimen/_8sdp"
+        android:textSize="@dimen/_12sdp"
+        android:hint="@string/search_here"
+        android:translationZ="@dimen/_1sdp"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintEnd_toStartOf="@id/filters"
+        app:layout_constraintTop_toBottomOf="@id/back"
+        android:textColorHint="@color/gray"
+        android:textColor="@color/black"
+        android:layout_marginEnd="@dimen/_5sdp"
+        android:layout_marginTop="@dimen/_10sdp"/>
+
+    <ImageView
+        android:id="@+id/filters"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:paddingHorizontal="@dimen/_10sdp"
+        app:layout_constraintTop_toTopOf="@id/searchBar"
+        app:layout_constraintBottom_toBottomOf="@id/searchBar"
+        app:layout_constraintStart_toEndOf="@id/searchBar"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
+        android:src="@drawable/ic_filters"
+        android:translationZ="@dimen/_1sdp"
+        android:background="@drawable/button_bg_stroke_fill"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/searchBar"
+        android:layout_marginTop="@dimen/_10sdp"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        android:text="@string/browse_by_size"
+        android:fontFamily="@font/bold"
+        android:textSize="@dimen/_12sdp"
+        android:textColor="@color/black"
+        android:id="@+id/sizeTitle"/>
+
     <androidx.recyclerview.widget.RecyclerView
+        android:layout_marginTop="@dimen/_5sdp"
+        android:id="@+id/sizesRV"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:paddingHorizontal="@dimen/_12sdp"
+        android:clipToPadding="false"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        android:orientation="horizontal"
+        tools:listitem="@layout/layout_sizes_filter_item"
+        app:layout_constraintTop_toBottomOf="@id/sizeTitle"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:layout_marginTop="@dimen/_10sdp"
         android:id="@+id/templatesRV"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/sizesRV"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layoutManager="androidx.recyclerview.widget.StaggeredGridLayoutManager"
-        app:spanCount="2"
         tools:itemCount="10"
+        app:spanCount="2"
+        app:layoutManager="androidx.recyclerview.widget.StaggeredGridLayoutManager"
         tools:listitem="@layout/layout_template_item"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

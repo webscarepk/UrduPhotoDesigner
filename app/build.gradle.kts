@@ -114,5 +114,4 @@ dependencies {
 
     //Shimmer
     implementation(libs.shimmer)
-
 }

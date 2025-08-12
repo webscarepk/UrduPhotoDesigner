@@ -16,6 +16,7 @@ import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.canvas.sealed.HomeRow
 import com.example.urduphotodesigner.common.canvas.sealed.TemplateDownloadState
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
+import com.example.urduphotodesigner.common.utils.showGlobalSuccessSnack
 import com.example.urduphotodesigner.data.model.TemplateEntity
 import com.example.urduphotodesigner.data.model.toExportResultFinal
 import com.example.urduphotodesigner.databinding.DialogLoadingProgressBinding
@@ -118,12 +119,16 @@ class TemplatesFragment : Fragment() {
                     return@TemplateCategoriesAdapter
                 }
                 downloadingTemplate = template
+                categoryAdapter.updateTemplateProgress(
+                    templateId = template.id,
+                    progress = 0,
+                    isDownloading = true,
+                    isDownloaded = false
+                )
                 mainViewModel.downloadTemplate(template)
             }
         )
         binding.categoriesRV.adapter = categoryAdapter
-
-        binding.back.addPressEffect { findNavController().navigateUp() }
     }
 
     private fun observeTemplateCategories() {
@@ -133,7 +138,7 @@ class TemplatesFragment : Fragment() {
                 val rows = categories.map { (cat, list) ->
                     HomeRow.CategoryRow(cat, list.take(10)) // preview max 10 items
                 }
-                categoryAdapter.submitList(rows)
+                    categoryAdapter.submitList(rows)
             }
         }
 
@@ -151,32 +156,76 @@ class TemplatesFragment : Fragment() {
             mainViewModel.templateDownloadState.collect { state ->
                 when (state) {
                     is TemplateDownloadState.Progress -> {
-                        downloadingTemplate = state.template
+                        val t = state.template
+                        categoryAdapter.updateTemplateProgress(
+                            templateId = t.id,
+                            progress = state.progress,
+                            isDownloading = true,
+                            isDownloaded = false
+                        )
                     }
+
                     is TemplateDownloadState.SuccessWithTemplate -> {
-                        downloadingTemplate = state.template
+                        val t = state.template
+                        categoryAdapter.updateTemplateProgress(
+                            templateId = t.id,
+                            progress = 100,
+                            isDownloading = false,
+                            isDownloaded = true,
+                            filePath = t.file_path
+                        )
+
+                        mainViewModel.insertTemplate(state.template.copy(is_downloading = false, is_downloaded = true))
                         mainViewModel.clearTemplateDownloadState()
-                        val exportResult = downloadingTemplate!!.toExportResultFinal()
-                        lifecycleScope.launch {
-                            withContext(Dispatchers.Default) {
-                                viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
-                                bundle = Bundle().apply {
-                                    putSerializable("canvas_size", exportResult.canvasSize)
-                                    putSerializable("unit_type", UnitType.PIXELS)
+
+                        showGlobalSuccessSnack("Template ready") {
+                            val exportResult = t.toExportResultFinal()
+                            lifecycleScope.launch {
+                                withContext(Dispatchers.Default) {
+                                    viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
+                                    bundle = Bundle().apply {
+                                        putSerializable("canvas_size", exportResult.canvasSize)
+                                        putSerializable("unit_type", UnitType.PIXELS)
+                                    }
                                 }
                             }
                         }
                     }
+
+                    is TemplateDownloadState.Error -> {
+                        val t = downloadingTemplate ?: return@collect
+                        categoryAdapter.updateTemplateProgress(
+                            templateId = t.id,
+                            progress = 0,
+                            isDownloading = false,
+                            isDownloaded = false
+                        )
+                        downloadingTemplate = null
+                    }
+
                     is TemplateDownloadState.Success -> {
                         mainViewModel.clearTemplateDownloadState()
                     }
-                    is TemplateDownloadState.Error -> {
-                        downloadingTemplate = null
-                    }
+
                     null -> Unit
                 }
             }
         }
+    }
+
+    private fun sameStructure(
+        a: List<HomeRow>, b: List<HomeRow>
+    ): Boolean {
+        if (a.size != b.size) return false
+        for (i in a.indices) {
+            val ca = a[i] as? HomeRow.CategoryRow ?: return false
+            val cb = b[i] as? HomeRow.CategoryRow ?: return false
+            if (ca.title != cb.title) return false
+            val idsA = ca.templates.map { it.id }
+            val idsB = cb.templates.map { it.id }
+            if (idsA != idsB) return false
+        }
+        return true
     }
 
     override fun onDestroy() {

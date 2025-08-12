@@ -34,24 +34,48 @@
 
         </com.facebook.shimmer.ShimmerFrameLayout>
 
-        <ProgressBar
-            android:id="@+id/progressBar"
-            style="?android:attr/progressBarStyleSmall"
+        <LinearLayout
+            android:id="@+id/progressBox"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:indeterminate="true"
-            android:indeterminateTint="@color/appColor"
-            android:visibility="gone" />
+            android:orientation="horizontal"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/appColor"
+            android:paddingHorizontal="@dimen/_3sdp"
+            android:paddingVertical="@dimen/_2sdp"
+            android:layout_gravity="end|bottom"
+            android:visibility="gone"
+            android:layout_margin="@dimen/_3sdp">
+            <ProgressBar
+                android:id="@+id/progressBar"
+                style="?android:attr/progressBarStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:indeterminate="true"
+                android:layout_marginEnd="@dimen/_5sdp"
+                android:indeterminateTint="@color/white"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="28%"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_8sdp"
+                android:fontFamily="@font/medium"
+                android:id="@+id/percentage"/>
+        </LinearLayout>
 
         <ImageView
             android:id="@+id/download"
-            android:layout_width="@dimen/_12sdp"
-            android:layout_height="@dimen/_12sdp"
+            android:layout_width="@dimen/_16sdp"
+            android:layout_height="@dimen/_16sdp"
             android:layout_gravity="end|bottom"
             android:layout_margin="@dimen/_3sdp"
             android:src="@drawable/ic_download"
             android:visibility="gone"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/white"
+            android:padding="@dimen/_5sdp"
             app:tint="@color/appColor" />
     </FrameLayout>
 </com.google.android.material.card.MaterialCardView>

@@ -24,7 +24,8 @@ data class TemplateEntity(
     val updated_at: String,
     var is_downloaded:Boolean = false,
     var is_downloading:Boolean = false,
-    var file_path: String? = null
+    var file_path: String? = null,
+    var download_progress: Int = 0
 )
     fun TemplateEntity.toExportResultFinal(
     ): ExportResult {

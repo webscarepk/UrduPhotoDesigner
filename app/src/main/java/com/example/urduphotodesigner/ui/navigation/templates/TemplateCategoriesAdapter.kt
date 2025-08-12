@@ -14,6 +14,33 @@ class TemplateCategoriesAdapter(
     private val onTemplateClick: (TemplateEntity, Boolean) -> Unit
 ) : ListAdapter<HomeRow, TemplateCategoriesAdapter.CategoryVH>(Diff()) {
 
+    init {
+        setHasStableIds(true)
+    }
+    override fun getItemId(position: Int): Long {
+        val row = currentList[position] as HomeRow.CategoryRow
+        return row.title.hashCode().toLong() // stable per category
+    }
+
+    private var hostRv: RecyclerView? = null
+    private val progressById = mutableMapOf<Int, ProgressUi>()
+
+    data class ProgressUi(
+        val progress: Int,
+        val isDownloading: Boolean,
+        val isDownloaded: Boolean,
+        val filePath: String? = null
+    )
+
+    override fun onAttachedToRecyclerView(rv: RecyclerView) {
+        super.onAttachedToRecyclerView(rv)
+        hostRv = rv
+    }
+    override fun onDetachedFromRecyclerView(rv: RecyclerView) {
+        super.onDetachedFromRecyclerView(rv)
+        hostRv = null
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CategoryVH {
         val binding = LayoutCategoryRowBinding.inflate(
             LayoutInflater.from(parent.context), parent, false
@@ -28,7 +55,10 @@ class TemplateCategoriesAdapter(
     inner class CategoryVH(private val b: LayoutCategoryRowBinding) :
         RecyclerView.ViewHolder(b.root) {
 
-        private val miniAdapter = TemplatesMiniAdapter(onTemplateClick)
+        private val miniAdapter = TemplatesMiniAdapter(
+            onClick = onTemplateClick,
+            progressProvider = { id -> progressById[id] }
+        )
 
         init {
             b.listRV.adapter = miniAdapter
@@ -38,8 +68,38 @@ class TemplateCategoriesAdapter(
         fun bind(row: HomeRow.CategoryRow) {
             b.title.text = row.title
             b.seeAll.setOnClickListener { onSeeAll(row.title) }
-            miniAdapter.submitList(row.templates)
+
+            val current = miniAdapter.currentList
+            val same = current.size == row.templates.size &&
+                    current.zip(row.templates).all { (a, b) -> a.id == b.id }
+            if (!same) {
+                miniAdapter.submitList(row.templates)
+            }
         }
+
+        fun updateChildProgress(templateId: Int, state: ProgressUi) {
+            miniAdapter.updateProgress(templateId, state) // payload down to one item
+        }
+    }
+
+    fun updateTemplateProgress(
+        templateId: Int,
+        progress: Int,
+        isDownloading: Boolean,
+        isDownloaded: Boolean,
+        filePath: String? = null
+    ) {
+        // cache UI state
+        val state = ProgressUi(progress, isDownloading, isDownloaded, filePath)
+        progressById[templateId] = state
+
+        // find which row has this template
+        val rowIndex = currentList.indexOfFirst { row ->
+            row is HomeRow.CategoryRow && row.templates.any { it.id == templateId }
+        }
+        if (rowIndex == -1) return
+        val holder = hostRv?.findViewHolderForAdapterPosition(rowIndex) as? CategoryVH
+        holder?.updateChildProgress(templateId, state)
     }
 
     class Diff : DiffUtil.ItemCallback<HomeRow>() {

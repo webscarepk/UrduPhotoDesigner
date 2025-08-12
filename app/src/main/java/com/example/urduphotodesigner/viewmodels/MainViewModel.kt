@@ -230,40 +230,38 @@ class MainViewModel @Inject constructor(
 
     fun downloadTemplate(template: TemplateEntity) {
         viewModelScope.launch {
+            // UI-only progress; DO NOT write is_downloading to DB here
             _templateDownloadState.value =
-                TemplateDownloadState.Progress(0, template.copy(is_downloading = true))
-            updateTemplateStatusUseCase.invoke(template.id.toString(), true)
+                TemplateDownloadState.Progress(0, template.copy(is_downloading = true, download_progress = 0))
 
             try {
-                // Reuse the same repository/downloader
                 val downloadedFile = fontRepository.downloadFont(
                     fontUrl  = template.json_url,
                     fileName = "template_${template.id}.json",
                     onProgress = { progress ->
                         _templateDownloadState.value =
-                            TemplateDownloadState.Progress(progress, template.copy(is_downloading = true))
+                            TemplateDownloadState.Progress(progress, template.copy(is_downloading = true, download_progress = progress))
                     }
                 )
 
+                // Only persist final state
                 updateTemplatesUseCase.invoke(
                     template.id.toString(),
                     isDownloaded = true,
-                    isDownloading = false,
+                    isDownloading = false,  // if this field exists in DB, set false ONCE here
                     filePath = downloadedFile.absolutePath
                 )
 
                 val updated = template.copy(
                     is_downloaded = true,
-                    file_path = downloadedFile.absolutePath
+                    file_path = downloadedFile.absolutePath,
+                    download_progress = 100
                 )
-
-                _templateDownloadState.value =
-                    TemplateDownloadState.SuccessWithTemplate(downloadedFile, updated)
+                _templateDownloadState.value = TemplateDownloadState.SuccessWithTemplate(downloadedFile, updated)
 
             } catch (e: Exception) {
-                updateTemplateStatusUseCase.invoke(template.id.toString(), false)
-                _templateDownloadState.value =
-                    TemplateDownloadState.Error(e.message ?: "Download failed")
+                // DO NOT write is_downloading=false to DB either (avoid extra emit)
+                _templateDownloadState.value = TemplateDownloadState.Error(e.message ?: "Download failed")
             }
         }
     }
