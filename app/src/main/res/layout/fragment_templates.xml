@@ -118,4 +118,20 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:clipToPadding="false"/>
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/categoryChips"
+        android:layout_width="0dp"
+        android:visibility="gone"
+        android:layout_height="wrap_content"
+        android:background="@color/contrast"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/searchBar"
+        app:singleLine="false"
+        app:singleSelection="true"
+        android:paddingVertical="@dimen/_18sdp"
+        android:paddingHorizontal="@dimen/_18sdp"
+        app:chipSpacingHorizontal="@dimen/_6sdp"
+        app:chipSpacingVertical="@dimen/_6sdp"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

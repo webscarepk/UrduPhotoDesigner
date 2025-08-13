@@ -1,0 +1,4 @@
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true" android:color="@color/light_gray"/>
+    <item android:color="@color/light_gray"/>  <!-- ~12% black like your mock -->
+</selector>

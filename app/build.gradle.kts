@@ -114,4 +114,7 @@ dependencies {
 
     //Shimmer
     implementation(libs.shimmer)
+
+    //Swipe refresh
+    implementation(libs.androidx.swiperefreshlayout)
 }

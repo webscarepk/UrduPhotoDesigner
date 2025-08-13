@@ -114,7 +114,7 @@ class MainViewModel @Inject constructor(
     fun updateGradient(g: GradientItem)   = viewModelScope.launch { update(g) }
     fun insertGradient(g: GradientItem)   = viewModelScope.launch { insert(g) }
 
-    private fun fetchAndStoreTemplatesFromApi() {
+    fun fetchAndStoreTemplatesFromApi() {
         viewModelScope.launch {
             fetchAPITemplatesUseCase().collect { response ->
                 when (response) {
@@ -248,7 +248,7 @@ class MainViewModel @Inject constructor(
                 updateTemplatesUseCase.invoke(
                     template.id.toString(),
                     isDownloaded = true,
-                    isDownloading = false,  // if this field exists in DB, set false ONCE here
+                    isDownloading = false,
                     filePath = downloadedFile.absolutePath
                 )
 

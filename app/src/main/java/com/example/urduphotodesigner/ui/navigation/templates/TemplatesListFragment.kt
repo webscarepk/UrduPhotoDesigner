@@ -5,10 +5,15 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.doOnPreDraw
+import androidx.core.view.isGone
+import androidx.core.view.isVisible
+import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.example.urduphotodesigner.R
@@ -16,6 +21,7 @@ import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.canvas.sealed.TemplateDownloadState
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.common.utils.showGlobalSuccessSnack
 import com.example.urduphotodesigner.data.model.TemplateEntity
 import com.example.urduphotodesigner.data.model.toExportResultFinal
@@ -27,6 +33,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 @AndroidEntryPoint
 class TemplatesListFragment : Fragment() {
@@ -43,6 +50,14 @@ class TemplatesListFragment : Fragment() {
     private var loadingDialog: AlertDialog? = null
     private var dialogBinding: DialogLoadingProgressBinding? = null
     private lateinit var sizeAdapter: CanvasSizeAdapter
+    private lateinit var sglm: StaggeredGridLayoutManager
+
+    private var baseTemplates: List<TemplateEntity> = emptyList() // only the selected category
+    private var activeSubcategory: String = "All"
+    private var activeSize: CanvasSize? = null
+    private var activeQuery: String = ""
+    private var suppressChipClicks = false
+    private var filterPanelVisible = false
 
     private val sizeList = listOf(
         CanvasSize("Instagram Story", 1080f, 1920f),
@@ -84,6 +99,19 @@ class TemplatesListFragment : Fragment() {
     }
 
     private fun setEvents() {
+        binding.searchBar.doAfterTextChanged {
+            activeQuery = it?.toString().orEmpty()
+            applyFiltersList()
+        }
+
+        binding.filters.addPressEffect { toggleFilterPanel() }
+        binding.swipeRefresh.setColorSchemeResources(
+            R.color.appColor, R.color.black, R.color.gray
+        )
+        binding.swipeRefresh.setOnRefreshListener {
+            mainViewModel.fetchAndStoreTemplatesFromApi()
+        }
+
         binding.back.setOnClickListener { findNavController().navigateUp() }
     }
 
@@ -105,12 +133,117 @@ class TemplatesListFragment : Fragment() {
         dialogBinding = null
     }
 
+    private fun toggleFilterPanel() {
+        val panel = binding.subCategoryChips
+        val bar = binding.searchBar
+
+        if (!filterPanelVisible) {
+            panel.isVisible = true
+            panel.doOnPreDraw {
+                // keep the bar on top
+                bar.bringToFront()
+                bar.elevation = resources.getDimension(com.intuit.sdp.R.dimen._2sdp)
+                panel.elevation = resources.getDimension(com.intuit.sdp.R.dimen._1sdp)
+
+                // start just behind the bar
+                panel.translationY = -panel.height.toFloat()
+                panel.alpha = 0f
+                panel.animate()
+                    .translationY(0f)
+                    .alpha(1f)
+                    .setDuration(200)
+                    .start()
+            }
+        } else {
+            panel.animate()
+                .translationY(-panel.height.toFloat())
+                .alpha(0f)
+                .setDuration(180)
+                .withEndAction { panel.isGone = true }
+                .start()
+        }
+        filterPanelVisible = !filterPanelVisible
+    }
+
+    private fun renderSubcategoryChips(subcats: List<String>) {
+        val cg = binding.subCategoryChips
+        cg.isSingleSelection = true
+        cg.isSelectionRequired = false
+        cg.removeAllViews()
+
+        val selected = activeSubcategory
+        subcats.forEach { label ->
+            val chip = layoutInflater.inflate(
+                R.layout.chip_filter_item, cg, false
+            ) as com.google.android.material.chip.Chip
+            chip.id = View.generateViewId()
+            chip.text = label
+            chip.isCheckable = true
+            chip.isChecked = label.equals(selected, true)
+            cg.addView(chip)
+
+            // Toggle logic on click
+            chip.addPressEffect {
+                if (suppressChipClicks) return@addPressEffect
+
+                val clickedText = chip.text.toString()
+                val clickedIsSelected = chip.isChecked
+
+                if (clickedIsSelected && !clickedText.equals("All", true)) {
+                    // Tapped the same non-All chip -> switch to All
+                    val allChip = findChipByText(cg, "All")
+                    if (allChip != null) {
+                        suppressChipClicks = true
+                        cg.clearCheck()
+                        allChip.isChecked = true
+                        suppressChipClicks = false
+                        activeSubcategory = "All"
+                    }
+                } else {
+                    // Normal selection (or tapping All)
+                    suppressChipClicks = true
+                    cg.clearCheck()
+                    chip.isChecked = true
+                    suppressChipClicks = false
+                    activeSubcategory = clickedText
+                }
+
+                applyFiltersList()
+                if (filterPanelVisible) toggleFilterPanel()
+
+            }
+        }
+
+        // If saved selection no longer exists, fall back to All
+        if (!subcats.any { it.equals(selected, true) }) {
+            val allChip = findChipByText(cg, "All")
+            if (allChip != null) {
+                suppressChipClicks = true
+                cg.clearCheck()
+                allChip.isChecked = true
+                suppressChipClicks = false
+                activeSubcategory = "All"
+            }
+        }
+    }
+
+    private fun findChipByText(group: ViewGroup, text: String): com.google.android.material.chip.Chip? =
+        (0 until group.childCount)
+            .mapNotNull { group.getChildAt(it) as? com.google.android.material.chip.Chip }
+            .firstOrNull { it.text.toString().equals(text, true) }
+
     private fun setupRecycler() {
         binding.title.text = currentCategory
 
-        sizeAdapter = CanvasSizeAdapter(sizeList, onClick = { selected ->
-            sizeAdapter.selectedSizeName = selected.name
-        }, false)
+        sizeAdapter = CanvasSizeAdapter(
+            sizeList,
+            onClick = { selected ->
+                activeSize = if (activeSize?.name == selected.name) null else selected
+                sizeAdapter.selectedSizeName = activeSize?.name ?: ""
+                applyFiltersList()
+            },
+            false
+        )
         binding.sizesRV.adapter = sizeAdapter
 
         adapter = TemplatesAdapter { template, isDownloaded ->
@@ -140,42 +273,117 @@ class TemplatesListFragment : Fragment() {
             mainViewModel.downloadTemplate(template)
         }
 
-        binding.templatesRV.setHasFixedSize(true)
-        binding.templatesRV.adapter = adapter
-        binding.templatesRV.itemAnimator = null
+        sglm = StaggeredGridLayoutManager(2, RecyclerView.VERTICAL).apply {
+            gapStrategy = StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS
+        }
+
+        binding.templatesRV.apply {
+            layoutManager = sglm
+            adapter = this@TemplatesListFragment.adapter
+            setHasFixedSize(true)
+            isNestedScrollingEnabled = false
+            (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+            itemAnimator = null
+        }
+    }
+
+    private fun rebalanceSpans() {
+        binding.templatesRV.post {
+            (binding.templatesRV.layoutManager as? StaggeredGridLayoutManager)
+                ?.invalidateSpanAssignments()
+        }
+    }
+
+    private fun filterTemplatesList(
+        source: List<TemplateEntity>,
+        subcategory: String,
+        query: String,
+        size: CanvasSize?
+    ): List<TemplateEntity> {
+        // 1) subcategory
+        val bySub = if (subcategory.equals("All", true)) source
+        else source.filter { it.subcategory.equals(subcategory, true) }
+
+        // 2) search (optional)
+        val q = query.trim().lowercase()
+        val byQuery = if (q.isBlank()) bySub else bySub.filter { it.matchesQuery(q) }
+
+        // 3) size
+        return size?.let { s -> byQuery.filter { it.matchesSize(s) } } ?: byQuery
+    }
+
+    private fun applyFiltersList() {
+        val filtered = filterTemplatesList(baseTemplates, activeSubcategory, activeQuery, activeSize)
+        submitGridPreservingOrder(filtered)
+        rebalanceSpans()
+    }
+
+    private fun submitGridPreservingOrder(filtered: List<TemplateEntity>) {
+        val current = adapter.currentList
+        if (current.isEmpty()) {
+            adapter.submitList(filtered)
+            return
+        }
+        val byId = filtered.associateBy { it.id }
+        val merged = buildList {
+            current.forEach { cur -> byId[cur.id]?.let { add(it) } } // keep visible order
+            filtered.forEach { f -> if (current.none { it.id == f.id }) add(f) } // append new
+        }
+        adapter.submitList(merged)
+    }
+
+    private fun TemplateEntity.matchesQuery(q: String): Boolean {
+        val haystack = buildString {
+            append(category ?: "").append(' ')
+            append(subcategory ?: "").append(' ')
+            append(template_name ?: "").append(' ')
+            append(canvas_width).append(' ')
+            append(canvas_height).append(' ')
+            append(tags.joinToString(" ") ?: "")
+        }.lowercase()
+        return haystack.contains(q)
+    }
+
+    private fun TemplateEntity.matchesSize(s: CanvasSize): Boolean {
+        val sw = s.width.roundToInt()
+        val sh = s.height.roundToInt()
+        val iw = canvas_width
+        val ih = canvas_height
+        // exact pixel match, portrait or landscape (if you want both orientations)
+        return (iw == sw && ih == sh)
     }
 
     private fun observeData() {
         // 1) List stream: keep current on-screen order when new data arrives
         viewLifecycleOwner.lifecycleScope.launch {
             mainViewModel.localTemplates.collect { all ->
-                val filtered = if (currentCategory.equals("All", true)) {
+                // Filter by the category sent via TAB_NAME once, keep as base
+                binding.swipeRefresh.isRefreshing = false
+                baseTemplates = if (currentCategory.equals("All", true)) {
                     all
                 } else {
                     all.filter { it.category.equals(currentCategory, true) }
                 }
 
-                val current = adapter.currentList
-                if (current.isEmpty()) {
-                    adapter.submitList(filtered)
-                } else {
-                    val byId = filtered.associateBy { it.id }
-                    // Preserve order for items already shown
-                    val merged = buildList {
-                        current.forEach { cur ->
-                            byId[cur.id]?.let { add(it) }
-                        }
-                        // Append any new items not present before (stable add)
-                        filtered.forEach { f ->
-                            if (current.none { it.id == f.id }) add(f)
-                        }
-                    }
-                    adapter.submitList(merged)
+                // Build subcategory chips from baseTemplates
+                val subcats = buildList {
+                    add("All")
+                    addAll(
+                        baseTemplates
+                            .map { it.subcategory.trim().orEmpty() }
+                            .filter { it.isNotEmpty() }
+                            .distinct()
+                            .sorted()
+                    )
                 }
+                renderSubcategoryChips(subcats)
+
+                applyFiltersList()
             }
         }
 
         viewModel.isLoadingTemplate.observe(viewLifecycleOwner) { isLoading ->
+            binding.swipeRefresh.isRefreshing = false
             if (isLoading == true) {
                 showLoadingDialog()
             } else if (isLoading == false) {
@@ -202,6 +410,7 @@ class TemplatesListFragment : Fragment() {
                     }
 
                     is TemplateDownloadState.SuccessWithTemplate -> {
+                        binding.swipeRefresh.isRefreshing = false
                         val t = state.template
                         downloadingTemplate = t
 
