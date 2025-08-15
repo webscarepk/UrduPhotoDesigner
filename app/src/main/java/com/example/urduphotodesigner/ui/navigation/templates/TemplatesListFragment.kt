@@ -31,6 +31,7 @@ import com.example.urduphotodesigner.ui.creation.CanvasSizeAdapter
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
@@ -51,6 +52,9 @@ class TemplatesListFragment : Fragment() {
     private var dialogBinding: DialogLoadingProgressBinding? = null
     private lateinit var sizeAdapter: CanvasSizeAdapter
     private lateinit var sglm: StaggeredGridLayoutManager
+    private var shuffleAfterRefresh = false
+    private var lastListSize = 0
+    private var filterJob: Job? = null
 
     private var baseTemplates: List<TemplateEntity> = emptyList() // only the selected category
     private var activeSubcategory: String = "All"
@@ -109,6 +113,11 @@ class TemplatesListFragment : Fragment() {
             R.color.appColor, R.color.black, R.color.gray
         )
         binding.swipeRefresh.setOnRefreshListener {
+            shuffleAfterRefresh = true
+            binding.templatesRV.stopScroll()
+            binding.templatesRV.scrollToPosition(0)
+
+            binding.templatesRV.suppressLayout(true)
             mainViewModel.fetchAndStoreTemplatesFromApi()
         }
 
@@ -138,6 +147,7 @@ class TemplatesListFragment : Fragment() {
         val bar = binding.searchBar
 
         if (!filterPanelVisible) {
+            binding.swipeRefresh.isEnabled = false
             panel.isVisible = true
             panel.doOnPreDraw {
                 // keep the bar on top
@@ -162,6 +172,7 @@ class TemplatesListFragment : Fragment() {
                 .withEndAction { panel.isGone = true }
                 .start()
         }
+        binding.swipeRefresh.isEnabled = true
         filterPanelVisible = !filterPanelVisible
     }
 
@@ -275,23 +286,24 @@ class TemplatesListFragment : Fragment() {
 
         sglm = StaggeredGridLayoutManager(2, RecyclerView.VERTICAL).apply {
             gapStrategy = StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS
+            isItemPrefetchEnabled = true
         }
 
         binding.templatesRV.apply {
             layoutManager = sglm
             adapter = this@TemplatesListFragment.adapter
             setHasFixedSize(true)
-            isNestedScrollingEnabled = false
             (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
             itemAnimator = null
+            setItemViewCacheSize(24)
         }
-    }
 
-    private fun rebalanceSpans() {
-        binding.templatesRV.post {
-            (binding.templatesRV.layoutManager as? StaggeredGridLayoutManager)
-                ?.invalidateSpanAssignments()
-        }
+        binding.templatesRV.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {
+                // enable only when at top and filter panel is hidden
+                binding.swipeRefresh.isEnabled = !rv.canScrollVertically(-1) && !filterPanelVisible
+            }
+        })
     }
 
     private fun filterTemplatesList(
@@ -312,34 +324,43 @@ class TemplatesListFragment : Fragment() {
         return size?.let { s -> byQuery.filter { it.matchesSize(s) } } ?: byQuery
     }
 
-    private fun applyFiltersList() {
-        val filtered = filterTemplatesList(baseTemplates, activeSubcategory, activeQuery, activeSize)
-        submitGridPreservingOrder(filtered)
-        rebalanceSpans()
+    private fun applyFiltersList(forceShuffle: Boolean = false) {
+        filterJob?.cancel()
+        filterJob = viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Default) {
+            val filtered = filterTemplatesList(baseTemplates, activeSubcategory, activeQuery, activeSize)
+            val result = if (forceShuffle) filtered.shuffled() else mergePreservingOrder(filtered)
+
+            withContext(Dispatchers.Main) {
+                adapter.submitList(result) {
+                    // Recompute columns to avoid jump/gaps
+                    sglm.invalidateSpanAssignments()
+                    // Keep it at top if we were already at top during refresh
+                    if (!binding.templatesRV.canScrollVertically(-1)) {
+                        binding.templatesRV.scrollToPosition(0)
+                    }
+                }
+            }
+        }
     }
 
-    private fun submitGridPreservingOrder(filtered: List<TemplateEntity>) {
+    private fun mergePreservingOrder(filtered: List<TemplateEntity>): List<TemplateEntity> {
         val current = adapter.currentList
-        if (current.isEmpty()) {
-            adapter.submitList(filtered)
-            return
+        if (current.isEmpty()) return filtered
+        return buildList {
+            val byId = filtered.associateBy { it.id }
+            current.forEach { cur -> byId[cur.id]?.let { add(it) } }
+            filtered.forEach { f -> if (current.none { it.id == f.id }) add(f) }
         }
-        val byId = filtered.associateBy { it.id }
-        val merged = buildList {
-            current.forEach { cur -> byId[cur.id]?.let { add(it) } } // keep visible order
-            filtered.forEach { f -> if (current.none { it.id == f.id }) add(f) } // append new
-        }
-        adapter.submitList(merged)
     }
 
     private fun TemplateEntity.matchesQuery(q: String): Boolean {
         val haystack = buildString {
-            append(category ?: "").append(' ')
-            append(subcategory ?: "").append(' ')
-            append(template_name ?: "").append(' ')
+            append(category).append(' ')
+            append(subcategory).append(' ')
+            append(template_name).append(' ')
             append(canvas_width).append(' ')
             append(canvas_height).append(' ')
-            append(tags.joinToString(" ") ?: "")
+            append(tags.joinToString(" "))
         }.lowercase()
         return haystack.contains(q)
     }
@@ -354,7 +375,23 @@ class TemplatesListFragment : Fragment() {
     }
 
     private fun observeData() {
-        // 1) List stream: keep current on-screen order when new data arrives
+        viewLifecycleOwner.lifecycleScope.launch {
+            mainViewModel.isLoading.collect { loading ->
+                if (!loading && binding.swipeRefresh.isRefreshing) {
+                    binding.swipeRefresh.isRefreshing = false
+                    binding.templatesRV.suppressLayout(false)
+
+                    if (shuffleAfterRefresh) {
+                        shuffleAfterRefresh = false
+                        // Submit, then fix spans
+                        applyFiltersList(forceShuffle = true)
+                    } else {
+                        sglm.invalidateSpanAssignments()
+                    }
+                }
+            }
+        }
+
         viewLifecycleOwner.lifecycleScope.launch {
             mainViewModel.localTemplates.collect { all ->
                 // Filter by the category sent via TAB_NAME once, keep as base
@@ -370,13 +407,16 @@ class TemplatesListFragment : Fragment() {
                     add("All")
                     addAll(
                         baseTemplates
-                            .map { it.subcategory.trim().orEmpty() }
+                            .map { it.subcategory.trim() }
                             .filter { it.isNotEmpty() }
                             .distinct()
                             .sorted()
                     )
                 }
-                renderSubcategoryChips(subcats)
+                val cg = binding.subCategoryChips
+                val current = (0 until cg.childCount)
+                    .mapNotNull { (cg.getChildAt(it) as? com.google.android.material.chip.Chip)?.text?.toString() }
+                if (current != subcats) renderSubcategoryChips(subcats)
 
                 applyFiltersList()
             }

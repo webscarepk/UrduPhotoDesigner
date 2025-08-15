@@ -30,7 +30,7 @@ object Utils {
                 MotionEvent.ACTION_DOWN -> {
                     isInside = true
                     v.animate()
-                        .scaleX(0.9f) // more noticeable shrink
+                        .scaleX(0.9f)
                         .scaleY(0.9f)
                         .setDuration(80)
                         .start()

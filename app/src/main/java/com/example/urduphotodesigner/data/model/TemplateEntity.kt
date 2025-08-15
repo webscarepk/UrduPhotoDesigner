@@ -19,7 +19,7 @@ data class TemplateEntity(
     val category: String,
     val subcategory: String,
     val tags: List<String>,
-    val is_premium: Int,
+    val is_premium: Boolean,
     val created_at: String,
     val updated_at: String,
     var is_downloaded:Boolean = false,

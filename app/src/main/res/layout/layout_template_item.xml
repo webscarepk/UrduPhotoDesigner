@@ -6,14 +6,14 @@
     android:layout_marginEnd="@dimen/_5sdp"
     android:layout_marginBottom="@dimen/_5sdp"
     app:cardBackgroundColor="@color/selection"
-    android:maxHeight="@dimen/_140sdp"
-    app:cardCornerRadius="@dimen/_5sdp"
+    app:cardCornerRadius="@dimen/_8sdp"
     app:cardElevation="0dp"
     app:strokeWidth="0dp">
 
-    <FrameLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:id="@+id/itemLayout">
 
         <com.facebook.shimmer.ShimmerFrameLayout
             android:id="@+id/shimmerLayout"
@@ -22,6 +22,10 @@
             app:shimmer_auto_start="true"
             app:shimmer_base_alpha="0.5"
             app:shimmer_duration="1000"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:shimmer_base_color="@color/contrast"
             app:shimmer_colored="true"
             app:shimmer_highlight_alpha="1.0">
@@ -47,6 +51,8 @@
             android:paddingVertical="@dimen/_2sdp"
             android:layout_gravity="end|bottom"
             android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             android:layout_margin="@dimen/_10sdp">
             <ProgressBar
                 android:id="@+id/progressBar"
@@ -72,12 +78,14 @@
             android:layout_width="@dimen/_20sdp"
             android:layout_height="@dimen/_20sdp"
             android:layout_gravity="end|bottom"
-            android:layout_margin="@dimen/_3sdp"
+            android:layout_margin="@dimen/_5sdp"
             android:src="@drawable/ic_download"
-            android:visibility="gone"
+            android:visibility="visible"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             android:background="@drawable/button_bg_round"
             android:backgroundTint="@color/white"
             android:padding="@dimen/_5sdp"
             app:tint="@color/appColor" />
-    </FrameLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>

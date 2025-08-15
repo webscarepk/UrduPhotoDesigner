@@ -80,6 +80,7 @@ class MainViewModel @Inject constructor(
     val templateDownloadState: StateFlow<TemplateDownloadState?> = _templateDownloadState
 
     private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
@@ -136,7 +137,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private fun observeLocalTemplates() {
+    fun observeLocalTemplates() {
         viewModelScope.launch {
             getTemplatesUseCase().collect { templates ->
                 _localTemplates.value = templates

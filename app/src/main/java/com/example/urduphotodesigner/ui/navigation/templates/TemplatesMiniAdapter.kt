@@ -14,6 +14,7 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.example.urduphotodesigner.R
+import com.example.urduphotodesigner.common.utils.Constants
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.data.model.TemplateEntity
 import com.example.urduphotodesigner.databinding.LayoutTemplateCategoryBinding
@@ -40,7 +41,7 @@ class TemplatesMiniAdapter(
             }
 
             // Thumbnail
-            val url = item.thumbnail_url
+            val url = Constants.BASE_URL_GLIDE + item.thumbnail_url
 
             Glide.with(binding.root.context)
                 .load(url)
