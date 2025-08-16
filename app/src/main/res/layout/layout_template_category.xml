@@ -1,11 +1,11 @@
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/fontCard"
-    android:layout_width="@dimen/_60sdp"
-    android:layout_height="@dimen/_60sdp"
-    android:layout_marginEnd="@dimen/_5sdp"
+    android:layout_width="75dp"
+    android:layout_height="75dp"
+    android:layout_marginEnd="6dp"
     app:cardBackgroundColor="@color/selection"
-    app:cardCornerRadius="@dimen/_8sdp"
+    app:cardCornerRadius="10dp"
     app:cardElevation="0dp"
     app:strokeWidth="0dp">
 
@@ -41,11 +41,11 @@
             android:orientation="horizontal"
             android:background="@drawable/button_bg_round"
             android:backgroundTint="@color/appColor"
-            android:paddingHorizontal="@dimen/_3sdp"
-            android:paddingVertical="@dimen/_2sdp"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="3dp"
             android:layout_gravity="end|bottom"
             android:visibility="gone"
-            android:layout_margin="@dimen/_3sdp">
+            android:layout_margin="4dp">
             <ProgressBar
                 android:id="@+id/progressBar"
                 style="?android:attr/progressBarStyleSmall"
@@ -53,29 +53,29 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:indeterminate="true"
-                android:layout_marginEnd="@dimen/_5sdp"
+                android:layout_marginEnd="6dp"
                 android:indeterminateTint="@color/white"/>
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="28%"
                 android:textColor="@color/white"
-                android:textSize="@dimen/_8sdp"
+                android:textSize="10sp"
                 android:fontFamily="@font/medium"
                 android:id="@+id/percentage"/>
         </LinearLayout>
 
         <ImageView
             android:id="@+id/download"
-            android:layout_width="@dimen/_16sdp"
-            android:layout_height="@dimen/_16sdp"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
             android:layout_gravity="end|bottom"
-            android:layout_margin="@dimen/_3sdp"
+            android:layout_margin="4dp"
             android:src="@drawable/ic_download"
             android:visibility="gone"
             android:background="@drawable/button_bg_round"
             android:backgroundTint="@color/white"
-            android:padding="@dimen/_5sdp"
+            android:padding="6dp"
             app:tint="@color/appColor" />
     </FrameLayout>
 </com.google.android.material.card.MaterialCardView>

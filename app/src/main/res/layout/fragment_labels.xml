@@ -10,7 +10,7 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:padding="@dimen/_1sdp"
+        android:padding="1dp"
         android:background="@drawable/button_bg"
         android:backgroundTint="@color/selection"
         app:layout_constraintStart_toStartOf="parent"
@@ -23,14 +23,14 @@
             android:layout_height="wrap_content"
             android:text="@string/solid"
             android:textColor="@color/black"
-            android:textSize="@dimen/_10sdp"
+            android:textSize="12sp"
             android:fontFamily="@font/medium"
             android:gravity="center"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/gradient"
-            android:paddingVertical="@dimen/_2sdp"
+            android:paddingVertical="3dp"
             android:background="@drawable/button_bg"
             android:backgroundTint="@color/white"/>
 
@@ -40,21 +40,21 @@
             android:layout_height="wrap_content"
             android:text="@string/gradient"
             android:textColor="@color/black"
-            android:textSize="@dimen/_10sdp"
+            android:textSize="12sp"
             android:fontFamily="@font/medium"
             android:gravity="center"
             app:layout_constraintStart_toEndOf="@id/solid"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            android:paddingVertical="@dimen/_2sdp"
+            android:paddingVertical="3dp"
             android:background="@drawable/button_bg"
             android:backgroundTint="@color/contrast"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_marginTop="@dimen/_5sdp"
+        android:layout_marginTop="6dp"
         android:id="@+id/views"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -93,7 +93,7 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.recyclerview.widget.RecyclerView
-        android:layout_marginTop="@dimen/_5sdp"
+        android:layout_marginTop="6dp"
         android:layout_width="wrap_content"
         android:layout_height="0dp"
         app:layout_constraintStart_toStartOf="parent"

@@ -5,10 +5,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <com.example.urduphotodesigner.common.views.FramePreviewView
-        android:layout_width="@dimen/_45sdp"
-        android:layout_height="@dimen/_45sdp"
-        android:layout_margin="@dimen/_5sdp"
-        android:translationZ="@dimen/_1sdp"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_margin="6dp"
+        android:translationZ="1dp"
         android:background="@drawable/button_bg_stroke_fill"
         app:layout_constraintStart_toStartOf="@id/title"
         app:layout_constraintEnd_toEndOf="@id/title"
@@ -23,12 +23,12 @@
         android:text="@string/billboard"
         android:fontFamily="@font/medium"
         android:maxLines="1"
-        android:textSize="@dimen/_10sdp"
+        android:textSize="12sp"
         android:textColor="@color/gray"
         android:ellipsize="end"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_marginTop="@dimen/_5sdp"/>
+        android:layout_marginTop="6dp"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -3,8 +3,8 @@
     android:orientation="horizontal"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingVertical="@dimen/_5sdp"
-    android:paddingHorizontal="@dimen/_10sdp"
+    android:paddingVertical="6dp"
+    android:paddingHorizontal="12dp"
     android:gravity="center_vertical"
     android:background="@drawable/button_bg"
     android:backgroundTint="@android:color/transparent">
@@ -15,6 +15,6 @@
         android:layout_height="wrap_content"
         android:textColor="@color/black"
         android:fontFamily="@font/regular"
-        android:textSize="@dimen/_10sdp"
+        android:textSize="12sp"
         android:text="Multiply"/>
 </LinearLayout>

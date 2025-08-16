@@ -24,8 +24,8 @@
             android:fontFamily="@font/medium"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            android:textSize="@dimen/_10sdp"
-            android:layout_marginStart="@dimen/_10sdp"
+            android:textSize="12sp"
+            android:layout_marginStart="12dp"
             android:textColor="@color/black"/>
 
         <TextView
@@ -36,17 +36,17 @@
             app:layout_constraintTop_toTopOf="@id/opacityTitle"
             app:layout_constraintBottom_toBottomOf="@id/opacityTitle"
             app:layout_constraintStart_toEndOf="@id/opacityTitle"
-            android:textSize="@dimen/_10sdp"
+            android:textSize="12sp"
             android:background="@drawable/edit_bg_stroke"
-            android:paddingHorizontal="@dimen/_5sdp"
-            android:paddingVertical="@dimen/_3sdp"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="4dp"
             android:textColor="@color/black"
-            android:layout_marginStart="@dimen/_5sdp"
+            android:layout_marginStart="6dp"
             android:id="@+id/opacitySize"/>
 
         <SeekBar
             android:id="@+id/opacity"
-            android:layout_marginTop="@dimen/_2sdp"
+            android:layout_marginTop="3dp"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             app:layout_constraintStart_toStartOf="parent"
@@ -75,8 +75,8 @@
             android:fontFamily="@font/medium"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            android:textSize="@dimen/_10sdp"
-            android:layout_marginStart="@dimen/_10sdp"
+            android:textSize="12sp"
+            android:layout_marginStart="12dp"
             android:textColor="@color/black"/>
 
         <TextView
@@ -87,18 +87,18 @@
             app:layout_constraintTop_toTopOf="@id/radiusTitle"
             app:layout_constraintBottom_toBottomOf="@id/radiusTitle"
             app:layout_constraintStart_toEndOf="@id/radiusTitle"
-            android:textSize="@dimen/_10sdp"
+            android:textSize="12sp"
             android:background="@drawable/edit_bg_stroke"
-            android:paddingHorizontal="@dimen/_5sdp"
-            android:paddingVertical="@dimen/_3sdp"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="4dp"
             android:textColor="@color/black"
-            android:layout_marginStart="@dimen/_5sdp"
+            android:layout_marginStart="6dp"
             android:id="@+id/radiusSize"/>
 
 
         <SeekBar
             android:id="@+id/radius"
-            android:layout_marginTop="@dimen/_2sdp"
+            android:layout_marginTop="3dp"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             app:layout_constraintStart_toStartOf="parent"

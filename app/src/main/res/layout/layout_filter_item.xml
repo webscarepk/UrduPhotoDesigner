@@ -20,8 +20,8 @@
 
         <ImageView
             android:id="@+id/filterPreview"
-            android:layout_width="@dimen/_40sdp"
-            android:layout_height="@dimen/_40sdp"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
             android:scaleType="centerCrop"
             android:background="@drawable/ic_launcher_background"
             android:contentDescription="Filter preview" />
@@ -35,6 +35,6 @@
         android:text="Filter Name"
         android:fontFamily="@font/regular"
         android:textColor="@color/black"
-        android:textSize="@dimen/_10sdp"
+        android:textSize="12sp"
         android:paddingTop="4dp"/>
 </LinearLayout>

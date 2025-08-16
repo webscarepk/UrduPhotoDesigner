@@ -7,16 +7,16 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.data.model.FontCategory
+import com.example.urduphotodesigner.data.model.FontLanguages
 import com.example.urduphotodesigner.databinding.LayoutTabsItemBinding
 
-class FontCategoryAdapter(
-    private val onFontSelected: (FontCategory) -> Unit
-) : RecyclerView.Adapter<FontCategoryAdapter.FontViewHolder>() {
+class FontLanguagesAdapter(
+    private val onFontSelected: (FontLanguages) -> Unit
+) : RecyclerView.Adapter<FontLanguagesAdapter.FontViewHolder>() {
 
-    private val fonts = mutableListOf<FontCategory>()
+    private val fonts = mutableListOf<FontLanguages>()
 
-    fun submitList(newList: List<FontCategory>) {
+    fun submitList(newList: List<FontLanguages>) {
         fonts.clear()
         fonts.addAll(newList)
         notifyDataSetChanged()
@@ -36,7 +36,7 @@ class FontCategoryAdapter(
 
     inner class FontViewHolder(private val binding: LayoutTabsItemBinding) :
         RecyclerView.ViewHolder(binding.root) {
-        fun bind(font: FontCategory) {
+        fun bind(font: FontLanguages) {
 
             if (font.is_selected) {
                 binding.root.backgroundTintList = ColorStateList.valueOf(

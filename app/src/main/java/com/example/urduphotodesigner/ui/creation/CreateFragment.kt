@@ -20,11 +20,13 @@ import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentCreateBinding
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class CreateFragment : Fragment() {
+class CreateFragment : BottomSheetDialogFragment() {
     private var _binding: FragmentCreateBinding? = null
     private val binding get() = _binding!!
 
@@ -137,6 +139,7 @@ class CreateFragment : Fragment() {
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(selected)
                 findNavController().navigate(R.id.editorFragment, bundle)
+                dismiss()
             }, true)
             sizesRV.adapter = adapter
 
@@ -229,9 +232,10 @@ class CreateFragment : Fragment() {
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(canvasSize)
                 findNavController().navigate(R.id.editorFragment, bundle)
+                dismiss()
             }
 
-            back.addPressEffect { findNavController().navigateUp() }
+            back.addPressEffect { dismiss() }
         }
     }
 
@@ -267,6 +271,21 @@ class CreateFragment : Fragment() {
         binding.link.setImageResource(
             if (isLinked) R.drawable.ic_link else R.drawable.ic_unlink
         )
+    }
+
+    override fun onStart() {
+        super.onStart()
+
+        val bottomSheet =
+            dialog?.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+                ?: return
+
+        bottomSheet.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
+
+        val behavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(bottomSheet)
+        behavior.isFitToContents = false
+        behavior.halfExpandedRatio = 0.85f   // 80% height
+        behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HALF_EXPANDED
     }
 
     override fun onDestroy() {

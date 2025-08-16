@@ -250,7 +250,7 @@ class EditorFragment : Fragment() {
                     updatedDate = exportDate
                 )
             } else {
-                if (exportModel!!.imagePath.startsWith("https")){
+                if (exportModel!!.imagePath.startsWith("/storage")){
                     exportModel!!.imagePath = imagePath
                 }
                 exportModel!!.canvasSize = canvasSize
@@ -284,7 +284,7 @@ class EditorFragment : Fragment() {
             exportResult?.let {
                 exportModel = it
                 jsonPath = it.jsonPath
-                if (it.imagePath.startsWith("https")){
+                if (it.imagePath.startsWith("/storage")){
                     exportModel!!.imagePath = imagePath
                 }else{
                     imagePath = it.imagePath

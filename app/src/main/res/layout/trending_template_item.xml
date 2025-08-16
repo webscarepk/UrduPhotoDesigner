@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="@dimen/_100sdp"
+    android:layout_width="125dp"
     android:layout_height="wrap_content"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     app:cardBackgroundColor="@color/contrast"
-    app:cardCornerRadius="@dimen/_5sdp"
-    android:layout_marginEnd="@dimen/_10sdp"
+    app:cardCornerRadius="6dp"
+    android:layout_marginEnd="12dp"
     app:cardElevation="0dp"
     android:foreground="?selectableItemBackground">
 
@@ -16,7 +16,7 @@
         android:gravity="center">
         <ImageView
             android:layout_width="match_parent"
-            android:layout_height="@dimen/_70sdp"
+            android:layout_height="88dp"
             android:src="@drawable/ic_launcher_background"
             android:id="@+id/image"
             android:scaleType="centerCrop"/>
@@ -26,8 +26,8 @@
             android:layout_height="wrap_content"
             android:text="@string/eid_milad_un_nabi"
             android:fontFamily="@font/regular"
-            android:textSize="@dimen/_10sdp"
+            android:textSize="12sp"
             android:textColor="@color/black"
-            android:paddingVertical="@dimen/_5sdp"/>
+            android:paddingVertical="6dp"/>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

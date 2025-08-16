@@ -11,6 +11,7 @@ object Constants {
     const val BASE_URL = "https://dashboard.urdufonts.com/api/"
     const val X_API_KEY = "21|kxJ7qhe4kjxjhfzQs4JWG34Pv8DeuIy0ZACTFe7Y5672dc67"
     const val BASE_URL_GLIDE = "https://dashboard.urdufonts.com/"
+    const val BASE_URL_DOWNLOAD = "https://dashboard.urdufonts.com"
     private val EMOTICONS = 0x1F600..0x1F64F
     private val SUPP_EMOTICONS = 0x1F910..0x1F91F
     private val ANIMAL_FACES = 0x1F400..0x1F43F

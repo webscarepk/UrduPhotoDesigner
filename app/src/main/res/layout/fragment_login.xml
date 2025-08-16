@@ -42,7 +42,7 @@
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/topGuide"
-        android:textSize="@dimen/_25sdp"
+        android:textSize="30sp"
         android:fontFamily="@font/bold"
         android:textColor="@color/appColor"
         android:id="@+id/title"/>
@@ -53,24 +53,24 @@
         android:text="@string/email_username"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintTop_toBottomOf="@id/title"
-        android:textSize="@dimen/_10sdp"
+        android:textSize="12sp"
         android:fontFamily="@font/medium"
         android:textColor="@color/black"
-        android:layout_marginTop="@dimen/_25sdp"
+        android:layout_marginTop="30dp"
         android:id="@+id/emailTV"/>
 
     <EditText
         android:layout_width="0dp"
-        android:layout_height="@dimen/_40sdp"
+        android:layout_height="50dp"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/emailTV"
         android:background="@drawable/edit_bg_stroke"
         android:fontFamily="@font/regular"
         android:textColor="@color/black"
-        android:textSize="@dimen/_10sdp"
+        android:textSize="12sp"
         android:maxLines="1"
-        android:padding="@dimen/_10sdp"
+        android:padding="12dp"
         android:inputType="textEmailAddress"
         android:id="@+id/email"/>
 
@@ -80,23 +80,23 @@
         android:text="@string/password"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintTop_toBottomOf="@id/email"
-        android:textSize="@dimen/_10sdp"
+        android:textSize="12sp"
         android:fontFamily="@font/medium"
         android:textColor="@color/black"
-        android:layout_marginTop="@dimen/_10sdp"
+        android:layout_marginTop="12dp"
         android:id="@+id/passwordTV"/>
 
     <EditText
         android:layout_width="0dp"
-        android:layout_height="@dimen/_40sdp"
+        android:layout_height="50dp"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/passwordTV"
         android:background="@drawable/edit_bg_stroke"
         android:fontFamily="@font/regular"
         android:textColor="@color/black"
-        android:textSize="@dimen/_10sdp"
-        android:padding="@dimen/_10sdp"
+        android:textSize="12sp"
+        android:padding="12dp"
         android:maxLines="1"
         android:inputType="textPassword"
         android:id="@+id/password"
@@ -108,10 +108,10 @@
         android:text="@string/forget_password"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/password"
-        android:textSize="@dimen/_10sdp"
+        android:textSize="12sp"
         android:fontFamily="@font/medium"
         android:textColor="@color/appColor"
-        android:paddingVertical="@dimen/_10sdp"
+        android:paddingVertical="12dp"
         android:id="@+id/forgetPass"/>
 
     <TextView
@@ -122,11 +122,11 @@
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/forgetPass"
-        android:textSize="@dimen/_12sdp"
+        android:textSize="15sp"
         android:fontFamily="@font/bold"
         android:textColor="@color/whiteText"
         android:gravity="center"
-        android:paddingVertical="@dimen/_10sdp"
+        android:paddingVertical="12dp"
         android:id="@+id/login"/>
 
     <ImageView
@@ -137,13 +137,13 @@
         app:layout_constraintStart_toStartOf="@id/login"
         app:layout_constraintEnd_toEndOf="@id/login"
         app:layout_constraintTop_toBottomOf="@id/login"
-        android:layout_marginTop="@dimen/_10sdp"/>
+        android:layout_marginTop="12dp"/>
 
     <com.google.android.gms.common.SignInButton
         android:id="@+id/googleSignIn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/_20sdp"
+        android:layout_marginTop="24dp"
         app:layout_constraintBottom_toTopOf="@id/signupBox"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
@@ -162,21 +162,21 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/don_t_have_account"
-            android:textSize="@dimen/_10sdp"
+            android:textSize="12sp"
             android:fontFamily="@font/medium"
             android:textColor="@color/black"
-            android:paddingVertical="@dimen/_10sdp"
+            android:paddingVertical="12dp"
             android:id="@+id/account"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/signup"
-            android:layout_marginStart="@dimen/_5sdp"
-            android:textSize="@dimen/_10sdp"
+            android:layout_marginStart="6dp"
+            android:textSize="12sp"
             android:fontFamily="@font/medium"
             android:textColor="@color/appColor"
-            android:paddingVertical="@dimen/_10sdp"
+            android:paddingVertical="12dp"
             android:id="@+id/signup"/>
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

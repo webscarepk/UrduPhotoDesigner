@@ -6,7 +6,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.urduphotodesigner.common.canvas.sealed.FontDownloadState
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.data.model.FontEntity
@@ -14,6 +16,8 @@ import com.example.urduphotodesigner.databinding.FragmentFontsListBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -71,16 +75,42 @@ class FontsListFragment : Fragment() {
 
     // In FontsListFragment.kt
     private fun initObservers() {
-        lifecycleScope.launch {
-            mainViewModel.localFonts.collect { fonts ->
-                val filteredFonts = if (currentCategory.equals("All", ignoreCase = true)) {
-                    fonts
-                } else {
-                    fonts.filter {
-                        it.font_category.equals(currentCategory, ignoreCase = true)
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // Start query with empty string so first emission happens immediately
+                combine(
+                    mainViewModel.localFonts,
+                    mainViewModel.queryDebounced.onStart { emit("") }
+                ) { fonts, queryRaw ->
+                    val query = queryRaw.trim().lowercase()
+
+                    // 1) Category filter
+                    val byCategory = if (currentCategory.equals("All", ignoreCase = true)) {
+                        fonts
+                    } else {
+                        fonts.filter { it.font_category.equals(currentCategory, ignoreCase = true) }
                     }
+
+                    // 2) Query filter (all tokens must match)
+                    if (query.isEmpty()) return@combine byCategory
+
+                    val tokens = query.split(Regex("\\s+")).filter { it.isNotEmpty() }
+                    byCategory.filter { f ->
+                        val haystack = buildString {
+                            append(f.font_name ?: "")
+                            append(' ')
+                            append(f.file_name ?: "")
+                            append(' ')
+                            append(f.font_category ?: "")
+                            append(' ')
+                            append(f.alt_text ?: "")
+                        }.lowercase()
+
+                        tokens.all { it in haystack }
+                    }
+                }.collect { filtered ->
+                    fontsAdapter.submitList(filtered)
                 }
-                fontsAdapter.submitList(filteredFonts)
             }
         }
 

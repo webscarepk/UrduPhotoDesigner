@@ -2,10 +2,10 @@
 <androidx.appcompat.widget.AppCompatTextView
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/emojiText"
-    android:layout_width="@dimen/_32sdp"
-    android:layout_height="@dimen/_32sdp"
+    android:layout_width="40dp"
+    android:layout_height="40dp"
     android:gravity="center"
-    android:textSize="@dimen/_20sdp"
+    android:textSize="24dp"
     android:clickable="true"
     android:fontFamily="@font/symbols"
     android:foreground="?attr/selectableItemBackgroundBorderless"/>

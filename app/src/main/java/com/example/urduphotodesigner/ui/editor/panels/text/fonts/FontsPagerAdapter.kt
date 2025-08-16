@@ -2,11 +2,11 @@ package com.example.urduphotodesigner.ui.editor.panels.text.fonts
 
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
-import com.example.urduphotodesigner.data.model.FontCategory
+import com.example.urduphotodesigner.data.model.FontLanguages
 
 class FontsPagerAdapter(
     fragment: Fragment,
-    private var categories: List<FontCategory>
+    private var categories: List<FontLanguages>
 ) : FragmentStateAdapter(fragment) {
 
     override fun getItemCount() = categories.size
@@ -15,7 +15,7 @@ class FontsPagerAdapter(
         return FontsListFragment.newInstance(categories[position].font_category)
     }
 
-    fun updateCategories(newCategories: List<FontCategory>) {
+    fun updateCategories(newCategories: List<FontLanguages>) {
         categories = newCategories
         notifyDataSetChanged() // triggers a smooth update
     }

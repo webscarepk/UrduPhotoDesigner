@@ -38,7 +38,7 @@
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar_layers"
         android:layout_width="0dp"
-        android:layout_height="@dimen/_40sdp"
+        android:layout_height="50dp"
         android:background="@color/white"
         app:title="@string/layers"
         app:titleTextColor="@color/black"
@@ -60,8 +60,8 @@
 <!--        app:layout_constraintTop_toBottomOf="@id/topGuide"-->
 <!--        app:layout_constraintEnd_toStartOf="@id/endGuide"-->
 <!--        android:fontFamily="@font/medium"-->
-<!--        android:textSize="@dimen/_12sdp"-->
-<!--        android:padding="@dimen/_5sdp"-->
+<!--        android:textSize="15sp"-->
+<!--        android:padding="6dp"-->
 <!--        android:id="@+id/title"/>-->
 
     <androidx.recyclerview.widget.RecyclerView
@@ -71,7 +71,7 @@
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/toolbar_layers"
         app:layout_constraintBottom_toTopOf="@id/bottomGuide"
-        android:layout_marginEnd="@dimen/_10sdp"
+        android:layout_marginEnd="12dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         android:orientation="vertical"
         tools:itemCount="100"

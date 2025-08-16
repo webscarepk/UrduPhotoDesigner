@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="@dimen/_30sdp"
-    android:layout_height="@dimen/_30sdp"
+    android:layout_width="38dp"
+    android:layout_height="38dp"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@drawable/edit_bg_stroke"
-    android:layout_marginEnd="@dimen/_10sdp"
-    android:layout_marginBottom="@dimen/_5sdp"
-    app:cardCornerRadius="@dimen/_5sdp"
+    android:layout_marginEnd="12dp"
+    android:layout_marginBottom="6dp"
+    app:cardCornerRadius="6dp"
     app:strokeWidth="0dp"
     app:cardBackgroundColor="@color/white"
     app:cardElevation="0dp">

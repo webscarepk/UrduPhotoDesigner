@@ -4,14 +4,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:background="@color/white"
+    android:background="@drawable/bottom_sheet_bg"
     tools:context=".ui.creation.CreateFragment">
 
     <androidx.constraintlayout.widget.Guideline
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.05"
+        app:layout_constraintGuide_percent="0.03"
         android:id="@+id/topGuide"/>
 
     <androidx.constraintlayout.widget.Guideline
@@ -36,25 +36,23 @@
         android:id="@+id/endGuide"/>
 
     <ImageView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/ic_back"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:src="@drawable/ic_close"
+        android:padding="3dp"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/topGuide"
-        android:id="@+id/back"
-        android:paddingVertical="@dimen/_10sdp"
-        android:paddingEnd="@dimen/_10sdp"/>
+        android:id="@+id/back" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toEndOf="@id/back"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintTop_toTopOf="@id/back"
         app:layout_constraintBottom_toBottomOf="@id/back"
-        android:layout_marginStart="@dimen/_10sdp"
         android:text="@string/select_size"
         android:fontFamily="@font/bold"
-        android:textSize="@dimen/_16sdp"
+        android:textSize="20sp"
         android:textColor="@color/black"
         android:id="@+id/title"/>
 
@@ -66,35 +64,35 @@
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintTop_toBottomOf="@id/back"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
-        app:cardCornerRadius="@dimen/_10sdp"
-        android:layout_marginTop="@dimen/_10sdp"
+        app:cardCornerRadius="12dp"
+        android:layout_marginTop="12dp"
         app:cardElevation="0dp">
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="@dimen/_5sdp">
+            android:padding="6dp">
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 android:text="@string/custom"
-                android:paddingVertical="@dimen/_5sdp"
+                android:paddingVertical="6dp"
                 android:fontFamily="@font/medium"
-                android:textSize="@dimen/_14sdp"
+                android:textSize="18dp"
                 android:textColor="@color/black"
                 android:id="@+id/customTitle"/>
 
             <ImageView
                 android:id="@+id/link"
-                android:layout_width="@dimen/_18sdp"
-                android:layout_height="@dimen/_18sdp"
+                android:layout_width="23dp"
+                android:layout_height="23dp"
                 android:src="@drawable/ic_unlink"
                 app:tint="@color/black"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@id/customTitle"
                 app:layout_constraintBottom_toBottomOf="@id/customTitle"
-                android:layout_marginStart="@dimen/_15sdp"/>
+                android:layout_marginStart="19dp"/>
 
             <TextView
                 android:layout_width="wrap_content"
@@ -104,7 +102,7 @@
                 app:layout_constraintBottom_toBottomOf="@id/widthBox"
                 android:text="@string/width"
                 android:fontFamily="@font/regular"
-                android:textSize="@dimen/_10sdp"
+                android:textSize="12sp"
                 android:textColor="@color/black"
                 android:id="@+id/widthTitle"/>
 
@@ -112,8 +110,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:id="@+id/widthBox"
-                android:paddingHorizontal="@dimen/_5sdp"
-                android:paddingVertical="@dimen/_3sdp"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="4dp"
                 app:layout_constraintEnd_toStartOf="@id/heightTitle"
                 app:layout_constraintStart_toEndOf="@id/widthTitle"
                 app:layout_constraintTop_toBottomOf="@id/customTitle"
@@ -121,7 +119,7 @@
                 android:background="@drawable/button_bg"
                 android:backgroundTint="@color/white">
                 <EditText
-                    android:layout_width="@dimen/_25sdp"
+                    android:layout_width="30dp"
                     android:layout_height="wrap_content"
                     android:background="@null"
                     android:gravity="center"
@@ -133,7 +131,7 @@
                     app:layout_constraintStart_toStartOf="parent"
                     android:id="@+id/width"
                     android:fontFamily="@font/regular"
-                    android:textSize="@dimen/_10sdp"/>
+                    android:textSize="12sp"/>
 
                 <ImageView
                     android:layout_width="wrap_content"
@@ -142,26 +140,26 @@
                     android:backgroundTint="@color/contrast"
                     app:tint="@color/black"
                     android:src="@drawable/ic_up"
-                    android:paddingHorizontal="@dimen/_7sdp"
-                    android:paddingVertical="@dimen/_3sdp"
-                    android:layout_marginStart="@dimen/_5sdp"
+                    android:paddingHorizontal="9dp"
+                    android:paddingVertical="4dp"
+                    android:layout_marginStart="6dp"
                     app:layout_constraintStart_toEndOf="@id/width"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintBottom_toTopOf="@id/decWidth"
-                    android:layout_marginBottom="@dimen/_1sdp"
+                    android:layout_marginBottom="1dp"
                     android:id="@+id/incWidth"/>
 
                 <ImageView
-                    android:layout_marginTop="@dimen/_1sdp"
+                    android:layout_marginTop="1dp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/button_bg"
                     android:backgroundTint="@color/contrast"
                     app:tint="@color/black"
                     android:src="@drawable/ic_down"
-                    android:paddingHorizontal="@dimen/_7sdp"
-                    android:paddingVertical="@dimen/_3sdp"
-                    android:layout_marginStart="@dimen/_5sdp"
+                    android:paddingHorizontal="9dp"
+                    android:paddingVertical="4dp"
+                    android:layout_marginStart="6dp"
                     app:layout_constraintStart_toEndOf="@id/width"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/incWidth"
@@ -177,7 +175,7 @@
                 app:layout_constraintBottom_toBottomOf="@id/widthBox"
                 android:text="@string/height"
                 android:fontFamily="@font/regular"
-                android:textSize="@dimen/_10sdp"
+                android:textSize="12sp"
                 android:textColor="@color/black"
                 android:id="@+id/heightTitle"/>
 
@@ -185,8 +183,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:id="@+id/heightBox"
-                android:paddingHorizontal="@dimen/_5sdp"
-                android:paddingVertical="@dimen/_3sdp"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="4dp"
                 app:layout_constraintEnd_toStartOf="@id/unitBox"
                 app:layout_constraintStart_toEndOf="@id/heightTitle"
                 app:layout_constraintTop_toTopOf="@id/widthTitle"
@@ -194,7 +192,7 @@
                 android:background="@drawable/button_bg"
                 android:backgroundTint="@color/white">
                 <EditText
-                    android:layout_width="@dimen/_25sdp"
+                    android:layout_width="30dp"
                     android:layout_height="wrap_content"
                     android:background="@null"
                     android:gravity="center"
@@ -206,7 +204,7 @@
                     app:layout_constraintStart_toStartOf="parent"
                     android:id="@+id/height"
                     android:fontFamily="@font/regular"
-                    android:textSize="@dimen/_10sdp"/>
+                    android:textSize="12sp"/>
 
                 <ImageView
                     android:layout_width="wrap_content"
@@ -215,26 +213,26 @@
                     android:backgroundTint="@color/contrast"
                     app:tint="@color/black"
                     android:src="@drawable/ic_up"
-                    android:paddingHorizontal="@dimen/_7sdp"
-                    android:paddingVertical="@dimen/_3sdp"
-                    android:layout_marginStart="@dimen/_5sdp"
+                    android:paddingHorizontal="9dp"
+                    android:paddingVertical="4dp"
+                    android:layout_marginStart="6dp"
                     app:layout_constraintStart_toEndOf="@id/height"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintBottom_toTopOf="@id/decHeight"
-                    android:layout_marginBottom="@dimen/_1sdp"
+                    android:layout_marginBottom="1dp"
                     android:id="@+id/incHeight"/>
 
                 <ImageView
-                    android:layout_marginTop="@dimen/_1sdp"
+                    android:layout_marginTop="1dp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/button_bg"
                     android:backgroundTint="@color/contrast"
                     app:tint="@color/black"
                     android:src="@drawable/ic_down"
-                    android:paddingHorizontal="@dimen/_7sdp"
-                    android:paddingVertical="@dimen/_3sdp"
-                    android:layout_marginStart="@dimen/_5sdp"
+                    android:paddingHorizontal="9dp"
+                    android:paddingVertical="4dp"
+                    android:layout_marginStart="6dp"
                     app:layout_constraintStart_toEndOf="@id/height"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/incHeight"
@@ -245,8 +243,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:id="@+id/unitBox"
-                android:paddingHorizontal="@dimen/_7sdp"
-                android:paddingVertical="@dimen/_5sdp"
+                android:paddingHorizontal="9dp"
+                android:paddingVertical="6dp"
                 app:layout_constraintStart_toEndOf="@id/heightBox"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/customTitle"
@@ -263,19 +261,19 @@
                     app:layout_constraintStart_toStartOf="parent"
                     android:id="@+id/unit"
                     android:fontFamily="@font/regular"
-                    android:textSize="@dimen/_10sdp"/>
+                    android:textSize="12sp"/>
 
                 <ImageView
-                    android:layout_marginTop="@dimen/_1sdp"
+                    android:layout_marginTop="1dp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/button_bg"
                     android:backgroundTint="@color/contrast"
                     app:tint="@color/black"
                     android:src="@drawable/ic_down"
-                    android:paddingHorizontal="@dimen/_7sdp"
-                    android:paddingVertical="@dimen/_3sdp"
-                    android:layout_marginStart="@dimen/_5sdp"
+                    android:paddingHorizontal="9dp"
+                    android:paddingVertical="4dp"
+                    android:layout_marginStart="6dp"
                     app:layout_constraintStart_toEndOf="@id/unit"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
@@ -292,12 +290,12 @@
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/canvasSize"
-        android:layout_marginTop="@dimen/_10sdp"
-        android:textSize="@dimen/_12sdp"
+        android:layout_marginTop="12dp"
+        android:textSize="15sp"
         android:fontFamily="@font/bold"
         android:textColor="@color/whiteText"
         android:gravity="center"
-        android:paddingVertical="@dimen/_10sdp"
+        android:paddingVertical="12dp"
         android:id="@+id/create"/>
 
     <TextView
@@ -305,10 +303,10 @@
         android:layout_height="wrap_content"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintTop_toBottomOf="@id/create"
-        android:layout_marginTop="@dimen/_10sdp"
+        android:layout_marginTop="12dp"
         android:text="@string/predefined_sizes"
         android:fontFamily="@font/medium"
-        android:textSize="@dimen/_14sdp"
+        android:textSize="18dp"
         android:textColor="@color/black"
         android:id="@+id/sizeTitle"/>
 
@@ -318,10 +316,10 @@
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/sizeTitle"
-        app:layout_constraintBottom_toTopOf="@id/bottomGuide"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         android:orientation="vertical"
-        android:layout_marginTop="@dimen/_10sdp"
+        android:layout_marginTop="12dp"
         android:id="@+id/sizesRV"
         tools:listitem="@layout/layout_sizes_item"
         tools:itemCount="10"/>

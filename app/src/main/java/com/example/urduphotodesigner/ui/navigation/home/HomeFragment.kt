@@ -26,6 +26,7 @@ import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.DialogLoadingProgressBinding
 import com.example.urduphotodesigner.databinding.FragmentHomeBinding
 import com.example.urduphotodesigner.databinding.LayoutProjectPopupBinding
+import com.example.urduphotodesigner.ui.creation.CreateFragment
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -124,7 +125,9 @@ class HomeFragment : Fragment() {
         }
 
         binding.blankCanvas.addPressEffect {
-            findNavController().navigate(R.id.createFragment)
+            val bottomSheet = CreateFragment()
+            bottomSheet.show(parentFragmentManager, "CreateBottomSheet")
+//            findNavController().navigate(R.id.createFragment)
         }
 
         binding.templates.addPressEffect {

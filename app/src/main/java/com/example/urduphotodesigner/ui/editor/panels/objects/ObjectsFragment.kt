@@ -1,6 +1,7 @@
 package com.example.urduphotodesigner.ui.editor.panels.objects
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.InputType
@@ -9,10 +10,13 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AnimationUtils
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
+import androidx.annotation.AnimRes
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.databinding.FragmentObjectsBinding
@@ -76,6 +80,41 @@ class ObjectsFragment : Fragment() {
             tab.customView = tabView
         }.attach()
 
+        binding.searchIcon.setOnClickListener {
+            // hide icon
+            updateIconVisibility(
+                binding.searchIcon,
+                shouldBeVisible = false,
+                animHide = R.anim.slide_out
+            )
+
+            // show search bar
+            updateIconVisibility(
+                binding.searchBar,
+                shouldBeVisible = true,
+                animShow = R.anim.slide_in
+            )
+
+            binding.searchBar.requestFocus()
+            val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(binding.searchBar, InputMethodManager.SHOW_IMPLICIT)
+        }
+
+        binding.searchBar.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus && binding.searchBar.text.isNullOrEmpty()) {
+                updateIconVisibility(
+                    binding.searchBar,
+                    shouldBeVisible = false,
+                    animHide = R.anim.slide_out
+                )
+                updateIconVisibility(
+                    binding.searchIcon,
+                    shouldBeVisible = true,
+                    animShow = R.anim.slide_in
+                )
+            }
+        }
+
         binding.searchBar.imeOptions = EditorInfo.IME_ACTION_SEARCH
         binding.searchBar.setRawInputType(InputType.TYPE_CLASS_TEXT)
 
@@ -86,6 +125,7 @@ class ObjectsFragment : Fragment() {
                 val query = binding.searchBar.text.toString()
                 adapter.filter(query)
                 hideKeyboard()
+
                 true
             } else {
                 false
@@ -140,6 +180,28 @@ class ObjectsFragment : Fragment() {
                 }
             }
             false
+        }
+    }
+
+    private fun updateIconVisibility(
+        view: View,
+        shouldBeVisible: Boolean,
+        @AnimRes animShow: Int = R.anim.slide_up_2,
+        @AnimRes animHide: Int = R.anim.slide_down_2
+    ) {
+        val isVisible = view.visibility == View.VISIBLE
+
+        if (shouldBeVisible && !isVisible) {
+            view.visibility = View.VISIBLE
+            view.startAnimation(AnimationUtils.loadAnimation(view.context, animShow))
+        } else if (!shouldBeVisible && isVisible) {
+            if (view == binding.searchIcon) {
+                binding.searchBar.isVisible = false
+            }
+            val anim = AnimationUtils.loadAnimation(view.context, animHide)
+            view.startAnimation(anim)
+            val duration = anim.duration
+            view.postDelayed({ view.visibility = View.GONE }, duration)
         }
     }
 

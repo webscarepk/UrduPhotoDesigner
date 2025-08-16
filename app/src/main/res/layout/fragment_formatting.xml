@@ -11,7 +11,7 @@
         android:id="@+id/lineSpacingCard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/_2sdp"
+        android:layout_marginTop="3dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -25,8 +25,8 @@
             android:fontFamily="@font/medium"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            android:textSize="@dimen/_10sdp"
-            android:layout_marginStart="@dimen/_10sdp"
+            android:textSize="12sp"
+            android:layout_marginStart="12dp"
             android:textColor="@color/black"/>
 
         <TextView
@@ -37,17 +37,17 @@
             app:layout_constraintTop_toTopOf="@id/lineTitle"
             app:layout_constraintBottom_toBottomOf="@id/lineTitle"
             app:layout_constraintStart_toEndOf="@id/lineTitle"
-            android:textSize="@dimen/_10sdp"
+            android:textSize="12sp"
             android:background="@drawable/edit_bg_stroke"
-            android:paddingHorizontal="@dimen/_5sdp"
-            android:paddingVertical="@dimen/_3sdp"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="4dp"
             android:textColor="@color/black"
-            android:layout_marginStart="@dimen/_5sdp"
+            android:layout_marginStart="6dp"
             android:id="@+id/lineSpacing"/>
 
         <SeekBar
             android:id="@+id/lineSpace"
-            android:layout_marginTop="@dimen/_2sdp"
+            android:layout_marginTop="3dp"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             app:layout_constraintStart_toStartOf="parent"
@@ -65,7 +65,7 @@
         android:id="@+id/letterSpacingCard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/_2sdp"
+        android:layout_marginTop="3dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/lineSpacingCard"
@@ -79,8 +79,8 @@
             android:fontFamily="@font/medium"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            android:textSize="@dimen/_10sdp"
-            android:layout_marginStart="@dimen/_10sdp"
+            android:textSize="12sp"
+            android:layout_marginStart="12dp"
             android:textColor="@color/black"/>
 
         <TextView
@@ -91,17 +91,17 @@
             app:layout_constraintTop_toTopOf="@id/letterTitle"
             app:layout_constraintBottom_toBottomOf="@id/letterTitle"
             app:layout_constraintStart_toEndOf="@id/letterTitle"
-            android:textSize="@dimen/_10sdp"
+            android:textSize="12sp"
             android:background="@drawable/edit_bg_stroke"
-            android:paddingHorizontal="@dimen/_5sdp"
-            android:paddingVertical="@dimen/_3sdp"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="4dp"
             android:textColor="@color/black"
-            android:layout_marginStart="@dimen/_5sdp"
+            android:layout_marginStart="6dp"
             android:id="@+id/letterSpacing"/>
 
         <SeekBar
             android:id="@+id/letterSpace"
-            android:layout_marginTop="@dimen/_2sdp"
+            android:layout_marginTop="3dp"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             app:layout_constraintStart_toStartOf="parent"
@@ -119,18 +119,18 @@
         android:id="@+id/casingCard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/_2sdp"
+        android:layout_marginTop="3dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent">
 
         <com.google.android.material.card.MaterialCardView
-            android:layout_width="@dimen/_24sdp"
-            android:layout_height="@dimen/_24sdp"
-            android:layout_marginEnd="@dimen/_5sdp"
-            android:layout_marginBottom="@dimen/_5sdp"
-            app:cardCornerRadius="@dimen/_5sdp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginEnd="6dp"
+            android:layout_marginBottom="6dp"
+            app:cardCornerRadius="6dp"
             app:strokeWidth="0dp"
             android:id="@+id/default_case"
             app:layout_constraintEnd_toStartOf="@id/all_caps"
@@ -144,16 +144,16 @@
                 android:layout_height="match_parent"
                 android:src="@drawable/ic_none"
                 app:tint="@color/black"
-                android:padding="@dimen/_5sdp"/>
+                android:padding="6dp"/>
 
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
-            android:layout_width="@dimen/_24sdp"
-            android:layout_height="@dimen/_24sdp"
-            android:layout_marginEnd="@dimen/_5sdp"
-            android:layout_marginBottom="@dimen/_5sdp"
-            app:cardCornerRadius="@dimen/_5sdp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginEnd="6dp"
+            android:layout_marginBottom="6dp"
+            app:cardCornerRadius="6dp"
             app:strokeWidth="0dp"
             android:id="@+id/all_caps"
             app:layout_constraintEnd_toStartOf="@id/title_case"
@@ -168,16 +168,16 @@
                 android:src="@drawable/ic_all_caps"
                 android:layout_gravity="center"
                 app:tint="@color/black"
-                android:padding="@dimen/_3sdp"/>
+                android:padding="4dp"/>
 
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
-            android:layout_width="@dimen/_24sdp"
-            android:layout_height="@dimen/_24sdp"
-            android:layout_marginEnd="@dimen/_5sdp"
-            android:layout_marginBottom="@dimen/_5sdp"
-            app:cardCornerRadius="@dimen/_5sdp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginEnd="6dp"
+            android:layout_marginBottom="6dp"
+            app:cardCornerRadius="6dp"
             app:strokeWidth="0dp"
             android:id="@+id/title_case"
             app:layout_constraintStart_toEndOf="@id/all_caps"
@@ -192,16 +192,16 @@
                 android:src="@drawable/ic_title_case"
                 android:layout_gravity="center"
                 app:tint="@color/black"
-                android:padding="@dimen/_3sdp"/>
+                android:padding="4dp"/>
 
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
-            android:layout_width="@dimen/_24sdp"
-            android:layout_height="@dimen/_24sdp"
-            android:layout_marginEnd="@dimen/_5sdp"
-            android:layout_marginBottom="@dimen/_5sdp"
-            app:cardCornerRadius="@dimen/_5sdp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginEnd="6dp"
+            android:layout_marginBottom="6dp"
+            app:cardCornerRadius="6dp"
             app:strokeWidth="0dp"
             android:id="@+id/lower_case"
             app:layout_constraintStart_toEndOf="@id/title_case"
@@ -216,7 +216,7 @@
                 android:src="@drawable/ic_lower_case"
                 android:layout_gravity="center"
                 app:tint="@color/black"
-                android:padding="@dimen/_3sdp"/>
+                android:padding="4dp"/>
 
         </com.google.android.material.card.MaterialCardView>
     </androidx.constraintlayout.widget.ConstraintLayout>
@@ -226,18 +226,18 @@
         android:id="@+id/decorationCard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/_2sdp"
+        android:layout_marginTop="3dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent">
 
         <com.google.android.material.card.MaterialCardView
-            android:layout_width="@dimen/_24sdp"
-            android:layout_height="@dimen/_24sdp"
-            android:layout_marginEnd="@dimen/_5sdp"
-            android:layout_marginBottom="@dimen/_5sdp"
-            app:cardCornerRadius="@dimen/_5sdp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginEnd="6dp"
+            android:layout_marginBottom="6dp"
+            app:cardCornerRadius="6dp"
             app:strokeWidth="0dp"
             android:id="@+id/default_style"
             app:layout_constraintEnd_toStartOf="@id/bold"
@@ -251,16 +251,16 @@
                 android:layout_height="match_parent"
                 android:src="@drawable/ic_none"
                 app:tint="@color/black"
-                android:padding="@dimen/_5sdp"/>
+                android:padding="6dp"/>
 
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
-            android:layout_width="@dimen/_24sdp"
-            android:layout_height="@dimen/_24sdp"
-            android:layout_marginEnd="@dimen/_5sdp"
-            android:layout_marginBottom="@dimen/_5sdp"
-            app:cardCornerRadius="@dimen/_5sdp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginEnd="6dp"
+            android:layout_marginBottom="6dp"
+            app:cardCornerRadius="6dp"
             app:strokeWidth="0dp"
             android:id="@+id/bold"
             app:layout_constraintEnd_toStartOf="@id/italic"
@@ -275,16 +275,16 @@
                 android:src="@drawable/ic_bold"
                 android:layout_gravity="center"
                 app:tint="@color/black"
-                android:padding="@dimen/_5sdp"/>
+                android:padding="6dp"/>
 
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
-            android:layout_width="@dimen/_24sdp"
-            android:layout_height="@dimen/_24sdp"
-            android:layout_marginEnd="@dimen/_5sdp"
-            android:layout_marginBottom="@dimen/_5sdp"
-            app:cardCornerRadius="@dimen/_5sdp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginEnd="6dp"
+            android:layout_marginBottom="6dp"
+            app:cardCornerRadius="6dp"
             app:strokeWidth="0dp"
             android:id="@+id/italic"
             app:layout_constraintStart_toEndOf="@id/bold"
@@ -299,16 +299,16 @@
                 android:src="@drawable/ic_italic"
                 android:layout_gravity="center"
                 app:tint="@color/black"
-                android:padding="@dimen/_5sdp"/>
+                android:padding="6dp"/>
 
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
-            android:layout_width="@dimen/_24sdp"
-            android:layout_height="@dimen/_24sdp"
-            android:layout_marginEnd="@dimen/_5sdp"
-            android:layout_marginBottom="@dimen/_5sdp"
-            app:cardCornerRadius="@dimen/_5sdp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginEnd="6dp"
+            android:layout_marginBottom="6dp"
+            app:cardCornerRadius="6dp"
             app:strokeWidth="0dp"
             android:id="@+id/under_line"
             app:layout_constraintStart_toEndOf="@id/italic"
@@ -323,7 +323,7 @@
                 android:src="@drawable/ic_under_line"
                 android:layout_gravity="center"
                 app:tint="@color/black"
-                android:padding="@dimen/_5sdp"/>
+                android:padding="6dp"/>
 
         </com.google.android.material.card.MaterialCardView>
     </androidx.constraintlayout.widget.ConstraintLayout>
@@ -351,7 +351,7 @@
                    android:fontFamily="@font/medium"
                    app:layout_constraintStart_toStartOf="parent"
                    app:layout_constraintTop_toTopOf="parent"
-                   android:textSize="@dimen/_10sdp"
+                   android:textSize="12sp"
                    android:textColor="@color/black"/>
 
                <LinearLayout
@@ -360,16 +360,16 @@
                    android:id="@+id/alignmentCard"
                    android:layout_width="wrap_content"
                    android:layout_height="wrap_content"
-                   android:layout_marginTop="@dimen/_2sdp"
+                   android:layout_marginTop="3dp"
                    app:layout_constraintStart_toStartOf="parent"
                    app:layout_constraintEnd_toEndOf="parent"
                    app:layout_constraintTop_toBottomOf="@id/alignmentTitle">
 
                    <com.google.android.material.card.MaterialCardView
-                       android:layout_width="@dimen/_24sdp"
-                       android:layout_height="@dimen/_24sdp"
-                       android:layout_marginEnd="@dimen/_5sdp"
-                       app:cardCornerRadius="@dimen/_5sdp"
+                       android:layout_width="30dp"
+                       android:layout_height="30dp"
+                       android:layout_marginEnd="6dp"
+                       app:cardCornerRadius="6dp"
                        app:strokeWidth="0dp"
                        app:cardBackgroundColor="@color/contrast"
                        android:id="@+id/center_alignment"
@@ -381,15 +381,15 @@
                            android:src="@drawable/ic_center_align"
                            android:layout_gravity="center"
                            app:tint="@color/black"
-                           android:padding="@dimen/_5sdp"/>
+                           android:padding="6dp"/>
 
                    </com.google.android.material.card.MaterialCardView>
 
                    <com.google.android.material.card.MaterialCardView
-                       android:layout_width="@dimen/_24sdp"
-                       android:layout_height="@dimen/_24sdp"
-                       android:layout_marginEnd="@dimen/_5sdp"
-                       app:cardCornerRadius="@dimen/_5sdp"
+                       android:layout_width="30dp"
+                       android:layout_height="30dp"
+                       android:layout_marginEnd="6dp"
+                       app:cardCornerRadius="6dp"
                        app:strokeWidth="0dp"
                        android:id="@+id/justify"
                        app:cardBackgroundColor="@color/contrast"
@@ -401,15 +401,15 @@
                            android:src="@drawable/ic_justify"
                            android:layout_gravity="center"
                            app:tint="@color/black"
-                           android:padding="@dimen/_5sdp"/>
+                           android:padding="6dp"/>
 
                    </com.google.android.material.card.MaterialCardView>
 
                    <com.google.android.material.card.MaterialCardView
-                       android:layout_width="@dimen/_24sdp"
-                       android:layout_height="@dimen/_24sdp"
-                       android:layout_marginEnd="@dimen/_5sdp"
-                       app:cardCornerRadius="@dimen/_5sdp"
+                       android:layout_width="30dp"
+                       android:layout_height="30dp"
+                       android:layout_marginEnd="6dp"
+                       app:cardCornerRadius="6dp"
                        app:strokeWidth="0dp"
                        app:cardBackgroundColor="@color/contrast"
                        android:id="@+id/left_align"
@@ -421,15 +421,15 @@
                            android:src="@drawable/ic_left_align"
                            android:layout_gravity="center"
                            app:tint="@color/black"
-                           android:padding="@dimen/_5sdp"/>
+                           android:padding="6dp"/>
 
                    </com.google.android.material.card.MaterialCardView>
 
                    <com.google.android.material.card.MaterialCardView
-                       android:layout_width="@dimen/_24sdp"
-                       android:layout_height="@dimen/_24sdp"
-                       android:layout_marginEnd="@dimen/_5sdp"
-                       app:cardCornerRadius="@dimen/_5sdp"
+                       android:layout_width="30dp"
+                       android:layout_height="30dp"
+                       android:layout_marginEnd="6dp"
+                       app:cardCornerRadius="6dp"
                        app:strokeWidth="0dp"
                        app:cardBackgroundColor="@color/contrast"
                        android:id="@+id/right_align"
@@ -441,7 +441,7 @@
                            android:src="@drawable/ic_right_align"
                            android:layout_gravity="center"
                            app:tint="@color/black"
-                           android:padding="@dimen/_5sdp"/>
+                           android:padding="6dp"/>
 
                    </com.google.android.material.card.MaterialCardView>
                </LinearLayout>
@@ -462,8 +462,8 @@
                          android:fontFamily="@font/medium"
                          app:layout_constraintStart_toStartOf="parent"
                          app:layout_constraintTop_toBottomOf="@id/alignmentCard"
-                         android:layout_marginTop="@dimen/_5sdp"
-                         android:textSize="@dimen/_10sdp"
+                         android:layout_marginTop="6dp"
+                         android:textSize="12sp"
                          android:textColor="@color/black"/>
 
                      <LinearLayout
@@ -472,16 +472,16 @@
                          android:id="@+id/paraCard"
                          android:layout_width="wrap_content"
                          android:layout_height="wrap_content"
-                         android:layout_marginTop="@dimen/_2sdp"
+                         android:layout_marginTop="3dp"
                          app:layout_constraintStart_toStartOf="parent"
                          app:layout_constraintEnd_toEndOf="parent"
                          app:layout_constraintTop_toBottomOf="@id/paraTitle">
 
                          <com.google.android.material.card.MaterialCardView
-                             android:layout_width="@dimen/_24sdp"
-                             android:layout_height="@dimen/_24sdp"
-                             android:layout_marginEnd="@dimen/_5sdp"
-                             app:cardCornerRadius="@dimen/_5sdp"
+                             android:layout_width="30dp"
+                             android:layout_height="30dp"
+                             android:layout_marginEnd="6dp"
+                             app:cardCornerRadius="6dp"
                              app:strokeWidth="0dp"
                              app:cardBackgroundColor="@color/contrast"
                              android:id="@+id/default_indent"
@@ -492,15 +492,15 @@
                                  android:layout_height="match_parent"
                                  android:src="@drawable/ic_none"
                                  app:tint="@color/black"
-                                 android:padding="@dimen/_5sdp"/>
+                                 android:padding="6dp"/>
 
                          </com.google.android.material.card.MaterialCardView>
 
                          <com.google.android.material.card.MaterialCardView
-                             android:layout_width="@dimen/_24sdp"
-                             android:layout_height="@dimen/_24sdp"
-                             android:layout_marginEnd="@dimen/_5sdp"
-                             app:cardCornerRadius="@dimen/_5sdp"
+                             android:layout_width="30dp"
+                             android:layout_height="30dp"
+                             android:layout_marginEnd="6dp"
+                             app:cardCornerRadius="6dp"
                              app:strokeWidth="0dp"
                              android:id="@+id/increase_indent"
                              app:cardBackgroundColor="@color/contrast"
@@ -512,15 +512,15 @@
                                  android:src="@drawable/ic_paragraph_increase_indent"
                                  android:layout_gravity="center"
                                  app:tint="@color/black"
-                                 android:padding="@dimen/_5sdp"/>
+                                 android:padding="6dp"/>
 
                          </com.google.android.material.card.MaterialCardView>
 
                          <com.google.android.material.card.MaterialCardView
-                             android:layout_width="@dimen/_24sdp"
-                             android:layout_height="@dimen/_24sdp"
-                             android:layout_marginEnd="@dimen/_5sdp"
-                             app:cardCornerRadius="@dimen/_5sdp"
+                             android:layout_width="30dp"
+                             android:layout_height="30dp"
+                             android:layout_marginEnd="6dp"
+                             app:cardCornerRadius="6dp"
                              app:strokeWidth="0dp"
                              android:id="@+id/decrease_indent"
                              app:cardBackgroundColor="@color/contrast"
@@ -532,7 +532,7 @@
                                  android:src="@drawable/ic_paragraph_decrease_indent"
                                  android:layout_gravity="center"
                                  app:tint="@color/black"
-                                 android:padding="@dimen/_5sdp"/>
+                                 android:padding="6dp"/>
 
                          </com.google.android.material.card.MaterialCardView>
 
@@ -549,28 +549,28 @@
                           android:layout_height="wrap_content"
                           android:text="@string/list_style"
                           android:fontFamily="@font/medium"
-                          android:layout_marginStart="@dimen/_10sdp"
-                          android:layout_marginTop="@dimen/_5sdp"
-                          android:textSize="@dimen/_10sdp"
+                          android:layout_marginStart="12dp"
+                          android:layout_marginTop="6dp"
+                          android:textSize="12sp"
                           android:textColor="@color/black"/>
 
                       <LinearLayout
                           android:orientation="horizontal"
                           android:visibility="visible"
                           android:id="@+id/listCard"
-                          android:layout_marginStart="@dimen/_10sdp"
+                          android:layout_marginStart="12dp"
                           android:layout_width="wrap_content"
                           android:layout_height="wrap_content"
-                          android:layout_marginTop="@dimen/_2sdp"
+                          android:layout_marginTop="3dp"
                           app:layout_constraintStart_toStartOf="@id/listTitle"
                           app:layout_constraintEnd_toEndOf="parent"
                           app:layout_constraintTop_toBottomOf="@id/listTitle">
 
                           <com.google.android.material.card.MaterialCardView
-                              android:layout_width="@dimen/_24sdp"
-                              android:layout_height="@dimen/_24sdp"
-                              android:layout_marginEnd="@dimen/_5sdp"
-                              app:cardCornerRadius="@dimen/_5sdp"
+                              android:layout_width="30dp"
+                              android:layout_height="30dp"
+                              android:layout_marginEnd="6dp"
+                              app:cardCornerRadius="6dp"
                               app:strokeWidth="0dp"
                               android:id="@+id/default_list"
                               app:cardBackgroundColor="@color/contrast"
@@ -581,15 +581,15 @@
                                   android:layout_height="match_parent"
                                   android:src="@drawable/ic_none"
                                   app:tint="@color/black"
-                                  android:padding="@dimen/_5sdp"/>
+                                  android:padding="6dp"/>
 
                           </com.google.android.material.card.MaterialCardView>
 
                           <com.google.android.material.card.MaterialCardView
-                              android:layout_width="@dimen/_24sdp"
-                              android:layout_height="@dimen/_24sdp"
-                              android:layout_marginEnd="@dimen/_5sdp"
-                              app:cardCornerRadius="@dimen/_5sdp"
+                              android:layout_width="30dp"
+                              android:layout_height="30dp"
+                              android:layout_marginEnd="6dp"
+                              app:cardCornerRadius="6dp"
                               app:strokeWidth="0dp"
                               android:id="@+id/numbered_list"
                               app:cardBackgroundColor="@color/contrast"
@@ -601,15 +601,15 @@
                                   android:src="@drawable/ic_list_numbered_style"
                                   android:layout_gravity="center"
                                   app:tint="@color/black"
-                                  android:padding="@dimen/_5sdp"/>
+                                  android:padding="6dp"/>
 
                           </com.google.android.material.card.MaterialCardView>
 
                           <com.google.android.material.card.MaterialCardView
-                              android:layout_width="@dimen/_24sdp"
-                              android:layout_height="@dimen/_24sdp"
-                              android:layout_marginEnd="@dimen/_5sdp"
-                              app:cardCornerRadius="@dimen/_5sdp"
+                              android:layout_width="30dp"
+                              android:layout_height="30dp"
+                              android:layout_marginEnd="6dp"
+                              app:cardCornerRadius="6dp"
                               app:strokeWidth="0dp"
                               android:id="@+id/bulleted_list"
                               app:cardBackgroundColor="@color/contrast"
@@ -621,7 +621,7 @@
                                   android:src="@drawable/ic_list_bulleted_style"
                                   android:layout_gravity="center"
                                   app:tint="@color/black"
-                                  android:padding="@dimen/_5sdp"/>
+                                  android:padding="6dp"/>
 
                           </com.google.android.material.card.MaterialCardView>
 

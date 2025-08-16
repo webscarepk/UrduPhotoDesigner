@@ -42,49 +42,100 @@
         android:orientation="vertical"
         android:id="@+id/endGuide"/>
 
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/tabLayout"
+    <LinearLayout
+        android:id="@+id/header"
         android:layout_width="0dp"
-        android:layout_height="@dimen/_30sdp"
-        android:background="@android:color/transparent"
-        app:tabIndicatorColor="@color/appColor"
-        app:tabIndicatorHeight="3dp"
-        app:tabPadding="0dp"
-        app:tabMode="auto"
-        app:tabGravity="fill"
-        app:tabSelectedTextColor="@color/appColor"
-        app:tabTextColor="@color/black"
-        app:tabRippleColor="@android:color/transparent"
-        app:layout_constraintStart_toEndOf="@id/centerGuide"
+        android:layout_height="38dp"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
-        app:layout_constraintTop_toBottomOf="@id/topGuide"/>
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintTop_toTopOf="@id/topGuide"
+        android:layout_marginTop="6dp">
 
-    <TextView
-        android:layout_width="0dp"
-        android:layout_height="@dimen/_24sdp"
-        android:text="@string/add_text"
-        android:backgroundTint="@color/contrast"
-        android:textColor="@color/appColor"
-        android:drawablePadding="@dimen/_5sdp"
-        app:drawableStartCompat="@drawable/ic_text"
-        app:layout_constraintStart_toStartOf="@id/startGuide"
-        app:layout_constraintEnd_toStartOf="@id/centerGuide"
-        app:layout_constraintTop_toTopOf="@id/tabLayout"
-        app:layout_constraintBottom_toBottomOf="@id/tabLayout"
-        android:gravity="center"
-        android:background="@drawable/button_bg"
-        android:fontFamily="@font/regular"
-        android:textSize="@dimen/_10sdp"
-        android:paddingVertical="@dimen/_5sdp"
-        android:paddingHorizontal="@dimen/_5sdp"
-        android:id="@+id/addText"/>
+        <ImageView
+            android:id="@+id/addText"
+            android:layout_height="38dp"
+            android:layout_width="38dp"
+            android:visibility="visible"
+            android:padding="10dp"
+            android:background="@drawable/button_bg"
+            android:backgroundTint="@color/contrast"
+            app:tint="@color/black"
+            android:src="@drawable/ic_text"
+            android:layout_gravity="center_vertical"/>
+
+        <ImageView
+            android:id="@+id/addFont"
+            android:layout_height="38dp"
+            android:layout_width="38dp"
+            android:layout_marginStart="6dp"
+            android:visibility="visible"
+            android:padding="10dp"
+            android:background="@drawable/button_bg"
+            android:backgroundTint="@color/contrast"
+            app:tint="@color/black"
+            android:src="@drawable/ic_add_font"
+            android:layout_gravity="center_vertical"/>
+
+        <ImageView
+            android:id="@+id/searchIcon"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="6dp"
+            android:visibility="visible"
+            android:padding="10dp"
+            android:background="@drawable/button_bg"
+            android:backgroundTint="@color/contrast"
+            app:tint="@color/black"
+            android:src="@drawable/ic_search"
+            android:layout_gravity="center_vertical"/>
+
+        <EditText
+            android:layout_marginStart="6dp"
+            android:visibility="gone"
+            android:id="@+id/searchBar"
+            android:layout_width="150dp"
+            android:layout_height="38dp"
+            android:textColor="@color/black"
+            android:fontFamily="@font/regular"
+            android:textSize="15sp"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:background="@drawable/button_bg"
+            android:paddingHorizontal="12dp"
+            android:drawableStart="@drawable/ic_search"
+            android:drawablePadding="6dp"
+            app:layout_constraintEnd_toStartOf="@id/centerGuide"
+            app:layout_constraintStart_toEndOf="@id/startGuide"
+            app:layout_constraintTop_toTopOf="@id/tabLayout"
+            app:layout_constraintBottom_toBottomOf="@id/tabLayout"
+            android:textColorHint="@android:color/darker_gray"
+            android:backgroundTint="@color/contrast"
+            android:hint="@string/search_here"/>
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabLayout"
+            android:layout_width="match_parent"
+            android:layout_height="38dp"
+            android:background="@android:color/transparent"
+            app:tabIndicatorColor="@color/appColor"
+            app:tabIndicatorHeight="3dp"
+            app:tabPadding="0dp"
+            app:tabMode="auto"
+            app:tabGravity="fill"
+            app:tabSelectedTextColor="@color/appColor"
+            app:tabTextColor="@color/black"
+            app:tabRippleColor="@color/contrast"
+            app:layout_constraintStart_toEndOf="@id/centerGuide"
+            app:layout_constraintEnd_toStartOf="@id/endGuide"
+            app:layout_constraintTop_toBottomOf="@id/topGuide"/>
+    </LinearLayout>
 
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="@dimen/_5sdp"
-        app:layout_constraintTop_toBottomOf="@id/tabLayout"
+        android:layout_marginTop="6dp"
+        app:layout_constraintTop_toBottomOf="@id/header"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide" />

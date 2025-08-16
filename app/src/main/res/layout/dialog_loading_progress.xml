@@ -15,7 +15,7 @@
         android:textStyle="bold"
         android:textColor="@color/black"
         android:fontFamily="@font/bold"
-        android:layout_marginBottom="@dimen/_5sdp"
+        android:layout_marginBottom="6dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 
@@ -25,7 +25,7 @@
         android:textSize="14sp"
         android:fontFamily="@font/regular"
         android:textColor="@color/gray"
-        android:layout_marginBottom="@dimen/_10sdp"
+        android:layout_marginBottom="12dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 

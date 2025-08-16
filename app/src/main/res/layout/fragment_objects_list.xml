@@ -14,7 +14,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="@dimen/_5sdp"
+        android:layout_marginTop="6dp"
         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
         tools:itemCount="100"
         android:orientation="horizontal"
@@ -42,9 +42,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/we_couldn_t_find_this_one"
-            android:layout_marginTop="@dimen/_5sdp"
+            android:layout_marginTop="6dp"
             android:fontFamily="@font/regular"
             android:textColor="@color/black"
-            android:textSize="@dimen/_12sdp"/>
+            android:textSize="15sp"/>
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

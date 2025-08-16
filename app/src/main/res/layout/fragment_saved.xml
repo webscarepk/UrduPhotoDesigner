@@ -42,8 +42,8 @@
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintTop_toBottomOf="@id/topGuide"
         android:id="@+id/back"
-        android:paddingVertical="@dimen/_10sdp"
-        android:paddingEnd="@dimen/_10sdp"/>
+        android:paddingVertical="12dp"
+        android:paddingEnd="12dp"/>
 
     <TextView
         android:layout_width="wrap_content"
@@ -51,10 +51,10 @@
         app:layout_constraintStart_toEndOf="@id/back"
         app:layout_constraintTop_toTopOf="@id/back"
         app:layout_constraintBottom_toBottomOf="@id/back"
-        android:layout_marginStart="@dimen/_10sdp"
+        android:layout_marginStart="12dp"
         android:text="@string/saved"
         android:fontFamily="@font/bold"
-        android:textSize="@dimen/_16sdp"
+        android:textSize="20sp"
         android:textColor="@color/black"
         android:id="@+id/title"/>
 
@@ -76,13 +76,13 @@
         app:tabMode="auto"
         app:tabIndicatorHeight="0dp"
         app:tabIndicatorColor="@android:color/transparent"
-        app:tabRippleColor="@android:color/transparent"
+        app:tabRippleColor="@color/contrast"
         app:tabTextColor="@color/black"
         app:tabSelectedTextColor="@color/whiteText"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/back"
-        android:layout_marginTop="@dimen/_10sdp"/>
+        android:layout_marginTop="12dp"/>
 
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"

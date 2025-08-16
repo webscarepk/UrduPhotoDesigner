@@ -9,20 +9,20 @@
     tools:context=".ui.editor.panels.text.appearance.childs.gradient.GradientColorListFragment">
 
     <ImageView
-        android:layout_width="@dimen/_24sdp"
-        android:layout_height="@dimen/_24sdp"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
         android:src="@drawable/ic_delete"
-        android:padding="@dimen/_5sdp"
+        android:padding="6dp"
         android:id="@+id/delete"
-        android:layout_marginEnd="@dimen/_5sdp"
+        android:layout_marginEnd="6dp"
         app:layout_constraintEnd_toStartOf="@id/done"
         app:layout_constraintTop_toTopOf="parent"/>
 
     <ImageView
-        android:layout_width="@dimen/_24sdp"
-        android:layout_height="@dimen/_24sdp"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
         android:src="@drawable/ic_done"
-        android:padding="@dimen/_5sdp"
+        android:padding="6dp"
         android:id="@+id/done"
         app:tint="@color/black"
         app:layout_constraintEnd_toEndOf="parent"
@@ -37,13 +37,13 @@
         app:layout_constraintTop_toTopOf="@id/done"
         app:layout_constraintBottom_toBottomOf="@id/done"
         android:textColor="@color/black"
-        android:paddingHorizontal="@dimen/_5sdp"/>
+        android:paddingHorizontal="6dp"/>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/colors"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="@dimen/_5sdp"
+        android:layout_marginTop="6dp"
         android:orientation="horizontal"
         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
         app:layout_constraintEnd_toEndOf="parent"

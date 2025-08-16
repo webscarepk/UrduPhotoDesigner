@@ -91,6 +91,21 @@ class MainViewModel @Inject constructor(
     private val _exportResults = MutableLiveData<List<ExportResult>>()
     val exportResults: LiveData<List<ExportResult>> get() = _exportResults
 
+    private val _rawQuery = MutableStateFlow("")
+    val rawQuery: StateFlow<String> = _rawQuery.asStateFlow()
+
+    // Debounced, distinct stream for UI filtering
+    val queryDebounced = rawQuery
+        .map { it.trim() }
+        .distinctUntilChanged()
+
+    fun setQuery(q: String) {
+        _rawQuery.value = q
+    }
+
+    fun clearQuery() {
+        _rawQuery.value = ""
+    }
     init {
         Log.d("FontsViewModel", "ViewModel initialized")
         fetchAndStoreFontsFromApi()
@@ -237,7 +252,7 @@ class MainViewModel @Inject constructor(
 
             try {
                 val downloadedFile = fontRepository.downloadFont(
-                    fontUrl  = template.json_url,
+                    fontUrl  = Constants.BASE_URL_DOWNLOAD + template.json_url,
                     fileName = "template_${template.id}.json",
                     onProgress = { progress ->
                         _templateDownloadState.value =

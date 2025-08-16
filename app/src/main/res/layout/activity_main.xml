@@ -11,8 +11,8 @@
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/nav_host_main"
         android:name="androidx.navigation.fragment.NavHostFragment"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         app:defaultNavHost="true"
         android:visibility="visible"
         app:navGraph="@navigation/nav_graph"
@@ -27,7 +27,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:id="@+id/bottomNavigation"
         android:layout_width="match_parent"
-        android:layout_height="@dimen/_50sdp"
+        android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
         android:background="@color/white"
         android:fitsSystemWindows="true"
@@ -37,21 +37,20 @@
         app:activeIndicatorLabelPadding="0dp"
         app:itemActiveIndicatorStyle="@null"
         app:itemBackground="@null"
-        android:layout_marginBottom="@dimen/_5sdp"
         app:labelVisibilityMode="unlabeled"
         app:menu="@menu/home_bottom_nav_menu"
         app:paddingBottomSystemWindowInsets="true" />
 
     <ImageView
         android:id="@+id/fab_center"
-        android:layout_width="@dimen/_40sdp"
-        android:layout_height="@dimen/_40sdp"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         android:contentDescription="@string/add"
         android:src="@drawable/ic_add_fab"
         app:layout_constraintStart_toStartOf="@id/bottomNavigation"
         app:layout_constraintEnd_toEndOf="@id/bottomNavigation"
         app:layout_constraintTop_toTopOf="@id/bottomNavigation"
         app:layout_constraintBottom_toBottomOf="@id/bottomNavigation"
-        android:translationZ="@dimen/_10sdp"/>
+        android:translationZ="12dp"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

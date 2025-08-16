@@ -44,7 +44,7 @@
 
     <TextView
         android:layout_width="wrap_content"
-        android:layout_height="@dimen/_24sdp"
+        android:layout_height="30dp"
         android:backgroundTint="@color/contrast"
         android:textColor="@color/appColor"
         app:drawableStartCompat="@drawable/ic_import"
@@ -57,15 +57,15 @@
         android:maxLines="1"
         android:background="@drawable/button_bg"
         android:fontFamily="@font/regular"
-        android:textSize="@dimen/_10sdp"
-        android:paddingVertical="@dimen/_5sdp"
-        android:paddingHorizontal="@dimen/_5sdp"
+        android:textSize="12sp"
+        android:paddingVertical="6dp"
+        android:paddingHorizontal="6dp"
         android:id="@+id/addImage"/>
 
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabLayout"
         android:layout_width="0dp"
-        android:layout_height="@dimen/_30sdp"
+        android:layout_height="38dp"
         android:background="@android:color/transparent"
         app:tabIndicatorColor="@color/appColor"
         app:tabIndicatorHeight="3dp"
@@ -74,13 +74,13 @@
         app:tabGravity="fill"
         app:tabSelectedTextColor="@color/appColor"
         app:tabTextColor="@color/black"
-        app:tabRippleColor="@color/appColor"
+        app:tabRippleColor="@color/contrast"
         app:layout_constraintStart_toEndOf="@id/addImage"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/topGuide"/>
 
     <androidx.viewpager2.widget.ViewPager2
-        android:layout_marginTop="@dimen/_5sdp"
+        android:layout_marginTop="6dp"
         android:id="@+id/viewPager"
         android:layout_width="0dp"
         android:layout_height="0dp"

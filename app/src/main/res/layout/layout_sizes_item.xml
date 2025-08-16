@@ -5,10 +5,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <com.example.urduphotodesigner.common.views.FramePreviewView
-        android:layout_width="@dimen/_45sdp"
-        android:layout_height="@dimen/_45sdp"
-        android:layout_margin="@dimen/_5sdp"
-        android:translationZ="@dimen/_1sdp"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_margin="6dp"
+        android:translationZ="1dp"
         android:background="@drawable/button_bg_stroke_fill"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -22,14 +22,14 @@
         android:text="@string/billboard"
         android:fontFamily="@font/medium"
         android:maxLines="1"
-        android:textSize="@dimen/_12sdp"
+        android:textSize="15sp"
         android:textColor="@color/black"
         android:ellipsize="end"
         app:layout_constraintEnd_toStartOf="@id/size"
         app:layout_constraintStart_toEndOf="@id/image"
         app:layout_constraintTop_toTopOf="@id/image"
         app:layout_constraintBottom_toBottomOf="@id/image"
-        android:layout_marginStart="@dimen/_10sdp"/>
+        android:layout_marginStart="12dp"/>
 
     <TextView
         android:id="@+id/size"
@@ -37,7 +37,7 @@
         android:layout_height="wrap_content"
         android:text="@string/_00_x_00"
         android:fontFamily="@font/regular"
-        android:textSize="@dimen/_10sdp"
+        android:textSize="12sp"
         android:textColor="@color/black"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/image"

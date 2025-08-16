@@ -1,12 +1,12 @@
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/fontCard"
-    android:layout_width="@dimen/_45sdp"
-    android:layout_height="@dimen/_45sdp"
-    android:layout_marginEnd="@dimen/_5sdp"
-    android:layout_marginBottom="@dimen/_5sdp"
+    android:layout_width="56dp"
+    android:layout_height="56dp"
+    android:layout_marginEnd="6dp"
+    android:layout_marginBottom="6dp"
     app:cardBackgroundColor="@color/selection"
-    app:cardCornerRadius="@dimen/_5sdp"
+    app:cardCornerRadius="6dp"
     app:cardElevation="0dp"
     app:strokeWidth="0dp">
 
@@ -29,7 +29,7 @@
                 android:id="@+id/font"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:padding="@dimen/_5sdp"
+                android:padding="6dp"
                 android:src="@drawable/ic_launcher_background"
                 android:background="@color/contrast"
                 android:scaleType="fitCenter" />
@@ -48,10 +48,10 @@
 
         <ImageView
             android:id="@+id/download"
-            android:layout_width="@dimen/_12sdp"
-            android:layout_height="@dimen/_12sdp"
+            android:layout_width="15dp"
+            android:layout_height="15dp"
             android:layout_gravity="end|bottom"
-            android:layout_margin="@dimen/_3sdp"
+            android:layout_margin="4dp"
             android:src="@drawable/ic_download"
             android:visibility="gone"
             app:tint="@color/appColor" />

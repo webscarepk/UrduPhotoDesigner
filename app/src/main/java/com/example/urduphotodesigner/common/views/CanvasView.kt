@@ -279,27 +279,46 @@ class CanvasView @JvmOverloads constructor(
 
             selectedElements.size == 1 -> {
                 val elem = selectedElements.first()
+
                 if (elem.type == ElementType.BACKGROUND && elem.bitmap != null) {
                     val (xRange, _) = computeBackgroundPanBounds(elem)
                     val targetX = when (align) {
-                        HAlign.LEFT -> xRange.start
+                        HAlign.LEFT   -> xRange.start
                         HAlign.CENTER -> canvasWidth / 2f
-                        HAlign.RIGHT -> xRange.endInclusive
+                        HAlign.RIGHT  -> xRange.endInclusive
                     }
-                    elem.x = targetX.coerceIn(xRange.start, xRange.endInclusive)
+                    // If range is invalid (start > end), fall back to center
+                    val x = if (xRange.start <= xRange.endInclusive) {
+                        targetX.coerceIn(xRange.start, xRange.endInclusive)
+                    } else {
+                        canvasWidth / 2f
+                    }
+                    elem.x = x
                     onElementChanged?.invoke(elem)
                     invalidate()
                     return
                 }
 
-                // --- your existing logic for non-background elements ---
+                // Normal element path
                 val halfW = elem.getLocalContentWidth() * elem.scale / 2f
+                if (!halfW.isFinite() || !canvasWidth.toFloat().isFinite() || canvasWidth <= 0f) return
+
                 val rawX = when (align) {
-                    HAlign.LEFT -> halfW
+                    HAlign.LEFT   -> halfW
                     HAlign.CENTER -> canvasWidth / 2f
-                    HAlign.RIGHT -> canvasWidth - halfW
+                    HAlign.RIGHT  -> canvasWidth - halfW
                 }
-                elem.x = rawX.coerceIn(halfW, canvasWidth - halfW)
+
+                val minX = halfW
+                val maxX = canvasWidth - halfW
+                val oversized = (halfW * 2f) > canvasWidth
+
+                elem.x = when {
+                    oversized -> canvasWidth / 2f                    // element wider than canvas: center it
+                    minX <= maxX -> rawX.coerceIn(minX, maxX)        // normal case
+                    else -> canvasWidth / 2f                         // safety fallback
+                }
+
                 onElementChanged?.invoke(elem)
                 invalidate()
                 return

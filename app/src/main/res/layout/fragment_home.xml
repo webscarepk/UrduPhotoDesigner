@@ -42,35 +42,35 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:background="@drawable/ic_home_header"
         android:id="@+id/header"
-        android:translationZ="@dimen/_10sdp"
-        android:padding="@dimen/_15sdp">
+        android:translationZ="12dp"
+        android:padding="19dp">
 
         <ImageView
-            android:layout_width="@dimen/_70sdp"
-            android:layout_height="@dimen/_27sdp"
+            android:layout_width="88dp"
+            android:layout_height="34dp"
             android:src="@drawable/ic_app_icon"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="@id/profile"
             app:layout_constraintBottom_toBottomOf="@id/profile"/>
 
         <ImageView
-            android:layout_width="@dimen/_32sdp"
-            android:layout_height="@dimen/_32sdp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:background="@drawable/button_bg_round"
             android:src="@drawable/ic_profile"
             android:backgroundTint="@color/white"
-            android:padding="@dimen/_8sdp"
+            android:padding="10dp"
             app:layout_constraintEnd_toEndOf="parent"
             android:id="@+id/profile"/>
 
         <ImageView
-            android:layout_width="@dimen/_32sdp"
-            android:layout_height="@dimen/_32sdp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:background="@drawable/button_bg_round"
             android:src="@drawable/ic_notifications"
             android:backgroundTint="@color/white"
-            android:padding="@dimen/_8sdp"
-            android:layout_marginEnd="@dimen/_5sdp"
+            android:padding="10dp"
+            android:layout_marginEnd="6dp"
             app:layout_constraintEnd_toStartOf="@id/profile"
             app:layout_constraintTop_toTopOf="parent"
             android:id="@+id/notifications"/>
@@ -84,27 +84,27 @@
             app:layout_constraintEnd_toEndOf="parent"
             android:fontFamily="@font/regular"
             android:drawableEnd="@drawable/ic_search"
-            android:drawablePadding="@dimen/_10sdp"
-            android:paddingHorizontal="@dimen/_10sdp"
-            android:paddingVertical="@dimen/_8sdp"
-            android:textSize="@dimen/_12sdp"
+            android:drawablePadding="12dp"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="10dp"
+            android:textSize="15sp"
             android:hint="@string/search_here"
             android:textColorHint="@color/gray"
             android:textColor="@color/black"
             app:layout_constraintTop_toBottomOf="@id/profile"
-            android:layout_marginTop="@dimen/_20sdp"/>
+            android:layout_marginTop="24dp"/>
 
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="@dimen/_60sdp"
+            android:layout_height="75dp"
             android:orientation="vertical"
-            android:layout_marginEnd="@dimen/_5sdp"
+            android:layout_marginEnd="6dp"
             android:id="@+id/create"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@id/blankCanvas"
             app:layout_constraintTop_toBottomOf="@id/searchBar"
-            android:layout_marginTop="@dimen/_15sdp"
-            android:layout_marginStart="@dimen/_10sdp"
+            android:layout_marginTop="19dp"
+            android:layout_marginStart="12dp"
             android:foreground="?selectableItemBackground"
             android:background="@drawable/button_bg"
             android:backgroundTint="@color/white"
@@ -119,14 +119,14 @@
                 android:layout_height="wrap_content"
                 android:text="@string/upload_photo"
                 android:fontFamily="@font/bold"
-                android:textSize="@dimen/_10sdp"
+                android:textSize="12sp"
                 android:textColor="@color/black"
-                android:layout_marginTop="@dimen/_10sdp"/>
+                android:layout_marginTop="12dp"/>
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="@dimen/_60sdp"
+            android:layout_height="75dp"
             android:orientation="vertical"
             android:id="@+id/blankCanvas"
             android:foreground="?selectableItemBackground"
@@ -147,18 +147,18 @@
                 android:layout_height="wrap_content"
                 android:text="@string/blank_canvas"
                 android:fontFamily="@font/bold"
-                android:textSize="@dimen/_10sdp"
+                android:textSize="12sp"
                 android:textColor="@color/black"
-                android:layout_marginTop="@dimen/_10sdp"/>
+                android:layout_marginTop="12dp"/>
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="@dimen/_60sdp"
+            android:layout_height="75dp"
             android:orientation="vertical"
-            android:layout_marginStart="@dimen/_5sdp"
+            android:layout_marginStart="6dp"
             android:id="@+id/templates"
-            android:layout_marginEnd="@dimen/_10sdp"
+            android:layout_marginEnd="12dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/blankCanvas"
             app:layout_constraintTop_toTopOf="@id/create"
@@ -177,9 +177,9 @@
                 android:layout_height="wrap_content"
                 android:text="@string/templates"
                 android:fontFamily="@font/bold"
-                android:textSize="@dimen/_10sdp"
+                android:textSize="12sp"
                 android:textColor="@color/black"
-                android:layout_marginTop="@dimen/_10sdp"/>
+                android:layout_marginTop="12dp"/>
         </LinearLayout>
 
         <TextView
@@ -187,12 +187,12 @@
             android:layout_height="wrap_content"
             android:text="@string/manage_custom_fonts_assets_and_imports_in_files_tab"
             android:fontFamily="@font/bold"
-            android:textSize="@dimen/_10sdp"
+            android:textSize="12sp"
             android:textColor="@color/white"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/create"
-            android:layout_marginTop="@dimen/_15sdp"/>
+            android:layout_marginTop="19dp"/>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 
@@ -210,7 +210,7 @@
             android:layout_height="wrap_content">
 
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:paddingHorizontal="@dimen/_15sdp"
+                android:paddingHorizontal="19dp"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 app:layout_constraintStart_toStartOf="parent"
@@ -224,8 +224,8 @@
                     android:text="@string/recent_projects"
                     android:fontFamily="@font/bold"
                     android:textColor="@color/black"
-                    android:textSize="@dimen/_12sdp"
-                    android:paddingVertical="@dimen/_5sdp"
+                    android:textSize="15sp"
+                    android:paddingVertical="6dp"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
                     android:id="@+id/recentTitle"/>
@@ -236,16 +236,16 @@
                     android:text="@string/see_all"
                     android:fontFamily="@font/bold"
                     android:textColor="@color/gray"
-                    android:textSize="@dimen/_10sdp"
+                    android:textSize="12sp"
                     app:layout_constraintEnd_toStartOf="@id/more1"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    android:layout_marginEnd="@dimen/_5sdp"
+                    android:layout_marginEnd="6dp"
                     android:id="@+id/recentSeeAll"/>
 
                 <ImageView
-                    android:layout_width="@dimen/_8sdp"
-                    android:layout_height="@dimen/_8sdp"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
                     android:src="@drawable/ic_dropdown"
                     android:id="@+id/more1"
                     android:rotation="270"
@@ -258,7 +258,7 @@
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recentsRV"
                 android:layout_width="0dp"
-                android:paddingHorizontal="@dimen/_10sdp"
+                android:paddingHorizontal="12dp"
                 android:layout_height="wrap_content"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"

@@ -328,16 +328,15 @@ class TemplatesListFragment : Fragment() {
         filterJob?.cancel()
         filterJob = viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Default) {
             val filtered = filterTemplatesList(baseTemplates, activeSubcategory, activeQuery, activeSize)
-            val result = if (forceShuffle) filtered.shuffled() else mergePreservingOrder(filtered)
+            val result = if (forceShuffle) filtered.shuffled() else filtered
+
+            val fresh = result.map { it.copy() }
 
             withContext(Dispatchers.Main) {
-                adapter.submitList(result) {
-                    // Recompute columns to avoid jump/gaps
-                    sglm.invalidateSpanAssignments()
-                    // Keep it at top if we were already at top during refresh
-                    if (!binding.templatesRV.canScrollVertically(-1)) {
-                        binding.templatesRV.scrollToPosition(0)
-                    }
+                adapter.submitList(fresh)
+                sglm.invalidateSpanAssignments()
+                if (!binding.templatesRV.canScrollVertically(-1)) {
+                    binding.templatesRV.scrollToPosition(0)
                 }
             }
         }

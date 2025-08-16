@@ -3,7 +3,7 @@
     android:orientation="vertical"
     android:background="@drawable/button_bg"
     android:backgroundTint="@color/white"
-    android:layout_width="@dimen/_120sdp"
+    android:layout_width="150dp"
     android:layout_height="wrap_content">
 
     <TextView
@@ -11,8 +11,8 @@
         android:layout_width="match_parent"
         style="@style/PopupItemStyle"
         android:text="@string/open"
-        android:paddingHorizontal="@dimen/_16sdp"
-        android:paddingVertical="@dimen/_8sdp"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="10dp"
         android:id="@+id/actionOpen"
         app:drawableStartCompat="@drawable/ic_show_pass"
         app:drawableTint="@color/black" />
@@ -26,8 +26,8 @@
         android:layout_height="wrap_content"
         android:layout_width="match_parent"
         style="@style/PopupItemStyle"
-        android:paddingHorizontal="@dimen/_16sdp"
-        android:paddingVertical="@dimen/_8sdp"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="10dp"
         android:text="@string/duplicate"
         android:id="@+id/actionDuplicate"
         app:drawableStartCompat="@drawable/ic_copy"
@@ -44,8 +44,8 @@
         style="@style/PopupItemStyle"
         android:text="@string/share"
         android:id="@+id/actionShare"
-        android:paddingHorizontal="@dimen/_16sdp"
-        android:paddingVertical="@dimen/_8sdp"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="10dp"
         app:drawableStartCompat="@drawable/ic_share"
         app:drawableTint="@color/black" />
 
@@ -60,8 +60,8 @@
         style="@style/PopupItemStyle"
         android:text="@string/rename"
         android:id="@+id/actionRename"
-        android:paddingHorizontal="@dimen/_16sdp"
-        android:paddingVertical="@dimen/_8sdp"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="10dp"
         app:drawableStartCompat="@drawable/ic_edit"
         app:drawableTint="@color/black"  />
 
@@ -75,8 +75,8 @@
         android:layout_width="match_parent"
         style="@style/PopupItemStyle"
         android:text="@string/delete"
-        android:paddingHorizontal="@dimen/_16sdp"
-        android:paddingVertical="@dimen/_8sdp"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="10dp"
         app:drawableStartCompat="@drawable/ic_delete"
         app:drawableTint="@android:color/holo_red_dark"
         android:textColor="@android:color/holo_red_dark"

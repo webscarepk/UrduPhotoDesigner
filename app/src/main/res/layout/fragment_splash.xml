@@ -41,8 +41,8 @@
         app:layout_constraintEnd_toEndOf="@id/appIcon"
         app:layout_constraintTop_toBottomOf="@id/appIcon"
         android:fontFamily="@font/regular"
-        android:textSize="@dimen/_10sdp"
+        android:textSize="12sp"
         android:gravity="center"
-        android:layout_marginTop="@dimen/_10sdp"/>
+        android:layout_marginTop="12dp"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

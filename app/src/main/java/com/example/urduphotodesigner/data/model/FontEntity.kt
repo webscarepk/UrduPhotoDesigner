@@ -9,6 +9,7 @@ data class FontEntity(
     val file_name: String,
     val font_name: String,
     val font_category: String,
+    val font_language: String,
     val file_url: String,
     val file_size: String,
     val font_image: String,
