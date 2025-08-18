@@ -2,6 +2,7 @@ package com.example.urduphotodesigner.ui.editor.panels.text.fonts
 
 import android.content.res.ColorStateList
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -41,14 +42,9 @@ class FontLanguagesAdapter(
         RecyclerView.ViewHolder(binding.root) {
 
         private val catAdapter = FontCategoriesAdapter { cat ->
-            val lang = fonts[adapterPosition].name
-            // mark selection locally
-            val updated = fonts[adapterPosition].categories.map {
-                it.copy(isSelected = it.name.equals(cat, true))
-            }
-            fonts[adapterPosition] =
-                fonts[adapterPosition].copy(categories = updated)
-            notifyItemChanged(adapterPosition)
+            val pos = adapterPosition
+            if (pos == RecyclerView.NO_POSITION) return@FontCategoriesAdapter
+            val lang = fonts[pos].name
 
             onCategorySelected(lang, cat)
         }
@@ -64,34 +60,25 @@ class FontLanguagesAdapter(
             binding.tabTitle.addPressEffect {
                 val pos = adapterPosition
                 if (pos == RecyclerView.NO_POSITION) return@addPressEffect
-                val row = fonts[pos]
-                val toggled = row.copy(is_selected = !row.is_selected)
-                fonts[pos] = toggled
-                notifyItemChanged(pos)
+                val row = fonts[pos].name
 
-                if (toggled.is_selected) onLanguageExpanded(toggled.name)
+                onLanguageExpanded(row)
             }
         }
 
         fun bind(font: FontLanguages) {
-
-            if (font.is_selected) {
-                binding.root.backgroundTintList = ColorStateList.valueOf(
-                    ContextCompat.getColor(
-                        binding.root.context,
-                        R.color.selection
-                    )
-                )
-            } else {
-                binding.root.backgroundTintList = ColorStateList.valueOf(
-                    ContextCompat.getColor(
-                        binding.root.context,
-                        android.R.color.transparent
-                    )
-                )
-            }
-
             binding.tabTitle.text = font.name
+
+            // show categories only when selected/expanded
+            binding.rvCategories.visibility = if (font.is_selected) View.VISIBLE else View.GONE
+            catAdapter.submit(font.categories)
+            binding.root.alpha = if (font.is_selected) 1f else 0.8f
+
+            // optional tint
+//            val color = if (font.is_selected) R.color.selection else android.R.color.transparent
+//            binding.root.backgroundTintList = ColorStateList.valueOf(
+//                ContextCompat.getColor(binding.root.context, color)
+//            )
         }
     }
 }

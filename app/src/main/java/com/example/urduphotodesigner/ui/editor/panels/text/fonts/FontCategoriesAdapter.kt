@@ -29,7 +29,6 @@ class FontCategoriesAdapter(
     inner class VH(private val binding: LayoutFontCategoryBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(row: FontCategory) {
             binding.tabTitle.text = row.name
-            // optional selection styling
             binding.tabTitle.alpha = if (row.isSelected) 1f else 0.85f
 
             binding.tabTitle.addPressEffect { onCategoryClick(row.name) }

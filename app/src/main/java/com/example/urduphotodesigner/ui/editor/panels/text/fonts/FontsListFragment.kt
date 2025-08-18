@@ -9,8 +9,8 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.example.urduphotodesigner.common.canvas.sealed.FontDownloadState
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.canvas.sealed.FontDownloadState
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.databinding.FragmentFontsListBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
@@ -30,11 +30,13 @@ class FontsListFragment : Fragment() {
     private lateinit var fontsAdapter: FontsAdapter
     private var fontEntity: FontEntity? = null
 
+    private var currentLanguage: String? = null
     private var currentCategory: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        currentCategory = arguments?.getString("font_category")
+        currentLanguage = arguments?.getString(ARG_FONT_LANGUAGE) ?: "All"
+        currentCategory = null // default to "all categories" under that language
     }
 
     override fun onCreateView(
@@ -52,6 +54,16 @@ class FontsListFragment : Fragment() {
         initObservers()
     }
 
+    fun applyFilter(language: String, category: String?) {
+        currentLanguage = language
+        currentCategory = category // null = all categories in language
+        view?.post { rebindLatest() }
+    }
+
+    private fun rebindLatest() {
+        // no-op: combine collector below always uses latest language+category
+    }
+
     private fun setupRecyclerViews() {
         fontsAdapter = FontsAdapter { font, isDownloaded ->
             handleFontSelection(font, isDownloaded)
@@ -63,8 +75,7 @@ class FontsListFragment : Fragment() {
         if (isDownloaded) {
             viewModel.setFont(font)
         } else {
-            // Initiate download
-            fontEntity = font // Keep track of the font being downloaded
+            fontEntity = font
             val updatedList = fontsAdapter.currentList.map {
                 if (it.id == font.id) it.copy(is_downloading = true) else it
             }
@@ -73,39 +84,39 @@ class FontsListFragment : Fragment() {
         }
     }
 
-    // In FontsListFragment.kt
     private fun initObservers() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                // Start query with empty string so first emission happens immediately
                 combine(
                     mainViewModel.localFonts,
                     mainViewModel.queryDebounced.onStart { emit("") }
                 ) { fonts, queryRaw ->
                     val query = queryRaw.trim().lowercase()
 
-                    // 1) Category filter
-                    val byCategory = if (currentCategory.equals("All", ignoreCase = true)) {
-                        fonts
-                    } else {
-                        fonts.filter { it.font_category.equals(currentCategory, ignoreCase = true) }
+                    // 0) Language filter
+                    val byLanguage = when (val lang = currentLanguage ?: "All") {
+                        "All" -> fonts
+                        else -> fonts.filter { it.font_language.equals(lang, ignoreCase = true) }
                     }
 
-                    // 2) Query filter (all tokens must match)
-                    if (query.isEmpty()) return@combine byCategory
+                    // 1) Category filter (null means all in that language)
+                    val byCategory = when (val cat = currentCategory) {
+                        null -> byLanguage
+                        else -> byLanguage.filter {
+                            it.font_category.equals(cat, ignoreCase = true)
+                        }
+                    }
 
+                    // 2) Query filter
+                    if (query.isEmpty()) return@combine byCategory
                     val tokens = query.split(Regex("\\s+")).filter { it.isNotEmpty() }
                     byCategory.filter { f ->
                         val haystack = buildString {
-                            append(f.font_name ?: "")
-                            append(' ')
-                            append(f.file_name ?: "")
-                            append(' ')
-                            append(f.font_category ?: "")
-                            append(' ')
+                            append(f.font_name ?: ""); append(' ')
+                            append(f.file_name ?: ""); append(' ')
+                            append(f.font_category ?: ""); append(' ')
                             append(f.alt_text ?: "")
                         }.lowercase()
-
                         tokens.all { it in haystack }
                     }
                 }.collect { filtered ->
@@ -132,18 +143,22 @@ class FontsListFragment : Fragment() {
                         }
                         mainViewModel.clearDownloadState()
                     }
+
                     is FontDownloadState.Success -> {
-                        // This case is for non-font downloads or if typeface creation failed
                         fontEntity?.let { font ->
                             if (font.is_downloaded) {
                                 viewModel.setFont(font)
                             }
                         }
                     }
+
                     is FontDownloadState.Error -> {
-                        view?.let { Snackbar.make(it, "Download failed!", Snackbar.LENGTH_SHORT).show() }
+                        view?.let {
+                            Snackbar.make(it, "Download failed!", Snackbar.LENGTH_SHORT).show()
+                        }
                         fontEntity = null
                     }
+
                     else -> {}
                 }
             }
@@ -163,15 +178,14 @@ class FontsListFragment : Fragment() {
     }
 
     companion object {
-        private const val ARG_FONT_CATEGORY = "font_category"
+        private const val ARG_FONT_LANGUAGE = "font_language"
 
-        fun newInstance(fontCategory: String): FontsListFragment {
+        fun newInstance(fontLanguage: String): FontsListFragment {
             val fragment = FontsListFragment()
             val args = Bundle()
-            args.putString(ARG_FONT_CATEGORY, fontCategory)
+            args.putString(ARG_FONT_LANGUAGE, fontLanguage)
             fragment.arguments = args
             return fragment
         }
     }
-
 }

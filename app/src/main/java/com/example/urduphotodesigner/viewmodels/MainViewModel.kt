@@ -152,7 +152,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun observeLocalTemplates() {
+    private fun observeLocalTemplates() {
         viewModelScope.launch {
             getTemplatesUseCase().collect { templates ->
                 _localTemplates.value = templates

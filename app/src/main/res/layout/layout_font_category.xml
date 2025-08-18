@@ -4,8 +4,6 @@
     android:layout_height="wrap_content"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:background="@drawable/button_bg"
-    android:backgroundTint="@color/contrast"
     android:id="@+id/tabRoot">
 
     <TextView
@@ -13,7 +11,7 @@
         android:layout_height="wrap_content"
         android:text="@string/all"
         android:textColor="@color/black"
-        android:textSize="12sp"
+        android:textSize="10sp"
         android:fontFamily="@font/regular"
         android:paddingVertical="6dp"
         android:paddingHorizontal="12dp"

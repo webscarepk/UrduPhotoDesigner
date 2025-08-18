@@ -4,8 +4,6 @@
     android:layout_height="wrap_content"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:background="@drawable/button_bg"
-    android:backgroundTint="@color/contrast"
     android:id="@+id/tabRoot">
 
     <TextView
@@ -28,6 +26,7 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvCategories"
         android:layout_width="0dp"
+        android:layout_marginStart="5dp"
         android:layout_height="wrap_content"
         android:overScrollMode="never"
         android:nestedScrollingEnabled="false"

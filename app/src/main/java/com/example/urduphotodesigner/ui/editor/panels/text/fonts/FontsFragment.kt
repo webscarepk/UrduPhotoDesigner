@@ -8,7 +8,6 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
-import com.example.urduphotodesigner.data.model.FontCategory
 import com.example.urduphotodesigner.data.model.FontLanguages
 import com.example.urduphotodesigner.databinding.FragmentFontsBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
@@ -24,6 +23,9 @@ class FontsFragment : Fragment() {
     private lateinit var adapter: FontLanguagesAdapter
     private lateinit var languages: ArrayList<FontLanguages>
     private lateinit var pagerAdapter: FontsPagerAdapter
+
+    // keep track of chosen category per language
+    private val chosenCategoryByLang = mutableMapOf<String, String?>()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -42,10 +44,16 @@ class FontsFragment : Fragment() {
     private fun setupRecyclerViews() {
         languages = ArrayList()
 
-        // IMPORTANT: adapter now has TWO callbacks.
         adapter = FontLanguagesAdapter(
-            onLanguageExpanded = { lang -> onLanguageClicked(lang) },
-            onCategorySelected = { lang, category -> onCategorySelected(lang, category) }
+            onLanguageExpanded = { lang ->
+                expandOnly(lang)
+                deliverFilter(lang, chosenCategoryByLang[lang]) // null means all in this language
+            },
+            onCategorySelected = { lang, category ->
+                chosenCategoryByLang[lang] = category // keep null when none
+                markCategoryUi(lang, chosenCategoryByLang[lang])
+                deliverFilter(lang, chosenCategoryByLang[lang])
+            }
         )
         binding.languages.adapter = adapter
 
@@ -53,13 +61,12 @@ class FontsFragment : Fragment() {
         pagerAdapter = FontsPagerAdapter(this@FontsFragment, languages)
         binding.viewPager.adapter = pagerAdapter
 
-        // Swiping the pager should only sync the expanded language row.
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
-                val row = languages.getOrNull(position) ?: return
-                // expand this language, collapse others (no category selection here)
-                expandOnly(row.name)
-                binding.languages.smoothScrollToPosition(position)
+                languages.getOrNull(position)?.let { row ->
+                    expandOnly(row.name)
+                    binding.languages.smoothScrollToPosition(position)
+                }
             }
         })
     }
@@ -67,91 +74,86 @@ class FontsFragment : Fragment() {
     private fun initObservers() {
         viewLifecycleOwner.lifecycleScope.launch {
             mainViewModel.localFonts.collect { fonts ->
-                // Group by language, then build categories per language
                 val grouped = fonts.groupBy { it.font_language.ifBlank { "Unknown" } }
 
-                val incoming = grouped.entries
+                val langRows = grouped.entries
                     .sortedBy { it.key.lowercase() }
-                    .mapIndexed { index, (lang, list) ->
-                        // Build categories: "All" + distinct font_category
-                        val catNames = buildList {
-                            add("All")
-                            addAll(list.map { it.font_category.ifBlank { "Uncategorized" } }
-                                .distinct()
-                                .sorted())
-                        }
+                    .mapIndexed { idx, (lang, list) ->
 
-                        // keep previous UI state if exists
-                        val old = languages.firstOrNull { it.name == lang }
-                        FontLanguages(
-                            id = index,
-                            name = lang,
-                            is_selected = old?.is_selected ?: (index == 0),
-                            categories = catNames.map { name ->
-                                val wasSelected = old?.categories?.any { it.name == name && it.isSelected } == true
-                                FontCategory(
-                                    name = name,
-                                    isSelected = when {
-                                        wasSelected -> true
-                                        old == null && name.equals("All", true) -> true
-                                        else -> false
-                                    }
+                        val cats = list.map { it.font_category.ifBlank { "Uncategorized" } }
+                            .distinct()
+                            .sorted()
+                            .map { catName ->
+                                FontCategoryUi(
+                                    name = catName,
+                                    isSelected = (chosenCategoryByLang[lang] == catName)
                                 )
                             }
+
+                        val wasSelected = languages.firstOrNull { it.name == lang }?.is_selected ?: false
+
+                        FontLanguages(
+                            id = idx + 1,
+                            name = lang,
+                            is_selected = wasSelected,
+                            categories = cats
                         )
                     }
 
-                if (incoming != languages) {
-                    languages.clear()
-                    languages.addAll(incoming)
-                    adapter.submitList(ArrayList(languages))
+                // Special "All languages" row
+                val allSelected = languages.firstOrNull { it.name == "All" }?.is_selected ?: true
+                val allRow = FontLanguages(
+                    id = 0,
+                    name = "All",
+                    is_selected = allSelected,
+                    categories = emptyList() // no categories under All
+                )
 
-                    // Pager pages = languages (not categories)
-                    pagerAdapter.updateCategories(languages)
+                val incoming = arrayListOf(allRow).apply { addAll(langRows) }
 
-                    // Ensure pager is on expanded language
-                    val expandedIdx = languages.indexOfFirst { it.is_selected }.let { if (it == -1) 0 else it }
-                    if (binding.viewPager.currentItem != expandedIdx) {
-                        binding.viewPager.setCurrentItem(expandedIdx, false)
-                    }
+                languages.clear()
+                languages.addAll(incoming)
+                adapter.submitList(ArrayList(languages))
+                pagerAdapter.updateCategories(languages)
+
+                // ensure pager shows selected language
+                val idx = languages.indexOfFirst { it.is_selected }.let { if (it == -1) 0 else it }
+                if (binding.viewPager.currentItem != idx) {
+                    binding.viewPager.setCurrentItem(idx, false)
                 }
+
+                // push current filter to page
+                val currentLang = languages.getOrNull(idx)?.name ?: "All"
+                deliverFilter(currentLang, chosenCategoryByLang[currentLang])
             }
         }
     }
 
-    /** LANGUAGE CLICK: expand/collapse only. No category selection, no pager moves except syncing the expanded row. */
-    private fun onLanguageClicked(lang: String) = expandOnly(lang)
-
+    /** Make only one language selected/expanded */
     private fun expandOnly(lang: String) {
-        val updated = languages.map {
-            it.copy(is_selected = it.name == lang)
-        }
-        languages.clear()
-        languages.addAll(updated)
+        val updated = languages.map { it.copy(is_selected = it.name == lang) }
+        languages.clear(); languages.addAll(updated)
         adapter.submitList(ArrayList(languages))
-
-        // Move pager to this language page
-        val idx = languages.indexOfFirst { it.name == lang }
-        if (idx >= 0 && binding.viewPager.currentItem != idx) {
-            binding.viewPager.setCurrentItem(idx, true)
-        }
     }
 
-    /** CATEGORY CLICK: select category within the already-expanded language, then move pager to that language page. */
-    private fun onCategorySelected(lang: String, category: String) {
-        val langIdx = languages.indexOfFirst { it.name == lang }
-        if (langIdx == -1) return
-
-        val row = languages[langIdx]
-        val newCats = row.categories.map { it.copy(isSelected = it.name.equals(category, true)) }
-
-        val updatedRow = row.copy(categories = newCats, is_selected = true)
-        languages[langIdx] = updatedRow
-        adapter.submitList(ArrayList(languages))
-
-        if (binding.viewPager.currentItem != langIdx) {
-            binding.viewPager.setCurrentItem(langIdx, true)
+    /** Update category selection UI for one language row */
+    private fun markCategoryUi(lang: String, categoryOrNull: String?) {
+        val pos = languages.indexOfFirst { it.name == lang }
+        if (pos == -1) return
+        val row = languages[pos]
+        val newCats = row.categories.map {
+            it.copy(isSelected = it.name.equals(categoryOrNull, true))
         }
+        languages[pos] = row.copy(categories = newCats)
+        adapter.submitList(ArrayList(languages))
+    }
+
+    /** Deliver the current (lang, categoryOrNull) filter to active FontsListFragment */
+    private fun deliverFilter(lang: String, categoryOrNull: String?) {
+        val current = binding.viewPager.currentItem
+        val tag = "f$current" // ViewPager2 fragment tag convention
+        (childFragmentManager.findFragmentByTag(tag) as? FontsListFragment)
+            ?.applyFilter(language = lang, category = categoryOrNull)
     }
 
     override fun onDestroyView() {
@@ -160,8 +162,6 @@ class FontsFragment : Fragment() {
     }
 
     companion object {
-        fun newInstance(): FontsFragment {
-            return FontsFragment()
-        }
+        fun newInstance(): FontsFragment = FontsFragment()
     }
 }
