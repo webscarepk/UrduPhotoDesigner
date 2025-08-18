@@ -2,7 +2,7 @@ package com.example.urduphotodesigner.data.model
 
 data class FontLanguages(
     val id: Int,
-    val font_category: String,
+    val name: String,
     var is_selected:Boolean = false,
     val categories: List<FontCategory> = emptyList()
 )

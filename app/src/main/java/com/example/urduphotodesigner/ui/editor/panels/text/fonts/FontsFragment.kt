@@ -8,6 +8,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
+import com.example.urduphotodesigner.data.model.FontCategory
 import com.example.urduphotodesigner.data.model.FontLanguages
 import com.example.urduphotodesigner.databinding.FragmentFontsBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
@@ -40,73 +41,116 @@ class FontsFragment : Fragment() {
 
     private fun setupRecyclerViews() {
         languages = ArrayList()
-        adapter = FontLanguagesAdapter { font ->
-            handleFontSelection(font)
-        }
+
+        // IMPORTANT: adapter now has TWO callbacks.
+        adapter = FontLanguagesAdapter(
+            onLanguageExpanded = { lang -> onLanguageClicked(lang) },
+            onCategorySelected = { lang, category -> onCategorySelected(lang, category) }
+        )
         binding.languages.adapter = adapter
 
         binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
-
         pagerAdapter = FontsPagerAdapter(this@FontsFragment, languages)
         binding.viewPager.adapter = pagerAdapter
 
+        // Swiping the pager should only sync the expanded language row.
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
-                val selectedCategory = languages[position]
-                handleFontSelection(selectedCategory)
+                val row = languages.getOrNull(position) ?: return
+                // expand this language, collapse others (no category selection here)
+                expandOnly(row.name)
                 binding.languages.smoothScrollToPosition(position)
-
-                if (position >= 1) {
-                    binding.languages.smoothScrollToPosition(4)
-                } else {
-                    binding.languages.smoothScrollToPosition(0)
-                }
             }
         })
     }
 
     private fun initObservers() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             mainViewModel.localFonts.collect { fonts ->
-                val distinctCategories = fonts.map { it.font_category }.distinct()
-                val newCategories = mutableListOf<FontLanguages>()
+                // Group by language, then build categories per language
+                val grouped = fonts.groupBy { it.font_language.ifBlank { "Unknown" } }
 
-                // Add "All" category at the top
-                newCategories.add(FontLanguages(id = -1, font_category = "All", is_selected = true))
+                val incoming = grouped.entries
+                    .sortedBy { it.key.lowercase() }
+                    .mapIndexed { index, (lang, list) ->
+                        // Build categories: "All" + distinct font_category
+                        val catNames = buildList {
+                            add("All")
+                            addAll(list.map { it.font_category.ifBlank { "Uncategorized" } }
+                                .distinct()
+                                .sorted())
+                        }
 
-                // Add actual categories
-                distinctCategories.forEachIndexed { index, category ->
-                    newCategories.add(
+                        // keep previous UI state if exists
+                        val old = languages.firstOrNull { it.name == lang }
                         FontLanguages(
-                            id = index, font_category = category, is_selected = false
+                            id = index,
+                            name = lang,
+                            is_selected = old?.is_selected ?: (index == 0),
+                            categories = catNames.map { name ->
+                                val wasSelected = old?.categories?.any { it.name == name && it.isSelected } == true
+                                FontCategory(
+                                    name = name,
+                                    isSelected = when {
+                                        wasSelected -> true
+                                        old == null && name.equals("All", true) -> true
+                                        else -> false
+                                    }
+                                )
+                            }
                         )
-                    )
-                }
+                    }
 
-                if (newCategories != languages) {
+                if (incoming != languages) {
                     languages.clear()
-                    languages.addAll(newCategories)
+                    languages.addAll(incoming)
                     adapter.submitList(ArrayList(languages))
+
+                    // Pager pages = languages (not categories)
                     pagerAdapter.updateCategories(languages)
-                    handleFontSelection(languages.firstOrNull())
+
+                    // Ensure pager is on expanded language
+                    val expandedIdx = languages.indexOfFirst { it.is_selected }.let { if (it == -1) 0 else it }
+                    if (binding.viewPager.currentItem != expandedIdx) {
+                        binding.viewPager.setCurrentItem(expandedIdx, false)
+                    }
                 }
             }
         }
     }
 
-    private fun handleFontSelection(selectedCategory: FontLanguages?) {
-        selectedCategory?.let { category ->
-            val selectedIndex =
-                languages.indexOfFirst { it.font_category == category.font_category }
+    /** LANGUAGE CLICK: expand/collapse only. No category selection, no pager moves except syncing the expanded row. */
+    private fun onLanguageClicked(lang: String) = expandOnly(lang)
 
-            // Update selected item visuals
-            val updatedCategories = languages.map {
-                it.copy(is_selected = it.font_category == category.font_category)
-            }
-            adapter.submitList(updatedCategories)
+    private fun expandOnly(lang: String) {
+        val updated = languages.map {
+            it.copy(is_selected = it.name == lang)
+        }
+        languages.clear()
+        languages.addAll(updated)
+        adapter.submitList(ArrayList(languages))
 
-            // Switch ViewPager page
-            binding.viewPager.setCurrentItem(selectedIndex, true)
+        // Move pager to this language page
+        val idx = languages.indexOfFirst { it.name == lang }
+        if (idx >= 0 && binding.viewPager.currentItem != idx) {
+            binding.viewPager.setCurrentItem(idx, true)
+        }
+    }
+
+    /** CATEGORY CLICK: select category within the already-expanded language, then move pager to that language page. */
+    private fun onCategorySelected(lang: String, category: String) {
+        val langIdx = languages.indexOfFirst { it.name == lang }
+        if (langIdx == -1) return
+
+        val row = languages[langIdx]
+        val newCats = row.categories.map { it.copy(isSelected = it.name.equals(category, true)) }
+
+        val updatedRow = row.copy(categories = newCats, is_selected = true)
+        languages[langIdx] = updatedRow
+        adapter.submitList(ArrayList(languages))
+
+        if (binding.viewPager.currentItem != langIdx) {
+            binding.viewPager.setCurrentItem(langIdx, true)
         }
     }
 

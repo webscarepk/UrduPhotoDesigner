@@ -22,7 +22,7 @@
         app:layout_constraintEnd_toStartOf="@id/centerGuide"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         android:orientation="vertical"
-        android:id="@+id/languages"
+        android:id="@+id/categories"
         android:layout_marginEnd="12dp"
         tools:listitem="@layout/layout_tabs_item"
         tools:itemCount="3"/>

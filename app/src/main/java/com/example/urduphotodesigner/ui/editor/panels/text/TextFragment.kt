@@ -301,6 +301,7 @@ class TextFragment : Fragment() {
                     file_name = fontFile.name,
                     font_name = fontFile.nameWithoutExtension,
                     font_category = "Imported",
+                    font_language = "English",
                     file_url = "",
                     file_size = fontFile.length().toString(),
                     font_image = bitmapData,     // path you saved

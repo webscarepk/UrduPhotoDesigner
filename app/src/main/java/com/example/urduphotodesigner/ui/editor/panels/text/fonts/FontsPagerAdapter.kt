@@ -12,7 +12,7 @@ class FontsPagerAdapter(
     override fun getItemCount() = categories.size
 
     override fun createFragment(position: Int): Fragment {
-        return FontsListFragment.newInstance(categories[position].font_category)
+        return FontsListFragment.newInstance(categories[position].name)
     }
 
     fun updateCategories(newCategories: List<FontLanguages>) {
