@@ -8,6 +8,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
+import com.example.urduphotodesigner.data.model.FontCategory
 import com.example.urduphotodesigner.data.model.FontLanguages
 import com.example.urduphotodesigner.databinding.FragmentFontsBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
@@ -45,9 +46,14 @@ class FontsFragment : Fragment() {
         languages = ArrayList()
 
         adapter = FontLanguagesAdapter(
-            onLanguageExpanded = { lang ->
-                expandOnly(lang)
-                deliverFilter(lang, chosenCategoryByLang[lang]) // null means all in this language
+            onLanguageExpanded = { lang, collapse ->
+                if (collapse) {
+                    collapseLanguage(lang)
+                    deliverFilter(lang, chosenCategoryByLang[lang]) // still deliver current filter
+                } else {
+                    expandOnly(lang)
+                    deliverFilter(lang, chosenCategoryByLang[lang])
+                }
             },
             onCategorySelected = { lang, category ->
                 chosenCategoryByLang[lang] = category // keep null when none
@@ -84,7 +90,7 @@ class FontsFragment : Fragment() {
                             .distinct()
                             .sorted()
                             .map { catName ->
-                                FontCategoryUi(
+                                FontCategory(
                                     name = catName,
                                     isSelected = (chosenCategoryByLang[lang] == catName)
                                 )
@@ -127,6 +133,13 @@ class FontsFragment : Fragment() {
                 deliverFilter(currentLang, chosenCategoryByLang[currentLang])
             }
         }
+    }
+
+    private fun collapseLanguage(lang: String) {
+        val updated = languages.map { it.copy(is_selected = false) }
+        languages.clear()
+        languages.addAll(updated)
+        adapter.submitList(ArrayList(languages))
     }
 
     /** Make only one language selected/expanded */

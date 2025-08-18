@@ -13,7 +13,7 @@ import com.example.urduphotodesigner.data.model.FontLanguages
 import com.example.urduphotodesigner.databinding.LayoutTabsItemBinding
 
 class FontLanguagesAdapter(
-    private val onLanguageExpanded: (language: String) -> Unit,
+    private val onLanguageExpanded: (language: String, collapse: Boolean) -> Unit,
     private val onCategorySelected: (language: String, category: String) -> Unit
 ) : RecyclerView.Adapter<FontLanguagesAdapter.FontViewHolder>() {
 
@@ -60,25 +60,22 @@ class FontLanguagesAdapter(
             binding.tabTitle.addPressEffect {
                 val pos = adapterPosition
                 if (pos == RecyclerView.NO_POSITION) return@addPressEffect
-                val row = fonts[pos].name
-
-                onLanguageExpanded(row)
+                val row = fonts[pos]
+                val collapse = row.is_selected
+                onLanguageExpanded(row.name, collapse)
             }
         }
 
         fun bind(font: FontLanguages) {
             binding.tabTitle.text = font.name
-
-            // show categories only when selected/expanded
             binding.rvCategories.visibility = if (font.is_selected) View.VISIBLE else View.GONE
             catAdapter.submit(font.categories)
             binding.root.alpha = if (font.is_selected) 1f else 0.8f
-
             // optional tint
-//            val color = if (font.is_selected) R.color.selection else android.R.color.transparent
-//            binding.root.backgroundTintList = ColorStateList.valueOf(
-//                ContextCompat.getColor(binding.root.context, color)
-//            )
+            val color = if (font.is_selected) R.color.selection else android.R.color.transparent
+            binding.root.backgroundTintList = ColorStateList.valueOf(
+                ContextCompat.getColor(binding.root.context, color)
+            )
         }
     }
 }

@@ -112,9 +112,9 @@ class FontsListFragment : Fragment() {
                     val tokens = query.split(Regex("\\s+")).filter { it.isNotEmpty() }
                     byCategory.filter { f ->
                         val haystack = buildString {
-                            append(f.font_name ?: ""); append(' ')
-                            append(f.file_name ?: ""); append(' ')
-                            append(f.font_category ?: ""); append(' ')
+                            append(f.font_name); append(' ')
+                            append(f.file_name); append(' ')
+                            append(f.font_category); append(' ')
                             append(f.alt_text ?: "")
                         }.lowercase()
                         tokens.all { it in haystack }
