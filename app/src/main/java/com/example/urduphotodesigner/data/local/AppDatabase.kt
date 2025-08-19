@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.example.urduphotodesigner.common.canvas.model.ExportResult
+import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.data.model.GradientEntity
 import com.example.urduphotodesigner.data.model.ImageEntity

@@ -3,7 +3,6 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/tabRoot">
 
     <TextView
@@ -15,29 +14,12 @@
         android:fontFamily="@font/regular"
         android:paddingVertical="6dp"
         android:paddingHorizontal="12dp"
-        app:drawableEndCompat="@drawable/ic_dropdown"
+        android:background="@drawable/button_bg"
+        android:backgroundTint="@android:color/transparent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        android:drawablePadding="@dimen/_10sdp"
         android:id="@+id/tabTitle"/>
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvCategories"
-        android:layout_width="0dp"
-        android:layout_marginStart="5dp"
-        android:layout_height="wrap_content"
-        android:overScrollMode="never"
-        android:nestedScrollingEnabled="false"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        android:orientation="vertical"
-        android:layout_marginEnd="12dp"
-        tools:listitem="@layout/layout_tabs_item"
-        tools:itemCount="3"
-        app:layout_constraintTop_toBottomOf="@id/tabTitle"
-        app:layout_constraintStart_toStartOf="@id/tabTitle"
-        app:layout_constraintEnd_toEndOf="@id/tabTitle"
-        android:layout_marginTop="6dp"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

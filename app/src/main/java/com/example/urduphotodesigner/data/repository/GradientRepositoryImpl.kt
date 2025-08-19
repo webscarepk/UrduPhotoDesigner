@@ -6,13 +6,13 @@ import com.example.urduphotodesigner.common.canvas.model.GradientItem
 import com.example.urduphotodesigner.data.local.GradientDao
 import com.example.urduphotodesigner.data.mapper.toDomain
 import com.example.urduphotodesigner.data.mapper.toEntity
-import com.example.urduphotodesigner.domain.repo.GradientRepository
+import com.example.urduphotodesigner.domain.repo.GradientRepo
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 class GradientRepositoryImpl(
   private val dao: GradientDao
-) : GradientRepository {
+) : GradientRepo {
 
   override fun getAllGradients(): Flow<List<GradientItem>> =
     dao.getAll().map { list -> list.map { it.toDomain() } }

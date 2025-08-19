@@ -41,6 +41,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @AndroidEntryPoint
 class TextFragment : Fragment() {
@@ -295,7 +298,8 @@ class TextFragment : Fragment() {
 
                 val fontImageBitmap = createFontSampleBitmap(typeface)
                 val bitmapData = ImageProcessor.bitmapToFilePath(requireActivity(), fontImageBitmap)
-
+                val exportDate =
+                    SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
                 val fontEntity = FontEntity(
                     id = System.currentTimeMillis().toInt(),
                     file_name = fontFile.name,
@@ -308,8 +312,8 @@ class TextFragment : Fragment() {
                     image_url = "",
                     alt_text = "Font sample image",
                     user_id = 0,
-                    created_at = System.currentTimeMillis().toString(),
-                    updated_at = System.currentTimeMillis().toString(),
+                    created_at = exportDate,
+                    updated_at = exportDate,
                     is_selected = false,
                     is_downloaded = true,
                     is_downloading = false,

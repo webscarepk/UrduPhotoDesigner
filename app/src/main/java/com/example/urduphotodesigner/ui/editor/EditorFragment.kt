@@ -45,7 +45,7 @@ import com.example.urduphotodesigner.common.canvas.enums.VAlign
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.canvas.model.ExportOptions
-import com.example.urduphotodesigner.common.canvas.model.ExportResult
+import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.common.utils.Converter.cmToPx
 import com.example.urduphotodesigner.common.utils.Converter.inchesToPx
 import com.example.urduphotodesigner.common.utils.ImageProcessor

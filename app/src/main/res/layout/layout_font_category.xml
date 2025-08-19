@@ -3,7 +3,6 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/tabRoot">
 
     <TextView
@@ -11,16 +10,14 @@
         android:layout_height="wrap_content"
         android:text="@string/all"
         android:textColor="@color/black"
-        android:textSize="10sp"
+        android:textSize="12sp"
         android:fontFamily="@font/regular"
-        android:paddingVertical="6dp"
+        android:paddingVertical="3dp"
         android:paddingHorizontal="12dp"
-        app:drawableEndCompat="@drawable/ic_dropdown"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        android:drawablePadding="@dimen/_10sdp"
         android:id="@+id/tabTitle"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

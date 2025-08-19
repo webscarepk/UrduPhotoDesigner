@@ -6,7 +6,7 @@ import com.example.urduphotodesigner.data.model.LoginResponse
 import com.example.urduphotodesigner.data.model.RegistrationResponse
 import com.google.android.gms.auth.api.identity.BeginSignInResult
 
-interface AuthRepository {
+interface AuthRepo {
     // Initiates the Google One Tap sign-in flow
     suspend fun beginGoogleSignIn(): Result<BeginSignInResult>
 

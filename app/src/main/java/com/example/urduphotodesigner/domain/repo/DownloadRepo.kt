@@ -10,7 +10,7 @@ import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
 
-class FontRepository @Inject constructor(
+class DownloadRepo @Inject constructor(
     private val context: Context,
     private val client: OkHttpClient
 ) {
@@ -20,15 +20,15 @@ class FontRepository @Inject constructor(
         }
     }
 
-    suspend fun downloadFont(
-        fontUrl: String,
+    suspend fun downloadAssets(
+        url: String,
         fileName: String,
         onProgress: (Int) -> Unit
     ): File = withContext(Dispatchers.IO) {
         val outputFile = File(fontsDir, fileName)
         
         val request = Request.Builder()
-            .url(fontUrl)
+            .url(url)
             .build()
 
         client.newCall(request).execute().use { response ->

@@ -25,7 +25,7 @@ import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.ExportViewType
 import com.example.urduphotodesigner.common.canvas.model.ExportOptions
-import com.example.urduphotodesigner.common.canvas.model.ExportResult
+import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.common.views.CanvasView

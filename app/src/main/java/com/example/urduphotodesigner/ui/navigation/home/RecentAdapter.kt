@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.signature.ObjectKey
-import com.example.urduphotodesigner.common.canvas.model.ExportResult
+import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffectWithLongClick
 import com.example.urduphotodesigner.databinding.LayoutRecentsItemBinding
 import java.io.File

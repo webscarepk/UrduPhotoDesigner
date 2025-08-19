@@ -16,10 +16,10 @@
         android:label="fragment_create"
         tools:layout="@layout/fragment_create" />
     <fragment
-        android:id="@+id/favoritesFragment"
-        android:name="com.example.urduphotodesigner.ui.navigation.favorites.FavoritesFragment"
-        android:label="fragment_favorites"
-        tools:layout="@layout/fragment_favorites" />
+        android:id="@+id/filesFragment"
+        android:name="com.example.urduphotodesigner.ui.navigation.files.FilesFragment"
+        android:label="fragment_files"
+        tools:layout="@layout/fragment_files" />
     <fragment
         android:id="@+id/homeFragment"
         android:name="com.example.urduphotodesigner.ui.navigation.home.HomeFragment"

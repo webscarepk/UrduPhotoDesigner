@@ -2,10 +2,13 @@ package com.example.urduphotodesigner.ui.editor.panels.objects
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.InputType
 import android.text.TextWatcher
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -14,14 +17,30 @@ import android.view.animation.AnimationUtils
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.AnimRes
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import com.example.urduphotodesigner.R
+import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.utils.ImageProcessor
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
+import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.databinding.FragmentObjectsBinding
+import com.example.urduphotodesigner.viewmodels.MainViewModel
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.getValue
 
 @AndroidEntryPoint
 class ObjectsFragment : Fragment() {
@@ -30,6 +49,13 @@ class ObjectsFragment : Fragment() {
 
     private lateinit var adapter: ObjectsPagerAdapter
     private var tabs = mutableListOf<String>()
+    private val mainViewModel: MainViewModel by activityViewModels()
+    private val viewModel: CanvasViewModel by activityViewModels()
+    private val pickImage =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+            uri?.let { handlePickedUri(it) }
+
+        }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -180,6 +206,57 @@ class ObjectsFragment : Fragment() {
                 }
             }
             false
+        }
+
+        binding.addImage.addPressEffect {
+            pickImage.launch("image/*")
+        }
+    }
+
+    private fun bitmapCompress(image: Bitmap): Bitmap {
+        val canvasWidth = 300
+        val canvasHeight = 300
+
+        val widthRatio = canvasWidth.toFloat() / image.width
+        val heightRatio = canvasHeight.toFloat() / image.height
+        val minScale = minOf(1f, widthRatio, heightRatio)
+
+        val newWidth = (image.width * minScale).toInt()
+        val newHeight = (image.height * minScale).toInt()
+
+        val resized = Bitmap.createScaledBitmap(image, newWidth, newHeight, true)
+        return resized
+    }
+
+    private fun handlePickedUri(uri: Uri) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                val exportDate =
+                    SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+
+                mainViewModel.insertImage(
+                    ImageEntity(
+                        id = System.currentTimeMillis().toInt(),
+                        file_name = File(filePath).name,
+                        file_url = "",
+                        file_size = File(filePath).length().toString(),
+                        alt_text = "",
+                        category = "Images Imported",
+                        user_id = 0,
+                        is_selected = false,
+                        bitmapData = filePath,
+                        created_at = exportDate
+                    )
+                )
+
+                withContext(Dispatchers.Main) {
+                    viewModel.addSticker(ImageProcessor.filePathToBitmap(filePath!!)
+                        ?.let { bitmapCompress(it) }, requireActivity())
+                }
+            } catch (e: Exception) {
+                Log.e("PhotoPicker", "Failed compressing image", e)
+            }
         }
     }
 

@@ -19,13 +19,13 @@ import com.example.urduphotodesigner.data.repository.FontsRepoImpl
 import com.example.urduphotodesigner.data.repository.GradientRepositoryImpl
 import com.example.urduphotodesigner.data.repository.ImagesRepoImpl
 import com.example.urduphotodesigner.data.repository.TemplatesRepoImpl
-import com.example.urduphotodesigner.domain.repo.AuthRepository
-import com.example.urduphotodesigner.domain.repo.ExportResultsRepository
+import com.example.urduphotodesigner.domain.repo.AuthRepo
+import com.example.urduphotodesigner.domain.repo.ExportResultsRepo
 import com.example.urduphotodesigner.domain.repo.FetchFontsRepo
 import com.example.urduphotodesigner.domain.repo.FetchImagesRepo
 import com.example.urduphotodesigner.domain.repo.FetchTemplatesRepo
 import com.example.urduphotodesigner.domain.repo.FontsRepo
-import com.example.urduphotodesigner.domain.repo.GradientRepository
+import com.example.urduphotodesigner.domain.repo.GradientRepo
 import com.example.urduphotodesigner.domain.repo.ImagesRepo
 import com.example.urduphotodesigner.domain.repo.TemplatesRepo
 import com.example.urduphotodesigner.domain.usecase.DeleteGradientUseCase
@@ -177,7 +177,7 @@ object AppModule {
         signInRequest: BeginSignInRequest,
         preferenceDataStoreAPI: PreferenceDataStoreAPI,
         authApiService: EndPointsInterface
-    ): AuthRepository {
+    ): AuthRepo {
         return AuthRepositoryImpl(
             oneTapClient,
             signInRequest,
@@ -193,28 +193,28 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideGradientRepository(dao: GradientDao): GradientRepository =
+    fun provideGradientRepository(dao: GradientDao): GradientRepo =
         GradientRepositoryImpl(dao)
 
     @Provides
     @Singleton
-    fun provideGetAllUseCase(repo: GradientRepository) = GetAllGradientsUseCase(repo)
+    fun provideGetAllUseCase(repo: GradientRepo) = GetAllGradientsUseCase(repo)
 
     @Provides
     @Singleton
-    fun provideSeedUseCase(repo: GradientRepository) = SeedGradientsUseCase(repo)
+    fun provideSeedUseCase(repo: GradientRepo) = SeedGradientsUseCase(repo)
 
     @Provides
     @Singleton
-    fun provideDeleteUseCase(repo: GradientRepository) = DeleteGradientUseCase(repo)
+    fun provideDeleteUseCase(repo: GradientRepo) = DeleteGradientUseCase(repo)
 
     @Provides
     @Singleton
-    fun provideUpdateUseCase(repo: GradientRepository) = UpdateGradientUseCase(repo)
+    fun provideUpdateUseCase(repo: GradientRepo) = UpdateGradientUseCase(repo)
 
     @Provides
     @Singleton
-    fun provideInsertUseCase(repo: GradientRepository) = InsertGradientUseCase(repo)
+    fun provideInsertUseCase(repo: GradientRepo) = InsertGradientUseCase(repo)
 
     @Provides
     @Singleton
@@ -224,13 +224,13 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideExportResultsRepository(exportResultsDao: ExportResultsDao): ExportResultsRepository {
+    fun provideExportResultsRepository(exportResultsDao: ExportResultsDao): ExportResultsRepo {
         return ExportResultsRepositoryImpl(exportResultsDao)
     }
 
     @Provides
     @Singleton
-    fun provideExportResultsUseCase(repository: ExportResultsRepository): ExportResultsUseCase {
+    fun provideExportResultsUseCase(repository: ExportResultsRepo): ExportResultsUseCase {
         return ExportResultsUseCase(repository)
     }
 }

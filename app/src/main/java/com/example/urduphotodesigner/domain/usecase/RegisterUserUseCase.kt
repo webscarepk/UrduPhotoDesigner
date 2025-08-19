@@ -1,11 +1,11 @@
 package com.example.urduphotodesigner.domain.usecase
 
 import com.example.urduphotodesigner.data.model.RegistrationResponse
-import com.example.urduphotodesigner.domain.repo.AuthRepository
+import com.example.urduphotodesigner.domain.repo.AuthRepo
 import javax.inject.Inject
 
 class RegisterUserUseCase @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepo
 ) {
     suspend fun execute(
         name: String,

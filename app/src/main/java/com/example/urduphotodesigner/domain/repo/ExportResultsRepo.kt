@@ -1,9 +1,9 @@
 package com.example.urduphotodesigner.domain.repo
 
-import com.example.urduphotodesigner.common.canvas.model.ExportResult
+import com.example.urduphotodesigner.data.model.ExportResult
 import kotlinx.coroutines.flow.Flow
 
-interface ExportResultsRepository {
+interface ExportResultsRepo {
 
     suspend fun insertExportResult(exportResult: ExportResult):Long
 

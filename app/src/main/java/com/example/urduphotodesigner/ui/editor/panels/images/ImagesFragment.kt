@@ -35,7 +35,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @AndroidEntryPoint
 class ImagesFragment : Fragment() {
@@ -44,12 +48,6 @@ class ImagesFragment : Fragment() {
     private var tabs = mutableListOf<String>()
     private lateinit var adapter: ImagesPagerAdapter
     private val mainViewModel: MainViewModel by activityViewModels()
-    private val viewModel: CanvasViewModel by activityViewModels()
-    private val pickImage =
-        registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-            uri?.let { handlePickedUri(it) }
-
-        }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -76,54 +74,6 @@ class ImagesFragment : Fragment() {
         )
         binding.viewPager.adapter = adapter
         binding.viewPager.isUserInputEnabled = false
-
-        binding.addImage.addPressEffect {
-            pickImage.launch("image/*")
-        }
-    }
-
-    private fun handlePickedUri(uri: Uri) {
-        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
-
-                mainViewModel.insertImage(
-                    ImageEntity(
-                        id = System.currentTimeMillis().toInt(),
-                        file_name = "",
-                        file_url = "",
-                        file_size = "",
-                        alt_text = "",
-                        category = "Imported",
-                        user_id = 0,
-                        is_selected = false,
-                        bitmapData = filePath
-                    )
-                )
-
-                withContext(Dispatchers.Main) {
-                    viewModel.addSticker(ImageProcessor.filePathToBitmap(filePath!!)
-                        ?.let { bitmapCompress(it) }, requireActivity())
-                }
-            } catch (e: Exception) {
-                Log.e("PhotoPicker", "Failed compressing image", e)
-            }
-        }
-    }
-
-    private fun bitmapCompress(image: Bitmap): Bitmap {
-        val canvasWidth = 300
-        val canvasHeight = 300
-
-        val widthRatio = canvasWidth.toFloat() / image.width
-        val heightRatio = canvasHeight.toFloat() / image.height
-        val minScale = minOf(1f, widthRatio, heightRatio)
-
-        val newWidth = (image.width * minScale).toInt()
-        val newHeight = (image.height * minScale).toInt()
-
-        val resized = Bitmap.createScaledBitmap(image, newWidth, newHeight, true)
-        return resized
     }
 
     private fun observeCategories() {
@@ -131,7 +81,7 @@ class ImagesFragment : Fragment() {
             mainViewModel.localImages.collect { images ->
                 val additionalTabs = images
                     .map { it.category.trim() }
-                    .filterNot { it.equals("Backgrounds", true) || it.equals("Images", true) }
+                    .filterNot { it.equals("Backgrounds", true) || it.equals("Images", true) || it.equals("Backgrounds Imported", true) || it.equals("Images Imported", true) }
                     .distinct()
 
                 tabs.clear()

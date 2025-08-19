@@ -8,4 +8,6 @@ interface FontsRepo {
     suspend fun insertFonts(fontEntity: FontEntity)
     suspend fun updateFont(id: String, isDownloaded: Boolean, isDownloading: Boolean, filePath: String)
     suspend fun updateStatusFont(id: String, isDownloading: Boolean)
+    suspend fun deleteFont(fontEntity: FontEntity)
+    suspend fun updateFont(fontEntity: FontEntity)
 }

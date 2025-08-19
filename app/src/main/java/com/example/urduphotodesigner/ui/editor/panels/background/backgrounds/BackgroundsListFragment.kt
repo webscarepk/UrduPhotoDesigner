@@ -56,7 +56,7 @@ class BackgroundsListFragment : Fragment() {
         lifecycleScope.launch {
             mainViewModel.localImages.collect { images ->
                 val imageList =
-                    images.filter { it.category.equals("Backgrounds", ignoreCase = true) }
+                    images.filter { it.category.equals("Backgrounds", ignoreCase = true) || it.category.equals("Backgrounds Imported", ignoreCase = true) }
                 imagesAdapter.submitList(imageList)
             }
         }

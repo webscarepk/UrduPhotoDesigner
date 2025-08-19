@@ -10,11 +10,11 @@
         android:layout_height="wrap_content"
         android:layout_width="match_parent"
         style="@style/PopupItemStyle"
-        android:text="@string/open"
+        android:text="@string/export"
         android:paddingHorizontal="20dp"
-        android:paddingVertical="10dp"
+        android:paddingVertical="8dp"
         android:id="@+id/actionOpen"
-        app:drawableStartCompat="@drawable/ic_show_pass"
+        app:drawableEndCompat="@drawable/ic_show_pass"
         app:drawableTint="@color/black" />
 
     <View
@@ -27,10 +27,10 @@
         android:layout_width="match_parent"
         style="@style/PopupItemStyle"
         android:paddingHorizontal="20dp"
-        android:paddingVertical="10dp"
+        android:paddingVertical="8dp"
         android:text="@string/duplicate"
         android:id="@+id/actionDuplicate"
-        app:drawableStartCompat="@drawable/ic_copy"
+        app:drawableEndCompat="@drawable/ic_duplicate"
         app:drawableTint="@color/black" />
 
     <View
@@ -45,8 +45,8 @@
         android:text="@string/share"
         android:id="@+id/actionShare"
         android:paddingHorizontal="20dp"
-        android:paddingVertical="10dp"
-        app:drawableStartCompat="@drawable/ic_share"
+        android:paddingVertical="8dp"
+        app:drawableEndCompat="@drawable/ic_share"
         app:drawableTint="@color/black" />
 
     <View
@@ -61,8 +61,8 @@
         android:text="@string/rename"
         android:id="@+id/actionRename"
         android:paddingHorizontal="20dp"
-        android:paddingVertical="10dp"
-        app:drawableStartCompat="@drawable/ic_edit"
+        android:paddingVertical="8dp"
+        app:drawableEndCompat="@drawable/ic_rename"
         app:drawableTint="@color/black"  />
 
     <View
@@ -76,8 +76,8 @@
         style="@style/PopupItemStyle"
         android:text="@string/delete"
         android:paddingHorizontal="20dp"
-        android:paddingVertical="10dp"
-        app:drawableStartCompat="@drawable/ic_delete"
+        android:paddingVertical="8dp"
+        app:drawableEndCompat="@drawable/ic_delete"
         app:drawableTint="@android:color/holo_red_dark"
         android:textColor="@android:color/holo_red_dark"
         android:id="@+id/actionDelete" />

@@ -182,6 +182,11 @@
     <string name="duplicate">Duplicate</string>
     <string name="rename">Rename</string>
     <string name="browse_by_size">Browse by Size</string>
+    <string name="my_files">My Files</string>
+    <string name="search_projects_files_and_assets">Search projects, files and assets</string>
+    <string name="social_media_post">Social Media Post</string>
+    <string name="project_8_5_mb_12_08_2025">Project • 8.5 MB • 12.08.2025</string>
+    <string name="select">Select</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

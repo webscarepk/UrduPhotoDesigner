@@ -5,7 +5,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.urduphotodesigner.common.canvas.model.ExportResult
+import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.common.canvas.model.GradientItem
 import com.example.urduphotodesigner.common.utils.Constants
 import com.example.urduphotodesigner.common.canvas.sealed.FontDownloadState
@@ -15,7 +15,7 @@ import com.example.urduphotodesigner.common.utils.GradientPresets
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.data.model.TemplateEntity
-import com.example.urduphotodesigner.domain.repo.FontRepository
+import com.example.urduphotodesigner.domain.repo.DownloadRepo
 import com.example.urduphotodesigner.domain.usecase.DeleteGradientUseCase
 import com.example.urduphotodesigner.domain.usecase.ExportResultsUseCase
 import com.example.urduphotodesigner.domain.usecase.FetchAPIFontsUseCase
@@ -53,7 +53,7 @@ class MainViewModel @Inject constructor(
     private val fetchAPIImagesUseCase: FetchAPIImagesUseCase,
     private val insertImagesUseCase: InsertImagesUseCase,
     private val getImagesUseCase: GetImagesUseCase,
-    private val fontRepository: FontRepository,
+    private val fontRepository: DownloadRepo,
     private val updateFontsUseCase: UpdateFontsUseCase,
     private val updateFontStatusUseCase: UpdateFontStatusUseCase,
     private val getAll: GetAllGradientsUseCase,
@@ -251,8 +251,8 @@ class MainViewModel @Inject constructor(
                 TemplateDownloadState.Progress(0, template.copy(is_downloading = true, download_progress = 0))
 
             try {
-                val downloadedFile = fontRepository.downloadFont(
-                    fontUrl  = Constants.BASE_URL_DOWNLOAD + template.json_url,
+                val downloadedFile = fontRepository.downloadAssets(
+                    url  = Constants.BASE_URL_DOWNLOAD + template.json_url,
                     fileName = "template_${template.id}.json",
                     onProgress = { progress ->
                         _templateDownloadState.value =
@@ -292,8 +292,8 @@ class MainViewModel @Inject constructor(
             updateFontStatusUseCase.invoke(font.id.toString(), true)
 
             try {
-                val downloadedFile = fontRepository.downloadFont(
-                    fontUrl = Constants.BASE_URL_GLIDE+font.file_url,
+                val downloadedFile = fontRepository.downloadAssets(
+                    url = Constants.BASE_URL_GLIDE+font.file_url,
                     fileName = font.file_name,
                     onProgress = { progress ->
                         _downloadState.value = FontDownloadState.Progress(progress, font.copy(is_downloading = true))

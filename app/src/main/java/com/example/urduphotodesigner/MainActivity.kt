@@ -63,7 +63,7 @@ class MainActivity : AppCompatActivity() {
             when (item.itemId) {
                 R.id.nav_home -> navController.navigate(R.id.homeFragment)
                 R.id.nav_templates -> navController.navigate(R.id.templatesFragment)
-                R.id.nav_fav -> navController.navigate(R.id.favoritesFragment)
+                R.id.nav_fav -> navController.navigate(R.id.filesFragment)
                 R.id.nav_settings -> navController.navigate(R.id.templatesFragment)
                 else -> false
             }
@@ -74,7 +74,7 @@ class MainActivity : AppCompatActivity() {
             val visibleDestinations = setOf(
                 R.id.homeFragment,
                 R.id.templatesFragment,
-                R.id.favoritesFragment,
+                R.id.filesFragment,
                 R.id.templatesFragment
             )
             binding.bottomNavigation.visibility =
@@ -88,15 +88,11 @@ class MainActivity : AppCompatActivity() {
     private fun initObservers() {
         lifecycleScope.launch {
             mainViewModel.localFonts.collect { fonts ->
-                // just a log for test
-                Log.d("MainActivity", "Fonts list size: ${fonts.size}")
             }
         }
 
         lifecycleScope.launch {
             mainViewModel.localImages.collect { images ->
-                // just a log for test
-                Log.d("MainActivity", "Fonts list size: ${images.size}")
             }
         }
     }

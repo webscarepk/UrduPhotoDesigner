@@ -1,41 +1,11 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="16dp"
-    android:height="20dp"
+    android:width="12dp"
+    android:height="15dp"
     android:viewportWidth="12"
-    android:viewportHeight="14">
+    android:viewportHeight="15">
   <path
-      android:strokeWidth="1"
-      android:pathData="M11,4C9.15,3.34 7.289,3 5.433,3C4.333,3 3.233,3.2 2.133,3.6L1,4"
-      android:strokeLineJoin="round"
-      android:fillColor="#00000000"
-      android:strokeColor="#353535"
-      android:strokeLineCap="round"/>
-  <path
-      android:strokeWidth="1"
-      android:pathData="M4,3L4.126,2.118C4.217,1.478 4.286,1 5.251,1H6.749C7.714,1 7.789,1.505 7.874,2.125L8,3"
-      android:strokeLineJoin="round"
-      android:fillColor="#00000000"
-      android:strokeColor="#353535"
-      android:strokeLineCap="round"/>
-  <path
-      android:strokeWidth="1"
-      android:pathData="M10,5L9.62,11.264C9.556,12.241 9.504,13 7.874,13H4.126C2.496,13 2.444,12.241 2.38,11.264L2,5"
-      android:strokeLineJoin="round"
-      android:fillColor="#00000000"
-      android:strokeColor="#353535"
-      android:strokeLineCap="round"/>
-  <path
-      android:strokeWidth="1"
-      android:pathData="M5,10H7"
-      android:strokeLineJoin="round"
-      android:fillColor="#00000000"
-      android:strokeColor="#353535"
-      android:strokeLineCap="round"/>
-  <path
-      android:strokeWidth="1"
-      android:pathData="M4,7H8"
-      android:strokeLineJoin="round"
-      android:fillColor="#00000000"
-      android:strokeColor="#353535"
-      android:strokeLineCap="round"/>
+      android:strokeColor="#FFFF3B30"
+      android:strokeWidth="1.2"
+      android:strokeLineCap="round"
+      android:pathData="M4.27 2.33C4.39 1.94 4.62 1.6 4.93 1.37 5.24 1.13 5.61 1 5.98 1c0.38 0 0.75 0.13 1.06 0.37 0.3 0.23 0.54 0.57 0.66 0.96m3.44 1.33H0.83m9.3 1.65L9.85 9.9c-0.1 1.76-0.16 2.64-0.68 3.18-0.53 0.54-1.34 0.54-2.95 0.54H5.75c-1.61 0-2.42 0-2.95-0.54-0.52-0.54-0.58-1.42-0.68-3.18L1.84 5.31m2.63 1.66l0.3 3.32M7.5 6.97L7.2 10.3"/>
 </vector>

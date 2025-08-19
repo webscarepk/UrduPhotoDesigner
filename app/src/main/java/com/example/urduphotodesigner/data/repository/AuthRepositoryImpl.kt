@@ -9,7 +9,7 @@ import com.example.urduphotodesigner.common.utils.Utils.await
 import com.example.urduphotodesigner.data.model.LoginResponse
 import com.example.urduphotodesigner.data.model.RegistrationResponse
 import com.example.urduphotodesigner.data.remote.EndPointsInterface
-import com.example.urduphotodesigner.domain.repo.AuthRepository
+import com.example.urduphotodesigner.domain.repo.AuthRepo
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.BeginSignInResult
 import com.google.android.gms.auth.api.identity.SignInClient
@@ -22,7 +22,7 @@ class AuthRepositoryImpl @Inject constructor(
     private val signInRequest: BeginSignInRequest,
     private val preferenceDataStoreAPI: PreferenceDataStoreAPI,
     private val authApiService: EndPointsInterface
-) : AuthRepository {
+) : AuthRepo {
 
     private val TAG = "AuthRepositoryImpl"
 

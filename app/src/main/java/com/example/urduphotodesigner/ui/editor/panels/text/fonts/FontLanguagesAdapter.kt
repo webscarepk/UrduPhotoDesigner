@@ -10,7 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.data.model.FontLanguages
-import com.example.urduphotodesigner.databinding.LayoutTabsItemBinding
+import com.example.urduphotodesigner.databinding.LayoutTabsFontLanguagesItemBinding
 
 class FontLanguagesAdapter(
     private val onLanguageExpanded: (language: String, collapse: Boolean) -> Unit,
@@ -28,7 +28,7 @@ class FontLanguagesAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FontViewHolder {
         val binding =
-            LayoutTabsItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            LayoutTabsFontLanguagesItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return FontViewHolder(binding)
     }
 
@@ -38,7 +38,7 @@ class FontLanguagesAdapter(
 
     override fun getItemCount(): Int = fonts.size
 
-    inner class FontViewHolder(private val binding: LayoutTabsItemBinding) :
+    inner class FontViewHolder(private val binding: LayoutTabsFontLanguagesItemBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
         private val catAdapter = FontCategoriesAdapter { cat ->
@@ -70,10 +70,9 @@ class FontLanguagesAdapter(
             binding.tabTitle.text = font.name
             binding.rvCategories.visibility = if (font.is_selected) View.VISIBLE else View.GONE
             catAdapter.submit(font.categories)
-            binding.root.alpha = if (font.is_selected) 1f else 0.8f
             // optional tint
             val color = if (font.is_selected) R.color.selection else android.R.color.transparent
-            binding.root.backgroundTintList = ColorStateList.valueOf(
+            binding.tabTitle.backgroundTintList = ColorStateList.valueOf(
                 ContextCompat.getColor(binding.root.context, color)
             )
         }

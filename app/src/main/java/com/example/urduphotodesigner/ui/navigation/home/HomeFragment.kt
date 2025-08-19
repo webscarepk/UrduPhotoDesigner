@@ -21,7 +21,7 @@ import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
-import com.example.urduphotodesigner.common.canvas.model.ExportResult
+import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.DialogLoadingProgressBinding
 import com.example.urduphotodesigner.databinding.FragmentHomeBinding
@@ -127,7 +127,6 @@ class HomeFragment : Fragment() {
         binding.blankCanvas.addPressEffect {
             val bottomSheet = CreateFragment()
             bottomSheet.show(parentFragmentManager, "CreateBottomSheet")
-//            findNavController().navigate(R.id.createFragment)
         }
 
         binding.templates.addPressEffect {

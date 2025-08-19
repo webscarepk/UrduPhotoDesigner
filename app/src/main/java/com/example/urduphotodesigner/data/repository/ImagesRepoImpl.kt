@@ -17,5 +17,13 @@ class ImagesRepoImpl @Inject constructor(
     override suspend fun insertImages(imageEntity: ImageEntity) {
         appDatabase.imagesDao().insertImage(imageEntity)
     }
+
+    override suspend fun updateImage(imageEntity: ImageEntity) {
+        appDatabase.imagesDao().update(imageEntity)
+    }
+
+    override suspend fun deleteImages(imageEntity: ImageEntity) {
+        appDatabase.imagesDao().delete(imageEntity)
+    }
 }
 

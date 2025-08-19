@@ -30,5 +30,13 @@ class FontsRepoImpl @Inject constructor(
     override suspend fun updateStatusFont(id: String, isDownloading: Boolean) {
         appDatabase.fontsDao().updateFontStatus(id, isDownloading)
     }
+
+    override suspend fun deleteFont(fontEntity: FontEntity) {
+        appDatabase.fontsDao().delete(fontEntity)
+    }
+
+    override suspend fun updateFont(fontEntity: FontEntity) {
+        appDatabase.fontsDao().update(fontEntity)
+    }
 }
 

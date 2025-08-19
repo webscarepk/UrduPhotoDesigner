@@ -1,11 +1,11 @@
 package com.example.urduphotodesigner.domain.usecase
 
 import com.example.urduphotodesigner.data.model.LoginResponse
-import com.example.urduphotodesigner.domain.repo.AuthRepository
+import com.example.urduphotodesigner.domain.repo.AuthRepo
 import javax.inject.Inject
 
 class SignUpUserUseCase @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepo
 ) {
     // Executes the API login and saves the token and user details
     suspend fun execute(email: String, password: String): Result<LoginResponse> {

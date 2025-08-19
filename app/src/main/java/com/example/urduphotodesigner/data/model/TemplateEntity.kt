@@ -4,7 +4,7 @@ import android.net.Uri
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
-import com.example.urduphotodesigner.common.canvas.model.ExportResult
+import com.example.urduphotodesigner.data.model.ExportResult
 import java.io.File
 import java.util.Locale
 

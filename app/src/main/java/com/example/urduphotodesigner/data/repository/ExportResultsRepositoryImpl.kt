@@ -1,8 +1,8 @@
 package com.example.urduphotodesigner.data.repository
 
-import com.example.urduphotodesigner.common.canvas.model.ExportResult
+import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.data.local.ExportResultsDao
-import com.example.urduphotodesigner.domain.repo.ExportResultsRepository
+import com.example.urduphotodesigner.domain.repo.ExportResultsRepo
 import kotlinx.coroutines.flow.Flow
 import java.io.File
 import javax.inject.Inject
@@ -11,7 +11,7 @@ import javax.inject.Singleton
 @Singleton
 class ExportResultsRepositoryImpl @Inject constructor(
     private val exportResultsDao: ExportResultsDao
-) : ExportResultsRepository {
+) : ExportResultsRepo {
 
     override suspend fun insertExportResult(exportResult: ExportResult) :Long  {
         return exportResultsDao.insertCanvasTemplate(exportResult)

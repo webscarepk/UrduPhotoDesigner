@@ -2,12 +2,12 @@ package com.example.urduphotodesigner.domain.usecase
 
 import android.content.Intent
 import com.example.urduphotodesigner.common.sealed.GoogleSignInResult
-import com.example.urduphotodesigner.domain.repo.AuthRepository
+import com.example.urduphotodesigner.domain.repo.AuthRepo
 import com.google.android.gms.auth.api.identity.BeginSignInResult
 import javax.inject.Inject
 
 class SignInWithGoogleUseCase @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepo
 ) {
     // Initiates the Google One Tap sign-in flow
     suspend fun beginSignIn(): Result<BeginSignInResult> {

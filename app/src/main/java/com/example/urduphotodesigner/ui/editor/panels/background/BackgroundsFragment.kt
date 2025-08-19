@@ -30,7 +30,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @AndroidEntryPoint
 class BackgroundsFragment : Fragment() {
@@ -87,19 +91,22 @@ class BackgroundsFragment : Fragment() {
             try {
                 // Encode the compressed image bytes to Base64
                 val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                val exportDate =
+                    SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
                 withContext(Dispatchers.Main) {
                     mainViewModel.insertImage(
                         ImageEntity(
                             id = System.currentTimeMillis().toInt(),
-                            file_name = "",
+                            file_name = File(filePath).name,
                             file_url = "",
-                            file_size = "",
+                            file_size = File(filePath).length().toString(),
                             alt_text = "",
-                            category = "Backgrounds",
+                            category = "Backgrounds Imported",
                             user_id = 0,
                             is_selected = false,
-                            bitmapData = filePath
+                            bitmapData = filePath,
+                            created_at = exportDate
                         )
                     )
 

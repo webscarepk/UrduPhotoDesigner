@@ -30,6 +30,7 @@ import com.example.urduphotodesigner.data.model.toExportResultFinal
 import com.example.urduphotodesigner.databinding.DialogLoadingProgressBinding
 import com.example.urduphotodesigner.databinding.FragmentTemplatesBinding
 import com.example.urduphotodesigner.ui.creation.CanvasSizeAdapter
+import com.example.urduphotodesigner.viewmodels.FiltersViewModel
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import com.google.android.material.chip.Chip
 import dagger.hilt.android.AndroidEntryPoint
@@ -44,7 +45,7 @@ class TemplatesFragment : Fragment() {
     private val binding get() = _binding!!
     private val mainViewModel: MainViewModel by activityViewModels()
     private val viewModel: CanvasViewModel by activityViewModels()
-    private val filtersVM: TemplatesFiltersViewModel by activityViewModels()
+    private val filtersVM: FiltersViewModel by activityViewModels()
 
     private lateinit var categoryAdapter: TemplateCategoriesAdapter
     private lateinit var canvasSizeAdapter: CanvasSizeAdapter

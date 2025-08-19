@@ -42,25 +42,21 @@
         android:orientation="vertical"
         android:id="@+id/endGuide"/>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="30dp"
+    <ImageView
+        android:id="@+id/addImage"
+        android:visibility="visible"
+        android:layout_width="38dp"
+        android:padding="10dp"
+        android:background="@drawable/button_bg"
         android:backgroundTint="@color/contrast"
-        android:textColor="@color/appColor"
-        app:drawableStartCompat="@drawable/ic_import"
+        app:tint="@color/black"
+        android:layout_height="38dp"
+        android:src="@drawable/ic_import"
+        android:layout_gravity="center_vertical"
         app:layout_constraintStart_toStartOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/tabLayout"
         app:layout_constraintTop_toTopOf="@id/tabLayout"
-        app:layout_constraintBottom_toBottomOf="@id/tabLayout"
-        android:gravity="center"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:background="@drawable/button_bg"
-        android:fontFamily="@font/regular"
-        android:textSize="12sp"
-        android:paddingVertical="6dp"
-        android:paddingHorizontal="6dp"
-        android:id="@+id/addImage"/>
+        app:layout_constraintBottom_toBottomOf="@id/tabLayout"/>
 
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabLayout"

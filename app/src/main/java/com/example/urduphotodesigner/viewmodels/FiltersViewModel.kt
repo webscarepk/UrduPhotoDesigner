@@ -1,20 +1,36 @@
-package com.example.urduphotodesigner.ui.navigation.templates
+package com.example.urduphotodesigner.viewmodels
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import java.io.Serializable
+import javax.inject.Inject
 
 @HiltViewModel
-class TemplatesFiltersViewModel @Inject constructor(
+class FiltersViewModel @Inject constructor(
     private val saved: SavedStateHandle
 ) : ViewModel() {
 
+//    For Files Filtering
+    private val _isGrid = MutableStateFlow(false)
+    val isGrid = _isGrid.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
+
+    fun toggleGrid() {
+        _isGrid.value = !_isGrid.value
+    }
+
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    //For Templates Filtering
     data class Filters(
         val category: String = "All",
         val query: String = "",

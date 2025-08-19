@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/tabRoot">
+
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/all"
+        android:textColor="@color/black"
+        android:textSize="12sp"
+        android:fontFamily="@font/regular"
+        android:paddingVertical="6dp"
+        android:paddingHorizontal="12dp"
+        android:background="@drawable/button_bg"
+        android:backgroundTint="@android:color/transparent"
+        app:drawableEndCompat="@drawable/ic_dropdown"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/rvCategories"
+        android:drawablePadding="@dimen/_10sdp"
+        android:id="@+id/tabTitle"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvCategories"
+        android:layout_width="0dp"
+        android:layout_marginStart="5dp"
+        android:layout_height="wrap_content"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        android:orientation="vertical"
+        android:layout_marginEnd="12dp"
+        tools:listitem="@layout/layout_tabs_item"
+        tools:itemCount="3"
+        app:layout_constraintTop_toBottomOf="@id/tabTitle"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="@id/tabTitle"
+        app:layout_constraintEnd_toEndOf="@id/tabTitle"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

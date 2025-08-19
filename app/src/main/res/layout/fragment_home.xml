@@ -216,7 +216,6 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                android:background="?selectableItemBackground"
                 android:id="@+id/recentProjects">
                 <TextView
                     android:layout_width="wrap_content"
@@ -230,29 +229,38 @@
                     app:layout_constraintTop_toTopOf="parent"
                     android:id="@+id/recentTitle"/>
 
-                <TextView
+                <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/see_all"
-                    android:fontFamily="@font/bold"
-                    android:textColor="@color/gray"
-                    android:textSize="12sp"
-                    app:layout_constraintEnd_toStartOf="@id/more1"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    android:layout_marginEnd="6dp"
-                    android:id="@+id/recentSeeAll"/>
-
-                <ImageView
-                    android:layout_width="10dp"
-                    android:layout_height="10dp"
-                    android:src="@drawable/ic_dropdown"
-                    android:id="@+id/more1"
-                    android:rotation="270"
-                    app:tint="@color/gray"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="@id/recentTitle"
-                    app:layout_constraintBottom_toBottomOf="@id/recentTitle"/>
+                    app:layout_constraintBottom_toBottomOf="@id/recentTitle"
+                    android:background="?selectableItemBackground">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/see_all"
+                        android:fontFamily="@font/bold"
+                        android:textColor="@color/gray"
+                        android:textSize="12sp"
+                        android:paddingVertical="6dp"
+                        app:layout_constraintEnd_toStartOf="@id/more1"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:layout_marginEnd="6dp"
+                        android:id="@+id/recentSeeAll"/>
+
+                    <ImageView
+                        android:layout_width="10dp"
+                        android:layout_height="10dp"
+                        android:src="@drawable/ic_dropdown"
+                        android:id="@+id/more1"
+                        android:rotation="270"
+                        app:tint="@color/gray"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"/>
+                </androidx.constraintlayout.widget.ConstraintLayout>
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <androidx.recyclerview.widget.RecyclerView

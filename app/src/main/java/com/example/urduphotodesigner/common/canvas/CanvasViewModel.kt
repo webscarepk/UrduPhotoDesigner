@@ -30,7 +30,7 @@ import com.example.urduphotodesigner.common.canvas.model.ExportFormat
 import com.example.urduphotodesigner.common.canvas.model.ExportOptions
 import com.example.urduphotodesigner.common.canvas.model.ExportQuality
 import com.example.urduphotodesigner.common.canvas.model.ExportResolution
-import com.example.urduphotodesigner.common.canvas.model.ExportResult
+import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.common.canvas.model.GradientItem
 import com.example.urduphotodesigner.common.canvas.sealed.BatchedCanvasAction
 import com.example.urduphotodesigner.common.canvas.sealed.CanvasAction

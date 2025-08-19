@@ -1,9 +1,11 @@
 package com.example.urduphotodesigner.data.local
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.OnConflictStrategy
+import androidx.room.Update
 import com.example.urduphotodesigner.data.model.FontEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -21,4 +23,9 @@ interface FontDao {
     @Query("UPDATE fonts SET is_downloading = :isDownloading WHERE id = :id")
     fun updateFontStatus(id: String, isDownloading: Boolean)
 
+    @Delete
+    suspend fun delete(font: FontEntity)
+
+    @Update
+    suspend fun update(font: FontEntity)
 }

@@ -1,7 +1,8 @@
-package com.example.urduphotodesigner.common.canvas.model
+package com.example.urduphotodesigner.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import java.io.Serializable
 
 @Entity(tableName = "recent_exports")
