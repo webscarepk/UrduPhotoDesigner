@@ -16,7 +16,9 @@ import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.data.model.TemplateEntity
 import com.example.urduphotodesigner.domain.repo.DownloadRepo
+import com.example.urduphotodesigner.domain.usecase.DeleteFontsUseCase
 import com.example.urduphotodesigner.domain.usecase.DeleteGradientUseCase
+import com.example.urduphotodesigner.domain.usecase.DeleteImagesUseCase
 import com.example.urduphotodesigner.domain.usecase.ExportResultsUseCase
 import com.example.urduphotodesigner.domain.usecase.FetchAPIFontsUseCase
 import com.example.urduphotodesigner.domain.usecase.FetchAPIImagesUseCase
@@ -33,6 +35,7 @@ import com.example.urduphotodesigner.domain.usecase.SeedGradientsUseCase
 import com.example.urduphotodesigner.domain.usecase.UpdateFontStatusUseCase
 import com.example.urduphotodesigner.domain.usecase.UpdateFontsUseCase
 import com.example.urduphotodesigner.domain.usecase.UpdateGradientUseCase
+import com.example.urduphotodesigner.domain.usecase.UpdateImagesUseCase
 import com.example.urduphotodesigner.domain.usecase.UpdateTemplateStatusUseCase
 import com.example.urduphotodesigner.domain.usecase.UpdateTemplatesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -46,8 +49,10 @@ class MainViewModel @Inject constructor(
     private val getTemplatesUseCase: GetTemplatesUseCase,
     private val insertTemplatesUseCase: InsertTemplatesUseCase,
     private val updateTemplatesUseCase: UpdateTemplatesUseCase,
-    private val updateTemplateStatusUseCase: UpdateTemplateStatusUseCase,
     private val fetchAPIFontsUseCase: FetchAPIFontsUseCase,
+    private val deleteImagesUseCase: DeleteImagesUseCase,
+    private val updateImagesUseCase: UpdateImagesUseCase,
+    private val deleteFontsUseCase: DeleteFontsUseCase,
     private val insertFontsUseCase: InsertFontsUseCase,
     private val getFontsUseCase: GetFontsUseCase,
     private val fetchAPIImagesUseCase: FetchAPIImagesUseCase,
@@ -327,6 +332,30 @@ class MainViewModel @Inject constructor(
     fun deleteExportResult(exportResult: ExportResult) {
         viewModelScope.launch {
             exportResultsUseCase.deleteExportResult(exportResult)
+        }
+    }
+
+    fun deleteFont(font: FontEntity) {
+        viewModelScope.launch {
+            deleteFontsUseCase.invoke(font)
+        }
+    }
+
+    fun deleteImage(image: ImageEntity) {
+        viewModelScope.launch {
+            deleteImagesUseCase.invoke(image)
+        }
+    }
+
+    fun updateImage(image: ImageEntity) {
+        viewModelScope.launch {
+            updateImagesUseCase.invoke(image)
+        }
+    }
+
+    fun updateFont(font: FontEntity) {
+        viewModelScope.launch {
+            updateFontsUseCase.invoke(font)
         }
     }
 

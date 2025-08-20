@@ -1,13 +1,16 @@
 package com.example.urduphotodesigner.ui.navigation.files
 
+import android.app.AlertDialog
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.PopupWindow
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.asFlow
@@ -27,6 +30,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.util.logging.Filter
+import androidx.core.graphics.drawable.toDrawable
 
 @AndroidEntryPoint
 class FilesListFragment : Fragment() {
@@ -60,11 +64,57 @@ class FilesListFragment : Fragment() {
     }
 
     private fun setEvents() {
-        adapter = FilesAdapter(emptyList(), isGrid = false) { item, anchorView ->
-            showFilePopup(anchorView, item)
-        }
+        adapter = FilesAdapter(
+            emptyList(), isGrid = false,
+            onItemClick = { item ->
+                    openItem(item)
+            },
+            onItemLongClick = { item ->
+//                if (!adapter.multiSelectMode) {
+//                    adapter.toggleMultiSelectMode(true)
+//                    adapter.selectItem(item)
+//                }
+            },
+            onOptionsClick = { item, anchorView ->
+                showFilePopup(anchorView, item)
+            })
         binding.filesRV.adapter = adapter
         binding.filesRV.layoutManager = LinearLayoutManager(requireContext())
+    }
+
+    private fun openItem(item: Any) {
+        when (item) {
+            is ExportResult -> {
+                // open project
+                Toast.makeText(
+                    requireContext(),
+                    "Opening project: ${item.fileName}",
+                    Toast.LENGTH_SHORT
+                ).show()
+                // navigate to editor with this project
+                // navController.navigate(R.id.editorFragment, bundleOf("projectId" to item.id))
+            }
+
+            is FontEntity -> {
+                // open font preview
+                Toast.makeText(
+                    requireContext(),
+                    "Preview font: ${item.font_name}",
+                    Toast.LENGTH_SHORT
+                ).show()
+                // maybe launch a FontPreviewDialog
+            }
+
+            is ImageEntity -> {
+                // open image viewer
+                Toast.makeText(
+                    requireContext(),
+                    "Opening image: ${item.file_name}",
+                    Toast.LENGTH_SHORT
+                ).show()
+                // show full screen or detail fragment
+            }
+        }
     }
 
     private fun showFilePopup(anchorView: View, item: Any) {
@@ -77,40 +127,64 @@ class FilesListFragment : Fragment() {
         )
 
         popupWindow.elevation = 10f
-        popupWindow.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        popupWindow.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
         popupWindow.isOutsideTouchable = true
         popupWindow.animationStyle = R.style.PopupFadeAnimation
 
-        popupBinding.actionDelete.setOnClickListener {
+        popupBinding.actionExport.setOnClickListener {
             popupWindow.dismiss()
-            // TODO: export logic for item
         }
 
         popupBinding.actionSelect.setOnClickListener {
             popupWindow.dismiss()
-            // TODO: mark as selected
         }
 
         popupBinding.actionDuplicate.setOnClickListener {
             popupWindow.dismiss()
             when (item) {
                 is ExportResult -> lifecycleScope.launch { viewModel.insertExportResult(item.copy()) }
-                is ImageEntity -> { /* duplicate image logic */ }
-                is FontEntity -> { /* duplicate font logic */ }
+                is ImageEntity -> lifecycleScope.launch { viewModel.insertImage(item.copy()) }
+                is FontEntity -> lifecycleScope.launch { viewModel.insertFont(item.copy()) }
             }
         }
 
         popupBinding.actionRename.setOnClickListener {
             popupWindow.dismiss()
-            // TODO: show rename dialog
+
+            // Show rename dialog
+            val editText = EditText(requireContext()).apply {
+                when (item) {
+                    is ExportResult -> setText(item.fileName)
+                    is ImageEntity -> setText(item.file_name)
+                    is FontEntity -> setText(item.font_name)
+                }
+            }
+
+            AlertDialog.Builder(requireContext())
+                .setTitle("Rename")
+                .setView(editText)
+                .setPositiveButton("OK") { _, _ ->
+                    val newName = editText.text.toString().trim()
+                    if (newName.isNotEmpty()) {
+                        lifecycleScope.launch {
+                            when (item) {
+                                is ExportResult -> viewModel.insertExportResult(item.copy(fileName = newName))
+                                is ImageEntity -> viewModel.updateImage(item.copy(file_name = newName))
+                                is FontEntity -> viewModel.updateFont(item.copy(font_name = newName))
+                            }
+                        }
+                    }
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
         }
 
         popupBinding.actionDelete.setOnClickListener {
             popupWindow.dismiss()
             when (item) {
                 is ExportResult -> viewModel.deleteExportResult(item)
-                is ImageEntity -> viewModel.deleteExportResult(item)
-                is FontEntity -> { /* delete font */ }
+                is ImageEntity -> viewModel.deleteImage(item)
+                is FontEntity -> viewModel.deleteFont(item)
             }
         }
 
