@@ -2,8 +2,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="@dimen/_5sdp"
-    android:layout_marginBottom="@dimen/_10sdp"
     android:orientation="vertical"
     app:cardBackgroundColor="@android:color/transparent"
     app:cardCornerRadius="10dp"
@@ -18,12 +16,14 @@
             android:id="@+id/imageCard"
             android:layout_width="match_parent"
             android:layout_height="120dp"
-            app:cardBackgroundColor="@color/selection"
+            android:layout_margin="@dimen/_5sdp"
+            app:cardBackgroundColor="@color/light_gray"
             app:cardCornerRadius="10dp"
-            app:cardElevation="0dp"
+            app:cardElevation="5dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:strokeWidth="0dp">
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/white">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
@@ -35,7 +35,7 @@
                     android:layout_height="match_parent"
                     app:shimmer_auto_start="true"
                     app:shimmer_base_alpha="0.5"
-                    app:shimmer_base_color="@color/contrast"
+                    app:shimmer_base_color="@color/light_gray"
                     app:shimmer_colored="true"
                     app:shimmer_duration="1000"
                     app:shimmer_highlight_alpha="1.0">
@@ -66,18 +66,37 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/parentForPadding"
+            android:layout_marginHorizontal="@dimen/_5sdp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/imageCard">
 
+            <EditText
+                android:id="@+id/editName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:imeOptions="actionDone"
+                android:fontFamily="@font/bold"
+                android:textColor="@color/black"
+                android:drawableEnd="@drawable/ic_close"
+                android:textSize="14sp"
+                android:drawablePadding="10dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:background="@android:color/transparent"
+                android:visibility="gone"/>
+
             <TextView
+                android:visibility="visible"
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:id="@+id/assetName"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/bold"
-                android:paddingVertical="2dp"
                 android:text="@string/social_media_post"
                 android:textColor="@color/black"
                 android:textSize="14sp"
@@ -93,7 +112,6 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/bold"
-                android:paddingVertical="2dp"
                 android:text="@string/project_8_5_mb_12_08_2025"
                 android:textColor="@color/gray"
                 android:textSize="12sp"

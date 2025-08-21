@@ -4,32 +4,42 @@ class KashidaInserter {
 
     companion object {
         const val KASHIDA = "ـ"
-        val ISOLFINA = listOf(
+
+        // Non-connecting (isolated/final) characters → never take Kashida
+        val ISOLFINA = setOf(
             "ا", "إ", "ٳ", "د", "ذ", "ڈ", "ڌ", "ڍ", "ډ", "ڊ", "ڋ", "ڎ", "ڏ", "ڐ", "ۮ",
             "ݙ", "ݚ", "ر", "ز", "ڑ", "ڒ", "ړ", "ڔ", "ڕ", "ږ", "ڗ", "ژ", "ڙ", "ۯ", "ݛ", "ݫ", "ݬ",
-            "ﻻ", "ﻹ", "و", "ۄ", "ۊ", "ۏ", "ؤ", "ۅ", "ۆ", "ۇ", "ۈ", "ۉ", "ۋ", "ٷ", "ﻷ", "ﻹ"
+            "ﻻ", "ﻹ", "و", "ۄ", "ۊ", "ۏ", "ؤ", "ۅ", "ۆ", "ۇ", "ۈ", "ۉ", "ۋ", "ٷ", "ﻷ"
+        )
+
+        // Valid Kashida candidates (cross-checked with Urdu script rules)
+        val KASHIDA_ALLOWED = setOf(
+            "ب","پ","ت","ٹ","ث",
+            "ج","چ","ح","خ",
+            "س","ش","ص","ض",
+            "ط","ظ",
+            "ع","غ",
+            "ف","ق",
+            "ک","گ",
+            "ل","م","ن","ی"
         )
 
         // Insert Kashida into a word
         fun insertKashidaInWord(word: String): String {
-            var wordWithKashida = word.replace(KASHIDA, "")
+            var cleanWord = word.replace(KASHIDA, "")
 
-            val rules = listOf(
-                listOf("س", "ص", "ښ", "ڛ", "ش", "ۺ", "ڜ", "ﺺ", "ڝ", "ڞ", "ض", "ݜ", "ݭ"),
-                listOf("ه", "ۀ", "ة", "ە", "د", "ذ", "ڈ", "ڌ", "ڍ", "ډ", "ڊ", "ڋ", "ڎ", "ڏ", "ڐ", "ۮ", "ݙ", "ݚ"),
-                listOf("ا", "إ", "ٳ", "ب", "پ", "ٻ", "ڀ", "ت", "ٽ", "ث", "ٹ", "ٺ", "ٿ", "ݐ", "ݑ", "ݒ", "ݓ", "ݔ", "ݕ", "ݖ", "ك", "گ", "ڰ", "ڴ", "ڬ", "ڮ", "ڲ", "ڭ", "ڱ", "ڳ", "ل", "ڸ", "ݪ"),
-                listOf("ع", "ڠ", "غ", "ف", "ڤ", "ڡ", "ڢ", "ڣ", "ڥ", "ڦ", "ٯ", "ق", "ڧ", "ڨ", "و", "ۄ", "ۊ", "ۏ", "ؤ", "ۅ", "ۆ", "ۇ", "ۈ", "ۉ", "ۋ", "ٷ", "ݝ", "ݞ", "ݟ", "ݠ", "ݡ")
-            )
-
-            for (rule in rules) {
-                for (i in wordWithKashida.length - 1 downTo 0) {
-                    if (rule.contains(wordWithKashida[i].toString()) && i > 0 && !ISOLFINA.contains(wordWithKashida[i - 1].toString())) {
-                        return wordWithKashida.substring(0, i + 1) + KASHIDA + wordWithKashida.substring(i + 1)
+            for (i in cleanWord.length - 1 downTo 0) {
+                val ch = cleanWord[i].toString()
+                if (KASHIDA_ALLOWED.contains(ch)) {
+                    // Ensure it’s not the last character and the next one is connectable
+                    if (i < cleanWord.length - 1 &&
+                        !ISOLFINA.contains(cleanWord[i + 1].toString())) {
+                        return cleanWord.substring(0, i + 1) + KASHIDA + cleanWord.substring(i + 1)
                     }
                 }
             }
 
-            return wordWithKashida
+            return cleanWord
         }
 
         // Insert Kashida in the entire text

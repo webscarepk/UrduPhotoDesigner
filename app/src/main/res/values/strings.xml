@@ -187,6 +187,13 @@
     <string name="social_media_post">Social Media Post</string>
     <string name="project_8_5_mb_12_08_2025">Project • 8.5 MB • 12.08.2025</string>
     <string name="select">Select</string>
+    <string name="delete_image">Delete Image</string>
+    <string name="delete_project">Delete Project</string>
+    <string name="delete_font">Delete Font</string>
+    <string name="your_asset_will_be_permanently_deleted">Your asset will be permanently deleted</string>
+    <string name="cancel">Cancel</string>
+    <string name="confirm">Confirm</string>
+    <string name="popular_fonts">Popular Fonts</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

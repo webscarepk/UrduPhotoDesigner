@@ -11,6 +11,7 @@
         android:id="@+id/filesRV"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:paddingHorizontal="@dimen/_12sdp"
         tools:listitem="@layout/layout_files_grid"
         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
         android:orientation="vertical"
