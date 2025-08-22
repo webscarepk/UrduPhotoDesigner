@@ -7,4 +7,7 @@ sealed class HomeRow {
         val title: String,
         val templates: List<TemplateEntity>
     ) : HomeRow()
+
+    data class TrendRow(val title: String, val templates: List<TemplateEntity>) : HomeRow()
+
 }

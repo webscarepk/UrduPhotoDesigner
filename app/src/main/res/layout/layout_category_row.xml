@@ -9,7 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingTop="6dp"
-        android:paddingHorizontal="24dp"
+        android:paddingHorizontal="18dp"
         android:gravity="center_vertical">
 
         <TextView
@@ -21,19 +21,45 @@
             android:fontFamily="@font/bold"
             android:textSize="15sp" />
 
-        <TextView
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/seeAll"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/see_all"
-            android:fontFamily="@font/medium"
-            android:textColor="@color/gray" />
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/fontsTitle"
+            app:layout_constraintBottom_toBottomOf="@id/fontsTitle"
+            android:background="?selectableItemBackground">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/see_all"
+                android:fontFamily="@font/bold"
+                android:textColor="@color/gray"
+                android:textSize="12sp"
+                android:paddingVertical="6dp"
+                app:layout_constraintEnd_toStartOf="@id/more2"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:layout_marginEnd="6dp"
+                android:id="@+id/fontsSeeAll"/>
+
+            <ImageView
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:src="@drawable/ic_dropdown"
+                android:id="@+id/more2"
+                android:rotation="270"
+                app:tint="@color/gray"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:layout_marginTop="6dp"
         android:id="@+id/listRV"
-        android:paddingHorizontal="23dp"
+        android:paddingHorizontal="18dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:clipToPadding="false"

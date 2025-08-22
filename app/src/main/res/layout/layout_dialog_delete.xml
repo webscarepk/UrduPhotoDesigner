@@ -10,7 +10,7 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="20dp">
+        android:layout_margin="30dp">
 
         <ImageView
             android:id="@+id/deleteIcon"
@@ -63,7 +63,7 @@
             app:layout_constraintEnd_toStartOf="@id/confirm"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/subTitle"
-            android:layout_marginEnd="20dp"
+            android:layout_marginEnd="10dp"
             android:id="@+id/cancel"/>
 
         <TextView
@@ -74,7 +74,7 @@
             android:textColor="@color/white"
             android:textSize="12sp"
             android:gravity="center"
-            android:layout_marginStart="20dp"
+            android:layout_marginStart="10dp"
             android:background="@drawable/button_bg_round_stroke_fill"
             android:backgroundTint="@color/appColor"
             android:paddingVertical="10dp"

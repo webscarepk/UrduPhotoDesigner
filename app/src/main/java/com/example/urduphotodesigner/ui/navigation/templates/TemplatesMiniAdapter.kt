@@ -16,12 +16,13 @@ import com.bumptech.glide.request.target.Target
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.utils.Constants
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
+import com.example.urduphotodesigner.data.model.ProgressUi
 import com.example.urduphotodesigner.data.model.TemplateEntity
 import com.example.urduphotodesigner.databinding.LayoutTemplateCategoryBinding
 
 class TemplatesMiniAdapter(
     private val onClick: (TemplateEntity, Boolean) -> Unit,
-    private val progressProvider: (Int) -> TemplateCategoriesAdapter.ProgressUi?
+    private val progressProvider: (Int) -> ProgressUi?
 ) : ListAdapter<TemplateEntity, TemplatesMiniAdapter.VH>(Diff()) {
 
     inner class VH(val binding: LayoutTemplateCategoryBinding) :
@@ -115,7 +116,7 @@ class TemplatesMiniAdapter(
 
     override fun onBindViewHolder(h: VH, pos: Int) = h.bind(getItem(pos))
 
-    fun updateProgress(templateId: Int, state: TemplateCategoriesAdapter.ProgressUi) {
+    fun updateProgress(templateId: Int, state: ProgressUi) {
         val idx = currentList.indexOfFirst { it.id == templateId }
         if (idx != -1) notifyItemChanged(idx, state)
     }

@@ -21,5 +21,6 @@ data class FontEntity(
     var is_selected:Boolean = false,
     var is_downloaded:Boolean = false,
     var is_downloading:Boolean = false,
-    var file_path: String? = null
+    var file_path: String? = null,
+    var download_progress: Int = 0
 )

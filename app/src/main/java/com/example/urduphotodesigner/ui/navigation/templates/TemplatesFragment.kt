@@ -25,6 +25,7 @@ import com.example.urduphotodesigner.common.canvas.sealed.HomeRow
 import com.example.urduphotodesigner.common.canvas.sealed.TemplateDownloadState
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.common.utils.showGlobalSuccessSnack
+import com.example.urduphotodesigner.data.model.ProgressUi
 import com.example.urduphotodesigner.data.model.TemplateEntity
 import com.example.urduphotodesigner.data.model.toExportResultFinal
 import com.example.urduphotodesigner.databinding.DialogLoadingProgressBinding
@@ -189,7 +190,7 @@ class TemplatesFragment : Fragment() {
             downloadingTemplate = template
             templatesAdapter.updateProgress(
                 template.id,
-                TemplatesAdapter.ProgressUi(
+                ProgressUi(
                     progress = 0,
                     isDownloading = true,
                     isDownloaded = false
@@ -348,6 +349,7 @@ class TemplatesFragment : Fragment() {
                 panel.alpha = 0f
                 panel.animate()
                     .translationY(0f)
+                    .translationY(0f)
                     .alpha(1f)
                     .setDuration(200)
                     .start()
@@ -502,7 +504,7 @@ class TemplatesFragment : Fragment() {
                             // Grid screen (TemplatesAdapter)
                             templatesAdapter.updateProgress(
                                 t.id,
-                                TemplatesAdapter.ProgressUi(
+                                ProgressUi(
                                     progress = state.progress,
                                     isDownloading = true,
                                     isDownloaded = false
@@ -526,7 +528,7 @@ class TemplatesFragment : Fragment() {
                         if (isGridMode()) {
                             templatesAdapter.updateProgress(
                                 t.id,
-                                TemplatesAdapter.ProgressUi(
+                                ProgressUi(
                                     progress = 100,
                                     isDownloading = false,
                                     isDownloaded = true
@@ -566,7 +568,7 @@ class TemplatesFragment : Fragment() {
                         if (isGridMode()) {
                             templatesAdapter.updateProgress(
                                 t.id,
-                                TemplatesAdapter.ProgressUi(
+                                ProgressUi(
                                     progress = 0,
                                     isDownloading = false,
                                     isDownloaded = false

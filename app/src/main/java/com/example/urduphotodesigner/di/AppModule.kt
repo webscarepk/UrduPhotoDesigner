@@ -15,19 +15,23 @@ import com.example.urduphotodesigner.data.repository.ExportResultsRepositoryImpl
 import com.example.urduphotodesigner.data.repository.FetchFontsRepoImpl
 import com.example.urduphotodesigner.data.repository.FetchImagesRepoImpl
 import com.example.urduphotodesigner.data.repository.FetchTemplatesRepoImpl
+import com.example.urduphotodesigner.data.repository.FetchTrendsRepoImpl
 import com.example.urduphotodesigner.data.repository.FontsRepoImpl
 import com.example.urduphotodesigner.data.repository.GradientRepositoryImpl
 import com.example.urduphotodesigner.data.repository.ImagesRepoImpl
 import com.example.urduphotodesigner.data.repository.TemplatesRepoImpl
+import com.example.urduphotodesigner.data.repository.TrendsRepoImpl
 import com.example.urduphotodesigner.domain.repo.AuthRepo
 import com.example.urduphotodesigner.domain.repo.ExportResultsRepo
 import com.example.urduphotodesigner.domain.repo.FetchFontsRepo
 import com.example.urduphotodesigner.domain.repo.FetchImagesRepo
 import com.example.urduphotodesigner.domain.repo.FetchTemplatesRepo
+import com.example.urduphotodesigner.domain.repo.FetchTrendsRepo
 import com.example.urduphotodesigner.domain.repo.FontsRepo
 import com.example.urduphotodesigner.domain.repo.GradientRepo
 import com.example.urduphotodesigner.domain.repo.ImagesRepo
 import com.example.urduphotodesigner.domain.repo.TemplatesRepo
+import com.example.urduphotodesigner.domain.repo.TrendsRepo
 import com.example.urduphotodesigner.domain.usecase.DeleteGradientUseCase
 import com.example.urduphotodesigner.domain.usecase.ExportResultsUseCase
 import com.example.urduphotodesigner.domain.usecase.GetAllGradientsUseCase
@@ -141,6 +145,18 @@ object AppModule {
     @Singleton
     fun provideImagesRepo(appDatabase: AppDatabase): ImagesRepo {
         return ImagesRepoImpl(appDatabase)
+    }
+
+    @Provides
+    @Singleton
+    fun provideFetchTrendsRepo(api: EndPointsInterface): FetchTrendsRepo {
+        return FetchTrendsRepoImpl(api)
+    }
+
+    @Provides
+    @Singleton
+    fun provideTrendsRepo(appDatabase: AppDatabase, templatesRepo: TemplatesRepo): TrendsRepo {
+        return TrendsRepoImpl(appDatabase,templatesRepo)
     }
 
     @Provides

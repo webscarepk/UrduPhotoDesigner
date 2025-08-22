@@ -23,6 +23,7 @@ import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.canvas.sealed.TemplateDownloadState
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.common.utils.showGlobalSuccessSnack
+import com.example.urduphotodesigner.data.model.ProgressUi
 import com.example.urduphotodesigner.data.model.TemplateEntity
 import com.example.urduphotodesigner.data.model.toExportResultFinal
 import com.example.urduphotodesigner.databinding.DialogLoadingProgressBinding
@@ -45,15 +46,14 @@ class TemplatesListFragment : Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
     private lateinit var adapter: TemplatesAdapter
     private var currentCategory: String? = null
+    private var currentTrend: String? = null
     private var downloadingTemplate: TemplateEntity? = null
-
     private var bundle: Bundle = Bundle()
     private var loadingDialog: AlertDialog? = null
     private var dialogBinding: DialogLoadingProgressBinding? = null
     private lateinit var sizeAdapter: CanvasSizeAdapter
     private lateinit var sglm: StaggeredGridLayoutManager
     private var shuffleAfterRefresh = false
-    private var lastListSize = 0
     private var filterJob: Job? = null
 
     private var baseTemplates: List<TemplateEntity> = emptyList() // only the selected category
@@ -84,6 +84,7 @@ class TemplatesListFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         currentCategory = arguments?.getString("TAB_NAME")
+        currentTrend = arguments?.getString("TREND_NAME")
     }
 
     override fun onCreateView(
@@ -244,7 +245,7 @@ class TemplatesListFragment : Fragment() {
             .firstOrNull { it.text.toString().equals(text, true) }
 
     private fun setupRecycler() {
-        binding.title.text = currentCategory
+        binding.title.text = currentTrend ?: currentCategory ?: "Templates"
 
         sizeAdapter = CanvasSizeAdapter(
             sizeList,
@@ -275,7 +276,7 @@ class TemplatesListFragment : Fragment() {
             downloadingTemplate = template
             adapter.updateProgress(
                 template.id,
-                TemplatesAdapter.ProgressUi(
+                ProgressUi(
                     progress = 0,
                     isDownloading = true,
                     isDownloaded = false
@@ -342,16 +343,6 @@ class TemplatesListFragment : Fragment() {
         }
     }
 
-    private fun mergePreservingOrder(filtered: List<TemplateEntity>): List<TemplateEntity> {
-        val current = adapter.currentList
-        if (current.isEmpty()) return filtered
-        return buildList {
-            val byId = filtered.associateBy { it.id }
-            current.forEach { cur -> byId[cur.id]?.let { add(it) } }
-            filtered.forEach { f -> if (current.none { it.id == f.id }) add(f) }
-        }
-    }
-
     private fun TemplateEntity.matchesQuery(q: String): Boolean {
         val haystack = buildString {
             append(category).append(' ')
@@ -395,10 +386,21 @@ class TemplatesListFragment : Fragment() {
             mainViewModel.localTemplates.collect { all ->
                 // Filter by the category sent via TAB_NAME once, keep as base
                 binding.swipeRefresh.isRefreshing = false
-                baseTemplates = if (currentCategory.equals("All", true)) {
-                    all
-                } else {
-                    all.filter { it.category.equals(currentCategory, true) }
+                baseTemplates = when {
+                    // If trend name passed, filter by it
+                    !currentTrend.isNullOrBlank() -> {
+                        all.filter { template ->
+                            template.tags.any { tag -> tag.equals(currentTrend, true) }
+                        }
+                    }
+
+                    // If category name passed, filter by it
+                    !currentCategory.isNullOrBlank() && !currentCategory.equals("All", true) -> {
+                        all.filter { it.category.equals(currentCategory, true) }
+                    }
+
+                    // Default → show all
+                    else -> all
                 }
 
                 // Build subcategory chips from baseTemplates
@@ -440,7 +442,7 @@ class TemplatesListFragment : Fragment() {
                         downloadingTemplate = t
                         adapter.updateProgress(
                             t.id,
-                            TemplatesAdapter.ProgressUi(
+                            ProgressUi(
                                 progress = state.progress,
                                 isDownloading = true,
                                 isDownloaded = false
@@ -456,7 +458,7 @@ class TemplatesListFragment : Fragment() {
                         // Immediately flip UI to "downloaded" for that row
                         adapter.updateProgress(
                             t.id,
-                            TemplatesAdapter.ProgressUi(
+                            ProgressUi(
                                 progress = 100,
                                 isDownloading = false,
                                 isDownloaded = true
@@ -494,7 +496,7 @@ class TemplatesListFragment : Fragment() {
                         downloadingTemplate?.let { t ->
                             adapter.updateProgress(
                                 t.id,
-                                TemplatesAdapter.ProgressUi(
+                                ProgressUi(
                                     progress = 0,
                                     isDownloading = false,
                                     isDownloaded = false

@@ -356,6 +356,19 @@
                 tools:listitem="@layout/layout_popular_font_item"
                 android:orientation="horizontal"/>
 
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/trendsRV"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                tools:listitem="@layout/layout_category_row"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                android:orientation="vertical"
+                app:layout_constraintTop_toBottomOf="@id/fontsRV"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:clipToPadding="false"/>
+
         </androidx.constraintlayout.widget.ConstraintLayout>
     </ScrollView>
 

@@ -20,8 +20,8 @@ data class TemplateEntity(
     val subcategory: String,
     val tags: List<String>,
     val is_premium: Boolean,
-    val created_at: String,
-    val updated_at: String,
+    val created_at: String? = null,
+    val updated_at: String? = null,
     var is_downloaded:Boolean = false,
     var is_downloading:Boolean = false,
     var file_path: String? = null,
@@ -50,8 +50,8 @@ data class TemplateEntity(
                 width = canvas_width.toFloat(),
                 height = canvas_height.toFloat()
             ),
-            exportDate  = created_at.ifBlank { nowIso() },
-            updatedDate = updated_at.ifBlank { nowIso() },
+            exportDate  = created_at?: nowIso(),
+            updatedDate = updated_at ?: nowIso(),
             isExported  = true
         )
     }

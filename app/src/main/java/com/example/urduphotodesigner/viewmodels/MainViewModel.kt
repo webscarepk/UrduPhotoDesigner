@@ -9,12 +9,15 @@ import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.common.canvas.model.GradientItem
 import com.example.urduphotodesigner.common.utils.Constants
 import com.example.urduphotodesigner.common.canvas.sealed.FontDownloadState
+import com.example.urduphotodesigner.common.canvas.sealed.HomeRow
 import com.example.urduphotodesigner.common.canvas.sealed.TemplateDownloadState
 import com.example.urduphotodesigner.common.sealed.Response
 import com.example.urduphotodesigner.common.utils.GradientPresets
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.data.model.TemplateEntity
+import com.example.urduphotodesigner.data.model.TrendEntity
+import com.example.urduphotodesigner.data.model.TrendWithTemplates
 import com.example.urduphotodesigner.domain.repo.DownloadRepo
 import com.example.urduphotodesigner.domain.usecase.DeleteFontsUseCase
 import com.example.urduphotodesigner.domain.usecase.DeleteGradientUseCase
@@ -23,14 +26,17 @@ import com.example.urduphotodesigner.domain.usecase.ExportResultsUseCase
 import com.example.urduphotodesigner.domain.usecase.FetchAPIFontsUseCase
 import com.example.urduphotodesigner.domain.usecase.FetchAPIImagesUseCase
 import com.example.urduphotodesigner.domain.usecase.FetchAPITemplatesUseCase
+import com.example.urduphotodesigner.domain.usecase.FetchAPITrendsUseCase
 import com.example.urduphotodesigner.domain.usecase.GetAllGradientsUseCase
 import com.example.urduphotodesigner.domain.usecase.GetFontsUseCase
 import com.example.urduphotodesigner.domain.usecase.GetImagesUseCase
 import com.example.urduphotodesigner.domain.usecase.GetTemplatesUseCase
+import com.example.urduphotodesigner.domain.usecase.GetTrendsUseCase
 import com.example.urduphotodesigner.domain.usecase.InsertFontsUseCase
 import com.example.urduphotodesigner.domain.usecase.InsertGradientUseCase
 import com.example.urduphotodesigner.domain.usecase.InsertImagesUseCase
 import com.example.urduphotodesigner.domain.usecase.InsertTemplatesUseCase
+import com.example.urduphotodesigner.domain.usecase.InsertTrendsUseCase
 import com.example.urduphotodesigner.domain.usecase.SeedGradientsUseCase
 import com.example.urduphotodesigner.domain.usecase.UpdateFontStatusUseCase
 import com.example.urduphotodesigner.domain.usecase.UpdateFontsUseCase
@@ -66,8 +72,14 @@ class MainViewModel @Inject constructor(
     private val delete: DeleteGradientUseCase,
     private val insert: InsertGradientUseCase,
     private val update: UpdateGradientUseCase,
-    private val exportResultsUseCase: ExportResultsUseCase
+    private val exportResultsUseCase: ExportResultsUseCase,
+    private val fetchAPITrendsUseCase: FetchAPITrendsUseCase,
+    private val getTrendsUseCase: GetTrendsUseCase,
+    private val insertTrendsUseCase: InsertTrendsUseCase
 ) : ViewModel() {
+
+    private val _trendRows = MutableStateFlow<List<HomeRow>>(emptyList())
+    val trendRows: StateFlow<List<HomeRow>> = _trendRows.asStateFlow()
 
     private val _downloadState = MutableStateFlow<FontDownloadState?>(null)
     val downloadState: StateFlow<FontDownloadState?> = _downloadState
@@ -120,6 +132,8 @@ class MainViewModel @Inject constructor(
         getAllExportResults()
         fetchAndStoreTemplatesFromApi()
         observeLocalTemplates()
+        observeLocalTrends()
+        fetchAndStoreTrendsFromApi()
         viewModelScope.launch {
             seed(GradientPresets.defaultList)
         }
@@ -190,6 +204,43 @@ class MainViewModel @Inject constructor(
                     else -> {}
                 }
             }
+        }
+    }
+
+    fun fetchAndStoreTrendsFromApi() {
+        viewModelScope.launch {
+            fetchAPITrendsUseCase().collect { response ->
+                when (response) {
+                    is Response.Loading -> _isLoading.value = true
+                    is Response.Success -> {
+                        _isLoading.value = false
+                        insertTrendsUseCase.invoke(response.data!!) // saves in Room
+                    }
+                    is Response.Error -> {
+                        _isLoading.value = false
+                        _error.value = response.message
+                    }
+
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    private fun observeLocalTrends() {
+        viewModelScope.launch {
+            getTrendsUseCase()
+                .map { trendsWithTemplates ->
+                    trendsWithTemplates.map { twt ->
+                        HomeRow.TrendRow(
+                            title = twt.trend.name,
+                            templates = twt.templates
+                        )
+                    }
+                }
+                .collect { rows ->
+                    _trendRows.value = rows
+                }
         }
     }
 
@@ -301,7 +352,7 @@ class MainViewModel @Inject constructor(
                     url = Constants.BASE_URL_GLIDE+font.file_url,
                     fileName = font.file_name,
                     onProgress = { progress ->
-                        _downloadState.value = FontDownloadState.Progress(progress, font.copy(is_downloading = true))
+                        _downloadState.value = FontDownloadState.Progress(progress, font.copy(is_downloading = true,  download_progress = progress))
                     }
                 )
 
@@ -312,12 +363,14 @@ class MainViewModel @Inject constructor(
                 )
 
                 // After successful download, get the typeface and update the canvas
-                font.copy(
+                val updatedFont = font.copy(
                     is_downloaded = true,
+                    is_downloading = false,
+                    download_progress = 100,
                     file_path = downloadedFile.absolutePath
-                ).let {
-                    _downloadState.value = FontDownloadState.SuccessWithTypeface(downloadedFile, it)
-                }
+                )
+
+                _downloadState.value = FontDownloadState.SuccessWithTypeface(downloadedFile, updatedFont)
             } catch (e: Exception) {
                 updateFontStatusUseCase.invoke(font.id.toString(), false)
                 _downloadState.value = FontDownloadState.Error(e.message ?: "Download failed")

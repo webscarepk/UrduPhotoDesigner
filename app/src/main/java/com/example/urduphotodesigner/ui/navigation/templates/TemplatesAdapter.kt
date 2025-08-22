@@ -15,6 +15,7 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.example.urduphotodesigner.common.utils.Constants
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
+import com.example.urduphotodesigner.data.model.ProgressUi
 import com.example.urduphotodesigner.data.model.TemplateEntity
 import com.example.urduphotodesigner.databinding.LayoutTemplateItemBinding
 
@@ -25,8 +26,6 @@ class TemplatesAdapter(
     init {
         setHasStableIds(true)
     }
-
-    data class ProgressUi(val progress: Int, val isDownloading: Boolean, val isDownloaded: Boolean)
 
     private val progressById = mutableMapOf<Int, ProgressUi>()
 

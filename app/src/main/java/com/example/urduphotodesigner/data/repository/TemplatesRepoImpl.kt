@@ -15,7 +15,19 @@ class TemplatesRepoImpl @Inject constructor(
     }
 
     override suspend fun insertTemplates(templateEntity: TemplateEntity) {
-        appDatabase.allTemplatesDao().insertTemplate(templateEntity)
+        val dao = appDatabase.allTemplatesDao()
+        val existing = dao.getTemplateById(templateEntity.id)
+
+        val merged = if (existing != null) {
+            templateEntity.copy(
+                is_downloaded = existing.is_downloaded,
+                is_downloading = existing.is_downloading,
+                file_path = existing.file_path,
+                download_progress = existing.download_progress
+            )
+        } else templateEntity
+
+        dao.insertTemplate(merged)
     }
 
     override suspend fun updateTemplates(

@@ -1377,6 +1377,60 @@ class CanvasViewModel @Inject constructor(
         notifyUndoRedoChanged()
     }
 
+    fun addTextWithFont(text: String, fontEntity: FontEntity?, context: Context) {
+        val currentList = _canvasElements.value ?: emptyList()
+        val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
+
+        // Create base element
+        val element = CanvasElement(
+            context = context,
+            type = ElementType.TEXT,
+            text = text,
+            x = 1000f,
+            y = 1000f,
+            paintColor = Color.BLACK,
+            paintTextSize = 150f,
+            alignment = TextAlignment.CENTER,
+            paintAlpha = 255,
+            fontId = null,
+            zIndex = newZIndex
+        )
+
+        // If a fontEntity was provided, try to apply it
+        if (fontEntity != null) {
+            element.fontId = fontEntity.id.toString()
+            element.paint.typeface = try {
+                Typeface.createFromFile(fontEntity.file_path)
+            } catch (e: Exception) {
+                println("Error applying font: ${fontEntity.file_path}. Error: ${e.message}")
+                element.fontId = null
+                ResourcesCompat.getFont(context, R.font.regular) ?: Typeface.DEFAULT
+            }
+        }
+
+        // Update paint props after assigning typeface
+        element.updatePaintProperties()
+
+        // Push action for undo/redo (store a copy without transient fields)
+        val action = CanvasAction.AddText(
+            text,
+            element.copy(context = null, bitmap = null)
+        )
+        _canvasActions.push(action)
+        _redoStack.clear()
+
+        // Add to list + mark selected
+        _canvasElements.value = currentList + element
+        selectedElement = element
+
+        // If we added with a font, update _currentFont accordingly
+        if (fontEntity != null) {
+            _currentFont.value = fontEntity
+        }
+
+        notifyUndoRedoChanged()
+    }
+
     fun setFont(fontEntity: FontEntity, isExplicit: Boolean = true) {
         _isExplicitChange = isExplicit
         val currentList = _canvasElements.value?.toMutableList() ?: mutableListOf()

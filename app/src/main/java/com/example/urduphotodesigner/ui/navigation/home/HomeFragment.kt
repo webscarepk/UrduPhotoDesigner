@@ -21,15 +21,22 @@ import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
+import com.example.urduphotodesigner.common.canvas.sealed.FontDownloadState
+import com.example.urduphotodesigner.common.canvas.sealed.TemplateDownloadState
 import com.example.urduphotodesigner.common.utils.DialogUtils
 import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
+import com.example.urduphotodesigner.common.utils.showGlobalSuccessSnack
+import com.example.urduphotodesigner.data.model.ProgressUi
+import com.example.urduphotodesigner.data.model.TemplateEntity
+import com.example.urduphotodesigner.data.model.toExportResultFinal
 import com.example.urduphotodesigner.databinding.DialogLoadingProgressBinding
 import com.example.urduphotodesigner.databinding.FragmentHomeBinding
 import com.example.urduphotodesigner.databinding.LayoutProjectPopupBinding
 import com.example.urduphotodesigner.ui.creation.CreateFragment
 import com.example.urduphotodesigner.viewmodels.MainViewModel
+import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,14 +47,15 @@ import java.io.File
 class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
-
     private val viewModel: CanvasViewModel by activityViewModels()
     private val mainViewModel: MainViewModel by activityViewModels()
-    private lateinit var recentAdapter: RecentAdapter
-
     private var bundle: Bundle = Bundle()
     private var loadingDialog: AlertDialog? = null
     private var dialogBinding: DialogLoadingProgressBinding? = null
+    private lateinit var recentAdapter: RecentAdapter
+    private lateinit var fontsAdapter: FontsAdapter
+    private lateinit var trendsAdapter: TrendsAdapter
+    private var downloadingTemplate: TemplateEntity? = null
 
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -123,6 +131,62 @@ class HomeFragment : Fragment() {
 
         binding.recentsRV.adapter = recentAdapter
 
+        fontsAdapter = FontsAdapter(onFontClick = { font, isDownloaded ->
+            if (!isDownloaded){
+                mainViewModel.downloadFont(font)
+            }else{
+                viewModel.setCanvasSize(CanvasSize("", 2000f, 2000f))
+                viewModel.addTextWithFont(requireActivity().getString(R.string.dummyText), font, requireActivity())
+                bundle = Bundle().apply {
+                    putSerializable("canvas_size", CanvasSize("", 2000f, 2000f))
+                    putSerializable("unit_type", UnitType.PIXELS)
+                }
+                findNavController().navigate(R.id.editorFragment, bundle)
+            }
+        }, onDownload = {
+            mainViewModel.downloadFont(it)
+        })
+
+        binding.fontsRV.adapter = fontsAdapter
+
+        trendsAdapter = TrendsAdapter(
+            onSeeAll = { trendTitle ->
+                val args = Bundle().apply { putString("TREND_NAME", trendTitle) }
+                findNavController().navigate(R.id.templatesListFragment, args)
+            },
+            onTemplateClick = { template, isDownloaded ->
+                if (isDownloaded) {
+                    val exportResult = template.toExportResultFinal()
+                    lifecycleScope.launch {
+                        withContext(Dispatchers.Default) {
+                            viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
+                            bundle = Bundle().apply {
+                                putSerializable("canvas_size", exportResult.canvasSize)
+                                putSerializable("unit_type", UnitType.PIXELS)
+                            }
+                        }
+                    }
+                    return@TrendsAdapter
+                }
+                downloadingTemplate = template
+                // start download
+                trendsAdapter.updateTemplateProgress(
+                    template.id,
+                    ProgressUi(
+                        progress = 0,
+                        isDownloading = true,
+                        isDownloaded = false
+                    )
+                )
+                mainViewModel.downloadTemplate(template)
+            }
+        )
+
+        binding.trendsRV.apply {
+            adapter = trendsAdapter
+            setHasFixedSize(true)
+        }
+
         binding.create.addPressEffect {
             pickImageLauncher.launch("image/*")
         }
@@ -138,8 +202,135 @@ class HomeFragment : Fragment() {
     }
 
     private fun initObservers(){
+
+        lifecycleScope.launch {
+            mainViewModel.templateDownloadState.collect { state ->
+                when (state) {
+                    is TemplateDownloadState.Progress -> {
+                        val t = state.template
+                        trendsAdapter.updateTemplateProgress(
+                            t.id,
+                            ProgressUi(
+                                progress = state.progress,
+                                isDownloading = true,
+                                isDownloaded = false
+                            )
+                        )
+                    }
+
+                    is TemplateDownloadState.SuccessWithTemplate -> {
+                        val t = state.template
+                        trendsAdapter.updateTemplateProgress(
+                            t.id,
+                            ProgressUi(
+                                progress = 100,
+                                isDownloading = false,
+                                isDownloaded = true
+                            )
+                        )
+                        mainViewModel.clearTemplateDownloadState()
+
+                        showGlobalSuccessSnack("Template ready") {
+                            val exportResult = t.toExportResultFinal()
+                            lifecycleScope.launch {
+                                withContext(Dispatchers.Default) {
+                                    viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
+                                    bundle = Bundle().apply {
+                                        putSerializable("canvas_size", exportResult.canvasSize)
+                                        putSerializable("unit_type", UnitType.PIXELS)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    is TemplateDownloadState.Error -> {
+                        val t = downloadingTemplate ?: return@collect
+                        trendsAdapter.updateTemplateProgress(
+                            t.id,
+                            ProgressUi(
+                                progress = 0,
+                                isDownloading = false,
+                                isDownloaded = false
+                            )
+                        )
+                    }
+
+                    is TemplateDownloadState.Success -> {
+                        mainViewModel.clearTemplateDownloadState()
+                    }
+
+                    null -> Unit
+                }
+            }
+        }
+
+        lifecycleScope.launch {
+            mainViewModel.trendRows.collect { rows ->
+                trendsAdapter.submitList(rows)
+            }
+        }
+
+        lifecycleScope.launch {
+            mainViewModel.localFonts.collect { fonts ->
+                fontsAdapter.submitList(fonts)
+                binding.popularFonts.visibility =
+                    if (fonts.isEmpty()) View.GONE else View.VISIBLE
+            }
+        }
+
+        lifecycleScope.launch {
+            mainViewModel.downloadState.collect { downloadState ->
+                when (downloadState) {
+                    is FontDownloadState.Progress -> {
+                        val font = downloadState.fontEntity
+                        fontsAdapter.updateProgress(
+                            font.id,
+                            ProgressUi(
+                                progress = downloadState.progress,
+                                isDownloading = true,
+                                isDownloaded = false
+                            )
+                        )
+                    }
+
+                    is FontDownloadState.SuccessWithTypeface -> {
+                        val font = downloadState.fontEntity
+                        viewModel.setFont(font)
+                        fontsAdapter.updateProgress(
+                            font.id,
+                            ProgressUi(100, isDownloading = false, isDownloaded = true)
+                        )
+
+                        showGlobalSuccessSnack("Font downloaded") {
+                            lifecycleScope.launch {
+                                withContext(Dispatchers.Default) {
+                                    viewModel.setCanvasSize(CanvasSize("", 2000f, 2000f))
+                                    viewModel.addText("Tap to edit", requireActivity())
+                                    bundle = Bundle().apply {
+                                        putSerializable("canvas_size", CanvasSize("", 2000f, 2000f))
+                                        putSerializable("unit_type", UnitType.PIXELS)
+                                    }
+                                    findNavController().navigate(R.id.editorFragment, bundle)
+                                }
+                            }
+                        }
+                        mainViewModel.clearDownloadState()
+                    }
+
+                    is FontDownloadState.Error -> {
+                        Snackbar.make(requireView(), "Download failed!", Snackbar.LENGTH_SHORT).show()
+                    }
+
+                    else -> {}
+                }
+            }
+        }
+
         mainViewModel.exportResults.observe(viewLifecycleOwner) { results ->
             recentAdapter.submitList(results)
+            binding.recentProjects.visibility =
+                if (results.isNullOrEmpty()) View.GONE else View.VISIBLE
         }
 
         viewModel.loadingStage.observe(viewLifecycleOwner) { (message, percent) ->

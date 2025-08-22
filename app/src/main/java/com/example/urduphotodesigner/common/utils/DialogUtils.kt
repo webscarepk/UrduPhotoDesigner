@@ -18,7 +18,7 @@ object DialogUtils {
         val inflater = LayoutInflater.from(context)
         val view = inflater.inflate(R.layout.layout_dialog_delete, null)
 
-        val dialog = android.app.AlertDialog.Builder(context, R.style.CustomDialog)
+        val dialog = android.app.AlertDialog.Builder(context)
             .setView(view)
             .setCancelable(false)
             .create()

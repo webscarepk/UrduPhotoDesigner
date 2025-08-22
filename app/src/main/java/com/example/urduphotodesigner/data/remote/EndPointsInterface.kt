@@ -6,6 +6,7 @@ import com.example.urduphotodesigner.data.model.ImageResponse
 import com.example.urduphotodesigner.data.model.LoginResponse
 import com.example.urduphotodesigner.data.model.RegistrationResponse
 import com.example.urduphotodesigner.data.model.TemplatesResponse
+import com.example.urduphotodesigner.data.model.TrendResponse
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
@@ -44,4 +45,9 @@ interface EndPointsInterface {
     suspend fun getAllTemplates(
         @Header("X-API-KEY") apiKey: String = Constants.X_API_KEY
     ): TemplatesResponse
+
+    @GET("trends_with_templates")
+    suspend fun getTrendsWithTemplates(
+        @Header("X-API-KEY") apiKey: String = Constants.X_API_KEY
+    ): TrendResponse
 }

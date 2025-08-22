@@ -11,8 +11,11 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface AllTemplatesDao {
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTemplate(template: TemplateEntity):Long
+
+    @Query("SELECT * FROM templates WHERE id = :id LIMIT 1")
+    suspend fun getTemplateById(id: Int): TemplateEntity?
 
     @Query("UPDATE templates SET is_downloaded = :isDownloaded, is_downloading = :isDownloading, file_path = :filePath WHERE id = :id")
     fun updateTemplate(id: String, isDownloaded: Boolean, isDownloading: Boolean, filePath: String)

@@ -7,6 +7,8 @@ import android.content.ContentValues.TAG
 import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -77,24 +79,19 @@ class EditorFragment : Fragment() {
 
     private lateinit var canvasSize: CanvasSize
     private var currentUnit = UnitType.PIXELS
-
     private val viewModel: CanvasViewModel by activityViewModels()
     private val mainViewModel: MainViewModel by activityViewModels()
     private var currentPanelItemId: Int? = null
-
     private lateinit var sizedCanvasView: CanvasView
     private var currentMode: MultiAlignMode = MultiAlignMode.CANVAS
-
     private var exportModel: ExportResult? = null
     private var jsonPath: String = "canvas_data_${System.currentTimeMillis()}.json"
     private var imagePath: String = "design_data_${System.currentTimeMillis()}.png"
-
     private var exportDialog: Dialog? = null
     private var exportDialogBinding: DialogAutoSavingLayoutBinding? = null
     private var rotationAnimator: ObjectAnimator? = null
     private var isSaving = false
     private var hasChanges = false
-
     private val blendingOptions = listOf(
         BlendType.SRC,
         BlendType.DST,
@@ -159,20 +156,21 @@ class EditorFragment : Fragment() {
         dialog.setContentView(R.layout.dialog_edit_text)
 
         val editText = dialog.findViewById<EditText>(R.id.edit_text_input)
-        val done = dialog.findViewById<ImageView>(R.id.done)
         editText.setText(element.text)
         editText.requestFocus()
         dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
 
-        done.addPressEffect {
-            val newText = editText.text.toString()
-            if (newText.isNotBlank()) {
+        editText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val newText = s?.toString() ?: ""
                 element.text = newText
                 viewModel.updateText(element)
             }
-            dialog.dismiss()
-        }
 
+            override fun afterTextChanged(s: Editable?) {}
+        })
         // Set dialog window attributes for no dim background
         dialog.window?.apply {
             setBackgroundDrawableResource(android.R.color.transparent) // Make background transparent

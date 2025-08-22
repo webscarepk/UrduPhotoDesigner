@@ -9,9 +9,11 @@ import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.data.model.GradientEntity
 import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.data.model.TemplateEntity
+import com.example.urduphotodesigner.data.model.TrendEntity
+import com.example.urduphotodesigner.data.model.TrendTemplateCrossRef
 
 @androidx.room.Database(
-    entities = [FontEntity::class, ImageEntity::class, GradientEntity::class, ExportResult::class, TemplateEntity::class],
+    entities = [FontEntity::class, ImageEntity::class, GradientEntity::class, ExportResult::class, TemplateEntity::class, TrendEntity::class, TrendTemplateCrossRef::class],
     version = 1
 )
 @TypeConverters(Converters::class)
@@ -22,6 +24,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun gradientDao(): GradientDao
     abstract fun exportResultsDao(): ExportResultsDao
     abstract fun allTemplatesDao(): AllTemplatesDao
+    abstract fun trendDao(): TrendDao
 
     companion object {
         @Volatile
