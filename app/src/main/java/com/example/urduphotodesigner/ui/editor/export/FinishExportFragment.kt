@@ -47,7 +47,7 @@ class FinishExportFragment : Fragment() {
             binding.fileSizeDetail.text = "%.1f MB".format(result?.fileSizeMB)
             binding.fileResolutionDetail.text = result?.resolution
             binding.fileQualityDetail.text = result?.quality
-            binding.fileLocationDetail.text = result?.imagePath
+            binding.fileLocationDetail.text = result?.pdfPath ?: result?.imagePath
             binding.exportDate.text = result?.exportDate
             binding.previewImage.setImageBitmap(ImageProcessor.filePathToBitmap(result?.imagePath!!))
         }

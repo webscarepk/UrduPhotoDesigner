@@ -250,6 +250,12 @@ class CanvasViewModel @Inject constructor(
             Bitmap.CompressFormat.WEBP,
             "Modern format with balance",
             listOf("Efficient", "Web Friendly", "Small & sharp")
+        ),
+        ExportFormat(
+            "PDF",
+            null,
+            "Portable Document Format",
+            listOf("Vector container", "Shareable", "Multi-page capable")
         )
     )
 

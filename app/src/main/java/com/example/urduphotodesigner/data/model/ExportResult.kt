@@ -9,8 +9,9 @@ import java.io.Serializable
 data class ExportResult(
     @PrimaryKey(autoGenerate = true) var id: Long = 0,
     var imagePath: String,
-    val jsonPath: String,
-    val fileName: String,
+    var jsonPath: String,
+    var pdfPath: String? = null,
+    var fileName: String,
     var fileSizeMB: Double,
     var resolution: String,
     var format: String,
@@ -19,4 +20,4 @@ data class ExportResult(
     val exportDate: String,
     var updatedDate: String,
     var isExported: Boolean = false
-): Serializable
+) : Serializable

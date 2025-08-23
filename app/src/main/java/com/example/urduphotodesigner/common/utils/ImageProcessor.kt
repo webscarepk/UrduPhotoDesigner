@@ -38,17 +38,25 @@ object ImageProcessor {
         val file = File(path)
         ensureDir(file.parentFile!!)
         FileOutputStream(file).use { stream ->
-            bitmap.compress(options.format.format, options.quality.quality, stream)
+            bitmap.compress(options.format.format!!, options.quality.quality, stream)
+            stream.flush()
+            stream.fd.sync()
         }
     }
 
     // --- Images ---
-    fun bitmapToFilePath(context: Context, bitmap: Bitmap, fileName: String = "img_${System.currentTimeMillis()}.png"): String {
+    fun bitmapToFilePath(
+        context: Context,
+        bitmap: Bitmap,
+        fileName: String = "img_${System.currentTimeMillis()}.png"
+    ): String {
         val dir = imagesDir(context)
         ensureDir(dir)
         val file = File(dir, fileName)
         FileOutputStream(file).use { out ->
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+            out.flush()
+            out.fd.sync()
         }
         return file.absolutePath
     }
@@ -69,13 +77,37 @@ object ImageProcessor {
             val dir = imagesDir(context)
             ensureDir(dir)
             val file = File(dir, "img_${System.currentTimeMillis()}.$extension")
-            FileOutputStream(file).use { out -> bitmap.compress(format, 100, out) }
+            FileOutputStream(file).use { out ->
+                bitmap.compress(format, 100, out)
+                out.flush()
+                out.fd.sync()
+            }
             file
         } catch (e: Exception) {
             e.printStackTrace()
             null
         }
     }
+
+    fun copyPdfUriToTempFile(context: Context, uri: Uri): File? {
+        return try {
+            val dir = context.cacheDir
+            val file = File(dir, "pdf_${System.currentTimeMillis()}.pdf")
+
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(file).use { output ->
+                    input.copyTo(output)
+                    output.flush()
+                    output.fd.sync()
+                }
+            }
+            file
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
 
     fun copyUriToTempFile(context: Context, uri: Uri, path: String): File? {
         return try {
@@ -93,7 +125,11 @@ object ImageProcessor {
             val dir = imagesDir(context)
             ensureDir(dir)
             val file = File(path)
-            FileOutputStream(file).use { out -> bitmap.compress(format, 100, out) }
+            FileOutputStream(file).use { out ->
+                bitmap.compress(format, 100, out)
+                out.flush()
+                out.fd.sync()
+            }
             file
         } catch (e: Exception) {
             e.printStackTrace()
@@ -124,6 +160,8 @@ object ImageProcessor {
 
             FileOutputStream(file).use { out ->
                 out.write(bytes)
+                out.flush()
+                out.fd.sync()
             }
             file.absolutePath
         } catch (e: Exception) {
@@ -142,13 +180,19 @@ object ImageProcessor {
     }
 
     // --- Exports ---
-    fun newExportImageFile(context: Context, baseName: String = "exp_${System.currentTimeMillis()}.png"): File {
+    fun newExportImageFile(
+        context: Context,
+        baseName: String = "exp_${System.currentTimeMillis()}.png"
+    ): File {
         val dir = exportsImagesDir(context)
         ensureDir(dir)
         return File(dir, baseName)
     }
 
-    fun newExportJsonFile(context: Context, baseName: String = "exp_${System.currentTimeMillis()}.json"): File {
+    fun newExportJsonFile(
+        context: Context,
+        baseName: String = "exp_${System.currentTimeMillis()}.json"
+    ): File {
         val dir = exportsJsonDir(context)
         ensureDir(dir)
         return File(dir, baseName)
@@ -180,6 +224,7 @@ object ImageProcessor {
             FileInputStream(src).channel.use { inChannel ->
                 FileOutputStream(dest).channel.use { outChannel ->
                     outChannel.transferFrom(inChannel, 0, inChannel.size())
+                    outChannel.force(true)
                 }
             }
             true
@@ -204,7 +249,11 @@ object ImageProcessor {
     }
 
     fun filePathToBitmap(filePath: String): Bitmap? {
-        return try { BitmapFactory.decodeFile(filePath) } catch (e: Exception) { null }
+        return try {
+            BitmapFactory.decodeFile(filePath)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     fun getFileExtension(context: Context, uri: Uri): String {
@@ -219,21 +268,9 @@ object ImageProcessor {
                 val dot = path.lastIndexOf('.')
                 if (dot != -1) extension = path.substring(dot + 1)
             }
-        } catch (_: Exception) {}
-        return extension ?: "jpg"
-    }
-
-    /**
-     * Save (or overwrite) a bitmap at a specific path.
-     */
-    fun saveBitmapAtPath(bitmap: Bitmap, path: String): String {
-        val file = File(path)
-        if (!file.parentFile!!.exists()) file.parentFile!!.mkdirs()
-
-        FileOutputStream(file).use { out ->
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+        } catch (_: Exception) {
         }
-        return file.absolutePath
+        return extension ?: "jpg"
     }
 
     /**

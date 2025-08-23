@@ -58,30 +58,9 @@
             android:layout_height="34dp"
             android:src="@drawable/ic_app_icon"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@id/profile"
-            app:layout_constraintBottom_toBottomOf="@id/profile"/>
-
-        <ImageView
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/button_bg_round"
-            android:src="@drawable/ic_profile"
-            android:backgroundTint="@color/white"
-            android:padding="10dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:id="@+id/profile"/>
-
-        <ImageView
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/button_bg_round"
-            android:src="@drawable/ic_notifications"
-            android:backgroundTint="@color/white"
-            android:padding="10dp"
-            android:layout_marginEnd="6dp"
-            app:layout_constraintEnd_toStartOf="@id/profile"
             app:layout_constraintTop_toTopOf="parent"
-            android:id="@+id/notifications"/>
+            android:id="@+id/appIcon"
+            />
 
         <EditText
             android:id="@+id/searchBar"
@@ -99,7 +78,7 @@
             android:hint="@string/search_here"
             android:textColorHint="@color/gray"
             android:textColor="@color/black"
-            app:layout_constraintTop_toBottomOf="@id/profile"
+            app:layout_constraintTop_toBottomOf="@id/appIcon"
             android:layout_marginTop="24dp"/>
 
         <LinearLayout

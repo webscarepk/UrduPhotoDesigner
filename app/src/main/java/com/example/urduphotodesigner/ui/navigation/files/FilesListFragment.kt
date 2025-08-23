@@ -86,9 +86,34 @@ class FilesListFragment : Fragment() {
                         }
                     }
                 }
+            },onSelectionChanged = { active ->
+                binding.deleteAll.visibility = if (active) View.VISIBLE else View.GONE
             })
         binding.filesRV.adapter = adapter
         binding.filesRV.layoutManager = LinearLayoutManager(requireContext())
+
+        binding.deleteAll.addPressEffect {
+            val selectedItems = adapter.getSelectedItems() // we’ll add this helper in adapter
+            if (selectedItems.isNotEmpty()) {
+                DialogUtils.showDeleteDialog(
+                    requireActivity(),
+                    getString(R.string.delete),
+                    getString(R.string.your_asset_will_be_permanently_deleted)
+                ) {
+                    lifecycleScope.launch {
+                        selectedItems.forEach { item ->
+                            when (item) {
+                                is ExportResult -> viewModel.deleteExportResult(item)
+                                is ImageEntity -> viewModel.deleteImage(item)
+                                is FontEntity -> viewModel.deleteFont(item)
+                            }
+                        }
+                        adapter.clearSelection()
+                    }
+                }
+            }
+        }
+
     }
 
     private fun openItem(item: Any) {

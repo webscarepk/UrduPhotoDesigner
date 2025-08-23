@@ -22,7 +22,8 @@ class FilesAdapter(
     private val onItemClick: (Any) -> Unit,
     private val onItemLongClick: (Any) -> Unit,
     private val onOptionsClick: (Any, View) -> Unit,
-    private val onRename: ((Any, String) -> Unit)? = null
+    private val onRename: ((Any, String) -> Unit)? = null,
+    var onSelectionChanged: ((Boolean) -> Unit)? = null
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
@@ -47,9 +48,20 @@ class FilesAdapter(
     }
     fun toggleMultiSelectMode(enabled: Boolean) {
         multiSelectMode = enabled
-        if (!enabled) selectedItems.clear()
+        if (!enabled) {
+            selectedItems.clear()
+            onSelectionChanged?.invoke(false)
+        }
         notifyDataSetChanged()
     }
+
+    fun clearSelection() {
+        selectedItems.clear()
+        multiSelectMode = false
+        notifyDataSetChanged()
+        onSelectionChanged?.invoke(false)
+    }
+    fun getSelectedItems() = selectedItems.toList()
 
     override fun getItemViewType(position: Int): Int {
         return if (isGrid) VIEW_TYPE_GRID else VIEW_TYPE_LIST
@@ -91,8 +103,19 @@ class FilesAdapter(
     }
 
     private fun handleSelection(item: Any) {
-        if (selectedItems.contains(item)) selectedItems.remove(item) else selectedItems.add(item)
-        if (selectedItems.isEmpty()) toggleMultiSelectMode(false) else notifyDataSetChanged()
+        if (selectedItems.contains(item)) {
+            selectedItems.remove(item)
+        } else {
+            selectedItems.add(item)
+        }
+
+        if (selectedItems.isEmpty()) {
+            toggleMultiSelectMode(false)
+            onSelectionChanged?.invoke(false)
+        } else {
+            notifyDataSetChanged()
+            onSelectionChanged?.invoke(true)
+        }
     }
 
     inner class GridViewHolder(private val binding: LayoutFilesGridBinding) :
@@ -246,7 +269,7 @@ class FilesAdapter(
 
                 val isPng = item.file_name.endsWith(".png", ignoreCase = true)
                 imageView.scaleType = if (isPng) android.widget.ImageView.ScaleType.FIT_CENTER else android.widget.ImageView.ScaleType.CENTER_CROP
-                Glide.with(imageView).load(item.bitmapData).into(imageView)
+                Glide.with(imageView).load(item.bitmapData).thumbnail(0.1f).into(imageView)
 
                 if (card != null) setCardStyle(card, isTransparent = isPng)
             }

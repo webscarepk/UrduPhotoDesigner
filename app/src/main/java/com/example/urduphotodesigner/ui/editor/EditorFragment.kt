@@ -67,6 +67,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.core.graphics.scale
 
 @AndroidEntryPoint
 class EditorFragment : Fragment() {
@@ -218,49 +219,65 @@ class EditorFragment : Fragment() {
         canvasSize: CanvasSize
     ) {
         try {
-            if (exportImage) {
-                ImageProcessor.saveBitmapToFile(exportBitmap, options, imagePath)
-            }
-            File(jsonPath).writeText(exportJson)
-            Log.d(TAG, "saveOnExitSafe: $jsonPath")
-            Log.d("ImagePath", "bind: $imagePath")
-
-            val fileSizeMB = estimateBitmapSize(
-                exportBitmap,
-                options.format.format,
-                options.quality.quality
-            ) / (1024.0 * 1024.0)
-
-            val exportDate =
-                SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
-
-            if (exportModel == null) {
-                exportModel = ExportResult(
-                    imagePath = imagePath,
-                    jsonPath = jsonPath,
-                    fileName = imagePath.substringAfterLast("/") ?: "design",
-                    fileSizeMB = fileSizeMB,
-                    resolution = options.resolution.label,
-                    format = options.format.name,
-                    quality = options.quality.label,
-                    canvasSize = canvasSize,
-                    exportDate = exportDate,
-                    updatedDate = exportDate
-                )
-            } else {
-                if (exportModel!!.imagePath.startsWith("/storage")){
-                    exportModel!!.imagePath = imagePath
+            lifecycleScope.launch(Dispatchers.IO) {
+                // ---- Save Image ----
+                if (exportImage) {
+                    ImageProcessor.saveBitmapToFile(exportBitmap, options, imagePath)
+                    withContext(Dispatchers.Main) {
+                        updateExportDialog(96, "Image saved")
+                    }
                 }
-                exportModel!!.canvasSize = canvasSize
-                exportModel!!.fileSizeMB = fileSizeMB
-                exportModel!!.updatedDate = exportDate
-            }
-            lifecycleScope.launch {
+
+                // ---- Save JSON ----
+                File(jsonPath).writeText(exportJson)
+                Log.d(TAG, "saveOnExitSafe: $jsonPath")
+                Log.d("ImagePath", "bind: $imagePath")
+                withContext(Dispatchers.Main) {
+                    updateExportDialog(97, "JSON saved")
+                }
+
+                // ---- Calculate file size ----
+                val fileSizeMB = estimateBitmapSize(
+                    exportBitmap,
+                    options.format.format!!,
+                    options.quality.quality
+                ) / (1024.0 * 1024.0)
+
+                val exportDate = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
+
+                // ---- Prepare model ----
+                if (exportModel == null) {
+                    exportModel = ExportResult(
+                        imagePath = imagePath,
+                        jsonPath = jsonPath,
+                        fileName = imagePath.substringAfterLast("/") ?: "design",
+                        fileSizeMB = fileSizeMB,
+                        resolution = options.resolution.label,
+                        format = options.format.name,
+                        quality = options.quality.label,
+                        canvasSize = canvasSize,
+                        exportDate = exportDate,
+                        updatedDate = exportDate,
+                    )
+                } else {
+                    if (exportModel!!.imagePath.startsWith("/storage")) {
+                        exportModel!!.imagePath = imagePath
+                    }
+                    exportModel!!.canvasSize = canvasSize
+                    exportModel!!.fileSizeMB = fileSizeMB
+                    exportModel!!.updatedDate = exportDate
+                }
+
+                // ---- Save to DB ----
                 val id = mainViewModel.insertExportResult(exportModel!!)
                 exportModel!!.id = id
-                viewModel.setExportResult(exportModel!!)
-            }
 
+                withContext(Dispatchers.Main) {
+                    viewModel.setExportResult(exportModel!!)
+                    updateExportDialog(99, "Database updated")
+                    updateExportDialog(100, "Saved successfully")
+                }
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Background save failed: ${e.message}")
         }
@@ -774,7 +791,7 @@ class EditorFragment : Fragment() {
             }
             withContext(Dispatchers.Main) {
                 updateExportDialog(100, "Saved successfully")
-                delay(500)
+                delay(1000)
                 dismissExportDialog()
                 findNavController().navigateUp()
             }

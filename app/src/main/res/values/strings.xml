@@ -191,6 +191,7 @@
     <string name="delete_project">Delete Project</string>
     <string name="delete_font">Delete Font</string>
     <string name="your_asset_will_be_permanently_deleted">Your asset will be permanently deleted</string>
+    <string name="your_assets_will_be_permanently_deleted">Your assets will be permanently deleted</string>
     <string name="cancel">Cancel</string>
     <string name="confirm">Confirm</string>
     <string name="popular_fonts">Popular Fonts</string>

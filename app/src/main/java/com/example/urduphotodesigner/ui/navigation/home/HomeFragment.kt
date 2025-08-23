@@ -1,15 +1,20 @@
 package com.example.urduphotodesigner.ui.navigation.home
 
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.app.AlertDialog
+import android.app.Dialog
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.util.Log
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.LinearInterpolator
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import androidx.activity.result.contract.ActivityResultContracts
@@ -50,12 +55,14 @@ class HomeFragment : Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
     private val mainViewModel: MainViewModel by activityViewModels()
     private var bundle: Bundle = Bundle()
-    private var loadingDialog: AlertDialog? = null
+    private var loadingDialog: Dialog? = null
     private var dialogBinding: DialogLoadingProgressBinding? = null
     private lateinit var recentAdapter: RecentAdapter
     private lateinit var fontsAdapter: FontsAdapter
     private lateinit var trendsAdapter: TrendsAdapter
     private var downloadingTemplate: TemplateEntity? = null
+    private var rotationAnimator: ObjectAnimator? = null
+
 
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -96,18 +103,42 @@ class HomeFragment : Fragment() {
     }
 
     private fun showLoadingDialog() {
+        if (loadingDialog?.isShowing == true) return
         dialogBinding = DialogLoadingProgressBinding.inflate(LayoutInflater.from(requireActivity()))
 
-        loadingDialog = AlertDialog.Builder(requireActivity())
-            .setView(dialogBinding!!.root)
-            .setCancelable(false)
-            .create()
+        loadingDialog = Dialog(requireContext()).apply {
+            setContentView(dialogBinding!!.root)
+            setCancelable(false)
+            window?.setBackgroundDrawableResource(android.R.color.transparent)
+            window?.setLayout(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            window?.setGravity(Gravity.CENTER)
+            show()
+        }
 
-        loadingDialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        loadingDialog?.show()
+        startIconRotation()
+    }
+
+    private fun startIconRotation() {
+        dialogBinding?.view4?.let { icon ->
+            rotationAnimator = ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, 360f).apply {
+                duration = 1000L
+                repeatCount = ValueAnimator.INFINITE
+                interpolator = LinearInterpolator()
+                start()
+            }
+        }
+    }
+
+    private fun stopIconRotation() {
+        rotationAnimator?.cancel()
+        rotationAnimator = null
     }
 
     private fun dismissLoadingDialog() {
+        stopIconRotation()
         loadingDialog?.dismiss()
         loadingDialog = null
         dialogBinding = null

@@ -5,6 +5,7 @@ import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.drawable.AnimatedVectorDrawable
+import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -17,6 +18,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.scale
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -25,16 +27,17 @@ import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.ExportViewType
 import com.example.urduphotodesigner.common.canvas.model.ExportOptions
-import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.common.views.CanvasView
+import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.databinding.FragmentExportBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -50,7 +53,6 @@ class ExportFragment : Fragment() {
 
     private var exportResult: ExportResult? = null
     private lateinit var canvasView: CanvasView
-    private var isFirstRender = true
     private var rotateDrawable: AnimatedVectorDrawable? = null
 
     private val requestPermissionLauncher =
@@ -104,20 +106,8 @@ class ExportFragment : Fragment() {
         viewModel.canvasView.observe(viewLifecycleOwner) { canvas ->
             lifecycleScope.launch(Dispatchers.Main) {
                 canvasView = canvas
-                renderPreview()
                 Log.d(
                     "ExportFragmentCanvasView",
-                    "Received exportResult: ${viewModel.exportResult.value}"
-                )
-            }
-        }
-
-        viewModel.exportOptions.observe(viewLifecycleOwner) { options ->
-            if (!isAdded) return@observe
-            lifecycleScope.launch(Dispatchers.Main) {
-                updateExportOptionsUI(options)
-                Log.d(
-                    "ExportFragmentExportOptions",
                     "Received exportResult: ${viewModel.exportResult.value}"
                 )
             }
@@ -131,6 +121,18 @@ class ExportFragment : Fragment() {
             result?.let {
                 exportResult = it
                 renderExportResult(it)
+            }
+        }
+
+        viewModel.exportOptions.observe(viewLifecycleOwner) { options ->
+            if (!isAdded) return@observe
+            lifecycleScope.launch(Dispatchers.Main) {
+                updateExportOptionsUI(options)
+                renderPreview()
+                Log.d(
+                    "ExportFragmentExportOptions",
+                    "Received exportResult: ${viewModel.exportResult.value}"
+                )
             }
         }
     }
@@ -167,40 +169,46 @@ class ExportFragment : Fragment() {
         val canvas = viewModel.canvasView.value ?: return
         val options = viewModel.exportOptions.value ?: return
 
-        if (isFirstRender) {
-            // First time: hide preview, show progress
-            binding.previewImage.visibility = View.INVISIBLE
-            binding.exportPreviewProgress.visibility = View.VISIBLE
-        } else {
-            // From second time onward: show current image while updating in background
-            binding.previewImage.visibility = View.VISIBLE
-            binding.exportPreviewProgress.visibility = View.GONE
+        exportResult?.let { result ->
+            result.imagePath.let { path ->
+                val file = File(path)
+                if (file.exists()) {
+                    val instantSizeMB = file.length().toDouble() / (1024.0 * 1024.0)
+                    binding.tvExportSize.text = "%.1f MB".format(instantSizeMB)
+                    binding.fileSize.text = "%.1f MB".format(instantSizeMB)
+                }
+            }
         }
 
-        lifecycleScope.launch {
-            val result = withContext(Dispatchers.Default) {
-                canvas.exportCanvas(options)
+        lifecycleScope.launch(Dispatchers.Default) {
+            val (bitmap, _) = canvas.exportCanvas(options)
+
+            // create lightweight preview
+            val maxWidth = 800
+            val scaledHeight = (bitmap.height * (maxWidth.toFloat() / bitmap.width)).toInt()
+            val previewBitmap = bitmap.scale(maxWidth, scaledHeight)
+
+            // --- estimate size based on export options ---
+            val sizeMB = if (options.format.name.equals("PDF", true)) {
+                estimateBitmapSize(
+                    bitmap,
+                    Bitmap.CompressFormat.JPEG,
+                    options.quality.quality
+                ) / (1024.0 * 1024.0)
+            } else {
+                // use actual compression with the selected format + quality
+                estimateBitmapSize(
+                    bitmap,
+                    options.format.format,     // PNG/JPEG/WEBP
+                    options.quality.quality    // quality from options
+                ) / (1024.0 * 1024.0)
             }
 
             withContext(Dispatchers.Main) {
-                val (bitmap, _) = result
-                val sizeMB = estimateBitmapSize(
-                    bitmap,
-                    options.format.format,
-                    options.quality.quality
-                ) / (1024.0 * 1024.0)
-
-                // Update new preview image
-                binding.previewImage.setImageBitmap(bitmap)
+                binding.previewImage.setImageBitmap(previewBitmap)
+                binding.exportPreviewProgress.visibility = View.GONE
                 binding.tvExportSize.text = "%.1f MB".format(sizeMB)
                 binding.fileSize.text = "%.1f MB".format(sizeMB)
-
-                // If first render, show preview now and hide progress
-                if (isFirstRender) {
-                    binding.previewImage.visibility = View.VISIBLE
-                    binding.exportPreviewProgress.visibility = View.GONE
-                    isFirstRender = false
-                }
             }
         }
     }
@@ -241,86 +249,138 @@ class ExportFragment : Fragment() {
         val options = viewModel.exportOptions.value ?: return
         startRotationAnimation(binding.view4)
 
-        lifecycleScope.launch {
-            val result = withContext(Dispatchers.Default) {
-                canvasView.exportCanvas(options) { percent, stage ->
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Render full canvas
+                val (bitmap, json) = canvasView.exportCanvas(options) { percent, stage ->
                     lifecycleScope.launch(Dispatchers.Main) {
-                        updateProgress(percent, stage)
+                        val mapped = (percent * 0.7).toInt()
+                        updateProgress(mapped, stage)
                     }
                 }
-            }
 
-            val (bitmap, json) = result
+                // 2. Generate lightweight preview + save thumbnail
+                val previewBitmap =
+                    bitmap.scale(800, (bitmap.height * (800f / bitmap.width)).toInt())
 
-            withContext(Dispatchers.Main) {
-                updateProgress(50, "Rendering image...")
-                binding.previewImage.setImageBitmap(bitmap)
-            }
+                // Estimate file size (using preview only for quick responsiveness)
+                val sizeMB = if (options.format.name.equals("PDF", true)) {
+                    (bitmap.width * bitmap.height * 4) / (1024.0 * 1024.0)
+                } else {
+                    estimateBitmapSize(
+                        bitmap,
+                        options.format.format,
+                        options.quality.quality
+                    ) / (1024.0 * 1024.0)
+                }
 
-            val imagePath: String
-            val jsonPath: String
+                withContext(Dispatchers.Main) {
+                    binding.previewImage.setImageBitmap(previewBitmap)
+                    binding.tvExportSize.text = "%.1f MB".format(sizeMB)
+                    binding.fileSize.text = "%.1f MB".format(sizeMB)
+                    updateProgress(50, "Preview ready…")
+                }
 
-            // Save files on background thread
-            withContext(Dispatchers.IO) {
-                updateProgressSafe(70, "Saving image...")
-                imagePath = ImageProcessor.copyUriToTempFile(
-                    requireActivity(), saveImage(bitmap, options)!!,
-                    exportResult?.imagePath!!
-                )!!.absolutePath
+                // 3. Save full export (Image or PDF)
+                updateProgressSafe(75, "Saving file…")
+                val savedUri = saveImageOrPdf(bitmap, options)
+                updateProgressSafe(85, "Finalizing…")
+                val pdfPath = if (options.format.name.equals("PDF", true)) {
+                    savedUri?.let {
+                        ImageProcessor.copyPdfUriToTempFile(
+                            requireContext(),
+                            it
+                        )?.absolutePath
+                    }
+                }else{
+                    null
+                }
 
-                updateProgressSafe(85, "Saving JSON...")
-                jsonPath = saveJson(json)
-            }
+                val imagePath = if (options.format.name.equals("PDF", true)) {
+                    ImageProcessor.bitmapToFilePath(requireActivity(), previewBitmap)
+                } else {
+                    savedUri?.let {
+                        ImageProcessor.copyUriToTempFile(
+                            requireContext(),
+                            it
+                        )?.absolutePath
+                    }
+                } ?: throw IllegalStateException("Failed to save file")
 
-            val fileSizeMB = estimateBitmapSize(
-                bitmap,
-                options.format.format,
-                options.quality.quality
-            ) / (1024.0 * 1024.0)
+                updateProgressSafe(95, "Just a moment…")
+                val jsonPath = saveJson(json)
 
-            val exportDate =
-                SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
+                // 4. Final file size (real saved file)
+                val fileSizeMB = if (options.format.name.equals("PDF", true)) {
+                    pdfPath?.let { File(it).length().toDouble() / (1024.0 * 1024.0) } ?: sizeMB
+                } else {
+                    File(imagePath).takeIf { it.exists() }?.length()?.div(1024.0 * 1024.0) ?: sizeMB
+                }
+                val exportDate =
+                    SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
 
-            if (exportResult == null) {
-                exportResult = ExportResult(
+                val fileName = if (options.format.name.equals("PDF", true)) {
+                    pdfPath?.let { File(it).name } ?: "export_${exportDate}.pdf"
+                } else {
+                    File(imagePath).name
+                }
+                // 5. Build or update ExportResult
+                val result = exportResult?.apply {
+                    this.imagePath = imagePath
+                    this.jsonPath = jsonPath
+                    this.pdfPath = pdfPath
+                    this.fileName = fileName
+                    this.fileSizeMB = fileSizeMB
+                    this.resolution = options.resolution.label
+                    this.format = options.format.name
+                    this.quality = options.quality.label
+                    this.updatedDate = exportDate
+                    this.canvasSize = viewModel.canvasSize.value!!
+                    this.isExported = true
+                } ?: ExportResult(
                     imagePath = imagePath,
                     jsonPath = jsonPath,
-                    fileName = imagePath.substringAfterLast("/") ?: "design",
+                    fileName = fileName,
+                    pdfPath = pdfPath,
                     fileSizeMB = fileSizeMB,
                     resolution = options.resolution.label,
                     format = options.format.name,
                     quality = options.quality.label,
                     canvasSize = viewModel.canvasSize.value!!,
                     exportDate = exportDate,
-                    updatedDate = exportDate
-                )
-            } else {
-                exportResult!!.fileSizeMB = fileSizeMB
-                exportResult!!.resolution = options.resolution.label
-                exportResult!!.format = options.format.name
-                exportResult!!.quality = options.quality.label
-                exportResult!!.updatedDate = exportDate
-                exportResult!!.canvasSize = viewModel.canvasSize.value!!
-                exportResult!!.isExported = true
-            }
+                    updatedDate = exportDate,
+                    ).also { exportResult = it }
 
-            viewModel.setExportResult(exportResult!!)
-            mainViewModel.insertExportResult(exportResult!!)
+                withContext(Dispatchers.Main) {
+                    viewModel.setExportResult(result)
+                    mainViewModel.insertExportResult(result)
+                }
 
-            withContext(Dispatchers.Main) {
-                updateProgress(100, "Export complete")
+                // 7. Update UI on complete
+                withContext(Dispatchers.Main) {
+                    updateProgress(100, "Export complete")
+                    binding.exportProgress.postDelayed({
+                        binding.exportProgress.visibility = View.GONE
+                    }, 1000)
 
-                binding.exportProgress.postDelayed({
-                    binding.exportProgress.visibility = View.GONE
-                }, 1000)
+                    stopRotationAnimation(binding.view4)
+                    stopIconRotation()
+                    binding.btnExport.isEnabled = true
+                    binding.btnExport.alpha = 1.0f
+                    binding.btnExport.text = "Export"
 
-                stopRotationAnimation(binding.view4)
-                stopIconRotation()
-                binding.btnExport.isEnabled = true
-                binding.btnExport.alpha = 1.0f
-                binding.btnExport.text = "Export"
-
-                findNavController().navigate(R.id.finishExportFragment)
+                    findNavController().navigate(R.id.finishExportFragment)
+                }
+            } catch (e: Exception) {
+                Log.e("ExportFragment", "Export failed", e)
+                withContext(Dispatchers.Main) {
+                    stopRotationAnimation(binding.view4)
+                    stopIconRotation()
+                    binding.btnExport.isEnabled = true
+                    binding.btnExport.alpha = 1.0f
+                    binding.btnExport.text = "Export"
+                    showTopBanner("Export failed: ${e.message}")
+                }
             }
         }
     }
@@ -380,11 +440,11 @@ class ExportFragment : Fragment() {
 
     private fun estimateBitmapSize(
         bitmap: Bitmap,
-        format: Bitmap.CompressFormat,
+        format: Bitmap.CompressFormat?,
         quality: Int
     ): Long {
-        val stream = java.io.ByteArrayOutputStream()
-        bitmap.compress(format, quality, stream)
+        val stream = ByteArrayOutputStream()
+        bitmap.compress(format!!, quality, stream)
         return stream.size().toLong()
     }
 
@@ -394,45 +454,80 @@ class ExportFragment : Fragment() {
         return file.absolutePath
     }
 
-    private fun saveImage(bitmap: Bitmap, options: ExportOptions): Uri? {
-        val formatExt = when (options.format.format) {
-            Bitmap.CompressFormat.PNG -> "png"
-            Bitmap.CompressFormat.JPEG -> "jpg"
-            Bitmap.CompressFormat.WEBP -> "webp"
-            else -> "png"
-        }
+    private suspend fun saveImageOrPdf(bitmap: Bitmap, options: ExportOptions): Uri? =
+        withContext(Dispatchers.IO) {
+            if (options.format.name.equals("PDF", ignoreCase = true)) {
+                val filename = "design_${System.currentTimeMillis()}.pdf"
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.Files.FileColumns.DISPLAY_NAME, filename)
+                    put(MediaStore.Files.FileColumns.MIME_TYPE, "application/pdf")
+                    put(
+                        MediaStore.Files.FileColumns.RELATIVE_PATH,
+                        Environment.DIRECTORY_DOCUMENTS + "/UrduDesigner"
+                    )
+                }
 
-        val mimeType = when (options.format.format) {
-            Bitmap.CompressFormat.PNG -> "image/png"
-            Bitmap.CompressFormat.JPEG -> "image/jpeg"
-            Bitmap.CompressFormat.WEBP -> "image/webp"
-            else -> "image/png"
-        }
+                val uri = requireContext().contentResolver.insert(
+                    MediaStore.Files.getContentUri("external"), contentValues
+                )
 
-        val filename = "design_${System.currentTimeMillis()}.$formatExt"
-        val contentValues = ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, filename)
-            put(MediaStore.Images.Media.MIME_TYPE, mimeType)
-            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/UrduDesigner")
-        }
+                uri?.let {
+                    requireContext().contentResolver.openOutputStream(it)?.use { stream ->
+                        val pdfDoc = PdfDocument()
 
-        val uri = requireContext().contentResolver.insert(
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues
-        )
+                        // use 72dpi A4 (lighter than 300dpi)
+                        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
+                        val page = pdfDoc.startPage(pageInfo)
 
-        uri?.let {
-            requireContext().contentResolver.openOutputStream(it)?.use { stream ->
-                bitmap.compress(options.format.format, options.quality.quality, stream)
+                        val scale = minOf(
+                            pageInfo.pageWidth.toFloat() / bitmap.width,
+                            pageInfo.pageHeight.toFloat() / bitmap.height
+                        )
+                        val matrix = android.graphics.Matrix().apply { postScale(scale, scale) }
+                        page.canvas.drawBitmap(bitmap, matrix, null)
+
+                        pdfDoc.finishPage(page)
+                        pdfDoc.writeTo(stream)
+                        pdfDoc.close()
+                    }
+                }
+                uri
+            } else {
+                val formatExt = when (options.format.format) {
+                    Bitmap.CompressFormat.PNG -> "png"
+                    Bitmap.CompressFormat.JPEG -> "jpg"
+                    Bitmap.CompressFormat.WEBP -> "webp"
+                    else -> "png"
+                }
+                val mimeType = when (options.format.format) {
+                    Bitmap.CompressFormat.PNG -> "image/png"
+                    Bitmap.CompressFormat.JPEG -> "image/jpeg"
+                    Bitmap.CompressFormat.WEBP -> "image/webp"
+                    else -> "image/png"
+                }
+                val filename = "design_${System.currentTimeMillis()}.$formatExt"
+
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+                    put(MediaStore.Images.Media.MIME_TYPE, mimeType)
+                    put(
+                        MediaStore.Images.Media.RELATIVE_PATH,
+                        Environment.DIRECTORY_PICTURES + "/UrduDesigner"
+                    )
+                }
+
+                val uri = requireContext().contentResolver.insert(
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues
+                )
+
+                uri?.let {
+                    requireContext().contentResolver.openOutputStream(it)?.use { stream ->
+                        bitmap.compress(options.format.format!!, options.quality.quality, stream)
+                    }
+                }
+                uri
             }
-            lifecycleScope.launch(Dispatchers.Main) {
-                showTopBanner("Image saved to gallery")
-            }
-
-            return uri // Or return filename for simplicity
         }
-
-        return null
-    }
 
     private fun startIconRotation() {
         binding.btnExport.setIconResource(R.drawable.ic_rotate_animated)

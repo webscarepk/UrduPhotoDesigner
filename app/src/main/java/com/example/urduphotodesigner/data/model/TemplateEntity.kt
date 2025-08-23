@@ -52,7 +52,7 @@ data class TemplateEntity(
             ),
             exportDate  = created_at?: nowIso(),
             updatedDate = updated_at ?: nowIso(),
-            isExported  = true
+            isExported  = true,
         )
     }
 
