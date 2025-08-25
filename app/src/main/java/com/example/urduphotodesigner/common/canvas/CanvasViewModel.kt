@@ -35,11 +35,13 @@ import com.example.urduphotodesigner.common.canvas.model.GradientItem
 import com.example.urduphotodesigner.common.canvas.sealed.BatchedCanvasAction
 import com.example.urduphotodesigner.common.canvas.sealed.CanvasAction
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
+import com.example.urduphotodesigner.common.utils.ImageFilterAdapter
 import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.common.views.CanvasView
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.domain.usecase.GetFontsUseCase
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -2141,7 +2143,11 @@ class CanvasViewModel @Inject constructor(
 
                 _loadingStage.postValue("Parsing JSON" to 30)
                 val jsonContent = jsonFile.readText()
-                val elements = Gson().fromJson(jsonContent, Array<CanvasElement>::class.java).toList()
+                val gson = GsonBuilder()
+                    .registerTypeAdapter(ImageFilter::class.java, ImageFilterAdapter())
+                    .create()
+
+                val elements = gson.fromJson(jsonContent, Array<CanvasElement>::class.java).toList()
 
                 _loadingStage.postValue("Hydrating elements" to 60)
                 val hydratedElements = elements.map { raw ->

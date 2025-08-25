@@ -181,7 +181,7 @@ class ExportFragment : Fragment() {
         }
 
         lifecycleScope.launch(Dispatchers.Default) {
-            val (bitmap, _) = canvas.exportCanvas(options)
+            val (bitmap, _) = canvas.exportCanvasThumbnail()
 
             // create lightweight preview
             val maxWidth = 800

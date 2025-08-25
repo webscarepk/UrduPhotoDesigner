@@ -196,6 +196,7 @@
     <string name="confirm">Confirm</string>
     <string name="popular_fonts">Popular Fonts</string>
     <string name="dummyText">اردو میں ٹائپ کریں</string>
+    <string name="filters">Filters</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

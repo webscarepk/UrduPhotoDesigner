@@ -1,11 +1,13 @@
 package com.example.urduphotodesigner.ui.editor.panels.filters
 
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.ElementType
@@ -20,7 +22,8 @@ class FiltersFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var filtersAdapter: ImageFiltersAdapter
     private val viewModel: CanvasViewModel by activityViewModels()
-
+    private var previewBitmap: Bitmap? = null
+    private var elementId: String? = null
     // Define your list of available filters
     private val availableFilters = listOf(
         FilterItem("None", ImageFilter.None),
@@ -36,6 +39,14 @@ class FiltersFragment : Fragment() {
         FilterItem("Vintage", ImageFilter.Vintage)
         // Add more filters as you implement them in SizedCanvasView
     )
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        arguments?.let { bundle ->
+            previewBitmap = bundle.getParcelable("previewBitmap")
+            elementId = bundle.getString("elementId")
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -53,19 +64,18 @@ class FiltersFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        filtersAdapter = ImageFiltersAdapter(availableFilters) { filterItem ->
-            // Get the currently selected image element from the ViewModel
-            val selectedImageElement = viewModel.canvasElements.value?.firstOrNull {
-                it.isSelected && it.type == ElementType.IMAGE
-            }
-
-            selectedImageElement?.let {
-                viewModel.applyImageFilter(it.id, filterItem.filter)
+        filtersAdapter = ImageFiltersAdapter(availableFilters, previewBitmap) { filterItem ->
+            elementId?.let { id ->
+                viewModel.applyImageFilter(id, filterItem.filter)
             }
         }
         binding.filtersRecyclerView.apply {
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
             adapter = filtersAdapter
+        }
+
+        binding.done.setOnClickListener {
+            findNavController().navigateUp()
         }
     }
 

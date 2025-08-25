@@ -1,5 +1,6 @@
 package com.example.urduphotodesigner.ui.editor.panels.filters
 
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -8,11 +9,14 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.model.FilterItem
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
+import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.LayoutFilterItemBinding // You'll need to create this layout
+import androidx.core.graphics.scale
 
 class ImageFiltersAdapter(
     private val filterList: List<FilterItem>,
+    private val baseBitmap: Bitmap?,
     private val onFilterSelected: (FilterItem) -> Unit
 ) : RecyclerView.Adapter<ImageFiltersAdapter.FilterViewHolder>() {
 
@@ -40,6 +44,12 @@ class ImageFiltersAdapter(
         RecyclerView.ViewHolder(binding.root) {
         fun bind(filterItem: FilterItem) {
             binding.filterName.text = filterItem.name
+
+            baseBitmap?.let { bmp ->
+                val thumb = bmp.scale(150, 150)
+                val filteredThumb = ImageProcessor.applyFilter(thumb, filterItem.filter)
+                binding.filterPreview.setImageBitmap(filteredThumb)
+            }
 
             // Determine if the current item should be selected based on the adapter's selectedFilter
             val isCurrentItemSelected = filterItem.filter == selectedFilter

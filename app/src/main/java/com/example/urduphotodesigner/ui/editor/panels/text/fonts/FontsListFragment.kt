@@ -61,7 +61,39 @@ class FontsListFragment : Fragment() {
     }
 
     private fun rebindLatest() {
-        // no-op: combine collector below always uses latest language+category
+        lifecycleScope.launch {
+            val fonts = mainViewModel.localFonts.value
+            val queryRaw = mainViewModel.rawQuery.value
+
+            val query = queryRaw.trim().lowercase()
+
+            val byLanguage = when (val lang = currentLanguage ?: "All") {
+                "All" -> fonts
+                else -> fonts.filter { it.font_language.equals(lang, ignoreCase = true) }
+            }
+
+            val byCategory = when (val cat = currentCategory) {
+                null -> byLanguage
+                else -> byLanguage.filter {
+                    it.font_category.equals(cat, ignoreCase = true)
+                }
+            }
+
+            val filtered = if (query.isEmpty()) byCategory else {
+                val tokens = query.split(Regex("\\s+")).filter { it.isNotEmpty() }
+                byCategory.filter { f ->
+                    val haystack = buildString {
+                        append(f.font_name); append(' ')
+                        append(f.file_name); append(' ')
+                        append(f.font_category); append(' ')
+                        append(f.alt_text ?: "")
+                    }.lowercase()
+                    tokens.all { it in haystack }
+                }
+            }
+
+            fontsAdapter.submitList(filtered)
+        }
     }
 
     private fun setupRecyclerViews() {
@@ -96,6 +128,10 @@ class FontsListFragment : Fragment() {
                     // 0) Language filter
                     val byLanguage = when (val lang = currentLanguage ?: "All") {
                         "All" -> fonts
+                        "Imported" -> fonts.filter {
+                            it.font_language.equals("Imported", true) &&
+                                    it.font_category.equals("Imported", true)
+                        }
                         else -> fonts.filter { it.font_language.equals(lang, ignoreCase = true) }
                     }
 

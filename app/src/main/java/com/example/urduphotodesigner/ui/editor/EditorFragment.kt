@@ -5,7 +5,7 @@ import android.animation.ValueAnimator
 import android.app.Dialog
 import android.content.ContentValues.TAG
 import android.graphics.Bitmap
-import android.os.Build
+import android.os.Build.MANUFACTURER
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -18,7 +18,6 @@ import android.view.WindowManager
 import android.view.animation.AnimationUtils
 import android.view.animation.LinearInterpolator
 import android.widget.EditText
-import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.SeekBar
 import androidx.activity.OnBackPressedCallback
@@ -47,15 +46,16 @@ import com.example.urduphotodesigner.common.canvas.enums.VAlign
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.canvas.model.ExportOptions
-import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.common.utils.Converter.cmToPx
 import com.example.urduphotodesigner.common.utils.Converter.inchesToPx
 import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.common.utils.displayName
 import com.example.urduphotodesigner.common.views.CanvasView
+import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.databinding.DialogAutoSavingLayoutBinding
 import com.example.urduphotodesigner.databinding.FragmentEditorBinding
+import com.example.urduphotodesigner.ui.editor.panels.filters.FiltersFragment
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -67,7 +67,6 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.core.graphics.scale
 
 @AndroidEntryPoint
 class EditorFragment : Fragment() {
@@ -129,7 +128,7 @@ class EditorFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavigation) { view, insets ->
-            if (Build.MANUFACTURER.equals("realme", ignoreCase = true)) {
+            if (MANUFACTURER.equals("realme", ignoreCase = true)) {
                 val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
                 view.updatePadding(bottom = systemBars.bottom)
             }
@@ -168,6 +167,7 @@ class EditorFragment : Fragment() {
                 val newText = s?.toString() ?: ""
                 element.text = newText
                 viewModel.updateText(element)
+                hasChanges = true
             }
 
             override fun afterTextChanged(s: Editable?) {}
@@ -243,7 +243,8 @@ class EditorFragment : Fragment() {
                     options.quality.quality
                 ) / (1024.0 * 1024.0)
 
-                val exportDate = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
+                val exportDate =
+                    SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
 
                 // ---- Prepare model ----
                 if (exportModel == null) {
@@ -299,9 +300,9 @@ class EditorFragment : Fragment() {
             exportResult?.let {
                 exportModel = it
                 jsonPath = it.jsonPath
-                if (it.imagePath.startsWith("/storage")){
+                if (it.imagePath.startsWith("/storage")) {
                     exportModel!!.imagePath = imagePath
-                }else{
+                } else {
                     imagePath = it.imagePath
                 }
             }
@@ -319,7 +320,6 @@ class EditorFragment : Fragment() {
                 if (!elements.isNullOrEmpty()) {
                     canvasManager.syncElements(elements)
                     binding.canvasContainer.invalidate()
-                    hasChanges = true
                     scheduleJsonSave()
                 }
             }
@@ -513,36 +513,49 @@ class EditorFragment : Fragment() {
             canvasWidth = widthPx,
             canvasHeight = heightPx,
             onEditTextRequested = { element ->
+
+                navController.popBackStack(R.id.filtersFragment, true)
+
                 if (element.type == ElementType.IMAGE) {
-                    viewModel.canvasElements.value?.find { it.id == element.id }?.let {
-                        navController.navigate(R.id.filtersFragment)
+                    val selected = viewModel.canvasElements.value?.find { it.id == element.id }
+                    selected?.let {
+                        val bundle = Bundle().apply {
+                            putParcelable("previewBitmap", it.bitmap)
+                            putString("elementId", it.id)
+                        }
+                        navController.navigate(R.id.filtersFragment, bundle)
                     }
-                } else {
+                }  else {
                     showTextEditDialog(element)
                 }
             },
             onElementChanged = { canvasElement ->
                 viewModel.canvasElements.value?.find { it.id == canvasElement.id }?.let {
                     viewModel.updateElement(canvasElement)
+                    hasChanges = true
                 }
             },
             onElementRemoved = { canvasElement ->
                 viewModel.canvasElements.value?.find { it.id == canvasElement.id }?.let {
                     viewModel.removeElement(it)
+                    hasChanges = true
                 }
             }, onElementSelected = { elements ->
                 viewModel.onCanvasSelectionChanged(elements)
             },
             onEndBatchUpdate = { elementId ->
                 viewModel.endBatchUpdate(elementId)
+                hasChanges = true
             },
             onStartBatchUpdate = { elementId, actionType ->
                 viewModel.startBatchUpdate(elementId, actionType)
+                hasChanges = true
             },
             onColorPicked = { colorInt ->
                 val opaque = (colorInt and 0x00FFFFFF) or (0xFF shl 24)
                 viewModel.finishPicking(opaque)
                 viewModel.stopPicking()
+                hasChanges = true
             }
         ).apply {
             binding.canvasContainer.addView(this)
@@ -755,7 +768,7 @@ class EditorFragment : Fragment() {
 
         lifecycleScope.launch {
             val (bitmap, json) = withContext(Dispatchers.Default) {
-                sizedCanvasView.exportCanvas(options) { _, _ -> }
+                sizedCanvasView.exportCanvasThumbnail { _, _ -> }
             }
             withContext(Dispatchers.IO) {
                 saveOnExitSafe(options, bitmap, json, false, canvasSize)
@@ -777,14 +790,14 @@ class EditorFragment : Fragment() {
 
         lifecycleScope.launch {
             val (bitmap, json) = withContext(Dispatchers.Default) {
-                sizedCanvasView.exportCanvas(options) { percent, stage ->
+                sizedCanvasView.exportCanvasThumbnail { percent, stage ->
                     lifecycleScope.launch(Dispatchers.Main) {
                         updateExportDialog(percent, stage)
                     }
                 }
             }
             withContext(Dispatchers.Main) {
-                updateExportDialog(95, "Saving files...")
+                updateExportDialog(97, "Saving files...")
             }
             withContext(Dispatchers.IO) {
                 saveOnExitSafe(options, bitmap, json, true, canvasSize)

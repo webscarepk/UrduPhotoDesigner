@@ -170,8 +170,8 @@ data class CanvasElement(
     }
 
     private fun applyKashidaToText(inputText: String, size: Int): String {
-        val kashidaProcessor = KashidaProcessor(insertionFreq = size, insertionContrast = 0.8)
+        val kashidaProcessor = KashidaProcessor(insertionFreq = size)
 
-        return kashidaProcessor.process(inputText)
+        return kashidaProcessor.processSafe(inputText, paint.typeface!!)
     }
 }

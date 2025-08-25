@@ -1,11 +1,15 @@
 package com.example.urduphotodesigner.ui.editor.panels.text.fonts
 
+import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.data.model.FontCategory
 import com.example.urduphotodesigner.databinding.LayoutFontCategoryBinding
+import java.util.Locale
 
 class FontCategoriesAdapter(
     private val onCategoryClick: (category: String) -> Unit
@@ -28,9 +32,19 @@ class FontCategoriesAdapter(
 
     inner class VH(private val binding: LayoutFontCategoryBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(row: FontCategory) {
-            binding.tabTitle.text = row.name
-            binding.tabTitle.alpha = if (row.isSelected) 1f else 0.85f
-
+            val displayName = row.name.replaceFirstChar {
+                if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+            }
+            binding.tabTitle.text = displayName
+            if (row.isSelected) {
+                binding.tabTitle.setTextColor(
+                    ContextCompat.getColor(binding.root.context, R.color.black)
+                )
+            } else {
+                binding.tabTitle.setTextColor(
+                    ContextCompat.getColor(binding.root.context, R.color.gray)
+                )
+            }
             binding.tabTitle.addPressEffect { onCategoryClick(row.name) }
         }
     }

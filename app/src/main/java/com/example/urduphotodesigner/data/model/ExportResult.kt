@@ -19,5 +19,6 @@ data class ExportResult(
     var canvasSize: CanvasSize,
     val exportDate: String,
     var updatedDate: String,
-    var isExported: Boolean = false
+    var isExported: Boolean = false,
+    var thumbnailPath: String? = null
 ) : Serializable

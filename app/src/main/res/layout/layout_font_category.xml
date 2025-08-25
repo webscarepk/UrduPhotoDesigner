@@ -9,7 +9,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="@string/all"
-        android:textColor="@color/black"
+        android:textColor="@color/gray"
         android:textSize="12sp"
         android:fontFamily="@font/regular"
         android:paddingVertical="3dp"

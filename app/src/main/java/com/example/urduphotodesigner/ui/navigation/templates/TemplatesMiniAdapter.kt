@@ -105,7 +105,10 @@ class TemplatesMiniAdapter(
 
     override fun onBindViewHolder(h: VH, pos: Int, payloads: MutableList<Any>) {
         if (payloads.isNotEmpty()) {
-            h.renderProgressFor(getItem(pos).id)
+            val state = payloads.firstOrNull() as? ProgressUi
+            if (state != null) {
+                h.renderProgressFor(getItem(pos).id)
+            }
         } else {
             super.onBindViewHolder(h, pos, payloads)
         }

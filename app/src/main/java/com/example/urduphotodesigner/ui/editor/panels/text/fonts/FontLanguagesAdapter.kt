@@ -68,7 +68,14 @@ class FontLanguagesAdapter(
 
         fun bind(font: FontLanguages) {
             binding.tabTitle.text = font.name
-            binding.rvCategories.visibility = if (font.is_selected) View.VISIBLE else View.GONE
+            if (font.name == "All" || font.name == "Imported") {
+                binding.tabTitle.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0)
+            } else {
+                val arrowRes = if (font.is_selected) R.drawable.ic_dropup else R.drawable.ic_dropdown
+                binding.tabTitle.setCompoundDrawablesWithIntrinsicBounds(0, 0, arrowRes, 0)
+            }
+            binding.rvCategories.visibility =
+                if (font.is_selected && font.name != "All" && font.name != "Imported") View.VISIBLE else View.GONE
             catAdapter.submit(font.categories)
             // optional tint
             val color = if (font.is_selected) R.color.selection else android.R.color.transparent

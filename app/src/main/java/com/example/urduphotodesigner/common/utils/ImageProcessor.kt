@@ -3,16 +3,22 @@ package com.example.urduphotodesigner.common.utils
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.graphics.ImageDecoder
+import android.graphics.Paint
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Base64
 import com.example.urduphotodesigner.common.canvas.model.ExportOptions
+import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
+import androidx.core.graphics.createBitmap
 
 object ImageProcessor {
 
@@ -300,4 +306,127 @@ object ImageProcessor {
             null
         }
     }
+
+    fun applyFilter(src: Bitmap, filter: ImageFilter?): Bitmap {
+        if (filter == null || filter is ImageFilter.None) return src
+
+        val output = createBitmap(src.width, src.height, src.config!!)
+        val canvas = Canvas(output)
+        val paint = Paint()
+
+        paint.colorFilter = when (filter) {
+            ImageFilter.Grayscale -> ColorMatrixColorFilter(ColorMatrix().apply {
+                setSaturation(0f)
+            })
+
+            ImageFilter.Sepia -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(
+                    floatArrayOf(
+                        0.393f, 0.769f, 0.189f, 0f, 0f,
+                        0.349f, 0.686f, 0.168f, 0f, 0f,
+                        0.272f, 0.534f, 0.131f, 0f, 0f,
+                        0f, 0f, 0f, 1f, 0f
+                    )
+                )
+            })
+
+            ImageFilter.Invert -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(
+                    floatArrayOf(
+                        -1f, 0f, 0f, 0f, 255f,
+                        0f, -1f, 0f, 0f, 255f,
+                        0f, 0f, -1f, 0f, 255f,
+                        0f, 0f, 0f, 1f, 0f
+                    )
+                )
+            })
+
+            ImageFilter.CoolTint -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(
+                    floatArrayOf(
+                        1.1f, 0f, 0f, 0f, -20f,
+                        0f, 1f, 0f, 0f, 0f,
+                        0f, 0f, 1.3f, 0f, 20f,
+                        0f, 0f, 0f, 1f, 0f
+                    )
+                )
+            })
+
+            ImageFilter.WarmTint -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(
+                    floatArrayOf(
+                        1.3f, 0f, 0f, 0f, 30f,
+                        0f, 1f, 0f, 0f, 0f,
+                        0f, 0f, 0.8f, 0f, -20f,
+                        0f, 0f, 0f, 1f, 0f
+                    )
+                )
+            })
+
+            ImageFilter.Vintage -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(
+                    floatArrayOf(
+                        0.9f, 0.3f, 0.1f, 0f, 5f,
+                        0.2f, 0.8f, 0.2f, 0f, 5f,
+                        0.1f, 0.2f, 0.7f, 0f, -10f,
+                        0f, 0f, 0f, 1f, 0f
+                    )
+                )
+            })
+
+            ImageFilter.Film -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(
+                    floatArrayOf(
+                        1.2f, 0.1f, 0.1f, 0f, 15f,
+                        0.1f, 1.2f, 0.1f, 0f, 10f,
+                        0.1f, 0.1f, 0.9f, 0f, -10f,
+                        0f, 0f, 0f, 1f, 0f
+                    )
+                )
+            })
+
+            ImageFilter.TealOrange -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(
+                    floatArrayOf(
+                        1.2f, 0f, 0f, 0f, 20f,
+                        0f, 1.0f, 0f, 0f, 0f,
+                        0f, 0f, 0.8f, 0f, -10f,
+                        0f, 0f, 0f, 1f, 0f
+                    )
+                )
+            })
+
+            ImageFilter.HighContrast -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(
+                    floatArrayOf(
+                        1.5f, 0f, 0f, 0f, -50f,
+                        0f, 1.5f, 0f, 0f, -50f,
+                        0f, 0f, 1.5f, 0f, -50f,
+                        0f, 0f, 0f, 1f, 0f
+                    )
+                )
+            })
+
+            ImageFilter.BlackWhite -> ColorMatrixColorFilter(ColorMatrix().apply {
+                setSaturation(0f)
+                val contrast = ColorMatrix().apply {
+                    set(
+                        floatArrayOf(
+                            1.4f, 0f, 0f, 0f, -50f,
+                            0f, 1.4f, 0f, 0f, -50f,
+                            0f, 0f, 1.4f, 0f, -50f,
+                            0f, 0f, 0f, 1f, 0f
+                        )
+                    )
+                }
+                postConcat(contrast)
+            })
+
+            else -> null
+        }
+
+        canvas.drawBitmap(src, 0f, 0f, paint)
+        return output
+    }
+
 }

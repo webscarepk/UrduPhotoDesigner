@@ -2,14 +2,11 @@ package com.example.urduphotodesigner.ui.navigation.home
 
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
-import android.app.AlertDialog
 import android.app.Dialog
 import android.graphics.BitmapFactory
-import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
-import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -21,6 +18,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
@@ -30,9 +28,9 @@ import com.example.urduphotodesigner.common.canvas.sealed.FontDownloadState
 import com.example.urduphotodesigner.common.canvas.sealed.TemplateDownloadState
 import com.example.urduphotodesigner.common.utils.DialogUtils
 import com.example.urduphotodesigner.common.utils.ImageProcessor
-import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.common.utils.showGlobalSuccessSnack
+import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.data.model.ProgressUi
 import com.example.urduphotodesigner.data.model.TemplateEntity
 import com.example.urduphotodesigner.data.model.toExportResultFinal
@@ -63,7 +61,10 @@ class HomeFragment : Fragment() {
     private var downloadingTemplate: TemplateEntity? = null
     private var rotationAnimator: ObjectAnimator? = null
 
-
+    val navOptions = NavOptions.Builder()
+        .setPopUpTo(R.id.editorFragment, inclusive = true) // clear old EditorFragment
+        .setLaunchSingleTop(true) // avoid duplicate if same fragment is on top
+        .build()
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri?.let {
@@ -83,7 +84,7 @@ class HomeFragment : Fragment() {
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(canvasSize)
                 viewModel.setCanvasBackgroundImage(bitmap)
-                findNavController().navigate(R.id.editorFragment, bundle)
+                findNavController().navigate(R.id.editorFragment, bundle, navOptions)
             }
         }
 
@@ -163,16 +164,20 @@ class HomeFragment : Fragment() {
         binding.recentsRV.adapter = recentAdapter
 
         fontsAdapter = FontsAdapter(onFontClick = { font, isDownloaded ->
-            if (!isDownloaded){
+            if (!isDownloaded) {
                 mainViewModel.downloadFont(font)
-            }else{
+            } else {
                 viewModel.setCanvasSize(CanvasSize("", 2000f, 2000f))
-                viewModel.addTextWithFont(requireActivity().getString(R.string.dummyText), font, requireActivity())
+                viewModel.addTextWithFont(
+                    requireActivity().getString(R.string.dummyText),
+                    font,
+                    requireActivity()
+                )
                 bundle = Bundle().apply {
                     putSerializable("canvas_size", CanvasSize("", 2000f, 2000f))
                     putSerializable("unit_type", UnitType.PIXELS)
                 }
-                findNavController().navigate(R.id.editorFragment, bundle)
+                findNavController().navigate(R.id.editorFragment, bundle, navOptions)
             }
         }, onDownload = {
             mainViewModel.downloadFont(it)
@@ -232,7 +237,7 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun initObservers(){
+    private fun initObservers() {
 
         lifecycleScope.launch {
             mainViewModel.templateDownloadState.collect { state ->
@@ -264,12 +269,10 @@ class HomeFragment : Fragment() {
                         showGlobalSuccessSnack("Template ready") {
                             val exportResult = t.toExportResultFinal()
                             lifecycleScope.launch {
-                                withContext(Dispatchers.Default) {
-                                    viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
-                                    bundle = Bundle().apply {
-                                        putSerializable("canvas_size", exportResult.canvasSize)
-                                        putSerializable("unit_type", UnitType.PIXELS)
-                                    }
+                                viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
+                                bundle = Bundle().apply {
+                                    putSerializable("canvas_size", exportResult.canvasSize)
+                                    putSerializable("unit_type", UnitType.PIXELS)
                                 }
                             }
                         }
@@ -327,7 +330,7 @@ class HomeFragment : Fragment() {
 
                     is FontDownloadState.SuccessWithTypeface -> {
                         val font = downloadState.fontEntity
-                        viewModel.setFont(font)
+
                         fontsAdapter.updateProgress(
                             font.id,
                             ProgressUi(100, isDownloading = false, isDownloaded = true)
@@ -335,22 +338,36 @@ class HomeFragment : Fragment() {
 
                         showGlobalSuccessSnack("Font downloaded") {
                             lifecycleScope.launch {
-                                withContext(Dispatchers.Default) {
-                                    viewModel.setCanvasSize(CanvasSize("", 2000f, 2000f))
-                                    viewModel.addText("Tap to edit", requireActivity())
-                                    bundle = Bundle().apply {
-                                        putSerializable("canvas_size", CanvasSize("", 2000f, 2000f))
-                                        putSerializable("unit_type", UnitType.PIXELS)
-                                    }
-                                    findNavController().navigate(R.id.editorFragment, bundle)
+                                viewModel.setCanvasSize(CanvasSize("", 2000f, 2000f))
+                                viewModel.addTextWithFont(
+                                    requireActivity().getString(R.string.dummyText),
+                                    font,
+                                    requireActivity()
+                                )
+                                bundle = Bundle().apply {
+                                    putSerializable("canvas_size", CanvasSize("", 2000f, 2000f))
+                                    putSerializable("unit_type", UnitType.PIXELS)
                                 }
+                                findNavController().navigate(R.id.editorFragment, bundle, navOptions)
                             }
                         }
                         mainViewModel.clearDownloadState()
                     }
 
                     is FontDownloadState.Error -> {
-                        Snackbar.make(requireView(), "Download failed!", Snackbar.LENGTH_SHORT).show()
+                        val font = downloadState.fontEntity
+                        fontsAdapter.updateProgress(
+                            font.id,
+                            ProgressUi(
+                                progress = 0,
+                                isDownloading = false,
+                                isDownloaded = false
+                            )
+                        )
+
+                        mainViewModel.clearDownloadState()
+                        Snackbar.make(requireView(), "Download failed!", Snackbar.LENGTH_SHORT)
+                            .show()
                     }
 
                     else -> {}
@@ -372,11 +389,11 @@ class HomeFragment : Fragment() {
         }
 
         viewModel.isLoadingTemplate.observe(viewLifecycleOwner) { isLoading ->
-            if (isLoading == true){
+            if (isLoading == true) {
                 showLoadingDialog()
-            }else if (isLoading == false){
+            } else if (isLoading == false) {
                 dismissLoadingDialog()
-                findNavController().navigate(R.id.editorFragment, bundle)
+                findNavController().navigate(R.id.editorFragment, bundle, navOptions)
             }
         }
     }
@@ -468,6 +485,7 @@ class HomeFragment : Fragment() {
             viewModel.clearCanvas()
         }
     }
+
     override fun onDestroy() {
         super.onDestroy()
         _binding = null

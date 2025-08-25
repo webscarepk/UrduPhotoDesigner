@@ -52,13 +52,14 @@ class FontsFragment : Fragment() {
                     deliverFilter(lang, chosenCategoryByLang[lang]) // still deliver current filter
                 } else {
                     expandOnly(lang)
-                    deliverFilter(lang, chosenCategoryByLang[lang])
+                    chosenCategoryByLang[lang] = null
+                    deliverFilter(lang, null)
                 }
             },
             onCategorySelected = { lang, category ->
-                chosenCategoryByLang[lang] = category // keep null when none
+                chosenCategoryByLang[lang] = category
                 markCategoryUi(lang, chosenCategoryByLang[lang])
-                deliverFilter(lang, chosenCategoryByLang[lang])
+                deliverFilter(lang, category)
             }
         )
         binding.languages.adapter = adapter
@@ -144,8 +145,11 @@ class FontsFragment : Fragment() {
 
     /** Make only one language selected/expanded */
     private fun expandOnly(lang: String) {
-        val updated = languages.map { it.copy(is_selected = it.name == lang) }
-        languages.clear(); languages.addAll(updated)
+        val updated = languages.map {
+            it.copy(is_selected = it.name == lang && it.name != "All" && lang != "Imported")
+        }
+        languages.clear()
+        languages.addAll(updated)
         adapter.submitList(ArrayList(languages))
     }
 

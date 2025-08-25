@@ -1,63 +1,92 @@
 package com.example.urduphotodesigner.common.utils
 
-class KashidaProcessor(private val insertionFreq: Int = 3, private val insertionContrast: Double = 0.8) {
+import android.graphics.Typeface
+import android.text.TextPaint
 
-    // Main function to process text and insert Kashida characters
+class KashidaProcessor(
+    private val insertionFreq: Int = 1   // default: 1 kashida per slot
+) {
+    companion object {
+        const val KASHIDA = "ـ"
+
+        // Non-connecting (isolated/final) characters → never take Kashida
+        private val ISOLFINA = setOf(
+            "ا","إ","ٳ","د","ذ","ڈ","ڌ","ڍ","ډ","ڊ","ڋ","ڎ","ڏ","ڐ","ۮ",
+            "ݙ","ݚ","ر","ز","ڑ","ڒ","ړ","ڔ","ڕ","ږ","ڗ","ژ","ڙ","ۯ","ݛ","ݫ","ݬ",
+            "ﻻ","ﻹ","و","ۄ","ۊ","ۏ","ؤ","ۅ","ۆ","ۇ","ۈ","ۉ","ۋ","ٷ","ﻷ"
+        )
+
+        // Letters that can stretch with Kashida
+        private val KASHIDA_ALLOWED = setOf(
+            "ب","پ","ت","ٹ","ث",
+            "ج","چ","ح","خ",
+            "س","ش","ص","ض",
+            "ط","ظ",
+            "ع","غ",
+            "ف","ق",
+            "ک","گ",
+            "ل","م","ن","ی"
+        )
+    }
+
+    // ---- Main Processor ----
     fun process(nudeText: String?): String {
         if (nudeText == null) return ""
 
-        var modifiedText = remove(nudeText) // Ensure text is "nude"
-        var occurrencesArr: List<MatchResult>
-        var distribution: List<Int> = emptyList()
-
-        // Match all Arabic words
-        modifiedText = modifiedText.replace(Regex("[\u0600-\u06FF]+")) { match ->
-            var wordWithKashida = match.value
-
-            // Match only the "flat letters" in the word
-            occurrencesArr = _legacyMatch(wordWithKashida, Regex("[بتثسصطفلکپٹچگ]"))
-
-            // If no occurrences are found for Kashida, skip this word
-            if (occurrencesArr.isEmpty()) return@replace wordWithKashida
-
-            val occurrences = occurrencesArr.size
-
-            // Determine the distribution of Kashida insertion
-            distribution = if (insertionContrast == 0.0) {
-                // Evenly distribute the Kashida insertions across the occurrences
-                List(occurrences) { insertionFreq }
-            } else {
-                // Adjust the frequency for each occurrence
-                List(occurrences) { insertionFreq }
-            }
-
-            var countOfAddedKashida = 0
-            for (i in occurrencesArr.indices) {
-                val frequency = distribution[i]
-                if (frequency <= 0) continue // Skip if no Kashida should be added
-
-                val occurrence = occurrencesArr[i]
-                val index = occurrence.range.first
-
-                val beforeKashida = wordWithKashida.substring(0, index + countOfAddedKashida + 1)
-                val kashidaInsert = "ـ".repeat(frequency)
-                val afterKashida = wordWithKashida.substring(index + 1 + countOfAddedKashida)
-
-                wordWithKashida = beforeKashida + kashidaInsert + afterKashida
-                countOfAddedKashida += frequency
-            }
-
-            wordWithKashida
+        val regex = Regex("[\u0600-\u06FF]+")
+        return regex.replace(nudeText) { match ->
+            insertKasheedaSafely(match.value, insertionFreq)
         }
-
-        return modifiedText
     }
 
-    private fun _legacyMatch(str: String, regex: Regex): List<MatchResult> {
-        return regex.findAll(str).toList()
+    // Insert Kashida safely into one word
+    private fun insertKasheedaSafely(word: String, freq: Int): String {
+        val cleanWord = word.replace(KASHIDA, "")
+
+        for (i in cleanWord.length - 1 downTo 0) {
+            val ch = cleanWord[i].toString()
+
+            if (KASHIDA_ALLOWED.contains(ch)) {
+                if (i < cleanWord.length - 1 &&
+                    !ISOLFINA.contains(cleanWord[i + 1].toString())) {
+
+                    val kashidaInsert = KASHIDA.repeat(freq)
+                    return cleanWord.substring(0, i + 1) + kashidaInsert + cleanWord.substring(i + 1)
+                }
+            }
+        }
+        return cleanWord
     }
 
     fun remove(kashidaText: String): String {
-        return kashidaText.replace("ـ", "")
+        return kashidaText.replace(KASHIDA, "")
+    }
+
+    // ---- Safety Check for Current Font ----
+    private fun isKasheedaSafe(typeface: Typeface): Boolean {
+        val paint = TextPaint().apply {
+            this.typeface = typeface
+            textSize = 64f
+        }
+        val baseWord = "باب"
+        val withKasheeda = "با${KASHIDA}ب"
+
+        val widthBase = paint.measureText(baseWord)
+        val widthKasheeda = paint.measureText(withKasheeda)
+
+        if (widthKasheeda <= widthBase) return false
+
+        val baseWidths = FloatArray(baseWord.length)
+        val kasheedaWidths = FloatArray(withKasheeda.length)
+        paint.getTextWidths(baseWord, baseWidths)
+        paint.getTextWidths(withKasheeda, kasheedaWidths)
+
+        return kasheedaWidths.size >= baseWidths.size
+    }
+
+    // Public safe entry point
+    fun processSafe(nudeText: String?, typeface: Typeface): String {
+        if (nudeText == null) return ""
+        return if (isKasheedaSafe(typeface)) process(nudeText) else nudeText
     }
 }
