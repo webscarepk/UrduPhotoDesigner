@@ -106,7 +106,7 @@ class ObjectsFragment : Fragment() {
             tab.customView = tabView
         }.attach()
 
-        binding.searchIcon.setOnClickListener {
+        binding.searchIcon.addPressEffect {
             // hide icon
             updateIconVisibility(
                 binding.searchIcon,

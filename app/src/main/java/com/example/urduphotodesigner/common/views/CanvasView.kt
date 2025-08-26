@@ -57,7 +57,9 @@ import com.example.urduphotodesigner.common.canvas.model.GradientItem
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
 import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.data.model.FontEntity
+import com.example.urduphotodesigner.di.GsonEntryPoint
 import com.google.gson.Gson
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.CopyOnWriteArrayList
@@ -85,6 +87,9 @@ class CanvasView @JvmOverloads constructor(
     var onColorPicked: ((Int) -> Unit)? = null
 ) : View(context, attrs) {
 
+    private val gson: Gson by lazy {
+        EntryPointAccessors.fromApplication(context, GsonEntryPoint::class.java).gson()
+    }
     private var gestureDetector: GestureDetector
 
     private var colorPickerBitmap: Bitmap? = null
@@ -534,7 +539,7 @@ class CanvasView @JvmOverloads constructor(
             selectedElements.toList() // Create a copy to avoid concurrent modification
         elementsToFilter.forEach { element ->
             if (element != null && element.type == ElementType.IMAGE) {
-                element.imageFilter = filter
+                element.imageFilter = filter!!
                 onElementChanged?.invoke(element) // Notify ViewModel of change
                 invalidate()
             }
@@ -726,7 +731,7 @@ class CanvasView @JvmOverloads constructor(
             onProgress?.invoke(90, "No bitmaps to encode")
         }
 
-        val json = Gson().toJson(canvasElements)
+        val json = gson.toJson(canvasElements)
 
         return Pair(bitmap, json)
     }

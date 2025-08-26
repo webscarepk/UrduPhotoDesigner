@@ -33,7 +33,7 @@ data class CanvasElement(
     @Transient var bitmap: Bitmap? = null,
     var bitmapData: String? = null,
     var groupId: String? = null,
-    var imageFilter: ImageFilter? = null,
+    var imageFilter: ImageFilter = ImageFilter.None,
     var x: Float = 0f,
     var y: Float = 0f,
     var scale: Float = 1f,
@@ -172,6 +172,12 @@ data class CanvasElement(
     private fun applyKashidaToText(inputText: String, size: Int): String {
         val kashidaProcessor = KashidaProcessor(insertionFreq = size)
 
-        return kashidaProcessor.processSafe(inputText, paint.typeface!!)
+        val typeface = paint.typeface
+        return if (typeface != null) {
+            kashidaProcessor.processSafe(inputText, typeface)
+        } else {
+            kashidaProcessor.process(inputText)
+        }
     }
+
 }

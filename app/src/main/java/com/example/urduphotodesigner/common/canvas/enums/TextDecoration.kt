@@ -1,5 +1,20 @@
 package com.example.urduphotodesigner.common.canvas.enums
 
+import com.google.gson.annotations.SerializedName
+
 enum class TextDecoration {
-    NONE, BOLD, ITALIC, UNDERLINE, STRIKE_THROUGH
+    @SerializedName("None")
+    NONE,
+
+    @SerializedName("Bold")
+    BOLD,
+
+    @SerializedName("Italic")
+    ITALIC,
+
+    @SerializedName("Underline")
+    UNDERLINE,
+
+    @SerializedName("StrikeThrough")
+    STRIKE_THROUGH
 }

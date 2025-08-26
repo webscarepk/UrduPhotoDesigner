@@ -20,6 +20,7 @@ import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
+import com.example.urduphotodesigner.common.canvas.sealed.HomeRow
 import com.example.urduphotodesigner.common.canvas.sealed.TemplateDownloadState
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.common.utils.showGlobalSuccessSnack
@@ -122,7 +123,7 @@ class TemplatesListFragment : Fragment() {
             mainViewModel.fetchAndStoreTemplatesFromApi()
         }
 
-        binding.back.setOnClickListener { findNavController().navigateUp() }
+        binding.back.addPressEffect { findNavController().navigateUp() }
     }
 
     private fun showLoadingDialog() {
@@ -389,9 +390,11 @@ class TemplatesListFragment : Fragment() {
                 baseTemplates = when {
                     // If trend name passed, filter by it
                     !currentTrend.isNullOrBlank() -> {
-                        all.filter { template ->
-                            template.tags.any { tag -> tag.equals(currentTrend, true) }
-                        }
+                        val trendRow = mainViewModel.trendRows.value
+                            .filterIsInstance<HomeRow.TrendRow>()
+                            .firstOrNull { it.title.equals(currentTrend, true) }
+
+                        trendRow?.templates ?: emptyList()
                     }
 
                     // If category name passed, filter by it

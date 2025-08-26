@@ -114,6 +114,8 @@ class TemplatesFragment : Fragment() {
 
         loadingDialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
         loadingDialog?.show()
+
+        dialogBinding?.title?.text = "Loading Template"
     }
 
     private fun dismissLoadingDialog() {

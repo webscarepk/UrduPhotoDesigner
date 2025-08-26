@@ -96,7 +96,7 @@ class TextFragment : Fragment() {
             pickFont.launch("*/*")
         }
 
-        binding.searchIcon.setOnClickListener {
+        binding.searchIcon.addPressEffect {
             // hide icon
             updateIconVisibility(
                 binding.searchIcon,

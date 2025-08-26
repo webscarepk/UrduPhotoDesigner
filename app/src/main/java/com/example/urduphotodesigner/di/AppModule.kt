@@ -2,9 +2,11 @@ package com.example.urduphotodesigner.di
 
 import android.content.Context
 import com.example.urduphotodesigner.R
+import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
 import com.example.urduphotodesigner.common.datastore.PreferenceDataStoreAPI
 import com.example.urduphotodesigner.common.datastore.PreferencesDataStoreHelper
 import com.example.urduphotodesigner.common.utils.Constants
+import com.example.urduphotodesigner.common.utils.ImageFilterAdapter
 import com.example.urduphotodesigner.common.utils.SocketFactoryWithTcpNoDelay
 import com.example.urduphotodesigner.data.local.AppDatabase
 import com.example.urduphotodesigner.data.local.ExportResultsDao
@@ -41,6 +43,7 @@ import com.example.urduphotodesigner.domain.usecase.UpdateGradientUseCase
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.auth.api.identity.SignInClient
+import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import dagger.Module
 import dagger.Provides
@@ -90,6 +93,14 @@ object AppModule {
             .addConverterFactory(GsonConverterFactory.create(gson))
             .client(httpClient.build())
             .build().create(EndPointsInterface::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGson(): Gson {
+        return GsonBuilder()
+            .registerTypeAdapter(ImageFilter::class.java, ImageFilterAdapter())
+            .create()
     }
 
     @Provides

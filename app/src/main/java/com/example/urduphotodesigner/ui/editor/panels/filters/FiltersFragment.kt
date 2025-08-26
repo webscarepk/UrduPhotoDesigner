@@ -13,6 +13,7 @@ import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.canvas.model.FilterItem
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentFiltersBinding
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -74,7 +75,7 @@ class FiltersFragment : Fragment() {
             adapter = filtersAdapter
         }
 
-        binding.done.setOnClickListener {
+        binding.done.addPressEffect {
             findNavController().navigateUp()
         }
     }

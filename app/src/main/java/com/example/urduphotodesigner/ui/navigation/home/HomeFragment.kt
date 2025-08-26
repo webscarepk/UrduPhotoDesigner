@@ -38,6 +38,7 @@ import com.example.urduphotodesigner.databinding.DialogLoadingProgressBinding
 import com.example.urduphotodesigner.databinding.FragmentHomeBinding
 import com.example.urduphotodesigner.databinding.LayoutProjectPopupBinding
 import com.example.urduphotodesigner.ui.creation.CreateFragment
+import com.example.urduphotodesigner.ui.navigation.templates.TemplatesMiniAdapter
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
@@ -58,12 +59,13 @@ class HomeFragment : Fragment() {
     private lateinit var recentAdapter: RecentAdapter
     private lateinit var fontsAdapter: FontsAdapter
     private lateinit var trendsAdapter: TrendsAdapter
+    private lateinit var popularTemplatesAdapter: PopularTemplatesAdapter
+
     private var downloadingTemplate: TemplateEntity? = null
     private var rotationAnimator: ObjectAnimator? = null
 
     val navOptions = NavOptions.Builder()
-        .setPopUpTo(R.id.editorFragment, inclusive = true) // clear old EditorFragment
-        .setLaunchSingleTop(true) // avoid duplicate if same fragment is on top
+        .setLaunchSingleTop(true)
         .build()
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -118,6 +120,8 @@ class HomeFragment : Fragment() {
             window?.setGravity(Gravity.CENTER)
             show()
         }
+
+        dialogBinding?.title?.text = "Loading Template"
 
         startIconRotation()
     }
@@ -223,6 +227,36 @@ class HomeFragment : Fragment() {
             setHasFixedSize(true)
         }
 
+        popularTemplatesAdapter = PopularTemplatesAdapter(
+            onClick = { template, isDownloaded ->
+                if (isDownloaded) {
+                    val exportResult = template.toExportResultFinal()
+                    lifecycleScope.launch {
+                        withContext(Dispatchers.Default) {
+                            viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
+                            bundle = Bundle().apply {
+                                putSerializable("canvas_size", exportResult.canvasSize)
+                                putSerializable("unit_type", UnitType.PIXELS)
+                            }
+                        }
+                    }
+                } else {
+                    downloadingTemplate = template
+                    popularTemplatesAdapter.updateProgress(
+                        template.id,
+                        ProgressUi(progress = 0, isDownloading = true, isDownloaded = false)
+                    )
+                    mainViewModel.downloadTemplate(template)
+                }
+            },
+            progressProvider = { id -> null } // you can wire TemplateDownloadState here
+        )
+
+        binding.popularTemplateRV.apply {
+            adapter = popularTemplatesAdapter
+            setHasFixedSize(true)
+        }
+
         binding.create.addPressEffect {
             pickImageLauncher.launch("image/*")
         }
@@ -252,11 +286,29 @@ class HomeFragment : Fragment() {
                                 isDownloaded = false
                             )
                         )
+
+                        popularTemplatesAdapter.updateProgress(
+                            t.id,
+                            ProgressUi(
+                                progress = state.progress,
+                                isDownloading = true,
+                                isDownloaded = false
+                            )
+                        )
                     }
 
                     is TemplateDownloadState.SuccessWithTemplate -> {
                         val t = state.template
                         trendsAdapter.updateTemplateProgress(
+                            t.id,
+                            ProgressUi(
+                                progress = 100,
+                                isDownloading = false,
+                                isDownloaded = true
+                            )
+                        )
+
+                        popularTemplatesAdapter.updateProgress(
                             t.id,
                             ProgressUi(
                                 progress = 100,
@@ -279,15 +331,21 @@ class HomeFragment : Fragment() {
                     }
 
                     is TemplateDownloadState.Error -> {
-                        val t = downloadingTemplate ?: return@collect
-                        trendsAdapter.updateTemplateProgress(
-                            t.id,
-                            ProgressUi(
-                                progress = 0,
-                                isDownloading = false,
-                                isDownloaded = false
+
+                        downloadingTemplate?.let { t ->
+                            trendsAdapter.updateTemplateProgress(
+                                t.id,
+                                ProgressUi(
+                                    progress = 0,
+                                    isDownloading = false,
+                                    isDownloaded = false
+                                )
                             )
-                        )
+                            popularTemplatesAdapter.updateProgress(
+                                t.id,
+                                ProgressUi(progress = 0, isDownloading = false, isDownloaded = false)
+                            )
+                        }
                     }
 
                     is TemplateDownloadState.Success -> {
@@ -302,6 +360,17 @@ class HomeFragment : Fragment() {
         lifecycleScope.launch {
             mainViewModel.trendRows.collect { rows ->
                 trendsAdapter.submitList(rows)
+            }
+        }
+
+        lifecycleScope.launch {
+            mainViewModel.localTemplates.collect { all ->
+                val premiumTemplates = all.filter { it.is_premium }
+
+                popularTemplatesAdapter.submitList(premiumTemplates)
+
+                binding.popularTemplate.visibility =
+                    if (premiumTemplates.isEmpty()) View.GONE else View.VISIBLE
             }
         }
 
@@ -393,7 +462,10 @@ class HomeFragment : Fragment() {
                 showLoadingDialog()
             } else if (isLoading == false) {
                 dismissLoadingDialog()
-                findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                viewModel.clearLoading()
+                if (findNavController().currentDestination?.id != R.id.editorFragment) {
+                    findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                }
             }
         }
     }

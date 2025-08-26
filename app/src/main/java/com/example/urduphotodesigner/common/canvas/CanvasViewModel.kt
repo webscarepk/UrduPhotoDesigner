@@ -35,7 +35,6 @@ import com.example.urduphotodesigner.common.canvas.model.GradientItem
 import com.example.urduphotodesigner.common.canvas.sealed.BatchedCanvasAction
 import com.example.urduphotodesigner.common.canvas.sealed.CanvasAction
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
-import com.example.urduphotodesigner.common.utils.ImageFilterAdapter
 import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.common.views.CanvasView
 import com.example.urduphotodesigner.data.model.FontEntity
@@ -57,6 +56,7 @@ import javax.inject.Inject
 @HiltViewModel
 class CanvasViewModel @Inject constructor(
     private val getFontsUseCase: GetFontsUseCase,
+    private val gson: Gson
 ) : ViewModel() {
 
     private val _pagingLocked = MutableLiveData(false)
@@ -1617,7 +1617,7 @@ class CanvasViewModel @Inject constructor(
         val oldFilter = targetElement.imageFilter
         if (oldFilter != newFilter) {
             val context = targetElement.context
-            val updatedElement = targetElement.copy(imageFilter = newFilter, context = context)
+            val updatedElement = targetElement.copy(imageFilter = newFilter!!, context = context)
 
             _canvasElements.value =
                 currentList.map { if (it.id == updatedElement.id) updatedElement else it }
@@ -2143,10 +2143,6 @@ class CanvasViewModel @Inject constructor(
 
                 _loadingStage.postValue("Parsing JSON" to 30)
                 val jsonContent = jsonFile.readText()
-                val gson = GsonBuilder()
-                    .registerTypeAdapter(ImageFilter::class.java, ImageFilterAdapter())
-                    .create()
-
                 val elements = gson.fromJson(jsonContent, Array<CanvasElement>::class.java).toList()
 
                 _loadingStage.postValue("Hydrating elements" to 60)
@@ -2164,7 +2160,6 @@ class CanvasViewModel @Inject constructor(
                         _backgroundGradient.value = bg.fillGradient
 
                         if (bg.bitmapData != null) {
-//                            val bitmap = ImageProcessor.filePathToBitmap(bg.bitmapData!!)
                             val bitmap = ImageProcessor.base64ToBitmap(bg.bitmapData!!)
                             if (bitmap != null) {
                                 _backgroundImage.value = bitmap
@@ -2182,12 +2177,11 @@ class CanvasViewModel @Inject constructor(
                     _canvasElements.value = hydratedElements
                     _exportResult.value = exportResult
                 }
-                _loadingStage.value = "Done" to 100
-                _isLoadingTemplate.value = false
             } catch (e: Exception) {
                 Log.e("CanvasViewModel", "Error loading template: ${e.message}")
             } finally {
                 withContext(Dispatchers.Main) {
+                    _loadingStage.value = "Done" to 100
                     _isLoadingTemplate.value = false
                 }
             }

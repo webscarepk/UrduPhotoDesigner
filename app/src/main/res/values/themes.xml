@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Base.Theme.UrduPhotoDesigner" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Base.Theme.UrduPhotoDesigner" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
     </style>
@@ -35,6 +35,4 @@
         <item name="android:windowEnterAnimation">@anim/popup_fade_in</item>
         <item name="android:windowExitAnimation">@anim/popup_fade_out</item>
     </style>
-
-
 </resources>

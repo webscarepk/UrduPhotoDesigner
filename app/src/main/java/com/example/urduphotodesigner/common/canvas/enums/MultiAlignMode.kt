@@ -1,3 +1,11 @@
 package com.example.urduphotodesigner.common.canvas.enums
 
-enum class MultiAlignMode { CANVAS, SELECTION }
+import com.google.gson.annotations.SerializedName
+
+enum class MultiAlignMode {
+    @SerializedName("Canvas")
+    CANVAS,
+
+    @SerializedName("Selection")
+    SELECTION
+}

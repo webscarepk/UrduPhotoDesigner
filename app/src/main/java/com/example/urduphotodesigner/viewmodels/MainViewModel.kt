@@ -185,7 +185,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private fun fetchAndStoreFontsFromApi() {
+    fun fetchAndStoreFontsFromApi() {
         viewModelScope.launch {
             fetchAPIFontsUseCase().collect { response ->
                 when (response) {

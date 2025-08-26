@@ -63,6 +63,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -147,6 +148,7 @@ class EditorFragment : Fragment() {
         jsonPath = File(requireContext().filesDir, jsonFileName).absolutePath
         imagePath = File(requireContext().filesDir, imageFileName).absolutePath
 
+        Log.d(TAG, "onViewCreated: EditorFragment")
         setEvents()
         observeViewModel()
     }
@@ -197,14 +199,38 @@ class EditorFragment : Fragment() {
                     savePending = false
 
                     val now = System.currentTimeMillis()
-                    if (now - lastJsonSaveTime >= SAVE_DEBOUNCE_MS) {
-                        val json = sizedCanvasView.exportCanvasJson()
+                    if (now - lastJsonSaveTime < SAVE_DEBOUNCE_MS) return@launch
 
-                        withContext(Dispatchers.IO) {
-                            File(jsonPath).writeText(json)
-                            Log.d("saveJson", "Saved JSON at $jsonPath")
-                            lastJsonSaveTime = now
+                    val json = sizedCanvasView.exportCanvasJson()
+                    Log.d("saveJson", "Saved JSON as $json")
+
+                    var hasRealElements = false
+                    try {
+                        val arr = org.json.JSONArray(json)
+                        for (i in 0 until arr.length()) {
+                            val obj = arr.getJSONObject(i)
+                            val type = obj.optString("type")
+                            if (type != "Background") {
+                                hasRealElements = true
+                                break
+                            }
                         }
+                    } catch (e: Exception) {
+                        Log.e("saveJson", "JSON parse failed: ${e.message}")
+                    }
+
+                    if (json.isNotBlank() && json != "[]" && json != "{}") {
+                        if (hasRealElements || viewModel.isLoadingTemplate.value == false) {
+                            lifecycleScope.launch(Dispatchers.IO) {
+                                File(jsonPath).writeText(json)
+                                Log.d("saveJson", "Saved JSON at $jsonPath")
+                                lastJsonSaveTime = now
+                            }
+                        } else {
+                            Log.w("saveJson", "Skipped saving background-only JSON during load")
+                        }
+                    } else {
+                        Log.w("saveJson", "Skipped saving empty JSON")
                     }
                 }
             }
@@ -297,13 +323,19 @@ class EditorFragment : Fragment() {
     private fun observeViewModel() {
 
         viewModel.exportResult.observe(viewLifecycleOwner) { exportResult ->
-            exportResult?.let {
-                exportModel = it
-                jsonPath = it.jsonPath
-                if (it.imagePath.startsWith("/storage")) {
+            if (exportResult == null) {
+                // brand new canvas → trigger first silent save
+                Log.d("EditorFragment", "Blank canvas detected → running autoSaveSilent()")
+                viewModel.ensureBackgroundElement(requireActivity(), canvasSize.width, canvasSize.height)
+                autoSaveSilent()
+            } else {
+                // existing project → use its paths
+                exportModel = exportResult
+                jsonPath = exportResult.jsonPath
+                if (exportResult.imagePath.startsWith("/storage")) {
                     exportModel!!.imagePath = imagePath
                 } else {
-                    imagePath = it.imagePath
+                    imagePath = exportResult.imagePath
                 }
             }
         }
@@ -455,7 +487,6 @@ class EditorFragment : Fragment() {
     }
 
     private fun setEvents() {
-
         viewModel.clearLoading()
 
         requireActivity().onBackPressedDispatcher.addCallback(
@@ -562,10 +593,6 @@ class EditorFragment : Fragment() {
         }
 
         canvasManager = CanvasManager(sizedCanvasView)
-
-        viewModel.ensureBackgroundElement(requireActivity(), canvasSize.width, canvasSize.height)
-
-        autoSaveSilent()
 
         binding.undo.addPressEffect { viewModel.undo() }
         binding.redo.addPressEffect { viewModel.redo() }

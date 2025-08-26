@@ -6,6 +6,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.urduphotodesigner.common.canvas.sealed.HomeRow
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.data.model.ProgressUi
 import com.example.urduphotodesigner.data.model.TemplateEntity
 import com.example.urduphotodesigner.databinding.LayoutCategoryRowBinding
@@ -63,7 +64,7 @@ class TrendsAdapter(
 
         fun bind(row: HomeRow.TrendRow) {
             b.title.text = row.title
-            b.seeAll.setOnClickListener { onSeeAll(row.title) }
+            b.seeAll.addPressEffect { onSeeAll(row.title) }
 
             val current = miniAdapter.currentList
             val same = current.size == row.templates.size &&

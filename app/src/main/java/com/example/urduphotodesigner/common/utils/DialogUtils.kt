@@ -5,6 +5,7 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.widget.TextView
 import com.example.urduphotodesigner.R
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 
 object DialogUtils {
 
@@ -31,8 +32,8 @@ object DialogUtils {
         title.text = titleText
         subTitle.text = subtitleText
 
-        cancel.setOnClickListener { dialog.dismiss() }
-        confirm.setOnClickListener {
+        cancel.addPressEffect { dialog.dismiss() }
+        confirm.addPressEffect {
             dialog.dismiss()
             onConfirm()
         }

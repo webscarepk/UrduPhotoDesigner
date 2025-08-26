@@ -1,3 +1,14 @@
 package com.example.urduphotodesigner.common.canvas.enums
 
-enum class VAlign { TOP, MIDDLE, BOTTOM }
+import com.google.gson.annotations.SerializedName
+
+enum class VAlign {
+    @SerializedName("Top")
+    TOP,
+
+    @SerializedName("Middle")
+    MIDDLE,
+
+    @SerializedName("Bottom")
+    BOTTOM
+}

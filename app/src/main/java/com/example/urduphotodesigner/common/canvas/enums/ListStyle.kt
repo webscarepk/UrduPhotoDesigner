@@ -1,5 +1,14 @@
 package com.example.urduphotodesigner.common.canvas.enums
 
+import com.google.gson.annotations.SerializedName
+
 enum class ListStyle {
-    NONE, BULLETED, NUMBERED
+    @SerializedName("None")
+    NONE,
+
+    @SerializedName("Bulleted")
+    BULLETED,
+
+    @SerializedName("Numbered")
+    NUMBERED
 }

@@ -1,0 +1,81 @@
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/fontCard"
+    android:layout_width="80dp"
+    android:layout_height="120dp"
+    android:layout_marginHorizontal="6dp"
+    app:cardBackgroundColor="@color/selection"
+    app:cardCornerRadius="10dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="0dp">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <com.facebook.shimmer.ShimmerFrameLayout
+            android:id="@+id/shimmerLayout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:shimmer_auto_start="true"
+            app:shimmer_base_alpha="0.5"
+            app:shimmer_duration="1000"
+            app:shimmer_base_color="@color/contrast"
+            app:shimmer_colored="true"
+            app:shimmer_highlight_alpha="1.0">
+
+            <ImageView
+                android:id="@+id/image"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/ic_launcher_background"
+                android:background="@color/contrast"
+                android:scaleType="centerCrop" />
+
+        </com.facebook.shimmer.ShimmerFrameLayout>
+
+        <LinearLayout
+            android:id="@+id/progressBox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/appColor"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="3dp"
+            android:layout_gravity="end|bottom"
+            android:visibility="gone"
+            android:layout_margin="4dp">
+            <ProgressBar
+                android:id="@+id/progressBar"
+                style="?android:attr/progressBarStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:indeterminate="true"
+                android:layout_marginEnd="6dp"
+                android:indeterminateTint="@color/white"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="28%"
+                android:textColor="@color/white"
+                android:textSize="10sp"
+                android:fontFamily="@font/medium"
+                android:id="@+id/percentage"/>
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/download"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="end|bottom"
+            android:layout_margin="4dp"
+            android:src="@drawable/ic_download"
+            android:visibility="gone"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/white"
+            android:padding="6dp"
+            app:tint="@color/appColor" />
+    </FrameLayout>
+</com.google.android.material.card.MaterialCardView>

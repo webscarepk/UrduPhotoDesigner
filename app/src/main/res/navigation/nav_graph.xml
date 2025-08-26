@@ -31,16 +31,6 @@
         android:label="fragment_login"
         tools:layout="@layout/fragment_login" />
     <fragment
-        android:id="@+id/savedFragment"
-        android:name="com.example.urduphotodesigner.ui.navigation.saved.SavedFragment"
-        android:label="fragment_saved"
-        tools:layout="@layout/fragment_saved" />
-    <fragment
-        android:id="@+id/savedListFragment"
-        android:name="com.example.urduphotodesigner.ui.navigation.saved.SavedListFragment"
-        android:label="fragment_saved_list"
-        tools:layout="@layout/fragment_saved_list" />
-    <fragment
         android:id="@+id/signupFragment"
         android:name="com.example.urduphotodesigner.ui.auth.SignupFragment"
         android:label="fragment_signup"

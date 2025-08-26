@@ -1,16 +1,41 @@
 package com.example.urduphotodesigner.common.canvas.enums
 
+import com.google.gson.annotations.SerializedName
+
 enum class PickerTarget {
+  @SerializedName("EyeDropperBackground")
   EYE_DROPPER_BACKGROUND,
+
+  @SerializedName("EyeDropperTextFill")
   EYE_DROPPER_TEXT_FILL,
+
+  @SerializedName("EyeDropperTextStroke")
   EYE_DROPPER_TEXT_STROKE,
+
+  @SerializedName("EyeDropperShadow")
   EYE_DROPPER_SHADOW,
+
+  @SerializedName("EyeDropperLabel")
   EYE_DROPPER_LABEL,
+
+  @SerializedName("EyeDropperGradient")
   EYE_DROPPER_GRADIENT,
+
+  @SerializedName("ColorPickerBackground")
   COLOR_PICKER_BACKGROUND,
+
+  @SerializedName("ColorPickerTextFill")
   COLOR_PICKER_TEXT_FILL,
+
+  @SerializedName("ColorPickerTextStroke")
   COLOR_PICKER_TEXT_STROKE,
+
+  @SerializedName("ColorPickerShadow")
   COLOR_PICKER_SHADOW,
+
+  @SerializedName("ColorPickerLabel")
   COLOR_PICKER_LABEL,
+
+  @SerializedName("ColorPickerGradient")
   COLOR_PICKER_GRADIENT
 }

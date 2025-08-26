@@ -185,7 +185,6 @@
             android:id="@+id/fileText"/>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-
     <ScrollView
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -274,6 +273,74 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/recentsRV"
+                android:id="@+id/popularTemplate">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/popular_templates"
+                    android:fontFamily="@font/bold"
+                    android:textColor="@color/black"
+                    android:textSize="15sp"
+                    android:paddingVertical="6dp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    android:id="@+id/popularTemplateTitle"/>
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/popularTemplateTitle"
+                    app:layout_constraintBottom_toBottomOf="@id/popularTemplateTitle"
+                    android:background="?selectableItemBackground">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/see_all"
+                        android:fontFamily="@font/bold"
+                        android:textColor="@color/gray"
+                        android:textSize="12sp"
+                        android:paddingVertical="6dp"
+                        app:layout_constraintEnd_toStartOf="@id/more3"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:layout_marginEnd="6dp"
+                        android:id="@+id/popularTemplateSeeAll"/>
+
+                    <ImageView
+                        android:layout_width="10dp"
+                        android:layout_height="10dp"
+                        android:src="@drawable/ic_dropdown"
+                        android:id="@+id/more3"
+                        android:rotation="270"
+                        app:tint="@color/gray"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"/>
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/popularTemplateRV"
+                android:layout_width="0dp"
+                android:paddingHorizontal="12dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:clipToPadding="false"
+                app:layout_constraintTop_toBottomOf="@id/popularTemplate"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                app:spanCount="2"
+                tools:listitem="@layout/layout_template_popular"
+                android:orientation="horizontal"/>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:paddingHorizontal="19dp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/popularTemplateRV"
                 android:id="@+id/popularFonts">
                 <TextView
                     android:layout_width="wrap_content"

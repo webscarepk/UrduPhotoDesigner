@@ -39,14 +39,14 @@ class PanelTabsAdapter(
         fun bind(font: PanelTabs) {
 
             if (font.is_selected) {
-                binding.root.backgroundTintList = ColorStateList.valueOf(
+                binding.tabTitle.backgroundTintList = ColorStateList.valueOf(
                     ContextCompat.getColor(
                         binding.root.context,
                         R.color.selection
                     )
                 )
             } else {
-                binding.root.backgroundTintList = ColorStateList.valueOf(
+                binding.tabTitle.backgroundTintList = ColorStateList.valueOf(
                     ContextCompat.getColor(
                         binding.root.context,
                         android.R.color.transparent

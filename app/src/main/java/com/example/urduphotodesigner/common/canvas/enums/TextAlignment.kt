@@ -1,5 +1,10 @@
 package com.example.urduphotodesigner.common.canvas.enums
 
+import com.google.gson.annotations.SerializedName
+
 enum class TextAlignment {
-    LEFT, CENTER, RIGHT, JUSTIFY
+    @SerializedName("left") LEFT,
+    @SerializedName("center") CENTER,
+    @SerializedName("right") RIGHT,
+    @SerializedName("justify") JUSTIFY
 }

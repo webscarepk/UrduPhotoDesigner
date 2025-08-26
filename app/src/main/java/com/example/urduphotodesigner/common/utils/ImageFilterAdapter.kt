@@ -1,41 +1,51 @@
 package com.example.urduphotodesigner.common.utils
 
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
-import com.google.gson.JsonDeserializationContext
-import com.google.gson.JsonDeserializer
-import com.google.gson.JsonElement
-import com.google.gson.JsonPrimitive
-import com.google.gson.JsonSerializationContext
-import com.google.gson.JsonSerializer
-import java.lang.reflect.Type
+import com.google.gson.TypeAdapter
+import com.google.gson.stream.JsonReader
+import com.google.gson.stream.JsonToken
+import com.google.gson.stream.JsonWriter
 
-class ImageFilterAdapter : JsonSerializer<ImageFilter>, JsonDeserializer<ImageFilter> {
-    override fun serialize(
-        src: ImageFilter?,
-        typeOfSrc: Type?,
-        context: JsonSerializationContext?
-    ): JsonElement {
-        // Store only the name
-        return JsonPrimitive(src?.javaClass?.simpleName ?: "None")
+class ImageFilterAdapter : TypeAdapter<ImageFilter>() {
+
+    override fun write(out: JsonWriter, value: ImageFilter?) {
+        if (value == null) {
+            out.nullValue()
+        } else {
+            out.value(value.name) // save only the name
+        }
     }
 
-    override fun deserialize(
-        json: JsonElement?,
-        typeOfT: Type?,
-        context: JsonDeserializationContext?
-    ): ImageFilter {
-        return when (json?.asString) {
-            "Grayscale" -> ImageFilter.Grayscale
-            "Sepia" -> ImageFilter.Sepia
-            "Invert" -> ImageFilter.Invert
-            "CoolTint" -> ImageFilter.CoolTint
-            "WarmTint" -> ImageFilter.WarmTint
-            "Vintage" -> ImageFilter.Vintage
-            "Film" -> ImageFilter.Film
-            "TealOrange" -> ImageFilter.TealOrange
-            "HighContrast" -> ImageFilter.HighContrast
-            "BlackWhite" -> ImageFilter.BlackWhite
-            else -> ImageFilter.None
+    override fun read(reader: JsonReader): ImageFilter {
+        return when (reader.peek()) {
+            JsonToken.NULL -> {
+                reader.nextNull()
+                ImageFilter.None
+            }
+            JsonToken.STRING -> {
+                val name = reader.nextString()
+                ImageFilter.fromName(name)
+            }
+            JsonToken.BEGIN_OBJECT -> {
+                // Handle old object format: { "name": "Invert" }
+                reader.beginObject()
+                var name: String? = null
+                while (reader.hasNext()) {
+                    val fieldName = reader.nextName()
+                    if (fieldName == "name" && reader.peek() == JsonToken.STRING) {
+                        name = reader.nextString()
+                    } else {
+                        reader.skipValue()
+                    }
+                }
+                reader.endObject()
+                ImageFilter.fromName(name ?: "None")
+            }
+            else -> {
+                reader.skipValue()
+                ImageFilter.None
+            }
         }
     }
 }
+
