@@ -8,7 +8,7 @@ import javax.inject.Inject
 class UpdateTemplatesUseCase @Inject constructor(
     private val templatesRepo: TemplatesRepo
 ) {
-    suspend operator fun invoke(id: String, isDownloaded: Boolean, isDownloading: Boolean, filePath: String) {
+    suspend operator fun invoke(id: String, isDownloaded: Boolean, isDownloading: Boolean, filePath: String?) {
         templatesRepo.updateTemplates(id, isDownloaded, isDownloading, filePath)
     }
 }

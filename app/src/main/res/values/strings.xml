@@ -199,6 +199,16 @@
     <string name="filters">Filters</string>
     <string name="popular_templates">Popular Templates</string>
     <string name="urdu_canvas_pro">Urdu Canvas Pro</string>
+    <string name="unlock_all_features_and_assets">Unlock all features and assets</string>
+    <string name="upgrade_now">Upgrade Now</string>
+    <string name="subscriptions">Subscriptions</string>
+    <string name="preferences">Preferences</string>
+    <string name="contact_support">Contact Support</string>
+    <string name="help_centre">Help Centre</string>
+    <string name="terms_of_use">Terms Of Use</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="rate_the_app">Rate The App</string>
+    <string name="help_us_improve">Help Us Improve</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

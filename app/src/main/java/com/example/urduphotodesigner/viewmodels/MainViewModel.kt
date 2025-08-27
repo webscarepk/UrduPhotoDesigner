@@ -1,5 +1,6 @@
 package com.example.urduphotodesigner.viewmodels
 
+import android.content.ContentValues.TAG
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -311,6 +312,7 @@ class MainViewModel @Inject constructor(
                     url  = Constants.BASE_URL_DOWNLOAD + template.json_url,
                     fileName = "template_${template.id}.json",
                     onProgress = { progress ->
+                        Log.d(TAG, "downloadTemplate: ${template.id} $progress")
                         _templateDownloadState.value =
                             TemplateDownloadState.Progress(progress, template.copy(is_downloading = true, download_progress = progress))
                     }
@@ -333,6 +335,12 @@ class MainViewModel @Inject constructor(
 
             } catch (e: Exception) {
                 // DO NOT write is_downloading=false to DB either (avoid extra emit)
+                updateTemplatesUseCase.invoke(template.id.toString(),
+                    isDownloaded = false,
+                    isDownloading = false,
+                    filePath = null
+                )
+
                 _templateDownloadState.value = TemplateDownloadState.Error(e.message ?: "Download failed")
             }
         }

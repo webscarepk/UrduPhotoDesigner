@@ -67,4 +67,9 @@
         android:name="com.example.urduphotodesigner.ui.editor.export.FinishExportFragment"
         android:label="fragment_finish_export"
         tools:layout="@layout/fragment_finish_export" />
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.example.urduphotodesigner.ui.navigation.settings.SettingsFragment"
+        android:label="fragment_settings"
+        tools:layout="@layout/fragment_settings" />
 </navigation>

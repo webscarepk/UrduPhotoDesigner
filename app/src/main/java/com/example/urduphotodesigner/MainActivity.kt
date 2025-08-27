@@ -1,5 +1,6 @@
 package com.example.urduphotodesigner
 
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -7,19 +8,27 @@ import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.setupWithNavController
+import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.canvas.enums.UnitType
+import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.databinding.ActivityMainBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import kotlin.getValue
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -28,7 +37,32 @@ class MainActivity : AppCompatActivity() {
 
     private var _navController: NavController? = null
     private val navController get() = _navController!!
+    private val viewModel: CanvasViewModel by viewModels()
+    val navOptions = NavOptions.Builder()
+        .setLaunchSingleTop(true)
+        .build()
+    private val pickImageLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let {
+                val inputStream = contentResolver.openInputStream(it)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
 
+                val widthVal = bitmap.width.toFloat()
+                val heightVal = bitmap.height.toFloat()
+
+                val canvasSize = CanvasSize("From Image", widthVal, heightVal)
+                val bundle = Bundle().apply {
+                    putSerializable("canvas_size", canvasSize)
+                    putSerializable("unit_type", UnitType.PIXELS)
+                }
+
+                viewModel.clearCanvas()
+                viewModel.setCanvasSize(canvasSize)
+                viewModel.setCanvasBackgroundImage(bitmap)
+                navController.navigate(R.id.editorFragment, bundle, navOptions)
+            }
+        }
     private val mainViewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,8 +99,9 @@ class MainActivity : AppCompatActivity() {
             when (item.itemId) {
                 R.id.nav_home -> navController.navigate(R.id.homeFragment)
                 R.id.nav_templates -> navController.navigate(R.id.templatesFragment)
+                R.id.nav_add_images -> pickImageLauncher.launch("image/*")
                 R.id.nav_fav -> navController.navigate(R.id.filesFragment)
-                R.id.nav_settings -> navController.navigate(R.id.templatesFragment)
+                R.id.nav_settings -> navController.navigate(R.id.settingsFragment)
                 else -> false
             }
             true
@@ -77,12 +112,9 @@ class MainActivity : AppCompatActivity() {
                 R.id.homeFragment,
                 R.id.templatesFragment,
                 R.id.filesFragment,
-                R.id.templatesFragment
+                R.id.settingsFragment
             )
             binding.bottomNavigation.visibility =
-                if (destination.id in visibleDestinations) View.VISIBLE else View.GONE
-
-            binding.fabCenter.visibility =
                 if (destination.id in visibleDestinations) View.VISIBLE else View.GONE
         }
     }

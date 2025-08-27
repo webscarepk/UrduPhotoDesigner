@@ -38,7 +38,6 @@ import com.example.urduphotodesigner.databinding.DialogLoadingProgressBinding
 import com.example.urduphotodesigner.databinding.FragmentHomeBinding
 import com.example.urduphotodesigner.databinding.LayoutProjectPopupBinding
 import com.example.urduphotodesigner.ui.creation.CreateFragment
-import com.example.urduphotodesigner.ui.navigation.templates.TemplatesMiniAdapter
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
@@ -195,18 +194,28 @@ class HomeFragment : Fragment() {
                 findNavController().navigate(R.id.templatesListFragment, args)
             },
             onTemplateClick = { template, isDownloaded ->
+                if (template.is_downloading) return@TrendsAdapter
                 if (isDownloaded) {
-                    val exportResult = template.toExportResultFinal()
-                    lifecycleScope.launch {
-                        withContext(Dispatchers.Default) {
-                            viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
-                            bundle = Bundle().apply {
-                                putSerializable("canvas_size", exportResult.canvasSize)
-                                putSerializable("unit_type", UnitType.PIXELS)
+                    if (template.file_path.isNullOrEmpty()) {
+                        trendsAdapter.updateTemplateProgress(
+                            template.id,
+                            ProgressUi(progress = 0, isDownloading = true, isDownloaded = false)
+                        )
+                        mainViewModel.downloadTemplate(template)
+                        return@TrendsAdapter
+                    } else {
+                        val exportResult = template.toExportResultFinal()
+                        lifecycleScope.launch {
+                            withContext(Dispatchers.Default) {
+                                viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
+                                bundle = Bundle().apply {
+                                    putSerializable("canvas_size", exportResult.canvasSize)
+                                    putSerializable("unit_type", UnitType.PIXELS)
+                                }
                             }
                         }
+                        return@TrendsAdapter
                     }
-                    return@TrendsAdapter
                 }
                 downloadingTemplate = template
                 // start download
@@ -229,14 +238,24 @@ class HomeFragment : Fragment() {
 
         popularTemplatesAdapter = PopularTemplatesAdapter(
             onClick = { template, isDownloaded ->
+                if (template.is_downloading) return@PopularTemplatesAdapter
                 if (isDownloaded) {
-                    val exportResult = template.toExportResultFinal()
-                    lifecycleScope.launch {
-                        withContext(Dispatchers.Default) {
-                            viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
-                            bundle = Bundle().apply {
-                                putSerializable("canvas_size", exportResult.canvasSize)
-                                putSerializable("unit_type", UnitType.PIXELS)
+                    if (template.file_path.isNullOrEmpty()) {
+                        popularTemplatesAdapter.updateProgress(
+                            template.id,
+                            ProgressUi(progress = 0, isDownloading = true, isDownloaded = false)
+                        )
+                        mainViewModel.downloadTemplate(template)
+                        return@PopularTemplatesAdapter
+                    } else {
+                        val exportResult = template.toExportResultFinal()
+                        lifecycleScope.launch {
+                            withContext(Dispatchers.Default) {
+                                viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
+                                bundle = Bundle().apply {
+                                    putSerializable("canvas_size", exportResult.canvasSize)
+                                    putSerializable("unit_type", UnitType.PIXELS)
+                                }
                             }
                         }
                     }
@@ -343,7 +362,11 @@ class HomeFragment : Fragment() {
                             )
                             popularTemplatesAdapter.updateProgress(
                                 t.id,
-                                ProgressUi(progress = 0, isDownloading = false, isDownloaded = false)
+                                ProgressUi(
+                                    progress = 0,
+                                    isDownloading = false,
+                                    isDownloaded = false
+                                )
                             )
                         }
                     }
@@ -417,7 +440,13 @@ class HomeFragment : Fragment() {
                                     putSerializable("canvas_size", CanvasSize("", 2000f, 2000f))
                                     putSerializable("unit_type", UnitType.PIXELS)
                                 }
-                                findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                                if (isAdded && findNavController().currentDestination?.id != R.id.editorFragment) {
+                                    findNavController().navigate(
+                                        R.id.editorFragment,
+                                        bundle,
+                                        navOptions
+                                    )
+                                }
                             }
                         }
                         mainViewModel.clearDownloadState()

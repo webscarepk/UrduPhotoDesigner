@@ -18,7 +18,7 @@ interface AllTemplatesDao {
     suspend fun getTemplateById(id: Int): TemplateEntity?
 
     @Query("UPDATE templates SET is_downloaded = :isDownloaded, is_downloading = :isDownloading, file_path = :filePath WHERE id = :id")
-    fun updateTemplate(id: String, isDownloaded: Boolean, isDownloading: Boolean, filePath: String)
+    fun updateTemplate(id: String, isDownloaded: Boolean, isDownloading: Boolean, filePath: String?)
 
     @Query("UPDATE templates SET is_downloading = :isDownloading WHERE id = :id")
     fun updateTemplateStatus(id: String, isDownloading: Boolean)

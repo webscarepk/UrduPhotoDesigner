@@ -26,15 +26,29 @@ class PopularTemplatesAdapter(
     private val progressProvider: (Int) -> ProgressUi?
 ) : ListAdapter<TemplateEntity, PopularTemplatesAdapter.VH>(Diff()) {
 
+    init {
+        setHasStableIds(true)
+    }
+
+    private val progressById = mutableMapOf<Int, ProgressUi>()
+
+    fun updateProgress(templateId: Int, ui: ProgressUi) {
+        val prev = progressById[templateId]
+        if (prev == ui) return
+        progressById[templateId] = ui
+        val pos = currentList.indexOfFirst { it.id == templateId }
+        if (pos != -1) notifyItemChanged(pos, ui)
+    }
+
     inner class VH(val binding: LayoutTemplatePopularBinding) :
         RecyclerView.ViewHolder(binding.root) {
-        fun bind(item: TemplateEntity) {
+        fun bind(item: TemplateEntity, progress: ProgressUi) {
             binding.shimmerLayout.startShimmer()
 
             binding.root.strokeColor =
                 ContextCompat.getColor(binding.root.context, R.color.appColor)
 
-            renderProgressFor(item.id)
+            applyProgress(progress)
 
             binding.root.addPressEffect {
                 val state = progressProvider(item.id)
@@ -74,57 +88,54 @@ class PopularTemplatesAdapter(
                 .into(binding.image)
         }
 
-        fun renderProgressFor(templateId: Int, fallback: TemplateEntity? = null) {
-            val st = progressProvider(templateId)
-
-            val isDownloaded = st?.isDownloaded == true ||
-                    fallback?.is_downloaded == true ||
-                    currentList.find { it.id == templateId }?.is_downloaded == true
-
-            val downloading = when {
-                st != null -> st.isDownloading && !isDownloaded
-                fallback != null -> fallback.is_downloading && !isDownloaded
-                else -> false
-            }
-
+        fun applyProgress(ui: ProgressUi) {
+            val downloading = ui.isDownloading && !ui.isDownloaded
             binding.download.visibility =
-                if (downloading || isDownloaded) View.GONE else View.VISIBLE
+                if (downloading || ui.isDownloaded) View.GONE else View.VISIBLE
             binding.progressBox.visibility = if (downloading) View.VISIBLE else View.GONE
             binding.progressBar.visibility = if (downloading) View.VISIBLE else View.GONE
             binding.percentage.visibility = if (downloading) View.VISIBLE else View.GONE
 
             if (downloading) {
-                val p = (st?.progress ?: fallback?.download_progress ?: 0).coerceIn(0, 100)
-                binding.progressBar.progress = p
-                binding.percentage.text = "$p%"
+                val pct = ui.progress.coerceIn(0, 100)
+                binding.progressBar.progress = pct
+                binding.percentage.text = "$pct%"
             } else {
                 binding.progressBar.progress = 0
                 binding.percentage.text = ""
             }
-        }
-
-    }
-
-    override fun onBindViewHolder(h: VH, pos: Int, payloads: MutableList<Any>) {
-        if (payloads.isNotEmpty()) {
-            val state = payloads.firstOrNull() as? ProgressUi
-            if (state != null) {
-                h.renderProgressFor(getItem(pos).id)
-            }
-        } else {
-            super.onBindViewHolder(h, pos, payloads)
         }
     }
 
     override fun onCreateViewHolder(p: ViewGroup, vt: Int) =
         VH(LayoutTemplatePopularBinding.inflate(LayoutInflater.from(p.context), p, false))
 
-    override fun onBindViewHolder(h: VH, pos: Int) = h.bind(getItem(pos))
+    override fun onBindViewHolder(holder: VH, position: Int) {
+        val item = getItem(position)
 
-    fun updateProgress(templateId: Int, state: ProgressUi) {
-        val idx = currentList.indexOfFirst { it.id == templateId }
-        if (idx != -1) notifyItemChanged(idx, state)
+        holder.bind(
+            item = item,
+            progress = progressById[item.id] ?: ProgressUi(
+                progress = item.download_progress,
+                isDownloading = item.is_downloading,
+                isDownloaded = item.is_downloaded
+            )
+        )
     }
+
+    override fun onBindViewHolder(holder: VH, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isNotEmpty()) {
+            val last = payloads.last()
+            when (last) {
+                is ProgressUi -> holder.applyProgress(last)
+                else -> super.onBindViewHolder(holder, position, payloads)
+            }
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
+    }
+
+    override fun getItemId(position: Int) = getItem(position).id.toLong()
 
     class Diff : DiffUtil.ItemCallback<TemplateEntity>() {
         override fun areItemsTheSame(o: TemplateEntity, n: TemplateEntity) = o.id == n.id

@@ -17,9 +17,7 @@ import androidx.viewpager2.widget.ViewPager2
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentFilesBinding
-import com.example.urduphotodesigner.ui.navigation.saved.SavedPagerAdapter
 import com.example.urduphotodesigner.viewmodels.FiltersViewModel
-import com.example.urduphotodesigner.viewmodels.MainViewModel
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint

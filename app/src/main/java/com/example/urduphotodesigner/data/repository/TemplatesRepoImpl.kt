@@ -34,7 +34,7 @@ class TemplatesRepoImpl @Inject constructor(
         id: String,
         isDownloaded: Boolean,
         isDownloading: Boolean,
-        filePath: String
+        filePath: String?
     ) {
         appDatabase.allTemplatesDao().updateTemplate(id, isDownloaded, isDownloading, filePath)
     }

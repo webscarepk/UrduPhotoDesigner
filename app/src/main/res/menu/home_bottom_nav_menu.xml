@@ -11,9 +11,10 @@
         android:title="@string/templates" />
 
     <item
-        android:id="@+id/placeholder"
-        android:enabled="false"
-        android:title="" />
+        android:id="@+id/nav_add_images"
+        android:enabled="true"
+        android:icon="@drawable/ic_add_image_stroke"
+        android:title="@string/add" />
 
     <item
         android:id="@+id/nav_fav"
