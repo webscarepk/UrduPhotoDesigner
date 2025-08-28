@@ -209,6 +209,21 @@
     <string name="privacy_policy">Privacy Policy</string>
     <string name="rate_the_app">Rate The App</string>
     <string name="help_us_improve">Help Us Improve</string>
+    <string name="current_plan">Current Plan</string>
+    <string name="monthly">Monthly</string>
+    <string name="subscribed_unstoppable_new_features_unlocked"><![CDATA[Subscribed & unstoppable , new features unlocked!]]></string>
+    <string name="upgrade_your_subscription">Upgrade Your Subscription</string>
+    <string name="cancel_your_subcription">Cancel Your Subcription</string>
+    <string name="billed_monthly">Billed Monthly</string>
+    <string name="_200">$200</string>
+    <string name="per_month">per month</string>
+    <string name="go_monthly_stay_flexible">Go Monthly, stay flexible.</string>
+    <string name="save_as_a_copy">Save as a copy</string>
+    <string name="export_resolution">Export Resolution</string>
+    <string name="original">Original</string>
+    <string name="export_quality">Export Quality</string>
+    <string name="high">High</string>
+    <string name="export_format">Export Format</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

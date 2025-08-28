@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    tools:context=".ui.navigation.settings.SubscriptionsFragment">
+
+    <androidx.constraintlayout.widget.Guideline
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.02"
+        android:id="@+id/topGuide"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintGuide_percent="0.95"
+        android:orientation="horizontal"
+        android:id="@+id/bottomGuide"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintGuide_percent="0.05"
+        android:orientation="vertical"
+        android:id="@+id/startGuide"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintGuide_percent="0.95"
+        android:orientation="vertical"
+        android:id="@+id/endGuide"/>
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_back"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintTop_toBottomOf="@id/topGuide"
+        android:id="@+id/back"
+        android:paddingVertical="12dp"
+        android:paddingEnd="12dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toEndOf="@id/back"
+        app:layout_constraintTop_toTopOf="@id/back"
+        app:layout_constraintBottom_toBottomOf="@id/back"
+        android:layout_marginStart="6dp"
+        android:text="@string/subscriptions"
+        android:fontFamily="@font/bold"
+        android:textSize="19sp"
+        android:textColor="@color/black"
+        android:id="@+id/title"/>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/currentPlanCard"
+        android:visibility="visible"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
+        app:layout_constraintTop_toBottomOf="@id/title"
+        app:cardBackgroundColor="@color/appColor"
+        app:cardElevation="10dp"
+        android:layout_marginTop="20dp"
+        app:cardCornerRadius="10dp">
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="20dp"
+            android:background="@drawable/ic_subscription_card_bg_gradient">
+
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/button_bg_round"
+                android:src="@drawable/ic_crown"
+                android:padding="10dp"
+                android:id="@+id/titleImage"
+                app:layout_constraintTop_toTopOf="@id/currentPlanTitle"
+                app:layout_constraintBottom_toBottomOf="@id/currentPlanDesc"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/currentPlanTitle"
+                android:backgroundTint="@color/white"/>
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/current_plan"
+                android:textColor="@color/white"
+                android:textSize="10sp"
+                android:fontFamily="@font/regular"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/titleImage"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toTopOf="@id/currentPlan"
+                android:layout_marginStart="10dp"
+                android:id="@+id/currentPlanTitle"/>
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/monthly"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:fontFamily="@font/bold"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="@id/currentPlanTitle"
+                app:layout_constraintTop_toBottomOf="@id/currentPlanTitle"
+                app:layout_constraintBottom_toTopOf="@id/currentPlanDesc"
+                android:id="@+id/currentPlan"/>
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/subscribed_unstoppable_new_features_unlocked"
+                android:textColor="@color/white"
+                android:textSize="10sp"
+                android:fontFamily="@font/regular"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="@id/currentPlanTitle"
+                app:layout_constraintTop_toBottomOf="@id/currentPlan"
+                app:layout_constraintBottom_toTopOf="@id/upgradePlan"
+                android:id="@+id/currentPlanDesc"/>
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/upgrade_your_subscription"
+                android:textColor="@color/appColor"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:paddingVertical="8dp"
+                android:backgroundTint="@color/darkContrast"
+                android:layout_marginTop="10dp"
+                android:fontFamily="@font/bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/currentPlanDesc"
+                app:layout_constraintBottom_toTopOf="@id/cancelSub"
+                android:background="@drawable/button_bg"
+                android:id="@+id/upgradePlan"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/cancel_your_subcription"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:fontFamily="@font/regular"
+                android:paddingHorizontal="10dp"
+                android:paddingTop="10dp"
+                app:layout_constraintTop_toBottomOf="@id/upgradePlan"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                android:id="@+id/cancelSub" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </com.google.android.material.card.MaterialCardView>
+    
+    <TextView
+        android:id="@+id/upgradePlanTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/upgrade_your_subscription"
+        android:textSize="12sp"
+        android:fontFamily="@font/bold"
+        app:layout_constraintTop_toBottomOf="@+id/currentPlanCard"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
+        android:layout_marginTop="10dp"
+        android:textColor="@color/gray"
+        android:paddingStart="15dp"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:paddingHorizontal="@dimen/_16sdp"
+        app:layout_constraintTop_toBottomOf="@id/upgradePlanTitle"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginTop="10dp"
+        android:paddingBottom="20dp"
+        android:clipToPadding="false"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        android:orientation="vertical"
+        tools:listitem="@layout/layout_subscriptions_item"
+        tools:itemCount="3"
+        android:id="@+id/subscriptionsRV"/>
+</androidx.constraintlayout.widget.ConstraintLayout>

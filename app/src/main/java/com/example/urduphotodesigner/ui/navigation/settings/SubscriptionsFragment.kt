@@ -1,26 +1,26 @@
 package com.example.urduphotodesigner.ui.navigation.settings
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.databinding.FragmentSettingsBinding
+import com.example.urduphotodesigner.databinding.FragmentSubscriptionsBinding
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class SettingsFragment : Fragment() {
-    private var _binding: FragmentSettingsBinding? = null
+class SubscriptionsFragment : Fragment() {
+    private var _binding: FragmentSubscriptionsBinding? = null
     private val binding get() = _binding!!
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentSettingsBinding.inflate(inflater, container, false)
+        _binding = FragmentSubscriptionsBinding.inflate(inflater, container, false)
         return binding.root
     }
 
@@ -31,8 +31,7 @@ class SettingsFragment : Fragment() {
     }
 
     private fun setEvents() {
-        binding.subscriptions.addPressEffect { findNavController().navigate(R.id.subscriptionsFragment) }
-        binding.preferences.addPressEffect { findNavController().navigate(R.id.preferencesFragment) }
+        binding.back.addPressEffect { findNavController().navigateUp() }
     }
 
     override fun onDestroyView() {

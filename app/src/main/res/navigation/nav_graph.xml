@@ -72,4 +72,14 @@
         android:name="com.example.urduphotodesigner.ui.navigation.settings.SettingsFragment"
         android:label="fragment_settings"
         tools:layout="@layout/fragment_settings" />
+    <fragment
+        android:id="@+id/subscriptionsFragment"
+        android:name="com.example.urduphotodesigner.ui.navigation.settings.SubscriptionsFragment"
+        android:label="fragment_subscriptions"
+        tools:layout="@layout/fragment_subscriptions" />
+    <fragment
+        android:id="@+id/preferencesFragment"
+        android:name="com.example.urduphotodesigner.ui.navigation.settings.PreferencesFragment"
+        android:label="fragment_preferences"
+        tools:layout="@layout/fragment_preferences" />
 </navigation>

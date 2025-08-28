@@ -2,13 +2,16 @@
 <resources>
     <color name="black">#2B2B2B</color>
     <color name="white">#FFFFFF</color>
+    <color name="white80">#80FFFFFF</color>
     <color name="whiteText">#FFFFFF</color>
-    <color name="contrast">#F3F3F3</color>
+    <color name="contrast">#F7F7F7</color>
     <color name="appColor">#005D28</color>
-    <color name="selection">#EFEFEF</color>
+    <color name="selection">#F2F2F2</color>
     <color name="gray">#8E94A2</color>
     <color name="light_gray">#D6D6D6</color>
     <color name="yellow">#FEF9C2</color>
+    <color name="yellow1">#20000000</color>
+    <color name="darkContrast">#39D27A</color>
 </resources>
 
     <!--<?xml version="1.0" encoding="utf-8"?>-->
