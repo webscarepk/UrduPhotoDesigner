@@ -22,6 +22,10 @@ class ExportOptionsFragment : BottomSheetDialogFragment() {
     private lateinit var viewType: ExportViewType
     private val viewModel: CanvasViewModel by activityViewModels()
 
+    private lateinit var items: List<Any>
+    private lateinit var adapter: ExportOptionAdapter<Any>
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewType = ExportViewType.valueOf(requireArguments().getString(ARG_VIEW_TYPE)!!)
@@ -47,32 +51,37 @@ class ExportOptionsFragment : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        setEvents()
+        initObservers()
+    }
+
+    private fun setEvents() {
+
+        items = when (viewType) {
+            ExportViewType.RESOLUTION -> viewModel.availableResolutions
+            ExportViewType.QUALITY -> viewModel.qualityOptions
+            ExportViewType.FORMAT -> viewModel.formatOptions
+        }
+
         binding.title.text = when (viewType) {
             ExportViewType.RESOLUTION -> "Choose Resolution"
             ExportViewType.QUALITY -> "Choose Quality"
             ExportViewType.FORMAT -> "Choose Format"
         }
 
-        val items = when (viewType) {
-            ExportViewType.RESOLUTION -> viewModel.availableResolutions
-            ExportViewType.QUALITY -> viewModel.qualityOptions
-            ExportViewType.FORMAT -> viewModel.formatOptions
-        }
-
-        val adapter = ExportOptionAdapter(
+        adapter = ExportOptionAdapter(
             items,
-            viewType
+            viewType,
+            true
         ) { selected ->
             when (selected) {
-                is ExportResolution -> viewModel.updateExportOptions(
+                is ExportResolution -> viewModel.updateExportOptionsInMemory(
                     viewModel.exportOptions.value!!.copy(resolution = selected)
                 )
-
-                is ExportQuality -> viewModel.updateExportOptions(
+                is ExportQuality -> viewModel.updateExportOptionsInMemory(
                     viewModel.exportOptions.value!!.copy(quality = selected)
                 )
-
-                is ExportFormat -> viewModel.updateExportOptions(
+                is ExportFormat -> viewModel.updateExportOptionsInMemory(
                     viewModel.exportOptions.value!!.copy(format = selected)
                 )
             }
@@ -80,19 +89,18 @@ class ExportOptionsFragment : BottomSheetDialogFragment() {
 
         binding.options.adapter = adapter
 
-        // Observer for selection update
-        viewModel.exportOptions.observe(viewLifecycleOwner) { options ->
-            items.forEach {
-                when (it) {
-                    is ExportResolution -> it.isSelected = (it == options.resolution)
-                    is ExportQuality -> it.isSelected = (it == options.quality)
-                    is ExportFormat -> it.isSelected = (it == options.format)
-                }
-            }
-            adapter.notifyDataSetChanged()
-        }
-
         binding.back.addPressEffect { dismiss() }
+    }
+
+    private fun initObservers() {
+        viewModel.exportOptions.observe(viewLifecycleOwner) { options ->
+            val items = when (viewType) {
+                ExportViewType.RESOLUTION -> viewModel.availableResolutions
+                ExportViewType.QUALITY -> viewModel.qualityOptions
+                ExportViewType.FORMAT -> viewModel.formatOptions
+            }
+            adapter.updateList(items)
+        }
     }
 
     override fun onDestroyView() {

@@ -18,8 +18,8 @@
 
     <item
         android:id="@+id/nav_fav"
-        android:icon="@drawable/ic_fav_selector"
-        android:title="@string/favorites" />
+        android:icon="@drawable/ic_file_selector"
+        android:title="@string/my_files" />
 
     <item
         android:id="@+id/nav_settings"

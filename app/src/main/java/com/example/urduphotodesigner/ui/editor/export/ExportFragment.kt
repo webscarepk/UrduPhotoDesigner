@@ -103,6 +103,8 @@ class ExportFragment : Fragment() {
     }
 
     private fun initObservers() {
+        viewModel.fetchExportOptionsFromDataStore()
+
         viewModel.canvasView.observe(viewLifecycleOwner) { canvas ->
             lifecycleScope.launch(Dispatchers.Main) {
                 canvasView = canvas
@@ -138,11 +140,6 @@ class ExportFragment : Fragment() {
     }
 
     private fun renderExportResult(result: ExportResult) = with(binding) {
-        val bitmap = ImageProcessor.filePathToBitmap(result.imagePath)
-        previewImage.setImageBitmap(bitmap)
-
-        tvExportSize.text = "%.1f MB".format(result.fileSizeMB)
-        fileSize.text = "%.1f MB".format(result.fileSizeMB)
 
         resolutionValue.text = result.resolution
         qualityValue.text = result.quality
@@ -169,43 +166,13 @@ class ExportFragment : Fragment() {
         val canvas = viewModel.canvasView.value ?: return
         val options = viewModel.exportOptions.value ?: return
 
-        exportResult?.let { result ->
-            result.imagePath.let { path ->
-                val file = File(path)
-                if (file.exists()) {
-                    val instantSizeMB = file.length().toDouble() / (1024.0 * 1024.0)
-                    binding.tvExportSize.text = "%.1f MB".format(instantSizeMB)
-                    binding.fileSize.text = "%.1f MB".format(instantSizeMB)
-                }
-            }
-        }
-
         lifecycleScope.launch(Dispatchers.Default) {
             val (bitmap, _) = canvas.exportCanvasThumbnail()
 
-            // create lightweight preview
-            val maxWidth = 800
-            val scaledHeight = (bitmap.height * (maxWidth.toFloat() / bitmap.width)).toInt()
-            val previewBitmap = bitmap.scale(maxWidth, scaledHeight)
-
-            // --- estimate size based on export options ---
-            val sizeMB = if (options.format.name.equals("PDF", true)) {
-                estimateBitmapSize(
-                    bitmap,
-                    Bitmap.CompressFormat.JPEG,
-                    options.quality.quality
-                ) / (1024.0 * 1024.0)
-            } else {
-                // use actual compression with the selected format + quality
-                estimateBitmapSize(
-                    bitmap,
-                    options.format.format,     // PNG/JPEG/WEBP
-                    options.quality.quality    // quality from options
-                ) / (1024.0 * 1024.0)
-            }
+            val sizeMB = getDisplayFileSizeMB(exportResult, options, bitmap)
 
             withContext(Dispatchers.Main) {
-                binding.previewImage.setImageBitmap(previewBitmap)
+                binding.previewImage.setImageBitmap(bitmap)
                 binding.exportPreviewProgress.visibility = View.GONE
                 binding.tvExportSize.text = "%.1f MB".format(sizeMB)
                 binding.fileSize.text = "%.1f MB".format(sizeMB)
@@ -275,9 +242,6 @@ class ExportFragment : Fragment() {
                 }
 
                 withContext(Dispatchers.Main) {
-                    binding.previewImage.setImageBitmap(previewBitmap)
-                    binding.tvExportSize.text = "%.1f MB".format(sizeMB)
-                    binding.fileSize.text = "%.1f MB".format(sizeMB)
                     updateProgress(50, "Preview ready…")
                 }
 
@@ -446,6 +410,44 @@ class ExportFragment : Fragment() {
         val stream = ByteArrayOutputStream()
         bitmap.compress(format!!, quality, stream)
         return stream.size().toLong()
+    }
+
+    private fun getDisplayFileSizeMB(
+        exportResult: ExportResult?,
+        options: ExportOptions,
+        bitmap: Bitmap? = null
+    ): Double {
+        // 1. Agar exportResult me fileSize already save hai
+        if (exportResult?.fileSizeMB != null && exportResult.fileSizeMB > 0) {
+            return exportResult.fileSizeMB
+        }
+
+        // 2. Agar koi path available hai aur file exist karti hai
+        val path = exportResult?.imagePath ?: exportResult?.pdfPath
+        if (!path.isNullOrEmpty()) {
+            val file = File(path)
+            if (file.exists()) {
+                return file.length().toDouble() / (1024.0 * 1024.0)
+            }
+        }
+
+        // 3. Fallback estimation (agar abhi tak file generate nahi hui)
+        return when {
+            options.format.name.equals("PDF", true) -> {
+                // rough estimation for PDF
+                val canvasSize = viewModel.canvasSize.value
+                if (canvasSize != null) {
+                    (canvasSize.width * canvasSize.height * 3.0) / (1024.0 * 1024.0)
+                } else {
+                    0.0
+                }
+            }
+            bitmap != null -> {
+                estimateBitmapSize(bitmap, options.format.format, options.quality.quality) /
+                        (1024.0 * 1024.0)
+            }
+            else -> 0.0
+        }
     }
 
     private fun saveJson(json: String): String {

@@ -9,7 +9,7 @@ data class ImageEntity(
     val file_name: String,
     val file_url: String,
     val file_size: String,
-    val alt_text: String,
+    val alt_text: String? = null,
     val category: String,
     val user_id: Int,
     var is_selected: Boolean = false,

@@ -247,7 +247,7 @@ class TemplatesFragment : Fragment() {
         val cats = buildList {
             add("All")
             addAll(
-                list.map { it.category.trim() }
+                list.map { it.category?.trim() ?: "Unknown" }
                     .filter { it.isNotEmpty() }
                     .distinct()
                     .sorted()
@@ -420,7 +420,7 @@ class TemplatesFragment : Fragment() {
 
             val filtered = filterTemplates(allTemplates, "All", activeQuery, activeSize)
             val rows = filtered
-                .groupBy { it.category.takeIf { it.isNotBlank() } ?: "Others" }
+                .groupBy { it.category.takeIf { it!!.isNotBlank() } ?: "Others" }
                 .map { (cat, list) -> HomeRow.CategoryRow(cat, list.distinctBy { it.id }.take(10)) }
 
             categoryAdapter.submitList(rows)

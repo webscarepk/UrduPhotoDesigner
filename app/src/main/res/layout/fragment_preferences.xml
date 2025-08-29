@@ -71,47 +71,6 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/saveAsCopy"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:background="@drawable/button_bg"
-                android:backgroundTint="@color/selection"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                android:layout_marginTop="15dp">
-                <TextView
-                    android:id="@+id/saveAsCopyText"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:text="@string/save_as_a_copy"
-                    android:textColor="@color/black"
-                    android:fontFamily="@font/regular"
-                    android:textSize="12sp"
-                    android:padding="15dp"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"/>
-
-                <androidx.appcompat.widget.SwitchCompat
-                    android:id="@+id/saveAsCopySwitch"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="false"
-                    android:thumb="@drawable/thumb_selector"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    android:paddingEnd="15dp"
-                    app:thumbTint="@null"
-                    android:padding="0dp"
-                    app:thumbTextPadding="0dp"
-                    app:track="@drawable/track_selector"
-                    app:trackTint="@null"
-                    android:scaleX="0.8"
-                    android:scaleY="0.8"
-                    />
-            </androidx.constraintlayout.widget.ConstraintLayout>
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/resolutionCard"
@@ -121,7 +80,7 @@
                 android:backgroundTint="@color/selection"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/saveAsCopy"
+                app:layout_constraintTop_toTopOf="parent"
                 android:layout_marginTop="10dp">
                 <TextView
                     android:id="@+id/resolutionTitle"
@@ -129,9 +88,10 @@
                     android:layout_height="wrap_content"
                     android:text="@string/export_resolution"
                     android:textColor="@color/black"
-                    android:fontFamily="@font/regular"
-                    android:textSize="12sp"
+                    android:fontFamily="@font/medium"
+                    android:textSize="14sp"
                     android:padding="15dp"
+                    app:layout_constraintEnd_toStartOf="@id/resolution"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"/>
 
@@ -142,7 +102,7 @@
                     android:text="@string/original"
                     android:textColor="@color/black"
                     android:fontFamily="@font/regular"
-                    android:textSize="11sp"
+                    android:textSize="12sp"
                     android:padding="15dp"
                     android:drawablePadding="10dp"
                     app:drawableTint="@color/gray"
@@ -183,9 +143,10 @@
                     android:layout_height="wrap_content"
                     android:text="@string/export_quality"
                     android:textColor="@color/black"
-                    android:fontFamily="@font/regular"
-                    android:textSize="12sp"
+                    android:fontFamily="@font/medium"
+                    android:textSize="14sp"
                     android:padding="15dp"
+                    app:layout_constraintEnd_toStartOf="@id/quality"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"/>
 
@@ -237,9 +198,10 @@
                     android:layout_height="wrap_content"
                     android:text="@string/export_format"
                     android:textColor="@color/black"
-                    android:fontFamily="@font/regular"
-                    android:textSize="12sp"
+                    android:fontFamily="@font/medium"
+                    android:textSize="14sp"
                     android:padding="15dp"
+                    app:layout_constraintEnd_toStartOf="@id/format"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"/>
 

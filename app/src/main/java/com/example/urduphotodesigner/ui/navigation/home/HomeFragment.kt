@@ -288,6 +288,10 @@ class HomeFragment : Fragment() {
         binding.templates.addPressEffect {
             findNavController().navigate(R.id.templatesFragment)
         }
+
+        binding.recentProjects.addPressEffect {
+            findNavController().navigate(R.id.popularFontsFragment)
+        }
     }
 
     private fun initObservers() {

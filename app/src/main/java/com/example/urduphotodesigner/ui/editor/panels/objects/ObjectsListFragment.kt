@@ -131,7 +131,7 @@ class ObjectsListFragment : Fragment() {
         val filtered = allLocalImages
             .filter { img ->
                 img.category.equals("Images Imported", true) || img.category.equals("Images", true) || img.category.equals("Stickers", true) &&
-                        img.alt_text.contains(filterText, ignoreCase = true)
+                        img.alt_text!!.contains(filterText, ignoreCase = true)
             }
         if (filtered.isEmpty()){
             binding.noEmojis.visibility = View.VISIBLE

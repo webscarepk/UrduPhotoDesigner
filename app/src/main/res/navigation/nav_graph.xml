@@ -82,4 +82,9 @@
         android:name="com.example.urduphotodesigner.ui.navigation.settings.PreferencesFragment"
         android:label="fragment_preferences"
         tools:layout="@layout/fragment_preferences" />
+    <fragment
+        android:id="@+id/popularFontsFragment"
+        android:name="com.example.urduphotodesigner.ui.navigation.fonts.PopularFontsFragment"
+        android:label="fragment_popular_fonts"
+        tools:layout="@layout/fragment_popular_fonts" />
 </navigation>

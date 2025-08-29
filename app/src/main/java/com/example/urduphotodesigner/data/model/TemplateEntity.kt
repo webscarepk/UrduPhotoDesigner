@@ -16,7 +16,7 @@ data class TemplateEntity(
     val json_url: String,
     val canvas_width: Int,
     val canvas_height: Int,
-    val category: String,
+    val category: String? = null,
     val subcategory: String,
     val tags: List<String>,
     val is_premium: Boolean,

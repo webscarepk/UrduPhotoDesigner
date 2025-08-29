@@ -14,28 +14,74 @@ import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.LayoutFormatsItemBinding
 import com.example.urduphotodesigner.databinding.LayoutQualityItemBinding
 import com.example.urduphotodesigner.databinding.LayoutResolutionsItemBinding
+import com.example.urduphotodesigner.databinding.LayoutResolutionsItemPrefsBinding
 
 class ExportOptionAdapter<T>(
-    private val items: List<T>,
+    private var items: List<T>,
     private val viewType: ExportViewType,
+    private val displayMode: Boolean,
     private val onItemSelected: (T) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     override fun getItemCount(): Int = items.size
     override fun getItemViewType(position: Int) = viewType.ordinal
 
+    fun updateList(newItems: List<T>) {
+        items = newItems
+        notifyDataSetChanged()
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
-        return when (ExportViewType.entries[viewType]) {
-            ExportViewType.RESOLUTION -> ResolutionViewHolder(
-                LayoutResolutionsItemBinding.inflate(inflater, parent, false)
+
+        return when (displayMode) {
+            true -> when (ExportViewType.entries[this.viewType.ordinal]) {
+                ExportViewType.RESOLUTION -> ResolutionViewHolder(
+                    LayoutResolutionsItemBinding.inflate(inflater, parent, false)
+                )
+                ExportViewType.QUALITY -> QualityViewHolder(
+                    LayoutQualityItemBinding.inflate(inflater, parent, false)
+                )
+                ExportViewType.FORMAT -> FormatViewHolder(
+                    LayoutFormatsItemBinding.inflate(inflater, parent, false)
+                )
+            }
+
+            false -> CompactViewHolder(
+                LayoutResolutionsItemPrefsBinding.inflate(inflater, parent, false)
             )
-            ExportViewType.QUALITY -> QualityViewHolder(
-                LayoutQualityItemBinding.inflate(inflater, parent, false)
-            )
-            ExportViewType.FORMAT -> FormatViewHolder(
-                LayoutFormatsItemBinding.inflate(inflater, parent, false)
-            )
+        }
+    }
+
+    inner class CompactViewHolder(
+        private val binding: LayoutResolutionsItemPrefsBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
+
+        fun bind(item: Any) {
+            var isSelected = false
+            when (item) {
+                is ExportResolution -> {
+                    binding.title.text = item.name
+                    isSelected = item.isSelected
+                }
+                is ExportQuality -> {
+                    binding.title.text = item.label
+                    isSelected = item.isSelected
+                }
+                is ExportFormat -> {
+                    binding.title.text = item.name
+                    isSelected = item.isSelected
+                }
+            }
+
+            // ✅ show drawableEnd checkmark if selected, else remove
+            val checkDrawable = if (isSelected)
+                ContextCompat.getDrawable(binding.root.context, R.drawable.ic_done) else null
+            binding.title.setCompoundDrawablesWithIntrinsicBounds(null, null, checkDrawable, null)
+
+            binding.root.addPressEffect {
+                onItemSelected(item as T)
+            }
         }
     }
 
@@ -44,6 +90,7 @@ class ExportOptionAdapter<T>(
             is ExportOptionAdapter<*>.ResolutionViewHolder -> holder.bind(items[position] as ExportResolution)
             is ExportOptionAdapter<*>.QualityViewHolder -> holder.bind(items[position] as ExportQuality)
             is ExportOptionAdapter<*>.FormatViewHolder -> holder.bind(items[position] as ExportFormat)
+            is ExportOptionAdapter<*>.CompactViewHolder -> holder.bind(items[position] as Any)
         }
     }
 

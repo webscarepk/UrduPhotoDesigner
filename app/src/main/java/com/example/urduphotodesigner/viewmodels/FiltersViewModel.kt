@@ -52,4 +52,7 @@ class FiltersViewModel @Inject constructor(
     fun setCategory(cat: String) = commit(_filters.value.copy(category = cat))
     fun setQuery(q: String)      = commit(_filters.value.copy(query = q))
     fun setSize(size: CanvasSize?) = commit(_filters.value.copy(size = size))
+
+    fun clearFilters() = commit(Filters())
+
 }
