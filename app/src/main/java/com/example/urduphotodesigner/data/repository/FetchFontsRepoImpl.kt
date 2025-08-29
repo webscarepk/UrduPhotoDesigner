@@ -19,7 +19,7 @@ class FetchFontsRepoImpl @Inject constructor(
             trySend(Response.Loading)
             val response = api.getAllFonts()
 
-            Log.e(TAG, "fetchFonts: $response")
+            Log.e(TAG, "fetchFontsAPI: $response")
             trySend(Response.Success(response))
         } catch (e: Exception) {
             if (e.message?.contains("Connection reset") == true){

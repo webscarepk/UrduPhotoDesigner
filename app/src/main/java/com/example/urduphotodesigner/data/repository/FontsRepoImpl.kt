@@ -1,5 +1,7 @@
 package com.example.urduphotodesigner.data.repository
 
+import android.content.ContentValues.TAG
+import android.util.Log
 import com.example.urduphotodesigner.data.local.AppDatabase
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.domain.repo.FontsRepo
