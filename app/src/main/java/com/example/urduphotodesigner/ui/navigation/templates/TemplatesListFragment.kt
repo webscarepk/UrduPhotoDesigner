@@ -265,10 +265,6 @@ class TemplatesListFragment : Fragment() {
                 lifecycleScope.launch {
                     withContext(Dispatchers.Default) {
                         viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
-                        bundle = Bundle().apply {
-                            putSerializable("canvas_size", exportResult.canvasSize)
-                            putSerializable("unit_type", UnitType.PIXELS)
-                        }
                     }
                 }
                 return@TemplatesAdapter
@@ -482,10 +478,6 @@ class TemplatesListFragment : Fragment() {
                                         exportResult,
                                         requireContext()
                                     )
-                                    bundle = Bundle().apply {
-                                        putSerializable("canvas_size", exportResult.canvasSize)
-                                        putSerializable("unit_type", UnitType.PIXELS)
-                                    }
                                 }
                             }
                         }

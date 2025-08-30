@@ -52,15 +52,11 @@ class MainActivity : AppCompatActivity() {
                 val heightVal = bitmap.height.toFloat()
 
                 val canvasSize = CanvasSize("From Image", widthVal, heightVal)
-                val bundle = Bundle().apply {
-                    putSerializable("canvas_size", canvasSize)
-                    putSerializable("unit_type", UnitType.PIXELS)
-                }
 
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(canvasSize)
                 viewModel.setCanvasBackgroundImage(bitmap)
-                navController.navigate(R.id.editorFragment, bundle, navOptions)
+                navController.navigate(R.id.editorFragment, null, navOptions)
             }
         }
     private val mainViewModel: MainViewModel by viewModels()

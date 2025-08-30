@@ -42,8 +42,6 @@ class BackgroundsListFragment : Fragment() {
            if (isAdded){
                viewModel.ensureBackgroundElement(
                    requireActivity(),
-                   viewModel.canvasSize.value!!.width,
-                   viewModel.canvasSize.value!!.height
                )
                viewModel.setCanvasBackgroundImage(image)
            }

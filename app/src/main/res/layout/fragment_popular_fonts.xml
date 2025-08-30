@@ -34,11 +34,23 @@
         android:orientation="vertical"
         android:id="@+id/endGuide"/>
 
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_back"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintTop_toBottomOf="@id/topGuide"
+        android:id="@+id/back"
+        android:paddingVertical="12dp"
+        android:paddingEnd="12dp"/>
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/topGuide"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintStart_toEndOf="@id/back"
+        app:layout_constraintTop_toTopOf="@id/back"
+        app:layout_constraintBottom_toBottomOf="@id/back"
+        android:layout_marginStart="6dp"
         android:text="@string/fonts"
         android:fontFamily="@font/bold"
         android:textSize="19sp"

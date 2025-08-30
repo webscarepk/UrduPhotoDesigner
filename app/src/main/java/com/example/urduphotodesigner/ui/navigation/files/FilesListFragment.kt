@@ -1,5 +1,8 @@
 package com.example.urduphotodesigner.ui.navigation.files
 
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
+import android.app.Dialog
 import android.content.ContentValues
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -10,6 +13,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.LinearInterpolator
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.Toast
@@ -17,15 +21,21 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavOptions
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.urduphotodesigner.R
+import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.canvas.enums.UnitType
+import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.utils.DialogUtils
 import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.data.model.ImageEntity
+import com.example.urduphotodesigner.databinding.DialogLoadingProgressBinding
 import com.example.urduphotodesigner.databinding.FragmentFilesListBinding
 import com.example.urduphotodesigner.databinding.LayoutFilesPopupBinding
 import com.example.urduphotodesigner.viewmodels.FiltersViewModel
@@ -34,6 +44,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 @AndroidEntryPoint
@@ -44,7 +55,16 @@ class FilesListFragment : Fragment() {
     private var tabName: String? = null
     private lateinit var adapter: FilesAdapter
     private val viewModel: MainViewModel by activityViewModels()
+    private val canvasViewModel: CanvasViewModel by activityViewModels()
     private val filtersViewModel: FiltersViewModel by activityViewModels()
+    private var bundle: Bundle = Bundle()
+    private var loadingDialog: Dialog? = null
+    private var dialogBinding: DialogLoadingProgressBinding? = null
+
+    private var rotationAnimator: ObjectAnimator? = null
+    val navOptions = NavOptions.Builder()
+        .setLaunchSingleTop(true)
+        .build()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,7 +106,7 @@ class FilesListFragment : Fragment() {
                         }
                     }
                 }
-            },onSelectionChanged = { active ->
+            }, onSelectionChanged = { active ->
                 binding.deleteAll.visibility = if (active) View.VISIBLE else View.GONE
             })
         binding.filesRV.adapter = adapter
@@ -119,34 +139,37 @@ class FilesListFragment : Fragment() {
     private fun openItem(item: Any) {
         when (item) {
             is ExportResult -> {
-                // open project
-                Toast.makeText(
-                    requireContext(),
-                    "Opening project: ${item.fileName}",
-                    Toast.LENGTH_SHORT
-                ).show()
-                // navigate to editor with this project
-                // navController.navigate(R.id.editorFragment, bundleOf("projectId" to item.id))
+                lifecycleScope.launch {
+                    withContext(Dispatchers.Default) {
+                        canvasViewModel.loadTemplateFromJsonFile(item, requireContext())
+                    }
+                }
             }
 
             is FontEntity -> {
-                // open font preview
-                Toast.makeText(
-                    requireContext(),
-                    "Preview font: ${item.font_name}",
-                    Toast.LENGTH_SHORT
-                ).show()
-                // maybe launch a FontPreviewDialog
+                canvasViewModel.setCanvasSize(CanvasSize("", 2000f, 2000f))
+                canvasViewModel.addTextWithFont(
+                    requireActivity().getString(R.string.dummyText),
+                    item,
+                    requireActivity()
+                )
+                findNavController().navigate(R.id.editorFragment, bundle, navOptions)
             }
 
             is ImageEntity -> {
-                // open image viewer
-                Toast.makeText(
-                    requireContext(),
-                    "Opening image: ${item.file_name}",
-                    Toast.LENGTH_SHORT
-                ).show()
-                // show full screen or detail fragment
+                val bitmap = BitmapFactory.decodeFile(item.bitmapData)
+
+                bitmap?.let {
+                    val widthVal = it.width.toFloat()
+                    val heightVal = it.height.toFloat()
+
+                    val canvasSize = CanvasSize("From Image", widthVal, heightVal)
+
+                    canvasViewModel.clearCanvas()
+                    canvasViewModel.setCanvasSize(canvasSize)
+                    canvasViewModel.setCanvasBackgroundImage(it)
+                    findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                }
             }
         }
     }
@@ -422,10 +445,30 @@ class FilesListFragment : Fragment() {
     }
 
     private fun initObservers() {
+
+        canvasViewModel.loadingStage.observe(viewLifecycleOwner) { (message, percent) ->
+            dialogBinding?.apply {
+                progressBar.progress = percent
+                subtitle.text = "$message... $percent%"
+            }
+        }
+
+        canvasViewModel.isLoadingTemplate.observe(viewLifecycleOwner) { isLoading ->
+            if (isLoading == true) {
+                showLoadingDialog()
+            } else if (isLoading == false) {
+                dismissLoadingDialog()
+                canvasViewModel.clearLoading()
+                if (findNavController().currentDestination?.id != R.id.editorFragment) {
+                    findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                }
+            }
+        }
+
         lifecycleScope.launch {
             filtersViewModel.isGrid.collect { isGrid ->
                 if (isGrid) {
-                    binding.filesRV.layoutManager = GridLayoutManager(requireContext(), 3)
+                    binding.filesRV.layoutManager = GridLayoutManager(requireContext(), 2)
                 } else {
                     binding.filesRV.layoutManager = LinearLayoutManager(requireContext())
                 }
@@ -521,6 +564,50 @@ class FilesListFragment : Fragment() {
             }
 
         }
+    }
+
+    private fun showLoadingDialog() {
+        if (loadingDialog?.isShowing == true) return
+        dialogBinding = DialogLoadingProgressBinding.inflate(LayoutInflater.from(requireActivity()))
+
+        loadingDialog = Dialog(requireContext()).apply {
+            setContentView(dialogBinding!!.root)
+            setCancelable(false)
+            window?.setBackgroundDrawableResource(android.R.color.transparent)
+            window?.setLayout(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            window?.setGravity(Gravity.CENTER)
+            show()
+        }
+
+        dialogBinding?.title?.text = "Loading Template"
+
+        startIconRotation()
+    }
+
+    private fun startIconRotation() {
+        dialogBinding?.view4?.let { icon ->
+            rotationAnimator = ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, 360f).apply {
+                duration = 1000L
+                repeatCount = ValueAnimator.INFINITE
+                interpolator = LinearInterpolator()
+                start()
+            }
+        }
+    }
+
+    private fun stopIconRotation() {
+        rotationAnimator?.cancel()
+        rotationAnimator = null
+    }
+
+    private fun dismissLoadingDialog() {
+        stopIconRotation()
+        loadingDialog?.dismiss()
+        loadingDialog = null
+        dialogBinding = null
     }
 
     override fun onDestroy() {

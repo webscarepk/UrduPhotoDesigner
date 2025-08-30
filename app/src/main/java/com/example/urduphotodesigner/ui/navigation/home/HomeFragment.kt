@@ -59,7 +59,6 @@ class HomeFragment : Fragment() {
     private lateinit var fontsAdapter: FontsAdapter
     private lateinit var trendsAdapter: TrendsAdapter
     private lateinit var popularTemplatesAdapter: PopularTemplatesAdapter
-
     private var downloadingTemplate: TemplateEntity? = null
     private var rotationAnimator: ObjectAnimator? = null
 
@@ -77,10 +76,6 @@ class HomeFragment : Fragment() {
                 val heightVal = bitmap.height.toFloat()
 
                 val canvasSize = CanvasSize("From Image", widthVal, heightVal)
-                val bundle = Bundle().apply {
-                    putSerializable("canvas_size", canvasSize)
-                    putSerializable("unit_type", UnitType.PIXELS)
-                }
 
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(canvasSize)
@@ -154,10 +149,6 @@ class HomeFragment : Fragment() {
             lifecycleScope.launch {
                 withContext(Dispatchers.Default) {
                     viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
-                    bundle = Bundle().apply {
-                        putSerializable("canvas_size", exportResult.canvasSize)
-                        putSerializable("unit_type", UnitType.PIXELS)
-                    }
                 }
             }
         }, onLongClick = { view, exportResult ->
@@ -176,11 +167,8 @@ class HomeFragment : Fragment() {
                     font,
                     requireActivity()
                 )
-                bundle = Bundle().apply {
-                    putSerializable("canvas_size", CanvasSize("", 2000f, 2000f))
-                    putSerializable("unit_type", UnitType.PIXELS)
-                }
-                findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+
+                findNavController().navigate(R.id.editorFragment, null, navOptions)
             }
         }, onDownload = {
             mainViewModel.downloadFont(it)
@@ -208,10 +196,6 @@ class HomeFragment : Fragment() {
                         lifecycleScope.launch {
                             withContext(Dispatchers.Default) {
                                 viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
-                                bundle = Bundle().apply {
-                                    putSerializable("canvas_size", exportResult.canvasSize)
-                                    putSerializable("unit_type", UnitType.PIXELS)
-                                }
                             }
                         }
                         return@TrendsAdapter
@@ -252,10 +236,6 @@ class HomeFragment : Fragment() {
                         lifecycleScope.launch {
                             withContext(Dispatchers.Default) {
                                 viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
-                                bundle = Bundle().apply {
-                                    putSerializable("canvas_size", exportResult.canvasSize)
-                                    putSerializable("unit_type", UnitType.PIXELS)
-                                }
                             }
                         }
                     }
@@ -289,7 +269,7 @@ class HomeFragment : Fragment() {
             findNavController().navigate(R.id.templatesFragment)
         }
 
-        binding.recentProjects.addPressEffect {
+        binding.popularFonts.addPressEffect {
             findNavController().navigate(R.id.popularFontsFragment)
         }
     }
@@ -345,10 +325,6 @@ class HomeFragment : Fragment() {
                             val exportResult = t.toExportResultFinal()
                             lifecycleScope.launch {
                                 viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
-                                bundle = Bundle().apply {
-                                    putSerializable("canvas_size", exportResult.canvasSize)
-                                    putSerializable("unit_type", UnitType.PIXELS)
-                                }
                             }
                         }
                     }
@@ -403,9 +379,10 @@ class HomeFragment : Fragment() {
 
         lifecycleScope.launch {
             mainViewModel.localFonts.collect { fonts ->
-                fontsAdapter.submitList(fonts)
+                val filteredFonts = fonts.filter { !it.font_category.equals("Imported", true) }
+                fontsAdapter.submitList(filteredFonts)
                 binding.popularFonts.visibility =
-                    if (fonts.isEmpty()) View.GONE else View.VISIBLE
+                    if (filteredFonts.isEmpty()) View.GONE else View.VISIBLE
             }
         }
 
@@ -440,10 +417,7 @@ class HomeFragment : Fragment() {
                                     font,
                                     requireActivity()
                                 )
-                                bundle = Bundle().apply {
-                                    putSerializable("canvas_size", CanvasSize("", 2000f, 2000f))
-                                    putSerializable("unit_type", UnitType.PIXELS)
-                                }
+
                                 if (isAdded && findNavController().currentDestination?.id != R.id.editorFragment) {
                                     findNavController().navigate(
                                         R.id.editorFragment,
@@ -526,10 +500,6 @@ class HomeFragment : Fragment() {
             lifecycleScope.launch {
                 withContext(Dispatchers.Default) {
                     viewModel.loadTemplateFromJsonFile(item, requireContext())
-                    bundle = Bundle().apply {
-                        putSerializable("canvas_size", item.canvasSize)
-                        putSerializable("unit_type", UnitType.PIXELS)
-                    }
                 }
             }
         }

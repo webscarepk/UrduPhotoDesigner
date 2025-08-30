@@ -1,6 +1,7 @@
 package com.example.urduphotodesigner.ui.navigation.files
 
 import android.content.res.ColorStateList
+import android.graphics.Canvas
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -15,7 +16,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.viewpager2.widget.ViewPager2
 import com.example.urduphotodesigner.R
+import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
+import com.example.urduphotodesigner.common.views.CanvasView
 import com.example.urduphotodesigner.databinding.FragmentFilesBinding
 import com.example.urduphotodesigner.viewmodels.FiltersViewModel
 import com.google.android.material.card.MaterialCardView
@@ -30,6 +33,7 @@ class FilesFragment : Fragment() {
     private val binding get() = _binding!!
     private var tabs = emptyList<String>()
     private val viewModel: FiltersViewModel by activityViewModels()
+    private val canvasViewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -107,6 +111,13 @@ class FilesFragment : Fragment() {
                 root?.setCardBackgroundColor(ContextCompat.getColor(requireContext(), R.color.contrast))
                 text?.setTextColor(ContextCompat.getColor(requireContext(), R.color.gray))
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (findNavController().currentDestination?.id!! != R.id.editorFragment) {
+            canvasViewModel.clearCanvas()
         }
     }
 

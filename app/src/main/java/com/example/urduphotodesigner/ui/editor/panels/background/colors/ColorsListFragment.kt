@@ -64,16 +64,12 @@ class ColorsListFragment : Fragment() {
     private fun setupRecyclerView() {
         colorsAdapter = ColorsAdapter(Constants.colorList, { color ->
             viewModel.ensureBackgroundElement(
-                requireActivity(),
-                viewModel.canvasSize.value!!.width,
-                viewModel.canvasSize.value!!.height
+                requireActivity()
             )
             viewModel.setCanvasBackgroundColor(color.colorCode.toColorInt())
         }, {
             viewModel.ensureBackgroundElement(
-                requireActivity(),
-                viewModel.canvasSize.value!!.width,
-                viewModel.canvasSize.value!!.height
+                requireActivity()
             )
             viewModel.setCanvasBackgroundColor(android.R.color.transparent)
         }, {
@@ -95,9 +91,7 @@ class ColorsListFragment : Fragment() {
             gradientList = emptyList(),
             onGradientSelected = { _, gradient ->
                 viewModel.ensureBackgroundElement(
-                    requireActivity(),
-                    viewModel.canvasSize.value!!.width,
-                    viewModel.canvasSize.value!!.height
+                    requireActivity()
                 )
                 viewModel.setCanvasGradient(gradient)
             },

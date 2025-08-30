@@ -1,28 +1,26 @@
 package com.example.urduphotodesigner.ui.navigation.fonts
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.viewpager2.widget.ViewPager2
 import com.example.urduphotodesigner.R
+import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentPopularFontsBinding
-import com.example.urduphotodesigner.databinding.FragmentPopularFontsListBinding
-import com.example.urduphotodesigner.ui.navigation.files.FilesPagerAdapter
 import com.example.urduphotodesigner.viewmodels.FiltersViewModel
 import com.example.urduphotodesigner.viewmodels.MainViewModel
-import com.google.android.material.card.MaterialCardView
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import kotlin.getValue
 
 @AndroidEntryPoint
 class PopularFontsFragment : Fragment() {
@@ -32,6 +30,9 @@ class PopularFontsFragment : Fragment() {
     private var tabs = emptyList<String>()
     private val viewModel: FiltersViewModel by activityViewModels()
     private val mainViewModel: MainViewModel by activityViewModels()
+    private val canvasViewModel: CanvasViewModel by activityViewModels()
+    private lateinit var pagerAdapter: PopularFontsPagerAdapter
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -45,6 +46,7 @@ class PopularFontsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setEvents()
+        setupTabsAndPager()
         initObservers()
     }
 
@@ -65,27 +67,25 @@ class PopularFontsFragment : Fragment() {
                     add("All")
                     addAll(
                         allFonts.map { it.font_category.trim() }
-                            .filter { it.isNotEmpty() }
+                            .filter { it.isNotEmpty() && !it.equals("Imported", true) }
                             .distinct()
                             .sorted()
                     )
                 }
 
-                if (tabs != categories) {
-                    tabs = categories
-                    setupTabsAndPager()
-                }
+                tabs = categories
+                pagerAdapter.updateTabs(categories)
             }
         }
     }
 
     private fun setupTabsAndPager() {
-        val adapter = PopularFontsPagerAdapter(
+        pagerAdapter = PopularFontsPagerAdapter(
             requireActivity().supportFragmentManager,
             lifecycle,
             tabs
         )
-        binding.viewPager.adapter = adapter
+        binding.viewPager.adapter = pagerAdapter
 
         TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
             val tabView = LayoutInflater.from(context)
@@ -108,27 +108,46 @@ class PopularFontsFragment : Fragment() {
         binding.searchBar.addTextChangedListener { text ->
             viewModel.setSearchQuery(text.toString())
         }
+        binding.back.addPressEffect { findNavController().navigateUp() }
     }
 
     fun updateTabStyles(selectedPosition: Int) {
         for (i in 0 until binding.tabLayout.tabCount) {
             val tabView = binding.tabLayout.getTabAt(i)?.customView
-            val root = tabView?.findViewById<com.google.android.material.card.MaterialCardView>(R.id.tabRoot)
+            val root =
+                tabView?.findViewById<com.google.android.material.card.MaterialCardView>(R.id.tabRoot)
             val text = tabView?.findViewById<TextView>(R.id.tabTitle)
 
             if (i == selectedPosition) {
-                root?.setCardBackgroundColor(ContextCompat.getColor(requireContext(), R.color.appColor))
+                root?.setCardBackgroundColor(
+                    ContextCompat.getColor(
+                        requireContext(),
+                        R.color.appColor
+                    )
+                )
                 text?.setTextColor(ContextCompat.getColor(requireContext(), R.color.whiteText))
             } else {
-                root?.setCardBackgroundColor(ContextCompat.getColor(requireContext(), R.color.contrast))
+                root?.setCardBackgroundColor(
+                    ContextCompat.getColor(
+                        requireContext(),
+                        R.color.contrast
+                    )
+                )
                 text?.setTextColor(ContextCompat.getColor(requireContext(), R.color.gray))
             }
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (findNavController().currentDestination?.id!! != R.id.editorFragment) {
+            canvasViewModel.clearCanvas()
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
-        _binding = null
         viewModel.clearFilters()
+        _binding = null
     }
 }

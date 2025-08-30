@@ -22,6 +22,7 @@ import com.example.urduphotodesigner.common.canvas.enums.ListStyle
 import com.example.urduphotodesigner.common.canvas.enums.PickerTarget
 import com.example.urduphotodesigner.common.canvas.enums.TextAlignment
 import com.example.urduphotodesigner.common.canvas.enums.TextDecoration
+import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.canvas.model.ExportFormat
@@ -118,6 +119,9 @@ class CanvasViewModel @Inject constructor(
 
     private val _canvasSize = MutableLiveData<CanvasSize?>()
     val canvasSize: LiveData<CanvasSize?> = _canvasSize
+
+    private val _canvasUnit = MutableLiveData<UnitType?>(UnitType.PIXELS)
+    val canvasUnit: LiveData<UnitType?> = _canvasUnit
 
     private val _currentImageFilter = MutableLiveData<ImageFilter?>(null)
     val currentImageFilter: LiveData<ImageFilter?> = _currentImageFilter
@@ -306,11 +310,15 @@ class CanvasViewModel @Inject constructor(
 
     fun fetchExportOptionsFromDataStore() {
         viewModelScope.launch {
-            val resName = dataStore.getFirstPreference(PreferenceDataStoreKeysConstants.KEY_RESOLUTION, "")
-            val qualityLabel = dataStore.getFirstPreference(PreferenceDataStoreKeysConstants.KEY_QUALITY, "")
-            val formatName = dataStore.getFirstPreference(PreferenceDataStoreKeysConstants.KEY_FORMAT, "")
+            val resName =
+                dataStore.getFirstPreference(PreferenceDataStoreKeysConstants.KEY_RESOLUTION, "")
+            val qualityLabel =
+                dataStore.getFirstPreference(PreferenceDataStoreKeysConstants.KEY_QUALITY, "")
+            val formatName =
+                dataStore.getFirstPreference(PreferenceDataStoreKeysConstants.KEY_FORMAT, "")
 
-            val res = availableResolutions.find { it.name == resName } ?: availableResolutions.first()
+            val res =
+                availableResolutions.find { it.name == resName } ?: availableResolutions.first()
             val quality = qualityOptions.find { it.label == qualityLabel } ?: qualityOptions.first()
             val format = formatOptions.find { it.name == formatName } ?: formatOptions.first()
 
@@ -331,9 +339,18 @@ class CanvasViewModel @Inject constructor(
         _exportOptions.value = newOptions
 
         viewModelScope.launch {
-            dataStore.putPreference(PreferenceDataStoreKeysConstants.KEY_RESOLUTION, newOptions.resolution.name)
-            dataStore.putPreference(PreferenceDataStoreKeysConstants.KEY_QUALITY, newOptions.quality.label)
-            dataStore.putPreference(PreferenceDataStoreKeysConstants.KEY_FORMAT, newOptions.format.name)
+            dataStore.putPreference(
+                PreferenceDataStoreKeysConstants.KEY_RESOLUTION,
+                newOptions.resolution.name
+            )
+            dataStore.putPreference(
+                PreferenceDataStoreKeysConstants.KEY_QUALITY,
+                newOptions.quality.label
+            )
+            dataStore.putPreference(
+                PreferenceDataStoreKeysConstants.KEY_FORMAT,
+                newOptions.format.name
+            )
         }
     }
 
@@ -945,6 +962,11 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
+    fun setCanvasUnit(newUnit: UnitType) {
+        _canvasUnit.value = newUnit
+        notifyUndoRedoChanged()
+    }
+
     fun endBatchUpdate(elementId: String) {
         val currentList = _canvasElements.value ?: emptyList()
         val finalElement = currentList.find { it.id == elementId }
@@ -1392,7 +1414,7 @@ class CanvasViewModel @Inject constructor(
         notifyUndoRedoChanged()
     }
 
-    fun ensureBackgroundElement(context: Context, canvasWidth: Float, canvasHeight: Float) {
+    fun ensureBackgroundElement(context: Context) {
         // if we already have a background, do nothing
         if ((_canvasElements.value
                 ?: emptyList()).any { it.type == ElementType.BACKGROUND }
@@ -1402,15 +1424,15 @@ class CanvasViewModel @Inject constructor(
         val bg = CanvasElement(
             context = context,
             type = ElementType.BACKGROUND,
-            x = canvasWidth / 2f,
-            y = canvasHeight / 2f,
+            x = _canvasSize.value?.width!! / 2f,
+            y = _canvasSize.value?.height!! / 2f,
             paintColor = Color.WHITE,
             fillGradient = null,
             bitmap = null
         ).apply {
             isLocked = true
-            logicalContentWidth = canvasWidth
-            logicalContentHeight = canvasHeight
+            logicalContentWidth = _canvasSize.value?.width!!
+            logicalContentHeight = _canvasSize.value?.height!!
             updatePaintProperties()
         }
 

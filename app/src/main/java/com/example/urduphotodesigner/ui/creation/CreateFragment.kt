@@ -131,14 +131,9 @@ class CreateFragment : BottomSheetDialogFragment() {
             }
 
             adapter = CanvasSizeAdapter(sizeList, onClick =  { selected ->
-                val bundle = Bundle().apply {
-                    putSerializable("canvas_size", selected)
-                    putSerializable("unit_type", currentUnit)
-                }
-
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(selected)
-                findNavController().navigate(R.id.editorFragment, bundle)
+                findNavController().navigate(R.id.editorFragment, null)
                 dismiss()
             }, true)
             sizesRV.adapter = adapter
@@ -224,14 +219,10 @@ class CreateFragment : BottomSheetDialogFragment() {
                 val heightVal = getSafeIntValue(height)
 
                 val canvasSize = CanvasSize("Custom", widthVal, heightVal)
-                val bundle = Bundle().apply {
-                    putSerializable("canvas_size", canvasSize)
-                    putSerializable("unit_type", currentUnit)
-                }
 
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(canvasSize)
-                findNavController().navigate(R.id.editorFragment, bundle)
+                findNavController().navigate(R.id.editorFragment)
                 dismiss()
             }
 

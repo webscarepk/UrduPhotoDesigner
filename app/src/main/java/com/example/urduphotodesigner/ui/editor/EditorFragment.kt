@@ -136,10 +136,6 @@ class EditorFragment : Fragment() {
             insets
         }
 
-        canvasSize = arguments?.getSerializable("canvas_size") as CanvasSize
-        currentUnit = (arguments?.getSerializable("unit_type") as? UnitType)!!
-        viewModel.setCanvasSize(canvasSize)
-
         val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
 
         val jsonFileName = "canvas_$timestamp.json"
@@ -148,8 +144,6 @@ class EditorFragment : Fragment() {
         jsonPath = File(requireContext().filesDir, jsonFileName).absolutePath
         imagePath = File(requireContext().filesDir, imageFileName).absolutePath
 
-        Log.d(TAG, "onViewCreated: EditorFragment")
-        setEvents()
         observeViewModel()
     }
 
@@ -326,7 +320,7 @@ class EditorFragment : Fragment() {
             if (exportResult == null) {
                 // brand new canvas → trigger first silent save
                 Log.d("EditorFragment", "Blank canvas detected → running autoSaveSilent()")
-                viewModel.ensureBackgroundElement(requireActivity(), canvasSize.width, canvasSize.height)
+                viewModel.ensureBackgroundElement(requireActivity())
                 autoSaveSilent()
             } else {
                 // existing project → use its paths
@@ -340,10 +334,24 @@ class EditorFragment : Fragment() {
             }
         }
 
+        viewModel.canvasUnit.observe(viewLifecycleOwner) { unit ->
+            if (unit != null) {
+                currentUnit = unit
+                binding.canvasContainer.invalidate()
+            }
+        }
+
         viewModel.canvasSize.observe(viewLifecycleOwner) { size ->
             if (size != null) {
                 canvasSize = size
-                binding.canvasContainer.invalidate()
+                if (!::sizedCanvasView.isInitialized) {
+                    setEvents()
+
+                    if (exportModel == null) {
+                        autoSaveSilent()
+                    }
+                }
+
             }
         }
 
@@ -790,6 +798,10 @@ class EditorFragment : Fragment() {
     }
 
     private fun autoSaveSilent() {
+        if (!::sizedCanvasView.isInitialized) {
+            Log.w("EditorFragment", "Skipping autoSaveSilent, canvas not ready yet")
+            return
+        }
         val options = viewModel.exportOptions.value ?: return
         val canvasSize = viewModel.canvasSize.value ?: return
 

@@ -45,20 +45,66 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:background="@color/contrast"
-                        android:scaleType="centerCrop"
                         android:src="@drawable/ic_launcher_background" />
 
                 </com.facebook.shimmer.ShimmerFrameLayout>
 
-                <ImageView
-                    android:visibility="gone"
-                    android:id="@+id/selection"
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/downloadSection"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:src="@drawable/ic_unselected_radio"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    android:layout_margin="@dimen/_10sdp"/>
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent">
+                    <LinearLayout
+                        android:id="@+id/progressBox"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:background="@drawable/button_bg_round"
+                        android:backgroundTint="@color/appColor"
+                        android:paddingHorizontal="4dp"
+                        android:paddingVertical="3dp"
+                        android:layout_margin="4dp"
+                        android:visibility="gone"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        android:gravity="center">
+                        <ProgressBar
+                            android:id="@+id/progressBar"
+                            style="?android:attr/progressBarStyleSmall"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:indeterminate="true"
+                            android:layout_marginEnd="6dp"
+                            android:indeterminateTint="@color/white"/>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="28%"
+                            android:textColor="@color/white"
+                            android:textSize="10sp"
+                            android:fontFamily="@font/medium"
+                            android:id="@+id/percentage"/>
+                    </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/download"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="end|bottom"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/ic_download"
+                        android:visibility="gone"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:background="@drawable/button_bg_round"
+                        android:backgroundTint="@color/white"
+                        android:padding="6dp"
+                        app:tint="@color/appColor" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
             </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -67,27 +113,10 @@
             android:layout_height="wrap_content"
             android:id="@+id/parentForPadding"
             android:layout_marginHorizontal="@dimen/_5sdp"
+            android:layout_marginTop="5dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/imageCard">
-
-            <EditText
-                android:id="@+id/editName"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:imeOptions="actionDone"
-                android:fontFamily="@font/bold"
-                android:textColor="@color/black"
-                android:drawableEnd="@drawable/ic_close"
-                android:textSize="14sp"
-                android:drawablePadding="10dp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                android:background="@android:color/transparent"
-                android:visibility="gone"/>
 
             <TextView
                 android:visibility="visible"
@@ -100,8 +129,8 @@
                 android:text="@string/social_media_post"
                 android:textColor="@color/black"
                 android:textSize="14sp"
-                android:layout_marginTop="5dp"
-                app:layout_constraintEnd_toStartOf="@id/moreOptions"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toTopOf="@id/metaData"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -120,15 +149,6 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/assetName" />
 
-            <ImageView
-                android:id="@+id/moreOptions"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="@dimen/_10sdp"
-                android:src="@drawable/ic_options"
-                app:layout_constraintBottom_toBottomOf="@id/assetName"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/assetName" />
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>
