@@ -21,6 +21,9 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resumeWithException
 
 object Utils {
+    private var lastVibrateTime = 0L
+    private val vibrateCooldown = 150L
+
     @SuppressLint("ClickableViewAccessibility")
     fun View.addPressEffect(onClick: (() -> Unit)? = null) {
         var isInside = false
@@ -178,7 +181,11 @@ object Utils {
         isFocusable = true
     }
 
-    private fun View.vibrateSoft(durationMs: Long = 30L, amplitude: Int = 40) {
+    fun View.vibrateSoft(durationMs: Long = 30L, amplitude: Int = 40) {
+        val now = System.currentTimeMillis()
+        if (now - (lastVibrateTime) < vibrateCooldown) return
+        lastVibrateTime = now
+
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val manager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
             manager.defaultVibrator

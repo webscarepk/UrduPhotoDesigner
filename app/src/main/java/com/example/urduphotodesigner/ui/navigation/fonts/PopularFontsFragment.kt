@@ -33,7 +33,6 @@ class PopularFontsFragment : Fragment() {
     private val canvasViewModel: CanvasViewModel by activityViewModels()
     private lateinit var pagerAdapter: PopularFontsPagerAdapter
 
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?

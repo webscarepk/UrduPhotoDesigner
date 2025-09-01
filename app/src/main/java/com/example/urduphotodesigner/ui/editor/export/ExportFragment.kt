@@ -2,6 +2,7 @@ package com.example.urduphotodesigner.ui.editor.export
 
 import android.Manifest
 import android.content.ContentValues
+import android.content.ContentValues.TAG
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.drawable.AnimatedVectorDrawable
@@ -275,19 +276,20 @@ class ExportFragment : Fragment() {
                 val jsonPath = saveJson(json)
 
                 // 4. Final file size (real saved file)
-                val fileSizeMB = if (options.format.name.equals("PDF", true)) {
+                val imageOrPdfSizeMB = if (options.format.name.equals("PDF", true)) {
                     pdfPath?.let { File(it).length().toDouble() / (1024.0 * 1024.0) } ?: sizeMB
                 } else {
-                    File(imagePath).takeIf { it.exists() }?.length()?.div(1024.0 * 1024.0) ?: sizeMB
+                    File(imagePath).takeIf { it.exists() }?.length()?.toDouble()?.div(1024.0 * 1024.0) ?: sizeMB
                 }
+                val jsonSizeMB = File(jsonPath).takeIf { it.exists() }?.length()?.toDouble()?.div(1024.0 * 1024.0) ?: 0.0
+                val fileSizeMB = imageOrPdfSizeMB + jsonSizeMB
+
                 val exportDate =
                     SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
 
-                val fileName = if (options.format.name.equals("PDF", true)) {
-                    pdfPath?.let { File(it).name } ?: "export_${exportDate}.pdf"
-                } else {
-                    File(imagePath).name
-                }
+                Log.d(TAG, "exportCanvasInternal: ${exportResult?.fileName} ")
+                val fileBaseName = "project_${System.currentTimeMillis()}"
+                val fileName = "$fileBaseName.proj"
                 // 5. Build or update ExportResult
                 val result = exportResult?.apply {
                     this.imagePath = imagePath

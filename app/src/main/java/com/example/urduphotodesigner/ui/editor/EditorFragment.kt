@@ -255,23 +255,26 @@ class EditorFragment : Fragment() {
                 withContext(Dispatchers.Main) {
                     updateExportDialog(97, "JSON saved")
                 }
-
+                val jsonSizeBytes = exportJson.toByteArray(Charsets.UTF_8).size
                 // ---- Calculate file size ----
-                val fileSizeMB = estimateBitmapSize(
-                    exportBitmap,
-                    options.format.format!!,
-                    options.quality.quality
-                ) / (1024.0 * 1024.0)
+                val fileSizeMB = (
+                        estimateBitmapSize(
+                            exportBitmap,
+                            options.format.format!!,
+                            options.quality.quality
+                        ) + jsonSizeBytes
+                        ) / (1024.0 * 1024.0)
 
                 val exportDate =
                     SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
-
+                val fileBaseName = "project_${System.currentTimeMillis()}"
+                val fileName = "$fileBaseName.proj"
                 // ---- Prepare model ----
                 if (exportModel == null) {
                     exportModel = ExportResult(
                         imagePath = imagePath,
                         jsonPath = jsonPath,
-                        fileName = imagePath.substringAfterLast("/") ?: "design",
+                        fileName = fileName,
                         fileSizeMB = fileSizeMB,
                         resolution = options.resolution.label,
                         format = options.format.name,
@@ -284,6 +287,7 @@ class EditorFragment : Fragment() {
                     if (exportModel!!.imagePath.startsWith("/storage")) {
                         exportModel!!.imagePath = imagePath
                     }
+
                     exportModel!!.canvasSize = canvasSize
                     exportModel!!.fileSizeMB = fileSizeMB
                     exportModel!!.updatedDate = exportDate

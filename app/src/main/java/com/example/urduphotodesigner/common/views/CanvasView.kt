@@ -56,6 +56,7 @@ import com.example.urduphotodesigner.common.canvas.model.ExportResolution
 import com.example.urduphotodesigner.common.canvas.model.GradientItem
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
 import com.example.urduphotodesigner.common.utils.ImageProcessor
+import com.example.urduphotodesigner.common.utils.Utils.vibrateSoft
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.di.GsonEntryPoint
 import com.google.gson.Gson
@@ -158,6 +159,14 @@ class CanvasView @JvmOverloads constructor(
     private var offsetX = 0f
     private var offsetY = 0f
 
+    private var overallScale = 1f
+    private var overallOffsetX = 0f
+    private var overallOffsetY = 0f
+
+    // For pinch & drag gestures
+    private var lastTouchX = 0f
+    private var lastTouchY = 0f
+    private var lastPointerDistance = 0f
     init {
         gestureDetector = GestureDetector(context, GestureListener())
     }
@@ -807,8 +816,14 @@ class CanvasView @JvmOverloads constructor(
 
     private fun checkAlignment(element: CanvasElement) {
         val centerThreshold = 5f
-        showVerticalGuide = abs(element.x - canvasWidth / 2f) < centerThreshold
-        showHorizontalGuide = abs(element.y - canvasHeight / 2f) < centerThreshold
+        val newVertical = abs(element.x - canvasWidth / 2f) < centerThreshold
+        val newHorizontal = abs(element.y - canvasHeight / 2f) < centerThreshold
+
+        if (!showVerticalGuide && newVertical) vibrateSoft()
+        if (!showHorizontalGuide && newHorizontal) vibrateSoft()
+
+        showVerticalGuide = newVertical
+        showHorizontalGuide = newHorizontal
     }
 
     /**
@@ -818,14 +833,15 @@ class CanvasView @JvmOverloads constructor(
     private fun checkRotationAlignment(element: CanvasElement) {
         val rotationThreshold = 5f
         val normalizedRotation = (element.rotation % 360 + 360) % 360
-        showRotationVerticalGuide = false
-        showRotationHorizontalGuide = false
-        if (abs(normalizedRotation) < rotationThreshold || abs(normalizedRotation - 180) < rotationThreshold) {
-            showRotationVerticalGuide = true
-        }
-        if (abs(normalizedRotation - 90) < rotationThreshold || abs(normalizedRotation - 270) < rotationThreshold) {
-            showRotationHorizontalGuide = true
-        }
+
+        val newRotV = abs(normalizedRotation) < rotationThreshold || abs(normalizedRotation - 180) < rotationThreshold
+        val newRotH = abs(normalizedRotation - 90) < rotationThreshold || abs(normalizedRotation - 270) < rotationThreshold
+
+        if (!showRotationVerticalGuide && newRotV) vibrateSoft()
+        if (!showRotationHorizontalGuide && newRotH) vibrateSoft()
+
+        showRotationVerticalGuide = newRotV
+        showRotationHorizontalGuide = newRotH
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -871,10 +887,35 @@ class CanvasView @JvmOverloads constructor(
         return (xMin..xMax) to (yMin..yMax)
     }
 
+    private fun clampPan() {
+        if (overallScale <= 1f) {
+            overallOffsetX = 0f
+            overallOffsetY = 0f
+            return
+        }
+
+        val maxX = (canvasWidth * (overallScale - 1f)) / 2f
+        val maxY = (canvasHeight * (overallScale - 1f)) / 2f
+
+        overallOffsetX = overallOffsetX.coerceIn(-maxX, maxX)
+        overallOffsetY = overallOffsetY.coerceIn(-maxY, maxY)
+    }
+
     @SuppressLint("DrawAllocation")
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
+        canvas.save()
+
+        val pivotX = width / 2f
+        val pivotY = height / 2f
+
+        // Zoom first
+        canvas.scale(overallScale, overallScale, pivotX, pivotY)
+        // Then pan
+        canvas.translate(overallOffsetX, overallOffsetY)
+
+        // Draw canvas content centered
         val scaledWidth = canvasWidth * scale
         val scaledHeight = canvasHeight * scale
         offsetX = (width - scaledWidth) / 2f
@@ -882,7 +923,6 @@ class CanvasView @JvmOverloads constructor(
 
         canvas.withTranslation(offsetX, offsetY) {
             scale(scale, scale)
-
             drawCanvasElements(canvas)
         }
 
@@ -1864,20 +1904,42 @@ class CanvasView @JvmOverloads constructor(
                     currentMode = Mode.MULTI_TOUCH
                     initialPinchDistance = getPinchDistance(event)
                     initialPinchAngle = getPinchAngle(event)
-                    initialScale = selectedElements.firstOrNull()?.scale
-                        ?: 1f // Get initial scale of the first selected element
-                    initialRotation =
-                        selectedElements.firstOrNull()?.rotation ?: 0f // Get initial rotation
+                    if (selectedElements.isNotEmpty()){
+                        initialScale = selectedElements.firstOrNull()?.scale
+                            ?: 1f // Get initial scale of the first selected element
+                        initialRotation =
+                            selectedElements.firstOrNull()?.rotation ?: 0f // Get initial rotation
+                    }else{
+                        initialScale = overallScale
+                    }
                 }
             }
 
             MotionEvent.ACTION_DOWN -> {
+                lastTouchX = event.x
+                lastTouchY = event.y
                 iconTouched = null // Reset touched icon
                 lastTouchedElement = null // Reset last touched element
                 showVerticalGuide = false
                 showHorizontalGuide = false
                 showRotationVerticalGuide = false // Reset rotation guides
                 showRotationHorizontalGuide = false // Reset rotation guides
+                if (overallScale > 1f) {
+                    currentMode = Mode.CANVAS_PAN
+                    lastTouchX = event.x
+                    lastTouchY = event.y
+
+                    // Optional but recommended: clear selection so element DRAG won't steal the move
+                    if (selectedElements.isNotEmpty()) {
+                        canvasElements.forEach { it.isSelected = false }
+                        selectedElements.clear()
+                        onElementSelected?.invoke(selectedElements)
+                    }
+
+                    // Avoid parent intercept (e.g., RecyclerView / ViewPager)
+                    parent?.requestDisallowInterceptTouchEvent(true)
+                    return true
+                }
 
                 if (currentMode == Mode.GROUP_EDIT && activeGroupId != null) {
                     // see if we tapped on one of the group's members
@@ -2146,18 +2208,39 @@ class CanvasView @JvmOverloads constructor(
                         onElementSelected?.invoke(selectedElements) // Notify ViewModel of empty selection
                         invalidate()
                     }
-                    currentMode = Mode.NONE
+                    if (overallScale > 1f) {
+                        currentMode = Mode.CANVAS_PAN
+                        lastTouchX = event.x
+                        lastTouchY = event.y
+                        parent?.requestDisallowInterceptTouchEvent(true)
+                    } else {
+                        currentMode = Mode.NONE
+                    }
                     return true
                 }
             }
 
             MotionEvent.ACTION_MOVE -> {
                 // Determine which elements to modify based on current mode and touch context
-                val elementsToModify = selectedElements.filter {
-                    !it.isLocked
-                }
+                if (currentMode == Mode.CANVAS_PAN) {
+                    val dx = event.x - lastTouchX
+                    val dy = event.y - lastTouchY
 
-                if (elementsToModify.isEmpty()) return true // No elements to modify
+                    // Divide by overallScale so drag speed feels natural when zoomed
+                    overallOffsetX += dx / overallScale
+                    overallOffsetY += dy / overallScale
+                    clampPan()
+
+                    lastTouchX = event.x
+                    lastTouchY = event.y
+                    invalidate()
+                    return true
+                }
+                val elementsToModify = selectedElements.filter { !it.isLocked }
+
+                if (selectedElements.isEmpty() && event.pointerCount == 1 && currentMode != Mode.MULTI_TOUCH) {
+                    if (overallScale > 1f) currentMode = Mode.CANVAS_PAN
+                }
 
                 when (currentMode) {
                     Mode.DRAG -> {
@@ -2376,6 +2459,10 @@ class CanvasView @JvmOverloads constructor(
                     Mode.GROUP_EDIT -> {
                         // This block handles potential tap-and-hold to drag if not immediately picking up an icon/element
                     }
+
+                    Mode.CANVAS_PAN -> {
+                        // This block handles potential tap-and-hold to drag if not immediately picking up an icon/element
+                    }
                 }
                 return true
             }
@@ -2385,7 +2472,6 @@ class CanvasView @JvmOverloads constructor(
                 showHorizontalGuide = false
                 showRotationVerticalGuide = false // Reset rotation guides on ACTION_UP
                 showRotationHorizontalGuide = false // Reset rotation guides on ACTION_UP
-
 
                 if (currentMode == Mode.DRAG || currentMode == Mode.ROTATE || currentMode == Mode.RESIZE) {
                     selectedElements.filter { !it.isLocked }.forEach {

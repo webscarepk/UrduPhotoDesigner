@@ -19,5 +19,8 @@ enum class Mode {
     MULTI_TOUCH,
 
     @SerializedName("GroupEdit")
-    GROUP_EDIT
+    GROUP_EDIT,
+
+    @SerializedName("CanvasPan")
+    CANVAS_PAN
 }

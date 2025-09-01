@@ -79,7 +79,7 @@ object Constants {
         val cp = ch.codePointAt(0)
         runCatching {
             val raw = UCharacter.getName(cp) ?: return@mapNotNull null
-            EmojiMeta(ch, raw.toLowerCase(Locale.ROOT).replace('_', ' '))
+            EmojiMeta(ch, raw.lowercase(Locale.ROOT).replace('_', ' '))
         }.getOrNull()
     }
 
