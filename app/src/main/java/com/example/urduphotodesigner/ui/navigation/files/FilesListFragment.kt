@@ -568,6 +568,7 @@ class FilesListFragment : Fragment() {
 
     private fun showLoadingDialog() {
         if (loadingDialog?.isShowing == true) return
+
         dialogBinding = DialogLoadingProgressBinding.inflate(LayoutInflater.from(requireActivity()))
 
         loadingDialog = Dialog(requireContext()).apply {

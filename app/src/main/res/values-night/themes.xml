@@ -3,6 +3,12 @@
     <style name="Base.Theme.UrduPhotoDesigner" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Customize your dark theme here. -->
         <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+        <item name="android:statusBarColor">@color/appColor</item>
+
+        <!-- Icons ka color logic:
+             false => light icons (white)  [use when status bar is dark/green]
+             true  => dark icons (black)   [use when status bar is light] -->
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 
 

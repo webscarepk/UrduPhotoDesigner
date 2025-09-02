@@ -73,6 +73,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sign
 import kotlin.math.sin
+import androidx.core.graphics.toColorInt
 
 class CanvasView @JvmOverloads constructor(
     context: Context,
@@ -104,14 +105,14 @@ class CanvasView @JvmOverloads constructor(
     private var iconTouched: String? = null
     private var allowFreeDrag: Boolean = false
     private val checkerSize = 20
-    private val light = Color.parseColor("#F5F5F5")
-    private val dark = Color.parseColor("#DDDDDD")
+    private val light = "#F5F5F5".toColorInt()
+    private val dark = "#DDDDDD".toColorInt()
 
     private var activeGroupId: String? = null
 
     private val checkerShader: BitmapShader by lazy {
         // create a 2×2 tile
-        val bmp = Bitmap.createBitmap(checkerSize * 2, checkerSize * 2, Bitmap.Config.ARGB_8888)
+        val bmp = createBitmap(checkerSize * 2, checkerSize * 2)
         val c = Canvas(bmp)
         val p = Paint()
 
@@ -159,14 +160,15 @@ class CanvasView @JvmOverloads constructor(
     private var offsetX = 0f
     private var offsetY = 0f
 
+    // Overall canvas zoom & pan
     private var overallScale = 1f
     private var overallOffsetX = 0f
     private var overallOffsetY = 0f
 
-    // For pinch & drag gestures
-    private var lastTouchX = 0f
-    private var lastTouchY = 0f
-    private var lastPointerDistance = 0f
+    private var initialOverallScale = 1f
+    private var initialPanX = 0f
+    private var initialPanY = 0f
+
     init {
         gestureDetector = GestureDetector(context, GestureListener())
     }
@@ -887,20 +889,6 @@ class CanvasView @JvmOverloads constructor(
         return (xMin..xMax) to (yMin..yMax)
     }
 
-    private fun clampPan() {
-        if (overallScale <= 1f) {
-            overallOffsetX = 0f
-            overallOffsetY = 0f
-            return
-        }
-
-        val maxX = (canvasWidth * (overallScale - 1f)) / 2f
-        val maxY = (canvasHeight * (overallScale - 1f)) / 2f
-
-        overallOffsetX = overallOffsetX.coerceIn(-maxX, maxX)
-        overallOffsetY = overallOffsetY.coerceIn(-maxY, maxY)
-    }
-
     @SuppressLint("DrawAllocation")
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
@@ -1311,12 +1299,11 @@ class CanvasView @JvmOverloads constructor(
             val top = e.y - sh / 2f
 
 
-            canvas.save()
-            canvas.translate(left, top)
-            canvas.scale(totalScale, totalScale)
-            canvas.rotate(e.rotation, bmp.width / 2f, bmp.height / 2f)
-            canvas.drawBitmap(bmp, 0f, 0f, backgroundPaint)
-            canvas.restore()
+            canvas.withTranslation(left, top) {
+                scale(totalScale, totalScale)
+                rotate(e.rotation, bmp.width / 2f, bmp.height / 2f)
+                drawBitmap(bmp, 0f, 0f, backgroundPaint)
+            }
             return
         }
 
@@ -1327,28 +1314,26 @@ class CanvasView @JvmOverloads constructor(
 
         // 2) else if there's a gradient -> stretch it across the full canvas
         e.fillGradient?.let { grad ->
-            canvas.save()
-            canvas.translate(left, top)
-            canvas.scale(e.scale, e.scale, pivotX, pivotY)
-            canvas.rotate(e.rotation, pivotX, pivotY)
+            canvas.withTranslation(left, top) {
+                scale(e.scale, e.scale, pivotX, pivotY)
+                rotate(e.rotation, pivotX, pivotY)
 
-            backgroundPaint.shader = createBackgroundGradientShader(grad, w, h)
-            canvas.drawRect(0f, 0f, w, h, backgroundPaint)
-            backgroundPaint.shader = null
-            canvas.restore()
+                backgroundPaint.shader = createBackgroundGradientShader(grad, w, h)
+                drawRect(0f, 0f, w, h, backgroundPaint)
+                backgroundPaint.shader = null
+            }
             return
         }
 
         // 3) else -> solid color
-        canvas.save()
-        canvas.translate(left, top)
-        canvas.scale(e.scale, e.scale, pivotX, pivotY)
-        canvas.rotate(e.rotation, pivotX, pivotY)
+        canvas.withTranslation(left, top) {
+            scale(e.scale, e.scale, pivotX, pivotY)
+            rotate(e.rotation, pivotX, pivotY)
 
-        backgroundPaint.shader = null
-        backgroundPaint.color = e.backgroundColor
-        canvas.drawRect(0f, 0f, w, h, backgroundPaint)
-        canvas.restore()
+            backgroundPaint.shader = null
+            backgroundPaint.color = e.backgroundColor
+            drawRect(0f, 0f, w, h, backgroundPaint)
+        }
     }
 
     private fun createGradientShader(
@@ -1904,42 +1889,25 @@ class CanvasView @JvmOverloads constructor(
                     currentMode = Mode.MULTI_TOUCH
                     initialPinchDistance = getPinchDistance(event)
                     initialPinchAngle = getPinchAngle(event)
-                    if (selectedElements.isNotEmpty()){
-                        initialScale = selectedElements.firstOrNull()?.scale
-                            ?: 1f // Get initial scale of the first selected element
-                        initialRotation =
-                            selectedElements.firstOrNull()?.rotation ?: 0f // Get initial rotation
-                    }else{
-                        initialScale = overallScale
-                    }
+                    initialScale = selectedElements.firstOrNull()?.scale
+                        ?: 1f // Get initial scale of the first selected element
+                    initialRotation =
+                        selectedElements.firstOrNull()?.rotation ?: 0f // Get initial rotation
+                }
+                if (event.pointerCount == 2 && selectedElements.isEmpty()) {
+                    currentMode = Mode.CANVAS_PAN // reuse or make a new enum if needed
+                    initialPinchDistance = getPinchDistance(event)
+                    initialOverallScale = overallScale
                 }
             }
 
             MotionEvent.ACTION_DOWN -> {
-                lastTouchX = event.x
-                lastTouchY = event.y
                 iconTouched = null // Reset touched icon
                 lastTouchedElement = null // Reset last touched element
                 showVerticalGuide = false
                 showHorizontalGuide = false
                 showRotationVerticalGuide = false // Reset rotation guides
                 showRotationHorizontalGuide = false // Reset rotation guides
-                if (overallScale > 1f) {
-                    currentMode = Mode.CANVAS_PAN
-                    lastTouchX = event.x
-                    lastTouchY = event.y
-
-                    // Optional but recommended: clear selection so element DRAG won't steal the move
-                    if (selectedElements.isNotEmpty()) {
-                        canvasElements.forEach { it.isSelected = false }
-                        selectedElements.clear()
-                        onElementSelected?.invoke(selectedElements)
-                    }
-
-                    // Avoid parent intercept (e.g., RecyclerView / ViewPager)
-                    parent?.requestDisallowInterceptTouchEvent(true)
-                    return true
-                }
 
                 if (currentMode == Mode.GROUP_EDIT && activeGroupId != null) {
                     // see if we tapped on one of the group's members
@@ -2208,38 +2176,39 @@ class CanvasView @JvmOverloads constructor(
                         onElementSelected?.invoke(selectedElements) // Notify ViewModel of empty selection
                         invalidate()
                     }
-                    if (overallScale > 1f) {
-                        currentMode = Mode.CANVAS_PAN
-                        lastTouchX = event.x
-                        lastTouchY = event.y
-                        parent?.requestDisallowInterceptTouchEvent(true)
-                    } else {
-                        currentMode = Mode.NONE
-                    }
+                    currentMode = Mode.NONE
                     return true
                 }
             }
 
             MotionEvent.ACTION_MOVE -> {
                 // Determine which elements to modify based on current mode and touch context
-                if (currentMode == Mode.CANVAS_PAN) {
-                    val dx = event.x - lastTouchX
-                    val dy = event.y - lastTouchY
-
-                    // Divide by overallScale so drag speed feels natural when zoomed
-                    overallOffsetX += dx / overallScale
-                    overallOffsetY += dy / overallScale
-                    clampPan()
-
-                    lastTouchX = event.x
-                    lastTouchY = event.y
-                    invalidate()
-                    return true
+                val elementsToModify = selectedElements.filter {
+                    !it.isLocked
                 }
-                val elementsToModify = selectedElements.filter { !it.isLocked }
-
-                if (selectedElements.isEmpty() && event.pointerCount == 1 && currentMode != Mode.MULTI_TOUCH) {
-                    if (overallScale > 1f) currentMode = Mode.CANVAS_PAN
+                if (elementsToModify.isEmpty()) {
+                    // allow overall canvas pan/zoom
+                    when (currentMode) {
+                        Mode.CANVAS_PAN -> {
+                            if (event.pointerCount == 2) {
+                                val newDist = getPinchDistance(event)
+                                val factor = newDist / initialPinchDistance
+                                overallScale = (initialOverallScale * factor).coerceIn(1f, 4f)
+                                invalidate()
+                            } else if (event.pointerCount == 1 && overallScale > 1f) {
+                                val dx = event.x - touchStartX
+                                val dy = event.y - touchStartY
+                                overallOffsetX += dx
+                                overallOffsetY += dy
+                                clampOverallPan()
+                                touchStartX = event.x
+                                touchStartY = event.y
+                                invalidate()
+                            }
+                        }
+                        else -> return true
+                    }
+                    return true
                 }
 
                 when (currentMode) {
@@ -2461,7 +2430,23 @@ class CanvasView @JvmOverloads constructor(
                     }
 
                     Mode.CANVAS_PAN -> {
-                        // This block handles potential tap-and-hold to drag if not immediately picking up an icon/element
+                        if (selectedElements.isEmpty()){
+                            if (event.pointerCount == 2) {
+                                val newDist = getPinchDistance(event)
+                                val factor = newDist / initialPinchDistance
+                                overallScale = (initialOverallScale * factor).coerceIn(1f, 4f) // limit zoom
+                                invalidate()
+                            } else if (event.pointerCount == 1 && overallScale > 1f) {
+                                val dx = event.x - touchStartX
+                                val dy = event.y - touchStartY
+                                overallOffsetX += dx
+                                overallOffsetY += dy
+                                clampOverallPan()
+                                touchStartX = event.x
+                                touchStartY = event.y
+                                invalidate()
+                            }
+                        }
                     }
                 }
                 return true
@@ -2472,6 +2457,9 @@ class CanvasView @JvmOverloads constructor(
                 showHorizontalGuide = false
                 showRotationVerticalGuide = false // Reset rotation guides on ACTION_UP
                 showRotationHorizontalGuide = false // Reset rotation guides on ACTION_UP
+                if (currentMode == Mode.CANVAS_PAN) {
+                    currentMode = Mode.NONE
+                }
 
                 if (currentMode == Mode.DRAG || currentMode == Mode.ROTATE || currentMode == Mode.RESIZE) {
                     selectedElements.filter { !it.isLocked }.forEach {
@@ -2499,6 +2487,17 @@ class CanvasView @JvmOverloads constructor(
             }
         }
         return super.onTouchEvent(event)
+    }
+
+    private fun clampOverallPan() {
+        val scaledW = canvasWidth * scale * overallScale
+        val scaledH = canvasHeight * scale * overallScale
+
+        val maxOffsetX = max(0f, (scaledW - width) / 2f)
+        val maxOffsetY = max(0f, (scaledH - height) / 2f)
+
+        overallOffsetX = overallOffsetX.coerceIn(-maxOffsetX, maxOffsetX)
+        overallOffsetY = overallOffsetY.coerceIn(-maxOffsetY, maxOffsetY)
     }
 
     override fun onAttachedToWindow() {
