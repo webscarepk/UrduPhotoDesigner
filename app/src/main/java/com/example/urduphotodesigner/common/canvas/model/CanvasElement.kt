@@ -3,8 +3,10 @@ package com.example.urduphotodesigner.common.canvas.model
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.PointF
+import android.graphics.RectF
 import android.graphics.Typeface
 import android.text.TextPaint
 import com.example.urduphotodesigner.common.canvas.enums.BlendType
@@ -178,6 +180,61 @@ data class CanvasElement(
         } else {
             kashidaProcessor.process(inputText)
         }
+    }
+
+    fun getTightTextBounds(): RectF {
+        val bounds = RectF()
+        if (type == ElementType.TEXT && ::paint.isInitialized) {
+            val lines = getTextWithKashida().split("\n")
+            var maxWidth = 0f
+            val fm = paint.fontMetrics
+            val lineHeight = (fm.descent - fm.ascent) * lineSpacing
+
+            lines.forEach { line ->
+                val tmp = android.graphics.Rect()
+                paint.getTextBounds(line, 0, line.length, tmp)
+                maxWidth = maxOf(maxWidth, tmp.width().toFloat())
+            }
+
+            val totalHeight = lines.size * lineHeight
+            bounds.set(
+                -maxWidth / 2f,
+                -totalHeight / 2f,
+                maxWidth / 2f,
+                totalHeight / 2f
+            )
+        } else {
+            bounds.set(
+                -getLocalContentWidth() / 2f,
+                -getLocalContentHeight() / 2f,
+                getLocalContentWidth() / 2f,
+                getLocalContentHeight() / 2f
+            )
+        }
+
+        val padding = 8f
+        bounds.inset(-padding, -padding)
+
+        return bounds
+    }
+
+    fun getRotatedCorners(): FloatArray {
+        val bounds = getTightTextBounds()
+
+        val corners = floatArrayOf(
+            bounds.left, bounds.top,
+            bounds.right, bounds.top,
+            bounds.right, bounds.bottom,
+            bounds.left, bounds.bottom
+        )
+
+        val matrix = Matrix().apply {
+            postScale(scale, scale)
+            postRotate(rotation)
+            postTranslate(x, y)
+        }
+        matrix.mapPoints(corners)
+        return corners
     }
 
 }

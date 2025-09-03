@@ -479,6 +479,7 @@
         android:fitsSystemWindows="true"
         android:padding="0dp"
         android:paddingBottom="0dp"
+        app:itemIconTint="@color/bottom_nav_icon_color"
         app:activeIndicatorLabelPadding="0dp"
         app:itemActiveIndicatorStyle="@null"
         app:itemBackground="@null"
