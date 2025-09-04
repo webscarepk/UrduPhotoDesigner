@@ -198,6 +198,8 @@ class CanvasView @JvmOverloads constructor(
         drawableToBitmap(AppCompatResources.getDrawable(context, R.drawable.ic_edit_text))
     }
 
+    private val lastDrawnIconRegions = mutableMapOf<String, RectF>()
+
     private var selectedElements: CopyOnWriteArrayList<CanvasElement> = CopyOnWriteArrayList()
     private var lastTouchedElement: CanvasElement? =
         null
@@ -874,6 +876,34 @@ class CanvasView @JvmOverloads constructor(
             snapped && (element.rotation == 90f || element.rotation == 270f)
     }
 
+    private fun checkGroupRotationAlignment() {
+        if (selectedElements.size <= 1) return
+
+        val rotationThreshold = 5f
+        val avgRotation = selectedElements.map { it.rotation }.average().toFloat()
+        val normalized = (avgRotation % 360 + 360) % 360
+
+        val snapAngles = listOf(0f, 90f, 180f, 270f, 360f)
+
+        var snapped = false
+        for (target in snapAngles) {
+            if (abs(normalized - target) <= rotationThreshold) {
+                val delta = target - avgRotation
+                selectedElements.forEach { e ->
+                    e.rotation += delta
+                    onElementChanged?.invoke(e)
+                }
+                vibrateSoft()
+                snapped = true
+                break
+            }
+        }
+
+        showRotationVerticalGuide =
+            snapped && (normalized == 0f || normalized == 180f || normalized == 360f)
+        showRotationHorizontalGuide = snapped && (normalized == 90f || normalized == 270f)
+    }
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val parentWidth = MeasureSpec.getSize(widthMeasureSpec)
         val parentHeight = MeasureSpec.getSize(heightMeasureSpec)
@@ -1236,6 +1266,8 @@ class CanvasView @JvmOverloads constructor(
                             position.first + localIconDrawWidth / 2f,
                             position.second + localIconDrawHeight / 2f
                         )
+                        lastDrawnIconRegions[iconName] = RectF(dstRect) // save exact rect used for drawing
+
                         canvas.drawBitmap(bmp, null, dstRect, null)
                     }
                 }
@@ -1878,6 +1910,7 @@ class CanvasView @JvmOverloads constructor(
 
     private fun screenToCanvas(sx: Float, sy: Float): Pair<Float, Float> {
         val pt = floatArrayOf(sx, sy)
+
         val transform = Matrix().apply {
             postTranslate(offsetX, offsetY)
             postScale(scale, scale)
@@ -2028,10 +2061,11 @@ class CanvasView @JvmOverloads constructor(
                         val elementIconPositions =
                             element.getIconPositions()
 
-                        val elementMatrix = Matrix()
-                        elementMatrix.postRotate(element.rotation)
-                        elementMatrix.postScale(element.scale, element.scale)
-                        elementMatrix.postTranslate(element.x, element.y)
+                        val elementMatrix = Matrix().apply {
+                            postScale(element.scale, element.scale)
+                            postRotate(element.rotation)
+                            postTranslate(element.x, element.y)
+                        }
 
                         elementIconPositions.forEach { (iconName, position) ->
                             val iconCenterInCanvasCords = floatArrayOf(position.x, position.y)
@@ -2404,9 +2438,8 @@ class CanvasView @JvmOverloads constructor(
                         // Check rotation alignment for the first selected element
                         if (selectedElements.size == 1) {
                             checkRotationAlignment(selectedElements.first())
-                        } else {
-                            showRotationVerticalGuide = false
-                            showRotationHorizontalGuide = false
+                        } else if (selectedElements.size > 1) {
+                            checkGroupRotationAlignment()
                         }
 
                         invalidate()

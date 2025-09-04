@@ -11,7 +11,6 @@ import android.graphics.Typeface
 import android.text.TextPaint
 import com.example.urduphotodesigner.common.canvas.enums.BlendType
 import com.example.urduphotodesigner.common.canvas.enums.ElementType
-import com.example.urduphotodesigner.common.canvas.enums.KashidaSize
 import com.example.urduphotodesigner.common.canvas.enums.LabelShape
 import com.example.urduphotodesigner.common.canvas.enums.LetterCasing
 import com.example.urduphotodesigner.common.canvas.enums.ListStyle
@@ -93,7 +92,7 @@ data class CanvasElement(
     var isVisible: Boolean = true,
     var backgroundColor: Int = Color.WHITE,
 
-    var logicalContentWidth:  Float = 0f,
+    var logicalContentWidth: Float = 0f,
     var logicalContentHeight: Float = 0f,
 
     var isFlippedX: Boolean = false,
@@ -153,17 +152,18 @@ data class CanvasElement(
     }
 
     fun getIconPositions(): Map<String, PointF> {
-        val localW = getLocalContentWidth()
-        val localH = getLocalContentHeight()
+        val bounds = getTightTextBounds() // use corrected tight bounds
+        val halfW = bounds.width() / 2f
+        val halfH = bounds.height() / 2f
 
-        val iconOffsetX = localW / 2f + ICON_PADDING
-        val iconOffsetY = localH / 2f + ICON_PADDING
+        val iconOffsetX = halfW + ICON_PADDING
+        val iconOffsetY = halfH + ICON_PADDING
 
         return mapOf(
-            "delete" to PointF(iconOffsetX, -iconOffsetY),
-            "resize" to PointF(iconOffsetX, iconOffsetY),
-            "rotate" to PointF(-iconOffsetX, iconOffsetY),
-            "edit" to PointF(-iconOffsetX, -iconOffsetY)
+            "delete" to PointF(iconOffsetX, -iconOffsetY),   // top-right
+            "resize" to PointF(iconOffsetX, iconOffsetY),   // bottom-right
+            "rotate" to PointF(-iconOffsetX, iconOffsetY),  // bottom-left
+            "edit" to PointF(-iconOffsetX, -iconOffsetY)    // top-left
         )
     }
 
@@ -186,17 +186,30 @@ data class CanvasElement(
         val bounds = RectF()
         if (type == ElementType.TEXT && ::paint.isInitialized) {
             val lines = getTextWithKashida().split("\n")
-            var maxWidth = 0f
             val fm = paint.fontMetrics
+
+            // Correct line height with spacing
             val lineHeight = (fm.descent - fm.ascent) * lineSpacing
 
-            lines.forEach { line ->
-                val tmp = android.graphics.Rect()
-                paint.getTextBounds(line, 0, line.length, tmp)
-                maxWidth = maxOf(maxWidth, tmp.width().toFloat())
+            var maxWidth = 0f
+
+            for (line in lines) {
+                if (line.isEmpty()) continue
+
+                // Base width of all glyphs
+                val baseWidth = paint.measureText(line)
+
+                // Extra width contributed by letterSpacing
+                val extraWidth = if (letterSpacing != 0f) {
+                    (line.length - 1) * (letterSpacing * paint.textSize)
+                } else 0f
+
+                val totalWidth = baseWidth + extraWidth
+                maxWidth = maxOf(maxWidth, totalWidth)
             }
 
             val totalHeight = lines.size * lineHeight
+
             bounds.set(
                 -maxWidth / 2f,
                 -totalHeight / 2f,
@@ -212,7 +225,7 @@ data class CanvasElement(
             )
         }
 
-        val padding = 8f
+        val padding = 6f
         bounds.inset(-padding, -padding)
 
         return bounds
