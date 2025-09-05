@@ -242,10 +242,15 @@ data class CanvasElement(
         )
 
         val matrix = Matrix().apply {
-            postScale(scale, scale)
+            // include scale + flip exactly like drawCanvasElements()
+            postScale(
+                scale * if (isFlippedX) -1f else 1f,
+                scale * if (isFlippedY) -1f else 1f
+            )
             postRotate(rotation)
             postTranslate(x, y)
         }
+
         matrix.mapPoints(corners)
         return corners
     }

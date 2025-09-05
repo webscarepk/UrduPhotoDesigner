@@ -169,6 +169,8 @@ class CanvasView @JvmOverloads constructor(
 
     private var initialOverallScale = 1f
 
+    private val lastDrawnIconRect = mutableMapOf<String, RectF>()
+
     init {
         gestureDetector = GestureDetector(context, GestureListener())
     }
@@ -197,8 +199,6 @@ class CanvasView @JvmOverloads constructor(
     private val editIcon: Bitmap by lazy {
         drawableToBitmap(AppCompatResources.getDrawable(context, R.drawable.ic_edit_text))
     }
-
-    private val lastDrawnIconRegions = mutableMapOf<String, RectF>()
 
     private var selectedElements: CopyOnWriteArrayList<CanvasElement> = CopyOnWriteArrayList()
     private var lastTouchedElement: CanvasElement? =
@@ -494,9 +494,7 @@ class CanvasView @JvmOverloads constructor(
      * Returns an empty RectF if no elements are selected.
      */
     private fun getCombinedSelectedBounds(): RectF {
-        if (selectedElements.isEmpty()) {
-            return RectF()
-        }
+        if (selectedElements.isEmpty()) return RectF()
 
         var minX = Float.MAX_VALUE
         var minY = Float.MAX_VALUE
@@ -504,15 +502,33 @@ class CanvasView @JvmOverloads constructor(
         var maxY = Float.MIN_VALUE
 
         selectedElements.forEach { element ->
-            val corners = element.getRotatedCorners()
-            // corners = [x0,y0, x1,y1, x2,y2, x3,y3]
+            val bounds = element.getTightTextBounds()
+
+            val corners = floatArrayOf(
+                bounds.left, bounds.top,
+                bounds.right, bounds.top,
+                bounds.right, bounds.bottom,
+                bounds.left, bounds.bottom
+            )
+
+            val matrix = Matrix().apply {
+                postScale(
+                    element.scale * if (element.isFlippedX) -1f else 1f,
+                    element.scale * if (element.isFlippedY) -1f else 1f
+                )
+                postRotate(element.rotation)
+                postTranslate(element.x, element.y)
+            }
+
+            matrix.mapPoints(corners)
+
             for (i in corners.indices step 2) {
-                val x = corners[i]
-                val y = corners[i + 1]
-                minX = minOf(minX, x)
-                minY = minOf(minY, y)
-                maxX = maxOf(maxX, x)
-                maxY = maxOf(maxY, y)
+                val px = corners[i]
+                val py = corners[i + 1]
+                minX = minOf(minX, px)
+                minY = minOf(minY, py)
+                maxX = maxOf(maxX, px)
+                maxY = maxOf(maxY, py)
             }
         }
 
@@ -536,21 +552,6 @@ class CanvasView @JvmOverloads constructor(
         return android.graphics.Path().apply {
             addRect(b, android.graphics.Path.Direction.CW)
         }
-    }
-
-    private fun getCombinedSelectedPath(): android.graphics.Path? {
-        if (selectedElements.isEmpty()) return null
-
-        val path = android.graphics.Path()
-        selectedElements.forEach { element ->
-            val c = element.getRotatedCorners()
-            path.moveTo(c[0], c[1])
-            path.lineTo(c[2], c[3])
-            path.lineTo(c[4], c[5])
-            path.lineTo(c[6], c[7])
-            path.close()
-        }
-        return path
     }
 
     private fun removeSelectedElement() {
@@ -836,18 +837,6 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
-    private fun checkAlignment(element: CanvasElement) {
-        val centerThreshold = 5f
-        val newVertical = abs(element.x - canvasWidth / 2f) < centerThreshold
-        val newHorizontal = abs(element.y - canvasHeight / 2f) < centerThreshold
-
-        if (!showVerticalGuide && newVertical) vibrateSoft()
-        if (!showHorizontalGuide && newHorizontal) vibrateSoft()
-
-        showVerticalGuide = newVertical
-        showHorizontalGuide = newHorizontal
-    }
-
     /**
      * Checks if the element's rotation is close to 0, 90, 180, or 270 degrees
      * and sets the rotation alignment guide flags accordingly.
@@ -876,6 +865,77 @@ class CanvasView @JvmOverloads constructor(
             snapped && (element.rotation == 90f || element.rotation == 270f)
     }
 
+    private fun checkDragSnap() {
+        if (selectedElements.isEmpty()) return
+
+        val snapThreshold = 5f
+
+        if (selectedElements.size == 1) {
+            // --- Single element snap ---
+            val elem = selectedElements.first()
+            var snapped = false
+
+            // X snap
+            if (abs(elem.x - canvasWidth / 2f) <= snapThreshold) {
+                elem.x = canvasWidth / 2f
+                if (!showVerticalGuide) vibrateSoft()
+                showVerticalGuide = true
+                snapped = true
+            } else {
+                showVerticalGuide = false
+            }
+
+            // Y snap
+            if (abs(elem.y - canvasHeight / 2f) <= snapThreshold) {
+                elem.y = canvasHeight / 2f
+                if (!showHorizontalGuide) vibrateSoft()
+                showHorizontalGuide = true
+                snapped = true
+            } else {
+                showHorizontalGuide = false
+            }
+
+            if (snapped) onElementChanged?.invoke(elem)
+        } else {
+            // --- Group snap ---
+            val bounds = getCombinedSelectedBounds()
+            val centerX = bounds.centerX()
+            val centerY = bounds.centerY()
+
+            var dx = 0f
+            var dy = 0f
+            var snapped = false
+
+            // X snap
+            if (abs(centerX - canvasWidth / 2f) <= snapThreshold) {
+                dx = canvasWidth / 2f - centerX
+                if (!showVerticalGuide) vibrateSoft()
+                showVerticalGuide = true
+                snapped = true
+            } else {
+                showVerticalGuide = false
+            }
+
+            // Y snap
+            if (abs(centerY - canvasHeight / 2f) <= snapThreshold) {
+                dy = canvasHeight / 2f - centerY
+                if (!showHorizontalGuide) vibrateSoft()
+                showHorizontalGuide = true
+                snapped = true
+            } else {
+                showHorizontalGuide = false
+            }
+
+            if (snapped && (dx != 0f || dy != 0f)) {
+                selectedElements.forEach { e ->
+                    e.x += dx
+                    e.y += dy
+                    onElementChanged?.invoke(e)
+                }
+            }
+        }
+    }
+
     private fun checkGroupRotationAlignment() {
         if (selectedElements.size <= 1) return
 
@@ -886,6 +946,8 @@ class CanvasView @JvmOverloads constructor(
         val snapAngles = listOf(0f, 90f, 180f, 270f, 360f)
 
         var snapped = false
+        var snappedTarget: Float? = null
+
         for (target in snapAngles) {
             if (abs(normalized - target) <= rotationThreshold) {
                 val delta = target - avgRotation
@@ -895,13 +957,13 @@ class CanvasView @JvmOverloads constructor(
                 }
                 vibrateSoft()
                 snapped = true
+                snappedTarget = target
                 break
             }
         }
 
-        showRotationVerticalGuide =
-            snapped && (normalized == 0f || normalized == 180f || normalized == 360f)
-        showRotationHorizontalGuide = snapped && (normalized == 90f || normalized == 270f)
+        showRotationVerticalGuide = snapped && (snappedTarget == 0f || snappedTarget == 180f || snappedTarget == 360f)
+        showRotationHorizontalGuide = snapped && (snappedTarget == 90f || snappedTarget == 270f)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -1200,7 +1262,7 @@ class CanvasView @JvmOverloads constructor(
                 strokeWidth = localSpaceStrokeWidth
             }
 
-            val rotatedPath = getCombinedSelectedPath()
+            val rotatedPath = getSelectionPath()
             if (rotatedPath != null) {
                 canvas.drawPath(rotatedPath, boxPaint)
             }
@@ -1232,22 +1294,27 @@ class CanvasView @JvmOverloads constructor(
                     // Edit icon should not be there for multi-selection
                 } else if (selectedElements.size == 1) { // Single element selection icons
                     val element = selectedElements.first()
-                    val isBg = element.type == ElementType.BACKGROUND
 
-                    // Get rotated corners: [x0,y0, x1,y1, x2,y2, x3,y3]
                     val corners = element.getRotatedCorners()
-
-                    mapOf(
-                        "edit" to (corners[0] to corners[1]),    // top-left
-                        "delete" to (corners[2] to corners[3]),  // top-right
-                        "resize" to (corners[4] to corners[5]),  // bottom-right
-                        "rotate" to (corners[6] to corners[7])   // bottom-left
+                    iconMap["delete"] = Pair(
+                        corners[2],
+                        corners[3]
                     )
-                        // Drop the edit icon if it’s a background
-                        .filterKeys { name -> !(isBg && name == "edit") }
-                        .forEach { (iconName, pos) ->
-                            iconMap[iconName] = pos
-                        }
+
+                    iconMap["edit"] = Pair(
+                        corners[0],
+                        corners[1]
+                    )
+                    // Resize icon (bottom-left)
+                    iconMap["rotate"] = Pair(
+                        corners[6],
+                        corners[7]
+                    )
+                    // Rotate icon (bottom-right)
+                    iconMap["resize"] = Pair(
+                        corners[4],
+                        corners[5]
+                    )
                 }
 
                 iconMap.forEach { (iconName, position) ->
@@ -1266,8 +1333,11 @@ class CanvasView @JvmOverloads constructor(
                             position.first + localIconDrawWidth / 2f,
                             position.second + localIconDrawHeight / 2f
                         )
-                        lastDrawnIconRegions[iconName] = RectF(dstRect) // save exact rect used for drawing
-
+                        lastDrawnIconRect[iconName] = dstRect
+                        Log.d(
+                            "IconDraw",
+                            "Drawn icon=$iconName at Rect(${dstRect.left}, ${dstRect.top}, ${dstRect.right}, ${dstRect.bottom})"
+                        )
                         canvas.drawBitmap(bmp, null, dstRect, null)
                     }
                 }
@@ -1872,7 +1942,31 @@ class CanvasView @JvmOverloads constructor(
                 }
             }
 
-            return false
+            stepZoomOverall()
+            return true
+        }
+    }
+
+    private fun stepZoomOverall() {
+        val next = when {
+            overallScale < 1.5f -> 2f
+            overallScale < 3.5f -> 4f
+            else -> 1f
+        }
+        animateOverallZoom(next)
+    }
+
+    private fun animateOverallZoom(toScale: Float) {
+        val fromScale = overallScale
+        ValueAnimator.ofFloat(fromScale, toScale).apply {
+            duration = 400L
+            interpolator = DecelerateInterpolator()
+            addUpdateListener { anim ->
+                overallScale = anim.animatedValue as Float
+                clampOverallPan()
+                invalidate()
+            }
+            start()
         }
     }
 
@@ -1912,8 +2006,8 @@ class CanvasView @JvmOverloads constructor(
         val pt = floatArrayOf(sx, sy)
 
         val transform = Matrix().apply {
-            postTranslate(offsetX, offsetY)
             postScale(scale, scale)
+            postTranslate(offsetX, offsetY)
             postScale(overallScale, overallScale, width / 2f, height / 2f)
             postTranslate(overallOffsetX, overallOffsetY)
         }
@@ -1921,6 +2015,8 @@ class CanvasView @JvmOverloads constructor(
         if (transform.invert(inverse)) {
             inverse.mapPoints(pt)
         }
+        Log.d("ScreenToCanvas", "Input=($sx,$sy) -> Output=(${pt[0]}, ${pt[1]})")
+
         return pt[0] to pt[1]
     }
 
@@ -1929,7 +2025,10 @@ class CanvasView @JvmOverloads constructor(
         gestureDetector.onTouchEvent(event)
 
         val (x, y) = screenToCanvas(event.x, event.y)
-
+        Log.d(
+            "TouchDebug",
+            "RawTouch=(${event.x}, ${event.y}) | CanvasTouch=($x, $y)"
+        )
         if (isColorPickerMode) {
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
@@ -2025,68 +2124,17 @@ class CanvasView @JvmOverloads constructor(
                 }
 
                 if (selectedElements.isNotEmpty()) {
-                    val combinedBounds = getCombinedSelectedBounds()
-                    if (selectedElements.size > 1 && combinedBounds.contains(x, y)) {
-                        currentMode = Mode.DRAG
-                        touchStartX = x
-                        touchStartY = y
-                        return true
-                    }
-                    val localSpacePadding = 10f / scale
-                    val adjustedIconHitSize = desiredIconScreenSizePx / scale * 1.5f
-
-                    val globalIconRegions = mutableMapOf<String, RectF>()
-
-                    if (selectedElements.size > 1) {
-                        globalIconRegions["delete"] = RectF(
-                            combinedBounds.right + localSpacePadding - adjustedIconHitSize / 2f,
-                            combinedBounds.top - localSpacePadding - adjustedIconHitSize / 2f,
-                            combinedBounds.right + localSpacePadding + adjustedIconHitSize / 2f,
-                            combinedBounds.top - localSpacePadding + adjustedIconHitSize / 2f
+                    val touchedIconEntry = lastDrawnIconRect.entries.firstOrNull { (iconName, rect) ->
+                        Log.d(
+                            "IconTouch",
+                            "Touch region icon=$iconName Rect(${rect.left}, ${rect.top}, ${rect.right}, ${rect.bottom})"
                         )
-                        globalIconRegions["rotate"] = RectF(
-                            combinedBounds.left - localSpacePadding - adjustedIconHitSize / 2f,
-                            combinedBounds.bottom + localSpacePadding - adjustedIconHitSize / 2f,
-                            combinedBounds.left - localSpacePadding + adjustedIconHitSize / 2f,
-                            combinedBounds.bottom + localSpacePadding + adjustedIconHitSize / 2f
-                        )
-                        globalIconRegions["resize"] = RectF(
-                            combinedBounds.right + localSpacePadding - adjustedIconHitSize / 2f,
-                            combinedBounds.bottom + localSpacePadding - adjustedIconHitSize / 2f,
-                            combinedBounds.right + localSpacePadding + adjustedIconHitSize / 2f,
-                            combinedBounds.bottom + localSpacePadding + adjustedIconHitSize / 2f
-                        )
-                    } else {
-                        val element = selectedElements.first()
-                        val elementIconPositions =
-                            element.getIconPositions()
-
-                        val elementMatrix = Matrix().apply {
-                            postScale(element.scale, element.scale)
-                            postRotate(element.rotation)
-                            postTranslate(element.x, element.y)
-                        }
-
-                        elementIconPositions.forEach { (iconName, position) ->
-                            val iconCenterInCanvasCords = floatArrayOf(position.x, position.y)
-                            elementMatrix.mapPoints(iconCenterInCanvasCords)
-
-                            globalIconRegions[iconName] = RectF(
-                                iconCenterInCanvasCords[0] - adjustedIconHitSize / 2f,
-                                iconCenterInCanvasCords[1] - adjustedIconHitSize / 2f,
-                                iconCenterInCanvasCords[0] + adjustedIconHitSize / 2f,
-                                iconCenterInCanvasCords[1] + adjustedIconHitSize / 2f
-                            )
-                        }
-                    }
-
-                    val touchedIconEntry = globalIconRegions.entries.firstOrNull { (_, rect) ->
                         rect.contains(x, y)
                     }
 
                     if (touchedIconEntry != null) {
+                        Log.d("IconHit", "User tapped inside icon=${touchedIconEntry.key} at ($x,$y)")
                         iconTouched = touchedIconEntry.key
-                        // For icon interaction, we often operate on the entire selection or a specific element related to the icon
                         when (iconTouched) {
                             "delete" -> {
                                 removeSelectedElement() // Handles removing all selected
@@ -2315,19 +2363,7 @@ class CanvasView @JvmOverloads constructor(
 
                         // Check alignment for the first selected element (if only one is selected for single drag)
                         if (selectedElements.isNotEmpty()) {
-                            // If just one, check its own center
-                            if (selectedElements.size == 1) {
-                                checkAlignment(selectedElements.first())
-                            } else {
-                                // Multiple: compute combined bounds center
-                                val combined = getCombinedSelectedBounds()
-                                val centerX = combined.left + combined.width() / 2f
-                                val centerY = combined.top + combined.height() / 2f
-                                val threshold = 5f
-
-                                showVerticalGuide = abs(centerX - canvasWidth / 2f) < threshold
-                                showHorizontalGuide = abs(centerY - canvasHeight / 2f) < threshold
-                            }
+                           checkDragSnap()
                         } else {
                             showVerticalGuide = false
                             showHorizontalGuide = false
