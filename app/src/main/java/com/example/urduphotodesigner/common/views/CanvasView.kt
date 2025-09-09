@@ -1,5 +1,7 @@
 package com.example.urduphotodesigner.common.views
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
@@ -25,6 +27,10 @@ import android.graphics.Typeface
 import android.graphics.Xfermode
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.media.MediaCodec
+import android.media.MediaCodecInfo
+import android.media.MediaFormat
+import android.media.MediaMuxer
 import android.text.TextPaint
 import android.util.AttributeSet
 import android.util.Log
@@ -138,6 +144,9 @@ class CanvasView @JvmOverloads constructor(
     private val canvasElements = mutableListOf<CanvasElement>()
     private lateinit var backgroundElement: CanvasElement
 
+    private val activeAnimators = mutableMapOf<String, ValueAnimator>()
+    private val pendingAnimations = mutableListOf<CanvasElement>()
+
     private var touchStartX = 0f
     private var touchStartY = 0f
     private var currentMode: Mode = Mode.NONE
@@ -244,7 +253,6 @@ class CanvasView @JvmOverloads constructor(
     fun disableColorPicker() {
         isColorPickerMode = false
         isDraggingPicker = false
-        colorPickerBitmap?.recycle()
         colorPickerBitmap = null
         invalidate()
     }
@@ -266,6 +274,217 @@ class CanvasView @JvmOverloads constructor(
         }
 
         ensureBackgroundElement()
+    }
+
+    fun applyElementAnimation(animationName: String?) {
+        val elementsToAnimate = selectedElements.toList()
+        elementsToAnimate.forEach { element ->
+            // reset old animator
+            activeAnimators[element.id]?.cancel()
+            activeAnimators.remove(element.id)
+
+            element.animationName = animationName
+            element.hasPlayedAnimation = false // 🔹 reset so it can preview again
+            onElementChanged?.invoke(element)
+        }
+        invalidate()
+    }
+
+    fun playAllAnimations() {
+        clearSelection() // no overlays/icons
+
+        canvasElements.forEach { element ->
+            val animName = element.animationName
+            if (!animName.isNullOrEmpty() && animName != "none") {
+                // cancel if already running
+                activeAnimators[element.id]?.cancel()
+                activeAnimators.remove(element.id)
+
+                // reset so it plays again
+                element.hasPlayedAnimation = false
+
+                // start animation
+                applyAnimationEffect(element)
+                element.hasPlayedAnimation = true
+            }
+        }
+
+        invalidate()
+    }
+
+    suspend fun exportCanvasToMp4(
+        outputPath: String,
+        durationMs: Long = 3000,
+        fps: Int = 30
+    ) = withContext(Dispatchers.Default) {
+        val frameCount = (durationMs / 1000f * fps).toInt()
+
+        val muxer = MediaMuxer(outputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
+        val format = MediaFormat.createVideoFormat("video/avc", canvasWidth, canvasHeight).apply {
+            setInteger(MediaFormat.KEY_COLOR_FORMAT,
+                MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
+            setInteger(MediaFormat.KEY_BIT_RATE, 5_000_000)
+            setInteger(MediaFormat.KEY_FRAME_RATE, fps)
+            setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
+        }
+
+        val encoder = MediaCodec.createEncoderByType("video/avc")
+        encoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+        val inputSurface = encoder.createInputSurface()
+        encoder.start()
+
+        val bufferInfo = MediaCodec.BufferInfo()
+        val trackIndex = muxer.addTrack(encoder.outputFormat)
+        muxer.start()
+
+        val startTime = System.nanoTime()
+
+        for (frame in 0 until frameCount) {
+            val frameTimeUs = (frame * 1_000_000L / fps)
+
+            // 🔹 Render frame to a Bitmap
+            val bmp = createBitmap(canvasWidth, canvasHeight)
+            val canvas = Canvas(bmp)
+            renderCanvasTo(canvas, 1f) // reuse your render method
+
+            // TODO: draw bmp into inputSurface via EGL (needs small wrapper helper)
+
+            bmp.recycle()
+
+            // 🔹 Drain encoder buffers
+            var outputBufferIndex = encoder.dequeueOutputBuffer(bufferInfo, 0)
+            while (outputBufferIndex >= 0) {
+                val encodedData = encoder.getOutputBuffer(outputBufferIndex)!!
+                muxer.writeSampleData(trackIndex, encodedData, bufferInfo)
+                encoder.releaseOutputBuffer(outputBufferIndex, false)
+                outputBufferIndex = encoder.dequeueOutputBuffer(bufferInfo, 0)
+            }
+        }
+
+        encoder.stop()
+        encoder.release()
+        muxer.stop()
+        muxer.release()
+    }
+
+    private fun applyAnimationEffect(element: CanvasElement) {
+        val id = element.id
+
+        // cancel any previous preview
+        activeAnimators[id]?.cancel()
+        activeAnimators.remove(id)
+
+        if (element.animationName.isNullOrEmpty() || element.animationName == "none") return
+
+        // capture original values
+        val baseAlpha = element.paint.alpha
+        val baseRotation = element.rotation
+        val baseScale = element.scale
+        val baseX = element.x
+        val baseY = element.y
+
+        val animator: ValueAnimator? = when (element.animationName!!.lowercase()) {
+
+            "fade" -> ValueAnimator.ofInt(0, baseAlpha).apply {
+                duration = 800
+                repeatCount = 0
+                addUpdateListener {
+                    element.paint.alpha = it.animatedValue as Int
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.paint.alpha = baseAlpha
+                        invalidate()
+                    }
+                })
+            }
+
+            "rotate" -> ValueAnimator.ofFloat(baseRotation, baseRotation + 360f).apply {
+                duration = 1200
+                repeatCount = 0
+                addUpdateListener {
+                    element.rotation = it.animatedValue as Float
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.rotation = baseRotation
+                        invalidate()
+                    }
+                })
+            }
+
+            "pulse" -> ValueAnimator.ofFloat(baseScale, baseScale * 0.8f, baseScale).apply {
+                duration = 600
+                repeatCount = 0
+                addUpdateListener {
+                    element.scale = it.animatedValue as Float
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.scale = baseScale
+                        invalidate()
+                    }
+                })
+            }
+
+            "rise" -> ValueAnimator.ofFloat(baseY + 50f, baseY).apply {
+                duration = 1000
+                interpolator = DecelerateInterpolator()
+                repeatCount = 0
+                addUpdateListener {
+                    element.y = it.animatedValue as Float
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.y = baseY
+                        invalidate()
+                    }
+                })
+            }
+
+            "pan" -> ValueAnimator.ofFloat(baseX - 50f, baseX + 50f, baseX).apply {
+                duration = 1000
+                repeatCount = 0
+                addUpdateListener {
+                    element.x = it.animatedValue as Float
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.x = baseX
+                        invalidate()
+                    }
+                })
+            }
+
+            "wiggle" -> ValueAnimator.ofFloat(baseRotation, baseRotation - 10f, baseRotation + 10f, baseRotation).apply {
+                duration = 600
+                repeatCount = 0
+                addUpdateListener {
+                    element.rotation = it.animatedValue as Float
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.rotation = baseRotation
+                        invalidate()
+                    }
+                })
+            }
+
+            else -> null
+        }
+
+        animator?.let {
+            post {
+                activeAnimators[id] = it
+                it.start()
+            }
+        }
     }
 
     /**
@@ -587,41 +806,6 @@ class CanvasView @JvmOverloads constructor(
             lineTo(corners[6], corners[7])
             close()
         }
-    }
-
-    /**
-     * Compute convex hull using Andrew's monotone chain algorithm.
-     * Input: List of (x,y) points
-     * Output: List of hull points in clockwise order
-     */
-    private fun computeConvexHull(points: List<Pair<Float, Float>>): List<Pair<Float, Float>> {
-        if (points.size <= 1) return points
-
-        val sorted = points.sortedWith(compareBy<Pair<Float, Float>> { it.first }.thenBy { it.second })
-
-        fun cross(o: Pair<Float, Float>, a: Pair<Float, Float>, b: Pair<Float, Float>): Float {
-            return (a.first - o.first) * (b.second - o.second) -
-                    (a.second - o.second) * (b.first - o.first)
-        }
-
-        val lower = mutableListOf<Pair<Float, Float>>()
-        for (p in sorted) {
-            while (lower.size >= 2 && cross(lower[lower.size - 2], lower[lower.size - 1], p) <= 0) {
-                lower.removeAt(lower.size - 1)
-            }
-            lower.add(p)
-        }
-
-        val upper = mutableListOf<Pair<Float, Float>>()
-        for (p in sorted.asReversed()) {
-            while (upper.size >= 2 && cross(upper[upper.size - 2], upper[upper.size - 1], p) <= 0) {
-                upper.removeAt(upper.size - 1)
-            }
-            upper.add(p)
-        }
-
-        // Concatenate lower + upper, removing last point of each (duplicate of first point)
-        return (lower.dropLast(1) + upper.dropLast(1))
     }
 
     private fun getSelectionPath(): android.graphics.Path? {
@@ -1121,6 +1305,13 @@ class CanvasView @JvmOverloads constructor(
                 drawCanvasElements(this)
             }
         }
+        if (pendingAnimations.isNotEmpty()) {
+            val toStart = ArrayList(pendingAnimations)
+            pendingAnimations.clear()
+            post {
+                toStart.forEach { applyAnimationEffect(it) }
+            }
+        }
         Log.d(
             "CanvasDraw",
             "onDraw: overallScale=$overallScale overallOffset=($overallOffsetX,$overallOffsetY) " +
@@ -1298,6 +1489,12 @@ class CanvasView @JvmOverloads constructor(
         canvasElements.filter { it.type != ElementType.BACKGROUND }.sortedBy { it.zIndex }
             .forEach { element ->
                 if (!element.isVisible) return@forEach
+
+                if (!element.hasPlayedAnimation && !activeAnimators.containsKey(element.id)) {
+                    pendingAnimations.add(element)
+                    element.hasPlayedAnimation = true
+                }
+
                 canvas.withTranslation(element.x, element.y) {
                     canvas.rotate(element.rotation)
                     val fx = if (element.isFlippedX) -1f else 1f
@@ -1329,12 +1526,6 @@ class CanvasView @JvmOverloads constructor(
 
         // --- Draw combined bounding box and icons based on selection state ---
         if (showOverlays && selectedElements.isNotEmpty()) {
-            val combinedBounds = getCombinedSelectedBounds()
-
-            val desiredScreenPadding = 10f
-            val localSpacePadding =
-                desiredScreenPadding / scale // Scale padding based on canvas scale
-
             val desiredScreenStrokeWidth = 2f
             val localSpaceStrokeWidth = desiredScreenStrokeWidth / scale // Scale stroke width
 
@@ -1426,6 +1617,8 @@ class CanvasView @JvmOverloads constructor(
         }
 
         if (showOverlays && isColorPickerMode) {
+            if (colorPickerBitmap == null || colorPickerBitmap?.isRecycled == true) return
+
             val halfIcon = desiredPickerIconSizePx / 2f
 
             val px = pickerX.roundToInt().coerceIn(0, colorPickerBitmap?.width!! - 1)
@@ -2699,5 +2892,11 @@ class CanvasView @JvmOverloads constructor(
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         setLayerType(LAYER_TYPE_SOFTWARE, null)
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        activeAnimators.values.forEach { it.cancel() }
+        activeAnimators.clear()
     }
 }

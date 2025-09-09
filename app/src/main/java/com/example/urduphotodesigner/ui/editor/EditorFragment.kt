@@ -77,7 +77,6 @@ class EditorFragment : Fragment() {
     private lateinit var canvasManager: CanvasManager
     private var _navController: NavController? = null
     private val navController get() = _navController!!
-
     private lateinit var canvasSize: CanvasSize
     private var currentUnit = UnitType.PIXELS
     private val viewModel: CanvasViewModel by activityViewModels()
@@ -338,6 +337,12 @@ class EditorFragment : Fragment() {
             }
         }
 
+        viewModel.currentElementAnimation.observe(viewLifecycleOwner) { currentAnimation ->
+            if (currentAnimation!=null){
+                sizedCanvasView.applyElementAnimation(currentAnimation)
+            }
+        }
+
         viewModel.canvasUnit.observe(viewLifecycleOwner) { unit ->
             if (unit != null) {
                 currentUnit = unit
@@ -464,6 +469,7 @@ class EditorFragment : Fragment() {
         val showCopy = anySelected && !hasBackground && !isMulti
 
         updateIconVisibility(binding.opacityIcon, anySelected)
+        updateIconVisibility(binding.animationsIcon, anySelected)
         updateIconVisibility(binding.blendIcon, anySelected)
         updateIconVisibility(binding.fontSizeIcon, showFont)
         updateIconVisibility(binding.copyIcon, showCopy)
@@ -511,6 +517,12 @@ class EditorFragment : Fragment() {
 
         binding.back.addPressEffect {
             autoSave()
+        }
+
+        binding.animationsIcon.addPressEffect {
+            val bundle = Bundle()
+            bundle.putString("elementId", currentPanelItemId.toString())
+            navController.navigate(R.id.animationsFragment)
         }
 
         val widthPx = when (currentUnit) {

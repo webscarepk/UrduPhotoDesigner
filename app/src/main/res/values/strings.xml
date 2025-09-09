@@ -226,6 +226,7 @@
     <string name="export_format">Export Format</string>
     <string name="fonts">Fonts</string>
     <string name="search_fonts">Search fonts ...</string>
+    <string name="animations">Animations</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

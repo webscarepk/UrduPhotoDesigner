@@ -277,6 +277,22 @@
         android:layout_marginBottom="6dp">
         <ImageView
             android:visibility="gone"
+            android:id="@+id/animationsIcon"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="@drawable/button_bg"
+            android:backgroundTint="@color/white80"
+            android:padding="10dp"
+            android:tooltipText="@string/copy"
+            android:foreground="?selectableItemBackground"
+            android:src="@drawable/ic_animations"
+            android:layout_marginStart="6dp"
+            app:layout_constraintTop_toTopOf="@id/opacityIcon"
+            app:layout_constraintBottom_toBottomOf="@id/opacityIcon"
+            app:layout_constraintStart_toEndOf="@id/opacityIcon"
+            app:tint="@color/black"/>
+        <ImageView
+            android:visibility="gone"
             android:id="@+id/copyIcon"
             android:layout_width="38dp"
             android:layout_height="38dp"
@@ -289,7 +305,7 @@
             android:layout_marginStart="6dp"
             app:layout_constraintTop_toTopOf="@id/opacityIcon"
             app:layout_constraintBottom_toBottomOf="@id/opacityIcon"
-            app:layout_constraintStart_toEndOf="@id/opacityIcon"
+            app:layout_constraintStart_toEndOf="@id/animationsIcon"
             app:tint="@color/black"/>
 
         <ImageView

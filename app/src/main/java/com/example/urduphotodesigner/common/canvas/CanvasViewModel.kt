@@ -207,6 +207,9 @@ class CanvasViewModel @Inject constructor(
     private val _listStyle = MutableLiveData(ListStyle.NONE)
     val listStyle: LiveData<ListStyle> = _listStyle
 
+    private val _currentElementAnimation = MutableLiveData<String?>(null)
+    val currentElementAnimation: LiveData<String?> = _currentElementAnimation
+
     private val _groupId = MutableLiveData<String?>()
 
     // Track the selected group ID for grouping operations
@@ -1096,6 +1099,20 @@ class CanvasViewModel @Inject constructor(
                 notifyUndoRedoChanged()
             }
         }
+    }
+
+    fun applyElementAnimation(animationName: String?) {
+        val selected = _selectedElements.value ?: emptyList()
+        if (selected.isEmpty()) return
+
+        val updatedList = _canvasElements.value?.map { element ->
+            if (selected.any { it.id == element.id }) {
+                element.copy(animationName = animationName)
+            } else element
+        } ?: emptyList()
+
+        _canvasElements.value = updatedList
+        _currentElementAnimation.value = animationName
     }
 
     fun updateCanvasElementsOrderAndZIndex(reorderedList: List<CanvasElement>) {

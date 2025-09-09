@@ -16,6 +16,7 @@ import com.example.urduphotodesigner.common.canvas.enums.LetterCasing
 import com.example.urduphotodesigner.common.canvas.enums.ListStyle
 import com.example.urduphotodesigner.common.canvas.enums.TextAlignment
 import com.example.urduphotodesigner.common.canvas.enums.TextDecoration
+import com.example.urduphotodesigner.common.canvas.sealed.ElementAnimation
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
 import com.example.urduphotodesigner.common.utils.KashidaProcessor
 import java.io.Serializable
@@ -97,7 +98,10 @@ data class CanvasElement(
 
     var isFlippedX: Boolean = false,
     var isFlippedY: Boolean = false,
-    var kashidaSize: Int = 0
+    var kashidaSize: Int = 0,
+    var animationName: String? = null,
+    var hasPlayedAnimation: Boolean = false
+
 ) : Serializable {
 
     @Transient
