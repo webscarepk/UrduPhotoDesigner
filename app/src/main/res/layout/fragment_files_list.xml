@@ -35,4 +35,18 @@
         android:backgroundTint="@color/appColor"
         app:tint="@color/white"
         android:background="@drawable/button_bg"/>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/addMore"
+        android:visibility="visible"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_add"
+        style="@style/Widget.MaterialComponents.FloatingActionButton"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_margin="20dp"
+        android:backgroundTint="@color/appColor"
+        app:tint="@color/white"
+        android:background="@drawable/button_bg"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

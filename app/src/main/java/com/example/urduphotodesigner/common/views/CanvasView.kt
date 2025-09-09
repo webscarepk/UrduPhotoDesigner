@@ -535,6 +535,95 @@ class CanvasView @JvmOverloads constructor(
         return RectF(minX, minY, maxX, maxY)
     }
 
+    private fun getGroupRotatedBounds(): FloatArray {
+        val bounds = getCombinedSelectedBounds()
+        val centerX = bounds.centerX()
+        val centerY = bounds.centerY()
+
+        // Compute average rotation of selected elements
+        val avgRotation = selectedElements.map { it.rotation }.average().toFloat()
+
+        val corners = floatArrayOf(
+            bounds.left, bounds.top,
+            bounds.right, bounds.top,
+            bounds.right, bounds.bottom,
+            bounds.left, bounds.bottom
+        )
+
+        val matrix = Matrix().apply {
+            postRotate(avgRotation, centerX, centerY)
+        }
+        matrix.mapPoints(corners)
+
+        return corners
+    }
+
+    private fun getGroupRotatedPath(): android.graphics.Path? {
+        if (selectedElements.size <= 1) return null
+
+        val bounds = getCombinedSelectedBounds()
+        val centerX = bounds.centerX()
+        val centerY = bounds.centerY()
+
+        // Take average rotation of selected elements
+        val avgRotation = selectedElements.map { it.rotation }.average().toFloat()
+
+        val corners = floatArrayOf(
+            bounds.left, bounds.top,
+            bounds.right, bounds.top,
+            bounds.right, bounds.bottom,
+            bounds.left, bounds.bottom
+        )
+
+        val matrix = Matrix().apply {
+            postRotate(avgRotation, centerX, centerY)
+        }
+        matrix.mapPoints(corners)
+
+        return android.graphics.Path().apply {
+            moveTo(corners[0], corners[1])
+            lineTo(corners[2], corners[3])
+            lineTo(corners[4], corners[5])
+            lineTo(corners[6], corners[7])
+            close()
+        }
+    }
+
+    /**
+     * Compute convex hull using Andrew's monotone chain algorithm.
+     * Input: List of (x,y) points
+     * Output: List of hull points in clockwise order
+     */
+    private fun computeConvexHull(points: List<Pair<Float, Float>>): List<Pair<Float, Float>> {
+        if (points.size <= 1) return points
+
+        val sorted = points.sortedWith(compareBy<Pair<Float, Float>> { it.first }.thenBy { it.second })
+
+        fun cross(o: Pair<Float, Float>, a: Pair<Float, Float>, b: Pair<Float, Float>): Float {
+            return (a.first - o.first) * (b.second - o.second) -
+                    (a.second - o.second) * (b.first - o.first)
+        }
+
+        val lower = mutableListOf<Pair<Float, Float>>()
+        for (p in sorted) {
+            while (lower.size >= 2 && cross(lower[lower.size - 2], lower[lower.size - 1], p) <= 0) {
+                lower.removeAt(lower.size - 1)
+            }
+            lower.add(p)
+        }
+
+        val upper = mutableListOf<Pair<Float, Float>>()
+        for (p in sorted.asReversed()) {
+            while (upper.size >= 2 && cross(upper[upper.size - 2], upper[upper.size - 1], p) <= 0) {
+                upper.removeAt(upper.size - 1)
+            }
+            upper.add(p)
+        }
+
+        // Concatenate lower + upper, removing last point of each (duplicate of first point)
+        return (lower.dropLast(1) + upper.dropLast(1))
+    }
+
     private fun getSelectionPath(): android.graphics.Path? {
         if (selectedElements.isEmpty()) return null
         if (selectedElements.size == 1) {
@@ -1262,7 +1351,11 @@ class CanvasView @JvmOverloads constructor(
                 strokeWidth = localSpaceStrokeWidth
             }
 
-            val rotatedPath = getSelectionPath()
+            val rotatedPath = if (selectedElements.size > 1) {
+               getGroupRotatedPath()
+            } else {
+                getSelectionPath() // existing single-element case
+            }
             if (rotatedPath != null) {
                 canvas.drawPath(rotatedPath, boxPaint)
             }
@@ -1276,22 +1369,10 @@ class CanvasView @JvmOverloads constructor(
                 val iconMap = mutableMapOf<String, Pair<Float, Float>>()
 
                 if (selectedElements.size > 1) { // Multi-selection icons
-                    // Remove icon (top-right)
-                    iconMap["delete"] = Pair(
-                        combinedBounds.right + localSpacePadding,
-                        combinedBounds.top - localSpacePadding
-                    )
-                    // Resize icon (bottom-left)
-                    iconMap["rotate"] = Pair(
-                        combinedBounds.left - localSpacePadding,
-                        combinedBounds.bottom + localSpacePadding
-                    )
-                    // Rotate icon (bottom-right)
-                    iconMap["resize"] = Pair(
-                        combinedBounds.right + localSpacePadding,
-                        combinedBounds.bottom + localSpacePadding
-                    )
-                    // Edit icon should not be there for multi-selection
+                    val c = getGroupRotatedBounds()
+                    iconMap["delete"] = Pair(c[2], c[3])   // top-right
+                    iconMap["rotate"] = Pair(c[6], c[7])   // bottom-left
+                    iconMap["resize"] = Pair(c[4], c[5])
                 } else if (selectedElements.size == 1) { // Single element selection icons
                     val element = selectedElements.first()
 

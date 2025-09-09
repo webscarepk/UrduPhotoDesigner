@@ -6,9 +6,14 @@ import android.app.Dialog
 import android.content.ContentValues
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Typeface
+import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -17,6 +22,8 @@ import android.view.animation.LinearInterpolator
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.asFlow
@@ -46,6 +53,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.collections.isNotEmpty
 
 @AndroidEntryPoint
 class FilesListFragment : Fragment() {
@@ -60,6 +71,12 @@ class FilesListFragment : Fragment() {
     private var bundle: Bundle = Bundle()
     private var loadingDialog: Dialog? = null
     private var dialogBinding: DialogLoadingProgressBinding? = null
+    private val pickFiles =
+        registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris: List<Uri> ->
+            if (uris.isNotEmpty()) {
+                handlePickedFiles(uris)
+            }
+        }
 
     private var rotationAnimator: ObjectAnimator? = null
     val navOptions = NavOptions.Builder()
@@ -108,9 +125,14 @@ class FilesListFragment : Fragment() {
                 }
             }, onSelectionChanged = { active ->
                 binding.deleteAll.visibility = if (active) View.VISIBLE else View.GONE
+                binding.addMore.visibility = if (active) View.GONE else View.VISIBLE
             })
         binding.filesRV.adapter = adapter
         binding.filesRV.layoutManager = LinearLayoutManager(requireContext())
+
+        binding.addMore.addPressEffect {
+            pickFiles.launch(arrayOf("*/*"))  // allow all file types
+        }
 
         binding.deleteAll.addPressEffect {
             val selectedItems = adapter.getSelectedItems() // we’ll add this helper in adapter
@@ -133,7 +155,151 @@ class FilesListFragment : Fragment() {
                 }
             }
         }
+    }
 
+    private fun handlePickedFiles(uris: List<Uri>) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            uris.forEach { uri ->
+                handlePickedFile(uri)
+            }
+        }
+    }
+
+    private fun handlePickedFile(uri: Uri) {
+        val cr = requireContext().contentResolver
+        val name = getFileName(uri)
+        val ext = name.substringAfterLast('.', "").lowercase()
+
+        when (ext) {
+            "ttf", "otf" -> {   // FONT IMPORT
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        val fontFile = copyToTemp(uri, ".$ext")
+                        val typeface = Typeface.createFromFile(fontFile)
+                        val fontImage = createFontSampleBitmap(typeface)
+                        val previewPath = ImageProcessor.bitmapToFilePath(requireActivity(), fontImage)
+                        val exportDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+
+                        val fontEntity = FontEntity(
+                            id = System.currentTimeMillis().toInt(),
+                            file_name = fontFile.name,
+                            font_name = fontFile.nameWithoutExtension,
+                            font_category = "Imported",
+                            font_language = "Imported",
+                            file_url = "",
+                            file_size = fontFile.length().toString(),
+                            font_image = previewPath,
+                            image_url = "",
+                            alt_text = "Font sample image",
+                            user_id = 0,
+                            created_at = exportDate,
+                            updated_at = exportDate,
+                            is_selected = false,
+                            is_downloaded = true,
+                            is_downloading = false,
+                            file_path = fontFile.absolutePath
+                        )
+                        viewModel.insertFont(fontEntity)
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(requireContext(), "Font import failed", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+
+            "jpg", "jpeg" -> {   // BACKGROUND IMPORT
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                        val exportDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(
+                            Date()
+                        )
+
+                        val entity = ImageEntity(
+                            id = System.currentTimeMillis().toInt(),
+                            file_name = File(filePath!!).name,
+                            file_url = "",
+                            file_size = File(filePath).length().toString(),
+                            alt_text = "",
+                            category = "Backgrounds Imported",
+                            user_id = 0,
+                            is_selected = false,
+                            bitmapData = filePath,
+                            created_at = exportDate
+                        )
+                        viewModel.insertImage(entity)
+                    } catch (e: Exception) {
+                        Log.e("BackgroundPicker", "Failed", e)
+                    }
+                }
+            }
+
+            "png" -> {   // STICKER IMPORT
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                        val exportDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+
+                        val entity = ImageEntity(
+                            id = System.currentTimeMillis().toInt(),
+                            file_name = File(filePath!!).name,
+                            file_url = "",
+                            file_size = File(filePath).length().toString(),
+                            alt_text = "",
+                            category = "Images Imported",
+                            user_id = 0,
+                            is_selected = false,
+                            bitmapData = filePath,
+                            created_at = exportDate
+                        )
+                        viewModel.insertImage(entity)
+                    } catch (e: Exception) {
+                        Log.e("StickerPicker", "Failed", e)
+                    }
+                }
+            }
+
+            else -> {
+                Toast.makeText(requireContext(), "Unsupported file type", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun getFileName(uri: Uri): String {
+        var name: String? = null
+        val cursor = requireContext().contentResolver.query(uri, null, null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                name = it.getString(it.getColumnIndexOrThrow(android.provider.OpenableColumns.DISPLAY_NAME))
+            }
+        }
+        return name ?: uri.lastPathSegment ?: "file"
+    }
+
+    private fun copyToTemp(uri: Uri, dotExt: String): File {
+        val tempFile = File.createTempFile("imported_${System.currentTimeMillis()}", dotExt, requireContext().cacheDir)
+        requireContext().contentResolver.openInputStream(uri).use { input ->
+            tempFile.outputStream().use { out -> input?.copyTo(out) }
+        }
+        return tempFile
+    }
+
+    private fun createFontSampleBitmap(typeface: Typeface): Bitmap {
+        val paint = Paint().apply {
+            this.typeface = typeface
+            textSize = 100f
+            color = ContextCompat.getColor(requireContext(), R.color.appColor)
+            textAlign = Paint.Align.LEFT
+        }
+
+        val width = paint.measureText("Ab").toInt()
+        val height = (paint.descent() - paint.ascent()).toInt()
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val y = -paint.ascent()
+        canvas.drawText("Ab", 0f, y, paint)
+        return bitmap
     }
 
     private fun openItem(item: Any) {
