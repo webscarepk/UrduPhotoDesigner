@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.model.AnimationItem
 import com.example.urduphotodesigner.common.canvas.sealed.ElementAnimation
@@ -23,27 +24,28 @@ class AnimationsFragment : Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
 
     private val availableAnimations = listOf(
-        AnimationItem( ElementAnimation.Rise.name),
-        AnimationItem(ElementAnimation.Pan.name),
-        AnimationItem( ElementAnimation.Fade.name),
-        AnimationItem(ElementAnimation.Pop.name),
-        AnimationItem( ElementAnimation.Wipe.name),
-        AnimationItem( ElementAnimation.Blur.name),
-        AnimationItem( ElementAnimation.Succession.name),
-        AnimationItem(ElementAnimation.Breathe.name),
-        AnimationItem(ElementAnimation.Baseline.name),
-        AnimationItem(ElementAnimation.Drift.name),
-        AnimationItem(ElementAnimation.Tectonic.name),
-        AnimationItem(ElementAnimation.Tumble.name),
-        AnimationItem( ElementAnimation.Neon.name),
-        AnimationItem(ElementAnimation.Scrapbook.name),
-        AnimationItem(ElementAnimation.Stomp.name),
+        AnimationItem("None", R.drawable.ic_none),
+        AnimationItem(ElementAnimation.Rise.name, R.drawable.ic_rise),
+        AnimationItem(ElementAnimation.Pan.name, R.drawable.ic_pan),
+        AnimationItem(ElementAnimation.Fade.name, R.drawable.ic_fade),
+        AnimationItem(ElementAnimation.Pop.name, R.drawable.ic_pop),
+        AnimationItem(ElementAnimation.Wipe.name, R.drawable.ic_wipe),
+        AnimationItem(ElementAnimation.Blur.name, R.drawable.ic_blur),
+        AnimationItem(ElementAnimation.Succession.name, R.drawable.ic_succession),
+        AnimationItem(ElementAnimation.Breathe.name, R.drawable.ic_breathe),
+        AnimationItem(ElementAnimation.Baseline.name, R.drawable.ic_baseline),
+        AnimationItem(ElementAnimation.Drift.name, R.drawable.ic_drift),
+        AnimationItem(ElementAnimation.Tectonic.name, R.drawable.ic_tectonic),
+        AnimationItem(ElementAnimation.Tumble.name, R.drawable.ic_tumble),
+        AnimationItem(ElementAnimation.Neon.name, R.drawable.ic_neon),
+        AnimationItem(ElementAnimation.Scrapbook.name, R.drawable.ic_scrap_book),
+        AnimationItem(ElementAnimation.Stomp.name, R.drawable.ic_stomp),
 
         // Add-on effects
-        AnimationItem(ElementAnimation.Rotate.name),
-        AnimationItem(ElementAnimation.Flicker.name),
-        AnimationItem(ElementAnimation.Pulse.name),
-        AnimationItem(ElementAnimation.Wiggle.name)
+        AnimationItem(ElementAnimation.Rotate.name, R.drawable.ic_rotate_anim),
+        AnimationItem(ElementAnimation.Flicker.name, R.drawable.ic_flicker),
+        AnimationItem(ElementAnimation.Pulse.name, R.drawable.ic_pulse),
+        AnimationItem(ElementAnimation.Wiggle.name, R.drawable.ic_wiggle)
     )
 
     override fun onCreateView(

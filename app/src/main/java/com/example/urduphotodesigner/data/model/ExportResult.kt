@@ -20,5 +20,6 @@ data class ExportResult(
     val exportDate: String,
     var updatedDate: String,
     var isExported: Boolean = false,
+    var videoPath: String? = null,
     var thumbnailPath: String? = null
 ) : Serializable

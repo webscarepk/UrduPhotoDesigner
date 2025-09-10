@@ -265,6 +265,12 @@ class CanvasViewModel @Inject constructor(
             null,
             "Portable Document Format",
             listOf("Vector container", "Shareable", "Multi-page capable")
+        ),
+        ExportFormat(
+            "MP4",
+            null,
+            "Video format with animations",
+            listOf("Supports animations", "Playable anywhere", "Best for sharing as video")
         )
     )
 
@@ -1102,6 +1108,7 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun applyElementAnimation(animationName: String?) {
+        _isExplicitChange = true
         val selected = _selectedElements.value ?: emptyList()
         if (selected.isEmpty()) return
 
@@ -1113,6 +1120,7 @@ class CanvasViewModel @Inject constructor(
 
         _canvasElements.value = updatedList
         _currentElementAnimation.value = animationName
+        _isExplicitChange = false
     }
 
     fun updateCanvasElementsOrderAndZIndex(reorderedList: List<CanvasElement>) {
@@ -1209,6 +1217,20 @@ class CanvasViewModel @Inject constructor(
         val firstSelectedImageElement =
             elementsToSelect.firstOrNull { it.type == ElementType.IMAGE }
         _currentImageFilter.value = firstSelectedImageElement?.imageFilter
+
+        // 🔹 Always update currentElementAnimation
+        _currentElementAnimation.value = when {
+            elementsToSelect.isEmpty() -> null
+            elementsToSelect.size == 1 -> elementsToSelect.first().animationName
+            else -> {
+                val firstAnim = elementsToSelect.first().animationName
+                if (elementsToSelect.all { it.animationName == firstAnim }) {
+                    firstAnim
+                } else {
+                    null // mixed animations
+                }
+            }
+        }
     }
 
     private fun getTypefaceForElement(element: CanvasElement, context: Context?): Typeface {
@@ -1254,6 +1276,20 @@ class CanvasViewModel @Inject constructor(
         } else {
             syncUiFormattingWithSelectedTextElement(firstImage)
             _currentImageFilter.value = firstImage?.imageFilter
+        }
+
+        // 🔹 Always update currentElementAnimation
+        _currentElementAnimation.value = when {
+            selectedListFromCanvas.isEmpty() -> null
+            selectedListFromCanvas.size == 1 -> selectedListFromCanvas.first().animationName
+            else -> {
+                val firstAnim = selectedListFromCanvas.first().animationName
+                if (selectedListFromCanvas.all { it.animationName == firstAnim }) {
+                    firstAnim
+                } else {
+                    null // mixed animations
+                }
+            }
         }
     }
 

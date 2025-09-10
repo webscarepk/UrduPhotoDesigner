@@ -1,3 +1,3 @@
 package com.example.urduphotodesigner.common.canvas.model
 
-data class AnimationItem(val name: String)
+data class AnimationItem(val name: String, val iconResId: Int)

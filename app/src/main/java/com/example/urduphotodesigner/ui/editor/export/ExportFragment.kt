@@ -76,7 +76,6 @@ class ExportFragment : Fragment() {
 
     private fun setEvents() = with(binding) {
 
-        Log.d("ExportFragmentOnCreate", "Received exportResult: ${viewModel.exportResult.value}")
         stopIconRotation()
         btnExport.addPressEffect { startExport() }
 
@@ -219,82 +218,70 @@ class ExportFragment : Fragment() {
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // 1. Render full canvas
-                val (bitmap, json) = canvasView.exportCanvas(options) { percent, stage ->
-                    lifecycleScope.launch(Dispatchers.Main) {
-                        val mapped = (percent * 0.7).toInt()
-                        updateProgress(mapped, stage)
+                var bitmap: Bitmap? = null
+                var json: String? = null
+                var videoTempPath: String? = null
+
+                if (options.format.name.equals("MP4", true)) {
+                    // 🎥 Export video
+                    val exportFile = File(
+                        requireContext().getExternalFilesDir(Environment.DIRECTORY_MOVIES),
+                        "design_${System.currentTimeMillis()}.mp4"
+                    )
+                    videoTempPath = exportFile.absolutePath
+
+                    canvasView.exportCanvasToMp4(
+                        path = videoTempPath,
+                        durationMs = 5000,
+                        fps = 30
+                    ) { percent ->
+                        lifecycleScope.launch(Dispatchers.Main) {
+                            updateProgress(percent, "Exporting video…")
+                        }
                     }
-                }
 
-                // 2. Generate lightweight preview + save thumbnail
-                val previewBitmap =
-                    bitmap.scale(800, (bitmap.height * (800f / bitmap.width)).toInt())
+                    // Still generate bitmap + json for preview/export project
+                    val (bmp, jsonString) = canvasView.exportCanvas(options) { _, _ -> }
+                    bitmap = bmp
+                    json = jsonString
 
-                // Estimate file size (using preview only for quick responsiveness)
-                val sizeMB = if (options.format.name.equals("PDF", true)) {
-                    (bitmap.width * bitmap.height * 4) / (1024.0 * 1024.0)
                 } else {
-                    estimateBitmapSize(
-                        bitmap,
-                        options.format.format,
-                        options.quality.quality
-                    ) / (1024.0 * 1024.0)
+                    // 🖼️ Export canvas for Image/PDF
+                    val (bmp, jsonString) = canvasView.exportCanvas(options) { percent, stage ->
+                        lifecycleScope.launch(Dispatchers.Main) {
+                            val mapped = (percent * 0.7).toInt()
+                            updateProgress(mapped, stage)
+                        }
+                    }
+                    bitmap = bmp
+                    json = jsonString
                 }
 
-                withContext(Dispatchers.Main) {
-                    updateProgress(50, "Preview ready…")
-                }
-
-                // 3. Save full export (Image or PDF)
+                // 📝 Save actual export (Image / PDF / Video)
                 updateProgressSafe(75, "Saving file…")
-                val savedUri = saveImageOrPdf(bitmap, options)
-                updateProgressSafe(85, "Finalizing…")
-                val pdfPath = if (options.format.name.equals("PDF", true)) {
-                    savedUri?.let {
-                        ImageProcessor.copyPdfUriToTempFile(
-                            requireContext(),
-                            it
-                        )?.absolutePath
-                    }
-                }else{
-                    null
+                val (uri, absPath, fileSizeMB) = saveExportFile(
+                    bitmap = bitmap,
+                    options = options,
+                    videoTempPath = videoTempPath
+                )
+
+                // 🌄 Always save a preview image locally (not in gallery) for project reference
+                val previewBitmap = bitmap.scale(800, (bitmap.height * (800f / bitmap.width)).toInt())
+                val imagePath = previewBitmap.let {
+                    ImageProcessor.bitmapToFilePath(requireActivity(), it)
                 }
 
-                val imagePath = if (options.format.name.equals("PDF", true)) {
-                    ImageProcessor.bitmapToFilePath(requireActivity(), previewBitmap)
-                } else {
-                    savedUri?.let {
-                        ImageProcessor.copyUriToTempFile(
-                            requireContext(),
-                            it
-                        )?.absolutePath
-                    }
-                } ?: throw IllegalStateException("Failed to save file")
-
-                updateProgressSafe(95, "Just a moment…")
+                // Save JSON
                 val jsonPath = saveJson(json)
 
-                // 4. Final file size (real saved file)
-                val imageOrPdfSizeMB = if (options.format.name.equals("PDF", true)) {
-                    pdfPath?.let { File(it).length().toDouble() / (1024.0 * 1024.0) } ?: sizeMB
-                } else {
-                    File(imagePath).takeIf { it.exists() }?.length()?.toDouble()?.div(1024.0 * 1024.0) ?: sizeMB
-                }
-                val jsonSizeMB = File(jsonPath).takeIf { it.exists() }?.length()?.toDouble()?.div(1024.0 * 1024.0) ?: 0.0
-                val fileSizeMB = imageOrPdfSizeMB + jsonSizeMB
-
-                val exportDate =
-                    SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
-
-                Log.d(TAG, "exportCanvasInternal: ${exportResult?.fileName} ")
+                val exportDate = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
                 val fileBaseName = "project_${System.currentTimeMillis()}"
                 val fileName = "$fileBaseName.proj"
-                // 5. Build or update ExportResult
                 val result = exportResult?.apply {
                     this.imagePath = imagePath
                     this.jsonPath = jsonPath
-                    this.pdfPath = pdfPath
+                    this.videoPath = if (options.format.name.equals("MP4", true)) absPath else null
+                    this.pdfPath = if (options.format.name.equals("PDF", true)) absPath else null
                     this.fileName = fileName
                     this.fileSizeMB = fileSizeMB
                     this.resolution = options.resolution.label
@@ -307,7 +294,8 @@ class ExportFragment : Fragment() {
                     imagePath = imagePath,
                     jsonPath = jsonPath,
                     fileName = fileName,
-                    pdfPath = pdfPath,
+                    videoPath = if (options.format.name.equals("MP4", true)) absPath else null,
+                    pdfPath = if (options.format.name.equals("PDF", true)) absPath else null,
                     fileSizeMB = fileSizeMB,
                     resolution = options.resolution.label,
                     format = options.format.name,
@@ -315,19 +303,16 @@ class ExportFragment : Fragment() {
                     canvasSize = viewModel.canvasSize.value!!,
                     exportDate = exportDate,
                     updatedDate = exportDate,
-                    ).also { exportResult = it }
+                ).also { exportResult = it }
 
                 withContext(Dispatchers.Main) {
                     viewModel.setExportResult(result)
                     mainViewModel.insertExportResult(result)
-                }
 
-                // 7. Update UI on complete
-                withContext(Dispatchers.Main) {
                     updateProgress(100, "Export complete")
                     binding.exportProgress.postDelayed({
                         binding.exportProgress.visibility = View.GONE
-                    }, 1000)
+                    }, 300)
 
                     stopRotationAnimation(binding.view4)
                     stopIconRotation()
@@ -335,6 +320,7 @@ class ExportFragment : Fragment() {
                     binding.btnExport.alpha = 1.0f
                     binding.btnExport.text = "Export"
 
+                    showTopBanner("${options.format.name} Export complete")
                     findNavController().navigate(R.id.finishExportFragment)
                 }
             } catch (e: Exception) {
@@ -458,9 +444,13 @@ class ExportFragment : Fragment() {
         return file.absolutePath
     }
 
-    private suspend fun saveImageOrPdf(bitmap: Bitmap, options: ExportOptions): Uri? =
-        withContext(Dispatchers.IO) {
-            if (options.format.name.equals("PDF", ignoreCase = true)) {
+    private suspend fun saveExportFile(
+        bitmap: Bitmap?,
+        options: ExportOptions,
+        videoTempPath: String? = null
+    ): Triple<Uri?, String?, Double> = withContext(Dispatchers.IO) {
+        when {
+            options.format.name.equals("PDF", ignoreCase = true) -> {
                 val filename = "design_${System.currentTimeMillis()}.pdf"
                 val contentValues = ContentValues().apply {
                     put(MediaStore.Files.FileColumns.DISPLAY_NAME, filename)
@@ -475,28 +465,66 @@ class ExportFragment : Fragment() {
                     MediaStore.Files.getContentUri("external"), contentValues
                 )
 
+                var absPath: String? = null
                 uri?.let {
                     requireContext().contentResolver.openOutputStream(it)?.use { stream ->
                         val pdfDoc = PdfDocument()
 
-                        // use 72dpi A4 (lighter than 300dpi)
-                        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
+                        // 👇 use bitmap’s width & height instead of fixed A4
+                        val pageInfo = PdfDocument.PageInfo.Builder(
+                            bitmap!!.width,
+                            bitmap.height,
+                            1
+                        ).create()
+
                         val page = pdfDoc.startPage(pageInfo)
 
-                        val scale = minOf(
-                            pageInfo.pageWidth.toFloat() / bitmap.width,
-                            pageInfo.pageHeight.toFloat() / bitmap.height
-                        )
-                        val matrix = android.graphics.Matrix().apply { postScale(scale, scale) }
-                        page.canvas.drawBitmap(bitmap, matrix, null)
+                        // Draw without scaling → no borders
+                        page.canvas.drawBitmap(bitmap, 0f, 0f, null)
 
                         pdfDoc.finishPage(page)
                         pdfDoc.writeTo(stream)
                         pdfDoc.close()
                     }
+                    absPath = ImageProcessor.copyPdfUriToTempFile(requireContext(), it)?.absolutePath
                 }
-                uri
-            } else {
+
+                val sizeMB = absPath?.let { File(it).length().toDouble() / (1024.0 * 1024.0) } ?: 0.0
+                Triple(uri, absPath, sizeMB)
+            }
+
+            options.format.name.equals("MP4", ignoreCase = true) && videoTempPath != null -> {
+                // save MP4 into gallery
+                val filename = "design_${System.currentTimeMillis()}.mp4"
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.Video.Media.DISPLAY_NAME, filename)
+                    put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
+                    put(
+                        MediaStore.Video.Media.RELATIVE_PATH,
+                        Environment.DIRECTORY_MOVIES + "/UrduDesigner"
+                    )
+                }
+
+                val uri = requireContext().contentResolver.insert(
+                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues
+                )
+
+                var absPath: String? = null
+                uri?.let {
+                    requireContext().contentResolver.openOutputStream(it)?.use { stream ->
+                        File(videoTempPath).inputStream().use { input ->
+                            input.copyTo(stream)
+                        }
+                    }
+                    absPath = ImageProcessor.copyUriToTempFile(requireContext(), it)?.absolutePath
+                }
+
+                val sizeMB = absPath?.let { File(it).length().toDouble() / (1024.0 * 1024.0) } ?: 0.0
+                Triple(uri, absPath, sizeMB)
+            }
+
+            else -> {
+                // Image save (PNG, JPEG, WEBP)
                 val formatExt = when (options.format.format) {
                     Bitmap.CompressFormat.PNG -> "png"
                     Bitmap.CompressFormat.JPEG -> "jpg"
@@ -524,14 +552,19 @@ class ExportFragment : Fragment() {
                     MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues
                 )
 
+                var absPath: String? = null
                 uri?.let {
                     requireContext().contentResolver.openOutputStream(it)?.use { stream ->
-                        bitmap.compress(options.format.format!!, options.quality.quality, stream)
+                        bitmap?.compress(options.format.format!!, options.quality.quality, stream)
                     }
+                    absPath = ImageProcessor.copyUriToTempFile(requireContext(), it)?.absolutePath
                 }
-                uri
+
+                val sizeMB = absPath?.let { File(it).length().toDouble() / (1024.0 * 1024.0) } ?: 0.0
+                Triple(uri, absPath, sizeMB)
             }
         }
+    }
 
     private fun startIconRotation() {
         binding.btnExport.setIconResource(R.drawable.ic_rotate_animated)

@@ -25,7 +25,6 @@ class ExportOptionsFragment : BottomSheetDialogFragment() {
     private lateinit var items: List<Any>
     private lateinit var adapter: ExportOptionAdapter<Any>
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewType = ExportViewType.valueOf(requireArguments().getString(ARG_VIEW_TYPE)!!)

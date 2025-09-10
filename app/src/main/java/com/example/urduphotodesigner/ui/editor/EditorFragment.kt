@@ -338,8 +338,10 @@ class EditorFragment : Fragment() {
         }
 
         viewModel.currentElementAnimation.observe(viewLifecycleOwner) { currentAnimation ->
-            if (currentAnimation!=null){
-                sizedCanvasView.applyElementAnimation(currentAnimation)
+            if (::sizedCanvasView.isInitialized) {
+                if (currentAnimation != null  && viewModel.isExplicitChange()) {
+                    sizedCanvasView.applyElementAnimation(currentAnimation)
+                }
             }
         }
 
@@ -520,8 +522,6 @@ class EditorFragment : Fragment() {
         }
 
         binding.animationsIcon.addPressEffect {
-            val bundle = Bundle()
-            bundle.putString("elementId", currentPanelItemId.toString())
             navController.navigate(R.id.animationsFragment)
         }
 

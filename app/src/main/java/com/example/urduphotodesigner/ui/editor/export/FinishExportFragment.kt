@@ -1,5 +1,6 @@
 package com.example.urduphotodesigner.ui.editor.export
 
+import android.media.MediaMetadataRetriever
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -47,9 +48,19 @@ class FinishExportFragment : Fragment() {
             binding.fileSizeDetail.text = "%.1f MB".format(result?.fileSizeMB)
             binding.fileResolutionDetail.text = result?.resolution
             binding.fileQualityDetail.text = result?.quality
-            binding.fileLocationDetail.text = result?.pdfPath ?: result?.imagePath
             binding.exportDate.text = result?.exportDate
-            binding.previewImage.setImageBitmap(ImageProcessor.filePathToBitmap(result?.imagePath!!))
+            when (result?.format) {
+                "MP4" -> {
+                binding.fileType.text = "Video File"
+                binding.fileLocationDetail.text = result.videoPath
+                // show thumbnail instead of bitmap
+                    binding.previewImage.setImageBitmap(ImageProcessor.filePathToBitmap(result.imagePath))
+                }
+                else -> {
+                binding.fileLocationDetail.text = result?.pdfPath ?: result?.imagePath
+                binding.previewImage.setImageBitmap(ImageProcessor.filePathToBitmap(result?.imagePath!!))
+            }
+            }
         }
     }
 

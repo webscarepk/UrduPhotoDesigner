@@ -37,7 +37,10 @@ import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.BounceInterpolator
 import android.view.animation.DecelerateInterpolator
+import android.view.animation.LinearInterpolator
 import androidx.annotation.ColorInt
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.createBitmap
@@ -82,6 +85,8 @@ import kotlin.math.sign
 import kotlin.math.sin
 import androidx.core.graphics.toColorInt
 import androidx.core.graphics.withSave
+import com.example.urduphotodesigner.common.canvas.model.AnimationSnapshot
+import com.example.urduphotodesigner.common.utils.EglRenderer
 
 class CanvasView @JvmOverloads constructor(
     context: Context,
@@ -141,7 +146,7 @@ class CanvasView @JvmOverloads constructor(
         BitmapShader(bmp, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
     }
 
-    private val canvasElements = mutableListOf<CanvasElement>()
+    private var canvasElements = mutableListOf<CanvasElement>()
     private lateinit var backgroundElement: CanvasElement
 
     private val activeAnimators = mutableMapOf<String, ValueAnimator>()
@@ -312,17 +317,85 @@ class CanvasView @JvmOverloads constructor(
         invalidate()
     }
 
-    suspend fun exportCanvasToMp4(
-        outputPath: String,
-        durationMs: Long = 3000,
-        fps: Int = 30
-    ) = withContext(Dispatchers.Default) {
-        val frameCount = (durationMs / 1000f * fps).toInt()
+    /**
+     * Render a single frame at a given time for video export.
+     * progress = timeMs / durationMs in [0..1]
+     */
+    private fun renderFrameAtTime(canvas: Canvas, timeMs: Long, durationMs: Long) {
+        val progress = (timeMs.toFloat() / durationMs).coerceIn(0f, 1f)
 
-        val muxer = MediaMuxer(outputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
+        // Backup originals
+        val originals = canvasElements.associateBy(
+            { it.id },
+            {
+                AnimationSnapshot(
+                    alpha = it.paintAlpha,
+                    rotation = it.rotation,
+                    scale = it.scale,
+                    x = it.x,
+                    y = it.y
+                )
+            }
+        )
+
+        // Mutate for this frame
+        canvasElements.forEach { element ->
+            val o = originals[element.id] ?: return@forEach
+            when (element.animationName?.lowercase()) {
+                "fade"       -> element.paintAlpha = (o.alpha * progress).toInt()
+                "rotate"     -> element.rotation = o.rotation + 360f * progress
+                "pulse"      -> element.scale = if (progress < 0.5f)
+                    o.scale * (1f - 0.2f * (progress / 0.5f))
+                else
+                    o.scale * (0.8f + 0.2f * ((progress - 0.5f) / 0.5f))
+                "rise"       -> element.y = o.y + 50f * (1f - progress)
+                "pan"        -> element.x = o.x + 50f * sin(progress * Math.PI).toFloat()
+                "wiggle"     -> element.rotation = o.rotation + 10f * sin(progress * Math.PI * 4).toFloat()
+                "succession" -> element.y = o.y + 100f * (1f - progress)
+                "breathe"    -> element.scale = o.scale * (1f + 0.1f * sin(progress * Math.PI * 2).toFloat())
+                "baseline"   -> element.y = o.y + 20f * sin(progress * Math.PI * 2).toFloat()
+                "drift"      -> element.x = o.x + 30f * progress
+                "tectonic"   -> element.rotation = o.rotation + 5f * sin(progress * Math.PI * 8).toFloat()
+                "tumble"     -> element.rotation = o.rotation + 720f * progress
+                "neon"       -> element.paintAlpha = if ((progress * 10).toInt() % 2 == 0) o.alpha else o.alpha / 2
+                "scrapbook"  -> element.scale = o.scale * (1f + 0.05f * sin(progress * Math.PI * 6).toFloat())
+                "stomp"      -> element.y = o.y - 50f * (1f - progress) * (1f - progress)
+                // "none" or unknown → keep originals
+            }
+        }
+
+        // Central drawing pipeline
+        drawCanvasElements(canvas, showOverlays = false, showCheckerboard = false)
+
+        // Restore originals
+        canvasElements.forEach { element ->
+            originals[element.id]?.let { o ->
+                element.paintAlpha = o.alpha
+                element.rotation = o.rotation
+                element.scale = o.scale
+                element.x = o.x
+                element.y = o.y
+            }
+        }
+    }
+
+    suspend fun exportCanvasToMp4(
+        path: String,
+        durationMs: Long = 3000,
+        fps: Int = 30,
+        onProgress: (Int) -> Unit
+    ) = withContext(Dispatchers.Default) {
+        // Clamp duration to max 5 seconds
+        val safeDuration = durationMs.coerceIn(1000L, 5000L)
+        val frameCount = (safeDuration / 1000f * fps).toInt()
+        val frameDurationUs = 1_000_000L / fps
+
+        val muxer = MediaMuxer(path, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
         val format = MediaFormat.createVideoFormat("video/avc", canvasWidth, canvasHeight).apply {
-            setInteger(MediaFormat.KEY_COLOR_FORMAT,
-                MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
+            setInteger(
+                MediaFormat.KEY_COLOR_FORMAT,
+                MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface
+            )
             setInteger(MediaFormat.KEY_BIT_RATE, 5_000_000)
             setInteger(MediaFormat.KEY_FRAME_RATE, fps)
             setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
@@ -334,33 +407,83 @@ class CanvasView @JvmOverloads constructor(
         encoder.start()
 
         val bufferInfo = MediaCodec.BufferInfo()
-        val trackIndex = muxer.addTrack(encoder.outputFormat)
-        muxer.start()
+        var trackIndex = -1
+        var muxerStarted = false
 
-        val startTime = System.nanoTime()
+        var presentationTimeUs: Long = 0
 
+        // 🔹 Render each frame
         for (frame in 0 until frameCount) {
-            val frameTimeUs = (frame * 1_000_000L / fps)
+            val targetTimeUs = frame * frameDurationUs
 
-            // 🔹 Render frame to a Bitmap
-            val bmp = createBitmap(canvasWidth, canvasHeight)
-            val canvas = Canvas(bmp)
-            renderCanvasTo(canvas, 1f) // reuse your render method
+            // Draw into encoder input surface
+            val canvas = inputSurface.lockCanvas(null)
+            canvas.drawColor(Color.BLACK)
+            renderFrameAtTime(canvas, frame * 1000L / fps, safeDuration)
+            inputSurface.unlockCanvasAndPost(canvas)
 
-            // TODO: draw bmp into inputSurface via EGL (needs small wrapper helper)
+            // Drain encoder output
+            loop@ while (true) {
+                val outputIndex = encoder.dequeueOutputBuffer(bufferInfo, 0)
+                when {
+                    outputIndex == MediaCodec.INFO_TRY_AGAIN_LATER -> break@loop
+                    outputIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
+                        if (muxerStarted) throw RuntimeException("Format changed twice")
+                        trackIndex = muxer.addTrack(encoder.outputFormat)
+                        muxer.start()
+                        muxerStarted = true
+                    }
+                    outputIndex >= 0 -> {
+                        val encodedData = encoder.getOutputBuffer(outputIndex) ?: continue
+                        if (bufferInfo.size > 0 && muxerStarted) {
+                            // 🔹 Force correct timestamp
+                            if (presentationTimeUs < targetTimeUs) {
+                                presentationTimeUs = targetTimeUs
+                            } else {
+                                presentationTimeUs += frameDurationUs
+                            }
+                            bufferInfo.presentationTimeUs = presentationTimeUs
+                            muxer.writeSampleData(trackIndex, encodedData, bufferInfo)
 
-            bmp.recycle()
+                        }
+                        encoder.releaseOutputBuffer(outputIndex, false)
+                    }
+                }
+            }
 
-            // 🔹 Drain encoder buffers
-            var outputBufferIndex = encoder.dequeueOutputBuffer(bufferInfo, 0)
-            while (outputBufferIndex >= 0) {
-                val encodedData = encoder.getOutputBuffer(outputBufferIndex)!!
-                muxer.writeSampleData(trackIndex, encodedData, bufferInfo)
-                encoder.releaseOutputBuffer(outputBufferIndex, false)
-                outputBufferIndex = encoder.dequeueOutputBuffer(bufferInfo, 0)
+            withContext(Dispatchers.Main) {
+                onProgress(((frame + 1) * 100 / frameCount))
             }
         }
 
+        // 🔹 End of stream
+        encoder.signalEndOfInputStream()
+
+        var eos = false
+        while (!eos) {
+            val outputIndex = encoder.dequeueOutputBuffer(bufferInfo, 10_000)
+            when {
+                outputIndex == MediaCodec.INFO_TRY_AGAIN_LATER -> break
+                outputIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
+                    if (muxerStarted) throw RuntimeException("Format changed twice at EOS")
+                    trackIndex = muxer.addTrack(encoder.outputFormat)
+                    muxer.start()
+                    muxerStarted = true
+                }
+                outputIndex >= 0 -> {
+                    val encodedData = encoder.getOutputBuffer(outputIndex) ?: continue
+                    if (bufferInfo.size > 0 && muxerStarted) {
+                        muxer.writeSampleData(trackIndex, encodedData, bufferInfo)
+                    }
+                    if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) {
+                        eos = true
+                    }
+                    encoder.releaseOutputBuffer(outputIndex, false)
+                }
+            }
+        }
+
+        // 🔹 Clean shutdown
         encoder.stop()
         encoder.release()
         muxer.stop()
@@ -377,24 +500,166 @@ class CanvasView @JvmOverloads constructor(
         if (element.animationName.isNullOrEmpty() || element.animationName == "none") return
 
         // capture original values
-        val baseAlpha = element.paint.alpha
+        val baseAlpha = element.paintAlpha
         val baseRotation = element.rotation
         val baseScale = element.scale
+        val blur = element.blurValue
         val baseX = element.x
         val baseY = element.y
 
         val animator: ValueAnimator? = when (element.animationName!!.lowercase()) {
 
-            "fade" -> ValueAnimator.ofInt(0, baseAlpha).apply {
-                duration = 800
-                repeatCount = 0
+            "none" -> {
+                // do nothing, but make sure values are reset
+                element.paintAlpha = baseAlpha
+                element.rotation = baseRotation
+                element.scale = baseScale
+                element.x = baseX
+                element.y = baseY
+                invalidate()
+                null
+            }
+
+            "succession" -> ValueAnimator.ofFloat(baseY + 100f, baseY).apply {
+                duration = 1200
+                interpolator = DecelerateInterpolator()
                 addUpdateListener {
-                    element.paint.alpha = it.animatedValue as Int
+                    element.y = it.animatedValue as Float
                     invalidate()
                 }
                 addListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: Animator) {
-                        element.paint.alpha = baseAlpha
+                        element.y = baseY
+                        invalidate()
+                    }
+                })
+            }
+
+            "breathe" -> ValueAnimator.ofFloat(baseScale, baseScale * 1.1f, baseScale).apply {
+                duration = 1000
+                addUpdateListener {
+                    element.scale = it.animatedValue as Float
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.scale = baseScale
+                        invalidate()
+                    }
+                })
+            }
+
+            "baseline" -> ValueAnimator.ofFloat(baseY - 20f, baseY, baseY + 20f, baseY).apply {
+                duration = 1000
+                addUpdateListener {
+                    element.y = it.animatedValue as Float
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.y = baseY
+                        invalidate()
+                    }
+                })
+            }
+
+            "drift" -> ValueAnimator.ofFloat(baseX, baseX + 30f, baseX).apply {
+                duration = 1500
+                interpolator = LinearInterpolator()
+                addUpdateListener {
+                    element.x = it.animatedValue as Float
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.x = baseX
+                        invalidate()
+                    }
+                })
+            }
+
+            "tectonic" -> ValueAnimator.ofFloat(baseRotation, baseRotation + 5f, baseRotation - 5f, baseRotation).apply {
+                duration = 800
+                addUpdateListener {
+                    element.rotation = it.animatedValue as Float
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.rotation = baseRotation
+                        invalidate()
+                    }
+                })
+            }
+
+            "tumble" -> ValueAnimator.ofFloat(baseRotation, baseRotation + 720f).apply {
+                duration = 1500
+                interpolator = AccelerateDecelerateInterpolator()
+                addUpdateListener {
+                    element.rotation = it.animatedValue as Float
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.rotation = baseRotation
+                        invalidate()
+                    }
+                })
+            }
+
+            "neon" -> ValueAnimator.ofInt(0, 255, 0, 255).apply {
+                duration = 1000
+                addUpdateListener {
+                    element.paintAlpha = it.animatedValue as Int
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.paintAlpha = baseAlpha
+                        invalidate()
+                    }
+                })
+            }
+
+            "scrapbook" -> ValueAnimator.ofFloat(baseScale, baseScale * 1.05f, baseScale * 0.95f, baseScale).apply {
+                duration = 1200
+                addUpdateListener {
+                    element.scale = it.animatedValue as Float
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.scale = baseScale
+                        invalidate()
+                    }
+                })
+            }
+
+            "stomp" -> ValueAnimator.ofFloat(baseY - 50f, baseY).apply {
+                duration = 600
+                interpolator = BounceInterpolator()
+                addUpdateListener {
+                    element.y = it.animatedValue as Float
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.y = baseY
+                        invalidate()
+                    }
+                })
+            }
+
+            "fade" -> ValueAnimator.ofInt(0, baseAlpha).apply {
+                duration = 800
+                repeatCount = 0
+                addUpdateListener {
+                    element.paintAlpha = it.animatedValue as Int
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.paintAlpha = baseAlpha
                         invalidate()
                     }
                 })
@@ -456,6 +721,65 @@ class CanvasView @JvmOverloads constructor(
                 addListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: Animator) {
                         element.x = baseX
+                        invalidate()
+                    }
+                })
+            }
+
+            "pop" -> ValueAnimator.ofFloat(baseScale * 0.5f, baseScale, baseScale * 1.2f, baseScale).apply {
+                duration = 700
+                addUpdateListener {
+                    element.scale = it.animatedValue as Float
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.scale = baseScale
+                        invalidate()
+                    }
+                })
+            }
+
+            "wipe" -> ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = 800
+                addUpdateListener {
+                    // simulate wipe by alpha
+                    element.paintAlpha = (baseAlpha * it.animatedValue as Float).toInt()
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.paintAlpha = baseAlpha
+                        invalidate()
+                    }
+                })
+            }
+
+            "blur" -> ValueAnimator.ofFloat(0f, 25f, 0f).apply {
+                duration = 1000
+                addUpdateListener {
+                    val radius = (it.animatedValue as Float).coerceAtLeast(0.1f) // 🔹 avoid 0
+                    element.blurValue = radius
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.blurValue = blur
+                        invalidate()
+                    }
+                })
+            }
+
+            "flicker" -> ValueAnimator.ofInt(0, baseAlpha).apply {
+                duration = 500
+                repeatCount = 5
+                addUpdateListener {
+                    element.paintAlpha = it.animatedValue as Int
+                    invalidate()
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        element.paintAlpha = baseAlpha
                         invalidate()
                     }
                 })

@@ -177,9 +177,10 @@ class ExportOptionAdapter<T>(
         fun bind(item: ExportFormat) {
             binding.resolutionTitle.text = item.name
             binding.resolutionDesc.text = item.description
-            binding.resolutionDiff.text = when {
-                item.format != null -> ".${item.format.name.lowercase()}"
-                else -> ".pdf"
+            binding.resolutionDiff.text = when (item.name) {
+                "PDF" -> ".pdf"
+                "MP4" -> ".mp4"
+                else -> ".${item.format?.name?.lowercase()}"
             }
             val tags = item.tags
             binding.resolutionValue.text = tags.getOrNull(0) ?: ""
