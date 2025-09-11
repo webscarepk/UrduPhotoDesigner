@@ -516,7 +516,7 @@ class ExportFragment : Fragment() {
                             input.copyTo(stream)
                         }
                     }
-                    absPath = ImageProcessor.copyUriToTempFile(requireContext(), it)?.absolutePath
+                    absPath = ImageProcessor.copyVideoUriToTempFile(requireContext(), it)?.absolutePath
                 }
 
                 val sizeMB = absPath?.let { File(it).length().toDouble() / (1024.0 * 1024.0) } ?: 0.0

@@ -410,8 +410,6 @@ class CanvasView @JvmOverloads constructor(
         var trackIndex = -1
         var muxerStarted = false
 
-        var presentationTimeUs: Long = 0
-
         // 🔹 Render each frame
         for (frame in 0 until frameCount) {
             val targetTimeUs = frame * frameDurationUs
@@ -436,13 +434,7 @@ class CanvasView @JvmOverloads constructor(
                     outputIndex >= 0 -> {
                         val encodedData = encoder.getOutputBuffer(outputIndex) ?: continue
                         if (bufferInfo.size > 0 && muxerStarted) {
-                            // 🔹 Force correct timestamp
-                            if (presentationTimeUs < targetTimeUs) {
-                                presentationTimeUs = targetTimeUs
-                            } else {
-                                presentationTimeUs += frameDurationUs
-                            }
-                            bufferInfo.presentationTimeUs = presentationTimeUs
+                            bufferInfo.presentationTimeUs = targetTimeUs
                             muxer.writeSampleData(trackIndex, encodedData, bufferInfo)
 
                         }

@@ -95,6 +95,22 @@ object ImageProcessor {
         }
     }
 
+    fun copyVideoUriToTempFile(context: Context, uri: Uri): File? {
+        return try {
+            val dir = context.cacheDir
+            val file = File(dir, "video_${System.currentTimeMillis()}.mp4")
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(file).use { output ->
+                    input.copyTo(output)
+                }
+            }
+            file
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
     fun copyPdfUriToTempFile(context: Context, uri: Uri): File? {
         return try {
             val dir = context.cacheDir
