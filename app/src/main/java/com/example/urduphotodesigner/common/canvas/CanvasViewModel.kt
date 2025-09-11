@@ -161,6 +161,7 @@ class CanvasViewModel @Inject constructor(
     val opacity: LiveData<Int> = _opacity
 
     private val _hasBlur = MutableLiveData(false)
+    val hasChanges = MutableLiveData(false)
 
     private val _blendingType = MutableLiveData(BlendType.SRC_OVER) // Default blend type
     val blendingType: LiveData<BlendType> = _blendingType
@@ -284,8 +285,16 @@ class CanvasViewModel @Inject constructor(
     private val _canvasView = MutableLiveData<CanvasView>()
     val canvasView: LiveData<CanvasView> = _canvasView
 
+    fun markChanged() {
+        hasChanges.value = true
+    }
+
     fun setCanvasView(view: CanvasView) {
         _canvasView.value = view
+    }
+
+    fun getCanvasView(): CanvasView? {
+        return _canvasView.value
     }
 
     init {
@@ -2230,6 +2239,7 @@ class CanvasViewModel @Inject constructor(
 
         selectedElement = null
         currentBatchAction = null
+        hasChanges.value = false
     }
 
     fun loadTemplateFromJsonFile(exportResult: ExportResult, context: Context) {

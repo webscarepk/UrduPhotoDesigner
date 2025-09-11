@@ -85,6 +85,9 @@ class ExportOptionsFragment : BottomSheetDialogFragment() {
                     viewModel.exportOptions.value!!.copy(format = selected)
                 )
             }
+            binding.options.postDelayed({
+                dismiss()
+            }, 500)
         }
 
         binding.options.adapter = adapter
