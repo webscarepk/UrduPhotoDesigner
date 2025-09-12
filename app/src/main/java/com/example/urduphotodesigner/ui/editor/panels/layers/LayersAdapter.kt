@@ -111,7 +111,7 @@ class LayersAdapter(
                     if (element.isLocked) R.drawable.ic_lock else R.drawable.ic_unlock
                 )
 
-                val hideDragOrOptions = element.isLocked || element.type == ElementType.BACKGROUND
+                val hideDragOrOptions = element.isLocked
 
                 binding.drag.visibility    = if (hideDragOrOptions) View.GONE else View.VISIBLE
                 binding.options.visibility = if (hideDragOrOptions) View.GONE else View.VISIBLE
@@ -132,9 +132,7 @@ class LayersAdapter(
                     onClick = {
                         onItemClick(element)
                     }, onLongClick = {
-                        if (element.type!=ElementType.BACKGROUND){
-                            onItemLongClick(element)
-                        }
+                        onItemLongClick(element)
                     }
                 )
             }

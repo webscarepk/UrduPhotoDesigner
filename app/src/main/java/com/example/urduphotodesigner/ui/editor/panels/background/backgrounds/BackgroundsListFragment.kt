@@ -55,6 +55,11 @@ class BackgroundsListFragment : Fragment() {
             mainViewModel.localImages.collect { images ->
                 val imageList =
                     images.filter { it.category.equals("Backgrounds", ignoreCase = true) || it.category.equals("Backgrounds Imported", ignoreCase = true) }
+                if (imageList.isEmpty()){
+                    binding.noEmojis.visibility = View.VISIBLE
+                }else{
+                    binding.noEmojis.visibility = View.GONE
+                }
                 imagesAdapter.submitList(imageList)
             }
         }

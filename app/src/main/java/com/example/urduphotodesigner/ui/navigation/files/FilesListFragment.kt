@@ -34,7 +34,6 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.utils.DialogUtils
 import com.example.urduphotodesigner.common.utils.ImageProcessor
@@ -49,6 +48,7 @@ import com.example.urduphotodesigner.viewmodels.FiltersViewModel
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -56,7 +56,6 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.collections.isNotEmpty
 
 @AndroidEntryPoint
 class FilesListFragment : Fragment() {
@@ -177,8 +176,10 @@ class FilesListFragment : Fragment() {
                         val fontFile = copyToTemp(uri, ".$ext")
                         val typeface = Typeface.createFromFile(fontFile)
                         val fontImage = createFontSampleBitmap(typeface)
-                        val previewPath = ImageProcessor.bitmapToFilePath(requireActivity(), fontImage)
-                        val exportDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                        val previewPath =
+                            ImageProcessor.bitmapToFilePath(requireActivity(), fontImage)
+                        val exportDate =
+                            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
                         val fontEntity = FontEntity(
                             id = System.currentTimeMillis().toInt(),
@@ -202,7 +203,11 @@ class FilesListFragment : Fragment() {
                         viewModel.insertFont(fontEntity)
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(requireContext(), "Font import failed", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                requireContext(),
+                                "Font import failed",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                 }
@@ -211,7 +216,8 @@ class FilesListFragment : Fragment() {
             "jpg", "jpeg" -> {   // BACKGROUND IMPORT
                 lifecycleScope.launch(Dispatchers.IO) {
                     try {
-                        val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                        val filePath =
+                            ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
                         val exportDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(
                             Date()
                         )
@@ -238,8 +244,10 @@ class FilesListFragment : Fragment() {
             "png" -> {   // STICKER IMPORT
                 lifecycleScope.launch(Dispatchers.IO) {
                     try {
-                        val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
-                        val exportDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                        val filePath =
+                            ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                        val exportDate =
+                            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
                         val entity = ImageEntity(
                             id = System.currentTimeMillis().toInt(),
@@ -271,14 +279,19 @@ class FilesListFragment : Fragment() {
         val cursor = requireContext().contentResolver.query(uri, null, null, null, null)
         cursor?.use {
             if (it.moveToFirst()) {
-                name = it.getString(it.getColumnIndexOrThrow(android.provider.OpenableColumns.DISPLAY_NAME))
+                name =
+                    it.getString(it.getColumnIndexOrThrow(android.provider.OpenableColumns.DISPLAY_NAME))
             }
         }
         return name ?: uri.lastPathSegment ?: "file"
     }
 
     private fun copyToTemp(uri: Uri, dotExt: String): File {
-        val tempFile = File.createTempFile("imported_${System.currentTimeMillis()}", dotExt, requireContext().cacheDir)
+        val tempFile = File.createTempFile(
+            "imported_${System.currentTimeMillis()}",
+            dotExt,
+            requireContext().cacheDir
+        )
         requireContext().contentResolver.openInputStream(uri).use { input ->
             tempFile.outputStream().use { out -> input?.copyTo(out) }
         }
@@ -616,6 +629,7 @@ class FilesListFragment : Fragment() {
             dialogBinding?.apply {
                 progressBar.progress = percent
                 subtitle.text = "$message... $percent%"
+                tvProgressPercent.text = "$percent% complete"
             }
         }
 
@@ -624,9 +638,11 @@ class FilesListFragment : Fragment() {
                 showLoadingDialog()
             } else if (isLoading == false) {
                 dismissLoadingDialog()
-                canvasViewModel.clearLoading()
-                if (findNavController().currentDestination?.id != R.id.editorFragment) {
-                    findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                lifecycleScope.launch {
+                    delay(500)
+                    if (findNavController().currentDestination?.id != R.id.editorFragment) {
+                        findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                    }
                 }
             }
         }
@@ -668,7 +684,12 @@ class FilesListFragment : Fragment() {
                         }
 
                         filteredFonts + filteredImages + filteredProjects
-                    }.collect { list -> adapter.updateList(list) }
+                    }.collect { list ->
+                        adapter.updateList(list)
+                        binding.noImagesText.text = requireActivity().getString(R.string.no_assets_available)
+                        binding.noEmojis.visibility =
+                            if (list.isEmpty()) View.VISIBLE else View.GONE
+                    }
                 }
             }
 
@@ -680,7 +701,12 @@ class FilesListFragment : Fragment() {
                     ) { results, query ->
                         val q = query.trim().lowercase()
                         results.filter { q.isEmpty() || it.fileName.lowercase().contains(q) }
-                    }.collect { list -> adapter.updateList(list) }
+                    }.collect { list ->
+                        adapter.updateList(list)
+                        binding.noImagesText.text = requireActivity().getString(R.string.no_projects_available)
+                        binding.noEmojis.visibility =
+                            if (list.isEmpty()) View.VISIBLE else View.GONE
+                    }
                 }
             }
 
@@ -695,7 +721,12 @@ class FilesListFragment : Fragment() {
                             it.font_category == "Imported" &&
                                     (q.isEmpty() || it.font_name.lowercase().contains(q))
                         }
-                    }.collect { list -> adapter.updateList(list) }
+                    }.collect { list ->
+                        adapter.updateList(list)
+                        binding.noImagesText.text = requireActivity().getString(R.string.no_fonts_available)
+                        binding.noEmojis.visibility =
+                            if (list.isEmpty()) View.VISIBLE else View.GONE
+                    }
                 }
             }
 
@@ -710,7 +741,13 @@ class FilesListFragment : Fragment() {
                             it.category == "Images Imported" &&
                                     (q.isEmpty() || it.file_name.lowercase().contains(q))
                         }
-                    }.collect { list -> adapter.updateList(list) }
+                    }.collect { list ->
+                        adapter.updateList(list)
+
+                        binding.noImagesText.text = requireActivity().getString(R.string.no_stickers_available)
+                        binding.noEmojis.visibility =
+                            if (list.isEmpty()) View.VISIBLE else View.GONE
+                    }
                 }
             }
 
@@ -725,7 +762,12 @@ class FilesListFragment : Fragment() {
                             it.category == "Backgrounds Imported" &&
                                     (q.isEmpty() || it.file_name.lowercase().contains(q))
                         }
-                    }.collect { list -> adapter.updateList(list) }
+                    }.collect { list ->
+                        adapter.updateList(list)
+                        binding.noImagesText.text = requireActivity().getString(R.string.no_backgrounds_available)
+                        binding.noEmojis.visibility =
+                            if (list.isEmpty()) View.VISIBLE else View.GONE
+                    }
                 }
             }
 
@@ -780,6 +822,13 @@ class FilesListFragment : Fragment() {
     override fun onDestroy() {
         super.onDestroy()
         _binding = null
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (findNavController().currentDestination?.id!! != R.id.editorFragment) {
+            canvasViewModel.clearCanvas()
+        }
     }
 
     companion object {

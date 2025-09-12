@@ -141,6 +141,7 @@ class EditorFragment : Fragment() {
         jsonPath = File(requireContext().filesDir, jsonFileName).absolutePath
         imagePath = File(requireContext().filesDir, imageFileName).absolutePath
 
+        viewModel.clearLoading()
         observeViewModel()
     }
 
@@ -515,6 +516,7 @@ class EditorFragment : Fragment() {
         val existing = viewModel.getCanvasView()
         if (existing != null) {
             sizedCanvasView = existing
+            sizedCanvasView.resizeCanvas(widthPx, heightPx)
             (sizedCanvasView.parent as? ViewGroup)?.removeView(sizedCanvasView)
             binding.canvasContainer.addView(sizedCanvasView)
         } else {

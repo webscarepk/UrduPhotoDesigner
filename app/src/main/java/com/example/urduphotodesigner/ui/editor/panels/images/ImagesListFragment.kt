@@ -45,7 +45,6 @@ class ImagesListFragment : Fragment() {
     private fun setEvents() {
         imagesAdapter = ImagesAdapter(){ image ->
             val resized = bitmapCompress(image)
-
             viewModel.addSticker(resized, requireActivity())
         }
         binding.backgrounds.adapter = imagesAdapter
@@ -57,7 +56,7 @@ class ImagesListFragment : Fragment() {
             mainViewModel.localImages.collect { images ->
                 val imageList =
                     images.filter { it.category.equals(categoryName, ignoreCase = true) }
-
+                binding.noEmojis.visibility = if (imageList.isEmpty())View.VISIBLE else View.GONE
                 imagesAdapter.submitList(imageList)
             }
         }

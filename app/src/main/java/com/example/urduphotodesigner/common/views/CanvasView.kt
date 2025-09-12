@@ -224,6 +224,12 @@ class CanvasView @JvmOverloads constructor(
     private fun Float.dpToPx(): Float =
         this * resources.displayMetrics.density
 
+    fun resizeCanvas(newWidth: Int, newHeight: Int) {
+        this.canvasWidth = newWidth
+        this.canvasHeight = newHeight
+        requestLayout()
+        invalidate()
+    }
     fun enableColorPicker() {
         isColorPickerMode = true
 
@@ -587,41 +593,6 @@ class CanvasView @JvmOverloads constructor(
             lineTo(corners[6], corners[7])
             close()
         }
-    }
-
-    /**
-     * Compute convex hull using Andrew's monotone chain algorithm.
-     * Input: List of (x,y) points
-     * Output: List of hull points in clockwise order
-     */
-    private fun computeConvexHull(points: List<Pair<Float, Float>>): List<Pair<Float, Float>> {
-        if (points.size <= 1) return points
-
-        val sorted = points.sortedWith(compareBy<Pair<Float, Float>> { it.first }.thenBy { it.second })
-
-        fun cross(o: Pair<Float, Float>, a: Pair<Float, Float>, b: Pair<Float, Float>): Float {
-            return (a.first - o.first) * (b.second - o.second) -
-                    (a.second - o.second) * (b.first - o.first)
-        }
-
-        val lower = mutableListOf<Pair<Float, Float>>()
-        for (p in sorted) {
-            while (lower.size >= 2 && cross(lower[lower.size - 2], lower[lower.size - 1], p) <= 0) {
-                lower.removeAt(lower.size - 1)
-            }
-            lower.add(p)
-        }
-
-        val upper = mutableListOf<Pair<Float, Float>>()
-        for (p in sorted.asReversed()) {
-            while (upper.size >= 2 && cross(upper[upper.size - 2], upper[upper.size - 1], p) <= 0) {
-                upper.removeAt(upper.size - 1)
-            }
-            upper.add(p)
-        }
-
-        // Concatenate lower + upper, removing last point of each (duplicate of first point)
-        return (lower.dropLast(1) + upper.dropLast(1))
     }
 
     private fun getSelectionPath(): android.graphics.Path? {
@@ -1290,37 +1261,37 @@ class CanvasView @JvmOverloads constructor(
             canvas.drawRect(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat(), checkerPaint)
         }
 
-        canvasElements
-            .firstOrNull { it.type == ElementType.BACKGROUND }
-            ?.let { drawBackgroundElement(canvas, it) }
+//        canvasElements
+//            .firstOrNull { it.type == ElementType.BACKGROUND  && it.isVisible}
+//            ?.let { drawBackgroundElement(canvas, it) }
 
         // Draw all elements
-        canvasElements.filter { it.type != ElementType.BACKGROUND }.sortedBy { it.zIndex }
+        canvasElements
+            .sortedBy { it.zIndex }
             .forEach { element ->
                 if (!element.isVisible) return@forEach
-                canvas.withTranslation(element.x, element.y) {
-                    canvas.rotate(element.rotation)
-                    val fx = if (element.isFlippedX) -1f else 1f
-                    val fy = if (element.isFlippedY) -1f else 1f
-                    canvas.scale(element.scale * fx, element.scale * fy)
 
-                    when (element.type) {
-                        ElementType.TEXT -> {
-                            drawTextElement(canvas, element)
-                        }
+                if (element.type == ElementType.BACKGROUND) {
+                    drawBackgroundElement(canvas, element)
+                } else {
+                    canvas.withTranslation(element.x, element.y) {
+                        canvas.rotate(element.rotation)
+                        val fx = if (element.isFlippedX) -1f else 1f
+                        val fy = if (element.isFlippedY) -1f else 1f
+                        canvas.scale(element.scale * fx, element.scale * fy)
 
-                        ElementType.BACKGROUND -> {}
-
-                        else -> {
-                            element.paint.colorFilter = colorFilterFor(element.imageFilter)
-
-                            element.bitmap?.let {
-                                canvas.drawBitmap(
-                                    it,
-                                    -it.width / 2f,
-                                    -it.height / 2f,
-                                    element.paint
-                                )
+                        when (element.type) {
+                            ElementType.TEXT -> drawTextElement(canvas, element)
+                            else -> {
+                                element.paint.colorFilter = colorFilterFor(element.imageFilter)
+                                element.bitmap?.let {
+                                    canvas.drawBitmap(
+                                        it,
+                                        -it.width / 2f,
+                                        -it.height / 2f,
+                                        element.paint
+                                    )
+                                }
                             }
                         }
                     }
@@ -1329,12 +1300,6 @@ class CanvasView @JvmOverloads constructor(
 
         // --- Draw combined bounding box and icons based on selection state ---
         if (showOverlays && selectedElements.isNotEmpty()) {
-            val combinedBounds = getCombinedSelectedBounds()
-
-            val desiredScreenPadding = 10f
-            val localSpacePadding =
-                desiredScreenPadding / scale // Scale padding based on canvas scale
-
             val desiredScreenStrokeWidth = 2f
             val localSpaceStrokeWidth = desiredScreenStrokeWidth / scale // Scale stroke width
 

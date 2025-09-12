@@ -118,19 +118,6 @@
                         app:layout_constraintEnd_toEndOf="@id/previewImage" />
 
                     <ImageView
-                        android:id="@+id/edit"
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:layout_marginEnd="6dp"
-                        android:background="@drawable/button_bg"
-                        android:backgroundTint="@color/contrast"
-                        android:padding="8dp"
-                        android:src="@drawable/ic_edit"
-                        app:layout_constraintBottom_toBottomOf="@id/preview"
-                        app:layout_constraintEnd_toStartOf="@id/preview"
-                        app:layout_constraintTop_toTopOf="@id/preview" />
-
-                    <ImageView
                         android:id="@+id/preview"
                         android:layout_width="30dp"
                         android:layout_height="30dp"

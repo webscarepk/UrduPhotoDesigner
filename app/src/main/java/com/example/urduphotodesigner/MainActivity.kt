@@ -92,12 +92,31 @@ class MainActivity : AppCompatActivity() {
         binding.bottomNavigation.setupWithNavController(navController)
 
         binding.bottomNavigation.setOnItemSelectedListener { item ->
+            // Navigation only, NO selection handling here
             when (item.itemId) {
-                R.id.nav_home -> navController.navigate(R.id.homeFragment)
-                R.id.nav_templates -> navController.navigate(R.id.templatesFragment)
-                R.id.nav_add_images -> pickImageLauncher.launch("image/*")
-                R.id.nav_fav -> navController.navigate(R.id.filesFragment)
-                R.id.nav_settings -> navController.navigate(R.id.settingsFragment)
+                R.id.nav_home -> {
+                    if (navController.currentDestination?.id != R.id.homeFragment) {
+                        navController.navigate(R.id.homeFragment, null, navOptions)
+                    }
+                }
+                R.id.nav_templates -> {
+                    if (navController.currentDestination?.id != R.id.templatesFragment) {
+                        navController.navigate(R.id.templatesFragment, null, navOptions)
+                    }
+                }
+                R.id.nav_add_images -> {
+                    pickImageLauncher.launch("image/*")
+                }
+                R.id.nav_fav -> {
+                    if (navController.currentDestination?.id != R.id.filesFragment) {
+                        navController.navigate(R.id.filesFragment, null, navOptions)
+                    }
+                }
+                R.id.nav_settings -> {
+                    if (navController.currentDestination?.id != R.id.settingsFragment) {
+                        navController.navigate(R.id.settingsFragment, null, navOptions)
+                    }
+                }
                 else -> false
             }
             true
@@ -112,6 +131,14 @@ class MainActivity : AppCompatActivity() {
             )
             binding.bottomNavigation.visibility =
                 if (destination.id in visibleDestinations) View.VISIBLE else View.GONE
+
+            // ✅ Selection only, NO navigation here
+            when (destination.id) {
+                R.id.homeFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_home).isChecked = true
+                R.id.templatesFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_templates).isChecked = true
+                R.id.filesFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_fav).isChecked = true
+                R.id.settingsFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_settings).isChecked = true
+            }
         }
     }
 

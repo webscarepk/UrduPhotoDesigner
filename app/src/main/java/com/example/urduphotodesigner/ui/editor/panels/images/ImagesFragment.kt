@@ -87,6 +87,8 @@ class ImagesFragment : Fragment() {
                 tabs.clear()
                 tabs.addAll(additionalTabs)
 
+                binding.noEmojis.visibility = if (tabs.isEmpty()) View.VISIBLE else View.GONE
+
                 adapter.setTabs(tabs)
                 setupTabLayout()
             }
