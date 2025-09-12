@@ -101,6 +101,13 @@ class ExportFragment : Fragment() {
             ExportOptionsFragment.newInstance(ExportViewType.FORMAT)
                 .show(parentFragmentManager, "format_sheet")
         }
+
+        preview.addPressEffect {
+            val bundle = Bundle().apply {
+                putString("imagePath", exportResult?.imagePath)
+            }
+            findNavController().navigate(R.id.previewExportFragment,bundle)
+        }
     }
 
     private fun initObservers() {

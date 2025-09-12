@@ -55,6 +55,13 @@ class FinishExportFragment : Fragment() {
 
     private fun setEvents() {
 
+        binding.preview.addPressEffect {
+            val export = viewModel.exportResult.value ?: return@addPressEffect
+            val bundle = Bundle().apply {
+                putString("imagePath", export.imagePath)
+            }
+            findNavController().navigate(R.id.previewExportFragment,bundle)
+        }
         binding.fileLocationDetail.addPressEffect { requireActivity().copyToClipboard("Exported Path", binding.fileLocationDetail.text.toString()) }
         binding.back.addPressEffect { findNavController().navigateUp() }
         binding.btnExportAnother.addPressEffect { findNavController().navigateUp() }
