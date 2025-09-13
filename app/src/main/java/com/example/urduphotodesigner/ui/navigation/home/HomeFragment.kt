@@ -42,6 +42,7 @@ import com.example.urduphotodesigner.viewmodels.MainViewModel
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -272,6 +273,17 @@ class HomeFragment : Fragment() {
         binding.popularFonts.addPressEffect {
             findNavController().navigate(R.id.popularFontsFragment)
         }
+
+        binding.popularTemplate.addPressEffect {
+            findNavController().navigate(R.id.templatesListFragment)
+        }
+
+        binding.recentProjects.addPressEffect {
+            val bundle = Bundle().apply {
+                putInt("targetPage", 1)  // 1 = "Projects"
+            }
+            findNavController().navigate(R.id.filesFragment, bundle)
+        }
     }
 
     private fun initObservers() {
@@ -461,6 +473,7 @@ class HomeFragment : Fragment() {
             dialogBinding?.apply {
                 progressBar.progress = percent
                 subtitle.text = "$message... $percent%"
+                tvProgressPercent.text = "$percent% complete"
             }
         }
 
@@ -469,9 +482,11 @@ class HomeFragment : Fragment() {
                 showLoadingDialog()
             } else if (isLoading == false) {
                 dismissLoadingDialog()
-                viewModel.clearLoading()
-                if (findNavController().currentDestination?.id != R.id.editorFragment) {
-                    findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                lifecycleScope.launch {
+                    delay(500)
+                    if (findNavController().currentDestination?.id != R.id.editorFragment) {
+                        findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                    }
                 }
             }
         }

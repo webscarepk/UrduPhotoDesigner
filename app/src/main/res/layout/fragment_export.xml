@@ -104,44 +104,19 @@
                         android:id="@+id/previewImage"
                         android:layout_width="match_parent"
                         android:layout_height="188dp"
-                        android:scaleType="centerCrop"
-                        android:src="@drawable/ic_launcher_background" />
+                        android:scaleType="centerCrop" />
 
                     <ProgressBar
                         android:id="@+id/exportPreviewProgress"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:visibility="visible"
+                        android:indeterminateTint="@color/appColor"
                         app:layout_constraintTop_toTopOf="@id/previewImage"
                         app:layout_constraintBottom_toBottomOf="@id/previewImage"
                         app:layout_constraintStart_toStartOf="@id/previewImage"
                         app:layout_constraintEnd_toEndOf="@id/previewImage" />
 
-                    <ImageView
-                        android:id="@+id/edit"
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:layout_marginEnd="6dp"
-                        android:background="@drawable/button_bg"
-                        android:backgroundTint="@color/contrast"
-                        android:padding="8dp"
-                        android:src="@drawable/ic_edit"
-                        app:layout_constraintBottom_toBottomOf="@id/preview"
-                        app:layout_constraintEnd_toStartOf="@id/preview"
-                        app:layout_constraintTop_toTopOf="@id/preview" />
-
-                    <ImageView
-                        android:id="@+id/preview"
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:layout_margin="12dp"
-                        android:background="@drawable/button_bg"
-                        android:backgroundTint="@color/contrast"
-                        android:padding="8dp"
-                        android:src="@drawable/ic_show_pass"
-                        app:tint="@color/black"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintTop_toTopOf="parent" />
                 </androidx.constraintlayout.widget.ConstraintLayout>
 
                 <LinearLayout

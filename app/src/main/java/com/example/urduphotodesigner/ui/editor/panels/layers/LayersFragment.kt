@@ -100,10 +100,6 @@ class LayersFragment : Fragment() {
 
                 Log.d(TAG, "onMove: from $adjustedFromPos, to $adjustedToPos")
 
-                // Prevent background layer from being moved
-                if (currentElements[adjustedFromPos].type == ElementType.BACKGROUND) return false
-                if (currentElements[adjustedToPos].type == ElementType.BACKGROUND) return false
-
                 if (adjustedFromPos !in currentElements.indices || adjustedToPos !in currentElements.indices) return false
 
                 val dragged = currentElements[adjustedFromPos]
@@ -314,7 +310,6 @@ class LayersFragment : Fragment() {
 
     private fun handleItemClick(element: CanvasElement) {
         if (inSelectionMode) {
-            if (element.type == ElementType.BACKGROUND) return
             toggleSelection(element)
             if ((viewModel.selectedElements.value?.size ?: 0) == 0) {
                 exitSelectionMode()

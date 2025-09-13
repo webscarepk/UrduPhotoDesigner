@@ -55,7 +55,6 @@ import com.example.urduphotodesigner.common.views.CanvasView
 import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.databinding.DialogAutoSavingLayoutBinding
 import com.example.urduphotodesigner.databinding.FragmentEditorBinding
-import com.example.urduphotodesigner.ui.editor.panels.filters.FiltersFragment
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -63,7 +62,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -91,7 +89,6 @@ class EditorFragment : Fragment() {
     private var exportDialogBinding: DialogAutoSavingLayoutBinding? = null
     private var rotationAnimator: ObjectAnimator? = null
     private var isSaving = false
-    private var hasChanges = false
     private val blendingOptions = listOf(
         BlendType.SRC,
         BlendType.DST,
@@ -143,6 +140,7 @@ class EditorFragment : Fragment() {
         jsonPath = File(requireContext().filesDir, jsonFileName).absolutePath
         imagePath = File(requireContext().filesDir, imageFileName).absolutePath
 
+        viewModel.clearLoading()
         observeViewModel()
     }
 
@@ -162,7 +160,7 @@ class EditorFragment : Fragment() {
                 val newText = s?.toString() ?: ""
                 element.text = newText
                 viewModel.updateText(element)
-                hasChanges = true
+                viewModel.markChanged()
             }
 
             override fun afterTextChanged(s: Editable?) {}
@@ -355,14 +353,29 @@ class EditorFragment : Fragment() {
         viewModel.canvasSize.observe(viewLifecycleOwner) { size ->
             if (size != null) {
                 canvasSize = size
-                if (!::sizedCanvasView.isInitialized) {
-                    setEvents()
 
-                    if (exportModel == null) {
-                        autoSaveSilent()
-                    }
+                val widthPx = when (currentUnit) {
+                    UnitType.INCHES -> inchesToPx(size.width)
+                    UnitType.CENTIMETERS -> cmToPx(size.width)
+                    UnitType.PIXELS -> size.width.toInt()
+                }
+                val heightPx = when (currentUnit) {
+                    UnitType.INCHES -> inchesToPx(size.height)
+                    UnitType.CENTIMETERS -> cmToPx(size.height)
+                    UnitType.PIXELS -> size.height.toInt()
                 }
 
+                // Always init/attach canvas
+                initCanvas(widthPx, heightPx)
+
+                // Always setup nav + controls
+                initBottomNavigation()
+                initUIControls()
+                initBackHandling()
+
+                if (exportModel == null) {
+                    autoSaveSilent()
+                }
             }
         }
 
@@ -506,52 +519,85 @@ class EditorFragment : Fragment() {
         }
     }
 
-    private fun setEvents() {
-        viewModel.clearLoading()
-
-        requireActivity().onBackPressedDispatcher.addCallback(
-            viewLifecycleOwner,
-            object : OnBackPressedCallback(true) {
-                override fun handleOnBackPressed() {
-                    autoSave()
+    /** Attach/restore CanvasView inside container */
+    private fun initCanvas(widthPx: Int, heightPx: Int) {
+        val existing = viewModel.getCanvasView()
+        if (existing != null) {
+            sizedCanvasView = existing
+            sizedCanvasView.resizeCanvas(widthPx, heightPx)
+            (sizedCanvasView.parent as? ViewGroup)?.removeView(sizedCanvasView)
+            binding.canvasContainer.addView(sizedCanvasView)
+        } else {
+            sizedCanvasView = CanvasView(
+                requireContext(),
+                canvasWidth = widthPx,
+                canvasHeight = heightPx,
+                onEditTextRequested = { element ->
+                    navController.popBackStack(R.id.filtersFragment, true)
+                    if (element.type == ElementType.IMAGE) {
+                        val selected = viewModel.canvasElements.value?.find { it.id == element.id }
+                        selected?.let {
+                            val bundle = Bundle().apply {
+                                putParcelable("previewBitmap", it.bitmap)
+                                putString("elementId", it.id)
+                            }
+                            navController.navigate(R.id.filtersFragment, bundle)
+                        }
+                    } else {
+                        showTextEditDialog(element)
+                    }
+                },
+                onElementChanged = { canvasElement ->
+                    viewModel.canvasElements.value?.find { it.id == canvasElement.id }?.let {
+                        viewModel.updateElement(canvasElement)
+                        viewModel.markChanged()
+                    }
+                },
+                onElementRemoved = { canvasElement ->
+                    viewModel.canvasElements.value?.find { it.id == canvasElement.id }?.let {
+                        viewModel.removeElement(it)
+                        viewModel.markChanged()
+                    }
+                },
+                onElementSelected = { elements ->
+                    viewModel.onCanvasSelectionChanged(elements)
+                },
+                onEndBatchUpdate = { elementId ->
+                    viewModel.endBatchUpdate(elementId)
+                    viewModel.markChanged()
+                },
+                onStartBatchUpdate = { elementId, actionType ->
+                    viewModel.startBatchUpdate(elementId, actionType)
+                    viewModel.markChanged()
+                },
+                onColorPicked = { colorInt ->
+                    val opaque = (colorInt and 0x00FFFFFF) or (0xFF shl 24)
+                    viewModel.finishPicking(opaque)
+                    viewModel.stopPicking()
+                    viewModel.markChanged()
                 }
-            })
-
-        binding.back.addPressEffect {
-            autoSave()
+            ).apply {
+                binding.canvasContainer.addView(this)
+            }
+            viewModel.setCanvasView(sizedCanvasView)
         }
 
-        binding.animationsIcon.addPressEffect {
-            navController.navigate(R.id.animationsFragment)
-        }
+        canvasManager = CanvasManager(sizedCanvasView)
+    }
 
-        val widthPx = when (currentUnit) {
-            UnitType.INCHES -> inchesToPx(canvasSize.width)
-            UnitType.CENTIMETERS -> cmToPx(canvasSize.width)
-            UnitType.PIXELS -> canvasSize.width.toInt()
-        }
-
-        val heightPx = when (currentUnit) {
-            UnitType.INCHES -> inchesToPx(canvasSize.height)
-            UnitType.CENTIMETERS -> cmToPx(canvasSize.height)
-            UnitType.PIXELS -> canvasSize.height.toInt()
-        }
-
-        // Setup navigation
+    /** Setup bottom navigation with navHost */
+    private fun initBottomNavigation() {
         val navHostFragment =
             childFragmentManager.findFragmentById(R.id.panelNavHost) as NavHostFragment
         _navController = navHostFragment.navController
 
         binding.bottomNavigation.setOnItemSelectedListener { menuItem ->
             if (currentPanelItemId == menuItem.itemId) {
-                // Reselected the same item, hide the panel
                 binding.panelNavHost.visibility = View.GONE
-                currentPanelItemId = null // Reset current item
+                currentPanelItemId = null
             } else {
-                // New item selected, show the panel and navigate
                 binding.panelNavHost.visibility = View.VISIBLE
                 currentPanelItemId = menuItem.itemId
-
                 when (menuItem.itemId) {
                     R.id.nav_background -> navController.navigate(R.id.backgroundsFragment)
                     R.id.nav_objects -> navController.navigate(R.id.objectsFragment)
@@ -562,75 +608,16 @@ class EditorFragment : Fragment() {
             }
             true
         }
+    }
 
-        sizedCanvasView = CanvasView(
-            requireContext(),
-            canvasWidth = widthPx,
-            canvasHeight = heightPx,
-            onEditTextRequested = { element ->
-
-                navController.popBackStack(R.id.filtersFragment, true)
-
-                if (element.type == ElementType.IMAGE) {
-                    val selected = viewModel.canvasElements.value?.find { it.id == element.id }
-                    selected?.let {
-                        val bundle = Bundle().apply {
-                            putParcelable("previewBitmap", it.bitmap)
-                            putString("elementId", it.id)
-                        }
-                        navController.navigate(R.id.filtersFragment, bundle)
-                    }
-                }  else {
-                    showTextEditDialog(element)
-                }
-            },
-            onElementChanged = { canvasElement ->
-                viewModel.canvasElements.value?.find { it.id == canvasElement.id }?.let {
-                    viewModel.updateElement(canvasElement)
-                    hasChanges = true
-                }
-            },
-            onElementRemoved = { canvasElement ->
-                viewModel.canvasElements.value?.find { it.id == canvasElement.id }?.let {
-                    viewModel.removeElement(it)
-                    hasChanges = true
-                }
-            }, onElementSelected = { elements ->
-                viewModel.onCanvasSelectionChanged(elements)
-            },
-            onEndBatchUpdate = { elementId ->
-                viewModel.endBatchUpdate(elementId)
-                hasChanges = true
-            },
-            onStartBatchUpdate = { elementId, actionType ->
-                viewModel.startBatchUpdate(elementId, actionType)
-                hasChanges = true
-            },
-            onColorPicked = { colorInt ->
-                val opaque = (colorInt and 0x00FFFFFF) or (0xFF shl 24)
-                viewModel.finishPicking(opaque)
-                viewModel.stopPicking()
-                hasChanges = true
-            }
-        ).apply {
-            binding.canvasContainer.addView(this)
-        }
-
-        canvasManager = CanvasManager(sizedCanvasView)
-
+    /** Setup UI controls (undo, redo, align, opacity, etc.) */
+    private fun initUIControls() {
         binding.undo.addPressEffect { viewModel.undo() }
         binding.redo.addPressEffect { viewModel.redo() }
 
-        binding.opacityIcon.addPressEffect {
-            togglePanel(showOpacityPanel = true)
-        }
-        binding.fontSizeIcon.addPressEffect {
-            togglePanel(showOpacityPanel = false)
-        }
-
-        binding.blendIcon.addPressEffect {
-            toggleBlendPanel()
-        }
+        binding.opacityIcon.addPressEffect { togglePanel(showOpacityPanel = true) }
+        binding.fontSizeIcon.addPressEffect { togglePanel(showOpacityPanel = false) }
+        binding.blendIcon.addPressEffect { toggleBlendPanel() }
 
         binding.artBoard.addPressEffect {
             if (currentMode != MultiAlignMode.CANVAS) {
@@ -659,23 +646,36 @@ class EditorFragment : Fragment() {
         }
 
         binding.leftAlign.addPressEffect {
-            sizedCanvasView.alignHorizontal(HAlign.LEFT, currentMode)
+            sizedCanvasView.alignHorizontal(
+                HAlign.LEFT,
+                currentMode
+            )
         }
         binding.centerHorizontal.addPressEffect {
-            sizedCanvasView.alignHorizontal(HAlign.CENTER, currentMode)
+            sizedCanvasView.alignHorizontal(
+                HAlign.CENTER,
+                currentMode
+            )
         }
         binding.rightAlign.addPressEffect {
-            sizedCanvasView.alignHorizontal(HAlign.RIGHT, currentMode)
+            sizedCanvasView.alignHorizontal(
+                HAlign.RIGHT,
+                currentMode
+            )
         }
 
-        binding.topAlign.addPressEffect {
-            sizedCanvasView.alignVertical(VAlign.TOP, currentMode)
-        }
+        binding.topAlign.addPressEffect { sizedCanvasView.alignVertical(VAlign.TOP, currentMode) }
         binding.centerVertical.addPressEffect {
-            sizedCanvasView.alignVertical(VAlign.MIDDLE, currentMode)
+            sizedCanvasView.alignVertical(
+                VAlign.MIDDLE,
+                currentMode
+            )
         }
         binding.bottomAlign.addPressEffect {
-            sizedCanvasView.alignVertical(VAlign.BOTTOM, currentMode)
+            sizedCanvasView.alignVertical(
+                VAlign.BOTTOM,
+                currentMode
+            )
         }
 
         binding.seekBar.apply {
@@ -683,9 +683,7 @@ class EditorFragment : Fragment() {
             max = 255
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                    if (fromUser) {
-                        viewModel.setOpacity(progress)
-                    }
+                    if (fromUser) viewModel.setOpacity(progress)
                 }
 
                 override fun onStartTrackingTouch(sb: SeekBar) {}
@@ -709,8 +707,10 @@ class EditorFragment : Fragment() {
             })
         }
 
-        binding.copyIcon.addPressEffect {
-            viewModel.copySelectedElementsGroup()
+        binding.copyIcon.addPressEffect { viewModel.copySelectedElementsGroup() }
+
+        binding.animationsIcon.addPressEffect {
+            navController.navigate(R.id.animationsFragment)
         }
 
         binding.done.addPressEffect {
@@ -718,6 +718,19 @@ class EditorFragment : Fragment() {
             sizedCanvasView.clearSelection()
             findNavController().navigate(R.id.exportFragment)
         }
+    }
+
+    /** Setup back button behavior */
+    private fun initBackHandling() {
+        requireActivity().onBackPressedDispatcher.addCallback(
+            viewLifecycleOwner,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    autoSave()
+                }
+            })
+
+        binding.back.addPressEffect { autoSave() }
     }
 
     private fun toggleBlendPanel() {
@@ -832,7 +845,7 @@ class EditorFragment : Fragment() {
     }
 
     private fun autoSave() {
-        if (!hasChanges) {
+        if (!viewModel.hasChanges.value!!) {
             findNavController().navigateUp()
             return
         }

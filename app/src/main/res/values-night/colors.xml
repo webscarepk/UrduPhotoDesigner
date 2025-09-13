@@ -1,25 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#2B2B2B</color>
-    <color name="white">#FFFFFF</color>
-    <color name="white80">#80FFFFFF</color>
-    <color name="whiteText">#FFFFFF</color>
-    <color name="contrast">#F7F7F7</color>
-    <color name="appColor">#005D28</color>
-    <color name="selection">#F2F2F2</color>
-    <color name="gray">#8E94A2</color>
-    <color name="light_gray">#D6D6D6</color>
-    <color name="yellow">#FEF9C2</color>
-    <color name="yellow1">#20000000</color>
-    <color name="darkContrast">#39D27A</color>
+    <color name="black">#FFFFFF</color>          <!-- Invert for dark bg (used as text now) -->
+    <color name="white">#121212</color>          <!-- Primary dark background -->
+    <color name="white80">#CC121212</color>      <!-- 80% opaque dark bg -->
+    <color name="whiteText">#FFFFFF</color>      <!-- Keep white for text -->
+    <color name="contrast">#1E1E1E</color>       <!-- Dark surface contrast -->
+    <color name="appColor">#39D27A</color>       <!-- Keep brand green consistent -->
+    <color name="selection">#2A2A2A</color>      <!-- Selected item bg -->
+    <color name="gray">#B0B0B0</color>           <!-- Softer gray for readability -->
+    <color name="light_gray">#3A3A3A</color>     <!-- Divider gray -->
+    <color name="yellow">#FEEA8C</color>         <!-- Warmer yellow, still readable -->
+    <color name="yellow1">#33FFFFFF</color>      <!-- Semi-transparent white overlay -->
+    <color name="darkContrast">#005D28</color>   <!-- Reverse role: darker accent -->
 </resources>
-
-    <!--<?xml version="1.0" encoding="utf-8"?>-->
-    <!--<resources>-->
-    <!--    <color name="black">#FFFFFF</color>-->
-    <!--    <color name="white">#2B2B2B</color>-->
-    <!--    <color name="whiteText">#FFFFFF</color>-->
-    <!--    <color name="contrast">#23342A</color>-->
-    <!--    <color name="appColor">#005D28</color>-->
-    <!--    <color name="selection">#00FF6E</color>-->
-    <!--</resources>-->

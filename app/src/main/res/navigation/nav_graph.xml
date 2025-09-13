@@ -87,4 +87,9 @@
         android:name="com.example.urduphotodesigner.ui.navigation.fonts.PopularFontsFragment"
         android:label="fragment_popular_fonts"
         tools:layout="@layout/fragment_popular_fonts" />
+    <fragment
+        android:id="@+id/previewExportFragment"
+        android:name="com.example.urduphotodesigner.ui.editor.export.PreviewExportFragment"
+        android:label="fragment_preview_export"
+        tools:layout="@layout/fragment_preview_export" />
 </navigation>

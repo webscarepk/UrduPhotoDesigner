@@ -165,7 +165,6 @@ class ExportFragment : Fragment() {
     private fun renderPreview() {
         val canvas = viewModel.canvasView.value ?: return
         val options = viewModel.exportOptions.value ?: return
-
         lifecycleScope.launch(Dispatchers.Default) {
             val (bitmap, _) = canvas.exportCanvasThumbnail()
 
@@ -457,7 +456,7 @@ class ExportFragment : Fragment() {
                     put(MediaStore.Files.FileColumns.MIME_TYPE, "application/pdf")
                     put(
                         MediaStore.Files.FileColumns.RELATIVE_PATH,
-                        Environment.DIRECTORY_DOCUMENTS + "/UrduDesigner"
+                        Environment.DIRECTORY_DOCUMENTS + "/${getString(R.string.app_name)}"
                     )
                 }
 
@@ -544,7 +543,7 @@ class ExportFragment : Fragment() {
                     put(MediaStore.Images.Media.MIME_TYPE, mimeType)
                     put(
                         MediaStore.Images.Media.RELATIVE_PATH,
-                        Environment.DIRECTORY_PICTURES + "/UrduDesigner"
+                        Environment.DIRECTORY_PICTURES + "/${getString(R.string.app_name)}"
                     )
                 }
 

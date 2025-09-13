@@ -59,58 +59,40 @@ class CanvasViewModel @Inject constructor(
     private val gson: Gson,
     private val dataStore: PreferencesDataStoreHelper
 ) : ViewModel() {
-
     private val _pagingLocked = MutableLiveData(false)
     val pagingLocked: LiveData<Boolean> = _pagingLocked
-
     private val _isLoadingTemplate = MutableLiveData<Boolean?>()
     val isLoadingTemplate: LiveData<Boolean?> = _isLoadingTemplate
-
     private val _loadingStage = MutableLiveData<Pair<String, Int>>()
     val loadingStage: LiveData<Pair<String, Int>> = _loadingStage
-
     private val _canvasActions = Stack<CanvasAction>()
     private val _redoStack = Stack<CanvasAction>()
     private val _canvasElements = MutableLiveData<List<CanvasElement>>(emptyList())
     val canvasElements: MutableLiveData<List<CanvasElement>> = _canvasElements
-
     private val _selectedElements = MutableLiveData<List<CanvasElement>>(emptyList())
     val selectedElements: LiveData<List<CanvasElement>> = _selectedElements
-
     private val _exportOptions = MutableLiveData<ExportOptions>()
     val exportOptions: LiveData<ExportOptions> = _exportOptions
 
     private val _activePicker = MutableLiveData<PickerTarget?>(null)
     val activePicker: LiveData<PickerTarget?> = _activePicker
-
     private val _activeGradientPicker = MutableLiveData<GradientPickerTarget?>(null)
-
     private val _localFonts = MutableStateFlow<List<FontEntity>>(emptyList())
     private val localFonts: StateFlow<List<FontEntity>> = _localFonts.asStateFlow()
-
     private val _canUndo = MutableLiveData(false)
     val canUndo: LiveData<Boolean> get() = _canUndo
-
     private val _canRedo = MutableLiveData(false)
     val canRedo: LiveData<Boolean> get() = _canRedo
-
-    // LiveData to hold the current background color. Useful for observers.
-    private val _backgroundColor =
-        MutableLiveData(Color.WHITE) // Initialize with a default color
+    private val _backgroundColor = MutableLiveData(Color.WHITE) // Initialize with a default color
     val backgroundColor: LiveData<Int> = _backgroundColor
-
     private val _backgroundImage = MutableLiveData<Bitmap?>()
     val backgroundImage: LiveData<Bitmap?> = _backgroundImage
-
     private val _backgroundGradient = MutableLiveData<GradientItem?>()
     val backgroundGradient: MutableLiveData<GradientItem?> = _backgroundGradient
-
     private val _currentFont = MutableLiveData<FontEntity?>()
     val currentFont: LiveData<FontEntity?> = _currentFont
-
     private val _currentTextColor = MutableLiveData(Color.BLACK)
     val currentTextColor: LiveData<Int> = _currentTextColor
-
     private val _currentTextSize = MutableLiveData(40f)  // Initialize with a default size
     val currentTextSize: LiveData<Float> = _currentTextSize
 
@@ -161,6 +143,7 @@ class CanvasViewModel @Inject constructor(
     val opacity: LiveData<Int> = _opacity
 
     private val _hasBlur = MutableLiveData(false)
+    val hasChanges = MutableLiveData(false)
 
     private val _blendingType = MutableLiveData(BlendType.SRC_OVER) // Default blend type
     val blendingType: LiveData<BlendType> = _blendingType
@@ -247,20 +230,17 @@ class CanvasViewModel @Inject constructor(
             Bitmap.CompressFormat.PNG,
             "Lossless format",
             listOf("Transparent", "High Quality", "Larger Size")
-        ),
-        ExportFormat(
+        ), ExportFormat(
             "JPEG",
             Bitmap.CompressFormat.JPEG,
             "Compressed, smaller size",
             listOf("Small size", "Good for photos", "No transparency")
-        ),
-        ExportFormat(
+        ), ExportFormat(
             "WEBP",
             Bitmap.CompressFormat.WEBP,
             "Modern format with balance",
             listOf("Efficient", "Web Friendly", "Small & sharp")
-        ),
-        ExportFormat(
+        ), ExportFormat(
             "PDF",
             null,
             "Portable Document Format",
@@ -293,8 +273,16 @@ class CanvasViewModel @Inject constructor(
     private val _canvasView = MutableLiveData<CanvasView>()
     val canvasView: LiveData<CanvasView> = _canvasView
 
+    fun markChanged() {
+        hasChanges.value = true
+    }
+
     fun setCanvasView(view: CanvasView) {
         _canvasView.value = view
+    }
+
+    fun getCanvasView(): CanvasView? {
+        return _canvasView.value
     }
 
     init {
@@ -349,16 +337,13 @@ class CanvasViewModel @Inject constructor(
 
         viewModelScope.launch {
             dataStore.putPreference(
-                PreferenceDataStoreKeysConstants.KEY_RESOLUTION,
-                newOptions.resolution.name
+                PreferenceDataStoreKeysConstants.KEY_RESOLUTION, newOptions.resolution.name
             )
             dataStore.putPreference(
-                PreferenceDataStoreKeysConstants.KEY_QUALITY,
-                newOptions.quality.label
+                PreferenceDataStoreKeysConstants.KEY_QUALITY, newOptions.quality.label
             )
             dataStore.putPreference(
-                PreferenceDataStoreKeysConstants.KEY_FORMAT,
-                newOptions.format.name
+                PreferenceDataStoreKeysConstants.KEY_FORMAT, newOptions.format.name
             )
         }
     }
@@ -366,9 +351,7 @@ class CanvasViewModel @Inject constructor(
     // 4. Reset everything to defaults (no save)
     fun resetExportOptions() {
         val defaults = ExportOptions(
-            availableResolutions.first(),
-            qualityOptions.first(),
-            formatOptions.first()
+            availableResolutions.first(), qualityOptions.first(), formatOptions.first()
         )
         updateExportOptionsInMemory(defaults)
     }
@@ -559,12 +542,11 @@ class CanvasViewModel @Inject constructor(
                                         Typeface.createFromFile(font.file_path)
                                 } catch (e: Exception) {
                                     println("Error re-applying typeface in observeLocalFonts: ${font.file_path}. Error: ${e.message}")
-                                    updatedElement.paint.typeface =
-                                        updatedElement.context?.let {
-                                            ResourcesCompat.getFont(
-                                                it, R.font.regular
-                                            )
-                                        } ?: Typeface.DEFAULT
+                                    updatedElement.paint.typeface = updatedElement.context?.let {
+                                        ResourcesCompat.getFont(
+                                            it, R.font.regular
+                                        )
+                                    } ?: Typeface.DEFAULT
                                 }
                             } else {
                                 updatedElement.paint.typeface = updatedElement.context?.let {
@@ -618,9 +600,7 @@ class CanvasViewModel @Inject constructor(
             PickerTarget.EYE_DROPPER_BACKGROUND -> setCanvasBackgroundColor(color)
             PickerTarget.EYE_DROPPER_TEXT_FILL -> setTextColor(color)
             PickerTarget.EYE_DROPPER_TEXT_STROKE -> setTextBorder(
-                true,
-                color,
-                _borderWidth.value!!
+                true, color, _borderWidth.value!!
             )
 
             PickerTarget.EYE_DROPPER_SHADOW -> setTextShadow(
@@ -659,14 +639,11 @@ class CanvasViewModel @Inject constructor(
             ) else clearFillGradients()
 
             GradientPickerTarget.TEXT_STROKE -> if (gradientItem != null) setTextStrokeGradient(
-                gradientItem,
-                _borderWidth.value ?: 1f
+                gradientItem, _borderWidth.value ?: 1f
             ) else clearStrokeGradients()
 
             GradientPickerTarget.TEXT_LABEL -> if (gradientItem != null) setTextLabelGradient(
-                true,
-                _labelShape.value ?: LabelShape.RECTANGLE_FILL,
-                gradientItem
+                true, _labelShape.value ?: LabelShape.RECTANGLE_FILL, gradientItem
             ) else clearLabelGradients()
 
             GradientPickerTarget.BACKGROUND -> if (gradientItem != null) setCanvasGradient(
@@ -809,8 +786,7 @@ class CanvasViewModel @Inject constructor(
                     // Apply new font size
                     paintTextSize = size
                     paint.textSize = size
-                    paint.typeface =
-                        applyTypefaceFromFontList() // Reapply the typeface if needed
+                    paint.typeface = applyTypefaceFromFontList() // Reapply the typeface if needed
                 }
             } else {
                 element
@@ -901,9 +877,7 @@ class CanvasViewModel @Inject constructor(
         if (oldElement != null && newElement != null && targetId != null) {
             _canvasActions.push(
                 CanvasAction.UpdateElement(
-                    targetId!!,
-                    newElement!!,
-                    oldElement!!
+                    targetId!!, newElement!!, oldElement!!
                 )
             )
             _redoStack.clear()
@@ -931,8 +905,7 @@ class CanvasViewModel @Inject constructor(
             val copied = element.copy(
                 id = newId,
                 // Deselect copies by default:
-                isSelected = false,
-                groupId = null,
+                isSelected = false, groupId = null,
                 // Offset position:
                 x = element.x + offsetX, y = element.y + offsetY
             )
@@ -1065,14 +1038,11 @@ class CanvasViewModel @Inject constructor(
                     elementToUpdate.paint.typeface = elementToUpdate.applyTypefaceFromFontList()
                 } else {
                     // If font not found or path is blank, revert to default system font
-                    elementToUpdate.paint.typeface =
-                        elementToUpdate.context?.let {
-                            ResourcesCompat.getFont(
-                                it,
-                                R.font.regular
-                            )
-                        }
-                            ?: Typeface.DEFAULT
+                    elementToUpdate.paint.typeface = elementToUpdate.context?.let {
+                        ResourcesCompat.getFont(
+                            it, R.font.regular
+                        )
+                    } ?: Typeface.DEFAULT
                 }
             } else {
                 // Ensure non-text elements or text elements without fontId also have a default typeface if applicable
@@ -1145,14 +1115,11 @@ class CanvasViewModel @Inject constructor(
                         } ?: Typeface.DEFAULT
                     }
                 } else {
-                    copiedElement.paint.typeface =
-                        copiedElement.context?.let {
-                            ResourcesCompat.getFont(
-                                it,
-                                R.font.regular
-                            )
-                        }
-                            ?: Typeface.DEFAULT
+                    copiedElement.paint.typeface = copiedElement.context?.let {
+                        ResourcesCompat.getFont(
+                            it, R.font.regular
+                        )
+                    } ?: Typeface.DEFAULT
                 }
             } else {
                 copiedElement.paint.typeface =
@@ -1190,8 +1157,7 @@ class CanvasViewModel @Inject constructor(
                 paint.typeface = if (type == ElementType.TEXT && fontId != null) {
                     applyTypefaceFromFontList()
                 } else {
-                    context?.let { ResourcesCompat.getFont(it, R.font.regular) }
-                        ?: Typeface.DEFAULT
+                    context?.let { ResourcesCompat.getFont(it, R.font.regular) } ?: Typeface.DEFAULT
                 }
             }
             copiedElement
@@ -1440,15 +1406,16 @@ class CanvasViewModel @Inject constructor(
     fun addSticker(bitmap: Bitmap?, context: Context) {
         val currentList = _canvasElements.value ?: emptyList()
         val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
-
+        val canvasW = _canvasSize.value?.width ?: 0f
+        val canvasH = _canvasSize.value?.height ?: 0f
         val element = CanvasElement(
             context = context,
             type = ElementType.IMAGE,
             bitmap = bitmap,
 //            bitmapData = ImageProcessor.bitmapToFilePath(context, bitmap!!),
             bitmapData = ImageProcessor.bitmapToBase64(bitmap!!),
-            x = 150f,
-            y = 150f,
+            x = canvasW / 2f,
+            y = canvasH / 2f,
             paintAlpha = 255,
             zIndex = newZIndex
         )
@@ -1469,9 +1436,7 @@ class CanvasViewModel @Inject constructor(
 
     fun ensureBackgroundElement(context: Context) {
         // if we already have a background, do nothing
-        if ((_canvasElements.value
-                ?: emptyList()).any { it.type == ElementType.BACKGROUND }
-        ) return
+        if ((_canvasElements.value ?: emptyList()).any { it.type == ElementType.BACKGROUND }) return
 
         // otherwise create and insert one
         val bg = CanvasElement(
@@ -1496,13 +1461,14 @@ class CanvasViewModel @Inject constructor(
     fun addText(text: String, context: Context) {
         val currentList = _canvasElements.value ?: emptyList()
         val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
-
+        val canvasW = _canvasSize.value?.width ?: 0f
+        val canvasH = _canvasSize.value?.height ?: 0f
         val element = CanvasElement(
             context = context,
             type = ElementType.TEXT,
             text = text,
-            x = 150f,
-            y = 150f,
+            x = canvasW / 2f,
+            y = canvasH / 2f,
             paintColor = Color.BLACK,
             paintTextSize = 40f,
             alignment = TextAlignment.CENTER,
@@ -1559,8 +1525,7 @@ class CanvasViewModel @Inject constructor(
 
         // Push action for undo/redo (store a copy without transient fields)
         val action = CanvasAction.AddText(
-            text,
-            element.copy(context = null, bitmap = null)
+            text, element.copy(context = null, bitmap = null)
         )
         _canvasActions.push(action)
         _redoStack.clear()
@@ -1731,8 +1696,7 @@ class CanvasViewModel @Inject constructor(
             }
         }
 
-        _canvasElements.value =
-            currentList.map { if (it.id == element.id) updatedElement else it }
+        _canvasElements.value = currentList.map { if (it.id == element.id) updatedElement else it }
         _canvasActions.push(
             CanvasAction.UpdateText(
                 elementId = element.id, text = updatedElement.text, previousText = oldText
@@ -1748,9 +1712,7 @@ class CanvasViewModel @Inject constructor(
      * @param newFilter The ImageFilter to apply.
      */
     fun applyImageFilter(
-        elementId: String,
-        newFilter: ImageFilter?,
-        isExplicit: Boolean = true
+        elementId: String, newFilter: ImageFilter?, isExplicit: Boolean = true
     ) {
         _isExplicitChange = isExplicit
         val currentList = _canvasElements.value ?: return
@@ -1760,8 +1722,7 @@ class CanvasViewModel @Inject constructor(
         val oldFilter = targetElement.imageFilter
         if (oldFilter != newFilter) {
             val context = targetElement.context
-            val updatedElement =
-                targetElement.copy(imageFilter = newFilter!!, context = context)
+            val updatedElement = targetElement.copy(imageFilter = newFilter!!, context = context)
 
             _canvasElements.value =
                 currentList.map { if (it.id == updatedElement.id) updatedElement else it }
@@ -2011,8 +1972,7 @@ class CanvasViewModel @Inject constructor(
                 val rawValue = getNewValue(element)
                 // Copy and set the relevant field, then restore paint/bitmap
                 applyValue(
-                    element.copy(context = context),
-                    rawValue
+                    element.copy(context = context), rawValue
                 ).restoreWithContext(context)
             } else element
         }
@@ -2099,14 +2059,11 @@ class CanvasViewModel @Inject constructor(
                                     copied.paint.typeface = tf
                                     copied.fontId = fontEntity.id.toString()
                                 } catch (e: Exception) {
-                                    copied.paint.typeface =
-                                        context?.let {
-                                            ResourcesCompat.getFont(
-                                                it,
-                                                R.font.regular
-                                            )
-                                        }
-                                            ?: Typeface.DEFAULT
+                                    copied.paint.typeface = context?.let {
+                                        ResourcesCompat.getFont(
+                                            it, R.font.regular
+                                        )
+                                    } ?: Typeface.DEFAULT
                                     copied.fontId = null
                                 }
                             } else {
@@ -2241,8 +2198,7 @@ class CanvasViewModel @Inject constructor(
                     } ?: elem
                 })
                 // If selected element, update LiveData
-                _canvasElements.value?.find { it.id == action.elementId && it.isSelected }
-                    ?.let {
+                _canvasElements.value?.find { it.id == action.elementId && it.isSelected }?.let {
                         _currentImageFilter.value =
                             if (isRedo) action.newFilter else action.oldFilter
                     }
@@ -2283,6 +2239,7 @@ class CanvasViewModel @Inject constructor(
 
         selectedElement = null
         currentBatchAction = null
+        hasChanges.value = false
     }
 
     fun loadTemplateFromJsonFile(exportResult: ExportResult, context: Context) {
@@ -2302,8 +2259,7 @@ class CanvasViewModel @Inject constructor(
 
                 _loadingStage.postValue("Parsing JSON" to 30)
                 val jsonContent = jsonFile.readText()
-                val elements =
-                    gson.fromJson(jsonContent, Array<CanvasElement>::class.java).toList()
+                val elements = gson.fromJson(jsonContent, Array<CanvasElement>::class.java).toList()
 
                 _loadingStage.postValue("Hydrating elements" to 60)
                 val hydratedElements = elements.map { raw ->

@@ -72,6 +72,9 @@ class FilesFragment : Fragment() {
         )
         binding.viewPager.adapter = adapter
 
+        val targetPage = arguments?.getInt("targetPage", 0) ?: 0
+        binding.viewPager.setCurrentItem(targetPage, false)
+
         TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
             val tabView = LayoutInflater.from(context).inflate(R.layout.layout_custom_tab, null)
             tabView.findViewById<TextView>(R.id.tabTitle).text = tabs[position]

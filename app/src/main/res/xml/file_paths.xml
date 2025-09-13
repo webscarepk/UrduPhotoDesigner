@@ -1,4 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <cache-path name="shared_files" path="." />
+
+    <!-- For sharing from app's internal files/images -->
+    <files-path
+        name="exported_images"
+        path="images/" />
+
+    <!-- For sharing from app's internal files/docs -->
+    <files-path
+        name="exported_docs"
+        path="docs/" />
+
+    <!-- Keep cache too if you zip things in cache -->
+    <cache-path
+        name="shared_files"
+        path="." />
+
+    <cache-path
+        name="shared_cache"
+        path="." />
+
 </paths>

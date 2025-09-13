@@ -44,6 +44,8 @@ import android.view.animation.LinearInterpolator
 import androidx.annotation.ColorInt
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.createBitmap
+import androidx.core.graphics.toColorInt
+import androidx.core.graphics.withSave
 import androidx.core.graphics.withTranslation
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.enums.BlendType
@@ -58,6 +60,7 @@ import com.example.urduphotodesigner.common.canvas.enums.MultiAlignMode
 import com.example.urduphotodesigner.common.canvas.enums.TextAlignment
 import com.example.urduphotodesigner.common.canvas.enums.TextDecoration
 import com.example.urduphotodesigner.common.canvas.enums.VAlign
+import com.example.urduphotodesigner.common.canvas.model.AnimationSnapshot
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
 import com.example.urduphotodesigner.common.canvas.model.ExportFormat
 import com.example.urduphotodesigner.common.canvas.model.ExportOptions
@@ -83,10 +86,6 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sign
 import kotlin.math.sin
-import androidx.core.graphics.toColorInt
-import androidx.core.graphics.withSave
-import com.example.urduphotodesigner.common.canvas.model.AnimationSnapshot
-import com.example.urduphotodesigner.common.utils.EglRenderer
 
 class CanvasView @JvmOverloads constructor(
     context: Context,
@@ -244,6 +243,7 @@ class CanvasView @JvmOverloads constructor(
         requestLayout()
         invalidate()
     }
+
     fun enableColorPicker() {
         isColorPickerMode = true
 
@@ -344,24 +344,35 @@ class CanvasView @JvmOverloads constructor(
         canvasElements.forEach { element ->
             val o = originals[element.id] ?: return@forEach
             when (element.animationName?.lowercase()) {
-                "fade"       -> element.paintAlpha = (o.alpha * progress).toInt()
-                "rotate"     -> element.rotation = o.rotation + 360f * progress
-                "pulse"      -> element.scale = if (progress < 0.5f)
+                "fade" -> element.paintAlpha = (o.alpha * progress).toInt()
+                "rotate" -> element.rotation = o.rotation + 360f * progress
+                "pulse" -> element.scale = if (progress < 0.5f)
                     o.scale * (1f - 0.2f * (progress / 0.5f))
                 else
                     o.scale * (0.8f + 0.2f * ((progress - 0.5f) / 0.5f))
-                "rise"       -> element.y = o.y + 50f * (1f - progress)
-                "pan"        -> element.x = o.x + 50f * sin(progress * Math.PI).toFloat()
-                "wiggle"     -> element.rotation = o.rotation + 10f * sin(progress * Math.PI * 4).toFloat()
+
+                "rise" -> element.y = o.y + 50f * (1f - progress)
+                "pan" -> element.x = o.x + 50f * sin(progress * Math.PI).toFloat()
+                "wiggle" -> element.rotation =
+                    o.rotation + 10f * sin(progress * Math.PI * 4).toFloat()
+
                 "succession" -> element.y = o.y + 100f * (1f - progress)
-                "breathe"    -> element.scale = o.scale * (1f + 0.1f * sin(progress * Math.PI * 2).toFloat())
-                "baseline"   -> element.y = o.y + 20f * sin(progress * Math.PI * 2).toFloat()
-                "drift"      -> element.x = o.x + 30f * progress
-                "tectonic"   -> element.rotation = o.rotation + 5f * sin(progress * Math.PI * 8).toFloat()
-                "tumble"     -> element.rotation = o.rotation + 720f * progress
-                "neon"       -> element.paintAlpha = if ((progress * 10).toInt() % 2 == 0) o.alpha else o.alpha / 2
-                "scrapbook"  -> element.scale = o.scale * (1f + 0.05f * sin(progress * Math.PI * 6).toFloat())
-                "stomp"      -> element.y = o.y - 50f * (1f - progress) * (1f - progress)
+                "breathe" -> element.scale =
+                    o.scale * (1f + 0.1f * sin(progress * Math.PI * 2).toFloat())
+
+                "baseline" -> element.y = o.y + 20f * sin(progress * Math.PI * 2).toFloat()
+                "drift" -> element.x = o.x + 30f * progress
+                "tectonic" -> element.rotation =
+                    o.rotation + 5f * sin(progress * Math.PI * 8).toFloat()
+
+                "tumble" -> element.rotation = o.rotation + 720f * progress
+                "neon" -> element.paintAlpha =
+                    if ((progress * 10).toInt() % 2 == 0) o.alpha else o.alpha / 2
+
+                "scrapbook" -> element.scale =
+                    o.scale * (1f + 0.05f * sin(progress * Math.PI * 6).toFloat())
+
+                "stomp" -> element.y = o.y - 50f * (1f - progress) * (1f - progress)
                 // "none" or unknown → keep originals
             }
         }
@@ -433,6 +444,7 @@ class CanvasView @JvmOverloads constructor(
                         muxer.start()
                         muxerStarted = true
                     }
+
                     outputIndex >= 0 -> {
                         val encodedData = encoder.getOutputBuffer(outputIndex) ?: continue
                         if (bufferInfo.size > 0 && muxerStarted) {
@@ -464,6 +476,7 @@ class CanvasView @JvmOverloads constructor(
                     muxer.start()
                     muxerStarted = true
                 }
+
                 outputIndex >= 0 -> {
                     val encodedData = encoder.getOutputBuffer(outputIndex) ?: continue
                     if (bufferInfo.size > 0 && muxerStarted) {
@@ -572,7 +585,12 @@ class CanvasView @JvmOverloads constructor(
                 })
             }
 
-            "tectonic" -> ValueAnimator.ofFloat(baseRotation, baseRotation + 5f, baseRotation - 5f, baseRotation).apply {
+            "tectonic" -> ValueAnimator.ofFloat(
+                baseRotation,
+                baseRotation + 5f,
+                baseRotation - 5f,
+                baseRotation
+            ).apply {
                 duration = 800
                 addUpdateListener {
                     element.rotation = it.animatedValue as Float
@@ -615,7 +633,12 @@ class CanvasView @JvmOverloads constructor(
                 })
             }
 
-            "scrapbook" -> ValueAnimator.ofFloat(baseScale, baseScale * 1.05f, baseScale * 0.95f, baseScale).apply {
+            "scrapbook" -> ValueAnimator.ofFloat(
+                baseScale,
+                baseScale * 1.05f,
+                baseScale * 0.95f,
+                baseScale
+            ).apply {
                 duration = 1200
                 addUpdateListener {
                     element.scale = it.animatedValue as Float
@@ -720,19 +743,20 @@ class CanvasView @JvmOverloads constructor(
                 })
             }
 
-            "pop" -> ValueAnimator.ofFloat(baseScale * 0.5f, baseScale, baseScale * 1.2f, baseScale).apply {
-                duration = 700
-                addUpdateListener {
-                    element.scale = it.animatedValue as Float
-                    invalidate()
-                }
-                addListener(object : AnimatorListenerAdapter() {
-                    override fun onAnimationEnd(animation: Animator) {
-                        element.scale = baseScale
+            "pop" -> ValueAnimator.ofFloat(baseScale * 0.5f, baseScale, baseScale * 1.2f, baseScale)
+                .apply {
+                    duration = 700
+                    addUpdateListener {
+                        element.scale = it.animatedValue as Float
                         invalidate()
                     }
-                })
-            }
+                    addListener(object : AnimatorListenerAdapter() {
+                        override fun onAnimationEnd(animation: Animator) {
+                            element.scale = baseScale
+                            invalidate()
+                        }
+                    })
+                }
 
             "wipe" -> ValueAnimator.ofFloat(0f, 1f).apply {
                 duration = 800
@@ -779,7 +803,12 @@ class CanvasView @JvmOverloads constructor(
                 })
             }
 
-            "wiggle" -> ValueAnimator.ofFloat(baseRotation, baseRotation - 10f, baseRotation + 10f, baseRotation).apply {
+            "wiggle" -> ValueAnimator.ofFloat(
+                baseRotation,
+                baseRotation - 10f,
+                baseRotation + 10f,
+                baseRotation
+            ).apply {
                 duration = 600
                 repeatCount = 0
                 addUpdateListener {
@@ -1558,7 +1587,8 @@ class CanvasView @JvmOverloads constructor(
             }
         }
 
-        showRotationVerticalGuide = snapped && (snappedTarget == 0f || snappedTarget == 180f || snappedTarget == 360f)
+        showRotationVerticalGuide =
+            snapped && (snappedTarget == 0f || snappedTarget == 180f || snappedTarget == 360f)
         showRotationHorizontalGuide = snapped && (snappedTarget == 90f || snappedTarget == 270f)
     }
 
@@ -2716,16 +2746,20 @@ class CanvasView @JvmOverloads constructor(
                 }
 
                 if (selectedElements.isNotEmpty()) {
-                    val touchedIconEntry = lastDrawnIconRect.entries.firstOrNull { (iconName, rect) ->
-                        Log.d(
-                            "IconTouch",
-                            "Touch region icon=$iconName Rect(${rect.left}, ${rect.top}, ${rect.right}, ${rect.bottom})"
-                        )
-                        rect.contains(x, y)
-                    }
+                    val touchedIconEntry =
+                        lastDrawnIconRect.entries.firstOrNull { (iconName, rect) ->
+                            Log.d(
+                                "IconTouch",
+                                "Touch region icon=$iconName Rect(${rect.left}, ${rect.top}, ${rect.right}, ${rect.bottom})"
+                            )
+                            rect.contains(x, y)
+                        }
 
                     if (touchedIconEntry != null) {
-                        Log.d("IconHit", "User tapped inside icon=${touchedIconEntry.key} at ($x,$y)")
+                        Log.d(
+                            "IconHit",
+                            "User tapped inside icon=${touchedIconEntry.key} at ($x,$y)"
+                        )
                         iconTouched = touchedIconEntry.key
                         when (iconTouched) {
                             "delete" -> {
@@ -2873,7 +2907,7 @@ class CanvasView @JvmOverloads constructor(
                         selectedElements.clear()
                         onElementSelected?.invoke(selectedElements) // Notify ViewModel of empty selection
                         invalidate()
-                    }else{
+                    } else {
                         if (overallScale > 1f) {
                             currentMode = Mode.CANVAS_PAN
                             touchStartX = event.x
