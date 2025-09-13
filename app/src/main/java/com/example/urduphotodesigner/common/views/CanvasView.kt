@@ -1803,7 +1803,7 @@ class CanvasView @JvmOverloads constructor(
             val checkerPaint = Paint().apply { shader = checkerShader }
             canvas.drawRect(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat(), checkerPaint)
         }
-        
+
         // Draw all elements
         canvasElements
             .sortedBy { it.zIndex }
