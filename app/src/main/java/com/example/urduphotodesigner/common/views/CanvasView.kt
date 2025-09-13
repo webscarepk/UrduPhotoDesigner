@@ -265,13 +265,9 @@ class CanvasView @JvmOverloads constructor(
                 logicalContentHeight = canvasHeight.toFloat()
             }
 
-        val existingBg = canvasElements.firstOrNull { it.type == ElementType.BACKGROUND }
-        if (existingBg != null) {
-            backgroundElement = canvasElements
-                .firstOrNull { it.type == ElementType.BACKGROUND }!!
+        if (canvasElements.isEmpty()) {
+            ensureBackgroundElement()
         }
-
-        ensureBackgroundElement()
     }
 
     /**
@@ -279,13 +275,18 @@ class CanvasView @JvmOverloads constructor(
      * lock it, fill its fields, and insert it at index 0.
      */
     private fun ensureBackgroundElement() {
-        // only add once
-        if (canvasElements.any { it.type == ElementType.BACKGROUND }) return
-
-        // insert at bottom of draw order
-        canvasElements.add(0, backgroundElement)
-        onElementChanged?.invoke(canvasElements.first())
-        invalidate()  // trigger a redraw so you’ll see it immediately
+        if (canvasElements.isEmpty()) {
+            // Create a new background element (locked, white fill etc.)
+            val newBg = backgroundElement.copy().apply {
+                type = ElementType.BACKGROUND
+                isLocked = true
+                isVisible = true
+                backgroundColor = Color.WHITE
+            }
+            canvasElements.add(0, newBg)
+            onElementChanged?.invoke(newBg)
+            invalidate()
+        }
     }
 
     /**

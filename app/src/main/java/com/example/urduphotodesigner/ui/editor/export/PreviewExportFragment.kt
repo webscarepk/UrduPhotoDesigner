@@ -1,11 +1,14 @@
 package com.example.urduphotodesigner.ui.editor.export
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.common.utils.ImageProcessor
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentPreviewExportBinding
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -25,10 +28,22 @@ class PreviewExportFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val imagePath = arguments?.getString("imagePath")
-        imagePath?.let {
-            val bitmap = ImageProcessor.filePathToBitmap(it)
-            binding.zoomableImage.setImageBitmap(bitmap)
+        if (imagePath.isNullOrEmpty()) {
+            Log.e("PreviewExportFragment", "No image path provided!")
+            return
         }
+
+        Log.d("PreviewExportFragment", "Loading image from $imagePath")
+
+        val bitmap = ImageProcessor.filePathToBitmap(imagePath)
+        Log.d("PreviewExportFragment", "Bitmap = $bitmap, size = ${bitmap?.width}x${bitmap?.height}")
+        if (bitmap != null) {
+            binding.zoomableImage.setImageBitmap(bitmap)
+        } else {
+            Log.e("PreviewExportFragment", "Failed to decode bitmap from $imagePath")
+        }
+
+        binding.back.addPressEffect { findNavController().navigateUp() }
     }
 
     override fun onDestroy() {

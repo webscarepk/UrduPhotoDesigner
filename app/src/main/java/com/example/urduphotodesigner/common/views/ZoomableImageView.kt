@@ -1,14 +1,16 @@
 package com.example.urduphotodesigner.common.views
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Matrix
 import android.graphics.PointF
+import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
+import android.view.animation.DecelerateInterpolator
 import androidx.appcompat.widget.AppCompatImageView
-import kotlin.math.max
 import kotlin.math.min
 
 class ZoomableImageView @JvmOverloads constructor(
@@ -16,20 +18,18 @@ class ZoomableImageView @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : AppCompatImageView(context, attrs) {
 
-    private var matrixScale = Matrix()
-    private var savedMatrix = Matrix()
+    private val matrixScale = Matrix()
+    private val savedMatrix = Matrix()
+    private val matrixValues = FloatArray(9)
 
-    // Gesture detectors
-    private var scaleDetector: ScaleGestureDetector
-    private var gestureDetector: GestureDetector
+    private val scaleDetector: ScaleGestureDetector
+    private val gestureDetector: GestureDetector
 
-    // States
-    private var mode = NONE
     private val last = PointF()
-    private val start = PointF()
+    private var mode = NONE
+
     private var minScale = 1f
-    private var maxScale = 4f
-    private val m = FloatArray(9)
+    private var maxScale = 5f
 
     init {
         super.setClickable(true)
@@ -39,14 +39,14 @@ class ZoomableImageView @JvmOverloads constructor(
         scaleType = ScaleType.MATRIX
     }
 
-    override fun setImageResource(resId: Int) {
-        super.setImageResource(resId)
-        fitToScreen()
-    }
-
     override fun setImageBitmap(bm: android.graphics.Bitmap?) {
         super.setImageBitmap(bm)
-        fitToScreen()
+        post { fitToScreen() }
+    }
+
+    override fun setImageResource(resId: Int) {
+        super.setImageResource(resId)
+        post { fitToScreen() }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -55,18 +55,18 @@ class ZoomableImageView @JvmOverloads constructor(
 
         val currentPoint = PointF(event.x, event.y)
 
-        when (event.action) {
+        when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 savedMatrix.set(matrixScale)
                 last.set(currentPoint)
-                start.set(last)
                 mode = DRAG
             }
             MotionEvent.ACTION_MOVE -> if (mode == DRAG) {
-                matrixScale.set(savedMatrix)
                 val dx = currentPoint.x - last.x
                 val dy = currentPoint.y - last.y
                 matrixScale.postTranslate(dx, dy)
+                fixTranslation()
+                last.set(currentPoint)
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
                 mode = NONE
@@ -74,7 +74,6 @@ class ZoomableImageView @JvmOverloads constructor(
         }
 
         imageMatrix = matrixScale
-        fixTranslation()
         return true
     }
 
@@ -82,14 +81,18 @@ class ZoomableImageView @JvmOverloads constructor(
         drawable?.let { d ->
             val viewWidth = width.toFloat()
             val viewHeight = height.toFloat()
+            if (viewWidth == 0f || viewHeight == 0f) return
+
             val drawableWidth = d.intrinsicWidth.toFloat()
             val drawableHeight = d.intrinsicHeight.toFloat()
 
             val scale = min(viewWidth / drawableWidth, viewHeight / drawableHeight)
+
+            minScale = scale
+            matrixScale.setScale(scale, scale)
+
             val redundantYSpace = (viewHeight - scale * drawableHeight) / 2f
             val redundantXSpace = (viewWidth - scale * drawableWidth) / 2f
-
-            matrixScale.setScale(scale, scale)
             matrixScale.postTranslate(redundantXSpace, redundantYSpace)
 
             imageMatrix = matrixScale
@@ -97,36 +100,41 @@ class ZoomableImageView @JvmOverloads constructor(
     }
 
     private fun fixTranslation() {
-        matrixScale.getValues(m)
-        val transX = m[Matrix.MTRANS_X]
-        val transY = m[Matrix.MTRANS_Y]
+        val rect = getMatrixRect()
+        val deltaX = getFixTranslation(rect.left, rect.right, width.toFloat())
+        val deltaY = getFixTranslation(rect.top, rect.bottom, height.toFloat())
+        matrixScale.postTranslate(deltaX, deltaY)
+    }
 
-        val fixTransX = getFixTranslation(transX, width.toFloat(), drawable?.intrinsicWidth?.times(m[Matrix.MSCALE_X]) ?: 0f)
-        val fixTransY = getFixTranslation(transY, height.toFloat(), drawable?.intrinsicHeight?.times(m[Matrix.MSCALE_Y]) ?: 0f)
+    private fun getMatrixRect(): RectF {
+        val d = drawable ?: return RectF()
+        val rect = RectF(0f, 0f, d.intrinsicWidth.toFloat(), d.intrinsicHeight.toFloat())
+        matrixScale.mapRect(rect)
+        return rect
+    }
 
-        if (fixTransX != 0f || fixTransY != 0f) {
-            matrixScale.postTranslate(fixTransX, fixTransY)
+    private fun getFixTranslation(minEdge: Float, maxEdge: Float, viewSize: Float): Float {
+        return when {
+            maxEdge - minEdge < viewSize -> (viewSize - (maxEdge - minEdge)) / 2f - minEdge
+            minEdge > 0 -> -minEdge
+            maxEdge < viewSize -> viewSize - maxEdge
+            else -> 0f
         }
     }
 
-    private fun getFixTranslation(trans: Float, viewSize: Float, contentSize: Float): Float {
-        return when {
-            contentSize <= viewSize -> viewSize / 2f - contentSize / 2f - trans
-            trans > 0 -> -trans
-            trans + contentSize < viewSize -> viewSize - (trans + contentSize)
-            else -> 0f
-        }
+    private fun getCurrentScale(): Float {
+        matrixScale.getValues(matrixValues)
+        return matrixValues[Matrix.MSCALE_X]
     }
 
     inner class ScaleListener : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScale(detector: ScaleGestureDetector): Boolean {
             val scaleFactor = detector.scaleFactor
-            val origScale = getMatrixScale()
-            var newScale = origScale * scaleFactor
+            var scale = getCurrentScale() * scaleFactor
+            if (scale < minScale) scale = minScale
+            if (scale > maxScale) scale = maxScale
 
-            newScale = max(minScale, min(newScale, maxScale))
-
-            val factor = newScale / origScale
+            val factor = scale / getCurrentScale()
             matrixScale.postScale(factor, factor, detector.focusX, detector.focusY)
             fixTranslation()
             return true
@@ -134,19 +142,32 @@ class ZoomableImageView @JvmOverloads constructor(
     }
 
     inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
+        private val zoomSteps = floatArrayOf(2f, 4f, 1f)
+        private var currentStep = 0
+
         override fun onDoubleTap(e: MotionEvent): Boolean {
-            val currentScale = getMatrixScale()
-            val targetScale = if (currentScale < maxScale) maxScale else minScale
-            val factor = targetScale / currentScale
-            matrixScale.postScale(factor, factor, e.x, e.y)
-            fixTranslation()
+            val currentScale = getCurrentScale()
+            val targetScale = zoomSteps[currentStep] * minScale // base se multiply
+
+            animateZoom(currentScale, targetScale, e.x, e.y)
+
+            currentStep = (currentStep + 1) % zoomSteps.size
             return true
         }
     }
 
-    private fun getMatrixScale(): Float {
-        matrixScale.getValues(m)
-        return m[Matrix.MSCALE_X]
+    private fun animateZoom(from: Float, to: Float, focusX: Float, focusY: Float) {
+        val animator = ValueAnimator.ofFloat(from, to)
+        animator.duration = 300
+        animator.interpolator = DecelerateInterpolator()
+        animator.addUpdateListener {
+            val scale = it.animatedValue as Float
+            val factor = scale / getCurrentScale()
+            matrixScale.postScale(factor, factor, focusX, focusY)
+            fixTranslation()
+            imageMatrix = matrixScale
+        }
+        animator.start()
     }
 
     companion object {

@@ -34,6 +34,14 @@
         android:orientation="vertical"
         android:id="@+id/endGuide"/>
 
+    <com.example.urduphotodesigner.common.views.ZoomableImageView
+        android:id="@+id/zoomableImage"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:adjustViewBounds="true"
+        android:scaleType="matrix"
+        android:src="@drawable/ic_launcher_background" />
+
     <ImageView
         android:id="@+id/back"
         android:layout_width="32dp"
@@ -44,12 +52,5 @@
         android:src="@drawable/ic_back"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintTop_toBottomOf="@id/topGuide" />
-
-    <com.example.urduphotodesigner.common.views.ZoomableImageView
-        android:id="@+id/zoomableImage"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="center"
-        android:src="@drawable/ic_launcher_background" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -606,7 +606,7 @@ class FilesListFragment : Fragment() {
             put(MediaStore.Images.Media.MIME_TYPE, mimeType)
             put(
                 MediaStore.Images.Media.RELATIVE_PATH,
-                Environment.DIRECTORY_PICTURES + "/UrduDesigner"
+                Environment.DIRECTORY_PICTURES + "/${getString(R.string.app_name)}"
             )
         }
 

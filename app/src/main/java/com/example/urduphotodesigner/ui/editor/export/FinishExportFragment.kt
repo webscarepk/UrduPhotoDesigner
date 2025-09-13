@@ -1,13 +1,18 @@
 package com.example.urduphotodesigner.ui.editor.export
 
+import android.content.Intent
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
+import androidx.print.PrintHelper
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.utils.ImageProcessor
@@ -25,6 +30,7 @@ class FinishExportFragment : Fragment() {
     private val binding get() = _binding!!
 
     val viewModel: CanvasViewModel by activityViewModels()
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -34,13 +40,18 @@ class FinishExportFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         setEvents()
         initObservers()
     }
 
     private fun initObservers() {
         viewModel.exportResult.observe(viewLifecycleOwner) { result ->
+            val tip = if (result?.pdfPath != null) {
+                requireActivity().getString(R.string.exportTip_pdf)
+            } else {
+                requireActivity().getString(R.string.exportTip_image)
+            }
+            binding.tip.text = tip
             binding.fileName.text = result?.fileName
             binding.fileNameDetail.text = result?.fileName
             binding.fileType.text = "${result?.format} File"
@@ -54,53 +65,112 @@ class FinishExportFragment : Fragment() {
     }
 
     private fun setEvents() {
-
         binding.preview.addPressEffect {
             val export = viewModel.exportResult.value ?: return@addPressEffect
             val bundle = Bundle().apply {
                 putString("imagePath", export.imagePath)
             }
-            findNavController().navigate(R.id.previewExportFragment,bundle)
+            findNavController().navigate(R.id.previewExportFragment, bundle)
         }
-        binding.fileLocationDetail.addPressEffect { requireActivity().copyToClipboard("Exported Path", binding.fileLocationDetail.text.toString()) }
+
+        binding.fileLocationDetail.addPressEffect {
+            requireActivity().copyToClipboard("Exported Path", binding.fileLocationDetail.text.toString())
+        }
+
         binding.back.addPressEffect { findNavController().navigateUp() }
         binding.btnExportAnother.addPressEffect { findNavController().navigateUp() }
         binding.backToHome.addPressEffect {
             val navOptions = NavOptions.Builder()
-                .setPopUpTo(R.id.homeFragment, false) // clear everything above Home
+                .setPopUpTo(R.id.homeFragment, false)
                 .build()
             findNavController().navigate(R.id.homeFragment, null, navOptions)
         }
 
+        // 🔹 Share logic
         binding.share.addPressEffect {
             val export = viewModel.exportResult.value ?: return@addPressEffect
-
             val jsonFile = File(export.jsonPath)
             val imageFile = File(export.imagePath)
 
             if (!jsonFile.exists() || !imageFile.exists()) {
-                // Handle error gracefully
                 return@addPressEffect
             }
 
             val zipFile = File(requireContext().cacheDir, "design_${System.currentTimeMillis()}.zip")
             createZipFromFiles(listOf(jsonFile, imageFile), zipFile)
 
-            val uri = androidx.core.content.FileProvider.getUriForFile(
+            val uri = FileProvider.getUriForFile(
                 requireContext(),
                 "${requireContext().packageName}.fileprovider",
                 zipFile
             )
 
-            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+            val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "application/zip"
-                putExtra(android.content.Intent.EXTRA_STREAM, uri)
-                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
 
-            startActivity(android.content.Intent.createChooser(intent, "Share Design Zip"))
+            startActivity(Intent.createChooser(intent, "Share Design Zip"))
         }
 
+        // 🔹 Open logic (PDF or Image)
+        binding.open.addPressEffect {
+            val export = viewModel.exportResult.value ?: return@addPressEffect
+            val filePath = export.pdfPath ?: export.imagePath
+            val file = File(filePath)
+            if (!file.exists()) return@addPressEffect
+
+            // Use FileProvider to give safe Uri
+            val uri = FileProvider.getUriForFile(
+                requireContext(),
+                "${requireContext().packageName}.fileprovider",
+                file
+            )
+
+            val mimeType = if (filePath.endsWith(".pdf", true)) {
+                "application/pdf"
+            } else {
+                "image/*"   // restrict to image viewers only
+            }
+
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, mimeType)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(intent, "Open with"))
+        }
+
+        // 🔹 Print logic
+        binding.print.addPressEffect {
+            val export = viewModel.exportResult.value ?: return@addPressEffect
+
+            export.pdfPath?.let { pdfPath ->
+                // For PDF, open default print dialog via ACTION_VIEW
+                val pdfFile = File(pdfPath)
+                if (pdfFile.exists()) {
+                    val uri = FileProvider.getUriForFile(
+                        requireContext(),
+                        "${requireContext().packageName}.fileprovider",
+                        pdfFile
+                    )
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        data = uri
+                        type = "application/pdf"
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    startActivity(Intent.createChooser(intent, "Print PDF"))
+                }
+            } ?: run {
+                // For image, use PrintHelper
+                val imagePath = export.imagePath ?: return@addPressEffect
+                val bitmap = ImageProcessor.filePathToBitmap(imagePath) ?: return@addPressEffect
+                val printHelper = PrintHelper(requireContext()).apply {
+                    scaleMode = PrintHelper.SCALE_MODE_FIT
+                }
+                printHelper.printBitmap(export.fileName ?: "Design", bitmap)
+            }
+        }
     }
 
     fun createZipFromFiles(files: List<File>, outputZip: File) {

@@ -167,7 +167,8 @@
     <string name="save">Save</string>
     <string name="open">Open</string>
     <string name="export_tips">Export Tips</string>
-    <string name="your_file_has_been_optimized_for_the_selected_quality_and_format_you_can_find_it_in_your_downloads_folder_or_use_the_path_shown_above">Your file has been optimized for the selected quality and format. You can find it in your Downloads folder or use the path shown above.</string>
+    <string name="exportTip_image">Your image has been saved in your Gallery inside the Urdu Canvas folder. You can also access it using the path shown above.</string>
+    <string name="exportTip_pdf">Your file has been saved in your Documents/Urdu Canvas folder. You can also access it using the path shown above.</string>
     <string name="export_another">Export Another</string>
     <string name="go_home">Go Home</string>
     <string name="kashida_frequency">Kashida Frequency</string>
@@ -233,6 +234,7 @@
     <string name="no_fonts_available">No Fonts Available</string>
     <string name="no_stickers_available">No Stickers Available</string>
     <string name="no_backgrounds_available">No Backgrounds Available</string>
+    <string name="print">Print</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

@@ -1,12 +1,14 @@
 package com.example.urduphotodesigner
 
+import android.content.Intent
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
+import androidx.activity.addCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -14,27 +16,22 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.setupWithNavController
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.databinding.ActivityMainBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import kotlin.getValue
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding!!
-
     private var _navController: NavController? = null
     private val navController get() = _navController!!
     private val viewModel: CanvasViewModel by viewModels()
@@ -99,24 +96,29 @@ class MainActivity : AppCompatActivity() {
                         navController.navigate(R.id.homeFragment, null, navOptions)
                     }
                 }
+
                 R.id.nav_templates -> {
                     if (navController.currentDestination?.id != R.id.templatesFragment) {
                         navController.navigate(R.id.templatesFragment, null, navOptions)
                     }
                 }
+
                 R.id.nav_add_images -> {
                     pickImageLauncher.launch("image/*")
                 }
+
                 R.id.nav_fav -> {
                     if (navController.currentDestination?.id != R.id.filesFragment) {
                         navController.navigate(R.id.filesFragment, null, navOptions)
                     }
                 }
+
                 R.id.nav_settings -> {
                     if (navController.currentDestination?.id != R.id.settingsFragment) {
                         navController.navigate(R.id.settingsFragment, null, navOptions)
                     }
                 }
+
                 else -> false
             }
             true
@@ -134,10 +136,82 @@ class MainActivity : AppCompatActivity() {
 
             // ✅ Selection only, NO navigation here
             when (destination.id) {
-                R.id.homeFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_home).isChecked = true
-                R.id.templatesFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_templates).isChecked = true
-                R.id.filesFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_fav).isChecked = true
-                R.id.settingsFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_settings).isChecked = true
+                R.id.homeFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_home).isChecked =
+                    true
+
+                R.id.templatesFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_templates).isChecked =
+                    true
+
+                R.id.filesFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_fav).isChecked =
+                    true
+
+                R.id.settingsFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_settings).isChecked =
+                    true
+            }
+        }
+
+        onBackPressedDispatcher.addCallback(this) {
+            val currentDest = navController.currentDestination?.id
+
+            when (currentDest) {
+                R.id.editorFragment -> {}
+
+                R.id.homeFragment -> {
+                    finish()
+                }
+
+                R.id.templatesFragment,
+                R.id.filesFragment,
+                R.id.settingsFragment -> {
+                    navController.navigate(R.id.homeFragment, null, navOptions)
+                }
+
+                else -> {}
+            }
+        }
+
+        handleIncomingIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIncomingIntent(intent)
+    }
+
+    /**
+     * Handle all possible entry cases:
+     * - Normal app start (no data)
+     * - Cold start with image
+     * - Warm start with image
+     */
+    private fun handleIncomingIntent(intent: Intent?) {
+        if (intent == null) return
+
+        val uri: Uri? = when (intent.action) {
+            Intent.ACTION_VIEW -> intent.data
+            Intent.ACTION_SEND -> intent.getParcelableExtra(Intent.EXTRA_STREAM)
+            else -> null
+        }
+
+        if (uri != null && intent.type?.startsWith("image/") == true) {
+            try {
+                contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val bitmap = BitmapFactory.decodeStream(inputStream)
+                    if (bitmap != null) {
+                        val canvasSize = CanvasSize(
+                            "From Image",
+                            bitmap.width.toFloat(),
+                            bitmap.height.toFloat()
+                        )
+                        viewModel.clearCanvas()
+                        viewModel.setCanvasSize(canvasSize)
+                        viewModel.setCanvasBackgroundImage(bitmap)
+
+                        navController.navigate(R.id.editorFragment, null, navOptions)
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
