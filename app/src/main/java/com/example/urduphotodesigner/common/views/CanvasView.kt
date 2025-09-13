@@ -238,6 +238,12 @@ class CanvasView @JvmOverloads constructor(
     private fun Float.dpToPx(): Float =
         this * resources.displayMetrics.density
 
+    fun resizeCanvas(newWidth: Int, newHeight: Int) {
+        this.canvasWidth = newWidth
+        this.canvasHeight = newHeight
+        requestLayout()
+        invalidate()
+    }
     fun enableColorPicker() {
         isColorPickerMode = true
 
@@ -272,13 +278,9 @@ class CanvasView @JvmOverloads constructor(
                 logicalContentHeight = canvasHeight.toFloat()
             }
 
-        val existingBg = canvasElements.firstOrNull { it.type == ElementType.BACKGROUND }
-        if (existingBg != null) {
-            backgroundElement = canvasElements
-                .firstOrNull { it.type == ElementType.BACKGROUND }!!
+        if (canvasElements.isEmpty()) {
+            ensureBackgroundElement()
         }
-
-        ensureBackgroundElement()
     }
 
     fun applyElementAnimation(animationName: String?) {
@@ -808,13 +810,18 @@ class CanvasView @JvmOverloads constructor(
      * lock it, fill its fields, and insert it at index 0.
      */
     private fun ensureBackgroundElement() {
-        // only add once
-        if (canvasElements.any { it.type == ElementType.BACKGROUND }) return
-
-        // insert at bottom of draw order
-        canvasElements.add(0, backgroundElement)
-        onElementChanged?.invoke(canvasElements.first())
-        invalidate()  // trigger a redraw so you’ll see it immediately
+        if (canvasElements.isEmpty()) {
+            // Create a new background element (locked, white fill etc.)
+            val newBg = backgroundElement.copy().apply {
+                type = ElementType.BACKGROUND
+                isLocked = true
+                isVisible = true
+                backgroundColor = Color.WHITE
+            }
+            canvasElements.add(0, newBg)
+            onElementChanged?.invoke(newBg)
+            invalidate()
+        }
     }
 
     /**
@@ -1796,13 +1803,10 @@ class CanvasView @JvmOverloads constructor(
             val checkerPaint = Paint().apply { shader = checkerShader }
             canvas.drawRect(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat(), checkerPaint)
         }
-
-        canvasElements
-            .firstOrNull { it.type == ElementType.BACKGROUND }
-            ?.let { drawBackgroundElement(canvas, it) }
-
+        
         // Draw all elements
-        canvasElements.filter { it.type != ElementType.BACKGROUND }.sortedBy { it.zIndex }
+        canvasElements
+            .sortedBy { it.zIndex }
             .forEach { element ->
                 if (!element.isVisible) return@forEach
 
@@ -1811,29 +1815,27 @@ class CanvasView @JvmOverloads constructor(
                     element.hasPlayedAnimation = true
                 }
 
-                canvas.withTranslation(element.x, element.y) {
-                    canvas.rotate(element.rotation)
-                    val fx = if (element.isFlippedX) -1f else 1f
-                    val fy = if (element.isFlippedY) -1f else 1f
-                    canvas.scale(element.scale * fx, element.scale * fy)
+                if (element.type == ElementType.BACKGROUND) {
+                    drawBackgroundElement(canvas, element)
+                } else {
+                    canvas.withTranslation(element.x, element.y) {
+                        canvas.rotate(element.rotation)
+                        val fx = if (element.isFlippedX) -1f else 1f
+                        val fy = if (element.isFlippedY) -1f else 1f
+                        canvas.scale(element.scale * fx, element.scale * fy)
 
-                    when (element.type) {
-                        ElementType.TEXT -> {
-                            drawTextElement(canvas, element)
-                        }
-
-                        ElementType.BACKGROUND -> {}
-
-                        else -> {
-                            element.paint.colorFilter = colorFilterFor(element.imageFilter)
-
-                            element.bitmap?.let {
-                                canvas.drawBitmap(
-                                    it,
-                                    -it.width / 2f,
-                                    -it.height / 2f,
-                                    element.paint
-                                )
+                        when (element.type) {
+                            ElementType.TEXT -> drawTextElement(canvas, element)
+                            else -> {
+                                element.paint.colorFilter = colorFilterFor(element.imageFilter)
+                                element.bitmap?.let {
+                                    canvas.drawBitmap(
+                                        it,
+                                        -it.width / 2f,
+                                        -it.height / 2f,
+                                        element.paint
+                                    )
+                                }
                             }
                         }
                     }
@@ -1859,7 +1861,7 @@ class CanvasView @JvmOverloads constructor(
             }
 
             val rotatedPath = if (selectedElements.size > 1) {
-               getGroupRotatedPath()
+                getGroupRotatedPath()
             } else {
                 getSelectionPath() // existing single-element case
             }
@@ -2953,7 +2955,7 @@ class CanvasView @JvmOverloads constructor(
 
                         // Check alignment for the first selected element (if only one is selected for single drag)
                         if (selectedElements.isNotEmpty()) {
-                           checkDragSnap()
+                            checkDragSnap()
                         } else {
                             showVerticalGuide = false
                             showHorizontalGuide = false
