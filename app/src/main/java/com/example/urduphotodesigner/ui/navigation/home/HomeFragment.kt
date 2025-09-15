@@ -454,8 +454,10 @@ class HomeFragment : Fragment() {
                         )
 
                         mainViewModel.clearDownloadState()
-                        Snackbar.make(requireView(), "Download failed!", Snackbar.LENGTH_SHORT)
-                            .show()
+                        if (isAdded){
+                            Snackbar.make(requireView(), "Download failed!", Snackbar.LENGTH_SHORT)
+                                .show()
+                        }
                     }
 
                     else -> {}

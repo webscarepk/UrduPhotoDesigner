@@ -74,7 +74,8 @@ class EditorFragment : Fragment() {
 
     private lateinit var canvasManager: CanvasManager
     private var _navController: NavController? = null
-    private val navController get() = _navController!!
+    private val navController: NavController?
+        get() = _navController
     private lateinit var canvasSize: CanvasSize
     private var currentUnit = UnitType.PIXELS
     private val viewModel: CanvasViewModel by activityViewModels()
@@ -111,7 +112,7 @@ class EditorFragment : Fragment() {
     private var saveJsonJob: Job? = null
     private var savePending = false
     private var lastJsonSaveTime = 0L
-    private val SAVE_DEBOUNCE_MS = 500L
+    private val saveDebounceTime = 500L
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -186,11 +187,11 @@ class EditorFragment : Fragment() {
         if (saveJsonJob?.isActive != true) {
             saveJsonJob = lifecycleScope.launch(Dispatchers.Default) {
                 while (savePending) {
-                    delay(SAVE_DEBOUNCE_MS)
+                    delay(saveDebounceTime)
                     savePending = false
 
                     val now = System.currentTimeMillis()
-                    if (now - lastJsonSaveTime < SAVE_DEBOUNCE_MS) return@launch
+                    if (now - lastJsonSaveTime < saveDebounceTime) return@launch
 
                     val json = sizedCanvasView.exportCanvasJson()
                     Log.d("saveJson", "Saved JSON as $json")
@@ -365,13 +366,10 @@ class EditorFragment : Fragment() {
                     UnitType.PIXELS -> size.height.toInt()
                 }
 
-                // Always init/attach canvas
-                initCanvas(widthPx, heightPx)
-
-                // Always setup nav + controls
                 initBottomNavigation()
                 initUIControls()
                 initBackHandling()
+                initCanvas(widthPx, heightPx)
 
                 if (exportModel == null) {
                     autoSaveSilent()
@@ -438,7 +436,7 @@ class EditorFragment : Fragment() {
 
         viewModel.opacity.observe(viewLifecycleOwner) { opacity ->
             binding.seekBar.progress = opacity
-            binding.opacityValue.text = "${opacity?.toInt() ?: 255}"
+            binding.opacityValue.text = "${opacity ?: 255}"
         }
 
         viewModel.currentTextSize.observe(viewLifecycleOwner) { size ->
@@ -502,7 +500,7 @@ class EditorFragment : Fragment() {
         @AnimRes animShow: Int = R.anim.slide_up_2,
         @AnimRes animHide: Int = R.anim.slide_down_2
     ) {
-        val isVisible = view.visibility == View.VISIBLE
+        val isVisible = view.isVisible
 
         if (shouldBeVisible && !isVisible) {
             view.visibility = View.VISIBLE
@@ -533,7 +531,9 @@ class EditorFragment : Fragment() {
                 canvasWidth = widthPx,
                 canvasHeight = heightPx,
                 onEditTextRequested = { element ->
-                    navController.popBackStack(R.id.filtersFragment, true)
+                    if (isAdded && navController!=null){
+                        navController?.popBackStack(R.id.filtersFragment, true)
+                    }
                     if (element.type == ElementType.IMAGE) {
                         val selected = viewModel.canvasElements.value?.find { it.id == element.id }
                         selected?.let {
@@ -541,7 +541,9 @@ class EditorFragment : Fragment() {
                                 putParcelable("previewBitmap", it.bitmap)
                                 putString("elementId", it.id)
                             }
-                            navController.navigate(R.id.filtersFragment, bundle)
+                            if (isAdded && navController != null) {
+                                navController?.navigate(R.id.filtersFragment, bundle)
+                            }
                         }
                     } else {
                         showTextEditDialog(element)
@@ -598,12 +600,14 @@ class EditorFragment : Fragment() {
             } else {
                 binding.panelNavHost.visibility = View.VISIBLE
                 currentPanelItemId = menuItem.itemId
-                when (menuItem.itemId) {
-                    R.id.nav_background -> navController.navigate(R.id.backgroundsFragment)
-                    R.id.nav_objects -> navController.navigate(R.id.objectsFragment)
-                    R.id.nav_text -> navController.navigate(R.id.textFragment)
-                    R.id.nav_images -> navController.navigate(R.id.imagesFragment)
-                    R.id.nav_layers -> navController.navigate(R.id.layersFragment)
+                if (isAdded && navController != null){
+                    when (menuItem.itemId) {
+                        R.id.nav_background -> navController?.navigate(R.id.backgroundsFragment)
+                        R.id.nav_objects -> navController?.navigate(R.id.objectsFragment)
+                        R.id.nav_text -> navController?.navigate(R.id.textFragment)
+                        R.id.nav_images -> navController?.navigate(R.id.imagesFragment)
+                        R.id.nav_layers -> navController?.navigate(R.id.layersFragment)
+                    }
                 }
             }
             true
@@ -710,7 +714,9 @@ class EditorFragment : Fragment() {
         binding.copyIcon.addPressEffect { viewModel.copySelectedElementsGroup() }
 
         binding.animationsIcon.addPressEffect {
-            navController.navigate(R.id.animationsFragment)
+            if (isAdded && navController!= null){
+                navController?.navigate(R.id.animationsFragment)
+            }
         }
 
         binding.done.addPressEffect {
