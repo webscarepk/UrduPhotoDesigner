@@ -373,7 +373,23 @@ class CanvasView @JvmOverloads constructor(
                     o.scale * (1f + 0.05f * sin(progress * Math.PI * 6).toFloat())
 
                 "stomp" -> element.y = o.y - 50f * (1f - progress) * (1f - progress)
-                // "none" or unknown → keep originals
+                "pop" -> element.scale = when {
+                    progress < 0.25f -> o.scale * (0.5f + 2f * progress)        // grow 0.5 → 1.0
+                    progress < 0.75f -> o.scale * (1f + 0.8f * (progress - 0.25f) / 0.5f) // overshoot → 1.2
+                    else -> o.scale * (1.2f - 0.2f * ((progress - 0.75f) / 0.25f))       // settle back → 1.0
+                }
+
+                "wipe" -> element.paintAlpha = (o.alpha * progress).toInt()
+
+                "blur" -> {
+                    val radius = (25f * sin(progress * Math.PI).toFloat()).coerceAtLeast(0.1f)
+                    element.blurValue = radius
+                }
+
+                "flicker" -> element.paintAlpha =
+                    if ((progress * 12).toInt() % 2 == 0) o.alpha else o.alpha / 3
+
+                "none", null -> { /* no change */ }
             }
         }
 
@@ -402,13 +418,11 @@ class CanvasView @JvmOverloads constructor(
         val safeDuration = durationMs.coerceIn(1000L, 5000L)
         val frameCount = (safeDuration / 1000f * fps).toInt()
         val frameDurationUs = 1_000_000L / fps
+        val frameDurationNs = 1_000_000_000L / fps
 
         val muxer = MediaMuxer(path, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
         val format = MediaFormat.createVideoFormat("video/avc", canvasWidth, canvasHeight).apply {
-            setInteger(
-                MediaFormat.KEY_COLOR_FORMAT,
-                MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface
-            )
+            setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
             setInteger(MediaFormat.KEY_BIT_RATE, 5_000_000)
             setInteger(MediaFormat.KEY_FRAME_RATE, fps)
             setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
@@ -425,7 +439,7 @@ class CanvasView @JvmOverloads constructor(
 
         // 🔹 Render each frame
         for (frame in 0 until frameCount) {
-            val targetTimeUs = frame * frameDurationUs
+            val startNs = System.nanoTime()
 
             // Draw into encoder input surface
             val canvas = inputSurface.lockCanvas(null)
@@ -448,17 +462,30 @@ class CanvasView @JvmOverloads constructor(
                     outputIndex >= 0 -> {
                         val encodedData = encoder.getOutputBuffer(outputIndex) ?: continue
                         if (bufferInfo.size > 0 && muxerStarted) {
-                            bufferInfo.presentationTimeUs = targetTimeUs
+                            // Ensure correct PTS for this frame
+                            val presentationTimeUs = frame * frameDurationUs
+                            if (bufferInfo.presentationTimeUs <= 0) {
+                                bufferInfo.presentationTimeUs = presentationTimeUs
+                            }
                             muxer.writeSampleData(trackIndex, encodedData, bufferInfo)
-
                         }
                         encoder.releaseOutputBuffer(outputIndex, false)
                     }
                 }
             }
 
+            // 🔹 Progress update
             withContext(Dispatchers.Main) {
                 onProgress(((frame + 1) * 100 / frameCount))
+            }
+
+            // 🔹 Pace frames to simulate real-time (so video duration is correct)
+            val elapsed = System.nanoTime() - startNs
+            val sleepNs = frameDurationNs - elapsed
+            if (sleepNs > 0) {
+                val sleepMs = sleepNs / 1_000_000
+                val sleepNsRemainder = (sleepNs % 1_000_000).toInt()
+                Thread.sleep(sleepMs, sleepNsRemainder)
             }
         }
 
