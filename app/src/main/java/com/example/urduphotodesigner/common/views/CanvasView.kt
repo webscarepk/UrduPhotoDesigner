@@ -105,23 +105,19 @@ class CanvasView @JvmOverloads constructor(
         EntryPointAccessors.fromApplication(context, GsonEntryPoint::class.java).gson()
     }
     private var gestureDetector: GestureDetector
-
     private var colorPickerBitmap: Bitmap? = null
     private var isColorPickerMode = false
     private var pickerX = 0f
     private var pickerY = 0f
     private var isDraggingPicker = false
     private val desiredPickerIconSizePx = 64f
-
     private var desiredIconScreenSizePx = 36f
     private var iconTouched: String? = null
     private var allowFreeDrag: Boolean = false
     private val checkerSize = 20
     private val light = "#F5F5F5".toColorInt()
     private val dark = "#DDDDDD".toColorInt()
-
     private var activeGroupId: String? = null
-
     private val checkerShader: BitmapShader by lazy {
         // create a 2×2 tile
         val bmp = createBitmap(checkerSize * 2, checkerSize * 2)
@@ -144,7 +140,13 @@ class CanvasView @JvmOverloads constructor(
 
         BitmapShader(bmp, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
     }
-
+    private val rotationTextPaint = Paint().apply {
+        color = Color.BLACK
+        textSize = 14f.dpToPx()
+        style = Paint.Style.FILL
+        isAntiAlias = true
+        textAlign = Paint.Align.CENTER
+    }
     private var canvasElements = mutableListOf<CanvasElement>()
     private lateinit var backgroundElement: CanvasElement
 
@@ -1935,10 +1937,22 @@ class CanvasView @JvmOverloads constructor(
                 val iconMap = mutableMapOf<String, Pair<Float, Float>>()
 
                 if (selectedElements.size > 1) { // Multi-selection icons
-                    val c = getGroupRotatedBounds()
-                    iconMap["delete"] = Pair(c[2], c[3])   // top-right
-                    iconMap["rotate"] = Pair(c[6], c[7])   // bottom-left
-                    iconMap["resize"] = Pair(c[4], c[5])
+                    val corners = getGroupRotatedBounds()
+                    val points = listOf(
+                        Pair(corners[0], corners[1]),
+                        Pair(corners[2], corners[3]),
+                        Pair(corners[4], corners[5]),
+                        Pair(corners[6], corners[7])
+                    )
+
+                    // Find top-left, top-right, bottom-left, bottom-right
+                    val topRight = points.maxBy { it.first - it.second }  // biggest x-y
+                    val bottomLeft = points.minBy { it.first - it.second } // smallest x-y
+                    val bottomRight = points.maxBy { it.first + it.second } // biggest x+y
+
+                    iconMap["delete"] = topRight
+                    iconMap["rotate"] = bottomLeft
+                    iconMap["resize"] = bottomRight
                 } else if (selectedElements.size == 1) { // Single element selection icons
                     val element = selectedElements.first()
 
