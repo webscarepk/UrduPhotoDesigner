@@ -140,13 +140,7 @@ class CanvasView @JvmOverloads constructor(
 
         BitmapShader(bmp, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
     }
-    private val rotationTextPaint = Paint().apply {
-        color = Color.BLACK
-        textSize = 14f.dpToPx()
-        style = Paint.Style.FILL
-        isAntiAlias = true
-        textAlign = Paint.Align.CENTER
-    }
+
     private var canvasElements = mutableListOf<CanvasElement>()
     private lateinit var backgroundElement: CanvasElement
 
