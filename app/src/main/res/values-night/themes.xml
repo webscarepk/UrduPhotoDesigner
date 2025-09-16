@@ -37,8 +37,8 @@
     </style>
 
     <style name="PopupFadeAnimation">
-        <item name="android:windowEnterAnimation">@anim/popup_fade_in</item>
-        <item name="android:windowExitAnimation">@anim/popup_fade_out</item>
+        <item name="android:windowEnterAnimation">@anim/slide_in</item>
+        <item name="android:windowExitAnimation">@anim/slide_out</item>
     </style>
 
 </resources>

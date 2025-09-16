@@ -27,6 +27,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.viewpager2.widget.ViewPager2
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.utils.ImageProcessor
@@ -90,6 +91,24 @@ class TextFragment : Fragment() {
             tabView.findViewById<TextView>(R.id.tabTitle).text = tabs[position]
             tab.customView = tabView
         }.attach()
+
+        binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                binding.searchIcon.isVisible = (position == 0)
+                if (position != 0) {
+                    binding.searchIcon.isVisible = false
+                    binding.searchBar.isVisible = false
+                    binding.searchBar.text?.clear()
+                    mainViewModel.setQuery("")
+                }else{
+                    binding.searchIcon.isVisible = true
+                    binding.searchBar.isVisible = false
+                    binding.searchBar.text?.clear()
+                    mainViewModel.setQuery("")
+                }
+            }
+        })
 
         binding.addText.addPressEffect { viewModel.addText("Tap to edit", requireActivity()) }
         binding.addFont.addPressEffect {

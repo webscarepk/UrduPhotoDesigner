@@ -18,6 +18,7 @@ import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.RadialGradient
+import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.SweepGradient
@@ -31,10 +32,14 @@ import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.animation.DecelerateInterpolator
 import androidx.annotation.ColorInt
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.createBitmap
+import androidx.core.graphics.toColorInt
+import androidx.core.graphics.withSave
 import androidx.core.graphics.withTranslation
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.enums.BlendType
@@ -74,8 +79,6 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sign
 import kotlin.math.sin
-import androidx.core.graphics.toColorInt
-import androidx.core.graphics.withSave
 
 class CanvasView @JvmOverloads constructor(
     context: Context,
@@ -88,7 +91,9 @@ class CanvasView @JvmOverloads constructor(
     var onElementSelected: ((List<CanvasElement>) -> Unit)? = null,
     var onStartBatchUpdate: ((String, String) -> Unit)? = null,
     var onEndBatchUpdate: ((String) -> Unit)? = null,
-    var onColorPicked: ((Int) -> Unit)? = null
+    var onColorPicked: ((Int) -> Unit)? = null,
+    var onRequestOpenLayers: (() -> Unit)? = null,
+    var onExitSelectionMode: (() -> Unit)? = null
 ) : View(context, attrs) {
 
     private val gson: Gson by lazy {
@@ -111,6 +116,10 @@ class CanvasView @JvmOverloads constructor(
     private val dark = "#DDDDDD".toColorInt()
 
     private var activeGroupId: String? = null
+    private var inSelectionMode = false
+    private var touchedDownElement: CanvasElement? = null
+    private var isDragCandidate = false
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
 
     private val checkerShader: BitmapShader by lazy {
         // create a 2×2 tile
@@ -182,44 +191,42 @@ class CanvasView @JvmOverloads constructor(
         pathEffect = DashPathEffect(floatArrayOf(10f, 10f), 0f)
     }
 
+    private val rotationTextPaint = Paint().apply {
+        color = Color.BLACK
+        textSize = 18f.dpToPx()
+        style = Paint.Style.FILL
+        isAntiAlias = true
+        textAlign = Paint.Align.CENTER
+        typeface = ResourcesCompat.getFont(context, R.font.regular)
+    }
+
+    private val rotationLabelPaint = Paint().apply {
+        color = Color.WHITE
+        style = Paint.Style.FILL
+        isAntiAlias = true
+    }
+
     private var showVerticalGuide = false
     private var showHorizontalGuide = false
     private var showRotationVerticalGuide = false
     private var showRotationHorizontalGuide = false
 
-    private val removeIcon: Bitmap by lazy {
-        drawableToBitmap(AppCompatResources.getDrawable(context, R.drawable.ic_cross))
+    private val removeIcon: Drawable by lazy {
+        AppCompatResources.getDrawable(context, R.drawable.ic_cross)!!
     }
-    private val resizeIcon: Bitmap by lazy {
-        drawableToBitmap(AppCompatResources.getDrawable(context, R.drawable.ic_resize))
+    private val resizeIcon: Drawable by lazy {
+        AppCompatResources.getDrawable(context, R.drawable.ic_resize)!!
     }
-    private val rotateIcon: Bitmap by lazy {
-        drawableToBitmap(AppCompatResources.getDrawable(context, R.drawable.ic_rotate))
+    private val rotateIcon: Drawable by lazy {
+        AppCompatResources.getDrawable(context, R.drawable.ic_rotate)!!
     }
-    private val editIcon: Bitmap by lazy {
-        drawableToBitmap(AppCompatResources.getDrawable(context, R.drawable.ic_edit_text))
+    private val editIcon: Drawable by lazy {
+        AppCompatResources.getDrawable(context, R.drawable.ic_edit_text)!!
     }
 
     private var selectedElements: CopyOnWriteArrayList<CanvasElement> = CopyOnWriteArrayList()
     private var lastTouchedElement: CanvasElement? =
         null
-
-    private fun drawableToBitmap(drawable: Drawable?): Bitmap {
-        if (drawable == null) {
-            return createBitmap(1, 1)
-        }
-        if (drawable is BitmapDrawable) {
-            return drawable.bitmap
-        }
-        val bmp = createBitmap(
-            drawable.intrinsicWidth.coerceAtLeast(1),
-            drawable.intrinsicHeight.coerceAtLeast(1)
-        )
-        val canvas = Canvas(bmp)
-        drawable.setBounds(0, 0, canvas.width, canvas.height)
-        drawable.draw(canvas)
-        return bmp
-    }
 
     private fun Float.dpToPx(): Float =
         this * resources.displayMetrics.density
@@ -230,6 +237,7 @@ class CanvasView @JvmOverloads constructor(
         requestLayout()
         invalidate()
     }
+
     fun enableColorPicker() {
         isColorPickerMode = true
 
@@ -252,6 +260,11 @@ class CanvasView @JvmOverloads constructor(
         isDraggingPicker = false
         colorPickerBitmap?.recycle()
         colorPickerBitmap = null
+        invalidate()
+    }
+
+    fun setSelectionMode(enabled: Boolean) {
+        inSelectionMode = enabled
         invalidate()
     }
 
@@ -1023,7 +1036,8 @@ class CanvasView @JvmOverloads constructor(
             }
         }
 
-        showRotationVerticalGuide = snapped && (snappedTarget == 0f || snappedTarget == 180f || snappedTarget == 360f)
+        showRotationVerticalGuide =
+            snapped && (snappedTarget == 0f || snappedTarget == 180f || snappedTarget == 360f)
         showRotationHorizontalGuide = snapped && (snappedTarget == 90f || snappedTarget == 270f)
     }
 
@@ -1262,10 +1276,6 @@ class CanvasView @JvmOverloads constructor(
             canvas.drawRect(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat(), checkerPaint)
         }
 
-//        canvasElements
-//            .firstOrNull { it.type == ElementType.BACKGROUND  && it.isVisible}
-//            ?.let { drawBackgroundElement(canvas, it) }
-
         // Draw all elements
         canvasElements
             .sortedBy { it.zIndex }
@@ -1318,14 +1328,64 @@ class CanvasView @JvmOverloads constructor(
             }
 
             val rotatedPath = if (selectedElements.size > 1) {
-               getGroupRotatedPath()
+                getGroupRotatedPath()
             } else {
                 getSelectionPath() // existing single-element case
             }
             if (rotatedPath != null) {
                 canvas.drawPath(rotatedPath, boxPaint)
             }
+            if (showOverlays && selectedElements.isNotEmpty() && currentMode == Mode.ROTATE) {
+                val rotationValue: String
+                val cx: Float
+                val cy: Float
 
+                if (selectedElements.size == 1) {
+                    val element = selectedElements.first()
+                    val bounds = element.getTightTextBounds()
+
+                    val matrix = Matrix().apply {
+                        postScale(
+                            element.scale * if (element.isFlippedX) -1f else 1f,
+                            element.scale * if (element.isFlippedY) -1f else 1f
+                        )
+                        postRotate(element.rotation)
+                        postTranslate(element.x, element.y)
+                    }
+
+                    val center = floatArrayOf(bounds.centerX(), bounds.centerY())
+                    matrix.mapPoints(center)
+
+                    cx = center[0]
+                    cy = center[1]
+                    rotationValue = "${element.rotation.roundToInt()}°"
+                } else {
+                    val bounds = getCombinedSelectedBounds()
+                    cx = bounds.centerX()
+                    cy = bounds.centerY()
+                    val avgRotation = selectedElements.map { it.rotation }.average().toFloat()
+                    rotationValue = "${avgRotation.roundToInt()}°"
+                }
+
+                // Measure text width/height
+                val textBounds = Rect()
+                rotationTextPaint.getTextBounds(rotationValue, 0, rotationValue.length, textBounds)
+                val padding = 6f.dpToPx()
+
+                val bgRect = RectF(
+                    cx - textBounds.width() / 2f - padding,
+                    cy - textBounds.height() / 2f - padding,
+                    cx + textBounds.width() / 2f + padding,
+                    cy + textBounds.height() / 2f + padding
+                )
+
+                // Draw background label
+                canvas.drawRoundRect(bgRect, 6f.dpToPx(), 6f.dpToPx(), rotationLabelPaint)
+
+                // Draw rotation text (vertically centered)
+                val textY = cy - (textBounds.exactCenterY())
+                canvas.drawText(rotationValue, cx, textY, rotationTextPaint)
+            }
             // Draw icons if elements are selected and not locked
             if (selectedElements.any { !it.isLocked }) { // Draw icons if at least one selected element is not locked
                 val localIconDrawWidth = desiredIconScreenSizePx / scale
@@ -1385,7 +1445,13 @@ class CanvasView @JvmOverloads constructor(
                             "IconDraw",
                             "Drawn icon=$iconName at Rect(${dstRect.left}, ${dstRect.top}, ${dstRect.right}, ${dstRect.bottom})"
                         )
-                        canvas.drawBitmap(bmp, null, dstRect, null)
+                        bmp.setBounds(
+                            dstRect.left.toInt(),
+                            dstRect.top.toInt(),
+                            dstRect.right.toInt(),
+                            dstRect.bottom.toInt()
+                        )
+                        bmp.draw(canvas)
                     }
                 }
             }
@@ -1921,6 +1987,42 @@ class CanvasView @JvmOverloads constructor(
         return Math.toDegrees(atan2(y.toDouble(), x.toDouble())).toFloat()
     }
 
+    fun CanvasElement.containsPoint(px: Float, py: Float): Boolean {
+        val bounds = getTightTextBounds()
+        val corners = floatArrayOf(
+            bounds.left, bounds.top,
+            bounds.right, bounds.top,
+            bounds.right, bounds.bottom,
+            bounds.left, bounds.bottom
+        )
+        val m = Matrix().apply {
+            postScale(
+                scale * if (isFlippedX) -1f else 1f,
+                scale * if (isFlippedY) -1f else 1f
+            )
+            postRotate(rotation)
+            postTranslate(x, y)
+        }
+        m.mapPoints(corners)
+        return pointInPolygon(px, py, corners)
+    }
+
+    private fun pointInPolygon(px: Float, py: Float, pts: FloatArray): Boolean {
+        var result = false
+        var j = pts.size - 2
+        for (i in pts.indices step 2) {
+            val xi = pts[i]
+            val yi = pts[i + 1]
+            val xj = pts[j]
+            val yj = pts[j + 1]
+            val intersect = ((yi > py) != (yj > py)) &&
+                    (px < (xj - xi) * (py - yi) / (yj - yi) + xi)
+            if (intersect) result = !result
+            j = i
+        }
+        return result
+    }
+
     private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
         override fun onDoubleTap(e: MotionEvent): Boolean {
 
@@ -1991,6 +2093,44 @@ class CanvasView @JvmOverloads constructor(
 
             stepZoomOverall()
             return true
+        }
+
+        override fun onLongPress(e: MotionEvent) {
+            val (x, y) = screenToCanvas(e.x, e.y)
+
+            val touchedElement = canvasElements
+                .filter { !it.isLocked } // ignore locked
+                .sortedByDescending { it.zIndex }
+                .firstOrNull { it.containsPoint(x, y) }
+
+            if (touchedElement != null && touchedElement.type != ElementType.BACKGROUND) {
+                if (!inSelectionMode) {
+                    // 🔹 First long-press → enter selection mode
+                    inSelectionMode = true
+                    clearSelection()
+                    touchedElement.isSelected = true
+                    selectedElements.add(touchedElement)
+
+                    // 🔹 Tell UI to open Layers in selection mode
+                    onRequestOpenLayers?.invoke()
+                } else {
+                    // 🔹 Already in selection mode → toggle this element
+                    if (touchedElement.isSelected) {
+                        touchedElement.isSelected = false
+                        selectedElements.remove(touchedElement)
+                        if (selectedElements.isEmpty()) {
+                            inSelectionMode = false
+                            onExitSelectionMode?.invoke()
+                        }
+                    } else {
+                        touchedElement.isSelected = true
+                        selectedElements.add(touchedElement)
+                    }
+                }
+
+                onElementSelected?.invoke(selectedElements)
+                invalidate()
+            }
         }
     }
 
@@ -2171,16 +2311,20 @@ class CanvasView @JvmOverloads constructor(
                 }
 
                 if (selectedElements.isNotEmpty()) {
-                    val touchedIconEntry = lastDrawnIconRect.entries.firstOrNull { (iconName, rect) ->
-                        Log.d(
-                            "IconTouch",
-                            "Touch region icon=$iconName Rect(${rect.left}, ${rect.top}, ${rect.right}, ${rect.bottom})"
-                        )
-                        rect.contains(x, y)
-                    }
+                    val touchedIconEntry =
+                        lastDrawnIconRect.entries.firstOrNull { (iconName, rect) ->
+                            Log.d(
+                                "IconTouch",
+                                "Touch region icon=$iconName Rect(${rect.left}, ${rect.top}, ${rect.right}, ${rect.bottom})"
+                            )
+                            rect.contains(x, y)
+                        }
 
                     if (touchedIconEntry != null) {
-                        Log.d("IconHit", "User tapped inside icon=${touchedIconEntry.key} at ($x,$y)")
+                        Log.d(
+                            "IconHit",
+                            "User tapped inside icon=${touchedIconEntry.key} at ($x,$y)"
+                        )
                         iconTouched = touchedIconEntry.key
                         when (iconTouched) {
                             "delete" -> {
@@ -2279,25 +2423,41 @@ class CanvasView @JvmOverloads constructor(
                         currentMode = Mode.DRAG // Set to drag mode after selecting the group
                         vibrateSoft()
                     } else {
-                        if (touchedElement.isSelected) {
-                            // If an already selected element is tapped, assume user wants to drag the group
-                            // Do NOT deselect others.
-                            lastTouchedElement =
-                                touchedElement // Set the one that initiated the drag
-                            currentMode = Mode.DRAG
-                            touchStartX = x
-                            touchStartY = y
-
+                        if (inSelectionMode) {
+                            // 🔹 Multi-select toggle always runs in selection mode
+                            if (touchedElement.isSelected) {
+                                touchedDownElement = touchedElement
+                                isDragCandidate = true
+                                touchStartX = x
+                                touchStartY = y
+                                currentMode = Mode.NONE
+                            } else {
+                                // select
+                                touchedElement.isSelected = true
+                                selectedElements.add(touchedElement)
+                                onElementSelected?.invoke(selectedElements)
+                                vibrateSoft()
+                            }
                         } else {
-                            // If an unselected element is tapped, deselect all others and select only this one
-                            canvasElements.forEach { it.isSelected = false } // Deselect all
-                            selectedElements.clear() // Clear internal selected list
-                            touchedElement.isSelected = true // Select the new element
-                            selectedElements.add(touchedElement) // Add to internal selected list
-                            lastTouchedElement = touchedElement // Set for drag
-                            currentMode = Mode.DRAG
-                            touchStartX = x
-                            touchStartY = y
+                            // 🔹 Normal mode (single select + drag)
+                            if (touchedElement.isSelected) {
+                                // already selected → start drag
+                                lastTouchedElement = touchedElement
+                                currentMode = Mode.DRAG
+                                touchStartX = x
+                                touchStartY = y
+                            } else {
+                                // fresh select
+                                canvasElements.forEach { it.isSelected = false }
+                                selectedElements.clear()
+                                touchedElement.isSelected = true
+                                selectedElements.add(touchedElement)
+
+                                lastTouchedElement = touchedElement
+                                currentMode = Mode.DRAG
+                                touchStartX = x
+                                touchStartY = y
+                            }
                             vibrateSoft()
                         }
                     }
@@ -2326,9 +2486,11 @@ class CanvasView @JvmOverloads constructor(
                     if (selectedElements.isNotEmpty()) {
                         canvasElements.forEach { it.isSelected = false }
                         selectedElements.clear()
+                        inSelectionMode = false
+                        onExitSelectionMode?.invoke()
                         onElementSelected?.invoke(selectedElements) // Notify ViewModel of empty selection
                         invalidate()
-                    }else{
+                    } else {
                         if (overallScale > 1f) {
                             currentMode = Mode.CANVAS_PAN
                             touchStartX = event.x
@@ -2373,6 +2535,18 @@ class CanvasView @JvmOverloads constructor(
                     return true
                 }
 
+                if (isDragCandidate && touchedDownElement != null) {
+                    val dx = abs(x - touchStartX)
+                    val dy = abs(y - touchStartY)
+                    if (dx > touchSlop || dy > touchSlop) {
+                        // start drag instead of deselect
+                        lastTouchedElement = touchedDownElement
+                        currentMode = Mode.DRAG
+                        isDragCandidate = false
+                        touchedDownElement = null
+                    }
+                }
+
                 when (currentMode) {
                     Mode.DRAG -> {
                         val dx = x - touchStartX
@@ -2410,7 +2584,7 @@ class CanvasView @JvmOverloads constructor(
 
                         // Check alignment for the first selected element (if only one is selected for single drag)
                         if (selectedElements.isNotEmpty()) {
-                           checkDragSnap()
+                            checkDragSnap()
                         } else {
                             showVerticalGuide = false
                             showHorizontalGuide = false
@@ -2617,6 +2791,20 @@ class CanvasView @JvmOverloads constructor(
                         onEndBatchUpdate?.invoke(it.id)
                     }
                 }
+                if (isDragCandidate && touchedDownElement != null) {
+                    // No drag happened → treat as deselect
+                    val element = touchedDownElement!!
+                    element.isSelected = false
+                    selectedElements.remove(element)
+                    if (selectedElements.isEmpty()) {
+                        inSelectionMode = false
+                        onExitSelectionMode?.invoke()
+                    }
+                    onElementSelected?.invoke(selectedElements)
+                    invalidate()
+                }
+                isDragCandidate = false
+                touchedDownElement = null
 
                 iconTouched = null
                 initialPinchDistance = 0f

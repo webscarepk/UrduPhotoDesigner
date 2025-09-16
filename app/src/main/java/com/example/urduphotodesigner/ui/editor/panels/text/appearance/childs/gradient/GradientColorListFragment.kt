@@ -45,6 +45,7 @@ class GradientColorListFragment : Fragment() {
         colorsAdapter = ColorsAdapter(Constants.colorList, { color ->
             selectedColor = color.colorCode.toColorInt()
             colorsAdapter.selectedColor = selectedColor
+            viewModel.updateSelectedStopColor(selectedColor)
         }, {
             selectedColor = android.R.color.transparent
         }, {
@@ -63,7 +64,6 @@ class GradientColorListFragment : Fragment() {
         }
 
         binding.done.addPressEffect {
-            viewModel.updateSelectedStopColor(selectedColor)
             parentFragment
                 ?.childFragmentManager
                 ?.popBackStack()

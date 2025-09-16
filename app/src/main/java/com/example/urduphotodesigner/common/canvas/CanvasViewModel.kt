@@ -198,6 +198,9 @@ class CanvasViewModel @Inject constructor(
     private val _exportResult = MutableLiveData<ExportResult?>()
     val exportResult: LiveData<ExportResult?> = _exportResult
 
+    private val _inSelectionMode = MutableLiveData(false)
+    val inSelectionMode: LiveData<Boolean> get() = _inSelectionMode
+
     fun setExportResult(result: ExportResult) {
         Log.d("CanvasVM", "Setting ExportResult: $result")
         _exportResult.value = result
@@ -313,6 +316,14 @@ class CanvasViewModel @Inject constructor(
             val newOptions = ExportOptions(res, quality, format)
             updateExportOptionsInMemory(newOptions)
         }
+    }
+
+    fun enterSelectionMode() {
+        _inSelectionMode.value = true
+    }
+
+    fun exitSelectionMode() {
+        _inSelectionMode.value = false
     }
 
     // 2. Update only ViewModel (temporary, no save)

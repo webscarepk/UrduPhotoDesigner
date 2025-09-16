@@ -318,31 +318,6 @@ class EditorFragment : Fragment() {
 
     private fun observeViewModel() {
 
-        viewModel.exportResult.observe(viewLifecycleOwner) { exportResult ->
-            if (exportResult == null) {
-                // brand new canvas → trigger first silent save
-                Log.d("EditorFragment", "Blank canvas detected → running autoSaveSilent()")
-                viewModel.ensureBackgroundElement(requireActivity())
-                autoSaveSilent()
-            } else {
-                // existing project → use its paths
-                exportModel = exportResult
-                jsonPath = exportResult.jsonPath
-                if (exportResult.imagePath.startsWith("/storage")) {
-                    exportModel!!.imagePath = imagePath
-                } else {
-                    imagePath = exportResult.imagePath
-                }
-            }
-        }
-
-        viewModel.canvasUnit.observe(viewLifecycleOwner) { unit ->
-            if (unit != null) {
-                currentUnit = unit
-                binding.canvasContainer.invalidate()
-            }
-        }
-
         viewModel.canvasSize.observe(viewLifecycleOwner) { size ->
             if (size != null) {
                 canvasSize = size
@@ -369,6 +344,35 @@ class EditorFragment : Fragment() {
                 if (exportModel == null) {
                     autoSaveSilent()
                 }
+            }
+        }
+
+        viewModel.inSelectionMode.observe(viewLifecycleOwner) { enabled ->
+            sizedCanvasView.setSelectionMode(enabled)
+        }
+
+        viewModel.exportResult.observe(viewLifecycleOwner) { exportResult ->
+            if (exportResult == null) {
+                // brand new canvas → trigger first silent save
+                Log.d("EditorFragment", "Blank canvas detected → running autoSaveSilent()")
+                viewModel.ensureBackgroundElement(requireActivity())
+                autoSaveSilent()
+            } else {
+                // existing project → use its paths
+                exportModel = exportResult
+                jsonPath = exportResult.jsonPath
+                if (exportResult.imagePath.startsWith("/storage")) {
+                    exportModel!!.imagePath = imagePath
+                } else {
+                    imagePath = exportResult.imagePath
+                }
+            }
+        }
+
+        viewModel.canvasUnit.observe(viewLifecycleOwner) { unit ->
+            if (unit != null) {
+                currentUnit = unit
+                binding.canvasContainer.invalidate()
             }
         }
 
@@ -475,6 +479,7 @@ class EditorFragment : Fragment() {
 
         val showFont = anySelected && hasText && !isMulti && !hasImage && !hasBackground
         val showCopy = anySelected && !hasBackground && !isMulti
+        val showAlignWithSelection = isMulti
 
         updateIconVisibility(binding.opacityIcon, anySelected)
         updateIconVisibility(binding.blendIcon, anySelected)
@@ -486,6 +491,7 @@ class EditorFragment : Fragment() {
             animShow = R.anim.slide_in,
             animHide = R.anim.slide_out
         )
+        updateIconVisibility(binding.selection, showAlignWithSelection)
     }
 
     private fun updateIconVisibility(
@@ -567,6 +573,16 @@ class EditorFragment : Fragment() {
                     viewModel.finishPicking(opaque)
                     viewModel.stopPicking()
                     viewModel.markChanged()
+                },
+                onRequestOpenLayers = {
+                    viewModel.enterSelectionMode()
+                    binding.bottomNavigation.selectedItemId = R.id.nav_layers 
+                    navController.navigate(R.id.layersFragment)
+                    currentPanelItemId = R.id.nav_layers
+                    binding.panelNavHost.visibility = View.VISIBLE
+                },
+                onExitSelectionMode = {
+                    viewModel.exitSelectionMode()
                 }
             ).apply {
                 binding.canvasContainer.addView(this)

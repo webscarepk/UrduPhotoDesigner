@@ -357,12 +357,12 @@ class FilesListFragment : Fragment() {
         val popupBinding = LayoutFilesPopupBinding.inflate(LayoutInflater.from(requireActivity()))
         val popupWindow = PopupWindow(
             popupBinding.root,
-            (150 * requireActivity().resources.displayMetrics.density).toInt(), // fixed width ~200dp
+            (180 * requireActivity().resources.displayMetrics.density).toInt(), // fixed width ~200dp
             LinearLayout.LayoutParams.WRAP_CONTENT,
             true
         )
 
-        popupWindow.elevation = 20f
+        popupWindow.elevation = 5f
         popupWindow.isOutsideTouchable = true
         popupWindow.animationStyle = R.style.PopupFadeAnimation
 

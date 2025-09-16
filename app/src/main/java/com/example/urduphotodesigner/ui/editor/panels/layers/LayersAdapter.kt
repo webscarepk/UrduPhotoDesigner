@@ -32,7 +32,7 @@ class LayersAdapter(
     private val onStartDrag: (RecyclerView.ViewHolder) -> Unit
 ) : RecyclerView.Adapter<LayersAdapter.CanvasElementViewHolder>() {
 
-    private var elements = emptyList<CanvasElement>()
+    private val elements = mutableListOf<CanvasElement>()
     private var inSelectionMode = false
 
     fun setSelectionMode(enabled: Boolean) {
@@ -43,9 +43,19 @@ class LayersAdapter(
     }
 
     fun submitList(newElements: List<CanvasElement>) {
-        elements = newElements
+        elements.clear()
+        elements.addAll(newElements)
         notifyDataSetChanged()
     }
+
+    fun moveItem(from: Int, to: Int) {
+        if (from !in elements.indices || to !in elements.indices) return
+        val item = elements.removeAt(from)
+        elements.add(to, item)
+        notifyItemMoved(from, to)
+    }
+
+    fun getItems(): List<CanvasElement> = elements
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CanvasElementViewHolder {
         val binding = LayoutLayersItemBinding.inflate(

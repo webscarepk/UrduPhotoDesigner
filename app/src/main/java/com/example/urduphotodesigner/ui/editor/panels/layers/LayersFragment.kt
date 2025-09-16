@@ -91,57 +91,17 @@ class LayersFragment : Fragment() {
             ): Boolean {
                 val fromPos = viewHolder.adapterPosition
                 val toPos = target.adapterPosition
-                val currentElements =
-                    viewModel.canvasElements.value?.toMutableList() ?: return false
-
-                // Adjust positions if the list is reversed
-                val adjustedFromPos = currentElements.size - 1 - fromPos
-                val adjustedToPos = currentElements.size - 1 - toPos
-
-                Log.d(TAG, "onMove: from $adjustedFromPos, to $adjustedToPos")
-
-                if (adjustedFromPos !in currentElements.indices || adjustedToPos !in currentElements.indices) return false
-
-                val dragged = currentElements[adjustedFromPos]
-                val selectedBlock = currentElements.filter { it.isSelected }
-                    .sortedBy { currentElements.indexOf(it) }
-
-                return if (selectedBlock.contains(dragged)) {
-                    // Move block logic...
-                    val finalList = mutableListOf<CanvasElement>()
-                    val nonSelected = currentElements.filter { !it.isSelected }.toMutableList()
-                    val idxInSel = selectedBlock.indexOf(dragged)
-                    var blockStart = adjustedToPos - idxInSel
-                    blockStart = blockStart.coerceIn(0, currentElements.size - selectedBlock.size)
-
-                    var selIdx = 0
-                    var nonIdx = 0
-                    for (i in 0 until currentElements.size) {
-                        if (i >= blockStart && selIdx < selectedBlock.size) {
-                            finalList.add(selectedBlock[selIdx++])
-                        } else {
-                            if (nonIdx < nonSelected.size) {
-                                finalList.add(nonSelected[nonIdx++])
-                            }
-                        }
-                    }
-                    while (selIdx < selectedBlock.size) {
-                        finalList.add(selectedBlock[selIdx++])
-                    }
-                    viewModel.updateCanvasElementsOrderAndZIndex(finalList)
-                    true
-                } else {
-                    // Single-element move logic
-                    val moved = currentElements.removeAt(adjustedFromPos)
-                    currentElements.add(adjustedToPos, moved)
-                    viewModel.updateCanvasElementsOrderAndZIndex(currentElements)
-                    true
-                }
+                adapter.moveItem(fromPos, toPos)
+                return true
             }
-
+            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(recyclerView, viewHolder)
+                viewModel.updateCanvasElementsOrderAndZIndex(adapter.getItems().reversed())
+            }
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) = Unit
             override fun isLongPressDragEnabled(): Boolean = false
         }
+
         itemTouchHelper = ItemTouchHelper(callback)
         itemTouchHelper.attachToRecyclerView(binding.layers)
     }
@@ -178,6 +138,7 @@ class LayersFragment : Fragment() {
 
     private fun enterSelectionMode() {
         inSelectionMode = true
+        viewModel.enterSelectionMode()
         adapter.setSelectionMode(true)
         val count = viewModel.selectedElements.value?.size ?: 0
         binding.toolbarLayers.title = getString(R.string.selected_n_layers, count)
@@ -300,10 +261,10 @@ class LayersFragment : Fragment() {
 
     private fun handleItemLongClick(element: CanvasElement) {
         if (!inSelectionMode) {
-            toggleSelection(element)
+            if (!element.isSelected) toggleSelection(element)
             enterSelectionMode()
         } else {
-            toggleSelection(element)
+            if (!element.isSelected) toggleSelection(element)
             updateSelectionToolbar()
         }
     }
@@ -323,6 +284,7 @@ class LayersFragment : Fragment() {
 
     private fun exitSelectionMode() {
         inSelectionMode = false
+        viewModel.exitSelectionMode()
         adapter.setSelectionMode(false)
         clearSelection()
         if (isAdded) {

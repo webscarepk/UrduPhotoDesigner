@@ -9,6 +9,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.example.urduphotodesigner.data.model.FontCategory
+import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.data.model.FontLanguages
 import com.example.urduphotodesigner.databinding.FragmentFontsBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
@@ -48,8 +49,13 @@ class FontsFragment : Fragment() {
         adapter = FontLanguagesAdapter(
             onLanguageExpanded = { lang, collapse ->
                 if (collapse) {
-                    collapseLanguage(lang)
-                    deliverFilter(lang, chosenCategoryByLang[lang]) // still deliver current filter
+                    val alreadySelected = languages.firstOrNull { it.name == lang }?.is_selected == true
+                    if (alreadySelected) {
+                        deliverFilter(lang, chosenCategoryByLang[lang])
+                    } else {
+                        collapseLanguage(lang)
+                        deliverFilter(lang, chosenCategoryByLang[lang])
+                    }
                 } else {
                     expandOnly(lang)
                     chosenCategoryByLang[lang] = null
@@ -84,7 +90,15 @@ class FontsFragment : Fragment() {
                 val grouped = fonts.groupBy { it.font_language.ifBlank { "Unknown" } }
 
                 val langRows = grouped.entries
-                    .sortedBy { it.key.lowercase() }
+                    .sortedWith(
+                        compareBy<Map.Entry<String, List<FontEntity>>> { entry ->
+                            when (entry.key.lowercase()) {
+                                "urdu" -> 0
+                                "english" -> 1
+                                else -> 2
+                            }
+                        }.thenBy { entry -> entry.key.lowercase() }
+                    )
                     .mapIndexed { idx, (lang, list) ->
 
                         val cats = list.map { it.font_category.ifBlank { "Uncategorized" } }
@@ -146,7 +160,11 @@ class FontsFragment : Fragment() {
     /** Make only one language selected/expanded */
     private fun expandOnly(lang: String) {
         val updated = languages.map {
-            it.copy(is_selected = it.name == lang && it.name != "All" && lang != "Imported")
+            if (it.name == lang) {
+                if (it.is_selected) it else it.copy(is_selected = true)
+            } else {
+                it.copy(is_selected = false)
+            }
         }
         languages.clear()
         languages.addAll(updated)

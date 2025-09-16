@@ -1,8 +1,8 @@
-// ui/common/SnackbarExt.kt
 package com.example.urduphotodesigner.common.utils
 
 import androidx.fragment.app.Fragment
-import com.google.android.material.snackbar.Snackbar
+import androidx.navigation.fragment.findNavController
+import com.example.urduphotodesigner.R
 
 fun Fragment.showGlobalSuccessSnack(
     message: String,
@@ -11,6 +11,10 @@ fun Fragment.showGlobalSuccessSnack(
     anchor: android.view.View? = null,
     onAction: () -> Unit
 ) {
+    val navController = findNavController()
+    if (navController.currentDestination?.id == R.id.editorFragment) {
+        return
+    }
     GlobalSnackbar.showSuccess(
         requireActivity(),
         message = message,

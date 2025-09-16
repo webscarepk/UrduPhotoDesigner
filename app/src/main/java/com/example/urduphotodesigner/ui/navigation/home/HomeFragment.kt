@@ -332,6 +332,10 @@ class HomeFragment : Fragment() {
                             )
                         )
                         mainViewModel.clearTemplateDownloadState()
+                        viewModel.clearCanvas()
+                        viewModel.clearLoading()
+
+                        findNavController().popBackStack(R.id.editorFragment, true)
 
                         showGlobalSuccessSnack("Template ready") {
                             val exportResult = t.toExportResultFinal()
@@ -423,6 +427,10 @@ class HomeFragment : Fragment() {
 
                         showGlobalSuccessSnack("Font downloaded") {
                             lifecycleScope.launch {
+                                viewModel.clearCanvas()
+                                viewModel.clearLoading()
+                                findNavController().popBackStack(R.id.editorFragment, true)
+
                                 viewModel.setCanvasSize(CanvasSize("", 2000f, 2000f))
                                 viewModel.addTextWithFont(
                                     requireActivity().getString(R.string.dummyText),

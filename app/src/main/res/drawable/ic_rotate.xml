@@ -1,21 +1,17 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="28dp"
-    android:height="28dp"
-    android:viewportWidth="28"
-    android:viewportHeight="28">
+    android:width="34dp"
+    android:height="34dp"
+    android:viewportWidth="34"
+    android:viewportHeight="34">
   <path
+      android:fillColor="#FFFFFFFF"
+      android:strokeColor="#FF8E94A2"
       android:strokeWidth="1.5"
-      android:pathData="M14,14m-13.5,0a13.5,13.5 0,1 1,27 0a13.5,13.5 0,1 1,-27 0"
-      android:fillColor="#ffffff"
-      android:strokeColor="#005D28"/>
+      android:pathData="M17 0.75A16.25 16.25 0 1 0 17 33.25 16.25 16.25 0 1 0 17 0.75z"/>
   <path
+      android:strokeColor="#FF8E94A2"
       android:strokeWidth="1.5"
-      android:pathData="M20.506,13.25C20.623,13.25 20.727,13.339 20.751,13.451L20.756,13.5C20.746,17.505 17.489,20.76 13.496,20.76C13.411,20.76 13.328,20.711 13.284,20.638C13.237,20.548 13.239,20.456 13.288,20.372L13.287,20.371L14.335,18.627L14.338,18.622C14.395,18.524 14.522,18.48 14.633,18.518L14.679,18.539L14.685,18.542C14.794,18.606 14.841,18.754 14.765,18.887L14.497,19.333L13.889,20.348L15.041,20.077C18.02,19.376 20.256,16.699 20.256,13.5C20.256,13.366 20.372,13.25 20.506,13.25Z"
-      android:fillColor="#00000000"
-      android:strokeColor="#005D28"/>
-  <path
-      android:strokeWidth="1.5"
-      android:pathData="M14.75,7.5C14.835,7.5 14.917,7.548 14.961,7.621C15.009,7.711 15.006,7.803 14.957,7.888L13.911,9.633C13.851,9.732 13.728,9.776 13.617,9.735L13.57,9.713L13.567,9.711L13.528,9.682C13.457,9.616 13.429,9.512 13.464,9.417L13.486,9.371L13.488,9.367L13.759,8.917L14.367,7.903L13.216,8.173C10.226,8.875 8,11.552 8,14.75C8,14.884 7.884,15 7.75,15C7.616,15 7.5,14.884 7.5,14.75C7.5,10.756 10.756,7.5 14.75,7.5Z"
-      android:fillColor="#00000000"
-      android:strokeColor="#005D28"/>
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"
+      android:pathData="M19.5 8l1.03 2.78C19.5 10.16 18.3 9.8 17 9.8c-3.87 0-7 3.22-7 7.2 0 1.31 0.34 2.54 0.94 3.6M14.5 26l-1.03-2.78C14.5 23.84 15.7 24.2 17 24.2c3.87 0 7-3.22 7-7.2 0-1.31-0.34-2.54-0.94-3.6"/>
 </vector>

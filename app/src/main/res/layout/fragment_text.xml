@@ -60,7 +60,7 @@
             android:background="@drawable/button_bg"
             android:backgroundTint="@color/contrast"
             app:tint="@color/black"
-            android:src="@drawable/ic_text"
+            android:src="@drawable/ic_add_text"
             android:layout_gravity="center_vertical"/>
 
         <ImageView
@@ -72,7 +72,7 @@
             android:padding="10dp"
             android:background="@drawable/button_bg"
             android:backgroundTint="@color/contrast"
-            app:tint="@color/black"
+            app:tint="@color/gray"
             android:src="@drawable/ic_add_font"
             android:layout_gravity="center_vertical"/>
 
@@ -85,7 +85,7 @@
             android:padding="10dp"
             android:background="@drawable/button_bg"
             android:backgroundTint="@color/contrast"
-            app:tint="@color/black"
+            app:tint="@color/gray"
             android:src="@drawable/ic_search"
             android:layout_gravity="center_vertical"/>
 
