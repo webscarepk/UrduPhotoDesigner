@@ -35,41 +35,32 @@
         android:orientation="vertical"
         android:id="@+id/endGuide"/>
 
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar_layers"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"
-        android:layout_height="50dp"
-        android:background="@color/white"
-        app:title="@string/layers"
-        app:titleTextColor="@color/black"
-        app:subtitle="@string/drag_to_rearrange"
-        app:titleTextAppearance="@style/CustomToolbarTitleText"
-        app:subtitleTextAppearance="@style/CustomToolbarSubtitleText"
-        app:subtitleTextColor="@android:color/darker_gray"
-        app:layout_constraintStart_toStartOf="@id/startGuide"
+        android:layout_height="wrap_content"
         app:layout_constraintEnd_toEndOf="@id/endGuide"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@id/startGuide"
         app:layout_constraintTop_toBottomOf="@id/topGuide"
-        android:popupTheme="@style/ThemeOverlay.AppCompat.Light"/>
+        android:id="@+id/toolBarContainer">
 
-<!--    <TextView-->
-<!--        android:layout_width="0dp"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:text="@string/layers"-->
-<!--        android:textColor="@color/appColor"-->
-<!--        app:layout_constraintStart_toStartOf="@id/startGuide"-->
-<!--        app:layout_constraintTop_toBottomOf="@id/topGuide"-->
-<!--        app:layout_constraintEnd_toStartOf="@id/endGuide"-->
-<!--        android:fontFamily="@font/medium"-->
-<!--        android:textSize="15sp"-->
-<!--        android:padding="6dp"-->
-<!--        android:id="@+id/title"/>-->
+        <include
+            android:id="@+id/toolbarNormalInclude"
+            layout="@layout/layout_toolbar_layers_normal"/>
+
+        <include
+            android:id="@+id/toolbarSelectionInclude"
+            layout="@layout/layout_toolbar_layers_selection"
+            android:visibility="gone"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
-        app:layout_constraintTop_toBottomOf="@id/toolbar_layers"
+        app:layout_constraintTop_toBottomOf="@id/toolBarContainer"
         app:layout_constraintBottom_toTopOf="@id/bottomGuide"
         android:layout_marginEnd="12dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"

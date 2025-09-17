@@ -4,10 +4,14 @@ import android.app.AlertDialog
 import android.content.ContentValues.TAG
 import android.os.Bundle
 import android.util.Log
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.PopupMenu
+import android.widget.PopupWindow
+import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -17,7 +21,11 @@ import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentLayersBinding
+import com.example.urduphotodesigner.databinding.LayoutLayerItemPopupBinding
+import com.example.urduphotodesigner.databinding.LayoutToolbarLayersNormalBinding
+import com.example.urduphotodesigner.databinding.LayoutToolbarLayersSelectionBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,6 +42,9 @@ class LayersFragment : Fragment() {
     private lateinit var itemTouchHelper: ItemTouchHelper
     private var inSelectionMode = false
 
+    private lateinit var normalToolbar: LayoutToolbarLayersNormalBinding
+    private lateinit var selectionToolbar: LayoutToolbarLayersSelectionBinding
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -45,6 +56,8 @@ class LayersFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        normalToolbar = LayoutToolbarLayersNormalBinding.bind(binding.toolbarNormalInclude.root)
+        selectionToolbar = LayoutToolbarLayersSelectionBinding.bind(binding.toolbarSelectionInclude.root)
         setupRecyclerView()
         setupToolbarInitial()
         observeViewModel()
@@ -55,9 +68,16 @@ class LayersFragment : Fragment() {
         if (selected.size > 1) {
             enterSelectionMode()
         } else {
-            binding.toolbarLayers.title = getString(R.string.layers)
-            binding.toolbarLayers.subtitle = getString(R.string.drag_to_rearrange)
+            showNormalToolbar()
         }
+    }
+
+    private fun showNormalToolbar() {
+        normalToolbar.root.visibility = View.VISIBLE
+        selectionToolbar.root.visibility = View.GONE
+
+        normalToolbar.title.text = getString(R.string.layers)
+        normalToolbar.subTitle.text = getString(R.string.drag_to_rearrange)
     }
 
     private fun setupRecyclerView() {
@@ -140,123 +160,103 @@ class LayersFragment : Fragment() {
         inSelectionMode = true
         viewModel.enterSelectionMode()
         adapter.setSelectionMode(true)
+
+        normalToolbar.root.visibility = View.GONE
+        selectionToolbar.root.visibility = View.VISIBLE
+
         val count = viewModel.selectedElements.value?.size ?: 0
-        binding.toolbarLayers.title = getString(R.string.selected_n_layers, count)
-        binding.toolbarLayers.subtitle = ""  // or null
-        binding.toolbarLayers.menu.clear()
-        binding.toolbarLayers.inflateMenu(R.menu.menu_layers_action_mode)
-        binding.toolbarLayers.setNavigationIcon(R.drawable.ic_close)
-        binding.toolbarLayers.setNavigationOnClickListener {
+        selectionToolbar.title.text = getString(R.string.selected_n_layers, count)
+
+        // Close button
+        selectionToolbar.close.addPressEffect {
             exitSelectionMode()
         }
-        binding.toolbarLayers.setOnMenuItemClickListener { item ->
-            // replicate onActionItemClicked logic:
-            when (item.itemId) {
-                R.id.action_lock_toggle_all -> {
-                    viewModel.toggleLockOnSelected()
-                    updateSelectionToolbar()
-                    true
-                }
 
-                R.id.action_visibility_toggle_all -> {
-                    viewModel.toggleVisibilityOnSelected()
-                    updateSelectionToolbar()
-                    true
-                }
-
-                R.id.action_group_toggle_all -> {
-                    val selected = viewModel.selectedElements.value.orEmpty()
-                    // if any of the selected already has a groupId → ungroup
-                    if (selected.any { it.groupId != null }) {
-                        viewModel.ungroupElements()
-                    } else {
-                        viewModel.selectElementForGrouping()
-                    }
-                    updateSelectionToolbar()
-                    true
-                }
-
-                R.id.action_delete_all -> {
-                    AlertDialog.Builder(requireContext())
-                        .setTitle(R.string.confirm_delete)
-                        .setMessage(
-                            getString(
-                                R.string.delete_n_layers,
-                                viewModel.selectedElements.value?.size ?: 0
-                            )
-                        )
-                        .setPositiveButton(android.R.string.ok) { _, _ ->
-                            viewModel.removeSelectedElements()
-                            exitSelectionMode()
-                        }
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .show()
-                    true
-                }
-
-                else -> false
+        // Example action buttons
+        selectionToolbar.lock.addPressEffect {
+            viewModel.toggleLockOnSelected()
+            updateSelectionToolbar()
+        }
+        selectionToolbar.group.addPressEffect {
+            val selected = viewModel.selectedElements.value.orEmpty()
+            // if any of the selected already has a groupId → ungroup
+            if (selected.any { it.groupId != null }) {
+                viewModel.ungroupElements()
+            } else {
+                viewModel.selectElementForGrouping()
             }
+            updateSelectionToolbar()
+        }
+
+        selectionToolbar.visibility.addPressEffect {
+            viewModel.toggleVisibilityOnSelected()
+            updateSelectionToolbar()
+        }
+
+        selectionToolbar.delete.addPressEffect {
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.confirm_delete)
+                .setMessage(getString(R.string.delete_n_layers, count))
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    viewModel.removeSelectedElements()
+                    exitSelectionMode()
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
         }
     }
 
     private fun updateSelectionToolbar() {
         val count = viewModel.selectedElements.value?.size ?: 0
-        binding.toolbarLayers.title = getString(R.string.selected_n_layers, count)
-        // Update lock icon/title
-        val menu = binding.toolbarLayers.menu
-        val lockItem = menu.findItem(R.id.action_lock_toggle_all)
-        if (lockItem != null) {
-            val selected = viewModel.selectedElements.value ?: emptyList()
-            val allLocked = selected.all { it.isLocked }
-            lockItem.icon = ContextCompat.getDrawable(
-                requireContext(),
+        selectionToolbar.title.text = getString(R.string.selected_n_layers, count)
+
+        val selected = viewModel.selectedElements.value.orEmpty()
+
+        // 🔒 Lock / Unlock
+        val allLocked = selected.isNotEmpty() && selected.all { it.isLocked }
+        selectionToolbar.lock.setImageDrawable(
+            ContextCompat.getDrawable(requireContext(),
                 if (allLocked) R.drawable.ic_unlock else R.drawable.ic_lock
             )
-            lockItem.title =
-                if (allLocked) getString(R.string.unlock_all) else getString(R.string.lock_all)
-        }
+        )
+        selectionToolbar.lock.contentDescription =
+            if (allLocked) getString(R.string.unlock_all) else getString(R.string.lock_all)
 
-        val groupItem = menu.findItem(R.id.action_group_toggle_all)
-        groupItem?.let { item ->
-            val selected = viewModel.selectedElements.value.orEmpty()
-            val anyGrouped = selected.any { it.groupId != null }
+        // 👁 Visibility
+        val allVisible = selected.isNotEmpty() && selected.all { it.isVisible }
+        val allHidden = selected.isNotEmpty() && selected.all { !it.isVisible }
 
-            item.icon = ContextCompat.getDrawable(
-                requireContext(),
-                if (anyGrouped) R.drawable.ic_un_group else R.drawable.ic_group
-            )
-            item.title = if (anyGrouped)
-                getString(R.string.un_group_all)
-            else
-                getString(R.string.group_all)
-        }
-
-        // Update visibility icon/title
-        val visItem = menu.findItem(R.id.action_visibility_toggle_all)
-        if (visItem != null) {
-            val selected = viewModel.selectedElements.value ?: emptyList()
-            val allHidden = selected.isNotEmpty() && selected.all { it.isVisible }
-            val allVisible = selected.isNotEmpty() && selected.all { !it.isVisible }
-            when {
-                allHidden -> {
-                    visItem.icon =
-                        ContextCompat.getDrawable(requireContext(), R.drawable.ic_show_pass)
-                    visItem.title = getString(R.string.show_all)
-                }
-
-                allVisible -> {
-                    visItem.icon =
-                        ContextCompat.getDrawable(requireContext(), R.drawable.ic_hide_pass)
-                    visItem.title = getString(R.string.hide_all)
-                }
-
-                else -> {
-                    visItem.icon =
-                        ContextCompat.getDrawable(requireContext(), R.drawable.ic_hide_pass)
-                    visItem.title = getString(R.string.hide_all)
-                }
+        when {
+            allVisible -> {
+                selectionToolbar.visibility.setImageDrawable(
+                    ContextCompat.getDrawable(requireContext(), R.drawable.ic_hide_pass)
+                )
+                selectionToolbar.visibility.contentDescription = getString(R.string.hide_all)
+            }
+            allHidden -> {
+                selectionToolbar.visibility.setImageDrawable(
+                    ContextCompat.getDrawable(requireContext(), R.drawable.ic_show_pass)
+                )
+                selectionToolbar.visibility.contentDescription = getString(R.string.show_all)
+            }
+            else -> {
+                // Mixed state → default hide
+                selectionToolbar.visibility.setImageDrawable(
+                    ContextCompat.getDrawable(requireContext(), R.drawable.ic_hide_pass)
+                )
+                selectionToolbar.visibility.contentDescription = getString(R.string.hide_all)
             }
         }
+
+        // 👥 Group / Ungroup
+        val anyGrouped = selected.any { it.groupId != null }
+        selectionToolbar.group.setImageDrawable(
+            ContextCompat.getDrawable(requireContext(),
+                if (anyGrouped) R.drawable.ic_un_group else R.drawable.ic_group
+            )
+        )
+        selectionToolbar.group.contentDescription =
+            if (anyGrouped) getString(R.string.un_group_all) else getString(R.string.group_all)
     }
 
     private fun handleItemLongClick(element: CanvasElement) {
@@ -287,12 +287,7 @@ class LayersFragment : Fragment() {
         viewModel.exitSelectionMode()
         adapter.setSelectionMode(false)
         clearSelection()
-        if (isAdded) {
-            binding.toolbarLayers.menu.clear()
-            binding.toolbarLayers.title = getString(R.string.layers)
-            binding.toolbarLayers.subtitle = getString(R.string.drag_to_rearrange)
-            binding.toolbarLayers.setNavigationIcon(null)
-        }
+        showNormalToolbar()
     }
 
     private fun selectElement(element: CanvasElement) {
@@ -313,29 +308,70 @@ class LayersFragment : Fragment() {
 
     // Show per-item popup menu anchored at the overflow icon
     private fun showItemPopupMenu(element: CanvasElement, anchorView: View) {
-        val popup = PopupMenu(requireContext(), anchorView)
-        popup.menuInflater.inflate(R.menu.menu_layer_item, popup.menu)
+        val popupBinding = LayoutLayerItemPopupBinding.inflate(LayoutInflater.from(requireActivity()))
+        val popupWindow = PopupWindow(
+            popupBinding.root,
+            (180 * requireActivity().resources.displayMetrics.density).toInt(), // ~200dp width
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            true
+        )
 
-        val visibilityItem = popup.menu.findItem(R.id.action_visibility_toggle)
-        visibilityItem.title =
-            if (element.isVisible) getString(R.string.hide) else getString(R.string.show)
+        popupWindow.elevation = 5f
+        popupWindow.isOutsideTouchable = true
+        popupWindow.animationStyle = R.style.PopupFadeAnimation
 
-        popup.setOnMenuItemClickListener { menuItem ->
-            when (menuItem.itemId) {
-                R.id.action_visibility_toggle -> {
-                    viewModel.toggleVisibility(element)
-                    true
-                }
+        // ---- item logic ----
+        popupBinding.visibility.findViewById<TextView>(R.id.visibility)
+            .text = if (element.isVisible) getString(R.string.hide) else getString(R.string.show)
 
-                R.id.action_delete -> {
-                    viewModel.removeElement(element)
-                    true
-                }
-
-                else -> false
-            }
+        popupBinding.visibility.setOnClickListener {
+            viewModel.toggleVisibility(element)
+            popupWindow.dismiss()
         }
-        popup.show()
+
+        popupBinding.actionDelete.setOnClickListener {
+            viewModel.removeElement(element)
+            popupWindow.dismiss()
+        }
+
+        // ---- placement logic ----
+        anchorView.post {
+            val screenWidth = resources.displayMetrics.widthPixels
+            val screenHeight = resources.displayMetrics.heightPixels
+            val margin = (20 * resources.displayMetrics.density).toInt()
+
+            val location = IntArray(2)
+            anchorView.getLocationOnScreen(location)
+            val anchorLeft = location[0]
+            val anchorTop = location[1]
+            val anchorBottom = anchorTop + anchorView.height
+
+            popupBinding.root.measure(
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
+            val popupHeight = popupBinding.root.measuredHeight
+            val popupWidth = popupBinding.root.measuredWidth
+
+            val spaceBelow = screenHeight - anchorBottom
+            val spaceAbove = anchorTop
+
+            val y = if (spaceBelow >= popupHeight + margin) {
+                anchorBottom
+            } else if (spaceAbove >= popupHeight + margin) {
+                anchorTop - popupHeight
+            } else {
+                anchorBottom
+            }
+
+            var x = anchorLeft
+            if (x + popupWidth > screenWidth - margin) {
+                x = screenWidth - margin - popupWidth
+            }
+            if (x < margin) x = margin
+
+            popupWindow.showAtLocation(anchorView, Gravity.NO_GRAVITY, x, y)
+        }
     }
 
     override fun onDestroyView() {

@@ -576,7 +576,7 @@ class EditorFragment : Fragment() {
                 },
                 onRequestOpenLayers = {
                     viewModel.enterSelectionMode()
-                    binding.bottomNavigation.selectedItemId = R.id.nav_layers 
+                    binding.bottomNavigation.selectedItemId = R.id.nav_layers
                     navController.navigate(R.id.layersFragment)
                     currentPanelItemId = R.id.nav_layers
                     binding.panelNavHost.visibility = View.VISIBLE

@@ -42,10 +42,10 @@
         android:orientation="vertical"
         android:id="@+id/endGuide"/>
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/header"
         android:layout_width="0dp"
-        android:layout_height="38dp"
+        android:layout_height="wrap_content"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintTop_toTopOf="@id/topGuide"
@@ -53,48 +53,54 @@
 
         <ImageView
             android:id="@+id/addText"
-            android:layout_height="38dp"
-            android:layout_width="38dp"
+            android:layout_height="30dp"
+            android:layout_width="30dp"
             android:visibility="visible"
-            android:padding="10dp"
+            android:padding="8dp"
             android:background="@drawable/button_bg"
             android:backgroundTint="@color/contrast"
             app:tint="@color/black"
             android:src="@drawable/ic_add_text"
-            android:layout_gravity="center_vertical"/>
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
 
         <ImageView
             android:id="@+id/addFont"
-            android:layout_height="38dp"
-            android:layout_width="38dp"
+            android:layout_height="30dp"
+            android:layout_width="30dp"
             android:layout_marginStart="6dp"
             android:visibility="visible"
-            android:padding="10dp"
+            android:padding="8dp"
             android:background="@drawable/button_bg"
             android:backgroundTint="@color/contrast"
             app:tint="@color/gray"
             android:src="@drawable/ic_add_font"
-            android:layout_gravity="center_vertical"/>
+            app:layout_constraintStart_toEndOf="@id/addText"
+            app:layout_constraintTop_toTopOf="@id/addText"
+            app:layout_constraintBottom_toBottomOf="@id/addText"/>
 
         <ImageView
             android:id="@+id/searchIcon"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:layout_marginStart="6dp"
             android:visibility="visible"
-            android:padding="10dp"
+            android:padding="8dp"
             android:background="@drawable/button_bg"
             android:backgroundTint="@color/contrast"
             app:tint="@color/gray"
             android:src="@drawable/ic_search"
-            android:layout_gravity="center_vertical"/>
+            app:layout_constraintStart_toEndOf="@id/addFont"
+            app:layout_constraintTop_toTopOf="@id/addText"
+            app:layout_constraintBottom_toBottomOf="@id/addText"/>
 
         <EditText
             android:layout_marginStart="6dp"
             android:visibility="gone"
             android:id="@+id/searchBar"
             android:layout_width="150dp"
-            android:layout_height="38dp"
+            android:layout_height="30dp"
             android:textColor="@color/black"
             android:fontFamily="@font/regular"
             android:textSize="15sp"
@@ -102,19 +108,18 @@
             android:singleLine="true"
             android:background="@drawable/button_bg"
             android:paddingHorizontal="12dp"
-            android:drawableStart="@drawable/ic_search"
             android:drawablePadding="6dp"
-            app:layout_constraintEnd_toStartOf="@id/centerGuide"
-            app:layout_constraintStart_toEndOf="@id/startGuide"
-            app:layout_constraintTop_toTopOf="@id/tabLayout"
-            app:layout_constraintBottom_toBottomOf="@id/tabLayout"
+            android:layout_gravity="center_vertical"
             android:textColorHint="@android:color/darker_gray"
             android:backgroundTint="@color/contrast"
+            app:layout_constraintStart_toEndOf="@id/searchIcon"
+            app:layout_constraintTop_toTopOf="@id/addText"
+            app:layout_constraintBottom_toBottomOf="@id/addText"
             android:hint="@string/search_here"/>
 
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tabLayout"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="38dp"
             android:background="@android:color/transparent"
             app:tabIndicatorColor="@color/appColor"
@@ -122,13 +127,15 @@
             app:tabPadding="0dp"
             app:tabMode="auto"
             app:tabGravity="fill"
+            app:layout_constraintStart_toEndOf="@id/searchBar"
+            app:layout_constraintTop_toTopOf="@id/addText"
+            app:layout_constraintBottom_toBottomOf="@id/addText"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_gravity="center_vertical"
             app:tabSelectedTextColor="@color/appColor"
             app:tabTextColor="@color/black"
-            app:tabRippleColor="@color/contrast"
-            app:layout_constraintStart_toEndOf="@id/centerGuide"
-            app:layout_constraintEnd_toStartOf="@id/endGuide"
-            app:layout_constraintTop_toBottomOf="@id/topGuide"/>
-    </LinearLayout>
+            app:tabRippleColor="@color/contrast"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"

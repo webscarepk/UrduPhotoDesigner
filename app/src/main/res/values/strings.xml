@@ -93,7 +93,7 @@
     <string name="selected_n_layers">%1$d selected</string>
     <string name="choose_blend_mode">Choose Blend Mode</string>
     <string name="layer_more_options">More options</string>
-    <string name="drag_to_rearrange">Drag to Rearrange</string>
+    <string name="drag_to_rearrange">Drag to rearrange</string>
     <string name="copy">Copy</string>
     <string name="blend">Blend</string>
     <string name="color_picker">Color Picker</string>
@@ -235,6 +235,7 @@
     <string name="no_stickers_available">No Stickers Available</string>
     <string name="no_backgrounds_available">No Backgrounds Available</string>
     <string name="print">Print</string>
+    <string name="_3_selected">3 selected</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->
