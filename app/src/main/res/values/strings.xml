@@ -236,6 +236,7 @@
     <string name="no_backgrounds_available">No Backgrounds Available</string>
     <string name="print">Print</string>
     <string name="_3_selected">3 selected</string>
+    <string name="normal">Normal</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

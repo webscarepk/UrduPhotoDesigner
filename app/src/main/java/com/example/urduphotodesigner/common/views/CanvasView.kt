@@ -891,7 +891,8 @@ class CanvasView @JvmOverloads constructor(
             onProgress?.invoke(90, "No bitmaps to encode")
         }
 
-        val json = Gson().toJson(canvasElements)
+        val snapshot = canvasElements.toList()   // immutable copy
+        val json = gson.toJson(snapshot)
 
         onProgress?.invoke(95, "Thumbnail ready")
 
@@ -2716,7 +2717,7 @@ class CanvasView @JvmOverloads constructor(
                         if (startDist > 0) {
                             elementsToModify.forEach { element ->
 
-                                val newScale = (element.scale * scaleChange).coerceIn(0.1f, 5f)
+                                val newScale = (element.scale * scaleChange).coerceIn(0.1f, 100f)
                                 element.scale = newScale
 
                                 val lastSignX = resizeLastSignX[element.id] ?: 0f

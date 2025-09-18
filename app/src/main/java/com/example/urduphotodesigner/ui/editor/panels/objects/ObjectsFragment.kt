@@ -107,19 +107,8 @@ class ObjectsFragment : Fragment() {
         }.attach()
 
         binding.searchIcon.addPressEffect {
-            // hide icon
-            updateIconVisibility(
-                binding.searchIcon,
-                shouldBeVisible = false,
-                animHide = R.anim.slide_out
-            )
-
-            // show search bar
-            updateIconVisibility(
-                binding.searchBar,
-                shouldBeVisible = true,
-                animShow = R.anim.slide_in
-            )
+            binding.searchIcon.isVisible = false
+            binding.searchBar.isVisible = true
 
             binding.searchBar.requestFocus()
             val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
@@ -128,16 +117,8 @@ class ObjectsFragment : Fragment() {
 
         binding.searchBar.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus && binding.searchBar.text.isNullOrEmpty()) {
-                updateIconVisibility(
-                    binding.searchBar,
-                    shouldBeVisible = false,
-                    animHide = R.anim.slide_out
-                )
-                updateIconVisibility(
-                    binding.searchIcon,
-                    shouldBeVisible = true,
-                    animShow = R.anim.slide_in
-                )
+                binding.searchIcon.isVisible = true
+                binding.searchBar.isVisible = false
             }
         }
 

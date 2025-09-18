@@ -126,6 +126,7 @@
             app:tabIndicatorHeight="3dp"
             app:tabPadding="0dp"
             app:tabMode="auto"
+            android:layout_marginStart="12dp"
             app:tabGravity="fill"
             app:layout_constraintStart_toEndOf="@id/searchBar"
             app:layout_constraintTop_toTopOf="@id/addText"

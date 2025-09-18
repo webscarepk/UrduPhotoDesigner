@@ -97,7 +97,7 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/alignmentKit"
-        android:visibility="visible"
+        android:visibility="gone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
@@ -278,164 +278,153 @@
         app:layout_constraintTop_toBottomOf="@id/centerGuide"
         app:navGraph="@navigation/panel_nav_graph" />
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <ScrollView
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintBottom_toTopOf="@id/panelNavHost"
         app:layout_constraintStart_toEndOf="@id/startGuide"
-        android:layout_marginBottom="6dp">
-        <ImageView
-            android:visibility="gone"
-            android:id="@+id/copyIcon"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:background="@drawable/button_bg"
-            android:backgroundTint="@color/white80"
-            android:padding="10dp"
-            android:tooltipText="@string/copy"
-            android:foreground="?selectableItemBackground"
-            android:src="@drawable/ic_copy"
-            android:layout_marginStart="6dp"
-            app:layout_constraintTop_toTopOf="@id/opacityIcon"
-            app:layout_constraintBottom_toBottomOf="@id/opacityIcon"
-            app:layout_constraintStart_toEndOf="@id/opacityIcon"
-            app:tint="@color/black"/>
+        android:scrollbars="none">
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp">
 
-        <ImageView
-            android:visibility="gone"
-            android:id="@+id/blendIcon"
-            android:tooltipText="@string/blend"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:background="@drawable/button_bg"
-            android:backgroundTint="@color/white80"
-            android:padding="6dp"
-            android:foreground="?selectableItemBackground"
-            android:src="@drawable/ic_blend"
-            app:layout_constraintTop_toTopOf="@id/opacityIcon"
-            app:layout_constraintBottom_toBottomOf="@id/opacityIcon"
-            app:layout_constraintStart_toEndOf="@id/copyIcon"
-            app:tint="@color/black"
-            android:layout_marginStart="6dp"/>
+            <LinearLayout
+                android:visibility="gone"
+                android:id="@+id/opacityPane"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/button_bg"
+                android:backgroundTint="@color/white"
+                android:orientation="horizontal">
 
-        <ImageView
-            android:visibility="gone"
-            android:id="@+id/opacityIcon"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:background="@drawable/button_bg"
-            android:backgroundTint="@color/white80"
-            android:tooltipText="@string/opacity"
-            android:padding="10dp"
-            android:foreground="?selectableItemBackground"
-            android:src="@drawable/ic_opacity"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:tint="@color/black"/>
+                <TextView
+                    android:id="@+id/opacityValue"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:text="32"
+                    android:visibility="gone"
+                    android:fontFamily="@font/bold"
+                    android:textColor="@color/black"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:layout_gravity="center_vertical"/>
 
-        <ImageView
-            android:visibility="gone"
-            android:id="@+id/fontSizeIcon"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:background="@drawable/button_bg"
-            android:backgroundTint="@color/white80"
-            android:padding="10dp"
-            android:tooltipText="@string/font_size"
-            android:foreground="?selectableItemBackground"
-            android:src="@drawable/ic_font_size"
-            app:layout_constraintTop_toTopOf="@id/opacityIcon"
-            app:layout_constraintBottom_toBottomOf="@id/opacityIcon"
-            app:layout_constraintStart_toEndOf="@id/blendIcon"
-            android:layout_marginStart="6dp"
-            app:tint="@color/black"/>
+                <ImageView
+                    android:visibility="visible"
+                    android:id="@+id/opacityIcon"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:tooltipText="@string/opacity"
+                    android:padding="10dp"
+                    android:foreground="?selectableItemBackground"
+                    android:src="@drawable/ic_opacity"
+                    app:tint="@color/black"/>
 
-        <SeekBar
-            android:visibility="gone"
-            android:id="@+id/seekBarFontSize"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            app:layout_constraintStart_toEndOf="@id/fontSizeIcon"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/fontSizeIcon"
-            app:layout_constraintBottom_toBottomOf="@id/fontSizeIcon"
-            android:thumbTint="@color/appColor"
-            android:indeterminateTint="@color/appColor"
-            android:progressTint="@color/appColor"
-            android:backgroundTint="@color/white"
-            android:background="@drawable/button_bg"
-            android:paddingEnd="38dp"
-            android:layout_marginStart="6dp"/>
+                <SeekBar
+                    android:min="0"
+                    android:visibility="gone"
+                    android:id="@+id/seekBarOpacity"
+                    android:layout_width="150dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:thumbTint="@color/appColor"
+                    android:indeterminateTint="@color/appColor"
+                    android:progressTint="@color/appColor"/>
 
-        <TextView
-            android:id="@+id/fontSize"
+            </LinearLayout>
+
+            <LinearLayout
+                android:visibility="gone"
+                android:id="@+id/blendPane"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/button_bg"
+                android:backgroundTint="@color/white"
+                android:orientation="horizontal"
+                android:layout_marginStart="6dp">
+
+                <ImageView
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:visibility="visible"
+                    android:id="@+id/blendIcon"
+                    android:tooltipText="@string/blend"
+                    android:padding="6dp"
+                    android:src="@drawable/ic_blend"
+                    app:tint="@color/black"/>
+
+                <TextView
+                    android:visibility="gone"
+                    android:id="@+id/blend_spinner"
+                    android:layout_width="150dp"
+                    android:layout_height="38dp"
+                    android:dropDownWidth="wrap_content"
+                    android:popupBackground="@color/white"
+                    android:layout_marginStart="6dp"
+                    android:paddingVertical="6dp"
+                    android:paddingHorizontal="12dp"
+                    android:textColor="@color/black"
+                    android:layout_gravity="center_vertical"
+                    android:fontFamily="@font/regular"
+                    android:textSize="12sp"
+                    android:gravity="center_vertical"/>
+
+            </LinearLayout>
+
+        <LinearLayout
+            android:visibility="gone"
+            android:id="@+id/fontSizePane"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="32"
-            android:visibility="gone"
-            android:fontFamily="@font/regular"
-            android:textColor="@color/black"
-            android:layout_marginEnd="6dp"
-            android:textSize="12sp"
-            app:layout_constraintTop_toTopOf="@id/seekBarFontSize"
-            app:layout_constraintBottom_toBottomOf="@id/seekBarFontSize"
-            app:layout_constraintEnd_toEndOf="@id/seekBarFontSize"/>
-
-        <SeekBar
-            android:visibility="gone"
-            android:id="@+id/seekBar"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:paddingEnd="38dp"
-            app:layout_constraintStart_toEndOf="@id/opacityIcon"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/opacityIcon"
-            app:layout_constraintBottom_toBottomOf="@id/opacityIcon"
-            android:thumbTint="@color/appColor"
-            android:indeterminateTint="@color/appColor"
-            android:progressTint="@color/appColor"
-            android:backgroundTint="@color/white"
             android:background="@drawable/button_bg"
-            android:layout_marginStart="6dp"/>
-
-        <TextView
-            android:id="@+id/opacityValue"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="32"
-            android:visibility="gone"
-            android:fontFamily="@font/regular"
-            android:textColor="@color/black"
-            android:layout_marginEnd="6dp"
-            android:textSize="12sp"
-            app:layout_constraintTop_toTopOf="@id/seekBar"
-            app:layout_constraintBottom_toBottomOf="@id/seekBar"
-            app:layout_constraintEnd_toEndOf="@id/seekBar"/>
-
-        <TextView
-            android:visibility="gone"
-            android:id="@+id/blend_spinner"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
             android:backgroundTint="@color/white"
-            android:background="@drawable/button_bg"
-            app:layout_constraintStart_toEndOf="@id/blendIcon"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/blendIcon"
-            app:layout_constraintBottom_toBottomOf="@id/blendIcon"
-            android:dropDownWidth="wrap_content"
-            android:popupBackground="@color/white"
-            android:layout_marginStart="6dp"
-            android:paddingVertical="6dp"
-            android:paddingHorizontal="12dp"
-            android:textColor="@color/black"
-            android:fontFamily="@font/regular"
-            android:textSize="12sp"
-            android:gravity="center_vertical"/>
+            android:orientation="horizontal"
+            android:layout_marginStart="6dp">
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            <TextView
+                android:id="@+id/fontSize"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:text="32"
+                android:visibility="visible"
+                android:fontFamily="@font/bold"
+                android:textColor="@color/black"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:layout_gravity="center_vertical"/>
+
+            <SeekBar
+                android:visibility="gone"
+                android:id="@+id/seekBarFontSize"
+                android:layout_width="150dp"
+                android:min="0"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:thumbTint="@color/appColor"
+                android:indeterminateTint="@color/appColor"
+                android:progressTint="@color/appColor"/>
+
+        </LinearLayout>
+
+            <ImageView
+                android:visibility="gone"
+                android:id="@+id/copyIcon"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="@drawable/button_bg"
+                android:backgroundTint="@color/white"
+                android:padding="10dp"
+                android:tooltipText="@string/copy"
+                android:foreground="?selectableItemBackground"
+                android:src="@drawable/ic_copy"
+                android:layout_marginStart="6dp"
+                app:tint="@color/black"/>
+
+        </LinearLayout>
+    </ScrollView>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/redoUndo"

@@ -28,7 +28,6 @@ import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.distinctUntilChanged
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
@@ -79,6 +78,8 @@ class EditorFragment : Fragment() {
     private lateinit var canvasSize: CanvasSize
     private var currentUnit = UnitType.PIXELS
     private val viewModel: CanvasViewModel by activityViewModels()
+    private var lastSelection: List<CanvasElement> = emptyList()
+
     private val mainViewModel: MainViewModel by activityViewModels()
     private var currentPanelItemId: Int? = null
     private lateinit var sizedCanvasView: CanvasView
@@ -91,20 +92,10 @@ class EditorFragment : Fragment() {
     private var rotationAnimator: ObjectAnimator? = null
     private var isSaving = false
     private val blendingOptions = listOf(
+        BlendType.NORMAL,
         BlendType.SRC,
-        BlendType.DST,
-        BlendType.SRC_OVER,
-        BlendType.DST_OVER,
-        BlendType.SRC_IN,
-        BlendType.DST_IN,
-        BlendType.SRC_OUT,
-        BlendType.DST_OUT,
-        BlendType.SRC_ATOP,
-        BlendType.DST_ATOP,
-        BlendType.XOR,
         BlendType.DARKEN,
         BlendType.LIGHTEN,
-        BlendType.ADD,
         BlendType.MULTIPLY,
         BlendType.SCREEN
     )
@@ -112,7 +103,7 @@ class EditorFragment : Fragment() {
     private var saveJsonJob: Job? = null
     private var savePending = false
     private var lastJsonSaveTime = 0L
-    private val SAVE_DEBOUNCE_MS = 500L
+    private val saveDebounce = 500L
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -187,11 +178,11 @@ class EditorFragment : Fragment() {
         if (saveJsonJob?.isActive != true) {
             saveJsonJob = lifecycleScope.launch(Dispatchers.Default) {
                 while (savePending) {
-                    delay(SAVE_DEBOUNCE_MS)
+                    delay(saveDebounce)
                     savePending = false
 
                     val now = System.currentTimeMillis()
-                    if (now - lastJsonSaveTime < SAVE_DEBOUNCE_MS) return@launch
+                    if (now - lastJsonSaveTime < saveDebounce) return@launch
 
                     val json = sizedCanvasView.exportCanvasJson()
                     Log.d("saveJson", "Saved JSON as $json")
@@ -434,7 +425,7 @@ class EditorFragment : Fragment() {
         }
 
         viewModel.opacity.observe(viewLifecycleOwner) { opacity ->
-            binding.seekBar.progress = opacity
+            binding.seekBarOpacity.progress = opacity
             binding.opacityValue.text = "${opacity?.toInt() ?: 255}"
         }
 
@@ -464,10 +455,26 @@ class EditorFragment : Fragment() {
             }
         }
 
-        viewModel.selectedElements.distinctUntilChanged()
-            .observe(viewLifecycleOwner) { selectedList ->
-                updateToolbarVisibility(selectedList)
+        viewModel.selectedElements.observe(viewLifecycleOwner) { newSelection ->
+            if (!newSelection.sameSelectionAs(lastSelection)) {
+                resetPanelsOnSelectionChange()
+                updateToolbarVisibility(newSelection)
+                lastSelection = newSelection.toList()
             }
+        }
+    }
+
+    private fun List<CanvasElement>.sameSelectionAs(other: List<CanvasElement>): Boolean {
+        if (size != other.size) return false
+        return this.map { it.id } == other.map { it.id }
+    }
+
+    // 👇 new helper
+    private fun resetPanelsOnSelectionChange() {
+        binding.seekBarOpacity.isVisible = false
+        binding.opacityValue.isVisible = false
+        binding.seekBarFontSize.isVisible = false
+        binding.blendSpinner.isVisible = false
     }
 
     private fun updateToolbarVisibility(selected: List<CanvasElement>) {
@@ -481,9 +488,9 @@ class EditorFragment : Fragment() {
         val showCopy = anySelected && !hasBackground && !isMulti
         val showAlignWithSelection = isMulti
 
-        updateIconVisibility(binding.opacityIcon, anySelected)
-        updateIconVisibility(binding.blendIcon, anySelected)
-        updateIconVisibility(binding.fontSizeIcon, showFont)
+        updateIconVisibility(binding.opacityPane, anySelected)
+        updateIconVisibility(binding.blendPane, anySelected)
+        updateIconVisibility(binding.fontSizePane, showFont)
         updateIconVisibility(binding.copyIcon, showCopy)
         updateIconVisibility(
             binding.alignmentKit,
@@ -500,15 +507,14 @@ class EditorFragment : Fragment() {
         @AnimRes animShow: Int = R.anim.slide_up_2,
         @AnimRes animHide: Int = R.anim.slide_down_2
     ) {
-        val isVisible = view.visibility == View.VISIBLE
+        val isVisible = view.isVisible
 
         if (shouldBeVisible && !isVisible) {
             view.visibility = View.VISIBLE
             view.startAnimation(AnimationUtils.loadAnimation(view.context, animShow))
         } else if (!shouldBeVisible && isVisible) {
-            if (view == binding.fontSizeIcon) {
+            if (view == binding.fontSizePane) {
                 binding.seekBarFontSize.isVisible = false
-                binding.fontSize.isVisible = false
             }
             val anim = AnimationUtils.loadAnimation(view.context, animHide)
             view.startAnimation(anim)
@@ -624,7 +630,8 @@ class EditorFragment : Fragment() {
         binding.redo.addPressEffect { viewModel.redo() }
 
         binding.opacityIcon.addPressEffect { togglePanel(showOpacityPanel = true) }
-        binding.fontSizeIcon.addPressEffect { togglePanel(showOpacityPanel = false) }
+        binding.opacityValue.addPressEffect { togglePanel(showOpacityPanel = true) }
+        binding.fontSize.addPressEffect { togglePanel(showOpacityPanel = false) }
         binding.blendIcon.addPressEffect { toggleBlendPanel() }
 
         binding.artBoard.addPressEffect {
@@ -686,8 +693,7 @@ class EditorFragment : Fragment() {
             )
         }
 
-        binding.seekBar.apply {
-            min = 1
+        binding.seekBarOpacity.apply {
             max = 255
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
@@ -700,7 +706,6 @@ class EditorFragment : Fragment() {
         }
 
         binding.seekBarFontSize.apply {
-            min = 0
             max = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
@@ -745,38 +750,37 @@ class EditorFragment : Fragment() {
         } else {
             // show blendSpinner, hide other panels
             binding.blendSpinner.isVisible = true
-            binding.seekBar.isVisible = false
+            binding.seekBarOpacity.isVisible = false
             binding.opacityValue.isVisible = false
+            binding.opacityIcon.isVisible = true
             binding.seekBarFontSize.isVisible = false
-            binding.fontSize.isVisible = false
         }
     }
 
     private fun togglePanel(showOpacityPanel: Boolean) {
         if (showOpacityPanel) {
-            val isCurrentlyVisible = binding.seekBar.isVisible
+            val isCurrentlyVisible = binding.seekBarOpacity.isVisible
             if (isCurrentlyVisible) {
-                binding.seekBar.isVisible = false
+                binding.seekBarOpacity.isVisible = false
                 binding.opacityValue.isVisible = false
+                binding.opacityIcon.isVisible = true
             } else {
-                binding.seekBar.isVisible = true
+                binding.seekBarOpacity.isVisible = true
+                binding.opacityIcon.isVisible = false
                 binding.opacityValue.isVisible = true
                 // hide other panels
                 binding.seekBarFontSize.isVisible = false
-                binding.fontSize.isVisible = false
                 binding.blendSpinner.isVisible = false
             }
         } else {
             val isCurrentlyVisible = binding.seekBarFontSize.isVisible
             if (isCurrentlyVisible) {
                 binding.seekBarFontSize.isVisible = false
-                binding.fontSize.isVisible = false
             } else {
                 binding.seekBarFontSize.isVisible = true
-                binding.fontSize.isVisible = true
-                // hide other panels
-                binding.seekBar.isVisible = false
+                binding.seekBarOpacity.isVisible = false
                 binding.opacityValue.isVisible = false
+                binding.opacityIcon.isVisible = true
                 binding.blendSpinner.isVisible = false
             }
         }

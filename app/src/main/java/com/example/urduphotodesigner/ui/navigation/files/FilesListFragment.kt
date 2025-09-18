@@ -100,7 +100,9 @@ class FilesListFragment : Fragment() {
 
         setEvents()
         initObservers()
-
+        if (tabName.equals("All", true) || tabName.equals("Projects", true)) {
+            binding.addMore.visibility = View.GONE
+        }
     }
 
     private fun setEvents() {
@@ -125,6 +127,9 @@ class FilesListFragment : Fragment() {
             }, onSelectionChanged = { active ->
                 binding.deleteAll.visibility = if (active) View.VISIBLE else View.GONE
                 binding.addMore.visibility = if (active) View.GONE else View.VISIBLE
+                if (tabName.equals("All", true) || tabName.equals("Projects", true)) {
+                    binding.addMore.visibility = View.GONE
+                }
             })
         binding.filesRV.adapter = adapter
         binding.filesRV.layoutManager = LinearLayoutManager(requireContext())

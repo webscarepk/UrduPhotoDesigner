@@ -117,18 +117,10 @@ class TextFragment : Fragment() {
 
         binding.searchIcon.addPressEffect {
             // hide icon
-            updateIconVisibility(
-                binding.searchIcon,
-                shouldBeVisible = false,
-                animHide = R.anim.slide_out
-            )
+            binding.searchIcon.isVisible = false
 
             // show search bar
-            updateIconVisibility(
-                binding.searchBar,
-                shouldBeVisible = true,
-                animShow = R.anim.slide_in
-            )
+            binding.searchBar.isVisible = true
 
             binding.searchBar.requestFocus()
             val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
@@ -137,16 +129,8 @@ class TextFragment : Fragment() {
 
         binding.searchBar.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus && binding.searchBar.text.isNullOrEmpty()) {
-                updateIconVisibility(
-                    binding.searchBar,
-                    shouldBeVisible = false,
-                    animHide = R.anim.slide_out
-                )
-                updateIconVisibility(
-                    binding.searchIcon,
-                    shouldBeVisible = true,
-                    animShow = R.anim.slide_in
-                )
+                binding.searchIcon.isVisible = true
+                binding.searchBar.isVisible = false
             }
         }
 
@@ -215,28 +199,6 @@ class TextFragment : Fragment() {
                 }
             }
             false
-        }
-    }
-
-    private fun updateIconVisibility(
-        view: View,
-        shouldBeVisible: Boolean,
-        @AnimRes animShow: Int = R.anim.slide_up_2,
-        @AnimRes animHide: Int = R.anim.slide_down_2
-    ) {
-        val isVisible = view.visibility == View.VISIBLE
-
-        if (shouldBeVisible && !isVisible) {
-            view.visibility = View.VISIBLE
-            view.startAnimation(AnimationUtils.loadAnimation(view.context, animShow))
-        } else if (!shouldBeVisible && isVisible) {
-            if (view == binding.searchIcon) {
-                binding.searchBar.isVisible = false
-            }
-            val anim = AnimationUtils.loadAnimation(view.context, animHide)
-            view.startAnimation(anim)
-            val duration = anim.duration
-            view.postDelayed({ view.visibility = View.GONE }, duration)
         }
     }
 
