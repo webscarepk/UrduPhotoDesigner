@@ -10,7 +10,6 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
-import android.widget.Toast
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -18,6 +17,7 @@ import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.sealed.SignInUiState
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentSignupBinding
+import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 
@@ -170,12 +170,12 @@ class SignupFragment : Fragment() {
                         progressDialog?.show()
                     }
                     is SignInUiState.RegistrationSuccess -> {
-                        showSuccessMessage("Registration successful!")
+                        showMessage("Registration successful!")
                         progressDialog?.dismiss()
                         navigateToLogin()
                     }
                     is SignInUiState.Error -> {
-                        showErrorMessage(state.message ?: "Registration failed")
+                        showMessage(state.message ?: "Registration failed")
                         progressDialog?.dismiss()
                     }
                     else -> {
@@ -187,12 +187,13 @@ class SignupFragment : Fragment() {
         }
     }
 
-    private fun showSuccessMessage(message: String) {
-        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-    }
+    private fun showMessage(message: String) {
+        Snackbar.make(
+            requireView(),   // or binding.root if you’re in a Fragment with ViewBinding
+            message,
+            Snackbar.LENGTH_SHORT
+        ).show()
 
-    private fun showErrorMessage(message: String) {
-        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
     }
 
     private fun navigateToLogin() {

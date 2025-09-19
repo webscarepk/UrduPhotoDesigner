@@ -145,7 +145,7 @@ class CanvasViewModel @Inject constructor(
     private val _hasBlur = MutableLiveData(false)
     val hasChanges = MutableLiveData(false)
 
-    private val _blendingType = MutableLiveData(BlendType.SRC_OVER) // Default blend type
+    private val _blendingType = MutableLiveData(BlendType.SRC) // Default blend type
     val blendingType: LiveData<BlendType> = _blendingType
 
     // 🔷 Border
@@ -1306,7 +1306,7 @@ class CanvasViewModel @Inject constructor(
         _blurValue.value = 0f
         _hasBlur.value = false
         _opacity.value = 255
-        _blendingType.value = BlendType.SRC_OVER
+        _blendingType.value = BlendType.SRC
     }
 
     private fun refreshSelectedElements() {

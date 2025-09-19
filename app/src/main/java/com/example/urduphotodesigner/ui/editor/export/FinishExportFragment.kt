@@ -1,8 +1,6 @@
 package com.example.urduphotodesigner.ui.editor.export
 
 import android.content.Intent
-import android.graphics.BitmapFactory
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -59,7 +57,6 @@ class FinishExportFragment : Fragment() {
             binding.fileResolutionDetail.text = result?.resolution
             binding.fileQualityDetail.text = result?.quality
             binding.fileLocationDetail.text = result?.pdfPath ?: result?.imagePath
-            binding.exportDate.text = result?.exportDate
             binding.previewImage.setImageBitmap(ImageProcessor.filePathToBitmap(result?.imagePath!!))
         }
     }
@@ -74,11 +71,11 @@ class FinishExportFragment : Fragment() {
         }
 
         binding.fileLocationDetail.addPressEffect {
-            requireActivity().copyToClipboard("Exported Path", binding.fileLocationDetail.text.toString())
+            requireActivity().copyToClipboard(requireView(),"Exported Path", binding.fileLocationDetail.text.toString())
         }
 
         binding.back.addPressEffect { findNavController().navigateUp() }
-        binding.btnExportAnother.addPressEffect { findNavController().navigateUp() }
+        binding.btnExportAnother.addPressEffect { findNavController().popBackStack(R.id.editorFragment, false) }
         binding.backToHome.addPressEffect {
             val navOptions = NavOptions.Builder()
                 .setPopUpTo(R.id.homeFragment, false)

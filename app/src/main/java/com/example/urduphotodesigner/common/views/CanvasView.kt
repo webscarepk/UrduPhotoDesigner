@@ -1891,43 +1891,15 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
-    private fun drawWithBlend(element: CanvasElement): Xfermode {
-        val fillPaint = Paint()
-        when (element.blendType) {
-            BlendType.MULTIPLY -> fillPaint.xfermode =
-                PorterDuffXfermode(PorterDuff.Mode.MULTIPLY)
-
-            BlendType.SRC_OVER -> fillPaint.xfermode =
-                PorterDuffXfermode(PorterDuff.Mode.SRC_OVER)
-
-            BlendType.SCREEN -> fillPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SCREEN)
-            BlendType.ADD -> fillPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.ADD)
-            BlendType.LIGHTEN -> fillPaint.xfermode =
-                PorterDuffXfermode(PorterDuff.Mode.LIGHTEN)
-
-            BlendType.DARKEN -> fillPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DARKEN)
-            BlendType.SRC -> fillPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC)
-            BlendType.DST -> fillPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST)
-            BlendType.DST_OVER -> fillPaint.xfermode =
-                PorterDuffXfermode(PorterDuff.Mode.DST_OVER)
-
-            BlendType.SRC_IN -> fillPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
-            BlendType.DST_IN -> fillPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
-            BlendType.SRC_OUT -> fillPaint.xfermode =
-                PorterDuffXfermode(PorterDuff.Mode.SRC_OUT)
-
-            BlendType.DST_OUT -> fillPaint.xfermode =
-                PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
-
-            BlendType.SRC_ATOP -> fillPaint.xfermode =
-                PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
-
-            BlendType.DST_ATOP -> fillPaint.xfermode =
-                PorterDuffXfermode(PorterDuff.Mode.DST_ATOP)
-
-            BlendType.XOR -> fillPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.XOR)
+    private fun drawWithBlend(element: CanvasElement): Xfermode? {
+        return when (element.blendType) {
+            BlendType.SRC -> PorterDuffXfermode(PorterDuff.Mode.SRC)
+            BlendType.NORMAL -> null
+            BlendType.DARKEN -> PorterDuffXfermode(PorterDuff.Mode.DARKEN)
+            BlendType.LIGHTEN -> PorterDuffXfermode(PorterDuff.Mode.LIGHTEN)
+            BlendType.MULTIPLY -> PorterDuffXfermode(PorterDuff.Mode.MULTIPLY)
+            BlendType.SCREEN -> PorterDuffXfermode(PorterDuff.Mode.SCREEN)
         }
-        return fillPaint.xfermode
     }
 
     private fun justifyText(canvas: Canvas, text: String, yOffset: Float, element: CanvasElement) {

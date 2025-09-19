@@ -12,4 +12,8 @@
     <color name="yellow">#FEF9C2</color>
     <color name="yellow1">#20000000</color>
     <color name="darkContrast">#39D27A</color>
+
+    <color name="quality_high_light">#81C784</color>   <!-- Green 300 -->
+    <color name="quality_medium_light">#FFD180</color> <!-- Orange 200 -->
+    <color name="quality_low_light">#FF8A80</color>    <!-- Red 200 -->
 </resources>

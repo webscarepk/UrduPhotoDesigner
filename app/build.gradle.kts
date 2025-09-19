@@ -120,4 +120,9 @@ dependencies {
 
     //Splash
     implementation(libs.androidx.core.splashscreen)
+
+    //TensorFlow
+    implementation(libs.tensorflow.lite)
+    implementation(libs.tensorflow.lite.support)
+    implementation(libs.tensorflow.lite.gpu)
 }

@@ -35,7 +35,7 @@ class ExportOptionsFragment : BottomSheetDialogFragment() {
         super.onStart()
         dialog?.let {
             val bottomSheet = it.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-            bottomSheet?.layoutParams?.height = (resources.displayMetrics.heightPixels * 0.5).toInt()
+            bottomSheet?.layoutParams?.height = (resources.displayMetrics.heightPixels * 0.8).toInt()
             bottomSheet?.requestLayout()
         }
     }

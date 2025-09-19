@@ -18,8 +18,11 @@ import android.view.WindowManager
 import android.view.animation.AnimationUtils
 import android.view.animation.LinearInterpolator
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.PopupMenu
+import android.widget.PopupWindow
 import android.widget.SeekBar
+import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.annotation.AnimRes
 import androidx.core.view.ViewCompat
@@ -49,11 +52,11 @@ import com.example.urduphotodesigner.common.utils.Converter.cmToPx
 import com.example.urduphotodesigner.common.utils.Converter.inchesToPx
 import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.common.utils.displayName
 import com.example.urduphotodesigner.common.views.CanvasView
 import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.databinding.DialogAutoSavingLayoutBinding
 import com.example.urduphotodesigner.databinding.FragmentEditorBinding
+import com.example.urduphotodesigner.databinding.LayoutBlendPopupBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -91,14 +94,6 @@ class EditorFragment : Fragment() {
     private var exportDialogBinding: DialogAutoSavingLayoutBinding? = null
     private var rotationAnimator: ObjectAnimator? = null
     private var isSaving = false
-    private val blendingOptions = listOf(
-        BlendType.NORMAL,
-        BlendType.SRC,
-        BlendType.DARKEN,
-        BlendType.LIGHTEN,
-        BlendType.MULTIPLY,
-        BlendType.SCREEN
-    )
 
     private var saveJsonJob: Job? = null
     private var savePending = false
@@ -324,13 +319,12 @@ class EditorFragment : Fragment() {
                     UnitType.PIXELS -> size.height.toInt()
                 }
 
-                // Always init/attach canvas
+                initBottomNavigation()
                 initCanvas(widthPx, heightPx)
 
-                // Always setup nav + controls
-                initBottomNavigation()
                 initUIControls()
                 initBackHandling()
+                observeAfterCanvasReady()
 
                 if (exportModel == null) {
                     autoSaveSilent()
@@ -338,8 +332,12 @@ class EditorFragment : Fragment() {
             }
         }
 
+    }
+
+    private fun observeAfterCanvasReady(){
         viewModel.inSelectionMode.observe(viewLifecycleOwner) { enabled ->
-            sizedCanvasView.setSelectionMode(enabled)
+            if (::sizedCanvasView.isInitialized)
+                sizedCanvasView.setSelectionMode(enabled)
         }
 
         viewModel.exportResult.observe(viewLifecycleOwner) { exportResult ->
@@ -439,18 +437,20 @@ class EditorFragment : Fragment() {
         }
 
         viewModel.activePicker.observe(viewLifecycleOwner) { slot ->
-            when (slot) {
-                PickerTarget.EYE_DROPPER_LABEL,
-                PickerTarget.EYE_DROPPER_SHADOW,
-                PickerTarget.EYE_DROPPER_BACKGROUND,
-                PickerTarget.EYE_DROPPER_TEXT_FILL,
-                PickerTarget.EYE_DROPPER_TEXT_STROKE,
-                PickerTarget.EYE_DROPPER_GRADIENT -> {
-                    sizedCanvasView.enableColorPicker()
-                }
+            if (::sizedCanvasView.isInitialized){
+                when (slot) {
+                    PickerTarget.EYE_DROPPER_LABEL,
+                    PickerTarget.EYE_DROPPER_SHADOW,
+                    PickerTarget.EYE_DROPPER_BACKGROUND,
+                    PickerTarget.EYE_DROPPER_TEXT_FILL,
+                    PickerTarget.EYE_DROPPER_TEXT_STROKE,
+                    PickerTarget.EYE_DROPPER_GRADIENT -> {
+                        sizedCanvasView.enableColorPicker()
+                    }
 
-                else -> {
-                    sizedCanvasView.disableColorPicker()
+                    else -> {
+                        sizedCanvasView.disableColorPicker()
+                    }
                 }
             }
         }
@@ -648,16 +648,7 @@ class EditorFragment : Fragment() {
         }
 
         binding.blendSpinner.addPressEffect {
-            val popupMenu = PopupMenu(requireActivity(), binding.blendSpinner)
-            blendingOptions.forEachIndexed { index, blendType ->
-                popupMenu.menu.add(0, index, index, blendType.displayName())
-            }
-            popupMenu.setOnMenuItemClickListener { menuItem ->
-                val selectedBlendType = blendingOptions[menuItem.itemId]
-                viewModel.setBlendingType(selectedBlendType)
-                true
-            }
-            popupMenu.show()
+           showItemPopupMenu(binding.blendSpinner)
         }
 
         binding.leftAlign.addPressEffect {
@@ -726,6 +717,91 @@ class EditorFragment : Fragment() {
             viewModel.setCanvasView(sizedCanvasView)
             sizedCanvasView.clearSelection()
             findNavController().navigate(R.id.exportFragment)
+        }
+    }
+
+    private fun showItemPopupMenu(anchorView: View) {
+        val popupBinding = LayoutBlendPopupBinding.inflate(LayoutInflater.from(requireActivity()))
+        val popupWindow = PopupWindow(
+            popupBinding.root,
+            (150 * requireActivity().resources.displayMetrics.density).toInt(), // ~200dp width
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            true
+        )
+
+        popupWindow.elevation = 5f
+        popupWindow.isOutsideTouchable = true
+        popupWindow.animationStyle = R.style.PopupFadeAnimation
+
+        // ---- item logic ----
+
+        popupBinding.source.setOnClickListener {
+            viewModel.setBlendingType(BlendType.SRC)
+            popupWindow.dismiss()
+        }
+
+        popupBinding.normal.setOnClickListener {
+            viewModel.setBlendingType(BlendType.NORMAL)
+            popupWindow.dismiss()
+        }
+
+        popupBinding.darken.setOnClickListener {
+            viewModel.setBlendingType(BlendType.DARKEN)
+            popupWindow.dismiss()
+        }
+
+        popupBinding.lighten.setOnClickListener {
+            viewModel.setBlendingType(BlendType.LIGHTEN)
+            popupWindow.dismiss()
+        }
+
+        popupBinding.multiply.setOnClickListener {
+            viewModel.setBlendingType(BlendType.MULTIPLY)
+            popupWindow.dismiss()
+        }
+
+        popupBinding.screen.setOnClickListener {
+            viewModel.setBlendingType(BlendType.SCREEN)
+            popupWindow.dismiss()
+        }
+
+        // ---- placement logic ----
+        anchorView.post {
+            val screenWidth = resources.displayMetrics.widthPixels
+            val screenHeight = resources.displayMetrics.heightPixels
+            val margin = (20 * resources.displayMetrics.density).toInt()
+
+            val location = IntArray(2)
+            anchorView.getLocationOnScreen(location)
+            val anchorLeft = location[0]
+            val anchorTop = location[1]
+            val anchorBottom = anchorTop + anchorView.height
+
+            popupBinding.root.measure(
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
+            val popupHeight = popupBinding.root.measuredHeight
+            val popupWidth = popupBinding.root.measuredWidth
+
+            val spaceBelow = screenHeight - anchorBottom
+            val spaceAbove = anchorTop
+
+            val y = if (spaceBelow >= popupHeight + margin) {
+                anchorBottom
+            } else if (spaceAbove >= popupHeight + margin) {
+                anchorTop - popupHeight
+            } else {
+                anchorBottom
+            }
+
+            var x = anchorLeft
+            if (x + popupWidth > screenWidth - margin) {
+                x = screenWidth - margin - popupWidth
+            }
+            if (x < margin) x = margin
+
+            popupWindow.showAtLocation(anchorView, Gravity.NO_GRAVITY, x, y)
         }
     }
 

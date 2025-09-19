@@ -21,7 +21,6 @@ import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
 import android.widget.LinearLayout
 import android.widget.PopupWindow
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -46,6 +45,7 @@ import com.example.urduphotodesigner.databinding.FragmentFilesListBinding
 import com.example.urduphotodesigner.databinding.LayoutFilesPopupBinding
 import com.example.urduphotodesigner.viewmodels.FiltersViewModel
 import com.example.urduphotodesigner.viewmodels.MainViewModel
+import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -56,6 +56,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.core.graphics.createBitmap
 
 @AndroidEntryPoint
 class FilesListFragment : Fragment() {
@@ -143,7 +144,7 @@ class FilesListFragment : Fragment() {
             if (selectedItems.isNotEmpty()) {
                 DialogUtils.showDeleteDialog(
                     requireActivity(),
-                    getString(R.string.delete),
+                    getString(R.string.delete_permanently),
                     getString(R.string.your_asset_will_be_permanently_deleted)
                 ) {
                     lifecycleScope.launch {
@@ -170,7 +171,6 @@ class FilesListFragment : Fragment() {
     }
 
     private fun handlePickedFile(uri: Uri) {
-        val cr = requireContext().contentResolver
         val name = getFileName(uri)
         val ext = name.substringAfterLast('.', "").lowercase()
 
@@ -208,10 +208,10 @@ class FilesListFragment : Fragment() {
                         viewModel.insertFont(fontEntity)
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(
-                                requireContext(),
+                            Snackbar.make(
+                                requireView(),   // or binding.root
                                 "Font import failed",
-                                Toast.LENGTH_SHORT
+                                Snackbar.LENGTH_SHORT
                             ).show()
                         }
                     }
@@ -274,7 +274,7 @@ class FilesListFragment : Fragment() {
             }
 
             else -> {
-                Toast.makeText(requireContext(), "Unsupported file type", Toast.LENGTH_SHORT).show()
+                Snackbar.make(requireView(), "Unsupported file type!", Snackbar.LENGTH_SHORT).show()
             }
         }
     }
@@ -313,7 +313,7 @@ class FilesListFragment : Fragment() {
 
         val width = paint.measureText("Ab").toInt()
         val height = (paint.descent() - paint.ascent()).toInt()
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(width, height)
         val canvas = Canvas(bitmap)
         val y = -paint.ascent()
         canvas.drawText("Ab", 0f, y, paint)
@@ -426,10 +426,10 @@ class FilesListFragment : Fragment() {
                             exportToGallery(bitmap, item.fileName, Bitmap.CompressFormat.PNG)
                             // or detect extension from fileName
                         } else {
-                            Toast.makeText(
-                                requireContext(),
+                            Snackbar.make(
+                                requireView(),   // or binding.root if using ViewBinding
                                 "Could not load image",
-                                Toast.LENGTH_SHORT
+                                Snackbar.LENGTH_SHORT
                             ).show()
                         }
                     }
@@ -443,10 +443,10 @@ class FilesListFragment : Fragment() {
                             exportToGallery(bitmap, item.file_name, Bitmap.CompressFormat.PNG)
                             // or detect extension from fileName
                         } else {
-                            Toast.makeText(
-                                requireContext(),
+                            Snackbar.make(
+                                requireView(),   // or binding.root if using ViewBinding
                                 "Could not load image",
-                                Toast.LENGTH_SHORT
+                                Snackbar.LENGTH_SHORT
                             ).show()
                         }
                     }
@@ -460,10 +460,10 @@ class FilesListFragment : Fragment() {
                             exportToGallery(bitmap, item.font_name, Bitmap.CompressFormat.PNG)
                             // or detect extension from fileName
                         } else {
-                            Toast.makeText(
-                                requireContext(),
+                            Snackbar.make(
+                                requireView(),   // or binding.root if using ViewBinding
                                 "Could not load image",
-                                Toast.LENGTH_SHORT
+                                Snackbar.LENGTH_SHORT
                             ).show()
                         }
                     }
@@ -622,10 +622,19 @@ class FilesListFragment : Fragment() {
             resolver.openOutputStream(it)?.use { stream ->
                 bitmap.compress(format, 100, stream)
             }
-            Toast.makeText(requireContext(), "Exported to Gallery", Toast.LENGTH_SHORT).show()
+            Snackbar.make(
+                requireView(),
+                "Exported to Gallery",
+                Snackbar.LENGTH_SHORT
+            ).show()
         } ?: run {
-            Toast.makeText(requireContext(), "Export failed", Toast.LENGTH_SHORT).show()
+            Snackbar.make(
+                requireView(),
+                "Export failed",
+                Snackbar.LENGTH_SHORT
+            ).show()
         }
+
     }
 
     private fun initObservers() {

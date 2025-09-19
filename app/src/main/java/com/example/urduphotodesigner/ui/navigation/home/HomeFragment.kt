@@ -4,16 +4,12 @@ import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.app.Dialog
 import android.graphics.BitmapFactory
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
-import android.widget.LinearLayout
-import android.widget.PopupWindow
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -22,21 +18,16 @@ import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.canvas.sealed.FontDownloadState
 import com.example.urduphotodesigner.common.canvas.sealed.TemplateDownloadState
-import com.example.urduphotodesigner.common.utils.DialogUtils
-import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.common.utils.showGlobalSuccessSnack
-import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.data.model.ProgressUi
 import com.example.urduphotodesigner.data.model.TemplateEntity
 import com.example.urduphotodesigner.data.model.toExportResultFinal
 import com.example.urduphotodesigner.databinding.DialogLoadingProgressBinding
 import com.example.urduphotodesigner.databinding.FragmentHomeBinding
-import com.example.urduphotodesigner.databinding.LayoutProjectPopupBinding
 import com.example.urduphotodesigner.ui.creation.CreateFragment
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import com.google.android.material.snackbar.Snackbar
@@ -45,7 +36,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 
 @AndroidEntryPoint
 class HomeFragment : Fragment() {
@@ -116,7 +106,7 @@ class HomeFragment : Fragment() {
             show()
         }
 
-        dialogBinding?.title?.text = "Loading Template"
+        dialogBinding?.title?.text = "Loading Project"
 
         startIconRotation()
     }
@@ -152,8 +142,6 @@ class HomeFragment : Fragment() {
                     viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
                 }
             }
-        }, onLongClick = { view, exportResult ->
-            showPopupMenu(view, exportResult)
         })
 
         binding.recentsRV.adapter = recentAdapter
@@ -283,6 +271,10 @@ class HomeFragment : Fragment() {
                 putInt("targetPage", 1)  // 1 = "Projects"
             }
             findNavController().navigate(R.id.filesFragment, bundle)
+        }
+
+        binding.fileTab.addPressEffect {
+            findNavController().navigate(R.id.filesFragment)
         }
     }
 
@@ -498,83 +490,6 @@ class HomeFragment : Fragment() {
                 }
             }
         }
-    }
-
-    private fun showPopupMenu(
-        anchorView: View,
-        item: ExportResult,
-    ) {
-        val binding = LayoutProjectPopupBinding.inflate(LayoutInflater.from(context))
-        val popupWindow = PopupWindow(
-            binding.root,
-            (150 * requireActivity().resources.displayMetrics.density).toInt(), // fixed width ~200dp
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            true
-        )
-
-        popupWindow.elevation = 10f
-        popupWindow.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        popupWindow.isOutsideTouchable = true
-        popupWindow.animationStyle = R.style.PopupFadeAnimation
-
-        // -- Handle actions
-        binding.actionOpen.addPressEffect {
-            popupWindow.dismiss()
-            lifecycleScope.launch {
-                withContext(Dispatchers.Default) {
-                    viewModel.loadTemplateFromJsonFile(item, requireContext())
-                }
-            }
-        }
-
-        binding.actionDuplicate.addPressEffect {
-            popupWindow.dismiss()
-            lifecycleScope.launch {
-                val srcImage = File(item.imagePath)
-                val srcJson = File(item.jsonPath)
-
-                // use same hierarchy as ImageProcessor
-                val newImageFile =
-                    ImageProcessor.newExportImageFile(requireActivity(), srcImage.name)
-                val newJsonFile =
-                    ImageProcessor.newExportJsonFile(requireActivity(), srcJson.name)
-
-                ImageProcessor.copyFile(srcImage, newImageFile)
-                ImageProcessor.copyFile(srcJson, newJsonFile)
-
-                val newExport = item.copy(
-                    id = 0,
-                    imagePath = newImageFile.absolutePath,
-                    jsonPath = newJsonFile.absolutePath,
-                    fileName = "${item.fileName}_copy",
-                    updatedDate = System.currentTimeMillis().toString()
-                )
-                mainViewModel.insertExportResult(newExport)
-            }
-        }
-
-        binding.actionShare.addPressEffect {
-            popupWindow.dismiss()
-            // Share logic
-        }
-
-        binding.actionRename.addPressEffect {
-            popupWindow.dismiss()
-            // Rename logic
-        }
-
-        binding.actionDelete.addPressEffect {
-            popupWindow.dismiss()
-            DialogUtils.showDeleteDialog(
-                requireActivity(),
-                titleText = getString(R.string.delete_image),
-                subtitleText = getString(R.string.your_asset_will_be_permanently_deleted)
-            ) {
-                mainViewModel.deleteExportResult(item)
-            }
-        }
-
-        popupWindow.showAsDropDown(anchorView, 0, -anchorView.height)
     }
 
     override fun onResume() {

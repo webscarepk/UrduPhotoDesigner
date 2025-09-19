@@ -146,13 +146,13 @@ class ExportOptionAdapter<T>(
 
             when(adapterPosition){
                 0 -> binding.view1.setColorFilter(
-                    ContextCompat.getColor(binding.root.context, R.color.gray)
+                    ContextCompat.getColor(binding.root.context, R.color.quality_high_light)
                 )
                 1 -> binding.view1.setColorFilter(
-                    ContextCompat.getColor(binding.root.context, R.color.yellow )
+                    ContextCompat.getColor(binding.root.context, R.color.quality_medium_light )
                 )
                 2 -> binding.view1.setColorFilter(
-                    ContextCompat.getColor(binding.root.context, R.color.appColor)
+                    ContextCompat.getColor(binding.root.context, R.color.quality_low_light)
                 )
             }
             if (item.isSelected) {

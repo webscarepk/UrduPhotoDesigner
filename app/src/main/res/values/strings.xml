@@ -88,8 +88,10 @@
     <string name="hide_all">Hide All</string>
     <string name="show_all">Show All</string>
     <string name="delete">Delete</string>
+    <string name="delete_permanently">Delete permanently</string>
     <string name="confirm_delete">Confirm Delete</string>
     <string name="delete_n_layers">Delete %1$d layers?</string>
+    <string name="delete_layer">Delete layer?</string>
     <string name="selected_n_layers">%1$d selected</string>
     <string name="choose_blend_mode">Choose Blend Mode</string>
     <string name="layer_more_options">More options</string>
@@ -137,7 +139,7 @@
     <string name="estimated">Estimated</string>
     <string name="_4_8_mb">~4.8 MB</string>
     <string name="_4k_medium_quality_png">4K • Medium Quality • PNG</string>
-    <string name="reset">Reset</string>
+    <string name="reset">Default</string>
     <string name="export">Export</string>
     <string name="hd">HD</string>
     <string name="standard_quality">Standard Quality</string>
@@ -169,7 +171,7 @@
     <string name="export_tips">Export Tips</string>
     <string name="exportTip_image">Your image has been saved in your Gallery inside the Urdu Canvas folder. You can also access it using the path shown above.</string>
     <string name="exportTip_pdf">Your file has been saved in your Documents/Urdu Canvas folder. You can also access it using the path shown above.</string>
-    <string name="export_another">Export Another</string>
+    <string name="export_another">Re-edit</string>
     <string name="go_home">Go Home</string>
     <string name="kashida_frequency">Kashida Frequency</string>
     <string name="import_font">Import Font</string>
@@ -179,7 +181,8 @@
     <string name="upload_photo">Add Photo</string>
     <string name="blank_canvas">New Canvas</string>
     <string name="browse_templates">Templates</string>
-    <string name="manage_custom_fonts_assets_and_imports_in_files_tab">Manage custom fonts, assets and imports in Files tab</string>
+    <string name="manage_custom_fonts_assets_and_imports_in_files_tab">Manage custom fonts, assets and imports in </string>
+    <string name="filesTab">Files tab</string>
     <string name="see_all">See all</string>
     <string name="duplicate">Duplicate</string>
     <string name="rename">Rename</string>
@@ -237,6 +240,12 @@
     <string name="print">Print</string>
     <string name="_3_selected">3 selected</string>
     <string name="normal">Normal</string>
+    <string name="source">Source</string>
+    <string name="darken">Darken</string>
+    <string name="lighten">Lighten</string>
+    <string name="multiply">Multiply</string>
+    <string name="screen">Screen</string>
+    <string name="search_templates">Search templates</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

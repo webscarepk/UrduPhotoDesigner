@@ -28,6 +28,8 @@ lifecycleViewmodelKtx = "2.9.3"
 converterScalars = "2.11.0"
 shimmer = "0.5.0"
 swiperefreshlayout = "1.1.0"
+tensorflowLite = "2.17.0"
+tensorflowLiteSupport = "0.5.0"
 workRuntimeKtx = "2.10.3"
 
 [libraries]
@@ -68,6 +70,9 @@ hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltA
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroid" }
 sdp-android = { module = "com.intuit.sdp:sdp-android", version.ref = "sdpAndroid" }
 shimmer = { module = "com.facebook.shimmer:shimmer", version.ref = "shimmer" }
+tensorflow-lite = { module = "org.tensorflow:tensorflow-lite", version.ref = "tensorflowLite" }
+tensorflow-lite-gpu = { module = "org.tensorflow:tensorflow-lite-gpu", version.ref = "tensorflowLite" }
+tensorflow-lite-support = { module = "org.tensorflow:tensorflow-lite-support", version.ref = "tensorflowLiteSupport" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

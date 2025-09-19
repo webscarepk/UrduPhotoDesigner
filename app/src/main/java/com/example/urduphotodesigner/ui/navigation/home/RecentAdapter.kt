@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.signature.ObjectKey
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffectWithLongClick
 import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.databinding.LayoutRecentsItemBinding
@@ -16,7 +17,6 @@ import java.io.File
 
 class RecentAdapter(
     private val onClick: (ExportResult) -> Unit,
-    private val onLongClick: (View, ExportResult) -> Unit
 ) : ListAdapter<ExportResult, RecentAdapter.RecentViewHolder>(DiffCallback) {
 
     companion object {
@@ -62,10 +62,7 @@ class RecentAdapter(
 
             binding.title.text = item.fileName
 
-            binding.root.addPressEffectWithLongClick(
-                onClick = { onClick(item) },
-                onLongClick = { onLongClick(binding.root, item) }
-            )
+            binding.root.addPressEffect { onClick(item) }
         }
     }
 }

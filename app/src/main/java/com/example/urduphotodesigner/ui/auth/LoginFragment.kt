@@ -13,7 +13,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
-import android.widget.Toast
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
@@ -27,6 +26,7 @@ import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.sealed.SignInUiState
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentLoginBinding
+import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -186,10 +186,10 @@ class LoginFragment : Fragment() {
                                 TAG,
                                 "Sign-in successful: Email=${state.email}, DisplayName=${state.displayName}, Token=${state.idToken}"
                             )
-                            Toast.makeText(
-                                requireContext(),
+                            Snackbar.make(
+                                requireView(),   // or binding.root if you’re using ViewBinding
                                 "Welcome, ${state.displayName ?: state.email}",
-                                Toast.LENGTH_LONG
+                                Snackbar.LENGTH_LONG
                             ).show()
 
                             val navOptions = NavOptions.Builder()
@@ -204,11 +204,12 @@ class LoginFragment : Fragment() {
 
                         is SignInUiState.Error -> {
                             Log.e(TAG, "Sign-in error: ${state.message}")
-                            Toast.makeText(
-                                requireContext(),
+                            Snackbar.make(
+                                requireView(),
                                 "Sign-in failed: ${state.message}",
-                                Toast.LENGTH_LONG
+                                Snackbar.LENGTH_LONG
                             ).show()
+
                             // Optionally hide loading indicator
 
                             progressDialog?.dismiss()

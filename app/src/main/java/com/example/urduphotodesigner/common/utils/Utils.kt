@@ -13,16 +13,16 @@ import android.os.VibratorManager
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
-import android.widget.Toast
 import com.example.urduphotodesigner.R
 import com.google.android.gms.tasks.Task
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resumeWithException
 
 object Utils {
     private var lastVibrateTime = 0L
-    private val vibrateCooldown = 150L
+    private const val VIBRATE_COOL_DOWN = 150L
 
     @SuppressLint("ClickableViewAccessibility")
     fun View.addPressEffect(onClick: (() -> Unit)? = null) {
@@ -183,7 +183,7 @@ object Utils {
 
     fun View.vibrateSoft(durationMs: Long = 30L, amplitude: Int = 40) {
         val now = System.currentTimeMillis()
-        if (now - (lastVibrateTime) < vibrateCooldown) return
+        if (now - (lastVibrateTime) < VIBRATE_COOL_DOWN) return
         lastVibrateTime = now
 
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -202,11 +202,16 @@ object Utils {
         }
     }
 
-    fun Context.copyToClipboard(label: String, text: String) {
+    fun Context.copyToClipboard(view: View, label: String, text: String) {
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText(label, text)
         clipboard.setPrimaryClip(clip)
-        Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+        Snackbar.make(
+            view, // root view of your Activity
+            "Copied to clipboard",
+            Snackbar.LENGTH_SHORT
+        ).show()
+
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)

@@ -48,7 +48,7 @@
         android:layout_height="38dp"
         android:background="@android:color/transparent"
         app:tabIndicatorColor="@color/appColor"
-        app:tabIndicatorHeight="3dp"
+        app:tabIndicatorHeight="1dp"
         app:tabPadding="0dp"
         app:tabMode="auto"
         app:tabGravity="fill"

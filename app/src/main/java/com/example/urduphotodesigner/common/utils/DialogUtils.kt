@@ -2,10 +2,13 @@ package com.example.urduphotodesigner.common.utils
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.view.LayoutInflater
 import android.widget.TextView
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
+import androidx.core.graphics.drawable.toDrawable
 
 object DialogUtils {
 
@@ -21,7 +24,7 @@ object DialogUtils {
 
         val dialog = android.app.AlertDialog.Builder(context)
             .setView(view)
-            .setCancelable(false)
+            .setCancelable(true)
             .create()
 
         val title = view.findViewById<TextView>(R.id.title)
@@ -39,6 +42,8 @@ object DialogUtils {
         }
 
         dialog.show()
+        dialog.window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
+
     }
 
 }

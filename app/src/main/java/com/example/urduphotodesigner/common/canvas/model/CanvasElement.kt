@@ -87,7 +87,7 @@ data class CanvasElement(
     var originalTypeface: Typeface? = null,
     var hasBlur: Boolean = false,
     var blurValue: Float = 0f,
-    var blendType: BlendType = BlendType.SRC_OVER,
+    var blendType: BlendType = BlendType.SRC,
 
     var isVisible: Boolean = true,
     var backgroundColor: Int = Color.WHITE,

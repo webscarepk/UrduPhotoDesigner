@@ -21,6 +21,7 @@ import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
+import com.example.urduphotodesigner.common.utils.DialogUtils
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentLayersBinding
 import com.example.urduphotodesigner.databinding.LayoutLayerItemPopupBinding
@@ -194,15 +195,14 @@ class LayersFragment : Fragment() {
         }
 
         selectionToolbar.delete.addPressEffect {
-            AlertDialog.Builder(requireContext())
-                .setTitle(R.string.confirm_delete)
-                .setMessage(getString(R.string.delete_n_layers, count))
-                .setPositiveButton(android.R.string.ok) { _, _ ->
-                    viewModel.removeSelectedElements()
-                    exitSelectionMode()
-                }
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
+            DialogUtils.showDeleteDialog(
+                context = requireContext(),
+                titleText = getString(R.string.confirm_delete),
+                subtitleText = getString(R.string.delete_n_layers, count)
+            ) {
+                viewModel.removeSelectedElements()
+                exitSelectionMode()
+            }
         }
     }
 
@@ -330,7 +330,14 @@ class LayersFragment : Fragment() {
         }
 
         popupBinding.actionDelete.setOnClickListener {
-            viewModel.removeElement(element)
+            DialogUtils.showDeleteDialog(
+                context = requireContext(),
+                titleText = getString(R.string.confirm_delete),
+                subtitleText = getString(R.string.delete_layer)
+            ) {
+                viewModel.removeSelectedElements()
+
+            }
             popupWindow.dismiss()
         }
 

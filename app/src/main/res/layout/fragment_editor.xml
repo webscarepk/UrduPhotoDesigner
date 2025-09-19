@@ -95,9 +95,10 @@
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintTop_toBottomOf="@id/back" />
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <LinearLayout
+        android:orientation="vertical"
         android:id="@+id/alignmentKit"
-        android:visibility="gone"
+        android:visibility="visible"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
@@ -116,10 +117,6 @@
             android:foreground="?selectableItemBackground"
             android:tooltipText="Align Left"
             app:tint="@color/black"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/rightAlign"
             android:padding="6dp"
             android:id="@+id/leftAlign"/>
 
@@ -132,10 +129,6 @@
             android:backgroundTint="@color/contrast"
             android:tooltipText="Align Right"
             app:tint="@color/black"
-            app:layout_constraintStart_toStartOf="@id/leftAlign"
-            app:layout_constraintTop_toBottomOf="@id/leftAlign"
-            app:layout_constraintEnd_toEndOf="@id/leftAlign"
-            app:layout_constraintBottom_toTopOf="@id/center_horizontal"
             android:layout_marginTop="6dp"
             android:padding="6dp"
             android:id="@+id/rightAlign"/>
@@ -149,10 +142,6 @@
             android:backgroundTint="@color/contrast"
             app:tint="@color/black"
             android:tooltipText="Align Center Horizontal"
-            app:layout_constraintStart_toStartOf="@id/leftAlign"
-            app:layout_constraintTop_toBottomOf="@id/rightAlign"
-            app:layout_constraintEnd_toEndOf="@id/leftAlign"
-            app:layout_constraintBottom_toTopOf="@id/center_vertical"
             android:layout_marginTop="6dp"
             android:padding="6dp"
             android:id="@+id/center_horizontal"/>
@@ -166,10 +155,6 @@
             android:backgroundTint="@color/contrast"
             android:tooltipText="Align Center Vertical"
             app:tint="@color/black"
-            app:layout_constraintStart_toStartOf="@id/leftAlign"
-            app:layout_constraintTop_toBottomOf="@id/center_horizontal"
-            app:layout_constraintEnd_toEndOf="@id/leftAlign"
-            app:layout_constraintBottom_toTopOf="@id/topAlign"
             android:layout_marginTop="6dp"
             android:padding="6dp"
             android:id="@+id/center_vertical"/>
@@ -183,10 +168,6 @@
             android:backgroundTint="@color/contrast"
             android:tooltipText="Align Top"
             app:tint="@color/black"
-            app:layout_constraintStart_toStartOf="@id/leftAlign"
-            app:layout_constraintTop_toBottomOf="@id/center_vertical"
-            app:layout_constraintEnd_toEndOf="@id/leftAlign"
-            app:layout_constraintBottom_toTopOf="@id/bottomAlign"
             android:layout_marginTop="6dp"
             android:padding="6dp"
             android:id="@+id/topAlign"/>
@@ -200,10 +181,6 @@
             android:backgroundTint="@color/contrast"
             android:tooltipText="Align Bottom"
             app:tint="@color/black"
-            app:layout_constraintStart_toStartOf="@id/leftAlign"
-            app:layout_constraintTop_toBottomOf="@id/topAlign"
-            app:layout_constraintEnd_toEndOf="@id/leftAlign"
-            app:layout_constraintBottom_toTopOf="@id/view"
             android:layout_marginTop="6dp"
             android:padding="6dp"
             android:id="@+id/bottomAlign"/>
@@ -211,57 +188,43 @@
         <View
             android:layout_marginTop="6dp"
             android:id="@+id/view"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="@color/appColor"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/bottomAlign"
-            app:layout_constraintBottom_toTopOf="@id/alignType"/>
+            android:background="@color/appColor"/>
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
+            android:orientation="vertical"
             android:id="@+id/alignType"
             android:layout_width="30dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:background="@drawable/button_bg"
             android:backgroundTint="@color/contrast"
-            android:padding="6dp"
-            app:layout_constraintStart_toStartOf="@id/leftAlign"
-            app:layout_constraintTop_toBottomOf="@id/view"
-            app:layout_constraintEnd_toEndOf="@id/leftAlign"
-            app:layout_constraintBottom_toBottomOf="parent">
+            android:padding="6dp">
             <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/ic_align_art_board_filled"
                 android:id="@+id/art_board"
                 android:foreground="?selectableItemBackground"
-                android:layout_marginBottom="12dp"
                 android:tooltipText="Align to Artboard"
                 app:tint="@color/black"
-                android:contentDescription="@string/align_to_canvas"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintBottom_toTopOf="@id/selection"/>
+                android:contentDescription="@string/align_to_canvas"/>
 
             <ImageView
+                android:visibility="visible"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:foreground="?selectableItemBackground"
                 android:src="@drawable/ic_align_selection_stroke"
                 android:id="@+id/selection"
+                android:layout_marginTop="12dp"
                 android:tooltipText="Align to Selection"
                 app:tint="@color/black"
-                android:contentDescription="@string/align_to_selection"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/art_board"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"/>
+                android:contentDescription="@string/align_to_selection"/>
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
-    </androidx.constraintlayout.widget.ConstraintLayout>
+        </LinearLayout>
+    </LinearLayout>
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/panelNavHost"
@@ -297,7 +260,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/button_bg"
-                android:backgroundTint="@color/white"
+                android:backgroundTint="@color/contrast"
                 android:orientation="horizontal">
 
                 <TextView
@@ -342,7 +305,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/button_bg"
-                android:backgroundTint="@color/white"
+                android:backgroundTint="@color/contrast"
                 android:orientation="horizontal"
                 android:layout_marginStart="6dp">
 
@@ -380,7 +343,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/button_bg"
-            android:backgroundTint="@color/white"
+            android:backgroundTint="@color/contrast"
             android:orientation="horizontal"
             android:layout_marginStart="6dp">
 
@@ -415,7 +378,7 @@
                 android:layout_width="38dp"
                 android:layout_height="38dp"
                 android:background="@drawable/button_bg"
-                android:backgroundTint="@color/white"
+                android:backgroundTint="@color/contrast"
                 android:padding="10dp"
                 android:tooltipText="@string/copy"
                 android:foreground="?selectableItemBackground"

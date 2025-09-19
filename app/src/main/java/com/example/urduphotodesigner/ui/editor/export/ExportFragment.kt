@@ -51,7 +51,6 @@ class ExportFragment : Fragment() {
 
     private val viewModel: CanvasViewModel by activityViewModels()
     private val mainViewModel: MainViewModel by activityViewModels()
-
     private var exportResult: ExportResult? = null
     private lateinit var canvasView: CanvasView
     private var rotateDrawable: AnimatedVectorDrawable? = null

@@ -392,18 +392,6 @@
                     app:layout_constraintStart_toStartOf="@id/fileLocationTitle"
                     app:layout_constraintTop_toBottomOf="@id/fileLocationTitle" />
 
-                <TextView
-                    android:id="@+id/exportDate"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:fontFamily="@font/medium"
-                    android:text="@string/exported_on_jul_28_2025_03_47_am"
-                    android:textColor="@color/gray"
-                    android:textSize="12sp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/fileLocationDetail" />
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <androidx.constraintlayout.widget.ConstraintLayout
@@ -428,85 +416,68 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
 
-                <TextView
-                    android:id="@+id/share"
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:layout_marginEnd="6dp"
-                    android:background="@drawable/card_bg"
-                    android:drawablePadding="6dp"
-                    android:fontFamily="@font/regular"
-                    android:gravity="center"
-                    android:paddingVertical="15dp"
-                    android:text="@string/share"
-                    android:textColor="@color/black"
-                    android:textSize="15sp"
-                    app:drawableTint="@color/black"
-                    app:drawableTopCompat="@drawable/ic_share"
-                    app:layout_constraintEnd_toStartOf="@id/print"
+                    android:orientation="horizontal"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/quickActionTitle" />
-
-                <TextView
-                    android:id="@+id/print"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:background="@drawable/card_bg"
-                    android:drawablePadding="6dp"
-                    android:fontFamily="@font/regular"
-                    android:gravity="center"
-                    android:paddingVertical="15dp"
-                    android:text="@string/print"
-                    android:textColor="@color/black"
-                    android:textSize="15sp"
-                    app:drawableTint="@color/black"
-                    app:drawableTopCompat="@drawable/ic_print"
-                    app:layout_constraintBottom_toBottomOf="@id/share"
+                    app:layout_constraintTop_toBottomOf="@id/quickActionTitle"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@id/share"
-                    app:layout_constraintTop_toTopOf="@id/share" />
-
-                <TextView
-                    android:id="@+id/open"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
-                    android:layout_marginEnd="6dp"
-                    android:background="@drawable/card_bg"
-                    android:drawablePadding="6dp"
-                    android:fontFamily="@font/regular"
-                    android:gravity="center"
-                    android:paddingVertical="15dp"
-                    android:text="@string/open"
-                    android:textColor="@color/black"
-                    android:textSize="15sp"
-                    app:drawableTint="@color/black"
-                    app:drawableTopCompat="@drawable/ic_open"
-                    app:layout_constraintEnd_toStartOf="@id/edit"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/share" />
+                    android:weightSum="3"
+                    android:gravity="center">
 
-                <TextView
-                    android:id="@+id/edit"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:background="@drawable/card_bg"
-                    android:drawablePadding="6dp"
-                    android:fontFamily="@font/regular"
-                    android:gravity="center"
-                    android:paddingVertical="15dp"
-                    android:text="@string/edit"
-                    android:textColor="@color/black"
-                    android:textSize="15sp"
-                    app:drawableTint="@color/black"
-                    app:drawableTopCompat="@drawable/ic_edit"
-                    app:layout_constraintBottom_toBottomOf="@id/open"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@id/open"
-                    app:layout_constraintTop_toTopOf="@id/open" />
+                    <TextView
+                        android:id="@+id/open"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="80dp"
+                        android:background="@drawable/card_bg"
+                        android:drawablePadding="6dp"
+                        android:layout_marginEnd="6dp"
+                        android:fontFamily="@font/regular"
+                        android:gravity="center"
+                        android:paddingVertical="15dp"
+                        android:text="@string/open"
+                        android:textColor="@color/black"
+                        android:textSize="15sp"
+                        app:drawableTint="@color/black"
+                        app:drawableTopCompat="@drawable/ic_open" />
+
+                    <TextView
+                        android:id="@+id/print"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="80dp"
+                        android:layout_marginEnd="6dp"
+                        android:background="@drawable/card_bg"
+                        android:drawablePadding="6dp"
+                        android:fontFamily="@font/regular"
+                        android:gravity="center"
+                        android:paddingVertical="15dp"
+                        android:text="@string/print"
+                        android:textColor="@color/black"
+                        android:textSize="15sp"
+                        app:drawableTint="@color/black"
+                        app:drawableTopCompat="@drawable/ic_print" />
+
+                    <TextView
+                        android:id="@+id/share"
+                        android:layout_width="0dp"
+                        android:layout_height="80dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/card_bg"
+                        android:drawablePadding="6dp"
+                        android:fontFamily="@font/regular"
+                        android:gravity="center"
+                        android:paddingVertical="15dp"
+                        android:text="@string/share"
+                        android:textColor="@color/black"
+                        android:textSize="15sp"
+                        app:drawableTint="@color/black"
+                        app:drawableTopCompat="@drawable/ic_share" />
+                </LinearLayout>
+
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <androidx.constraintlayout.widget.ConstraintLayout
@@ -525,9 +496,10 @@
                     android:layout_height="wrap_content"
                     android:background="@drawable/button_bg_round"
                     android:padding="9dp"
-                    android:src="@drawable/ic_done_stroke"
+                    android:src="@drawable/ic_info"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
                     app:tint="@color/white" />
 
                 <TextView
@@ -539,9 +511,8 @@
                     android:text="@string/export_tips"
                     android:textColor="@color/black"
                     android:textSize="15sp"
-                    app:layout_constraintBottom_toBottomOf="@id/tipIcon"
                     app:layout_constraintStart_toEndOf="@id/tipIcon"
-                    app:layout_constraintTop_toTopOf="@id/tipIcon" />
+                    app:layout_constraintTop_toTopOf="parent" />
 
                 <TextView
                     android:id="@+id/tip"
@@ -570,9 +541,9 @@
         android:gravity="center"
         android:fontFamily="@font/medium"
         android:textSize="12sp"
-        android:paddingHorizontal="6dp"
+        android:paddingHorizontal="15dp"
         android:background="@drawable/card_bg"
-        app:drawableStartCompat="@drawable/ic_refresh"
+        app:drawableStartCompat="@drawable/ic_edit"
         app:drawableTint="@color/gray"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/centerGuide"
