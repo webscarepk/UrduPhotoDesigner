@@ -33,6 +33,7 @@ class SettingsFragment : Fragment() {
     private fun setEvents() {
         binding.subscriptions.addPressEffect { findNavController().navigate(R.id.subscriptionsFragment) }
         binding.preferences.addPressEffect { findNavController().navigate(R.id.preferencesFragment) }
+        binding.support.addPressEffect { findNavController().navigate(R.id.bgRemovalFragment) }
     }
 
     override fun onDestroyView() {
