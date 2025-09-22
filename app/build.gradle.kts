@@ -51,7 +51,6 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-    implementation(libs.androidx.print)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -121,4 +120,10 @@ dependencies {
 
     //Splash
     implementation(libs.androidx.core.splashscreen)
+
+    //Print Media
+    implementation(libs.androidx.print)
+    
+    //ML Kit
+    implementation(libs.play.services.mlkit.subject.segmentation)
 }

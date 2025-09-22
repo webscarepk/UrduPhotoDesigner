@@ -1,29 +1,53 @@
 package com.example.urduphotodesigner.ui.navigation.settings
 
-import android.app.Activity
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.graphics.createBitmap
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.example.urduphotodesigner.common.views.BgRemovalCanvas
 import com.example.urduphotodesigner.databinding.FragmentBgRemovalBinding
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.segmentation.subject.SubjectSegmentation
+import com.google.mlkit.vision.segmentation.subject.SubjectSegmenter
+import com.google.mlkit.vision.segmentation.subject.SubjectSegmenterOptions
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
 
 class BgRemovalFragment : Fragment() {
 
     private var _binding: FragmentBgRemovalBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var imagePickerLauncher: ActivityResultLauncher<Intent>
+    private val pickImageLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let {
+                val inputStream = requireContext().contentResolver.openInputStream(it)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+
+                originalBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+                brushMaskBitmap = createBitmap(bitmap.width, bitmap.height)
+                binding.imageCanvas.setImage(originalBitmap!!)
+            }
+        }
+
     private var originalBitmap: Bitmap? = null
     private var brushMaskBitmap: Bitmap? = null
+
+    private val subjectSegmenter: SubjectSegmenter by lazy {
+        val options = SubjectSegmenterOptions.Builder()
+            .enableForegroundConfidenceMask()
+            .build()
+        SubjectSegmentation.getClient(options)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -31,13 +55,9 @@ class BgRemovalFragment : Fragment() {
     ): View {
         _binding = FragmentBgRemovalBinding.inflate(inflater, container, false)
 
-        setupImagePicker()
 
         binding.btnPickImage.setOnClickListener {
-            val intent = Intent(Intent.ACTION_PICK).apply {
-                type = "image/*"
-            }
-            imagePickerLauncher.launch(intent)
+            pickImageLauncher.launch("image/*")
         }
 
         binding.btnBrush.setOnClickListener {
@@ -63,6 +83,12 @@ class BgRemovalFragment : Fragment() {
             binding.imageCanvas.setActionMode(BgRemovalCanvas.ActionMode.REMOVE)
         }
 
+        binding.btnSelectSubject.setOnClickListener {
+            originalBitmap?.let { bmp ->
+                runSubjectSegmentation(bmp)
+            }
+        }
+
         binding.btnExport.setOnClickListener {
             val result = binding.imageCanvas.exportMaskedImage()
             result?.let { maskedBitmap ->
@@ -77,26 +103,39 @@ class BgRemovalFragment : Fragment() {
         return binding.root
     }
 
-    // 🔹 Image picker launcher
-    private fun setupImagePicker() {
-        imagePickerLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                val uri: Uri? = result.data?.data
-                uri?.let {
-                    val inputStream = requireContext().contentResolver.openInputStream(it)
-                    val bitmap = BitmapFactory.decodeStream(inputStream)
-                    inputStream?.close()
+    private fun runSubjectSegmentation(bitmap: Bitmap) {
+        binding.progressBar.visibility = View.VISIBLE
 
-                    originalBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
-                    brushMaskBitmap = createBitmap(bitmap.width, bitmap.height)
-                    binding.imageCanvas.setImage(originalBitmap!!)
+        val image = InputImage.fromBitmap(bitmap, 0)
+
+        subjectSegmenter.process(image)
+            .addOnSuccessListener { result ->
+                val maskBuffer = result.foregroundConfidenceMask
+                val maskBitmap = result.foregroundBitmap
+
+                if (maskBuffer != null) {
+                    lifecycleScope.launch(Dispatchers.Default) {
+                        val width = maskBitmap?.width ?: bitmap.width
+                        val height = maskBitmap?.height ?: bitmap.height
+
+                        // call the methods inside your custom view
+//                        val path =
+//
+
+                        withContext(Dispatchers.Main) {
+                            binding.imageCanvas.applyGeneratedMask(maskBuffer, width, height)
+                            binding.progressBar.visibility = View.GONE
+                        }
+                    }
+                } else {
+                    binding.progressBar.visibility = View.GONE
                 }
             }
-        }
+            .addOnFailureListener { e ->
+                e.printStackTrace()
+                binding.progressBar.visibility = View.GONE
+            }
     }
-
 
     override fun onDestroyView() {
         super.onDestroyView()

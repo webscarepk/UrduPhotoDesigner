@@ -16,6 +16,16 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/toolBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
     <!-- Toolbar for selection tools -->
     <HorizontalScrollView
         android:id="@+id/toolBar"
@@ -34,6 +44,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Pick Image"/>
+
+            <Button
+                android:id="@+id/btnSelectSubject"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Select Subject" />
 
             <Button
                 android:id="@+id/btnBrush"
