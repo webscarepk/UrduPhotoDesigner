@@ -102,6 +102,10 @@ class BgRemovalFragment : Fragment() {
             }
         }
 
+        binding.btnPan.setOnClickListener {
+            binding.imageCanvas.setToolMode(null)
+        }
+
         binding.back.addPressEffect { findNavController().navigateUp() }
 
         binding.done.addPressEffect {
