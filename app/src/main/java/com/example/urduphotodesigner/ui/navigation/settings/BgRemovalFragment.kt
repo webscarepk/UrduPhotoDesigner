@@ -10,6 +10,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.graphics.createBitmap
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.common.views.BgRemovalCanvas
 import com.example.urduphotodesigner.databinding.FragmentBgRemovalBinding
 import com.google.mlkit.vision.common.InputImage
@@ -99,6 +101,18 @@ class BgRemovalFragment : Fragment() {
                 // saveBitmapToGallery(maskedBitmap)
             }
         }
+
+        binding.back.addPressEffect { findNavController().navigateUp() }
+
+        binding.done.addPressEffect {
+            val result = binding.imageCanvas.exportMaskedImage()
+            result?.let { maskedBitmap ->
+                binding.imageCanvas.setImage(maskedBitmap)
+            }
+        }
+
+        binding.undo.addPressEffect { binding.imageCanvas.undo() }
+        binding.redo.addPressEffect { binding.imageCanvas.redo() }
 
         return binding.root
     }

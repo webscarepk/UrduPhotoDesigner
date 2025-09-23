@@ -40,6 +40,9 @@ class BgRemovalCanvas @JvmOverloads constructor(
         style = Paint.Style.FILL
     }
 
+    private val donePaths = mutableListOf<Path>()
+    private val undonePaths = mutableListOf<Path>()
+
     private val strokePaintAdd = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.BLACK
         style = Paint.Style.STROKE
@@ -66,6 +69,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
     fun setToolMode(mode: ToolMode) {
         toolMode = mode
+        currentPath = null
         invalidate()
     }
 
@@ -187,6 +191,8 @@ class BgRemovalCanvas @JvmOverloads constructor(
     }
 
     private fun commitPath(newPath: Path) {
+        val finalPath = Path(newPath)
+
         if (actionMode == ActionMode.ADD) {
             var merged = false
             val iterator = paths.listIterator()
@@ -194,29 +200,35 @@ class BgRemovalCanvas @JvmOverloads constructor(
             while (iterator.hasNext()) {
                 val existing = iterator.next()
                 val test = Path(existing)
-                test.op(test, newPath, Path.Op.INTERSECT)
+                test.op(test, finalPath, Path.Op.INTERSECT)
 
-                if (!test.isEmpty) { // ✅ they overlap
+                if (!test.isEmpty) { // ✅ overlap → merge
                     val union = Path(existing)
-                    union.op(union, newPath, Path.Op.UNION)
-                    iterator.set(union)   // replace existing with merged
+                    union.op(union, finalPath, Path.Op.UNION)
+                    iterator.set(union)
+                    donePaths.add(Path(union)) // save snapshot for undo
+                    undonePaths.clear()        // new action clears redo history
                     merged = true
                     break
                 }
             }
 
             if (!merged) {
-                paths.add(Path(newPath)) // no overlap → new independent path
+                paths.add(finalPath)
+                donePaths.add(Path(finalPath))
+                undonePaths.clear()
             }
         } else if (actionMode == ActionMode.REMOVE) {
             val iterator = paths.listIterator()
             while (iterator.hasNext()) {
                 val existing = iterator.next()
                 val diff = Path(existing)
-                diff.op(diff, newPath, Path.Op.DIFFERENCE)
+                diff.op(diff, finalPath, Path.Op.DIFFERENCE)
 
                 if (!diff.isEmpty) {
                     iterator.set(diff)
+                    donePaths.add(Path(diff))
+                    undonePaths.clear()
                 } else {
                     iterator.remove()
                 }
@@ -224,6 +236,31 @@ class BgRemovalCanvas @JvmOverloads constructor(
         }
 
         invalidate()
+    }
+
+    fun undo() {
+        if (donePaths.isNotEmpty()) {
+            val last = donePaths.removeAt(donePaths.size - 1)
+            undonePaths.add(last)
+            rebuildPaths()
+            invalidate()
+        }
+    }
+
+    fun redo() {
+        if (undonePaths.isNotEmpty()) {
+            val last = undonePaths.removeAt(undonePaths.size - 1)
+            donePaths.add(last)
+            rebuildPaths()
+            invalidate()
+        }
+    }
+
+    private fun rebuildPaths() {
+        paths.clear()
+        for (p in donePaths) {
+            paths.add(Path(p))
+        }
     }
 
     private fun calculateImageRect() {
@@ -269,27 +306,23 @@ class BgRemovalCanvas @JvmOverloads constructor(
                     xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
                 }
 
-                for (path in paths) {
-                    canvas.drawPath(path, addPaint)
-
+                if (paths.isNotEmpty()) {
+                    val merged = Path(paths[0])
+                    for (i in 1 until paths.size) {
+                        merged.op(merged, paths[i], Path.Op.UNION)
+                    }
+                    // Punch selection
+                    canvas.drawPath(merged, addPaint)
+                    // Draw outer marching-ants stroke
                     val strokePaint = Paint(strokePaintAdd).apply {
                         pathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase)
                     }
-                    canvas.drawPath(path, strokePaint)
+                    canvas.drawPath(merged, strokePaint)
                 }
-
                 // 🔹 Close the saveLayer → overlay + mask + paths merged
                 canvas.restoreToCount(saveCount)
             }
         }
-
-//        // 4. Draw contour marching ants (subject auto-select)
-//        subjectContourPath?.let { contour ->
-//            val strokePaint = Paint(strokePaintAdd).apply {
-//                pathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase)
-//            }
-//            canvas.drawPath(contour, strokePaint)
-//        }
 
         // 5. Draw currently active shape preview (not committed yet)
         currentPath?.let {
@@ -342,6 +375,15 @@ class BgRemovalCanvas @JvmOverloads constructor(
             MotionEvent.ACTION_MOVE -> {
                 endX = event.x
                 endY = event.y
+
+                // 🔹 create preview path
+                val preview = Path()
+                if (toolMode == ToolMode.RECTANGLE) {
+                    preview.addRect(startX, startY, endX, endY, Path.Direction.CW)
+                } else if (toolMode == ToolMode.ELLIPSE) {
+                    preview.addOval(RectF(startX, startY, endX, endY), Path.Direction.CW)
+                }
+                currentPath = preview
                 invalidate()
             }
             MotionEvent.ACTION_UP -> {
@@ -352,6 +394,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
                     path.addOval(RectF(startX, startY, endX, endY), Path.Direction.CW)
                 }
                 commitPath(path)
+                currentPath = null
                 invalidate()
             }
         }
