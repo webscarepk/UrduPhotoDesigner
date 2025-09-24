@@ -11,6 +11,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
+import android.graphics.Rect
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.GestureDetector
@@ -31,6 +32,8 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
     enum class ToolMode { BRUSH, RECTANGLE, ELLIPSE }
     enum class ActionMode { ADD, REMOVE }
+    private var isApplyingMask = false
+
     // Magnifier variables
     private var showMagnifier = false
     private var magnifierX = 0f
@@ -88,6 +91,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
         strokeJoin = Paint.Join.ROUND
         strokeCap = Paint.Cap.ROUND
         isAntiAlias = true
+        isDither = true
         xfermode = null
     }
 
@@ -95,7 +99,12 @@ class BgRemovalCanvas @JvmOverloads constructor(
         color = Color.RED
         style = Paint.Style.STROKE
         strokeWidth = 3f
-        pathEffect = DashPathEffect(floatArrayOf(10f, 10f), dashPhase)
+        pathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase)
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+        isAntiAlias = true
+        isDither = true
+        xfermode = null
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -108,8 +117,8 @@ class BgRemovalCanvas @JvmOverloads constructor(
             addUpdateListener {
                 dashPhase += 2f
                 strokePaintAdd.pathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase)
-                strokePaintRemove.pathEffect = DashPathEffect(floatArrayOf(10f, 10f), dashPhase)
-                invalidate() // lightweight invalidate
+                strokePaintRemove.pathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase)
+                postInvalidateOnAnimation() // lightweight invalidate
             }
             start()
         }
@@ -158,6 +167,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
     }
 
     fun applyGeneratedMask(buffer: FloatBuffer, maskWidth: Int, maskHeight: Int) {
+        isApplyingMask = true
         scope.launch {
             val maskBitmap = maskBufferToBitmap(buffer, maskWidth, maskHeight)
 
@@ -186,6 +196,9 @@ class BgRemovalCanvas @JvmOverloads constructor(
                 }
             }
             commitPath(subjectPath)
+            donePaths.add(Path(subjectPath))
+            undonePaths.clear()
+            isApplyingMask = false
             invalidate()
         }
     }
@@ -271,6 +284,8 @@ class BgRemovalCanvas @JvmOverloads constructor(
             }
         } else if (actionMode == ActionMode.REMOVE) {
             val iterator = paths.listIterator()
+            var removedRegion: RectF? = null
+
             while (iterator.hasNext()) {
                 val existing = iterator.next()
                 val diff = Path(existing)
@@ -280,13 +295,33 @@ class BgRemovalCanvas @JvmOverloads constructor(
                     iterator.set(diff)
                     donePaths.add(Path(diff))
                     undonePaths.clear()
+
+                    // Track the removed region for restoring the overlay
+                    removedRegion = calculateRemovedRegion(existing, finalPath)
                 } else {
                     iterator.remove()
                 }
             }
+
+            // Redraw the overlay in the removed area
+            removedRegion?.let { restoreOverlay(it) }
         }
 
         invalidate()
+    }
+
+    private fun calculateRemovedRegion(existingPath: Path, removePath: Path): RectF {
+        // Assuming removePath is a rectangle or a simple path, calculate the bounding box
+        // of the region where removal happened.
+        val bounds = RectF()
+        existingPath.computeBounds(bounds, true)
+        return bounds
+    }
+
+    private fun restoreOverlay(region: RectF) {
+        // Restore the overlay in the region that was removed
+        val canvas = Canvas()  // You can reuse the canvas where drawing occurs
+        canvas.drawRect(region, whiteOverlayPaint)  // Draw the white overlay in the removed area
     }
 
     fun undo() {
@@ -385,6 +420,17 @@ class BgRemovalCanvas @JvmOverloads constructor(
             }
             canvas.restore()
         }
+
+        val scaledStrokeWidth = 3f * (1 / scaleFactor).coerceAtLeast(0.5f)
+
+        strokePaintAdd.strokeWidth = scaledStrokeWidth
+        strokePaintRemove.strokeWidth = scaledStrokeWidth
+
+        dashPhase += 2
+        strokePaintAdd.pathEffect = DashPathEffect(floatArrayOf(10f, 10f), dashPhase)
+        strokePaintRemove.pathEffect = DashPathEffect(floatArrayOf(10f, 10f), dashPhase)
+
+        postInvalidateOnAnimation()
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -392,14 +438,6 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
         // Normal rendering
         renderContent(canvas)
-
-        // marching ants update
-        dashPhase += 2f
-        strokePaintAdd.pathEffect = DashPathEffect(floatArrayOf(10f, 10f), dashPhase)
-        strokePaintRemove.pathEffect = DashPathEffect(floatArrayOf(10f, 10f), dashPhase)
-        postInvalidateOnAnimation()
-
-        // Magnifier
         if (showMagnifier && magnifierAlpha > 0f) {
             val saveCount = canvas.save()
 
@@ -408,37 +446,35 @@ class BgRemovalCanvas @JvmOverloads constructor(
             val magnifierCenterX = magnifierX
             val magnifierCenterY = magnifierY + offsetY
 
+            // Clip circle
             val clipPath = Path().apply {
                 addCircle(magnifierCenterX, magnifierCenterY, magnifierRadius, Path.Direction.CW)
             }
             canvas.clipPath(clipPath)
 
-            canvas.save()
-            canvas.translate(magnifierCenterX - magnifierRadius, magnifierCenterY - magnifierRadius)
+            // Render full view into bitmap (with drawMatrix + overlays + paths)
+            val fullBmp = renderToBitmap()
 
-            // 🔹 Step 1: map touch → image coords
-            val mapped = mapToImageCoords(magnifierX, magnifierY)
+            // Define source rect around the finger
+            val srcRect = Rect(
+                (magnifierX - magnifierRadius / magnifierScale).toInt(),
+                (magnifierY - magnifierRadius / magnifierScale).toInt(),
+                (magnifierX + magnifierRadius / magnifierScale).toInt(),
+                (magnifierY + magnifierRadius / magnifierScale).toInt()
+            )
 
-            // 🔹 Step 2: clamp inside imageRect
-            imageRect?.let { rect ->
-                val clampedX = mapped[0].coerceIn(0f, rect.width())
-                val clampedY = mapped[1].coerceIn(0f, rect.height())
+            // Destination rect = circle bounds
+            val dstRect = Rect(
+                (magnifierCenterX - magnifierRadius).toInt(),
+                (magnifierCenterY - magnifierRadius).toInt(),
+                (magnifierCenterX + magnifierRadius).toInt(),
+                (magnifierCenterY + magnifierRadius).toInt()
+            )
 
-                // 🔹 Step 3: map image coords → view coords (after drawMatrix)
-                val pts = floatArrayOf(clampedX, clampedY)
-                drawMatrix.mapPoints(pts)
-                val focusX = pts[0]
-                val focusY = pts[1]
+            // Draw cropped + scaled area
+            canvas.drawBitmap(fullBmp, srcRect, dstRect, null)
 
-                // ✅ scale around corrected focus
-                canvas.scale(magnifierScale, magnifierScale, focusX, focusY)
-            }
-
-            // Draw full content (final state with mask/overlay/strokes)
-            renderFinalContent(canvas)
-
-            canvas.restore()
-
+            // Border circle
             val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = Color.BLACK
                 style = Paint.Style.STROKE
@@ -449,66 +485,33 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
             canvas.restoreToCount(saveCount)
         }
-
     }
 
-    private fun renderFinalContent(canvas: Canvas) {
-        imageBitmap?.let { bmp ->
-            imageRect?.let { rect ->
-                canvas.save()
-                canvas.concat(drawMatrix)
-                canvas.drawBitmap(bmp, null, rect, null)
-
-                val saveCount = canvas.saveLayer(rect, null)
-                canvas.drawRect(rect, whiteOverlayPaint)
-
-                // Punch subject mask
-                subjectMaskBitmap?.let { mask ->
-                    val punchPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                        xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
-                    }
-                    canvas.drawBitmap(mask, null, rect, punchPaint)
-                }
-
-                // Punch user paths
-                if (paths.isNotEmpty()) {
-                    val merged = Path(paths[0])
-                    for (i in 1 until paths.size) {
-                        merged.op(merged, paths[i], Path.Op.UNION)
-                    }
-                    val punchPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                        xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
-                    }
-                    canvas.drawPath(merged, punchPaint)
-
-                    val strokePaint = Paint(strokePaintAdd).apply {
-                        pathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase)
-                    }
-                    canvas.drawPath(merged, strokePaint)
-                }
-
-                canvas.restoreToCount(saveCount)
-                canvas.restore()
-            }
-        }
-
-        // Live preview path
-        currentPath?.let {
-            val paintStroke = if (actionMode == ActionMode.ADD) strokePaintAdd else strokePaintRemove
-            canvas.save()
-            canvas.concat(drawMatrix)
-            when (toolMode) {
-                ToolMode.BRUSH -> canvas.drawPath(it, paintStroke)
-                ToolMode.RECTANGLE -> canvas.drawRect(startX, startY, endX, endY, paintStroke)
-                ToolMode.ELLIPSE -> canvas.drawOval(RectF(startX, startY, endX, endY), paintStroke)
-                else -> {}
-            }
-            canvas.restore()
-        }
+    private fun renderToBitmap(): Bitmap {
+        val bmp = createBitmap(width, height)
+        val c = Canvas(bmp)
+        renderContent(c) // <-- this includes drawMatrix, overlay, paths
+        return bmp
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val scaleHandled = scaleDetector.onTouchEvent(event)
+
+        if (event.pointerCount >= 2) {
+            // Hide the magnifier during zooming
+            if (showMagnifier) {
+                animateMagnifier(false) // Fade out magnifier when zooming starts
+            }
+            return true
+        }
+
+        // Prevent magnifier from showing if mask is being applied
+        if (isApplyingMask) {
+            if (showMagnifier) {
+                animateMagnifier(false) // Ensure magnifier is hidden during mask application
+            }
+            return true
+        }
 
         // ✅ Brush/Shape Drawing
         if (event.pointerCount == 1 && toolMode != null) {
@@ -658,6 +661,11 @@ class BgRemovalCanvas @JvmOverloads constructor(
     private fun mapToImageCoords(x: Float, y: Float): FloatArray {
         val pts = floatArrayOf(x, y)
         inverseMatrix.mapPoints(pts)
+        // Adjust to rect space
+        imageRect?.let {
+            pts[0] = pts[0].coerceIn(it.left, it.right)
+            pts[1] = pts[1].coerceIn(it.top, it.bottom)
+        }
         return pts
     }
 

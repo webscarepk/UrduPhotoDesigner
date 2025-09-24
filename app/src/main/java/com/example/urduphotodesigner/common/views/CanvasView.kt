@@ -1804,7 +1804,7 @@ class CanvasView @JvmOverloads constructor(
                 TextAlignment.LEFT -> Paint.Align.LEFT
                 TextAlignment.CENTER -> Paint.Align.CENTER
                 TextAlignment.RIGHT -> Paint.Align.RIGHT
-                TextAlignment.JUSTIFY -> Paint.Align.LEFT // needed for justify, but handled separately
+                TextAlignment.JUSTIFY -> Paint.Align.LEFT
             }
 
             val indentOffset = if (i == 0) element.currentIndent else 0f
