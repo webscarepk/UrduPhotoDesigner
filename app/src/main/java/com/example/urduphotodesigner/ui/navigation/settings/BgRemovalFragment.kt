@@ -93,14 +93,15 @@ class BgRemovalFragment : Fragment() {
         }
 
         binding.btnExport.setOnClickListener {
-            val result = binding.imageCanvas.exportMaskedImage(preview)
-            result?.let { maskedBitmap ->
-                // Preview result
-                binding.imageCanvas.setImage(maskedBitmap)
-                preview = !preview
-                // (Optional) Save to gallery
-                // saveBitmapToGallery(maskedBitmap)
+            if (!preview){
+                originalBitmap?.let { bitmap -> binding.imageCanvas.setImage(bitmap) }
+            }else{
+                val result = binding.imageCanvas.exportMaskedImage()
+                result?.let { maskedBitmap ->
+                    binding.imageCanvas.setImage(maskedBitmap)
+                }
             }
+            preview = !preview
         }
 
         binding.btnPan.setOnClickListener {

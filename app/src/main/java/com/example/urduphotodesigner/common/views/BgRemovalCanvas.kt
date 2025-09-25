@@ -19,14 +19,14 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import androidx.core.graphics.createBitmap
+import androidx.core.graphics.scale
+import androidx.core.graphics.withMatrix
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.nio.FloatBuffer
-import androidx.core.graphics.scale
-import androidx.core.graphics.withMatrix
 
 class BgRemovalCanvas @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
@@ -34,6 +34,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
     enum class ToolMode { BRUSH, RECTANGLE, ELLIPSE }
     enum class ActionMode { ADD, REMOVE }
+
     private var isApplyingMask = false
 
     // Magnifier variables
@@ -162,7 +163,9 @@ class BgRemovalCanvas @JvmOverloads constructor(
         markRenderCacheDirty()
     }
 
-    private suspend fun maskBufferToBitmap(buffer: FloatBuffer, maskWidth: Int, maskHeight: Int): Bitmap {
+    private suspend fun maskBufferToBitmap(
+        buffer: FloatBuffer, maskWidth: Int, maskHeight: Int
+    ): Bitmap {
         return withContext(Dispatchers.Default) {
             buffer.rewind()
             val bitmap = createBitmap(maskWidth, maskHeight)
@@ -225,8 +228,14 @@ class BgRemovalCanvas @JvmOverloads constructor(
                 var y = startY
                 path.moveTo(x.toFloat(), y.toFloat())
                 val dirs = arrayOf(
-                    intArrayOf(1, 0), intArrayOf(1, 1), intArrayOf(0, 1), intArrayOf(-1, 1),
-                    intArrayOf(-1, 0), intArrayOf(-1, -1), intArrayOf(0, -1), intArrayOf(1, -1)
+                    intArrayOf(1, 0),
+                    intArrayOf(1, 1),
+                    intArrayOf(0, 1),
+                    intArrayOf(-1, 1),
+                    intArrayOf(-1, 0),
+                    intArrayOf(-1, -1),
+                    intArrayOf(0, -1),
+                    intArrayOf(1, -1)
                 )
                 var dir = 0
                 do {
@@ -235,7 +244,10 @@ class BgRemovalCanvas @JvmOverloads constructor(
                         val ndir = (dir + i) % 8
                         val nx = x + dirs[ndir][0]
                         val ny = y + dirs[ndir][1]
-                        if (nx in 0 until w && ny in 0 until h && mask.getPixel(nx, ny) == Color.WHITE) {
+                        if (nx in 0 until w && ny in 0 until h && mask.getPixel(
+                                nx, ny
+                            ) == Color.WHITE
+                        ) {
                             x = nx; y = ny
                             path.lineTo(x.toFloat(), y.toFloat())
                             visited[y][x] = true
@@ -252,10 +264,13 @@ class BgRemovalCanvas @JvmOverloads constructor(
             for (y in 1 until h - 1) {
                 for (x in 1 until w - 1) {
                     if (!visited[y][x] && mask.getPixel(x, y) == Color.WHITE) {
-                        val isEdge = mask.getPixel(x - 1, y) == Color.TRANSPARENT ||
-                                mask.getPixel(x + 1, y) == Color.TRANSPARENT ||
-                                mask.getPixel(x, y - 1) == Color.TRANSPARENT ||
-                                mask.getPixel(x, y + 1) == Color.TRANSPARENT
+                        val isEdge = mask.getPixel(x - 1, y) == Color.TRANSPARENT || mask.getPixel(
+                            x + 1,
+                            y
+                        ) == Color.TRANSPARENT || mask.getPixel(
+                            x,
+                            y - 1
+                        ) == Color.TRANSPARENT || mask.getPixel(x, y + 1) == Color.TRANSPARENT
                         if (isEdge) traceContour(x, y)
                     }
                 }
@@ -369,7 +384,8 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
         // Live preview path (drawing the current path in progress)
         currentPath?.let {
-            val paintStroke = if (actionMode == ActionMode.ADD) strokePaintAdd else strokePaintRemove
+            val paintStroke =
+                if (actionMode == ActionMode.ADD) strokePaintAdd else strokePaintRemove
             canvas.withMatrix(drawMatrix) {
                 when (toolMode) {
                     ToolMode.BRUSH -> drawPath(it, paintStroke)
@@ -386,13 +402,15 @@ class BgRemovalCanvas @JvmOverloads constructor(
             transformed.transform(drawMatrix)
             // Draw marching ants stroke (animated dashed lines) with path effect
             val strokePaint = Paint(strokePaintAdd).apply {
-                pathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase)  // Marching ants effect
+                pathEffect =
+                    DashPathEffect(floatArrayOf(12f, 12f), dashPhase)  // Marching ants effect
             }
             canvas.drawPath(transformed, strokePaint)  // Draw the marching ants on selected area
         }
 
         // Update stroke width based on zoom level
-        val scaledStrokeWidth = 3f * (1 / scaleFactor).coerceAtLeast(0.5f)  // Scale stroke width with zoom
+        val scaledStrokeWidth =
+            3f * (1 / scaleFactor).coerceAtLeast(0.5f)  // Scale stroke width with zoom
 
         strokePaintAdd.strokeWidth = scaledStrokeWidth
         strokePaintRemove.strokeWidth = scaledStrokeWidth
@@ -412,8 +430,8 @@ class BgRemovalCanvas @JvmOverloads constructor(
         // Normal rendering
         renderContent(canvas)
         if (showMagnifier && magnifierAlpha > 0f) {
-            val offsetY = if (magnifierY - magnifierOffset - magnifierRadius < 0)
-                magnifierOffset else -magnifierOffset
+            val offsetY =
+                if (magnifierY - magnifierOffset - magnifierRadius < 0) magnifierOffset else -magnifierOffset
             val magnifierCenterX = magnifierX
             val magnifierCenterY = magnifierY + offsetY
 
@@ -428,8 +446,10 @@ class BgRemovalCanvas @JvmOverloads constructor(
             renderContent(c)
 
             val srcRect = Rect(
-                (magnifierX - magnifierRadius / magnifierScale).toInt().coerceIn(0, fullBmp.width - 1),
-                (magnifierY - magnifierRadius / magnifierScale).toInt().coerceIn(0, fullBmp.height - 1),
+                (magnifierX - magnifierRadius / magnifierScale).toInt()
+                    .coerceIn(0, fullBmp.width - 1),
+                (magnifierY - magnifierRadius / magnifierScale).toInt()
+                    .coerceIn(0, fullBmp.height - 1),
                 (magnifierX + magnifierRadius / magnifierScale).toInt().coerceAtMost(fullBmp.width),
                 (magnifierY + magnifierRadius / magnifierScale).toInt().coerceAtMost(fullBmp.height)
             )
@@ -518,10 +538,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
         }
 
         override fun onScroll(
-            e1: MotionEvent?,
-            e2: MotionEvent,
-            distanceX: Float,
-            distanceY: Float
+            e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float
         ): Boolean {
             if (scaleFactor > 1f) {
                 isTransforming = true
@@ -753,57 +770,35 @@ class BgRemovalCanvas @JvmOverloads constructor(
         }
     }
 
-    fun exportMaskedImage(showMasked: Boolean = true): Bitmap? {
+    fun exportMaskedImage(): Bitmap? {
         imageBitmap?.let { bmp ->
             val output = createBitmap(width, height)
             val canvas = Canvas(output)
             canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
 
-            // Draw the original image first
+            // Draw the original image
             imageRect?.let { rect ->
                 canvas.drawBitmap(bmp, null, rect, null)
             }
 
-            if (showMasked) {
-                // When showMasked is true, only show the selected area
-                val mask = createBitmap(width, height)
-                val maskCanvas = Canvas(mask)
-
-                val addPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = Color.WHITE
-                    style = Paint.Style.FILL
-                }
-
-                // Draw the selection paths (area to keep)
-                for (path in paths) {
-                    maskCanvas.drawPath(path, addPaint)
-                }
-
-                // Apply the mask (show only selected area and hide the rest)
-                val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
-                }
-                canvas.drawBitmap(mask, 0f, 0f, paint)
-            } else {
-                // When showMasked is false, show the original image with the overlay
-                val overlayPaint = Paint().apply {
-                    color = Color.argb(150, 255, 255, 255) // White overlay with some transparency
-                    style = Paint.Style.FILL
-                }
-
-                // Draw the white overlay on unselected areas
-                canvas.drawRect(imageRect!!, overlayPaint)
-
-                // Draw selection paths on top of the overlay (as strokes)
-                val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = Color.BLACK
-                    style = Paint.Style.STROKE
-                    strokeWidth = 3f
-                }
-                for (path in paths) {
-                    canvas.drawPath(path, strokePaint)
-                }
+            // Create mask bitmap
+            val mask = createBitmap(width, height)
+            val maskCanvas = Canvas(mask)
+            val addPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.WHITE
+                style = Paint.Style.FILL
             }
+
+            // 🔹 Use the final selectionPath instead of paths
+            selectionPath?.let {
+                maskCanvas.drawPath(it, addPaint)
+            }
+
+            // Apply mask
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+            }
+            canvas.drawBitmap(mask, 0f, 0f, paint)
 
             return output
         }
