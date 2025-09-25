@@ -5,19 +5,19 @@
     android:viewportHeight="17">
     <path
         android:strokeColor="#FFDCDCDC"
-        android:strokeWidth="1.5"
+        android:strokeWidth="1"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:pathData="M1.3 13.3C1.1 13.47 1 13.72 1 14v1c0 0.27 0.1 0.52 0.3 0.7C1.47 15.9 1.72 16 2 16h14c0.27 0 0.52-0.1 0.7-0.3 0.2-0.18 0.3-0.43 0.3-0.7v-1c0-0.27-0.1-0.52-0.3-0.7-0.18-0.2-0.43-0.3-0.7-0.3H2c-0.27 0-0.52 0.1-0.7 0.3Z"/>
     <path
         android:strokeColor="#FFDCDCDC"
-        android:strokeWidth="1.5"
+        android:strokeWidth="1"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:pathData="M1.3 7.3C1.1 7.47 1 7.72 1 8v1c0 0.27 0.1 0.52 0.3 0.7C1.47 9.9 1.72 10 2 10h14c0.27 0 0.52-0.1 0.7-0.3C16.9 9.53 17 9.28 17 9V8c0-0.27-0.1-0.52-0.3-0.7C16.53 7.1 16.28 7 16 7H2C1.73 7 1.48 7.1 1.3 7.3Z"/>
     <path
         android:strokeColor="#FFDCDCDC"
-        android:strokeWidth="1.5"
+        android:strokeWidth="1"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:pathData="M1.3 1.3C1.1 1.47 1 1.72 1 2v1c0 0.27 0.1 0.52 0.3 0.7C1.47 3.9 1.72 4 2 4h14c0.27 0 0.52-0.1 0.7-0.3C16.9 3.53 17 3.28 17 3V2c0-0.27-0.1-0.52-0.3-0.7C16.53 1.1 16.28 1 16 1H2C1.73 1 1.48 1.1 1.3 1.3Z"/>

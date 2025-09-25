@@ -246,6 +246,8 @@
     <string name="multiply">Multiply</string>
     <string name="screen">Screen</string>
     <string name="search_templates">Search templates</string>
+    <string name="hand_tool">Hand Tool</string>
+    <string name="invert_selection">Invert Selection</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

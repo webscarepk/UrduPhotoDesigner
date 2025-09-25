@@ -28,6 +28,7 @@ class BgRemovalFragment : Fragment() {
     private var _binding: FragmentBgRemovalBinding? = null
     private val binding get() = _binding!!
 
+    private var preview = true
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri?.let {
@@ -92,11 +93,11 @@ class BgRemovalFragment : Fragment() {
         }
 
         binding.btnExport.setOnClickListener {
-            val result = binding.imageCanvas.exportMaskedImage()
+            val result = binding.imageCanvas.exportMaskedImage(preview)
             result?.let { maskedBitmap ->
                 // Preview result
                 binding.imageCanvas.setImage(maskedBitmap)
-
+                preview = !preview
                 // (Optional) Save to gallery
                 // saveBitmapToGallery(maskedBitmap)
             }
@@ -135,10 +136,6 @@ class BgRemovalFragment : Fragment() {
                     lifecycleScope.launch(Dispatchers.Default) {
                         val width = maskBitmap?.width ?: bitmap.width
                         val height = maskBitmap?.height ?: bitmap.height
-
-                        // call the methods inside your custom view
-//                        val path =
-//
 
                         withContext(Dispatchers.Main) {
                             binding.imageCanvas.applyGeneratedMask(maskBuffer, width, height)
