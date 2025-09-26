@@ -355,6 +355,20 @@
 
             <ImageView
                 android:visibility="gone"
+                android:id="@+id/cutOutIcon"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="@drawable/button_bg"
+                android:backgroundTint="@color/contrast"
+                android:padding="10dp"
+                android:tooltipText="@string/remove_bg"
+                android:foreground="?selectableItemBackground"
+                android:src="@drawable/ic_select_subject"
+                android:layout_marginStart="6dp"
+                app:tint="@color/black"/>
+
+            <ImageView
+                android:visibility="gone"
                 android:id="@+id/copyIcon"
                 android:layout_width="38dp"
                 android:layout_height="38dp"

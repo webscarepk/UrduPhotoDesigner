@@ -94,7 +94,7 @@
         tools:layout="@layout/fragment_preview_export" />
     <fragment
         android:id="@+id/bgRemovalFragment"
-        android:name="com.example.urduphotodesigner.ui.navigation.settings.BgRemovalFragment"
+        android:name="com.example.urduphotodesigner.ui.editor.panels.removeBg.BgRemovalFragment"
         android:label="fragment_bg_removal"
         tools:layout="@layout/fragment_bg_removal" />
 </navigation>

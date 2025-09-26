@@ -1171,6 +1171,24 @@ class CanvasViewModel @Inject constructor(
         _currentImageFilter.value = firstSelectedImageElement?.imageFilter
     }
 
+    fun applyMaskToSelected(maskedBitmap: Bitmap) {
+        val currentList = canvasElements.value ?: return
+        val selected = currentList.firstOrNull { it.isSelected && it.type == ElementType.IMAGE } ?: return
+
+        val context = selected.context
+
+        // Build updated element
+        val updated = selected.copy(
+            context = context,
+            bitmap = maskedBitmap,
+            bitmapData = ImageProcessor.bitmapToBase64(maskedBitmap) // keep persistence in sync
+        ).apply {
+            updatePaintProperties()
+        }
+
+        updateElement(updated) // reuse your undo/redo safe updater
+    }
+
     private fun getTypefaceForElement(element: CanvasElement, context: Context?): Typeface {
         return if (element.type == ElementType.TEXT && element.fontId != null) {
             val font = localFonts.value.find { it.id.toString() == element.fontId }

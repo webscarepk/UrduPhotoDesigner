@@ -246,8 +246,17 @@
     <string name="multiply">Multiply</string>
     <string name="screen">Screen</string>
     <string name="search_templates">Search templates</string>
-    <string name="hand_tool">Hand Tool</string>
-    <string name="invert_selection">Invert Selection</string>
+    <string name="hand_tool">Hand tool</string>
+    <string name="invert_selection">Invert selection</string>
+    <string name="select_subject">Select subject</string>
+    <string name="magic_wand">Magic wand</string>
+    <string name="lasso">Lasso</string>
+    <string name="rectangle">Rectangle</string>
+    <string name="circle">Circle</string>
+    <string name="remove_bg">Remove Bg</string>
+    <string name="add_to_selection">Add to selection</string>
+    <string name="remove_from_selection">Remove from selection</string>
+    <string name="clear_selection">Clear selection</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

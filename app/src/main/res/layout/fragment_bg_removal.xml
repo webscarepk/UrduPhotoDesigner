@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".ui.navigation.settings.BgRemovalFragment">
+    tools:context=".ui.editor.panels.removeBg.BgRemovalFragment">
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/topGuide"
@@ -119,7 +119,7 @@
         android:layout_gravity="center"
         android:visibility="gone"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/toolBar"
+        app:layout_constraintBottom_toTopOf="@+id/bottomNavigation"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
@@ -127,10 +127,12 @@
         android:id="@+id/miniToolbar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:layout_constraintEnd_toStartOf="@id/endGuide"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
-        app:layout_constraintBottom_toTopOf="@id/toolBar"
-        android:layout_marginBottom="10dp">
+        android:background="@color/white"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:paddingHorizontal="25dp"
+        app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
+        android:paddingVertical="10dp">
         <ImageView
             android:visibility="visible"
             android:id="@+id/handIcon"
@@ -184,13 +186,30 @@
         <ImageView
             android:visibility="visible"
             android:layout_width="38dp"
+            android:id="@+id/clearIcon"
+            android:layout_height="38dp"
+            android:tooltipText="@string/clear_selection"
+            android:padding="10dp"
+            android:foreground="?selectableItemBackground"
+            android:src="@drawable/ic_none"
+            android:background="@drawable/button_bg"
+            android:backgroundTint="@color/contrast"
+            android:layout_marginStart="5dp"
+            app:layout_constraintStart_toEndOf="@id/invertIcon"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:tint="@color/black"/>
+
+        <ImageView
+            android:visibility="visible"
+            android:layout_width="38dp"
             android:id="@+id/addIcon"
             android:layout_height="38dp"
-            android:tooltipText="@string/invert_selection"
+            android:tooltipText="@string/add_to_selection"
             android:padding="10dp"
             android:foreground="?selectableItemBackground"
             android:src="@drawable/ic_add"
-            android:background="@drawable/button_bg"
+            android:background="@drawable/ic_selection_button_bg"
             android:backgroundTint="@color/contrast"
             android:layout_marginEnd="5dp"
             app:layout_constraintEnd_toStartOf="@id/removeIcon"
@@ -203,11 +222,11 @@
             android:layout_width="38dp"
             android:id="@+id/removeIcon"
             android:layout_height="38dp"
-            android:tooltipText="@string/invert_selection"
+            android:tooltipText="@string/remove_from_selection"
             android:padding="10dp"
             android:foreground="?selectableItemBackground"
             android:src="@drawable/ic_remove"
-            android:background="@drawable/button_bg"
+            android:background="@drawable/ic_selection_button_bg"
             android:backgroundTint="@color/contrast"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -215,82 +234,24 @@
             app:tint="@color/black"/>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Toolbar for selection tools -->
-    <HorizontalScrollView
-        android:id="@+id/toolBar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="parent">
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:background="#FFFFFF">
-
-            <ImageButton
-                android:id="@+id/btnPan"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_group"
-                android:contentDescription="Pan Tool"
-                android:tint="@color/black" />
-
-            <Button
-                android:id="@+id/btnPickImage"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Pick Image"/>
-
-            <Button
-                android:id="@+id/btnSelectSubject"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Select Subject" />
-
-            <Button
-                android:id="@+id/btnBrush"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Brush"/>
-
-            <Button
-                android:id="@+id/btnRect"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Rectangle"/>
-
-            <Button
-                android:id="@+id/btnEllipse"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Ellipse"/>
-
-            <Button
-                android:id="@+id/btnAdd"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Add"/>
-
-            <Button
-                android:id="@+id/btnRemove"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Remove"/>
-
-            <Button
-                android:id="@+id/btnClear"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Clear"/>
-
-            <Button
-                android:id="@+id/btnExport"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/preview"/>
-        </LinearLayout>
-    </HorizontalScrollView>
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigation"
+        android:layout_width="0dp"
+        android:layout_height="63dp"
+        android:layout_gravity="center_vertical"
+        android:background="@color/white"
+        android:fitsSystemWindows="true"
+        android:padding="0dp"
+        android:paddingBottom="0dp"
+        app:itemIconTint="@color/bottom_nav_icon_color"
+        app:activeIndicatorLabelPadding="0dp"
+        app:itemActiveIndicatorStyle="@null"
+        app:itemBackground="@null"
+        app:labelVisibilityMode="unlabeled"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:menu="@menu/bottom_nav_selection"
+        app:paddingBottomSystemWindowInsets="true" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

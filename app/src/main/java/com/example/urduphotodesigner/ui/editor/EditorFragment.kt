@@ -487,11 +487,13 @@ class EditorFragment : Fragment() {
         val showFont = anySelected && hasText && !isMulti && !hasImage && !hasBackground
         val showCopy = anySelected && !hasBackground && !isMulti
         val showAlignWithSelection = isMulti
+        val showRemoveBg = hasImage || hasBackground && !isMulti
 
         updateIconVisibility(binding.opacityPane, anySelected)
         updateIconVisibility(binding.blendPane, anySelected)
         updateIconVisibility(binding.fontSizePane, showFont)
         updateIconVisibility(binding.copyIcon, showCopy)
+        updateIconVisibility(binding.cutOutIcon, showRemoveBg)
         updateIconVisibility(
             binding.alignmentKit,
             anySelected,
@@ -712,6 +714,9 @@ class EditorFragment : Fragment() {
         }
 
         binding.copyIcon.addPressEffect { viewModel.copySelectedElementsGroup() }
+
+        binding.cutOutIcon.addPressEffect {
+            findNavController().navigate(R.id.bgRemovalFragment) }
 
         binding.done.addPressEffect {
             viewModel.setCanvasView(sizedCanvasView)

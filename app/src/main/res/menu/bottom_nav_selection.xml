@@ -1,0 +1,28 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/nav_subject"
+        android:icon="@drawable/ic_select_subject"
+        android:title="@string/select_subject" />
+
+    <item
+        android:id="@+id/nav_magic_wand"
+        android:icon="@drawable/ic_magic_wand"
+        android:title="@string/magic_wand" />
+
+    <item
+        android:id="@+id/nav_lasso"
+        android:icon="@drawable/ic_lasso"
+        android:title="@string/lasso" />
+
+    <item
+        android:id="@+id/nav_rect"
+        android:icon="@drawable/ic_rect"
+        android:title="@string/rectangle" />
+
+    <item
+        android:id="@+id/nav_circle"
+        android:icon="@drawable/ic_circle"
+        android:title="@string/circle" />
+
+</menu>
