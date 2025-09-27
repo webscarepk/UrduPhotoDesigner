@@ -32,59 +32,38 @@ object Utils {
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     isInside = true
-                    v.animate()
-                        .scaleX(0.9f)
-                        .scaleY(0.9f)
-                        .setDuration(80)
-                        .start()
+                    v.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80).start()
                     true
                 }
 
                 MotionEvent.ACTION_MOVE -> {
                     // Check if finger is still inside view bounds
-                    val insideNow = event.x >= 0 && event.x <= v.width &&
-                            event.y >= 0 && event.y <= v.height
+                    val insideNow =
+                        event.x >= 0 && event.x <= v.width && event.y >= 0 && event.y <= v.height
                     if (isInside && !insideNow) {
                         // Finger moved out → cancel press effect
                         isInside = false
-                        v.animate()
-                            .scaleX(1f)
-                            .scaleY(1f)
-                            .setDuration(120)
-                            .start()
+                        v.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
                     } else if (!isInside && insideNow) {
                         // Finger moved back in → reapply press effect
                         isInside = true
-                        v.animate()
-                            .scaleX(0.9f)
-                            .scaleY(0.9f)
-                            .setDuration(80)
-                            .start()
+                        v.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80).start()
                     }
                     true
                 }
 
                 MotionEvent.ACTION_UP -> {
-                    v.animate()
-                        .scaleX(1f)
-                        .scaleY(1f)
-                        .setDuration(120)
-                        .withEndAction {
-                            if (isInside) {
-                                onClick?.invoke() ?: v.performClick()
-                            }
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(120).withEndAction {
+                        if (isInside) {
+                            onClick?.invoke() ?: v.performClick()
                         }
-                        .start()
+                    }.start()
                     true
                 }
 
                 MotionEvent.ACTION_CANCEL -> {
                     isInside = false
-                    v.animate()
-                        .scaleX(1f)
-                        .scaleY(1f)
-                        .setDuration(120)
-                        .start()
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
                     true
                 }
 
@@ -95,8 +74,7 @@ object Utils {
 
     @SuppressLint("ClickableViewAccessibility")
     fun View.addPressEffectWithLongClick(
-        onClick: (() -> Unit)? = null,
-        onLongClick: (() -> Unit)? = null
+        onClick: (() -> Unit)? = null, onLongClick: (() -> Unit)? = null
     ) {
         var isInside = false
         var longPressed = false
@@ -118,18 +96,14 @@ object Utils {
                     longPressed = false
                     handler.postDelayed(longPressRunnable, longPressTimeout)
 
-                    v.animate()
-                        .scaleX(0.9f)
-                        .scaleY(0.9f)
-                        .setDuration(80)
-                        .start()
+                    v.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80).start()
 
                     true
                 }
 
                 MotionEvent.ACTION_MOVE -> {
-                    val insideNow = event.x in 0f..v.width.toFloat() &&
-                            event.y in 0f..v.height.toFloat()
+                    val insideNow =
+                        event.x in 0f..v.width.toFloat() && event.y in 0f..v.height.toFloat()
 
                     if (!insideNow && isInside) {
                         isInside = false
@@ -152,11 +126,7 @@ object Utils {
                         onClick?.invoke()
                     }
 
-                    v.animate()
-                        .scaleX(1f)
-                        .scaleY(1f)
-                        .setDuration(120)
-                        .start()
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
 
                     isInside = false
                     true
@@ -165,11 +135,7 @@ object Utils {
                 MotionEvent.ACTION_CANCEL -> {
                     handler.removeCallbacks(longPressRunnable)
                     isInside = false
-                    v.animate()
-                        .scaleX(1f)
-                        .scaleY(1f)
-                        .setDuration(120)
-                        .start()
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
                     true
                 }
 
@@ -187,18 +153,17 @@ object Utils {
         lastVibrateTime = now
 
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val manager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            val manager =
+                context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
             manager.defaultVibrator
         } else {
-            @Suppress("DEPRECATION")
-            context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            @Suppress("DEPRECATION") context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             vibrator.vibrate(VibrationEffect.createOneShot(durationMs, amplitude))
         } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(durationMs)
+            @Suppress("DEPRECATION") vibrator.vibrate(durationMs)
         }
     }
 
@@ -208,8 +173,7 @@ object Utils {
         clipboard.setPrimaryClip(clip)
         Snackbar.make(
             view, // root view of your Activity
-            "Copied to clipboard",
-            Snackbar.LENGTH_SHORT
+            "Copied to clipboard", Snackbar.LENGTH_SHORT
         ).show()
 
     }
@@ -239,7 +203,9 @@ object Utils {
             "youtube" in lower || "thumbnail" in lower || "channel art" in lower -> R.drawable.ic_youtube
 
             // Printing
-            listOf("a4", "letter", "poster", "flyer", "business card", "invitation", "resume").any { it in lower } -> R.drawable.ic_print
+            listOf(
+                "a4", "letter", "poster", "flyer", "business card", "invitation", "resume"
+            ).any { it in lower } -> R.drawable.ic_print
 
             // Fallback
             else -> R.drawable.ic_image_layer

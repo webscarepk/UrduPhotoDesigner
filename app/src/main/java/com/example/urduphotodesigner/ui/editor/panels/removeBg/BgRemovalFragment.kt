@@ -1,15 +1,19 @@
 package com.example.urduphotodesigner.ui.editor.panels.removeBg
 
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
+import android.app.Dialog
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.LinearInterpolator
 import android.widget.ImageView
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -18,6 +22,7 @@ import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.common.views.BgRemovalCanvas
+import com.example.urduphotodesigner.databinding.DialogLoadingProgressBinding
 import com.example.urduphotodesigner.databinding.FragmentBgRemovalBinding
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.segmentation.subject.SubjectSegmentation
@@ -32,7 +37,23 @@ class BgRemovalFragment : Fragment() {
 
     private var _binding: FragmentBgRemovalBinding? = null
     private val binding get() = _binding!!
-
+    private var loadingDialog: Dialog? = null
+    private var dialogBinding: DialogLoadingProgressBinding? = null
+    private var rotationAnimator: ObjectAnimator? = null
+    private var progressAnimator: ValueAnimator? = null
+    private val loadingMessages = listOf(
+        "Analyzing image details…",
+        "Tracing fine edges…",
+        "Refining selection for accuracy…",
+        "Final touches in progress…",
+        "Enhancing sharp areas…",
+        "Softening rough edges…",
+        "Balancing light and dark regions…",
+        "Improving mask precision…",
+        "Cleaning background smoothly…",
+        "Almost ready, preparing final result…"
+    )
+    private var messageIndex = 0
     private val viewModel: CanvasViewModel by activityViewModels()
     private var preview = true
 
@@ -63,6 +84,81 @@ class BgRemovalFragment : Fragment() {
         setEvents()
 
         binding.imageCanvas.setActionMode(BgRemovalCanvas.ActionMode.ADD)
+    }
+
+    private fun showLoadingDialog() {
+        if (loadingDialog?.isShowing == true) return
+        dialogBinding = DialogLoadingProgressBinding.inflate(LayoutInflater.from(requireActivity()))
+
+        loadingDialog = Dialog(requireContext()).apply {
+            setContentView(dialogBinding!!.root)
+            setCancelable(false)
+            window?.setBackgroundDrawableResource(android.R.color.transparent)
+            window?.setLayout(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            window?.setGravity(Gravity.CENTER)
+            show()
+        }
+
+        // start animated progress loop
+        startProgressLoop()
+        startIconRotation()
+
+        // start rotating messages
+        lifecycleScope.launch {
+            while (loadingDialog?.isShowing == true) {
+                dialogBinding?.subtitle?.text = loadingMessages[messageIndex]
+                dialogBinding?.title?.text = getString(R.string.processing_your_image)
+                dialogBinding?.tvProgressPercent?.text = getString(R.string.please_wait)
+                dialogBinding?.cancel?.isVisible = true
+                dialogBinding?.cancel?.addPressEffect { binding.imageCanvas.cancelProcessing() }
+                messageIndex = (messageIndex + 1) % loadingMessages.size
+                kotlinx.coroutines.delay(2000) // change text every 2s
+            }
+        }
+    }
+
+    private fun startProgressLoop() {
+        progressAnimator = ValueAnimator.ofInt(0, 100).apply {
+            duration = 1000L
+            repeatMode = ValueAnimator.RESTART
+            repeatCount = ValueAnimator.INFINITE
+            addUpdateListener { animator ->
+                dialogBinding?.progressBar?.progress = animator.animatedValue as Int
+            }
+            start()
+        }
+    }
+
+    private fun startIconRotation() {
+        dialogBinding?.view4?.let { icon ->
+            rotationAnimator = ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, 360f).apply {
+                duration = 1000L
+                repeatCount = ValueAnimator.INFINITE
+                interpolator = LinearInterpolator()
+                start()
+            }
+        }
+    }
+
+    private fun stopProgressLoop() {
+        progressAnimator?.cancel()
+        progressAnimator = null
+    }
+
+    private fun stopIconRotation() {
+        rotationAnimator?.cancel()
+        rotationAnimator = null
+    }
+
+    private fun dismissLoadingDialog() {
+        stopProgressLoop()
+        stopIconRotation()
+        loadingDialog?.dismiss()
+        loadingDialog = null
+        dialogBinding = null
     }
 
     private fun setEvents() {
@@ -150,6 +246,15 @@ class BgRemovalFragment : Fragment() {
     }
 
     private fun imageCallbacks() {
+        binding.imageCanvas.onProcessingChanged = { isProcessing ->
+            if (isProcessing) {
+                showLoadingDialog()
+            } else {
+                dismissLoadingDialog()
+            }
+        }
+
+
         binding.imageCanvas.onToolModeChanged = { mode ->
             // sync bottom nav / icons
             when (mode) {
@@ -199,7 +304,7 @@ class BgRemovalFragment : Fragment() {
     }
 
     private fun runSubjectSegmentation(bitmap: Bitmap) {
-        binding.progressBar.visibility = View.VISIBLE
+        showLoadingDialog()
 
         val image = InputImage.fromBitmap(bitmap, 0)
 
@@ -215,16 +320,16 @@ class BgRemovalFragment : Fragment() {
 
                         withContext(Dispatchers.Main) {
                             binding.imageCanvas.applyGeneratedMask(maskBuffer, width, height)
-                            binding.progressBar.visibility = View.GONE
+                            showLoadingDialog()
                         }
                     }
                 } else {
-                    binding.progressBar.visibility = View.GONE
+                    dismissLoadingDialog()
                 }
             }
             .addOnFailureListener { e ->
                 e.printStackTrace()
-                binding.progressBar.visibility = View.GONE
+                dismissLoadingDialog()
             }
     }
 

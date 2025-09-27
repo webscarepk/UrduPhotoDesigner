@@ -257,6 +257,10 @@
     <string name="add_to_selection">Add to selection</string>
     <string name="remove_from_selection">Remove from selection</string>
     <string name="clear_selection">Clear selection</string>
+    <string name="wand_tolerance">Wand tolerance</string>
+    <string name="refine_radius">Refine radius</string>
+    <string name="processing_your_image">Processing your image</string>
+    <string name="please_wait">Please wait!</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

@@ -79,7 +79,7 @@
     <LinearLayout
         android:orientation="vertical"
         android:id="@+id/alignmentKit"
-        android:visibility="visible"
+        android:visibility="gone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
@@ -227,7 +227,7 @@
         android:layout_height="wrap_content"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintBottom_toTopOf="@id/panelNavHost"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintStart_toStartOf="parent"
         android:scrollbars="none">
         <LinearLayout
             android:orientation="horizontal"
@@ -235,7 +235,21 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="6dp">
 
+            <ImageView
+                android:visibility="visible"
+                android:id="@+id/showHide"
+                android:layout_width="25dp"
+                android:layout_height="38dp"
+                android:background="@drawable/button_bg"
+                android:backgroundTint="@color/white"
+                android:paddingVertical="10dp"
+                android:tooltipText="@string/copy"
+                android:foreground="?selectableItemBackground"
+                android:src="@drawable/ic_back"
+                app:tint="@color/black"/>
+
             <LinearLayout
+                android:layout_marginStart="6dp"
                 android:visibility="gone"
                 android:id="@+id/opacityPane"
                 android:layout_width="wrap_content"

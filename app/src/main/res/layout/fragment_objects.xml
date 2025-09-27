@@ -85,13 +85,10 @@
             android:textSize="15sp"
             android:maxLines="1"
             android:singleLine="true"
+            android:layout_gravity="center_vertical"
             android:background="@drawable/button_bg_small"
             android:paddingHorizontal="12dp"
             android:drawablePadding="6dp"
-            app:layout_constraintEnd_toStartOf="@id/centerGuide"
-            app:layout_constraintStart_toEndOf="@id/startGuide"
-            app:layout_constraintTop_toTopOf="@id/tabLayout"
-            app:layout_constraintBottom_toBottomOf="@id/tabLayout"
             android:textColorHint="@android:color/darker_gray"
             android:backgroundTint="@color/contrast"
             android:hint="@string/search_here"/>
@@ -108,10 +105,7 @@
             app:tabGravity="fill"
             app:tabSelectedTextColor="@color/appColor"
             app:tabTextColor="@color/black"
-            app:tabRippleColor="@color/contrast"
-            app:layout_constraintStart_toEndOf="@id/centerGuide"
-            app:layout_constraintEnd_toStartOf="@id/endGuide"
-            app:layout_constraintTop_toBottomOf="@id/topGuide"/>
+            app:tabRippleColor="@color/contrast"/>
     </LinearLayout>
 
     <androidx.viewpager2.widget.ViewPager2

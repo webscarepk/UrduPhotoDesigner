@@ -69,24 +69,15 @@ object ImageProcessor {
 
     fun copyUriToTempFile(context: Context, uri: Uri): File? {
         return try {
-            val bitmap = getBitmapFromUri(context, uri)
-            val extension = when (getFileExtension(context, uri).lowercase()) {
-                "png" -> "png"
-                "webp" -> "webp"
-                else -> "jpg"
-            }
-            val format = when (extension) {
-                "png" -> Bitmap.CompressFormat.PNG
-                "webp" -> Bitmap.CompressFormat.WEBP
-                else -> Bitmap.CompressFormat.JPEG
-            }
+            val extension = getFileExtension(context, uri).lowercase()
             val dir = imagesDir(context)
             ensureDir(dir)
             val file = File(dir, "img_${System.currentTimeMillis()}.$extension")
-            FileOutputStream(file).use { out ->
-                bitmap.compress(format, 100, out)
-                out.flush()
-                out.fd.sync()
+
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(file).use { output ->
+                    input.copyTo(output) // ✅ direct copy, no recompression
+                }
             }
             file
         } catch (e: Exception) {

@@ -112,17 +112,6 @@
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         android:layout_marginVertical="10dp"/>
 
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_gravity="center"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/bottomNavigation"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
-
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/miniToolbar"
         android:layout_width="0dp"
@@ -199,7 +188,7 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:tint="@color/black"/>
-
+        
         <ImageView
             android:visibility="visible"
             android:layout_width="38dp"

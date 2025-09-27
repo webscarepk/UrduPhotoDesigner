@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.graphics.scale
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -103,18 +104,23 @@ class ObjectsListFragment : Fragment() {
     }
 
     private fun bitmapCompress(image: Bitmap): Bitmap {
-        val canvasWidth = 300
-        val canvasHeight = 300
+        val canvasWidth = viewModel.canvasSize.value?.width ?: return image
+        val canvasHeight = viewModel.canvasSize.value?.height ?: return image
 
-        val widthRatio = canvasWidth.toFloat() / image.width
-        val heightRatio = canvasHeight.toFloat() / image.height
-        val minScale = minOf(1f, widthRatio, heightRatio)
+        val maxWidth = (canvasWidth - 200)
+        val maxHeight = (canvasHeight - 200)
 
-        val newWidth = (image.width * minScale).toInt()
-        val newHeight = (image.height * minScale).toInt()
+        val widthRatio = maxWidth / image.width
+        val heightRatio = maxHeight / image.height
 
-        val resized = Bitmap.createScaledBitmap(image, newWidth, newHeight, true)
-        return resized
+        val scale = minOf(widthRatio, heightRatio)
+
+        // Only scale if larger than boundary
+        return if (scale < 1f) {
+            image.scale((image.width * scale).toInt(), (image.height * scale).toInt())
+        } else {
+            image
+        }
     }
 
     private fun initObservers() {

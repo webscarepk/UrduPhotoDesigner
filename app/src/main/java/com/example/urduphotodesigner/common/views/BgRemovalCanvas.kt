@@ -19,15 +19,19 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import androidx.core.graphics.createBitmap
+import androidx.core.graphics.get
 import androidx.core.graphics.scale
+import androidx.core.graphics.set
 import androidx.core.graphics.withMatrix
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.nio.FloatBuffer
 import kotlin.math.abs
+import kotlin.math.sqrt
 
 class BgRemovalCanvas @JvmOverloads constructor(
     context: Context,
@@ -35,7 +39,9 @@ class BgRemovalCanvas @JvmOverloads constructor(
     var onToolModeChanged: ((ToolMode?) -> Unit)? = null,
     var onActionModeChanged: ((ActionMode) -> Unit)? = null,
     var onPreviewChanged: ((Boolean) -> Unit)? = null,
-    var onMaskConfirmed: ((Bitmap) -> Unit)? = null
+    var onMaskConfirmed: ((Bitmap) -> Unit)? = null,
+    var onProcessingChanged: ((Boolean) -> Unit)? = null,
+    var onProcessingCancelled: (() -> Unit)? = null
 ) : View(context, attrs) {
 
 
@@ -94,6 +100,8 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
     private var isRenderCacheDirty = true
 
+    private var edgeMap: Bitmap? = null
+
     private val whiteOverlayPaint = Paint().apply {
         color = Color.argb(150, 255, 255, 255) // semi-transparent white
         style = Paint.Style.FILL
@@ -124,6 +132,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var isCancelled = false
 
     init {
         // ✅ marching ants animator
@@ -144,12 +153,11 @@ class BgRemovalCanvas @JvmOverloads constructor(
     fun setImage(bitmap: Bitmap) {
         imageBitmap = bitmap
         if (width > 0 && height > 0) calculateImageRect()
+        scope.launch(Dispatchers.Default) {
+            edgeMap = computeEdgeMap(bitmap)
+        }
         markRenderCacheDirty()
         invalidate()
-    }
-
-    fun setWandTolerance(value: Int) {
-        wandTolerance = value.coerceIn(0, 255)
     }
 
     fun setPreviewMode(enabled: Boolean) {
@@ -189,6 +197,33 @@ class BgRemovalCanvas @JvmOverloads constructor(
         markRenderCacheDirty()
     }
 
+    private fun computeEdgeMap(bmp: Bitmap): Bitmap {
+        val w = bmp.width
+        val h = bmp.height
+        val edge = createBitmap(w, h)
+
+        val gx = arrayOf(intArrayOf(-1, 0, 1), intArrayOf(-2, 0, 2), intArrayOf(-1, 0, 1))
+        val gy = arrayOf(intArrayOf(-1, -2, -1), intArrayOf(0, 0, 0), intArrayOf(1, 2, 1))
+
+        for (y in 1 until h - 1) {
+            for (x in 1 until w - 1) {
+                var sumX = 0
+                var sumY = 0
+                for (ky in -1..1) {
+                    for (kx in -1..1) {
+                        val color = bmp[x + kx, y + ky]
+                        val gray = (Color.red(color) + Color.green(color) + Color.blue(color)) / 3
+                        sumX += gx[ky + 1][kx + 1] * gray
+                        sumY += gy[ky + 1][kx + 1] * gray
+                    }
+                }
+                val mag = (sqrt((sumX * sumX + sumY * sumY).toDouble())).toInt().coerceIn(0, 255)
+                edge[x, y] = Color.rgb(mag, mag, mag)
+            }
+        }
+        return edge
+    }
+
     private suspend fun maskBufferToBitmap(
         buffer: FloatBuffer, maskWidth: Int, maskHeight: Int
     ): Bitmap {
@@ -199,7 +234,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
                 for (x in 0 until maskWidth) {
                     val confidence = buffer.get()
                     val color = if (confidence > 0.5f) Color.WHITE else Color.TRANSPARENT
-                    bitmap.setPixel(x, y, color)
+                    bitmap[x, y] = color
                 }
             }
             bitmap
@@ -209,6 +244,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
     fun applyGeneratedMask(buffer: FloatBuffer, maskWidth: Int, maskHeight: Int) {
         isApplyingMask = true
         scope.launch {
+            onProcessingChanged?.invoke(true)
             val maskBitmap = maskBufferToBitmap(buffer, maskWidth, maskHeight)
 
             val scaled = withContext(Dispatchers.Default) {
@@ -234,11 +270,12 @@ class BgRemovalCanvas @JvmOverloads constructor(
                     transform(matrix)
                 }
             }
-            // commit -> will update selectionPath and cache
-            commitPath(subjectPath)
-            // Save donePaths already handled by commitPath
-            isApplyingMask = false
-            invalidate()
+            withContext(Dispatchers.Main) {
+                commitPath(subjectPath)
+                isApplyingMask = false
+                onProcessingChanged?.invoke(false)
+                invalidate()
+            }
         }
     }
 
@@ -270,10 +307,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
                         val ndir = (dir + i) % 8
                         val nx = x + dirs[ndir][0]
                         val ny = y + dirs[ndir][1]
-                        if (nx in 0 until w && ny in 0 until h && mask.getPixel(
-                                nx, ny
-                            ) == Color.WHITE
-                        ) {
+                        if (nx in 0 until w && ny in 0 until h && mask[nx, ny] == Color.WHITE) {
                             x = nx; y = ny
                             path.lineTo(x.toFloat(), y.toFloat())
                             visited[y][x] = true
@@ -289,12 +323,9 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
             for (y in 1 until h - 1) {
                 for (x in 1 until w - 1) {
-                    if (!visited[y][x] && mask.getPixel(x, y) == Color.WHITE) {
-                        val isEdge = mask.getPixel(x - 1, y) == Color.TRANSPARENT || mask.getPixel(
-                            x + 1, y
-                        ) == Color.TRANSPARENT || mask.getPixel(
-                            x, y - 1
-                        ) == Color.TRANSPARENT || mask.getPixel(x, y + 1) == Color.TRANSPARENT
+                    if (!visited[y][x] && mask[x, y] == Color.WHITE) {
+                        val isEdge =
+                            mask[x - 1, y] == Color.TRANSPARENT || mask[x + 1, y] == Color.TRANSPARENT || mask[x, y - 1] == Color.TRANSPARENT || mask[x, y + 1] == Color.TRANSPARENT
                         if (isEdge) traceContour(x, y)
                     }
                 }
@@ -343,26 +374,6 @@ class BgRemovalCanvas @JvmOverloads constructor(
             markRenderCacheDirty()
             invalidate()
         }
-    }
-
-    private fun rebuildPathsFromDone() {
-        paths.clear()
-        for (p in donePaths) {
-            paths.add(Path(p))
-        }
-    }
-
-    private fun rebuildSelectionPath() {
-        if (donePaths.isEmpty()) {
-            selectionPath = null
-            return
-        }
-        // Compute union only once when history changes
-        val merged = Path(donePaths[0])
-        for (i in 1 until donePaths.size) {
-            merged.op(merged, donePaths[i], Path.Op.UNION)
-        }
-        selectionPath = merged
     }
 
     private fun calculateImageRect() {
@@ -459,16 +470,31 @@ class BgRemovalCanvas @JvmOverloads constructor(
                     val safeX = imgX.toInt().coerceIn(0, bmp.width - 1)
                     val safeY = imgY.toInt().coerceIn(0, bmp.height - 1)
 
-                    val targetColor = bmp.getPixel(safeX, safeY)
+                    val targetColor = bmp[safeX, safeY]
 
                     scope.launch {
-                        // build mask bitmap off-main thread
-                        val mask = floodFillMask(bmp, safeX, safeY, targetColor, wandTolerance)
+                        onProcessingChanged?.invoke(true)
 
-                        // convert mask → smooth contour path
-                        val rawPath = maskToContourPath(mask)
+                        val workingBmp = if (bmp.width > 512) {
+                            bmp.scale(512, (bmp.height * (512f / bmp.width)).toInt(), false)
+                        } else bmp
 
-                        // scale bitmap path to imageRect
+                        val scaleX = bmp.width.toFloat() / workingBmp.width
+                        val scaleY = bmp.height.toFloat() / workingBmp.height
+
+                        val mask = floodFillMask(
+                            workingBmp,
+                            (safeX / scaleX).toInt(),
+                            (safeY / scaleY).toInt(),
+                            targetColor,
+                            wandTolerance
+                        )
+
+                        val resizedMask = mask.scale(bmp.width, bmp.height, false)
+
+                        val rawPath = maskToContourPath(resizedMask)
+
+                        // scale path to imageRect
                         val matrix = Matrix()
                         matrix.setRectToRect(
                             RectF(0f, 0f, bmp.width.toFloat(), bmp.height.toFloat()),
@@ -477,11 +503,12 @@ class BgRemovalCanvas @JvmOverloads constructor(
                         )
                         rawPath.transform(matrix)
 
-                        // commit result on main thread
                         withContext(Dispatchers.Main) {
                             commitPath(rawPath)
+                            onProcessingChanged?.invoke(false)
                         }
                     }
+
                 }
             }
         }
@@ -518,38 +545,53 @@ class BgRemovalCanvas @JvmOverloads constructor(
     ): Bitmap = withContext(Dispatchers.Default) {
         val w = bmp.width
         val h = bmp.height
+        val mask = createBitmap(w, h)
         val visited = Array(h) { BooleanArray(w) }
-        val mask = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
 
-        val queue = ArrayDeque<Pair<Int, Int>>()
-        queue.add(startX to startY)
+        val stack = ArrayDeque<Pair<Int, Int>>()
+        stack.add(startX to startY)
+        var processed = 0
+        while (stack.isNotEmpty()) {
+            if (isCancelled) return@withContext mask
+            val (x, y) = stack.removeLast()
+            if (x !in 0 until w || y !in 0 until h) continue
+            if (visited[y][x]) continue
+            if (!isColorSimilar(targetColor, bmp[x, y], tolerance)) continue
 
-        while (queue.isNotEmpty()) {
-            val (cx, cy) = queue.removeFirst()
-            if (cx !in 0 until w || cy !in 0 until h) continue
-            if (visited[cy][cx]) continue
-
-            val color = bmp.getPixel(cx, cy)
-            if (isColorSimilar(targetColor, color, tolerance)) {
-                visited[cy][cx] = true
-                mask.setPixel(cx, cy, Color.WHITE)
-
-                // neighbors
-                queue.add(cx + 1 to cy)
-                queue.add(cx - 1 to cy)
-                queue.add(cx to cy + 1)
-                queue.add(cx to cy - 1)
+            // expand left/right in one scan
+            var lx = x
+            while (lx >= 0 && !visited[y][lx] && isColorSimilar(targetColor, bmp[lx, y], tolerance)) {
+                mask[lx, y] = Color.WHITE
+                visited[y][lx] = true
+                if (y > 0) stack.add(lx to y - 1)
+                if (y < h - 1) stack.add(lx to y + 1)
+                lx--
+                processed++
+            }
+            var rx = x + 1
+            while (rx < w && !visited[y][rx] && isColorSimilar(targetColor, bmp[rx, y], tolerance)) {
+                mask[rx, y] = Color.WHITE
+                visited[y][rx] = true
+                if (y > 0) stack.add(rx to y - 1)
+                if (y < h - 1) stack.add(rx to y + 1)
+                rx++
+                processed++
+            }
+            if (processed % 10_000 == 0) {
+                withContext(Dispatchers.Main) {
+                    onProcessingChanged?.invoke(true) // still working
+                }
             }
         }
         mask
     }
 
     private fun isColorSimilar(c1: Int, c2: Int, tol: Int): Boolean {
-        val r1 = Color.red(c1);
-        val g1 = Color.green(c1);
+        val r1 = Color.red(c1)
+        val g1 = Color.green(c1)
         val b1 = Color.blue(c1)
-        val r2 = Color.red(c2);
-        val g2 = Color.green(c2);
+        val r2 = Color.red(c2)
+        val g2 = Color.green(c2)
         val b2 = Color.blue(c2)
         return (abs(r1 - r2) <= tol && abs(g1 - g2) <= tol && abs(b1 - b2) <= tol)
     }
@@ -907,13 +949,14 @@ class BgRemovalCanvas @JvmOverloads constructor(
         }
     }
 
-    private fun featherMask(mask: Bitmap, radius: Float): Bitmap {
+    private fun featherMask(mask: Bitmap): Bitmap {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             isFilterBitmap = true
-            maskFilter = android.graphics.BlurMaskFilter(radius, android.graphics.BlurMaskFilter.Blur.NORMAL)
+            maskFilter =
+                android.graphics.BlurMaskFilter(3f, android.graphics.BlurMaskFilter.Blur.NORMAL)
         }
 
-        val output = Bitmap.createBitmap(mask.width, mask.height, Bitmap.Config.ARGB_8888)
+        val output = createBitmap(mask.width, mask.height)
         val canvas = Canvas(output)
         canvas.drawBitmap(mask, 0f, 0f, paint)
         return output
@@ -980,7 +1023,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
             val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
             }
-            val smoothMask = featherMask(mask, 3f) // radius tweakable
+            val smoothMask = featherMask(mask) // radius tweakable
             fullCanvas.drawBitmap(smoothMask, 0f, 0f, paint)
 
             // 🔹 Step 2: Crop masked image to tight bounds
@@ -1026,4 +1069,15 @@ class BgRemovalCanvas @JvmOverloads constructor(
         }
     }
 
+    fun cancelProcessing() {
+        isCancelled = true
+        scope.coroutineContext.cancelChildren() // cancel ongoing coroutines
+        onProcessingChanged?.invoke(false)
+        onProcessingCancelled?.invoke()
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        cancelProcessing()
+    }
 }

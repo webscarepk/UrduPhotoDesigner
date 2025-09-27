@@ -41,6 +41,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.getValue
+import androidx.core.graphics.scale
 
 @AndroidEntryPoint
 class ObjectsFragment : Fragment() {
@@ -195,18 +196,23 @@ class ObjectsFragment : Fragment() {
     }
 
     private fun bitmapCompress(image: Bitmap): Bitmap {
-        val canvasWidth = 300
-        val canvasHeight = 300
+        val canvasWidth = viewModel.canvasSize.value?.width ?: return image
+        val canvasHeight = viewModel.canvasSize.value?.height ?: return image
 
-        val widthRatio = canvasWidth.toFloat() / image.width
-        val heightRatio = canvasHeight.toFloat() / image.height
-        val minScale = minOf(1f, widthRatio, heightRatio)
+        val maxWidth = (canvasWidth - 200)
+        val maxHeight = (canvasHeight - 200)
 
-        val newWidth = (image.width * minScale).toInt()
-        val newHeight = (image.height * minScale).toInt()
+        val widthRatio = maxWidth / image.width
+        val heightRatio = maxHeight / image.height
 
-        val resized = Bitmap.createScaledBitmap(image, newWidth, newHeight, true)
-        return resized
+        val scale = minOf(widthRatio, heightRatio)
+
+        // Only scale if larger than boundary
+        return if (scale < 1f) {
+            image.scale((image.width * scale).toInt(), (image.height * scale).toInt())
+        } else {
+            image
+        }
     }
 
     private fun handlePickedUri(uri: Uri) {
@@ -238,28 +244,6 @@ class ObjectsFragment : Fragment() {
             } catch (e: Exception) {
                 Log.e("PhotoPicker", "Failed compressing image", e)
             }
-        }
-    }
-
-    private fun updateIconVisibility(
-        view: View,
-        shouldBeVisible: Boolean,
-        @AnimRes animShow: Int = R.anim.slide_up_2,
-        @AnimRes animHide: Int = R.anim.slide_down_2
-    ) {
-        val isVisible = view.visibility == View.VISIBLE
-
-        if (shouldBeVisible && !isVisible) {
-            view.visibility = View.VISIBLE
-            view.startAnimation(AnimationUtils.loadAnimation(view.context, animShow))
-        } else if (!shouldBeVisible && isVisible) {
-            if (view == binding.searchIcon) {
-                binding.searchBar.isVisible = false
-            }
-            val anim = AnimationUtils.loadAnimation(view.context, animHide)
-            view.startAnimation(anim)
-            val duration = anim.duration
-            view.postDelayed({ view.visibility = View.GONE }, duration)
         }
     }
 

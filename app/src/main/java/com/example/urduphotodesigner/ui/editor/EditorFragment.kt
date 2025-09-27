@@ -77,7 +77,7 @@ class EditorFragment : Fragment() {
     private lateinit var canvasManager: CanvasManager
     private var _navController: NavController? = null
     private val navController get() = _navController!!
-
+    private var panelsLocked = false
     private lateinit var canvasSize: CanvasSize
     private var currentUnit = UnitType.PIXELS
     private val viewModel: CanvasViewModel by activityViewModels()
@@ -478,6 +478,19 @@ class EditorFragment : Fragment() {
     }
 
     private fun updateToolbarVisibility(selected: List<CanvasElement>) {
+        if (panelsLocked) {
+            // 🔒 force hide everything
+            resetPanelsOnSelectionChange()
+            updateIconVisibility(binding.opacityPane, false)
+            updateIconVisibility(binding.blendPane, false)
+            updateIconVisibility(binding.fontSizePane, false)
+            updateIconVisibility(binding.copyIcon, false)
+            updateIconVisibility(binding.cutOutIcon, false)
+            updateIconVisibility(binding.alignmentKit, false)
+            updateIconVisibility(binding.selection, false)
+            return
+        }
+
         val hasText = selected.any { it.type == ElementType.TEXT }
         val hasImage = selected.any { it.type == ElementType.IMAGE }
         val hasBackground = selected.any { it.type == ElementType.BACKGROUND }
@@ -630,6 +643,16 @@ class EditorFragment : Fragment() {
     private fun initUIControls() {
         binding.undo.addPressEffect { viewModel.undo() }
         binding.redo.addPressEffect { viewModel.redo() }
+        binding.showHide.addPressEffect {
+            panelsLocked = !panelsLocked
+            if (panelsLocked) {
+                resetPanelsOnSelectionChange()
+                binding.showHide.animate().rotation(180f).setDuration(300).start()
+            } else {
+                binding.showHide.animate().rotation(0f).setDuration(300).start()
+            }
+            updateToolbarVisibility(viewModel.selectedElements.value ?: emptyList())
+        }
 
         binding.opacityIcon.addPressEffect { togglePanel(showOpacityPanel = true) }
         binding.opacityValue.addPressEffect { togglePanel(showOpacityPanel = true) }
