@@ -3,10 +3,13 @@ package com.example.urduphotodesigner.common.utils
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.ImageDecoder
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.net.Uri
 import android.os.Build
@@ -19,6 +22,7 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 import androidx.core.graphics.createBitmap
+import kotlin.math.min
 
 object ImageProcessor {
 
@@ -301,7 +305,7 @@ object ImageProcessor {
     fun applyFilter(src: Bitmap, filter: ImageFilter?): Bitmap {
         if (filter == null || filter is ImageFilter.None) return src
 
-        val output = createBitmap(src.width, src.height, src.config!!)
+        val output = createBitmap(src.width, src.height, src.config ?: Bitmap.Config.ARGB_8888)
         val canvas = Canvas(output)
         val paint = Paint()
 
@@ -413,10 +417,117 @@ object ImageProcessor {
                 postConcat(contrast)
             })
 
+            ImageFilter.BrightnessBoost -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(floatArrayOf(
+                    1.2f, 0f, 0f, 0f, 30f,
+                    0f, 1.2f, 0f, 0f, 30f,
+                    0f, 0f, 1.2f, 0f, 30f,
+                    0f, 0f, 0f, 1f, 0f
+                ))
+            })
+
+            ImageFilter.Sharpen -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(floatArrayOf(
+                    2f, -1f, -1f, 0f, 0f,
+                    -1f,  2f, -1f, 0f, 0f,
+                    -1f, -1f,  2f, 0f, 0f,
+                    0f,  0f,  0f, 1f, 0f
+                ))
+            })
+
+            ImageFilter.Sketch -> ColorMatrixColorFilter(ColorMatrix().apply {
+                setSaturation(0f)
+            })
+
+            ImageFilter.Cartoon -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(floatArrayOf(
+                    1.5f, 0f, 0f, 0f, -30f,
+                    0f, 1.5f, 0f, 0f, -30f,
+                    0f, 0f, 1.5f, 0f, -30f,
+                    0f, 0f, 0f, 1f,  0f
+                ))
+            })
+
+            ImageFilter.HDR -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(floatArrayOf(
+                    1.3f, 0f, 0f, 0f, -20f,
+                    0f, 1.3f, 0f, 0f, -20f,
+                    0f, 0f, 1.3f, 0f, -20f,
+                    0f, 0f, 0f, 1f,  0f
+                ))
+            })
+
+            ImageFilter.Lomo -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(floatArrayOf(
+                    1.2f, 0.2f, 0.1f, 0f, 10f,
+                    0.1f, 1.0f, 0f, 0f, 5f,
+                    0.1f, 0.1f, 1.2f, 0f, -10f,
+                    0f, 0f, 0f, 1f, 0f
+                ))
+            })
+
+            ImageFilter.Pastel -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(floatArrayOf(
+                    1f, 0f, 0f, 0f, 20f,
+                    0f, 1f, 0f, 0f, 20f,
+                    0f, 0f, 1f, 0f, 20f,
+                    0f, 0f, 0f, 1f, 0f
+                ))
+            })
+
+            ImageFilter.Dramatic -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(floatArrayOf(
+                    1.5f, 0f, 0f, 0f, -40f,
+                    0f, 1.5f, 0f, 0f, -40f,
+                    0f, 0f, 1.5f, 0f, -40f,
+                    0f, 0f, 0f, 1f, 0f
+                ))
+            })
+
+            ImageFilter.GoldenHour -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(floatArrayOf(
+                    1.2f, 0.2f, 0f, 0f, 30f,
+                    0.1f, 1.1f, 0f, 0f, 20f,
+                    0f, 0f, 0.8f, 0f, -10f,
+                    0f, 0f, 0f, 1f, 0f
+                ))
+            })
+
+            ImageFilter.Cyberpunk -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(floatArrayOf(
+                    0.9f, 0.2f, 0.6f, 0f, 30f,
+                    0.1f, 0.8f, 0.5f, 0f, 10f,
+                    0.2f, 0.3f, 1.5f, 0f, -20f,
+                    0f,   0f,   0f, 1f,  0f
+                ))
+            })
+
             else -> null
         }
+        val scale = min(
+            output.width.toFloat() / src.width.toFloat(),
+            output.height.toFloat() / src.height.toFloat()
+        )
+        val dx = (output.width - src.width * scale) / 2f
+        val dy = (output.height - src.height * scale) / 2f
+        val matrix = Matrix().apply {
+            postScale(scale, scale)
+            postTranslate(dx, dy)
+        }
+        canvas.drawBitmap(src, matrix, paint)
+        if (filter == ImageFilter.SoftBlur) {
+            val blurPaint = Paint().apply {
+                maskFilter = BlurMaskFilter(8f, BlurMaskFilter.Blur.NORMAL)
+            }
+            canvas.drawBitmap(output, 0f, 0f, blurPaint)
+        } else if (filter == ImageFilter.Glow) {
+            val glowPaint = Paint().apply {
+                maskFilter = BlurMaskFilter(15f, BlurMaskFilter.Blur.OUTER)
+                color = Color.argb(120, 255, 255, 200)
+            }
+            canvas.drawBitmap(output, 0f, 0f, glowPaint)
+        }
 
-        canvas.drawBitmap(src, 0f, 0f, paint)
         return output
     }
 

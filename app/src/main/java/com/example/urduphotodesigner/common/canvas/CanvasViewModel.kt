@@ -1693,7 +1693,7 @@ class CanvasViewModel @Inject constructor(
         _isExplicitChange = isExplicit
         val currentList = _canvasElements.value ?: return
         val targetElement =
-            currentList.find { it.id == elementId && it.type == ElementType.IMAGE } ?: return
+            currentList.find { it.id == elementId } ?: return
 
         val oldFilter = targetElement.imageFilter
         if (oldFilter != newFilter) {
@@ -1876,6 +1876,9 @@ class CanvasViewModel @Inject constructor(
             ) // Push a copy for undo, without transient data
             _redoStack.clear()
             _canvasElements.value = currentList.filter { it.id != element.id }
+            if (element.type == ElementType.BACKGROUND) {
+                _backgroundImage.value = null
+            }
             refreshSelectedElements()
             selectedElement = null
             notifyUndoRedoChanged()
@@ -2245,7 +2248,7 @@ class CanvasViewModel @Inject constructor(
                 _loadingStage.postValue("Applying to canvas" to 90)
                 withContext(Dispatchers.Main) {
 
-                    if (elements.isNotEmpty()) {
+                    if (elements.isNotEmpty() && elements[0].type == ElementType.BACKGROUND) {
                         val bg = elements[0]
 
                         _backgroundColor.value = bg.backgroundColor

@@ -14,6 +14,8 @@ import com.example.urduphotodesigner.ui.editor.panels.background.backgrounds.Ima
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
+import androidx.core.graphics.scale
 
 @AndroidEntryPoint
 class ImagesListFragment : Fragment() {
@@ -44,7 +46,7 @@ class ImagesListFragment : Fragment() {
 
     private fun setEvents() {
         imagesAdapter = ImagesAdapter(){ image ->
-            val resized = bitmapCompress(image)
+            val resized = viewModel.canvasSize.value?.height?.roundToInt()?.let { viewModel.canvasSize.value?.width?.let { it1 -> bitmapCompress(image, it1.roundToInt(), it) } }
             viewModel.addSticker(resized, requireActivity())
         }
         binding.backgrounds.adapter = imagesAdapter
@@ -62,19 +64,20 @@ class ImagesListFragment : Fragment() {
         }
     }
 
-    private fun bitmapCompress(image: Bitmap): Bitmap {
-        val canvasWidth = 300
-        val canvasHeight = 300
-
+    private fun bitmapCompress(image: Bitmap, canvasWidth: Int, canvasHeight: Int): Bitmap {
+        // Calculate ratios
         val widthRatio = canvasWidth.toFloat() / image.width
         val heightRatio = canvasHeight.toFloat() / image.height
-        val minScale = minOf(1f, widthRatio, heightRatio)
+        val scale = minOf(widthRatio, heightRatio)
 
-        val newWidth = (image.width * minScale).toInt()
-        val newHeight = (image.height * minScale).toInt()
+        // Optional: limit the scale factor (to avoid extremely huge bitmaps)
+        val maxScale = 3f  // allow up to 3× enlargement
+        val finalScale = scale.coerceAtMost(maxScale)
 
-        val resized = Bitmap.createScaledBitmap(image, newWidth, newHeight, true)
-        return resized
+        val newWidth = (image.width * finalScale).toInt().coerceAtLeast(1)
+        val newHeight = (image.height * finalScale).toInt().coerceAtLeast(1)
+
+        return image.scale(newWidth, newHeight)
     }
 
     override fun onDestroy() {

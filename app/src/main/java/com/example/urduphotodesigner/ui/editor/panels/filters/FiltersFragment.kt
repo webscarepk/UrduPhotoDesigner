@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.ElementType
@@ -37,8 +38,19 @@ class FiltersFragment : Fragment() {
         FilterItem("Teal Orange", ImageFilter.TealOrange),
         FilterItem("Black White", ImageFilter.BlackWhite),
         FilterItem("High Contrast", ImageFilter.HighContrast),
-        FilterItem("Vintage", ImageFilter.Vintage)
-        // Add more filters as you implement them in SizedCanvasView
+        FilterItem("Vintage", ImageFilter.Vintage),
+        FilterItem("Brightness", ImageFilter.BrightnessBoost),
+        FilterItem("Soft Blur", ImageFilter.SoftBlur),
+        FilterItem("Sharpen", ImageFilter.Sharpen),
+        FilterItem("Glow", ImageFilter.Glow),
+        FilterItem("Sketch", ImageFilter.Sketch),
+        FilterItem("Cartoon", ImageFilter.Cartoon),
+        FilterItem("HDR", ImageFilter.HDR),
+        FilterItem("Lomo", ImageFilter.Lomo),
+        FilterItem("Pastel", ImageFilter.Pastel),
+        FilterItem("Dramatic", ImageFilter.Dramatic),
+        FilterItem("Golden Hour", ImageFilter.GoldenHour),
+        FilterItem("Cyberpunk", ImageFilter.Cyberpunk)
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,7 +83,6 @@ class FiltersFragment : Fragment() {
             }
         }
         binding.filtersRecyclerView.apply {
-            layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
             adapter = filtersAdapter
         }
 
@@ -81,10 +92,7 @@ class FiltersFragment : Fragment() {
     }
 
     private fun initObservers() {
-        // Observe changes to the currently selected image filter in the ViewModel
         viewModel.currentImageFilter.observe(viewLifecycleOwner) { currentFilter ->
-            // Update the adapter's selected filter. This will trigger the efficient
-            // notifyItemChanged calls within the adapter's setter.
             filtersAdapter.selectedFilter = currentFilter
         }
     }

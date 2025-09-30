@@ -19,6 +19,7 @@ import com.example.urduphotodesigner.ui.editor.panels.background.backgrounds.Ima
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @AndroidEntryPoint
 class ObjectsListFragment : Fragment() {
@@ -58,7 +59,7 @@ class ObjectsListFragment : Fragment() {
 
     private fun setEvents() {
         imagesAdapter = ImagesAdapter { image ->
-            val resized = bitmapCompress(image)
+            val resized = viewModel.canvasSize.value?.height?.roundToInt()?.let { viewModel.canvasSize.value?.width?.let { it1 -> bitmapCompress(image, it1.roundToInt(), it) } }
             viewModel.addSticker(resized, requireActivity())
         }
 
@@ -103,24 +104,20 @@ class ObjectsListFragment : Fragment() {
         setEvents()
     }
 
-    private fun bitmapCompress(image: Bitmap): Bitmap {
-        val canvasWidth = viewModel.canvasSize.value?.width ?: return image
-        val canvasHeight = viewModel.canvasSize.value?.height ?: return image
-
-        val maxWidth = (canvasWidth - 200)
-        val maxHeight = (canvasHeight - 200)
-
-        val widthRatio = maxWidth / image.width
-        val heightRatio = maxHeight / image.height
-
+    private fun bitmapCompress(image: Bitmap, canvasWidth: Int, canvasHeight: Int): Bitmap {
+        // Calculate ratios
+        val widthRatio = canvasWidth.toFloat() / image.width
+        val heightRatio = canvasHeight.toFloat() / image.height
         val scale = minOf(widthRatio, heightRatio)
 
-        // Only scale if larger than boundary
-        return if (scale < 1f) {
-            image.scale((image.width * scale).toInt(), (image.height * scale).toInt())
-        } else {
-            image
-        }
+        // Optional: limit the scale factor (to avoid extremely huge bitmaps)
+        val maxScale = 3f  // allow up to 3× enlargement
+        val finalScale = scale.coerceAtMost(maxScale)
+
+        val newWidth = (image.width * finalScale).toInt().coerceAtLeast(1)
+        val newHeight = (image.height * finalScale).toInt().coerceAtLeast(1)
+
+        return image.scale(newWidth, newHeight)
     }
 
     private fun initObservers() {

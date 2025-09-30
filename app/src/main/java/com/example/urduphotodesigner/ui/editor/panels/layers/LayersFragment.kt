@@ -316,9 +316,9 @@ class LayersFragment : Fragment() {
             true
         )
 
-        popupWindow.elevation = 5f
+        popupWindow.elevation = 2f
         popupWindow.isOutsideTouchable = true
-        popupWindow.animationStyle = R.style.PopupFadeAnimation
+        
 
         // ---- item logic ----
         popupBinding.visibility.findViewById<TextView>(R.id.visibility)
@@ -341,43 +341,39 @@ class LayersFragment : Fragment() {
             popupWindow.dismiss()
         }
 
-        // ---- placement logic ----
         anchorView.post {
-            val screenWidth = resources.displayMetrics.widthPixels
             val screenHeight = resources.displayMetrics.heightPixels
-            val margin = (20 * resources.displayMetrics.density).toInt()
 
             val location = IntArray(2)
             anchorView.getLocationOnScreen(location)
-            val anchorLeft = location[0]
             val anchorTop = location[1]
             val anchorBottom = anchorTop + anchorView.height
 
+            // Measure popup height
             popupBinding.root.measure(
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
             )
             val popupHeight = popupBinding.root.measuredHeight
-            val popupWidth = popupBinding.root.measuredWidth
 
             val spaceBelow = screenHeight - anchorBottom
             val spaceAbove = anchorTop
 
-            val y = if (spaceBelow >= popupHeight + margin) {
-                anchorBottom
-            } else if (spaceAbove >= popupHeight + margin) {
-                anchorTop - popupHeight
+            if (spaceBelow >= popupHeight) {
+                // Enough space below → dropdown
+                popupWindow.showAsDropDown(anchorView)
+            } else if (spaceAbove >= popupHeight) {
+                // Enough space above → show on top
+                popupWindow.showAtLocation(
+                    anchorView,
+                    Gravity.NO_GRAVITY,
+                    location[0], // x
+                    anchorTop - popupHeight // y (above anchor)
+                )
             } else {
-                anchorBottom
+                // Default fallback → force dropdown
+                popupWindow.showAsDropDown(anchorView)
             }
-
-            var x = anchorLeft
-            if (x + popupWidth > screenWidth - margin) {
-                x = screenWidth - margin - popupWidth
-            }
-            if (x < margin) x = margin
-
-            popupWindow.showAtLocation(anchorView, Gravity.NO_GRAVITY, x, y)
         }
     }
 

@@ -1159,107 +1159,182 @@ class CanvasView @JvmOverloads constructor(
             })
 
             ImageFilter.Sepia -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        0.393f, 0.769f, 0.189f, 0f, 0f,
-                        0.349f, 0.686f, 0.168f, 0f, 0f,
-                        0.272f, 0.534f, 0.131f, 0f, 0f,
-                        0f, 0f, 0f, 1f, 0f
-                    )
-                )
+                set(floatArrayOf(
+                    0.393f, 0.769f, 0.189f, 0f, 0f,
+                    0.349f, 0.686f, 0.168f, 0f, 0f,
+                    0.272f, 0.534f, 0.131f, 0f, 0f,
+                    0f,     0f,     0f,    1f, 0f
+                ))
             })
 
             ImageFilter.Invert -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        -1f, 0f, 0f, 0f, 255f,
-                        0f, -1f, 0f, 0f, 255f,
-                        0f, 0f, -1f, 0f, 255f,
-                        0f, 0f, 0f, 1f, 0f
-                    )
-                )
+                set(floatArrayOf(
+                    -1f, 0f, 0f, 0f, 255f,
+                    0f, -1f, 0f, 0f, 255f,
+                    0f, 0f, -1f, 0f, 255f,
+                    0f, 0f, 0f, 1f, 0f
+                ))
             })
 
             ImageFilter.CoolTint -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        1.1f, 0f, 0f, 0f, -20f,
-                        0f, 1f, 0f, 0f, 0f,
-                        0f, 0f, 1.3f, 0f, 20f,
-                        0f, 0f, 0f, 1f, 0f
-                    )
-                )
+                set(floatArrayOf(
+                    1.1f, 0f,   0f, 0f, -20f,
+                    0f,   1f,   0f, 0f,   0f,
+                    0f,   0f, 1.3f, 0f,  20f,
+                    0f,   0f,   0f, 1f,   0f
+                ))
             })
 
             ImageFilter.WarmTint -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        1.3f, 0f, 0f, 0f, 30f,
-                        0f, 1f, 0f, 0f, 0f,
-                        0f, 0f, 0.8f, 0f, -20f,
-                        0f, 0f, 0f, 1f, 0f
-                    )
-                )
+                set(floatArrayOf(
+                    1.3f, 0f,   0f, 0f,  30f,
+                    0f,   1f,   0f, 0f,   0f,
+                    0f,   0f, 0.8f, 0f, -20f,
+                    0f,   0f,   0f, 1f,   0f
+                ))
             })
 
             ImageFilter.Vintage -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        0.9f, 0.3f, 0.1f, 0f, 5f,
-                        0.2f, 0.8f, 0.2f, 0f, 5f,
-                        0.1f, 0.2f, 0.7f, 0f, -10f,
-                        0f, 0f, 0f, 1f, 0f
-                    )
-                )
+                set(floatArrayOf(
+                    0.9f, 0.3f, 0.1f, 0f,  5f,
+                    0.2f, 0.8f, 0.2f, 0f,  5f,
+                    0.1f, 0.2f, 0.7f, 0f, -10f,
+                    0f,   0f,   0f, 1f,   0f
+                ))
             })
 
             ImageFilter.Film -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        1.2f, 0.1f, 0.1f, 0f, 15f,
-                        0.1f, 1.2f, 0.1f, 0f, 10f,
-                        0.1f, 0.1f, 0.9f, 0f, -10f,
-                        0f, 0f, 0f, 1f, 0f
-                    )
-                )
+                set(floatArrayOf(
+                    1.2f, 0.1f, 0.1f, 0f,  15f,
+                    0.1f, 1.2f, 0.1f, 0f,  10f,
+                    0.1f, 0.1f, 0.9f, 0f, -10f,
+                    0f,   0f,   0f, 1f,   0f
+                ))
             })
 
             ImageFilter.TealOrange -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        1.2f, 0f, 0f, 0f, 20f,
-                        0f, 1.0f, 0f, 0f, 0f,
-                        0f, 0f, 0.8f, 0f, -10f,
-                        0f, 0f, 0f, 1f, 0f
-                    )
-                )
+                set(floatArrayOf(
+                    1.2f, 0f,   0f, 0f, 20f,
+                    0f,   1f,   0f, 0f,  0f,
+                    0f,   0f, 0.8f, 0f,-10f,
+                    0f,   0f,   0f, 1f,  0f
+                ))
             })
 
             ImageFilter.HighContrast -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        1.5f, 0f, 0f, 0f, -50f,
-                        0f, 1.5f, 0f, 0f, -50f,
-                        0f, 0f, 1.5f, 0f, -50f,
-                        0f, 0f, 0f, 1f, 0f
-                    )
-                )
+                set(floatArrayOf(
+                    1.5f, 0f, 0f, 0f, -50f,
+                    0f, 1.5f, 0f, 0f, -50f,
+                    0f, 0f, 1.5f, 0f, -50f,
+                    0f, 0f, 0f, 1f,   0f
+                ))
             })
 
             ImageFilter.BlackWhite -> {
                 val cm = ColorMatrix().apply { setSaturation(0f) }
                 val contrast = ColorMatrix().apply {
-                    set(
-                        floatArrayOf(
-                            1.4f, 0f, 0f, 0f, -50f,
-                            0f, 1.4f, 0f, 0f, -50f,
-                            0f, 0f, 1.4f, 0f, -50f,
-                            0f, 0f, 0f, 1f, 0f
-                        )
-                    )
+                    set(floatArrayOf(
+                        1.4f, 0f, 0f, 0f, -50f,
+                        0f, 1.4f, 0f, 0f, -50f,
+                        0f, 0f, 1.4f, 0f, -50f,
+                        0f, 0f, 0f, 1f,   0f
+                    ))
                 }
                 cm.postConcat(contrast)
                 ColorMatrixColorFilter(cm)
+            }
+
+            ImageFilter.BrightnessBoost -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(floatArrayOf(
+                    1.2f, 0f,   0f, 0f, 30f,
+                    0f, 1.2f,   0f, 0f, 30f,
+                    0f,   0f, 1.2f, 0f, 30f,
+                    0f,   0f,   0f, 1f,  0f
+                ))
+            })
+
+            ImageFilter.Sharpen -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(floatArrayOf(
+                    2f, -1f, -1f, 0f, 0f,
+                    -1f,  2f, -1f, 0f, 0f,
+                    -1f, -1f,  2f, 0f, 0f,
+                    0f,  0f,  0f, 1f, 0f
+                ))
+            })
+
+            ImageFilter.Sketch -> ColorMatrixColorFilter(ColorMatrix().apply {
+                setSaturation(0f)
+            })
+
+            ImageFilter.Cartoon -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(floatArrayOf(
+                    1.5f, 0f, 0f, 0f, -30f,
+                    0f, 1.5f, 0f, 0f, -30f,
+                    0f, 0f, 1.5f, 0f, -30f,
+                    0f, 0f, 0f, 1f,   0f
+                ))
+            })
+
+            ImageFilter.HDR -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(floatArrayOf(
+                    1.3f, 0f, 0f, 0f, -20f,
+                    0f, 1.3f, 0f, 0f, -20f,
+                    0f, 0f, 1.3f, 0f, -20f,
+                    0f, 0f, 0f, 1f,   0f
+                ))
+            })
+
+            ImageFilter.Lomo -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(floatArrayOf(
+                    1.2f, 0.2f, 0.1f, 0f, 10f,
+                    0.1f, 1.0f, 0.1f, 0f,  5f,
+                    0.1f, 0.1f, 1.2f, 0f,-10f,
+                    0f,   0f,   0f, 1f,   0f
+                ))
+            })
+
+            ImageFilter.Pastel -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(floatArrayOf(
+                    1.0f, 0f, 0f, 0f, 20f,
+                    0f, 1.0f, 0f, 0f, 20f,
+                    0f, 0f, 1.0f, 0f, 20f,
+                    0f, 0f, 0f, 1f,   0f
+                ))
+            })
+
+            ImageFilter.Dramatic -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(floatArrayOf(
+                    1.5f, 0f, 0f, 0f, -40f,
+                    0f, 1.5f, 0f, 0f, -40f,
+                    0f, 0f, 1.5f, 0f, -40f,
+                    0f, 0f, 0f, 1f,   0f
+                ))
+            })
+
+            ImageFilter.GoldenHour -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(floatArrayOf(
+                    1.2f, 0.2f, 0f, 0f, 30f,
+                    0.1f, 1.1f, 0f, 0f, 20f,
+                    0f, 0f, 0.8f, 0f,-10f,
+                    0f, 0f, 0f, 1f,  0f
+                ))
+            })
+
+            ImageFilter.Cyberpunk -> ColorMatrixColorFilter(ColorMatrix().apply {
+                set(floatArrayOf(
+                    0.9f, 0.2f, 0.6f, 0f, 30f,
+                    0.1f, 0.8f, 0.5f, 0f, 10f,
+                    0.2f, 0.3f, 1.5f, 0f,-20f,
+                    0f,   0f,   0f, 1f,   0f
+                ))
+            })
+
+            ImageFilter.Glow -> {
+                null
+            }
+
+            ImageFilter.SoftBlur -> {
+                null
             }
         }
     }
@@ -1295,14 +1370,31 @@ class CanvasView @JvmOverloads constructor(
                         when (element.type) {
                             ElementType.TEXT -> drawTextElement(canvas, element)
                             else -> {
-                                element.paint.colorFilter = colorFilterFor(element.imageFilter)
-                                element.bitmap?.let {
-                                    canvas.drawBitmap(
-                                        it,
-                                        -it.width / 2f,
-                                        -it.height / 2f,
-                                        element.paint
-                                    )
+                                element.bitmap?.let { bmp ->
+                                    element.paint.colorFilter = colorFilterFor(element.imageFilter)
+
+                                    element.paint.maskFilter = null
+
+                                    when (element.imageFilter) {
+                                        ImageFilter.SoftBlur -> {
+                                            element.paint.maskFilter = BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
+                                            canvas.drawBitmap(bmp, -bmp.width / 2f, -bmp.height / 2f, element.paint)
+                                        }
+
+                                        ImageFilter.Glow -> {
+                                            canvas.drawBitmap(bmp, -bmp.width / 2f, -bmp.height / 2f, element.paint)
+
+                                            val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                                                color = Color.argb(180, 255, 255, 200) // glowing yellow
+                                                maskFilter = BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
+                                            }
+                                            canvas.drawBitmap(bmp, -bmp.width / 2f, -bmp.height / 2f, glowPaint)
+                                        }
+
+                                        else -> {
+                                            canvas.drawBitmap(bmp, -bmp.width / 2f, -bmp.height / 2f, element.paint)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1551,7 +1643,30 @@ class CanvasView @JvmOverloads constructor(
             canvas.withTranslation(left, top) {
                 scale(totalScale, totalScale)
                 rotate(e.rotation, bmp.width / 2f, bmp.height / 2f)
-                drawBitmap(bmp, 0f, 0f, backgroundPaint)
+                backgroundPaint.colorFilter = colorFilterFor(e.imageFilter)
+                backgroundPaint.maskFilter = null
+
+                when (e.imageFilter) {
+                    ImageFilter.SoftBlur -> {
+                        backgroundPaint.maskFilter =
+                            BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
+                        drawBitmap(bmp, 0f, 0f, backgroundPaint)
+                    }
+
+                    ImageFilter.Glow -> {
+                        drawBitmap(bmp, 0f, 0f, backgroundPaint)
+
+                        val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                            color = Color.argb(180, 255, 255, 200)
+                            maskFilter = BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
+                        }
+                        drawBitmap(bmp, 0f, 0f, glowPaint)
+                    }
+
+                    else -> {
+                        drawBitmap(bmp, 0f, 0f, backgroundPaint)
+                    }
+                }
             }
             return
         }
