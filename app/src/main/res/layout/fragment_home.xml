@@ -53,13 +53,25 @@
         android:translationZ="12dp"
         android:padding="20dp">
 
-        <ImageView
-            android:layout_width="88dp"
-            android:layout_height="34dp"
-            android:src="@drawable/ic_app_icon"
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@id/subscriptions"
+            app:layout_constraintBottom_toBottomOf="@id/subscriptions"
+            android:text="@string/home"
+            android:fontFamily="@font/bold"
+            android:textSize="19sp"
+            android:textColor="@color/white"
+            android:id="@+id/title"/>
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_subscriptions"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            android:id="@+id/appIcon"
+            android:id="@+id/subscriptions"
             />
 
         <EditText
@@ -79,28 +91,28 @@
             android:textColorHint="@color/gray"
             android:drawableTint="@color/gray"
             android:textColor="@color/black"
-            app:layout_constraintTop_toBottomOf="@id/appIcon"
-            android:layout_marginTop="24dp"/>
+            app:layout_constraintTop_toBottomOf="@id/subscriptions"
+            android:layout_marginTop="18dp"/>
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:orientation="vertical"
-            android:layout_marginEnd="6dp"
+            android:layout_marginEnd="10dp"
             android:id="@+id/create"
             app:layout_constraintBottom_toTopOf="@id/fileText"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@id/blankCanvas"
             app:layout_constraintTop_toBottomOf="@id/searchBar"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="14dp"
             android:layout_marginStart="12dp"
             android:foreground="?selectableItemBackground"
             android:background="@drawable/button_bg"
             android:backgroundTint="@color/white"
             android:gravity="center">
             <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
                 android:src="@drawable/ic_create"/>
 
             <TextView
@@ -110,7 +122,7 @@
                 android:fontFamily="@font/bold"
                 android:textSize="12sp"
                 android:textColor="@color/black"
-                android:layout_marginTop="12dp"/>
+                android:layout_marginTop="5dp"/>
         </LinearLayout>
 
         <LinearLayout
@@ -127,8 +139,8 @@
             android:backgroundTint="@color/white"
             android:gravity="center">
             <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
                 android:src="@drawable/ic_blank_canvas"/>
 
             <TextView
@@ -138,14 +150,14 @@
                 android:fontFamily="@font/bold"
                 android:textSize="12sp"
                 android:textColor="@color/black"
-                android:layout_marginTop="12dp"/>
+                android:layout_marginTop="5dp"/>
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:orientation="vertical"
-            android:layout_marginStart="6dp"
+            android:layout_marginStart="10dp"
             android:id="@+id/templates"
             android:layout_marginEnd="12dp"
             app:layout_constraintEnd_toEndOf="parent"
@@ -157,8 +169,8 @@
             android:backgroundTint="@color/white"
             android:gravity="center">
             <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
                 android:src="@drawable/ic_templates_mixed"/>
 
             <TextView
@@ -168,7 +180,7 @@
                 android:fontFamily="@font/bold"
                 android:textSize="12sp"
                 android:textColor="@color/black"
-                android:layout_marginTop="12dp"/>
+                android:layout_marginTop="5dp"/>
         </LinearLayout>
 
         <LinearLayout
@@ -191,14 +203,14 @@
                 android:textColor="@color/white" />
 
             <TextView
-                android:layout_marginStart="5dp"
+                android:id="@+id/fileTab"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/filesTab"
+                android:layout_marginStart="5dp"
                 android:fontFamily="@font/bold"
-                android:textSize="12sp"
+                android:text="@string/filesTab"
                 android:textColor="@color/white"
-                android:id="@+id/fileTab"/>
+                android:textSize="12sp" />
         </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
@@ -218,6 +230,7 @@
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:paddingHorizontal="19dp"
+                android:layout_marginTop="10dp"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 app:layout_constraintStart_toStartOf="parent"

@@ -337,7 +337,9 @@ class FilesListFragment : Fragment() {
                     item,
                     requireActivity()
                 )
-                findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                view?.post {
+                    findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                }
             }
 
             is ImageEntity -> {
@@ -352,7 +354,9 @@ class FilesListFragment : Fragment() {
                     canvasViewModel.clearCanvas()
                     canvasViewModel.setCanvasSize(canvasSize)
                     canvasViewModel.setCanvasBackgroundImage(it)
-                    findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                    view?.post {
+                        findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                    }
                 }
             }
         }
@@ -648,7 +652,9 @@ class FilesListFragment : Fragment() {
                 lifecycleScope.launch {
                     delay(500)
                     if (findNavController().currentDestination?.id != R.id.editorFragment) {
-                        findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                        view?.post {
+                            findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                        }
                     }
                 }
             }

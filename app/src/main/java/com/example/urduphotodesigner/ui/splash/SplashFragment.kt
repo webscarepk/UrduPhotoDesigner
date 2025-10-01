@@ -1,10 +1,12 @@
 package com.example.urduphotodesigner.ui.splash
 
+import android.os.Build
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsets
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
@@ -28,9 +30,16 @@ class SplashFragment : Fragment() {
         return binding.root
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            requireActivity().window.insetsController?.hide(
+                WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars()
+            )
+        }
+    }
     override fun onResume() {
         super.onResume()
-
         setEvents()
     }
 
@@ -40,8 +49,12 @@ class SplashFragment : Fragment() {
             val navOptions = NavOptions.Builder()
                 .setPopUpTo(R.id.splashFragment, true)
                 .build()
-
-            findNavController().navigate(R.id.homeFragment, null, navOptions)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                requireActivity().window.insetsController?.show(
+                    WindowInsets.Type.statusBars()
+                )
+            }
+            view?.post { findNavController().navigate(R.id.homeFragment, null, navOptions) }
         }
     }
 

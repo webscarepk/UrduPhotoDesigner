@@ -67,7 +67,8 @@
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/title"
         app:cardBackgroundColor="@color/appColor"
-        app:cardElevation="10dp"
+        app:cardElevation="3dp"
+        android:outlineSpotShadowColor="@color/shadowColor"
         android:layout_marginTop="20dp"
         app:cardCornerRadius="10dp">
         <androidx.constraintlayout.widget.ConstraintLayout

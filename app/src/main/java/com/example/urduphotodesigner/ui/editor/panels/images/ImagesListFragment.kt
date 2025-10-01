@@ -44,10 +44,40 @@ class ImagesListFragment : Fragment() {
         initObservers()
     }
 
+    fun Bitmap.trimTransparentEdges(): Bitmap {
+        val width = this.width
+        val height = this.height
+        val pixels = IntArray(width * height)
+        this.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        var top = height
+        var left = width
+        var right = 0
+        var bottom = 0
+
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                val alpha = pixels[x + y * width] shr 24 and 0xff
+                if (alpha > 0) { // pixel is not transparent
+                    if (x < left) left = x
+                    if (x > right) right = x
+                    if (y < top) top = y
+                    if (y > bottom) bottom = y
+                }
+            }
+        }
+
+        return if (right < left || bottom < top) {
+            this // image fully transparent, return original
+        } else {
+            Bitmap.createBitmap(this, left, top, right - left + 1, bottom - top + 1)
+        }
+    }
+
     private fun setEvents() {
         imagesAdapter = ImagesAdapter(){ image ->
             val resized = viewModel.canvasSize.value?.height?.roundToInt()?.let { viewModel.canvasSize.value?.width?.let { it1 -> bitmapCompress(image, it1.roundToInt(), it) } }
-            viewModel.addSticker(resized, requireActivity())
+            viewModel.addSticker(resized?.trimTransparentEdges(), requireActivity())
         }
         binding.backgrounds.adapter = imagesAdapter
     }

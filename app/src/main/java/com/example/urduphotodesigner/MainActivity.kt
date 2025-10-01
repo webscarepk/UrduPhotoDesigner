@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.NavOptions
@@ -35,9 +36,7 @@ class MainActivity : AppCompatActivity() {
     private var _navController: NavController? = null
     private val navController get() = _navController!!
     private val viewModel: CanvasViewModel by viewModels()
-    val navOptions = NavOptions.Builder()
-        .setLaunchSingleTop(true)
-        .build()
+    val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri?.let {
@@ -126,13 +125,19 @@ class MainActivity : AppCompatActivity() {
 
         navController.addOnDestinationChangedListener { _, destination, _ ->
             val visibleDestinations = setOf(
-                R.id.homeFragment,
-                R.id.templatesFragment,
-                R.id.filesFragment,
-                R.id.settingsFragment
+                R.id.homeFragment, R.id.templatesFragment, R.id.filesFragment, R.id.settingsFragment
             )
-            binding.bottomNavigation.visibility =
-                if (destination.id in visibleDestinations) View.VISIBLE else View.GONE
+            if (destination.id in visibleDestinations) {
+                if (!binding.bottomNavigation.isVisible) {
+                    binding.bottomNavigation.apply {
+                        visibility = View.VISIBLE
+                        translationY = height.toFloat()
+                        animate().translationY(0f).setDuration(500).start()
+                    }
+                }
+            } else {
+                binding.bottomNavigation.visibility = View.GONE
+            }
 
             // ✅ Selection only, NO navigation here
             when (destination.id) {
@@ -160,9 +165,7 @@ class MainActivity : AppCompatActivity() {
                     finish()
                 }
 
-                R.id.templatesFragment,
-                R.id.filesFragment,
-                R.id.settingsFragment -> {
+                R.id.templatesFragment, R.id.filesFragment, R.id.settingsFragment -> {
                     navController.navigate(R.id.homeFragment, null, navOptions)
                 }
 
@@ -199,9 +202,7 @@ class MainActivity : AppCompatActivity() {
                     val bitmap = BitmapFactory.decodeStream(inputStream)
                     if (bitmap != null) {
                         val canvasSize = CanvasSize(
-                            "From Image",
-                            bitmap.width.toFloat(),
-                            bitmap.height.toFloat()
+                            "From Image", bitmap.width.toFloat(), bitmap.height.toFloat()
                         )
                         viewModel.clearCanvas()
                         viewModel.setCanvasSize(canvasSize)

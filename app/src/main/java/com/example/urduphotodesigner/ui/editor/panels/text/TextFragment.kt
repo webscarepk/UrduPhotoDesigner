@@ -110,7 +110,7 @@ class TextFragment : Fragment() {
             }
         })
 
-        binding.addText.addPressEffect { viewModel.addText("Tap to edit", requireActivity()) }
+        binding.addText.addPressEffect { viewModel.addText(requireActivity().getString(R.string.dummyText), requireActivity()) }
         binding.addFont.addPressEffect {
             pickFont.launch("*/*")
         }

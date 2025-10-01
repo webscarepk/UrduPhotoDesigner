@@ -298,7 +298,7 @@ class FilesAdapter(
             card.setCardBackgroundColor(Color.TRANSPARENT)
             card.strokeWidth = 0
         } else {
-            card.cardElevation = 5f
+            card.cardElevation = 3f
             card.setCardBackgroundColor(card.context.getColor(R.color.selection))
             card.strokeWidth = 1
             card.strokeColor = card.context.getColor(R.color.white)

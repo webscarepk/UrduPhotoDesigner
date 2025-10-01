@@ -96,8 +96,7 @@ class PopularFontsListFragment : Fragment() {
                     font,
                     requireActivity()
                 )
-
-                findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                view?.post { findNavController().navigate(R.id.editorFragment, bundle, navOptions) }
             }
         }, onDownload = {
             mainViewModel.downloadFont(it)
@@ -231,11 +230,12 @@ class PopularFontsListFragment : Fragment() {
                                 )
 
                                 if (isAdded && findNavController().currentDestination?.id != R.id.editorFragment) {
-                                    findNavController().navigate(
+                                    view?.post { findNavController().navigate(
                                         R.id.editorFragment,
                                         bundle,
                                         navOptions
                                     )
+                                    }
                                 }
                             }
                         }

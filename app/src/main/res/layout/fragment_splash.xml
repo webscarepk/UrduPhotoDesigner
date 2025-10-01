@@ -4,8 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".ui.splash.SplashFragment"
-    android:background="@color/whiteText">
+    tools:context=".ui.splash.SplashFragment">
 
     <ImageView
         android:layout_width="0dp"
@@ -18,31 +17,21 @@
         android:scaleType="centerCrop"/>
 
     <androidx.constraintlayout.widget.Guideline
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.7"
-        android:id="@+id/guideline"/>
-
-    <ImageView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@drawable/ic_app_icon"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/guideline"
-        android:id="@+id/appIcon"/>
-
-    <TextView
+        app:layout_constraintGuide_percent="0.5"
+        android:orientation="horizontal"
+        android:id="@+id/centerGuide"/>
+    <ImageView
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="@string/lorem_ispum"
-        app:layout_constraintStart_toStartOf="@id/appIcon"
-        app:layout_constraintEnd_toEndOf="@id/appIcon"
-        app:layout_constraintTop_toBottomOf="@id/appIcon"
-        android:fontFamily="@font/regular"
-        android:textSize="12sp"
-        android:gravity="center"
-        android:layout_marginTop="12dp"/>
+        android:scaleX="0.5"
+        android:scaleY="0.5"
+        android:src="@drawable/app_icon"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/centerGuide"
+        app:layout_constraintBottom_toBottomOf="@id/centerGuide"
+        android:id="@+id/appIcon"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

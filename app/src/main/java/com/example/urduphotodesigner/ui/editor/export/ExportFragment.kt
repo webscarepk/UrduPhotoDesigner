@@ -333,7 +333,9 @@ class ExportFragment : Fragment() {
                     binding.btnExport.alpha = 1.0f
                     binding.btnExport.text = "Export"
 
-                    findNavController().navigate(R.id.finishExportFragment)
+                    view?.post {
+                        findNavController().navigate(R.id.finishExportFragment)
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("ExportFragment", "Export failed", e)

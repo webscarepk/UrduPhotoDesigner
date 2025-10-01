@@ -5,6 +5,7 @@ import android.animation.ValueAnimator
 import android.app.Dialog
 import android.content.ContentValues.TAG
 import android.graphics.Bitmap
+import android.os.Build
 import android.os.Build.MANUFACTURER
 import android.os.Bundle
 import android.text.Editable
@@ -14,15 +15,14 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.animation.AnimationUtils
 import android.view.animation.LinearInterpolator
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.PopupMenu
 import android.widget.PopupWindow
 import android.widget.SeekBar
-import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.annotation.AnimRes
 import androidx.core.view.ViewCompat
@@ -101,8 +101,7 @@ class EditorFragment : Fragment() {
     private val saveDebounce = 500L
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentEditorBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -111,6 +110,11 @@ class EditorFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            requireActivity().window.insetsController?.show(
+                WindowInsets.Type.statusBars()
+            )
+        }
         ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavigation) { view, insets ->
             if (MANUFACTURER.equals("realme", ignoreCase = true)) {
                 val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -159,8 +163,7 @@ class EditorFragment : Fragment() {
             setGravity(Gravity.BOTTOM)
             // You might want to adjust width/height if the layout doesn't fill as expected
             setLayout(
-                WindowManager.LayoutParams.MATCH_PARENT,
-                WindowManager.LayoutParams.WRAP_CONTENT
+                WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT
             )
         }
         // Show the dialog
@@ -241,13 +244,9 @@ class EditorFragment : Fragment() {
                 }
                 val jsonSizeBytes = exportJson.toByteArray(Charsets.UTF_8).size
                 // ---- Calculate file size ----
-                val fileSizeMB = (
-                        estimateBitmapSize(
-                            exportBitmap,
-                            options.format.format!!,
-                            options.quality.quality
-                        ) + jsonSizeBytes
-                        ) / (1024.0 * 1024.0)
+                val fileSizeMB = (estimateBitmapSize(
+                    exportBitmap, options.format.format!!, options.quality.quality
+                ) + jsonSizeBytes) / (1024.0 * 1024.0)
 
                 val exportDate =
                     SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
@@ -293,9 +292,7 @@ class EditorFragment : Fragment() {
     }
 
     private fun estimateBitmapSize(
-        bitmap: Bitmap,
-        format: Bitmap.CompressFormat,
-        quality: Int
+        bitmap: Bitmap, format: Bitmap.CompressFormat, quality: Int
     ): Long {
         val stream = java.io.ByteArrayOutputStream()
         bitmap.compress(format, quality, stream)
@@ -334,10 +331,9 @@ class EditorFragment : Fragment() {
 
     }
 
-    private fun observeAfterCanvasReady(){
+    private fun observeAfterCanvasReady() {
         viewModel.inSelectionMode.observe(viewLifecycleOwner) { enabled ->
-            if (::sizedCanvasView.isInitialized)
-                sizedCanvasView.setSelectionMode(enabled)
+            if (::sizedCanvasView.isInitialized) sizedCanvasView.setSelectionMode(enabled)
         }
 
         viewModel.exportResult.observe(viewLifecycleOwner) { exportResult ->
@@ -424,7 +420,7 @@ class EditorFragment : Fragment() {
 
         viewModel.opacity.observe(viewLifecycleOwner) { opacity ->
             binding.seekBarOpacity.progress = opacity
-            binding.opacityValue.text = "${opacity?.toInt() ?: 255}"
+            binding.opacityValue.text = "${opacity ?: 255}"
         }
 
         viewModel.currentTextSize.observe(viewLifecycleOwner) { size ->
@@ -437,14 +433,9 @@ class EditorFragment : Fragment() {
         }
 
         viewModel.activePicker.observe(viewLifecycleOwner) { slot ->
-            if (::sizedCanvasView.isInitialized){
+            if (::sizedCanvasView.isInitialized) {
                 when (slot) {
-                    PickerTarget.EYE_DROPPER_LABEL,
-                    PickerTarget.EYE_DROPPER_SHADOW,
-                    PickerTarget.EYE_DROPPER_BACKGROUND,
-                    PickerTarget.EYE_DROPPER_TEXT_FILL,
-                    PickerTarget.EYE_DROPPER_TEXT_STROKE,
-                    PickerTarget.EYE_DROPPER_GRADIENT -> {
+                    PickerTarget.EYE_DROPPER_LABEL, PickerTarget.EYE_DROPPER_SHADOW, PickerTarget.EYE_DROPPER_BACKGROUND, PickerTarget.EYE_DROPPER_TEXT_FILL, PickerTarget.EYE_DROPPER_TEXT_STROKE, PickerTarget.EYE_DROPPER_GRADIENT -> {
                         sizedCanvasView.enableColorPicker()
                     }
 
@@ -552,7 +543,7 @@ class EditorFragment : Fragment() {
                 canvasWidth = widthPx,
                 canvasHeight = heightPx,
                 onEditTextRequested = { element ->
-                    if (_navController!=null){
+                    if (_navController != null) {
                         navController.popBackStack(R.id.filtersFragment, true)
                     }
                     if (element.type == ElementType.IMAGE || element.type == ElementType.BACKGROUND) {
@@ -598,16 +589,17 @@ class EditorFragment : Fragment() {
                     viewModel.markChanged()
                 },
                 onRequestOpenLayers = {
-                    viewModel.enterSelectionMode()
-                    binding.bottomNavigation.selectedItemId = R.id.nav_layers
-                    navController.navigate(R.id.layersFragment)
-                    currentPanelItemId = R.id.nav_layers
-                    binding.panelNavHost.visibility = View.VISIBLE
+                    if (isAdded && _navController != null && _binding != null) {
+                        viewModel.enterSelectionMode()
+                        binding.bottomNavigation.selectedItemId = R.id.nav_layers
+                        navController.navigate(R.id.layersFragment)
+                        currentPanelItemId = R.id.nav_layers
+                        binding.panelNavHost.visibility = View.VISIBLE
+                    }
                 },
                 onExitSelectionMode = {
                     viewModel.exitSelectionMode()
-                }
-            ).apply {
+                }).apply {
                 binding.canvasContainer.addView(this)
             }
             viewModel.setCanvasView(sizedCanvasView)
@@ -675,39 +667,34 @@ class EditorFragment : Fragment() {
         }
 
         binding.blendSpinner.addPressEffect {
-           showItemPopupMenu(binding.blendSpinner)
+            showItemPopupMenu(binding.blendSpinner)
         }
 
         binding.leftAlign.addPressEffect {
             sizedCanvasView.alignHorizontal(
-                HAlign.LEFT,
-                currentMode
+                HAlign.LEFT, currentMode
             )
         }
         binding.centerHorizontal.addPressEffect {
             sizedCanvasView.alignHorizontal(
-                HAlign.CENTER,
-                currentMode
+                HAlign.CENTER, currentMode
             )
         }
         binding.rightAlign.addPressEffect {
             sizedCanvasView.alignHorizontal(
-                HAlign.RIGHT,
-                currentMode
+                HAlign.RIGHT, currentMode
             )
         }
 
         binding.topAlign.addPressEffect { sizedCanvasView.alignVertical(VAlign.TOP, currentMode) }
         binding.centerVertical.addPressEffect {
             sizedCanvasView.alignVertical(
-                VAlign.MIDDLE,
-                currentMode
+                VAlign.MIDDLE, currentMode
             )
         }
         binding.bottomAlign.addPressEffect {
             sizedCanvasView.alignVertical(
-                VAlign.BOTTOM,
-                currentMode
+                VAlign.BOTTOM, currentMode
             )
         }
 
@@ -741,12 +728,17 @@ class EditorFragment : Fragment() {
         binding.copyIcon.addPressEffect { viewModel.copySelectedElementsGroup() }
 
         binding.cutOutIcon.addPressEffect {
-            findNavController().navigate(R.id.bgRemovalFragment) }
+            view?.post {
+                findNavController().navigate(R.id.bgRemovalFragment)
+            }
+        }
 
         binding.done.addPressEffect {
             viewModel.setCanvasView(sizedCanvasView)
             sizedCanvasView.clearSelection()
-            findNavController().navigate(R.id.exportFragment)
+            view?.post {
+                findNavController().navigate(R.id.exportFragment)
+            }
         }
     }
 
@@ -761,36 +753,36 @@ class EditorFragment : Fragment() {
 
         popupWindow.elevation = 2f
         popupWindow.isOutsideTouchable = true
-        
+
 
         // ---- item logic ----
 
-        popupBinding.source.setOnClickListener {
+        popupBinding.source.addPressEffect {
             viewModel.setBlendingType(BlendType.SRC)
             popupWindow.dismiss()
         }
 
-        popupBinding.normal.setOnClickListener {
+        popupBinding.normal.addPressEffect {
             viewModel.setBlendingType(BlendType.NORMAL)
             popupWindow.dismiss()
         }
 
-        popupBinding.darken.setOnClickListener {
+        popupBinding.darken.addPressEffect {
             viewModel.setBlendingType(BlendType.DARKEN)
             popupWindow.dismiss()
         }
 
-        popupBinding.lighten.setOnClickListener {
+        popupBinding.lighten.addPressEffect {
             viewModel.setBlendingType(BlendType.LIGHTEN)
             popupWindow.dismiss()
         }
 
-        popupBinding.multiply.setOnClickListener {
+        popupBinding.multiply.addPressEffect {
             viewModel.setBlendingType(BlendType.MULTIPLY)
             popupWindow.dismiss()
         }
 
-        popupBinding.screen.setOnClickListener {
+        popupBinding.screen.addPressEffect {
             viewModel.setBlendingType(BlendType.SCREEN)
             popupWindow.dismiss()
         }
@@ -819,9 +811,7 @@ class EditorFragment : Fragment() {
             } else if (spaceAbove >= popupHeight) {
                 // Enough space above → show on top
                 popupWindow.showAtLocation(
-                    anchorView,
-                    Gravity.NO_GRAVITY,
-                    location[0], // x
+                    anchorView, Gravity.NO_GRAVITY, location[0], // x
                     anchorTop - popupHeight // y (above anchor)
                 )
             } else {
@@ -834,8 +824,7 @@ class EditorFragment : Fragment() {
     /** Setup back button behavior */
     private fun initBackHandling() {
         requireActivity().onBackPressedDispatcher.addCallback(
-            viewLifecycleOwner,
-            object : OnBackPressedCallback(true) {
+            viewLifecycleOwner, object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
                     autoSave()
                 }
@@ -912,8 +901,7 @@ class EditorFragment : Fragment() {
             setCancelable(false)
             window?.setBackgroundDrawableResource(android.R.color.transparent)
             window?.setLayout(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
             )
             window?.setGravity(Gravity.CENTER)
             show()
@@ -924,7 +912,7 @@ class EditorFragment : Fragment() {
     private fun updateExportDialog(percent: Int, stage: String) {
         exportDialogBinding?.apply {
             progressBar.progress = percent
-            tvProgressPercent.text = "$percent% complete"
+            tvProgressPercent.text = getString(R.string.complete, percent)
             exportValue.text = stage
         }
     }

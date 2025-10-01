@@ -162,10 +162,10 @@ class BgRemovalFragment : Fragment() {
     }
 
     private fun setEvents() {
-        binding.addIcon.setOnClickListener {
+        binding.addIcon.addPressEffect {
             binding.imageCanvas.setActionMode(BgRemovalCanvas.ActionMode.ADD)
         }
-        binding.removeIcon.setOnClickListener {
+        binding.removeIcon.addPressEffect {
             binding.imageCanvas.setActionMode(BgRemovalCanvas.ActionMode.REMOVE)
         }
 

@@ -428,7 +428,7 @@ class TemplatesListFragment : Fragment() {
                 showLoadingDialog()
             } else if (isLoading == false) {
                 dismissLoadingDialog()
-                findNavController().navigate(R.id.editorFragment, bundle)
+                view?.post { findNavController().navigate(R.id.editorFragment, bundle) }
             }
         }
 

@@ -71,7 +71,9 @@ class HomeFragment : Fragment() {
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(canvasSize)
                 viewModel.setCanvasBackgroundImage(bitmap)
-                findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                view?.post {
+                    findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                }
             }
         }
 
@@ -157,7 +159,7 @@ class HomeFragment : Fragment() {
                     requireActivity()
                 )
 
-                findNavController().navigate(R.id.editorFragment, null, navOptions)
+                view?.post { findNavController().navigate(R.id.editorFragment, null, navOptions) }
             }
         }, onDownload = {
             mainViewModel.downloadFont(it)
@@ -168,7 +170,7 @@ class HomeFragment : Fragment() {
         trendsAdapter = TrendsAdapter(
             onSeeAll = { trendTitle ->
                 val args = Bundle().apply { putString("TREND_NAME", trendTitle) }
-                findNavController().navigate(R.id.templatesListFragment, args)
+                view?.post { findNavController().navigate(R.id.templatesListFragment, args) }
             },
             onTemplateClick = { template, isDownloaded ->
                 if (template.is_downloading) return@TrendsAdapter
@@ -255,26 +257,26 @@ class HomeFragment : Fragment() {
         }
 
         binding.templates.addPressEffect {
-            findNavController().navigate(R.id.templatesFragment)
+            view?.post { findNavController().navigate(R.id.templatesFragment) }
         }
 
         binding.popularFonts.addPressEffect {
-            findNavController().navigate(R.id.popularFontsFragment)
+            view?.post { findNavController().navigate(R.id.popularFontsFragment) }
         }
 
         binding.popularTemplate.addPressEffect {
-            findNavController().navigate(R.id.templatesListFragment)
+            view?.post { findNavController().navigate(R.id.templatesListFragment) }
         }
 
         binding.recentProjects.addPressEffect {
             val bundle = Bundle().apply {
                 putInt("targetPage", 1)  // 1 = "Projects"
             }
-            findNavController().navigate(R.id.filesFragment, bundle)
+            view?.post { findNavController().navigate(R.id.filesFragment, bundle) }
         }
 
         binding.fileTab.addPressEffect {
-            findNavController().navigate(R.id.filesFragment)
+           view?.post {  findNavController().navigate(R.id.filesFragment) }
         }
     }
 
@@ -431,11 +433,11 @@ class HomeFragment : Fragment() {
                                 )
 
                                 if (isAdded && findNavController().currentDestination?.id != R.id.editorFragment) {
-                                    findNavController().navigate(
+                                    view?.post { findNavController().navigate(
                                         R.id.editorFragment,
                                         bundle,
                                         navOptions
-                                    )
+                                    ) }
                                 }
                             }
                         }
@@ -485,7 +487,7 @@ class HomeFragment : Fragment() {
                 lifecycleScope.launch {
                     delay(500)
                     if (findNavController().currentDestination?.id != R.id.editorFragment) {
-                        findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                       view?.post {  findNavController().navigate(R.id.editorFragment, bundle, navOptions) }
                     }
                 }
             }

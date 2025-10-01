@@ -41,7 +41,7 @@ object Utils {
                     val insideNow =
                         event.x >= 0 && event.x <= v.width && event.y >= 0 && event.y <= v.height
                     if (isInside && !insideNow) {
-                        // Finger moved out → cancel press effect
+                        // Finger moveRd out → cancel press effect
                         isInside = false
                         v.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
                     } else if (!isInside && insideNow) {

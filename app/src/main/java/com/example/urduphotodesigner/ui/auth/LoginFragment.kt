@@ -94,7 +94,9 @@ class LoginFragment : Fragment() {
         }
 
         binding.signup.addPressEffect {
-            findNavController().navigate(R.id.signupFragment)
+            view?.post {
+                findNavController().navigate(R.id.signupFragment)
+            }
         }
 
         binding.password.setOnTouchListener { v, event ->
@@ -196,7 +198,9 @@ class LoginFragment : Fragment() {
                                 .setPopUpTo(R.id.loginFragment, true)
                                 .build()
                             hideKeyboard()
-                            findNavController().navigate(R.id.homeFragment, null, navOptions)
+                            view?.post {
+                                findNavController().navigate(R.id.homeFragment, null, navOptions)
+                            }
                             authViewModel.clearUserData()
                             progressDialog?.dismiss()
                             // Optionally hide loading indicator

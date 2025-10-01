@@ -146,7 +146,7 @@ class TemplatesFragment : Fragment() {
         categoryAdapter = TemplateCategoriesAdapter(
             onSeeAll = { category ->
                 val args = Bundle().apply { putString("TAB_NAME", category) }
-                findNavController().navigate(R.id.templatesListFragment, args)
+                view?.post { findNavController().navigate(R.id.templatesListFragment, args) }
             },
             onTemplateClick = { template, bool ->
                 if (bool) {
@@ -484,7 +484,7 @@ class TemplatesFragment : Fragment() {
                 showLoadingDialog()
             } else if (isLoading == false) {
                 dismissLoadingDialog()
-                findNavController().navigate(R.id.editorFragment, bundle)
+                view?.post { findNavController().navigate(R.id.editorFragment, bundle) }
             }
         }
 

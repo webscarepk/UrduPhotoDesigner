@@ -1,12 +1,17 @@
 package com.example.urduphotodesigner.ui.creation
 
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsets
 import android.widget.EditText
 import android.widget.PopupMenu
+import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
@@ -22,6 +27,9 @@ import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentCreateBinding
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.android.material.shape.CornerFamily
+import com.google.android.material.shape.MaterialShapeDrawable
+import com.google.android.material.shape.ShapeAppearanceModel
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -133,7 +141,9 @@ class CreateFragment : BottomSheetDialogFragment() {
             adapter = CanvasSizeAdapter(sizeList, onClick =  { selected ->
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(selected)
-                findNavController().navigate(R.id.editorFragment, null)
+                view?.post {
+                    findNavController().navigate(R.id.editorFragment, null)
+                }
                 dismiss()
             }, true)
             sizesRV.adapter = adapter
@@ -222,7 +232,7 @@ class CreateFragment : BottomSheetDialogFragment() {
 
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(canvasSize)
-                findNavController().navigate(R.id.editorFragment)
+                view?.post {  }
                 dismiss()
             }
 
@@ -266,17 +276,36 @@ class CreateFragment : BottomSheetDialogFragment() {
 
     override fun onStart() {
         super.onStart()
+        val bottomSheet = dialog?.findViewById<View>(
+            com.google.android.material.R.id.design_bottom_sheet
+        ) ?: return
 
-        val bottomSheet =
-            dialog?.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-                ?: return
+        val shapeAppearanceModel = ShapeAppearanceModel.builder()
+            .setTopLeftCorner(CornerFamily.ROUNDED, 32f)
+            .setTopRightCorner(CornerFamily.ROUNDED, 32f)
+            .build()
 
+        val materialShapeDrawable = MaterialShapeDrawable(shapeAppearanceModel).apply {
+            fillColor = ColorStateList.valueOf(Color.WHITE)
+        }
+
+        ViewCompat.setBackground(bottomSheet, materialShapeDrawable)
         bottomSheet.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
-
-        val behavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(bottomSheet)
+        val behavior = BottomSheetBehavior.from(bottomSheet)
         behavior.isFitToContents = false
-        behavior.halfExpandedRatio = 0.85f   // 80% height
-        behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HALF_EXPANDED
+        behavior.halfExpandedRatio = 0.85f
+        behavior.state = BottomSheetBehavior.STATE_HALF_EXPANDED
+
+        dialog?.window?.let { window ->
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window.setDecorFitsSystemWindows(false)
+                window.insetsController?.hide(WindowInsets.Type.navigationBars())
+            } else {
+                window.decorView.systemUiVisibility =
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            }
+        }
     }
 
     override fun onDestroy() {

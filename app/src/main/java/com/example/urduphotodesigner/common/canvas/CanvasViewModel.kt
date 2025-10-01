@@ -93,7 +93,7 @@ class CanvasViewModel @Inject constructor(
     val currentFont: LiveData<FontEntity?> = _currentFont
     private val _currentTextColor = MutableLiveData(Color.BLACK)
     val currentTextColor: LiveData<Int> = _currentTextColor
-    private val _currentTextSize = MutableLiveData(40f)  // Initialize with a default size
+    private val _currentTextSize = MutableLiveData(60f)  // Initialize with a default size
     val currentTextSize: LiveData<Float> = _currentTextSize
 
     private val _currentTextAlignment = MutableLiveData(TextAlignment.CENTER)
@@ -1288,7 +1288,7 @@ class CanvasViewModel @Inject constructor(
     private fun resetTextFormattingToDefault() {
         _currentFont.value = null
         _currentTextColor.value = Color.BLACK
-        _currentTextSize.value = 40f
+        _currentTextSize.value = 60f
         _currentTextAlignment.value = TextAlignment.CENTER
 
         _lineSpacing.value = 1.0f
@@ -1446,7 +1446,7 @@ class CanvasViewModel @Inject constructor(
             x = canvasW / 2f,
             y = canvasH / 2f,
             paintColor = Color.BLACK,
-            paintTextSize = 40f,
+            paintTextSize = 60f,
             alignment = TextAlignment.CENTER,
             paintAlpha = 255,
             fontId = null,

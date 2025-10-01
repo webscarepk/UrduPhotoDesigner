@@ -67,7 +67,9 @@ class FinishExportFragment : Fragment() {
             val bundle = Bundle().apply {
                 putString("imagePath", export.imagePath)
             }
-            findNavController().navigate(R.id.previewExportFragment, bundle)
+            view?.post {
+                findNavController().navigate(R.id.previewExportFragment, bundle)
+            }
         }
 
         binding.fileLocationDetail.addPressEffect {
@@ -80,7 +82,7 @@ class FinishExportFragment : Fragment() {
             val navOptions = NavOptions.Builder()
                 .setPopUpTo(R.id.homeFragment, false)
                 .build()
-            findNavController().navigate(R.id.homeFragment, null, navOptions)
+            view?.post { findNavController().navigate(R.id.homeFragment, null, navOptions) }
         }
 
         // 🔹 Share logic

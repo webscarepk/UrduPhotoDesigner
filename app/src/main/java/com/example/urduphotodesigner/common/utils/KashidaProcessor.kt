@@ -11,7 +11,7 @@ class KashidaProcessor(
 
         // Non-connecting (isolated/final) characters → never take Kashida
         private val ISOLFINA = setOf(
-            "ا","إ","ٳ","د","ذ","ڈ","ڌ","ڍ","ډ","ڊ","ڋ","ڎ","ڏ","ڐ","ۮ",
+            "د","ذ","ڈ","ڌ","ڍ","ډ","ڊ","ڋ","ڎ","ڏ","ڐ","ۮ",
             "ݙ","ݚ","ر","ز","ڑ","ڒ","ړ","ڔ","ڕ","ږ","ڗ","ژ","ڙ","ۯ","ݛ","ݫ","ݬ",
             "ﻻ","ﻹ","و","ۄ","ۊ","ۏ","ؤ","ۅ","ۆ","ۇ","ۈ","ۉ","ۋ","ٷ","ﻷ"
         )
@@ -47,11 +47,14 @@ class KashidaProcessor(
             val ch = cleanWord[i].toString()
 
             if (KASHIDA_ALLOWED.contains(ch)) {
-                if (i < cleanWord.length - 1 &&
-                    !ISOLFINA.contains(cleanWord[i + 1].toString())) {
+                if (i < cleanWord.length - 1) {
+                    val nextChar = cleanWord[i + 1].toString()
 
-                    val kashidaInsert = KASHIDA.repeat(freq)
-                    return cleanWord.substring(0, i + 1) + kashidaInsert + cleanWord.substring(i + 1)
+                    // Agar agla char Alif hai, to bhi Kashida allow karo
+                    if (!ISOLFINA.contains(nextChar) || nextChar == "ا") {
+                        val kashidaInsert = KASHIDA.repeat(freq)
+                        return cleanWord.substring(0, i + 1) + kashidaInsert + cleanWord.substring(i + 1)
+                    }
                 }
             }
         }

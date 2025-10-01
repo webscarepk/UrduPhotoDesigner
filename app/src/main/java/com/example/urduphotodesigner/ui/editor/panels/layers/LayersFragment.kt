@@ -324,12 +324,12 @@ class LayersFragment : Fragment() {
         popupBinding.visibility.findViewById<TextView>(R.id.visibility)
             .text = if (element.isVisible) getString(R.string.hide) else getString(R.string.show)
 
-        popupBinding.visibility.setOnClickListener {
+        popupBinding.visibility.addPressEffect {
             viewModel.toggleVisibility(element)
             popupWindow.dismiss()
         }
 
-        popupBinding.actionDelete.setOnClickListener {
+        popupBinding.actionDelete.addPressEffect {
             DialogUtils.showDeleteDialog(
                 context = requireContext(),
                 titleText = getString(R.string.confirm_delete),
