@@ -1,6 +1,5 @@
 package com.example.urduphotodesigner.ui.editor.panels.background.backgrounds
 
-import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -15,7 +14,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class BackgroundsListFragment : Fragment() {
+class BackgroundsListFragment(private val tabName: String) : Fragment() {
     private var _binding: FragmentBackgroundsListBinding? = null
     private val binding get() = _binding!!
 
@@ -38,13 +37,14 @@ class BackgroundsListFragment : Fragment() {
     }
 
     private fun setEvents() {
-        imagesAdapter = ImagesAdapter(){ image ->
-           if (isAdded){
-               viewModel.ensureBackgroundElement(
-                   requireActivity(),
-               )
-               viewModel.setCanvasBackgroundImage(image)
-           }
+        imagesAdapter = ImagesAdapter() { image, imageEntity ->
+            if (isAdded) {
+                mainViewModel.updateImage(imageEntity.copy(is_recent = true))
+                viewModel.ensureBackgroundElement(
+                    requireActivity(),
+                )
+                viewModel.setCanvasBackgroundImage(image)
+            }
         }
         binding.backgrounds.adapter = imagesAdapter
     }
@@ -53,13 +53,19 @@ class BackgroundsListFragment : Fragment() {
 
         lifecycleScope.launch {
             mainViewModel.localImages.collect { images ->
-                val imageList =
-                    images.filter { it.category.equals("Backgrounds", ignoreCase = true) || it.category.equals("Backgrounds Imported", ignoreCase = true) }
-                if (imageList.isEmpty()){
-                    binding.noEmojis.visibility = View.VISIBLE
-                }else{
-                    binding.noEmojis.visibility = View.GONE
+                val imageList = when {
+                    tabName.equals("Recents", true) -> images.filter {
+                        it.is_recent && (
+                                it.category.equals("Backgrounds", true) ||
+                                        it.category.equals("Backgrounds Imported", true)
+                                )
+                    }
+                    else -> images.filter {
+                        it.category.equals("Backgrounds", true) ||
+                                it.category.equals("Backgrounds Imported", true)
+                    }
                 }
+                binding.noEmojis.visibility = if (imageList.isEmpty()) View.VISIBLE else View.GONE
                 imagesAdapter.submitList(imageList)
             }
         }
@@ -71,8 +77,8 @@ class BackgroundsListFragment : Fragment() {
     }
 
     companion object {
-        fun newInstance(): BackgroundsListFragment {
-            return BackgroundsListFragment()
+        fun newInstance(tabName: String): BackgroundsListFragment {
+            return BackgroundsListFragment(tabName)
         }
     }
 }

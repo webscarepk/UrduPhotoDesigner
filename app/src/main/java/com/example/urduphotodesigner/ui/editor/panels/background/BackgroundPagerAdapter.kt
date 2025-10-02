@@ -17,9 +17,9 @@ class BackgroundPagerAdapter(
 
     override fun createFragment(position: Int): Fragment {
         return when (tabs[position]) {
-            "Images" -> BackgroundsListFragment.newInstance()
+            "Images" -> BackgroundsListFragment.newInstance(tabs[position])
             "Colors" -> ColorsListFragment.newInstance()
-            else -> BackgroundsListFragment.newInstance()
+            else -> BackgroundsListFragment.newInstance(tabs[position])
         }
     }
 

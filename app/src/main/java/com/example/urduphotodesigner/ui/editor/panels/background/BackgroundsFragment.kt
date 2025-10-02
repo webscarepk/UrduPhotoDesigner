@@ -65,58 +65,50 @@ class BackgroundsFragment : Fragment() {
     }
 
     private fun setEvents() {
-        tabs = listOf("Images", "Colors")
+        viewLifecycleOwner.lifecycleScope.launch {
+            mainViewModel.localImages.collect { images ->
+                val hasRecents = images.any {
+                    it.is_recent && (
+                            it.category.equals("Backgrounds", true) ||
+                                    it.category.equals("Backgrounds Imported", true)
+                            )
+                }
 
-        val adapter = BackgroundPagerAdapter(
-            requireActivity().supportFragmentManager,
-            lifecycle,
-            tabs
-        )
-        binding.viewPager.adapter = adapter
-        binding.viewPager.isUserInputEnabled = false
+                tabs = mutableListOf("Images", "Colors")
+                if (hasRecents) {
+                    (tabs as MutableList).add(0, "Recents") // put Recents first
+                }
 
-        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
-            val tabView = LayoutInflater.from(context).inflate(R.layout.custom_tab, null)
-            tabView.findViewById<TextView>(R.id.tabTitle).text = tabs[position]
-            tab.customView = tabView
-        }.attach()
+                val adapter = BackgroundPagerAdapter(
+                    requireActivity().supportFragmentManager,
+                    lifecycle,
+                    tabs
+                )
+                binding.viewPager.adapter = adapter
+                binding.viewPager.isUserInputEnabled = false
+
+                TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
+                    val tabView = LayoutInflater.from(context).inflate(R.layout.custom_tab, null)
+                    tabView.findViewById<TextView>(R.id.tabTitle).text = tabs[position]
+                    tab.customView = tabView
+                }.attach()
+            }
+        }
 
         binding.addImage.addPressEffect { pickImage.launch("image/*") }
-
     }
 
     private fun handlePickedUri(uri: Uri) {
-        // You probably don’t want to block the UI thread—do this in IO
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // Encode the compressed image bytes to Base64
                 val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
-                val exportDate =
-                    SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
                 withContext(Dispatchers.Main) {
-                    mainViewModel.insertImage(
-                        ImageEntity(
-                            id = System.currentTimeMillis().toInt(),
-                            file_name = File(filePath).name,
-                            file_url = "",
-                            file_size = File(filePath).length().toString(),
-                            alt_text = "",
-                            category = "Backgrounds Imported",
-                            user_id = 0,
-                            is_selected = false,
-                            bitmapData = filePath,
-                            created_at = exportDate
-                        )
-                    )
-
-                    // Set the canvas background image (decode the compressed image bytes)
                     viewModel.setCanvasBackgroundImage(
                         ImageProcessor.filePathToBitmap(filePath!!)
                     )
                 }
             } catch (e: Exception) {
-                // Handle any errors that might occur during the process
                 Log.e("PhotoPicker", "Failed compressing image", e)
             }
         }

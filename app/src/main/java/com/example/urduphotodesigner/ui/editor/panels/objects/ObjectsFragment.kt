@@ -2,7 +2,6 @@ package com.example.urduphotodesigner.ui.editor.panels.objects
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
@@ -13,12 +12,10 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.animation.AnimationUtils
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.AnimRes
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -27,8 +24,8 @@ import androidx.lifecycle.lifecycleScope
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.utils.ImageProcessor
+import com.example.urduphotodesigner.common.utils.ImageProcessor.bitmapCompress
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.databinding.FragmentObjectsBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import com.google.android.material.tabs.TabLayoutMediator
@@ -36,12 +33,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import kotlin.getValue
-import androidx.core.graphics.scale
+import kotlin.math.roundToInt
 
 @AndroidEntryPoint
 class ObjectsFragment : Fragment() {
@@ -59,8 +51,7 @@ class ObjectsFragment : Fragment() {
         }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentObjectsBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -70,13 +61,12 @@ class ObjectsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setEvents()
+        initObservers()
     }
 
-    @SuppressLint("ClickableViewAccessibility")
-    private fun setEvents() {
-        tabs.addAll(
-            listOf(
-                "Stickers",
+    private fun initObservers() {
+        lifecycleScope.launch {
+            val baseTabs = listOf(
                 "Emoticons",
                 "Animals",
                 "Nature",
@@ -90,29 +80,67 @@ class ObjectsFragment : Fragment() {
                 "Letters",
                 "Flags"
             )
-        )
 
-        adapter = ObjectsPagerAdapter(
-            requireActivity().supportFragmentManager,
-            lifecycle,
-            tabs
-        )
+            mainViewModel.localImages.collect { images ->
+                val baseTabs = listOf(
+                    "Emoticons", "Animals", "Nature", "Food", "Sports",
+                    "Transport", "Objects", "Alchemy", "Shapes",
+                    "Arrows", "Letters", "Flags"
+                )
 
-        binding.viewPager.adapter = adapter
-        binding.viewPager.isUserInputEnabled = false
+                val extraTabs = images.map { it.category.trim() }.filterNot {
+                    it.equals("Backgrounds", true) ||
+                            it.equals("Backgrounds Imported", true) ||
+                            it.equals("Images", true) ||
+                            it.equals("Images Imported", true)
+                }.distinct()
 
+                tabs.clear()
+                tabs.addAll(extraTabs + baseTabs)
+
+                // ✅ Only add Recents if there are recents in *object* categories
+                val hasObjectRecents = images.any {
+                    it.is_recent && !(
+                            it.category.equals("Backgrounds", true) ||
+                                    it.category.equals("Backgrounds Imported", true) ||
+                                    it.category.equals("Images", true) ||
+                                    it.category.equals("Images Imported", true)
+                            )
+                }
+                if (hasObjectRecents) {
+                    tabs.add(0, "Recents")
+                }
+
+                adapter.setTabs(tabs)
+                setupTabLayout()
+            }
+
+        }
+    }
+
+    private fun setupTabLayout() {
         TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
             val tabView = LayoutInflater.from(context).inflate(R.layout.custom_tab, null)
             tabView.findViewById<TextView>(R.id.tabTitle).text = tabs[position]
             tab.customView = tabView
         }.attach()
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setEvents() {
+        adapter = ObjectsPagerAdapter(
+            requireActivity().supportFragmentManager, lifecycle, tabs
+        )
+        binding.viewPager.adapter = adapter
+        binding.viewPager.isUserInputEnabled = false
 
         binding.searchIcon.addPressEffect {
             binding.searchIcon.isVisible = false
             binding.searchBar.isVisible = true
 
             binding.searchBar.requestFocus()
-            val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            val imm =
+                requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showSoftInput(binding.searchBar, InputMethodManager.SHOW_IMPLICIT)
         }
 
@@ -142,29 +170,20 @@ class ObjectsFragment : Fragment() {
 
         binding.searchBar.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(
-                charSequence: CharSequence?,
-                start: Int,
-                count: Int,
-                after: Int
+                charSequence: CharSequence?, start: Int, count: Int, after: Int
             ) {
             }
 
             override fun onTextChanged(
-                charSequence: CharSequence?,
-                start: Int,
-                before: Int,
-                count: Int
+                charSequence: CharSequence?, start: Int, before: Int, count: Int
             ) {
                 val hasText = charSequence?.isNotEmpty() == true
                 binding.searchBar.setCompoundDrawablesWithIntrinsicBounds(
-                    null,
-                    null,
-                    if (hasText) {
+                    null, null, if (hasText) {
                         ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close)
                     } else {
                         null
-                    },
-                    null
+                    }, null
                 )
             }
 
@@ -195,51 +214,24 @@ class ObjectsFragment : Fragment() {
         }
     }
 
-    private fun bitmapCompress(image: Bitmap): Bitmap {
-        val canvasWidth = viewModel.canvasSize.value?.width ?: return image
-        val canvasHeight = viewModel.canvasSize.value?.height ?: return image
-
-        val maxWidth = (canvasWidth - 200)
-        val maxHeight = (canvasHeight - 200)
-
-        val widthRatio = maxWidth / image.width
-        val heightRatio = maxHeight / image.height
-
-        val scale = minOf(widthRatio, heightRatio)
-
-        // Only scale if larger than boundary
-        return if (scale < 1f) {
-            image.scale((image.width * scale).toInt(), (image.height * scale).toInt())
-        } else {
-            image
-        }
-    }
-
     private fun handlePickedUri(uri: Uri) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
-                val exportDate =
-                    SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-
-                mainViewModel.insertImage(
-                    ImageEntity(
-                        id = System.currentTimeMillis().toInt(),
-                        file_name = File(filePath).name,
-                        file_url = "",
-                        file_size = File(filePath).length().toString(),
-                        alt_text = "",
-                        category = "Images Imported",
-                        user_id = 0,
-                        is_selected = false,
-                        bitmapData = filePath,
-                        created_at = exportDate
-                    )
-                )
+                val filePath =
+                    ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
 
                 withContext(Dispatchers.Main) {
-                    viewModel.addSticker(ImageProcessor.filePathToBitmap(filePath!!)
-                        ?.let { bitmapCompress(it) }, requireActivity())
+                    viewModel.addSticker(
+                        ImageProcessor.filePathToBitmap(filePath!!)?.let { image ->
+                            viewModel.canvasSize.value?.height?.roundToInt()?.let {
+                                viewModel.canvasSize.value?.width?.let { it1 ->
+                                    bitmapCompress(
+                                        image, it1.roundToInt(), it
+                                    )
+                                }
+                            }
+                        }, requireActivity()
+                    )
                 }
             } catch (e: Exception) {
                 Log.e("PhotoPicker", "Failed compressing image", e)
@@ -248,8 +240,7 @@ class ObjectsFragment : Fragment() {
     }
 
     private fun hideKeyboard() {
-        val imm = requireContext()
-            .getSystemService(InputMethodManager::class.java)
+        val imm = requireContext().getSystemService(InputMethodManager::class.java)
         imm.hideSoftInputFromWindow(binding.searchBar.windowToken, 0)
         binding.searchBar.clearFocus()
     }

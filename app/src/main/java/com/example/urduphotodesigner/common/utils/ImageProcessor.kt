@@ -15,13 +15,14 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Base64
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.scale
 import com.example.urduphotodesigner.common.canvas.model.ExportOptions
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
-import androidx.core.graphics.createBitmap
 import kotlin.math.min
 
 object ImageProcessor {
@@ -56,9 +57,7 @@ object ImageProcessor {
 
     // --- Images ---
     fun bitmapToFilePath(
-        context: Context,
-        bitmap: Bitmap,
-        fileName: String = "img_${System.currentTimeMillis()}.png"
+        context: Context, bitmap: Bitmap, fileName: String = "img_${System.currentTimeMillis()}.png"
     ): String {
         val dir = imagesDir(context)
         ensureDir(dir)
@@ -150,9 +149,7 @@ object ImageProcessor {
     }
 
     fun base64ToFilePath(
-        context: Context,
-        base64: String,
-        fileName: String = "img_${System.currentTimeMillis()}.jpg"
+        context: Context, base64: String, fileName: String = "img_${System.currentTimeMillis()}.jpg"
     ): String {
         return try {
             val bytes = Base64.decode(base64, Base64.DEFAULT)
@@ -182,8 +179,7 @@ object ImageProcessor {
 
     // --- Exports ---
     fun newExportImageFile(
-        context: Context,
-        baseName: String = "exp_${System.currentTimeMillis()}.png"
+        context: Context, baseName: String = "exp_${System.currentTimeMillis()}.png"
     ): File {
         val dir = exportsImagesDir(context)
         ensureDir(dir)
@@ -191,8 +187,7 @@ object ImageProcessor {
     }
 
     fun newExportJsonFile(
-        context: Context,
-        baseName: String = "exp_${System.currentTimeMillis()}.json"
+        context: Context, baseName: String = "exp_${System.currentTimeMillis()}.json"
     ): File {
         val dir = exportsJsonDir(context)
         ensureDir(dir)
@@ -244,8 +239,7 @@ object ImageProcessor {
                 decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
             }
         } else {
-            @Suppress("DEPRECATION")
-            MediaStore.Images.Media.getBitmap(resolver, uri)
+            @Suppress("DEPRECATION") MediaStore.Images.Media.getBitmap(resolver, uri)
         }
     }
 
@@ -254,6 +248,52 @@ object ImageProcessor {
             BitmapFactory.decodeFile(filePath)
         } catch (e: Exception) {
             null
+        }
+    }
+
+    fun bitmapCompress(image: Bitmap, canvasWidth: Int, canvasHeight: Int): Bitmap {
+        // Calculate ratios
+        val widthRatio = canvasWidth.toFloat() / image.width
+        val heightRatio = canvasHeight.toFloat() / image.height
+        val scale = minOf(widthRatio, heightRatio)
+
+        // Optional: limit the scale factor (to avoid extremely huge bitmaps)
+        val maxScale = 3f  // allow up to 3× enlargement
+        val finalScale = scale.coerceAtMost(maxScale)
+
+        val newWidth = (image.width * finalScale).toInt().coerceAtLeast(1)
+        val newHeight = (image.height * finalScale).toInt().coerceAtLeast(1)
+
+        return image.scale(newWidth, newHeight)
+    }
+
+    fun Bitmap.trimTransparentEdges(): Bitmap {
+        val width = this.width
+        val height = this.height
+        val pixels = IntArray(width * height)
+        this.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        var top = height
+        var left = width
+        var right = 0
+        var bottom = 0
+
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                val alpha = pixels[x + y * width] shr 24 and 0xff
+                if (alpha > 0) { // pixel is not transparent
+                    if (x < left) left = x
+                    if (x > right) right = x
+                    if (y < top) top = y
+                    if (y > bottom) bottom = y
+                }
+            }
+        }
+
+        return if (right < left || bottom < top) {
+            this // image fully transparent, return original
+        } else {
+            Bitmap.createBitmap(this, left, top, right - left + 1, bottom - top + 1)
         }
     }
 
@@ -317,10 +357,26 @@ object ImageProcessor {
             ImageFilter.Sepia -> ColorMatrixColorFilter(ColorMatrix().apply {
                 set(
                     floatArrayOf(
-                        0.393f, 0.769f, 0.189f, 0f, 0f,
-                        0.349f, 0.686f, 0.168f, 0f, 0f,
-                        0.272f, 0.534f, 0.131f, 0f, 0f,
-                        0f, 0f, 0f, 1f, 0f
+                        0.393f,
+                        0.769f,
+                        0.189f,
+                        0f,
+                        0f,
+                        0.349f,
+                        0.686f,
+                        0.168f,
+                        0f,
+                        0f,
+                        0.272f,
+                        0.534f,
+                        0.131f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
                     )
                 )
             })
@@ -328,10 +384,26 @@ object ImageProcessor {
             ImageFilter.Invert -> ColorMatrixColorFilter(ColorMatrix().apply {
                 set(
                     floatArrayOf(
-                        -1f, 0f, 0f, 0f, 255f,
-                        0f, -1f, 0f, 0f, 255f,
-                        0f, 0f, -1f, 0f, 255f,
-                        0f, 0f, 0f, 1f, 0f
+                        -1f,
+                        0f,
+                        0f,
+                        0f,
+                        255f,
+                        0f,
+                        -1f,
+                        0f,
+                        0f,
+                        255f,
+                        0f,
+                        0f,
+                        -1f,
+                        0f,
+                        255f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
                     )
                 )
             })
@@ -339,10 +411,26 @@ object ImageProcessor {
             ImageFilter.CoolTint -> ColorMatrixColorFilter(ColorMatrix().apply {
                 set(
                     floatArrayOf(
-                        1.1f, 0f, 0f, 0f, -20f,
-                        0f, 1f, 0f, 0f, 0f,
-                        0f, 0f, 1.3f, 0f, 20f,
-                        0f, 0f, 0f, 1f, 0f
+                        1.1f,
+                        0f,
+                        0f,
+                        0f,
+                        -20f,
+                        0f,
+                        1f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        1.3f,
+                        0f,
+                        20f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
                     )
                 )
             })
@@ -350,10 +438,26 @@ object ImageProcessor {
             ImageFilter.WarmTint -> ColorMatrixColorFilter(ColorMatrix().apply {
                 set(
                     floatArrayOf(
-                        1.3f, 0f, 0f, 0f, 30f,
-                        0f, 1f, 0f, 0f, 0f,
-                        0f, 0f, 0.8f, 0f, -20f,
-                        0f, 0f, 0f, 1f, 0f
+                        1.3f,
+                        0f,
+                        0f,
+                        0f,
+                        30f,
+                        0f,
+                        1f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        0.8f,
+                        0f,
+                        -20f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
                     )
                 )
             })
@@ -361,10 +465,26 @@ object ImageProcessor {
             ImageFilter.Vintage -> ColorMatrixColorFilter(ColorMatrix().apply {
                 set(
                     floatArrayOf(
-                        0.9f, 0.3f, 0.1f, 0f, 5f,
-                        0.2f, 0.8f, 0.2f, 0f, 5f,
-                        0.1f, 0.2f, 0.7f, 0f, -10f,
-                        0f, 0f, 0f, 1f, 0f
+                        0.9f,
+                        0.3f,
+                        0.1f,
+                        0f,
+                        5f,
+                        0.2f,
+                        0.8f,
+                        0.2f,
+                        0f,
+                        5f,
+                        0.1f,
+                        0.2f,
+                        0.7f,
+                        0f,
+                        -10f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
                     )
                 )
             })
@@ -372,10 +492,26 @@ object ImageProcessor {
             ImageFilter.Film -> ColorMatrixColorFilter(ColorMatrix().apply {
                 set(
                     floatArrayOf(
-                        1.2f, 0.1f, 0.1f, 0f, 15f,
-                        0.1f, 1.2f, 0.1f, 0f, 10f,
-                        0.1f, 0.1f, 0.9f, 0f, -10f,
-                        0f, 0f, 0f, 1f, 0f
+                        1.2f,
+                        0.1f,
+                        0.1f,
+                        0f,
+                        15f,
+                        0.1f,
+                        1.2f,
+                        0.1f,
+                        0f,
+                        10f,
+                        0.1f,
+                        0.1f,
+                        0.9f,
+                        0f,
+                        -10f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
                     )
                 )
             })
@@ -383,10 +519,26 @@ object ImageProcessor {
             ImageFilter.TealOrange -> ColorMatrixColorFilter(ColorMatrix().apply {
                 set(
                     floatArrayOf(
-                        1.2f, 0f, 0f, 0f, 20f,
-                        0f, 1.0f, 0f, 0f, 0f,
-                        0f, 0f, 0.8f, 0f, -10f,
-                        0f, 0f, 0f, 1f, 0f
+                        1.2f,
+                        0f,
+                        0f,
+                        0f,
+                        20f,
+                        0f,
+                        1.0f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        0.8f,
+                        0f,
+                        -10f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
                     )
                 )
             })
@@ -394,10 +546,26 @@ object ImageProcessor {
             ImageFilter.HighContrast -> ColorMatrixColorFilter(ColorMatrix().apply {
                 set(
                     floatArrayOf(
-                        1.5f, 0f, 0f, 0f, -50f,
-                        0f, 1.5f, 0f, 0f, -50f,
-                        0f, 0f, 1.5f, 0f, -50f,
-                        0f, 0f, 0f, 1f, 0f
+                        1.5f,
+                        0f,
+                        0f,
+                        0f,
+                        -50f,
+                        0f,
+                        1.5f,
+                        0f,
+                        0f,
+                        -50f,
+                        0f,
+                        0f,
+                        1.5f,
+                        0f,
+                        -50f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
                     )
                 )
             })
@@ -407,10 +575,26 @@ object ImageProcessor {
                 val contrast = ColorMatrix().apply {
                     set(
                         floatArrayOf(
-                            1.4f, 0f, 0f, 0f, -50f,
-                            0f, 1.4f, 0f, 0f, -50f,
-                            0f, 0f, 1.4f, 0f, -50f,
-                            0f, 0f, 0f, 1f, 0f
+                            1.4f,
+                            0f,
+                            0f,
+                            0f,
+                            -50f,
+                            0f,
+                            1.4f,
+                            0f,
+                            0f,
+                            -50f,
+                            0f,
+                            0f,
+                            1.4f,
+                            0f,
+                            -50f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
                         )
                     )
                 }
@@ -418,21 +602,57 @@ object ImageProcessor {
             })
 
             ImageFilter.BrightnessBoost -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1.2f, 0f, 0f, 0f, 30f,
-                    0f, 1.2f, 0f, 0f, 30f,
-                    0f, 0f, 1.2f, 0f, 30f,
-                    0f, 0f, 0f, 1f, 0f
-                ))
+                set(
+                    floatArrayOf(
+                        1.2f,
+                        0f,
+                        0f,
+                        0f,
+                        30f,
+                        0f,
+                        1.2f,
+                        0f,
+                        0f,
+                        30f,
+                        0f,
+                        0f,
+                        1.2f,
+                        0f,
+                        30f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.Sharpen -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    2f, -1f, -1f, 0f, 0f,
-                    -1f,  2f, -1f, 0f, 0f,
-                    -1f, -1f,  2f, 0f, 0f,
-                    0f,  0f,  0f, 1f, 0f
-                ))
+                set(
+                    floatArrayOf(
+                        2f,
+                        -1f,
+                        -1f,
+                        0f,
+                        0f,
+                        -1f,
+                        2f,
+                        -1f,
+                        0f,
+                        0f,
+                        -1f,
+                        -1f,
+                        2f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.Sketch -> ColorMatrixColorFilter(ColorMatrix().apply {
@@ -440,66 +660,192 @@ object ImageProcessor {
             })
 
             ImageFilter.Cartoon -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1.5f, 0f, 0f, 0f, -30f,
-                    0f, 1.5f, 0f, 0f, -30f,
-                    0f, 0f, 1.5f, 0f, -30f,
-                    0f, 0f, 0f, 1f,  0f
-                ))
+                set(
+                    floatArrayOf(
+                        1.5f,
+                        0f,
+                        0f,
+                        0f,
+                        -30f,
+                        0f,
+                        1.5f,
+                        0f,
+                        0f,
+                        -30f,
+                        0f,
+                        0f,
+                        1.5f,
+                        0f,
+                        -30f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.HDR -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1.3f, 0f, 0f, 0f, -20f,
-                    0f, 1.3f, 0f, 0f, -20f,
-                    0f, 0f, 1.3f, 0f, -20f,
-                    0f, 0f, 0f, 1f,  0f
-                ))
+                set(
+                    floatArrayOf(
+                        1.3f,
+                        0f,
+                        0f,
+                        0f,
+                        -20f,
+                        0f,
+                        1.3f,
+                        0f,
+                        0f,
+                        -20f,
+                        0f,
+                        0f,
+                        1.3f,
+                        0f,
+                        -20f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.Lomo -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1.2f, 0.2f, 0.1f, 0f, 10f,
-                    0.1f, 1.0f, 0f, 0f, 5f,
-                    0.1f, 0.1f, 1.2f, 0f, -10f,
-                    0f, 0f, 0f, 1f, 0f
-                ))
+                set(
+                    floatArrayOf(
+                        1.2f,
+                        0.2f,
+                        0.1f,
+                        0f,
+                        10f,
+                        0.1f,
+                        1.0f,
+                        0f,
+                        0f,
+                        5f,
+                        0.1f,
+                        0.1f,
+                        1.2f,
+                        0f,
+                        -10f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.Pastel -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1f, 0f, 0f, 0f, 20f,
-                    0f, 1f, 0f, 0f, 20f,
-                    0f, 0f, 1f, 0f, 20f,
-                    0f, 0f, 0f, 1f, 0f
-                ))
+                set(
+                    floatArrayOf(
+                        1f,
+                        0f,
+                        0f,
+                        0f,
+                        20f,
+                        0f,
+                        1f,
+                        0f,
+                        0f,
+                        20f,
+                        0f,
+                        0f,
+                        1f,
+                        0f,
+                        20f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.Dramatic -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1.5f, 0f, 0f, 0f, -40f,
-                    0f, 1.5f, 0f, 0f, -40f,
-                    0f, 0f, 1.5f, 0f, -40f,
-                    0f, 0f, 0f, 1f, 0f
-                ))
+                set(
+                    floatArrayOf(
+                        1.5f,
+                        0f,
+                        0f,
+                        0f,
+                        -40f,
+                        0f,
+                        1.5f,
+                        0f,
+                        0f,
+                        -40f,
+                        0f,
+                        0f,
+                        1.5f,
+                        0f,
+                        -40f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.GoldenHour -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1.2f, 0.2f, 0f, 0f, 30f,
-                    0.1f, 1.1f, 0f, 0f, 20f,
-                    0f, 0f, 0.8f, 0f, -10f,
-                    0f, 0f, 0f, 1f, 0f
-                ))
+                set(
+                    floatArrayOf(
+                        1.2f,
+                        0.2f,
+                        0f,
+                        0f,
+                        30f,
+                        0.1f,
+                        1.1f,
+                        0f,
+                        0f,
+                        20f,
+                        0f,
+                        0f,
+                        0.8f,
+                        0f,
+                        -10f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.Cyberpunk -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    0.9f, 0.2f, 0.6f, 0f, 30f,
-                    0.1f, 0.8f, 0.5f, 0f, 10f,
-                    0.2f, 0.3f, 1.5f, 0f, -20f,
-                    0f,   0f,   0f, 1f,  0f
-                ))
+                set(
+                    floatArrayOf(
+                        0.9f,
+                        0.2f,
+                        0.6f,
+                        0f,
+                        30f,
+                        0.1f,
+                        0.8f,
+                        0.5f,
+                        0f,
+                        10f,
+                        0.2f,
+                        0.3f,
+                        1.5f,
+                        0f,
+                        -20f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             else -> null

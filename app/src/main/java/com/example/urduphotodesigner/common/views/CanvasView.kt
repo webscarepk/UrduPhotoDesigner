@@ -264,8 +264,10 @@ class CanvasView @JvmOverloads constructor(
     }
 
     fun setSelectionMode(enabled: Boolean) {
-        inSelectionMode = enabled
-        invalidate()
+        if (inSelectionMode != enabled) {
+            inSelectionMode = enabled
+            invalidate()
+        }
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -2198,7 +2200,9 @@ class CanvasView @JvmOverloads constructor(
                     clearSelection()
                     touchedElement.isSelected = true
                     selectedElements.add(touchedElement)
-
+                    if (inSelectionMode) {
+                        vibrateSoft()
+                    }
                     // 🔹 Tell UI to open Layers in selection mode
                     onRequestOpenLayers?.invoke()
                 } else {

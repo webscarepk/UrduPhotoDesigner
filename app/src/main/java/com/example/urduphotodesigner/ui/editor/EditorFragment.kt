@@ -31,8 +31,8 @@ import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
@@ -75,8 +75,11 @@ class EditorFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var canvasManager: CanvasManager
-    private var _navController: NavController? = null
-    private val navController get() = _navController!!
+    private val navController by lazy {
+        val navHostFragment =
+            childFragmentManager.findFragmentById(R.id.panelNavHost) as NavHostFragment
+        navHostFragment.navController
+    }
     private var panelsLocked = false
     private lateinit var canvasSize: CanvasSize
     private var currentUnit = UnitType.PIXELS
@@ -543,20 +546,23 @@ class EditorFragment : Fragment() {
                 canvasWidth = widthPx,
                 canvasHeight = heightPx,
                 onEditTextRequested = { element ->
-                    if (_navController != null) {
-                        navController.popBackStack(R.id.filtersFragment, true)
-                    }
-                    if (element.type == ElementType.IMAGE || element.type == ElementType.BACKGROUND) {
-                        val selected = viewModel.canvasElements.value?.find { it.id == element.id }
-                        selected?.let {
-                            val bundle = Bundle().apply {
-                                putParcelable("previewBitmap", it.bitmap)
-                                putString("elementId", it.id)
+                    requireActivity().runOnUiThread {
+                        if (view != null && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.CREATED)) {
+                            navController.popBackStack(R.id.filtersFragment, true)
+
+                            if (element.type == ElementType.IMAGE || element.type == ElementType.BACKGROUND) {
+                                val selected = viewModel.canvasElements.value?.find { it.id == element.id }
+                                selected?.let {
+                                    val bundle = Bundle().apply {
+                                        putParcelable("previewBitmap", it.bitmap)
+                                        putString("elementId", it.id)
+                                    }
+                                    navController.navigate(R.id.filtersFragment, bundle)
+                                }
+                            } else {
+                                showTextEditDialog(element)
                             }
-                            navController.navigate(R.id.filtersFragment, bundle)
                         }
-                    } else {
-                        showTextEditDialog(element)
                     }
                 },
                 onElementChanged = { canvasElement ->
@@ -589,12 +595,14 @@ class EditorFragment : Fragment() {
                     viewModel.markChanged()
                 },
                 onRequestOpenLayers = {
-                    if (isAdded && _navController != null && _binding != null) {
-                        viewModel.enterSelectionMode()
-                        binding.bottomNavigation.selectedItemId = R.id.nav_layers
-                        navController.navigate(R.id.layersFragment)
-                        currentPanelItemId = R.id.nav_layers
-                        binding.panelNavHost.visibility = View.VISIBLE
+                    requireActivity().runOnUiThread {
+                        if (view != null && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.CREATED)) {
+                            viewModel.enterSelectionMode()
+                            binding.bottomNavigation.selectedItemId = R.id.nav_layers
+                            navController.navigate(R.id.layersFragment)
+                            currentPanelItemId = R.id.nav_layers
+                            binding.panelNavHost.visibility = View.VISIBLE
+                        }
                     }
                 },
                 onExitSelectionMode = {
@@ -610,10 +618,6 @@ class EditorFragment : Fragment() {
 
     /** Setup bottom navigation with navHost */
     private fun initBottomNavigation() {
-        val navHostFragment =
-            childFragmentManager.findFragmentById(R.id.panelNavHost) as NavHostFragment
-        _navController = navHostFragment.navController
-
         binding.bottomNavigation.setOnItemSelectedListener { menuItem ->
             if (currentPanelItemId == menuItem.itemId) {
                 binding.panelNavHost.visibility = View.GONE
@@ -995,7 +999,6 @@ class EditorFragment : Fragment() {
 
     override fun onDestroy() {
         super.onDestroy()
-        _navController = null
         saveJsonJob?.cancel()
         _binding = null
     }

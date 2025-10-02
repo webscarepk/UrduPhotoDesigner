@@ -30,7 +30,7 @@ import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 
 class ImagesAdapter(
-    private val onImageSelected: (Bitmap) -> Unit
+    private val onImageSelected: (Bitmap, ImageEntity) -> Unit
 ) : RecyclerView.Adapter<ImagesAdapter.ImageViewHolder>() {
 
     private val images = mutableListOf<ImageEntity>()
@@ -75,7 +75,7 @@ class ImagesAdapter(
                 // Check if bitmapData is available (not empty)
                 if (image.bitmapData != null) {
                     val bitmap = ImageProcessor.filePathToBitmap(image.bitmapData!!)
-                    onImageSelected(bitmap!!)
+                    onImageSelected(bitmap!!, image)
                 } else {
                     // If bitmapData is empty, load image from URL
                     val url = Constants.BASE_URL_GLIDE + image.file_url
@@ -89,7 +89,7 @@ class ImagesAdapter(
                                 transition: Transition<in Bitmap>?
                             ) {
                                 // this is guaranteed to be the full-size image
-                                onImageSelected(bitmap)
+                                onImageSelected(bitmap, image)
                             }
 
                             override fun onLoadCleared(placeholder: Drawable?) { /* no-op */

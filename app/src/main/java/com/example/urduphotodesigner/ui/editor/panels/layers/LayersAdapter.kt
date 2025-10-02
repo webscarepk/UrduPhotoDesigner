@@ -48,6 +48,10 @@ class LayersAdapter(
         notifyDataSetChanged()
     }
 
+    fun currentList() : List<CanvasElement> {
+        return elements
+    }
+
     fun moveItem(from: Int, to: Int) {
         if (from !in elements.indices || to !in elements.indices) return
         val item = elements.removeAt(from)
@@ -96,12 +100,24 @@ class LayersAdapter(
                 )
 
                 if (element.isSelected) {
-                    binding.root.strokeWidth = 2
-                    binding.root.strokeColor =
-                        ContextCompat.getColor(binding.root.context, R.color.appColor)
+                    if (inSelectionMode) {
+                        // Multi-selection → filled background
+                        binding.root.setCardBackgroundColor(
+                            ContextCompat.getColor(binding.root.context, R.color.contrast)
+                        )
+                        binding.root.strokeWidth = 0
+                    } else {
+                        // Single selection → stroke highlight
+                        binding.root.setCardBackgroundColor(ContextCompat.getColor(binding.root.context, R.color.white))
+                        binding.root.strokeWidth = 2
+                        binding.root.strokeColor =
+                            ContextCompat.getColor(binding.root.context, R.color.appColor)
+                    }
                 } else {
+                    binding.root.setCardBackgroundColor(Color.TRANSPARENT)
                     binding.root.strokeWidth = 0
                 }
+
 
                 if (inSelectionMode) {
                     // hide per-item icons in multi-select

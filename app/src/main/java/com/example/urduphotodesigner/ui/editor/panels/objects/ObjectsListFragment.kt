@@ -1,11 +1,9 @@
 package com.example.urduphotodesigner.ui.editor.panels.objects
 
-import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.graphics.scale
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -13,6 +11,8 @@ import androidx.lifecycle.lifecycleScope
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.model.EmojiMeta
 import com.example.urduphotodesigner.common.utils.Constants
+import com.example.urduphotodesigner.common.utils.ImageProcessor.bitmapCompress
+import com.example.urduphotodesigner.common.utils.ImageProcessor.trimTransparentEdges
 import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.databinding.FragmentObjectsListBinding
 import com.example.urduphotodesigner.ui.editor.panels.background.backgrounds.ImagesAdapter
@@ -37,14 +37,13 @@ class ObjectsListFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
-            category   = it.getString(ARG_CATEGORY).orEmpty()
+            category = it.getString(ARG_CATEGORY).orEmpty()
             filterText = it.getString(ARG_FILTER).orEmpty()
         }
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentObjectsListBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -57,46 +56,66 @@ class ObjectsListFragment : Fragment() {
         initObservers()
     }
 
+    private fun isBaseTab(tab: String): Boolean {
+        return listOf(
+            "Emoticons",
+            "Animals",
+            "Nature",
+            "Food",
+            "Sports",
+            "Transport",
+            "Objects",
+            "Alchemy",
+            "Shapes",
+            "Arrows",
+            "Letters",
+            "Flags"
+        ).any { it.equals(tab, true) }
+    }
+
     private fun setEvents() {
-        imagesAdapter = ImagesAdapter { image ->
-            val resized = viewModel.canvasSize.value?.height?.roundToInt()?.let { viewModel.canvasSize.value?.width?.let { it1 -> bitmapCompress(image, it1.roundToInt(), it) } }
-            viewModel.addSticker(resized, requireActivity())
-        }
+        imagesAdapter = ImagesAdapter { image, imageEntity ->
 
-        val data: List<EmojiMeta> = when (category) {
-            "Emoticons"   -> Constants.META_EMOTICONS
-            "Animals"     -> Constants.META_ANIMALS
-            "Nature"      -> Constants.META_NATURE
-            "Food"        -> Constants.META_FOOD
-            "Sports"      -> Constants.META_SPORTS
-            "Transport"   -> Constants.META_TRANSPORT
-            "Objects"     -> Constants.META_OBJECTS
-            "Alchemy"     -> Constants.META_ALCHEMY
-            "Shapes"      -> Constants.META_SHAPES
-            "Arrows"      -> Constants.META_ARROWS
-            "Letters"      -> Constants.META_LETTERS
-            "Flags"       -> Constants.META_FLAGS
-            else          -> emptyList()
-        }
-        val filtered = data.filter { it.name.contains(filterText, true) }
-        if (filtered.isEmpty()){
-            binding.noEmojis.visibility = View.VISIBLE
-        }else{
-            binding.noEmojis.visibility = View.GONE
-        }
-        val emojiAdapter = EmojiAdapter(requireActivity(), filtered) { bmp ->
-            viewModel.addSticker(bmp, requireActivity())
-        }
+            mainViewModel.updateImage(imageEntity.copy(is_recent = true))
 
-        binding.objects.apply {
-            adapter = when (category) {
-                "Stickers" -> imagesAdapter
-                else -> emojiAdapter
+            val resized = viewModel.canvasSize.value?.height?.roundToInt()?.let { h ->
+                viewModel.canvasSize.value?.width?.let { w ->
+                    bitmapCompress(image, w.roundToInt(), h)
+                }
             }
-            setHasFixedSize(true)
+            viewModel.addSticker(resized?.trimTransparentEdges(), requireActivity())
         }
 
-        if (category == "Stickers") refreshImages()
+        if (isBaseTab(category)) {
+            val data: List<EmojiMeta> = when (category) {
+                "Emoticons" -> Constants.META_EMOTICONS
+                "Animals" -> Constants.META_ANIMALS
+                "Nature" -> Constants.META_NATURE
+                "Food" -> Constants.META_FOOD
+                "Sports" -> Constants.META_SPORTS
+                "Transport" -> Constants.META_TRANSPORT
+                "Objects" -> Constants.META_OBJECTS
+                "Alchemy" -> Constants.META_ALCHEMY
+                "Shapes" -> Constants.META_SHAPES
+                "Arrows" -> Constants.META_ARROWS
+                "Letters" -> Constants.META_LETTERS
+                "Flags" -> Constants.META_FLAGS
+                else -> emptyList()
+            }
+
+            val filtered = data.filter { it.name.contains(filterText, true) }
+            binding.noEmojis.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
+
+            val emojiAdapter = EmojiAdapter(requireActivity(), filtered) { bmp ->
+                viewModel.addSticker(bmp, requireActivity())
+            }
+            binding.objects.adapter = emojiAdapter
+        } else {
+            binding.objects.adapter = imagesAdapter
+            refreshImages(category)
+        }
+
+        binding.objects.setHasFixedSize(true)
     }
 
     fun updateFilter(newFilter: String) {
@@ -104,43 +123,35 @@ class ObjectsListFragment : Fragment() {
         setEvents()
     }
 
-    private fun bitmapCompress(image: Bitmap, canvasWidth: Int, canvasHeight: Int): Bitmap {
-        // Calculate ratios
-        val widthRatio = canvasWidth.toFloat() / image.width
-        val heightRatio = canvasHeight.toFloat() / image.height
-        val scale = minOf(widthRatio, heightRatio)
-
-        // Optional: limit the scale factor (to avoid extremely huge bitmaps)
-        val maxScale = 3f  // allow up to 3× enlargement
-        val finalScale = scale.coerceAtMost(maxScale)
-
-        val newWidth = (image.width * finalScale).toInt().coerceAtLeast(1)
-        val newHeight = (image.height * finalScale).toInt().coerceAtLeast(1)
-
-        return image.scale(newWidth, newHeight)
-    }
-
     private fun initObservers() {
-
         lifecycleScope.launch {
             mainViewModel.localImages.collect { images ->
                 allLocalImages = images
-                if (category == "Stickers") refreshImages()
+                if (!isBaseTab(category)) {
+                    refreshImages(category)
+                }
             }
         }
     }
 
-    private fun refreshImages() {
-        val filtered = allLocalImages
-            .filter { img ->
-                img.category.equals("Images Imported", true) || img.category.equals("Images", true) || img.category.equals("Stickers", true) &&
-                        img.alt_text!!.contains(filterText, ignoreCase = true)
+    private fun refreshImages(tabName: String) {
+        val filtered = when {
+            tabName.equals("Recents", true) -> allLocalImages.filter { img ->
+                img.is_recent && !(
+                        img.category.equals("Backgrounds", true) ||
+                                img.category.equals("Backgrounds Imported", true) ||
+                                img.category.equals("Images", true) ||
+                                img.category.equals("Images Imported", true)
+                        ) && (filterText.isBlank() || img.alt_text?.contains(filterText, true) == true)
             }
-        if (filtered.isEmpty()){
-            binding.noEmojis.visibility = View.VISIBLE
-        }else{
-            binding.noEmojis.visibility = View.GONE
+
+            else -> allLocalImages.filter { img ->
+                img.category.equals(tabName, true) &&
+                        (filterText.isBlank() || img.alt_text?.contains(filterText, true) == true)
+            }
         }
+
+        binding.noEmojis.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
         imagesAdapter.submitList(filtered)
     }
 
@@ -151,13 +162,12 @@ class ObjectsListFragment : Fragment() {
 
     companion object {
         private const val ARG_CATEGORY = "arg_category"
-        private const val ARG_FILTER   = "arg_filter"
+        private const val ARG_FILTER = "arg_filter"
 
         fun newInstance(category: String, initialFilter: String = "") =
             ObjectsListFragment().apply {
                 arguments = bundleOf(
-                    ARG_CATEGORY to category,
-                    ARG_FILTER   to initialFilter
+                    ARG_CATEGORY to category, ARG_FILTER to initialFilter
                 )
             }
     }

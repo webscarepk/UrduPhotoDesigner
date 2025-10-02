@@ -485,34 +485,26 @@ class CanvasViewModel @Inject constructor(
 
     fun selectElementForGrouping() {
         if (_selectedElements.value?.isNotEmpty() == true) {
-            // Create a new group ID
             val newGroupId = UUID.randomUUID().toString()
             _currentGroupId.value = newGroupId
-
-            // Update the groupId of selected elements
             _selectedElements.value?.forEach { element ->
                 element.groupId = newGroupId
             }
-
-            // Notify observer to update the canvas
             _canvasElements.value = _canvasElements.value
-            // After updating the groupId, refresh the canvas view with the updated list of elements.
         }
     }
 
     fun ungroupElements() {
-        // Remove the group ID and reset selected elements
+        val selected = _selectedElements.value ?: return
+        if (selected.isEmpty()) return
+        val idsToUngroup = selected.map { it.id }.toSet()
         _canvasElements.value = _canvasElements.value?.map { element ->
-            if (element.groupId == _currentGroupId.value) {
+            if (idsToUngroup.contains(element.id)) {
                 element.copy(groupId = null)
-            } else {
-                element
-            }
+            } else element
         }
-        // Reset selection and clear the group ID
-        _currentGroupId.value = null
         _selectedElements.value = emptyList()
-        // Notify observer to update the canvas
+        _currentGroupId.value = null
     }
 
     private fun insertAt(

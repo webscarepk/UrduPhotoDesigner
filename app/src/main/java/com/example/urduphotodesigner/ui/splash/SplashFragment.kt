@@ -49,11 +49,6 @@ class SplashFragment : Fragment() {
             val navOptions = NavOptions.Builder()
                 .setPopUpTo(R.id.splashFragment, true)
                 .build()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                requireActivity().window.insetsController?.show(
-                    WindowInsets.Type.statusBars()
-                )
-            }
             view?.post { findNavController().navigate(R.id.homeFragment, null, navOptions) }
         }
     }

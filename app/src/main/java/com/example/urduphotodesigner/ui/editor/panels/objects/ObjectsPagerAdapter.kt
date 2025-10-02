@@ -23,6 +23,11 @@ class ObjectsPagerAdapter(
             .forEach { it.updateFilter(query) }
     }
 
+    fun setTabs(newTabs: List<String>) {
+        this.tabs = newTabs
+        notifyDataSetChanged()
+    }
+
     override fun getItemCount(): Int = tabs.size
 
     override fun createFragment(position: Int): Fragment {

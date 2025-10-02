@@ -46,12 +46,18 @@ class ImageFiltersAdapter(
             binding.filterName.text = filterItem.name
 
             baseBitmap?.let { bmp ->
-                val thumb = bmp.scale(150, 150)
+                val maxSize = 150
+                val aspectRatio = bmp.width.toFloat() / bmp.height.toFloat()
+                val (targetWidth, targetHeight) = if (aspectRatio > 1) {
+                    maxSize to (maxSize / aspectRatio).toInt()
+                } else {
+                    (maxSize * aspectRatio).toInt() to maxSize
+                }
+                val thumb = bmp.scale(targetWidth, targetHeight)
                 val filteredThumb = ImageProcessor.applyFilter(thumb, filterItem.filter)
                 binding.filterPreview.setImageBitmap(filteredThumb)
             }
 
-            // Determine if the current item should be selected based on the adapter's selectedFilter
             val isCurrentItemSelected = filterItem.filter == selectedFilter
 
             if (isCurrentItemSelected) {

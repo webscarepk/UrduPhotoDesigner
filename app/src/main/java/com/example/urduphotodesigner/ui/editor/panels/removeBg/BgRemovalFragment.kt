@@ -169,9 +169,9 @@ class BgRemovalFragment : Fragment() {
             binding.imageCanvas.setActionMode(BgRemovalCanvas.ActionMode.REMOVE)
         }
 
-        binding.bottomNavigation.selectedItemId = R.id.nav_lasso
-
         binding.bottomNavigation.setOnItemSelectedListener { item ->
+            toggleMiniToolbar(true)
+
             when (item.itemId) {
                 R.id.nav_lasso -> {
                     binding.imageCanvas.setToolMode(BgRemovalCanvas.ToolMode.BRUSH)
@@ -267,8 +267,8 @@ class BgRemovalFragment : Fragment() {
 
         binding.imageCanvas.onActionModeChanged = { mode ->
             // update add/remove buttons tint
-            setIconSelected(binding.addIcon, mode == BgRemovalCanvas.ActionMode.ADD)
-            setIconSelected(binding.removeIcon, mode == BgRemovalCanvas.ActionMode.REMOVE)
+            setActionIconSelected(binding.addIcon, mode == BgRemovalCanvas.ActionMode.ADD)
+            setActionIconSelected(binding.removeIcon, mode == BgRemovalCanvas.ActionMode.REMOVE)
         }
 
         binding.imageCanvas.onPreviewChanged = { enabled ->
@@ -278,6 +278,25 @@ class BgRemovalFragment : Fragment() {
         binding.imageCanvas.onMaskConfirmed = { maskedBitmap ->
             viewModel.applyMaskToSelected(maskedBitmap)
             findNavController().navigateUp()
+        }
+    }
+
+    private fun toggleMiniToolbar(show: Boolean) {
+        if (show && !binding.miniToolbar.isVisible) {
+            binding.miniToolbar.apply {
+                visibility = View.VISIBLE
+                translationY = height.toFloat()
+                animate()
+                    .translationY(0f)
+                    .setDuration(250)
+                    .start()
+            }
+        } else if (!show && binding.miniToolbar.isVisible) {
+            binding.miniToolbar.animate()
+                .translationY(binding.miniToolbar.height.toFloat())
+                .setDuration(250)
+                .withEndAction { binding.miniToolbar.visibility = View.GONE }
+                .start()
         }
     }
 
@@ -300,6 +319,20 @@ class BgRemovalFragment : Fragment() {
                 ContextCompat.getColorStateList(requireContext(), R.color.contrast)
             view.imageTintList =
                 ContextCompat.getColorStateList(requireContext(), R.color.black)
+        }
+    }
+
+    private fun setActionIconSelected(view: ImageView, selected: Boolean) {
+        if (selected) {
+            view.backgroundTintList =
+                ContextCompat.getColorStateList(requireContext(), R.color.appColor)
+            view.imageTintList =
+                ContextCompat.getColorStateList(requireContext(), R.color.appColor)
+        } else {
+            view.backgroundTintList =
+                ContextCompat.getColorStateList(requireContext(), R.color.light_gray)
+            view.imageTintList =
+                ContextCompat.getColorStateList(requireContext(), R.color.light_gray)
         }
     }
 
