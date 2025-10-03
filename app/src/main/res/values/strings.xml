@@ -263,6 +263,8 @@
     <string name="please_wait">Please wait!</string>
     <string name="complete">%d%% complete</string>
     <string name="filter_preview">Filter preview</string>
+    <string name="image_adjustments">Image Adjustments</string>
+    <string name="adjust_brightness_contrast_and_more">Adjust brightness, contrast, and more</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->
