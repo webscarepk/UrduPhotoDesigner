@@ -8,6 +8,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.databinding.FragmentBackgroundsListBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -21,6 +22,7 @@ class BackgroundsListFragment(private val tabName: String) : Fragment() {
     private val mainViewModel: MainViewModel by activityViewModels()
     private val viewModel: CanvasViewModel by activityViewModels()
     private lateinit var imagesAdapter: ImagesAdapter
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -37,12 +39,10 @@ class BackgroundsListFragment(private val tabName: String) : Fragment() {
     }
 
     private fun setEvents() {
-        imagesAdapter = ImagesAdapter() { image, imageEntity ->
+        imagesAdapter = ImagesAdapter { image, imageEntity ->
             if (isAdded) {
                 mainViewModel.updateImage(imageEntity.copy(is_recent = true))
-                viewModel.ensureBackgroundElement(
-                    requireActivity(),
-                )
+                viewModel.ensureBackgroundElement(requireActivity())
                 viewModel.setCanvasBackgroundImage(image)
             }
         }
@@ -50,25 +50,29 @@ class BackgroundsListFragment(private val tabName: String) : Fragment() {
     }
 
     private fun initObservers() {
-
         lifecycleScope.launch {
             mainViewModel.localImages.collect { images ->
-                val imageList = when {
-                    tabName.equals("Recents", true) -> images.filter {
-                        it.is_recent && (
-                                it.category.equals("Backgrounds", true) ||
-                                        it.category.equals("Backgrounds Imported", true)
-                                )
-                    }
-                    else -> images.filter {
-                        it.category.equals("Backgrounds", true) ||
-                                it.category.equals("Backgrounds Imported", true)
-                    }
-                }
-                binding.noEmojis.visibility = if (imageList.isEmpty()) View.VISIBLE else View.GONE
-                imagesAdapter.submitList(imageList)
+                updateImages(images)
             }
         }
+    }
+
+    /** ✅ Public function called from adapter.refreshData(images) */
+    fun updateImages(images: List<ImageEntity>) {
+        val imageList = when {
+            tabName.equals("Recents", true) -> images.filter {
+                it.is_recent && (
+                        it.category.equals("Backgrounds", true) ||
+                                it.category.equals("Backgrounds Imported", true)
+                        )
+            }
+            else -> images.filter {
+                it.category.equals("Backgrounds", true) ||
+                        it.category.equals("Backgrounds Imported", true)
+            }
+        }
+        binding.noEmojis.visibility = if (imageList.isEmpty()) View.VISIBLE else View.GONE
+        imagesAdapter.submitList(imageList)
     }
 
     override fun onDestroy() {

@@ -2,6 +2,7 @@ package com.example.urduphotodesigner.common.canvas.sealed
 
 sealed class ImageFilter(val name: String) {
 
+    object Adjustments : ImageFilter("Adjustments")
     object None : ImageFilter("None")
     object Invert : ImageFilter("Invert")
     object Grayscale : ImageFilter("Grayscale")

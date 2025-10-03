@@ -28,6 +28,7 @@ class FiltersFragment : Fragment() {
     private var elementId: String? = null
     // Define your list of available filters
     private val availableFilters = listOf(
+        FilterItem("Adjustments", ImageFilter.None),
         FilterItem("None", ImageFilter.None),
         FilterItem("Grayscale", ImageFilter.Grayscale),
         FilterItem("Sepia", ImageFilter.Sepia),             // Example: rotate hue by 90 degrees
@@ -78,8 +79,12 @@ class FiltersFragment : Fragment() {
 
     private fun setupRecyclerView() {
         filtersAdapter = ImageFiltersAdapter(availableFilters, previewBitmap) { filterItem ->
-            elementId?.let { id ->
-                viewModel.applyImageFilter(id, filterItem.filter)
+            if (filterItem.filter == ImageFilter.Adjustments) {
+//                findNavController().navigate(R.id.action_filtersFragment_to_adjustmentsFragment)
+            } else {
+                elementId?.let { id ->
+                    viewModel.applyImageFilter(id, filterItem.filter)
+                }
             }
         }
         binding.filtersRecyclerView.apply {

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Urdu Canvas</string>
+    <string name="app_name">UrduCanvas</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="server_client_id">262118457778-vbkhl67en4464tieb8dd5s8e5l96067n.apps.googleusercontent.com</string>
@@ -262,6 +262,7 @@
     <string name="processing_your_image">Processing your image</string>
     <string name="please_wait">Please wait!</string>
     <string name="complete">%d%% complete</string>
+    <string name="filter_preview">Filter preview</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

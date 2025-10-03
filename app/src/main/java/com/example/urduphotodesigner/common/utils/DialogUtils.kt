@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.view.LayoutInflater
+import android.view.WindowManager
 import android.widget.TextView
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
@@ -43,7 +44,10 @@ object DialogUtils {
 
         dialog.show()
         dialog.window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
-
+        val params = dialog.window?.attributes
+        params?.width = (context.resources.displayMetrics.widthPixels * 0.8).toInt()
+        params?.height = WindowManager.LayoutParams.WRAP_CONTENT
+        dialog.window?.attributes = params
     }
 
 }

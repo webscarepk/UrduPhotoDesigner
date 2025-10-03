@@ -76,12 +76,15 @@ class LoginFragment : Fragment() {
             .setCancelable(false)
             .create()
 
-        progressDialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        progressDialog?.window?.setDimAmount(0.5f) // Dim background
-        progressDialog?.window?.setLayout(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
+        progressDialog?.window?.apply {
+            setBackgroundDrawableResource(android.R.color.transparent)
+            setDimAmount(0.5f) // Dim background
+
+            val params = attributes
+            params?.width = (resources.displayMetrics.widthPixels * 0.8).toInt()
+            params?.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            attributes = params
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")

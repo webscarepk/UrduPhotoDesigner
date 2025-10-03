@@ -10,6 +10,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.utils.ImageProcessor.bitmapCompress
 import com.example.urduphotodesigner.common.utils.ImageProcessor.trimTransparentEdges
+import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.databinding.FragmentBackgroundsListBinding
 import com.example.urduphotodesigner.ui.editor.panels.background.backgrounds.ImagesAdapter
 import com.example.urduphotodesigner.viewmodels.MainViewModel
@@ -66,18 +67,7 @@ class ImagesListFragment : Fragment() {
     private fun initObservers() {
         lifecycleScope.launch {
             mainViewModel.localImages.collect { images ->
-                val imageList = when {
-                    categoryName.equals("Recents", true) -> images.filter {
-                        it.is_recent &&
-                                (it.category.equals("Images", true) || it.category.equals("Images Imported", true))
-                    }
-
-                    else -> images.filter {
-                        it.category.equals(categoryName, ignoreCase = true)
-                    }
-                }
-                binding.noEmojis.visibility = if (imageList.isEmpty()) View.VISIBLE else View.GONE
-                imagesAdapter.submitList(imageList)
+                updateImages(images)
             }
         }
     }
@@ -85,6 +75,20 @@ class ImagesListFragment : Fragment() {
     override fun onDestroy() {
         super.onDestroy()
         _binding = null
+    }
+
+    fun updateImages(images: List<ImageEntity>) {
+        val imageList = when {
+            categoryName.equals("Recents", true) -> images.filter {
+                it.is_recent &&
+                        (it.category.equals("Images", true) || it.category.equals("Images Imported", true))
+            }
+            else -> images.filter {
+                it.category.equals(categoryName, ignoreCase = true)
+            }
+        }
+        binding.noEmojis.visibility = if (imageList.isEmpty()) View.VISIBLE else View.GONE
+        imagesAdapter.submitList(imageList)
     }
 
     companion object {

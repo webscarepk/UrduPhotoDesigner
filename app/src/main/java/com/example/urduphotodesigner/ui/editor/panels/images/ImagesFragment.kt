@@ -61,13 +61,15 @@ class ImagesFragment : Fragment() {
     }
 
     private fun setEvents() {
-        tabs.addAll(listOf("Image", "Color", "Gradient"))
+        tabs.addAll(listOf("Image", "Color", "Gradient")) // base tabs once
 
         adapter = ImagesPagerAdapter(
             requireActivity().supportFragmentManager, lifecycle, tabs
         )
         binding.viewPager.adapter = adapter
         binding.viewPager.isUserInputEnabled = false
+
+        setupTabLayout()
 
         binding.addImage.addPressEffect {
             pickImage.launch("image/*")
@@ -118,27 +120,29 @@ class ImagesFragment : Fragment() {
     private fun observeCategories() {
         lifecycleScope.launch {
             mainViewModel.localImages.collect { images ->
+
                 val additionalTabs = images.map { it.category.trim() }
                     .filter { it.equals("Images", true) || it.equals("Images Imported", true) }
                     .distinct()
 
-                tabs.clear()
-                tabs.addAll(additionalTabs)
-
-                // ✅ Only add Recents if there is a recent image in "Images" or "Images Imported"
                 val hasImageRecents = images.any {
                     it.is_recent &&
                             (it.category.equals("Images", true) || it.category.equals("Images Imported", true))
                 }
 
-                if (hasImageRecents) {
-                    tabs.add(0, "Recents")
+                val newTabs = mutableListOf<String>().apply {
+                    if (hasImageRecents) add("Recents")
+                    addAll(additionalTabs)
                 }
 
-                binding.noEmojis.visibility = if (tabs.isEmpty()) View.VISIBLE else View.GONE
-
-                adapter.setTabs(tabs)
-                setupTabLayout()
+                if (newTabs != tabs) {
+                    tabs.clear()
+                    tabs.addAll(newTabs)
+                    adapter.setTabs(tabs)
+                } else {
+                    // just refresh fragments
+                    adapter.refreshData(images)
+                }
             }
         }
     }

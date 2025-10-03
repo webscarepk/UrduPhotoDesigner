@@ -4,6 +4,7 @@ import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.Lifecycle
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
+import com.example.urduphotodesigner.data.model.ImageEntity
 
 class ObjectsPagerAdapter(
     private val fm: FragmentManager,
@@ -21,6 +22,12 @@ class ObjectsPagerAdapter(
         fm.fragments
             .filterIsInstance<ObjectsListFragment>()
             .forEach { it.updateFilter(query) }
+    }
+
+    fun refreshData(images: List<ImageEntity>) {
+        fm.fragments
+            .filterIsInstance<ObjectsListFragment>()
+            .forEach { it.updateImages(images) }
     }
 
     fun setTabs(newTabs: List<String>) {

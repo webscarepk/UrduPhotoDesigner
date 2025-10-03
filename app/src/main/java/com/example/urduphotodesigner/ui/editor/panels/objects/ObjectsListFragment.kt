@@ -160,6 +160,13 @@ class ObjectsListFragment : Fragment() {
         _binding = null
     }
 
+    fun updateImages(images: List<ImageEntity>) {
+        allLocalImages = images
+        if (!isBaseTab(category)) {
+            refreshImages(category)
+        }
+    }
+
     companion object {
         private const val ARG_CATEGORY = "arg_category"
         private const val ARG_FILTER = "arg_filter"

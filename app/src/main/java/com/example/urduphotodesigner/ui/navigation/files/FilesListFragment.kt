@@ -796,10 +796,10 @@ class FilesListFragment : Fragment() {
             setContentView(dialogBinding!!.root)
             setCancelable(false)
             window?.setBackgroundDrawableResource(android.R.color.transparent)
-            window?.setLayout(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
+            val params = window?.attributes
+            params?.width = (resources.displayMetrics.widthPixels * 0.8).toInt() // 80% width
+            params?.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            window?.attributes = params
             window?.setGravity(Gravity.CENTER)
             show()
         }

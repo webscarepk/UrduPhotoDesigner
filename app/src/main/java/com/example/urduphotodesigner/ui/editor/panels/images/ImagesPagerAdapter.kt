@@ -4,6 +4,7 @@ import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.Lifecycle
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
+import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.ui.editor.panels.objects.ObjectsListFragment
 
 class ImagesPagerAdapter(
@@ -21,6 +22,12 @@ class ImagesPagerAdapter(
             .filterIsInstance<ObjectsListFragment>()
             .forEach { it.updateFilter(query) }
     }
+    fun refreshData(images: List<ImageEntity>) {
+        fragmentManager.fragments
+            .filterIsInstance<ImagesListFragment>() // or whatever your per-tab fragment is
+            .forEach { it.updateImages(images) }
+    }
+
     fun setTabs(newTabs: List<String>) {
         this.tabs = newTabs
         notifyDataSetChanged()

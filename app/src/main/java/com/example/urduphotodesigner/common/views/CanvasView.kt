@@ -107,8 +107,10 @@ class CanvasView @JvmOverloads constructor(
     private var pickerY = 0f
     private var isDraggingPicker = false
     private val desiredPickerIconSizePx = 64f
+    private val desiredIconSizeDp = 16f
+    private val desiredIconScreenSizePx: Float
+        get() = desiredIconSizeDp * resources.displayMetrics.density
 
-    private var desiredIconScreenSizePx = 36f
     private var iconTouched: String? = null
     private var allowFreeDrag: Boolean = false
     private val checkerSize = 20
@@ -1338,6 +1340,10 @@ class CanvasView @JvmOverloads constructor(
             ImageFilter.SoftBlur -> {
                 null
             }
+
+            ImageFilter.Adjustments -> {
+                null
+            }
         }
     }
 
@@ -1508,10 +1514,16 @@ class CanvasView @JvmOverloads constructor(
                         corners[1]
                     )
                     // Resize icon (bottom-left)
-                    iconMap["rotate"] = Pair(
-                        corners[6],
-                        corners[7]
-                    )
+                    val topCenterX = (corners[0] + corners[2]) / 2f
+                    val topCenterY = (corners[1] + corners[3]) / 2f
+
+                    // Offset upwards for space between box and icon
+                    val offset = 60f / scale   // adjust size
+                    val rotateX = topCenterX
+                    val rotateY = topCenterY - offset
+
+                    iconMap["rotate"] = Pair(rotateX, rotateY)
+
                     // Rotate icon (bottom-right)
                     iconMap["resize"] = Pair(
                         corners[4],
@@ -1536,10 +1548,28 @@ class CanvasView @JvmOverloads constructor(
                             position.second + localIconDrawHeight / 2f
                         )
                         lastDrawnIconRect[iconName] = dstRect
-                        Log.d(
-                            "IconDraw",
-                            "Drawn icon=$iconName at Rect(${dstRect.left}, ${dstRect.top}, ${dstRect.right}, ${dstRect.bottom})"
-                        )
+                        if (iconName == "rotate") {
+                            // For single element → get its top center
+                            val element = selectedElements.firstOrNull()
+                            if (element != null) {
+                                val corners = element.getRotatedCorners()
+                                val topCenterX = (corners[0] + corners[2]) / 2f
+                                val topCenterY = (corners[1] + corners[3]) / 2f
+
+                                // Draw vertical line from top center to rotate icon
+                                val linePaint = Paint().apply {
+                                    color = Color.GRAY
+                                    strokeWidth = 2f / scale
+                                    isAntiAlias = true
+                                }
+                                canvas.drawLine(
+                                    topCenterX, topCenterY,
+                                    position.first, position.second,
+                                    linePaint
+                                )
+                            }
+                        }
+
                         bmp.setBounds(
                             dstRect.left.toInt(),
                             dstRect.top.toInt(),

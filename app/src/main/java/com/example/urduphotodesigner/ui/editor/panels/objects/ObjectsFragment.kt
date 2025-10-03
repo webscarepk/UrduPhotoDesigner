@@ -66,21 +66,6 @@ class ObjectsFragment : Fragment() {
 
     private fun initObservers() {
         lifecycleScope.launch {
-            val baseTabs = listOf(
-                "Emoticons",
-                "Animals",
-                "Nature",
-                "Food",
-                "Sports",
-                "Transport",
-                "Objects",
-                "Alchemy",
-                "Shapes",
-                "Arrows",
-                "Letters",
-                "Flags"
-            )
-
             mainViewModel.localImages.collect { images ->
                 val baseTabs = listOf(
                     "Emoticons", "Animals", "Nature", "Food", "Sports",
@@ -95,10 +80,6 @@ class ObjectsFragment : Fragment() {
                             it.equals("Images Imported", true)
                 }.distinct()
 
-                tabs.clear()
-                tabs.addAll(extraTabs + baseTabs)
-
-                // ✅ Only add Recents if there are recents in *object* categories
                 val hasObjectRecents = images.any {
                     it.is_recent && !(
                             it.category.equals("Backgrounds", true) ||
@@ -107,14 +88,27 @@ class ObjectsFragment : Fragment() {
                                     it.category.equals("Images Imported", true)
                             )
                 }
-                if (hasObjectRecents) {
-                    tabs.add(0, "Recents")
+
+                val newTabs = mutableListOf<String>().apply {
+                    if (hasObjectRecents) add("Recents")
+                    addAll(extraTabs + baseTabs)
                 }
 
-                adapter.setTabs(tabs)
-                setupTabLayout()
+                if (newTabs != tabs) {
+                    // only if structure changed
+                    tabs.clear()
+                    tabs.addAll(newTabs)
+                    adapter = ObjectsPagerAdapter(
+                        requireActivity().supportFragmentManager, lifecycle, tabs
+                    )
+                    binding.viewPager.adapter = adapter
+                    binding.viewPager.isUserInputEnabled = false
+                    setupTabLayout()
+                } else {
+                    // just refresh existing fragments
+                    adapter.refreshData(images)
+                }
             }
-
         }
     }
 
@@ -128,12 +122,6 @@ class ObjectsFragment : Fragment() {
 
     @SuppressLint("ClickableViewAccessibility")
     private fun setEvents() {
-        adapter = ObjectsPagerAdapter(
-            requireActivity().supportFragmentManager, lifecycle, tabs
-        )
-        binding.viewPager.adapter = adapter
-        binding.viewPager.isUserInputEnabled = false
-
         binding.searchIcon.addPressEffect {
             binding.searchIcon.isVisible = false
             binding.searchBar.isVisible = true
