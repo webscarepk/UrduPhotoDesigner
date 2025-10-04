@@ -8,10 +8,8 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.canvas.model.FilterItem
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
@@ -26,9 +24,9 @@ class FiltersFragment : Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
     private var previewBitmap: Bitmap? = null
     private var elementId: String? = null
+
     // Define your list of available filters
     private val availableFilters = listOf(
-        FilterItem("Adjustments", ImageFilter.None),
         FilterItem("None", ImageFilter.None),
         FilterItem("Grayscale", ImageFilter.Grayscale),
         FilterItem("Sepia", ImageFilter.Sepia),             // Example: rotate hue by 90 degrees
@@ -63,8 +61,7 @@ class FiltersFragment : Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentFiltersBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -79,20 +76,21 @@ class FiltersFragment : Fragment() {
 
     private fun setupRecyclerView() {
         filtersAdapter = ImageFiltersAdapter(availableFilters, previewBitmap) { filterItem ->
-            if (filterItem.filter == ImageFilter.Adjustments) {
-//                findNavController().navigate(R.id.action_filtersFragment_to_adjustmentsFragment)
-            } else {
-                elementId?.let { id ->
-                    viewModel.applyImageFilter(id, filterItem.filter)
-                }
+            elementId?.let { id ->
+                viewModel.applyImageFilter(id, filterItem.filter)
             }
         }
+
         binding.filtersRecyclerView.apply {
             adapter = filtersAdapter
         }
 
         binding.done.addPressEffect {
             findNavController().navigateUp()
+        }
+
+        binding.adjustments.addPressEffect {
+            findNavController().navigate(R.id.adjustmentsFragment)
         }
     }
 

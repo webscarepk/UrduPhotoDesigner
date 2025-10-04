@@ -45,6 +45,17 @@
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toTopOf="parent"/>
 
+    <ImageView
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:src="@drawable/ic_adjustments"
+        android:padding="6dp"
+        android:id="@+id/adjustments"
+        app:tint="@color/black"
+        android:layout_marginEnd="10dp"
+        app:layout_constraintEnd_toStartOf="@id/done"
+        app:layout_constraintTop_toTopOf="parent"/>
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

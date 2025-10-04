@@ -40,4 +40,9 @@
         android:name="com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment"
         android:label="fragment_color_picker"
         tools:layout="@layout/fragment_color_picker" />
+    <fragment
+        android:id="@+id/adjustmentsFragment"
+        android:name="com.example.urduphotodesigner.ui.editor.panels.adjustments.AdjustmentsFragment"
+        android:label="fragment_adjustments"
+        tools:layout="@layout/fragment_adjustments" />
 </navigation>

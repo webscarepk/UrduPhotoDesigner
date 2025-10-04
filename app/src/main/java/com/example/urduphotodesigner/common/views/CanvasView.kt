@@ -1340,10 +1340,6 @@ class CanvasView @JvmOverloads constructor(
             ImageFilter.SoftBlur -> {
                 null
             }
-
-            ImageFilter.Adjustments -> {
-                null
-            }
         }
     }
 
