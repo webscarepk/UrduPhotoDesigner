@@ -52,7 +52,11 @@ class MainActivity : AppCompatActivity() {
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(canvasSize)
                 viewModel.setCanvasBackgroundImage(bitmap)
-                navController.navigate(R.id.editorFragment, null, navOptions)
+                val editorNavOptions = NavOptions.Builder()
+                    .setLaunchSingleTop(true)
+                    .setPopUpTo(R.id.editorFragment, inclusive = true) // 🔥 this line is key
+                    .build()
+                navController.navigate(R.id.editorFragment, null, editorNavOptions)
             }
         }
     private val mainViewModel: MainViewModel by viewModels()
@@ -207,8 +211,11 @@ class MainActivity : AppCompatActivity() {
                         viewModel.clearCanvas()
                         viewModel.setCanvasSize(canvasSize)
                         viewModel.setCanvasBackgroundImage(bitmap)
-
-                        navController.navigate(R.id.editorFragment, null, navOptions)
+                        val editorNavOptions = NavOptions.Builder()
+                            .setLaunchSingleTop(true)
+                            .setPopUpTo(R.id.editorFragment, inclusive = true)
+                            .build()
+                        navController.navigate(R.id.editorFragment, null, editorNavOptions)
                     }
                 }
             } catch (e: Exception) {

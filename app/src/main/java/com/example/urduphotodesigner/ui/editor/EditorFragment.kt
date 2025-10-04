@@ -25,6 +25,7 @@ import android.widget.PopupWindow
 import android.widget.SeekBar
 import androidx.activity.OnBackPressedCallback
 import androidx.annotation.AnimRes
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
@@ -33,6 +34,8 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavController
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
@@ -48,6 +51,7 @@ import com.example.urduphotodesigner.common.canvas.enums.VAlign
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.canvas.model.ExportOptions
+import com.example.urduphotodesigner.common.utils.BitmapCache
 import com.example.urduphotodesigner.common.utils.Converter.cmToPx
 import com.example.urduphotodesigner.common.utils.Converter.inchesToPx
 import com.example.urduphotodesigner.common.utils.ImageProcessor
@@ -73,13 +77,9 @@ import java.util.Locale
 class EditorFragment : Fragment() {
     private var _binding: FragmentEditorBinding? = null
     private val binding get() = _binding!!
-
     private lateinit var canvasManager: CanvasManager
-    private val navController by lazy {
-        val navHostFragment =
-            childFragmentManager.findFragmentById(R.id.panelNavHost) as NavHostFragment
-        navHostFragment.navController
-    }
+    private var _navController: NavController? = null
+    private val navController get() = _navController!!
     private var panelsLocked = false
     private lateinit var canvasSize: CanvasSize
     private var currentUnit = UnitType.PIXELS
@@ -124,6 +124,28 @@ class EditorFragment : Fragment() {
                 view.updatePadding(bottom = systemBars.bottom)
             }
             insets
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val navHostFragment =
+                childFragmentManager.findFragmentById(R.id.panelNavHost) as NavHostFragment
+            _navController = navHostFragment.navController
+            _navController?.addOnDestinationChangedListener { _, destination, _ ->
+                // Check the destination
+                if (destination.id == R.id.filtersFragment || destination.id == R.id.adjustmentsFragment) {
+                    binding.bottomNavigation.apply {
+                        visibility = View.GONE
+                        translationY = -height.toFloat()
+                        animate().translationY(0f).setDuration(200).start()
+                    }
+                } else {
+                    binding.bottomNavigation.apply {
+                        visibility = View.VISIBLE
+                        translationY = height.toFloat()
+                        animate().translationY(0f).setDuration(200).start()
+                    }
+                }
+            }
         }
 
         val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
@@ -546,22 +568,25 @@ class EditorFragment : Fragment() {
                 canvasWidth = widthPx,
                 canvasHeight = heightPx,
                 onEditTextRequested = { element ->
-                    requireActivity().runOnUiThread {
-                        if (view != null && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.CREATED)) {
-                            navController.popBackStack(R.id.filtersFragment, true)
-
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        try {
                             if (element.type == ElementType.IMAGE || element.type == ElementType.BACKGROUND) {
-                                val selected = viewModel.canvasElements.value?.find { it.id == element.id }
+                                val selected =
+                                    viewModel.canvasElements.value?.find { it.id == element.id }
                                 selected?.let {
-                                    val bundle = Bundle().apply {
-                                        putParcelable("previewBitmap", it.bitmap)
-                                        putString("elementId", it.id)
-                                    }
-                                    navController.navigate(R.id.filtersFragment, bundle)
+                                    val key = it.id
+                                    BitmapCache.put(key, it.bitmap!!)
+                                    val bundle = Bundle().apply { putString("elementId", key) }
+                                    val navOptions = NavOptions.Builder().setLaunchSingleTop(true)
+                                        .setPopUpTo(R.id.filtersFragment, inclusive = true).build()
+
+                                    navController.navigate(R.id.filtersFragment, bundle, navOptions)
                                 }
                             } else {
                                 showTextEditDialog(element)
                             }
+                        } catch (e: Exception) {
+                            Log.e("EditorFragment", "Navigation failed: ${e.message}")
                         }
                     }
                 },
@@ -596,7 +621,10 @@ class EditorFragment : Fragment() {
                 },
                 onRequestOpenLayers = {
                     requireActivity().runOnUiThread {
-                        if (view != null && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.CREATED)) {
+                        if (view != null && viewLifecycleOwner.lifecycle.currentState.isAtLeast(
+                                Lifecycle.State.CREATED
+                            )
+                        ) {
                             viewModel.enterSelectionMode()
                             binding.bottomNavigation.selectedItemId = R.id.nav_layers
                             navController.navigate(R.id.layersFragment)
@@ -932,7 +960,6 @@ class EditorFragment : Fragment() {
 
     private fun autoSaveSilent() {
         if (!::sizedCanvasView.isInitialized) {
-            Log.w("EditorFragment", "Skipping autoSaveSilent, canvas not ready yet")
             return
         }
         val options = viewModel.exportOptions.value ?: return
@@ -1003,5 +1030,6 @@ class EditorFragment : Fragment() {
         super.onDestroy()
         saveJsonJob?.cancel()
         _binding = null
+        _navController = null
     }
 }

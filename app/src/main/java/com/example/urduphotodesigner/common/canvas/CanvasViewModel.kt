@@ -23,6 +23,7 @@ import com.example.urduphotodesigner.common.canvas.enums.PickerTarget
 import com.example.urduphotodesigner.common.canvas.enums.TextAlignment
 import com.example.urduphotodesigner.common.canvas.enums.TextDecoration
 import com.example.urduphotodesigner.common.canvas.enums.UnitType
+import com.example.urduphotodesigner.common.canvas.model.AdjustmentValues
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.canvas.model.ExportFormat
@@ -201,6 +202,43 @@ class CanvasViewModel @Inject constructor(
     private val _inSelectionMode = MutableLiveData(false)
     val inSelectionMode: LiveData<Boolean> get() = _inSelectionMode
 
+    // 🎨 Image Adjustment LiveData
+    private val _brightness = MutableLiveData(0f)
+    val brightness: LiveData<Float> = _brightness
+
+    private val _contrast = MutableLiveData(1f)
+    val contrast: LiveData<Float> = _contrast
+
+    private val _saturation = MutableLiveData(1f)
+    val saturation: LiveData<Float> = _saturation
+
+    private val _exposure = MutableLiveData(0f)
+    val exposure: LiveData<Float> = _exposure
+
+    private val _shadows = MutableLiveData(0f)
+    val shadows: LiveData<Float> = _shadows
+
+    private val _temperature = MutableLiveData(0f)
+    val temperature: LiveData<Float> = _temperature
+
+    private val _tint = MutableLiveData(0f)
+    val tint: LiveData<Float> = _tint
+
+    private val _vibrance = MutableLiveData(1f)
+    val vibrance: LiveData<Float> = _vibrance
+
+    private val _sharpness = MutableLiveData(0f)
+    val sharpness: LiveData<Float> = _sharpness
+
+    private val _highlights = MutableLiveData(0f)
+    val highlights: LiveData<Float> = _highlights
+
+    private val _clarity = MutableLiveData(0f)
+    val clarity: LiveData<Float> = _clarity
+
+    private val _fade = MutableLiveData(0f)
+    val fade: LiveData<Float> = _fade
+
     fun setExportResult(result: ExportResult) {
         Log.d("CanvasVM", "Setting ExportResult: $result")
         _exportResult.value = result
@@ -269,6 +307,107 @@ class CanvasViewModel @Inject constructor(
 
     fun markChanged() {
         hasChanges.value = true
+    }
+
+    // 🎨 ADJUSTMENT UPDATERS
+    fun setBrightness(value: Float) {
+        _brightness.value = value
+        updateSelectedElementAdjustments { it.copy(brightness = value) }
+    }
+
+    fun setContrast(value: Float) {
+        _contrast.value = value
+        updateSelectedElementAdjustments { it.copy(contrast = value) }
+    }
+
+    fun setSaturation(value: Float) {
+        _saturation.value = value
+        updateSelectedElementAdjustments { it.copy(saturation = value) }
+    }
+
+    fun setExposure(value: Float) {
+        _exposure.value = value
+        updateSelectedElementAdjustments { it.copy(exposure = value) }
+    }
+
+    fun setShadows(value: Float) {
+        _shadows.value = value
+        updateSelectedElementAdjustments { it.copy(shadows = value) }
+    }
+
+    fun setTemperature(value: Float) {
+        _temperature.value = value
+        updateSelectedElementAdjustments { it.copy(temperature = value) }
+    }
+
+    fun setTint(value: Float) {
+        _tint.value = value
+        updateSelectedElementAdjustments { it.copy(tint = value) }
+    }
+
+    fun setVibrance(value: Float) {
+        _vibrance.value = value
+        updateSelectedElementAdjustments { it.copy(vibrance = value) }
+    }
+
+    fun setSharpness(value: Float) {
+        _sharpness.value = value
+        updateSelectedElementAdjustments { it.copy(sharpness = value) }
+    }
+
+    fun setHighlights(value: Float) {
+        _highlights.value = value
+        updateSelectedElementAdjustments { it.copy(highlights = value) }
+    }
+
+    fun setClarity(value: Float) {
+        _clarity.value = value
+        updateSelectedElementAdjustments { it.copy(clarity = value) }
+    }
+
+    fun setFade(value: Float) {
+        _fade.value = value
+        updateSelectedElementAdjustments { it.copy(fade = value) }
+    }
+
+    private fun updateSelectedElementAdjustments(update: (AdjustmentValues) -> AdjustmentValues) {
+        val currentList = _canvasElements.value ?: return
+        val updatedList = currentList.map { element ->
+            if (element.isSelected && element.type == ElementType.IMAGE) {
+                val oldElement = element.copy(context = null, bitmap = null)
+                val newAdjustments = update(element.adjustments)
+                val updated = element.copy(adjustments = newAdjustments)
+
+                _canvasActions.push(
+                    CanvasAction.UpdateElement(
+                        elementId = element.id,
+                        newElement = updated.copy(context = null, bitmap = null),
+                        oldElement = oldElement
+                    )
+                )
+                updated
+            } else element
+        }
+
+        _canvasElements.value = updatedList
+        _redoStack.clear()
+        notifyUndoRedoChanged()
+    }
+
+    fun resetAdjustments() {
+        _brightness.value = 0f
+        _contrast.value = 1f
+        _saturation.value = 1f
+        _exposure.value = 0f
+        _shadows.value = 0f
+        _temperature.value = 0f
+        _tint.value = 0f
+        _vibrance.value = 1f
+        _sharpness.value = 0f
+        _clarity.value = 0f
+        _fade.value = 0f
+
+        updateSelectedElementAdjustments { AdjustmentValues() }
     }
 
     fun setCanvasView(view: CanvasView) {
@@ -2188,6 +2327,7 @@ class CanvasViewModel @Inject constructor(
         _redoStack.clear()
 
         _canvasSize.value = null
+        _canvasView.value = null
         _backgroundColor.value = Color.WHITE
         _backgroundImage.value = null
         _backgroundGradient.value = null
@@ -2197,6 +2337,7 @@ class CanvasViewModel @Inject constructor(
         clearStrokeGradients()
         clearLabelGradients()
         clearGradient()
+        resetAdjustments()
 
         _currentFont.value = null
         _currentImageFilter.value = null
@@ -2234,7 +2375,8 @@ class CanvasViewModel @Inject constructor(
 
                 _loadingStage.postValue("Hydrating elements" to 60)
                 val hydratedElements = elements.map { raw ->
-                    raw.copy(context = context).restoreWithContext(context)
+                    val fixed = if (raw.adjustments == null) raw.copy(adjustments = AdjustmentValues()) else raw
+                    fixed.copy(context = context).restoreWithContext(context)
                 }
 
                 _loadingStage.postValue("Applying to canvas" to 90)
@@ -2265,6 +2407,20 @@ class CanvasViewModel @Inject constructor(
 
                     _canvasSize.value = exportResult.canvasSize
                     _canvasElements.value = hydratedElements
+                    val selected = hydratedElements.find { it.isSelected && it.type == ElementType.IMAGE }
+                    selected?.let {
+                        _brightness.postValue(it.adjustments.brightness)
+                        _contrast.postValue(it.adjustments.contrast)
+                        _saturation.postValue(it.adjustments.saturation)
+                        _exposure.postValue(it.adjustments.exposure)
+                        _shadows.postValue(it.adjustments.shadows)
+                        _temperature.postValue(it.adjustments.temperature)
+                        _tint.postValue(it.adjustments.tint)
+                        _vibrance.postValue(it.adjustments.vibrance)
+                        _sharpness.postValue(it.adjustments.sharpness)
+                        _clarity.postValue(it.adjustments.clarity)
+                        _fade.postValue(it.adjustments.fade)
+                    }
                     _exportResult.value = exportResult
                 }
             } catch (e: Exception) {

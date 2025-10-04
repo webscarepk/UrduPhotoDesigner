@@ -12,6 +12,7 @@ import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.model.FilterItem
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
+import com.example.urduphotodesigner.common.utils.BitmapCache
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentFiltersBinding
 import dagger.hilt.android.AndroidEntryPoint
@@ -55,8 +56,8 @@ class FiltersFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let { bundle ->
-            previewBitmap = bundle.getParcelable("previewBitmap")
-            elementId = bundle.getString("elementId")
+            elementId = arguments?.getString("elementId")
+            previewBitmap = BitmapCache.get(elementId ?: "")
         }
     }
 

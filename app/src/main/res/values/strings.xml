@@ -263,8 +263,20 @@
     <string name="please_wait">Please wait!</string>
     <string name="complete">%d%% complete</string>
     <string name="filter_preview">Filter preview</string>
-    <string name="image_adjustments">Image Adjustments</string>
+    <string name="image_adjustments">Adjustments</string>
     <string name="adjust_brightness_contrast_and_more">Adjust brightness, contrast, and more</string>
+    <string name="brightness">Brightness</string>
+    <string name="contrast">Contrast</string>
+    <string name="exposure">Exposure</string>
+    <string name="shadows">Shadows</string>
+    <string name="saturation">Saturation</string>
+    <string name="vibrance">Vibrance</string>
+    <string name="temperature">Temperature</string>
+    <string name="tint">Tint</string>
+    <string name="highlights">Highlights</string>
+    <string name="sharpness">Sharpness</string>
+    <string name="clarity">Clarity</string>
+    <string name="fade">Fade</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

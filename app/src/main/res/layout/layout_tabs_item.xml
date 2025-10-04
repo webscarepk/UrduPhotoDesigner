@@ -14,7 +14,7 @@
         android:fontFamily="@font/regular"
         android:paddingVertical="6dp"
         android:paddingHorizontal="12dp"
-        android:background="@drawable/button_bg"
+        android:background="@drawable/button_bg_small"
         android:backgroundTint="@android:color/transparent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"

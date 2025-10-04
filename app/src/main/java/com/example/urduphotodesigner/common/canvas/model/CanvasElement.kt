@@ -35,6 +35,7 @@ data class CanvasElement(
     var bitmapData: String? = null,
     var groupId: String? = null,
     var imageFilter: ImageFilter = ImageFilter.None,
+    var adjustments: AdjustmentValues = AdjustmentValues(),
     var x: Float = 0f,
     var y: Float = 0f,
     var scale: Float = 1f,

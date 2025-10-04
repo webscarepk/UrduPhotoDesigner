@@ -24,7 +24,6 @@ import android.graphics.Shader
 import android.graphics.SweepGradient
 import android.graphics.Typeface
 import android.graphics.Xfermode
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.text.TextPaint
 import android.util.AttributeSet
@@ -61,6 +60,7 @@ import com.example.urduphotodesigner.common.canvas.model.ExportQuality
 import com.example.urduphotodesigner.common.canvas.model.ExportResolution
 import com.example.urduphotodesigner.common.canvas.model.GradientItem
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
+import com.example.urduphotodesigner.common.utils.ImageAdjustmentHelper
 import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.common.utils.Utils.vibrateSoft
 import com.example.urduphotodesigner.data.model.FontEntity
@@ -133,8 +133,10 @@ class CanvasView @JvmOverloads constructor(
         p.color = light
         c.drawRect(0f, 0f, checkerSize.toFloat(), checkerSize.toFloat(), p)
         c.drawRect(
-            checkerSize.toFloat(), checkerSize.toFloat(),
-            (checkerSize * 2).toFloat(), (checkerSize * 2).toFloat(),
+            checkerSize.toFloat(),
+            checkerSize.toFloat(),
+            (checkerSize * 2).toFloat(),
+            (checkerSize * 2).toFloat(),
             p
         )
 
@@ -227,11 +229,9 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private var selectedElements: CopyOnWriteArrayList<CanvasElement> = CopyOnWriteArrayList()
-    private var lastTouchedElement: CanvasElement? =
-        null
+    private var lastTouchedElement: CanvasElement? = null
 
-    private fun Float.dpToPx(): Float =
-        this * resources.displayMetrics.density
+    private fun Float.dpToPx(): Float = this * resources.displayMetrics.density
 
     fun resizeCanvas(newWidth: Int, newHeight: Int) {
         this.canvasWidth = newWidth
@@ -275,9 +275,7 @@ class CanvasView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
 
-        canvasElements
-            .firstOrNull { it.type == ElementType.BACKGROUND }
-            ?.apply {
+        canvasElements.firstOrNull { it.type == ElementType.BACKGROUND }?.apply {
                 logicalContentWidth = canvasWidth.toFloat()
                 logicalContentHeight = canvasHeight.toFloat()
             }
@@ -314,8 +312,7 @@ class CanvasView @JvmOverloads constructor(
      *     • SELECTION: snap each element’s own LEFT/CENTER/RIGHT to the first element
      */
     fun alignHorizontal(
-        align: HAlign,
-        mode: MultiAlignMode = MultiAlignMode.CANVAS
+        align: HAlign, mode: MultiAlignMode = MultiAlignMode.CANVAS
     ) {
         when {
             selectedElements.isEmpty() -> return
@@ -411,8 +408,7 @@ class CanvasView @JvmOverloads constructor(
     }
 
     fun alignVertical(
-        align: VAlign,
-        mode: MultiAlignMode = MultiAlignMode.CANVAS
+        align: VAlign, mode: MultiAlignMode = MultiAlignMode.CANVAS
     ) {
         when {
             selectedElements.isEmpty() -> return
@@ -529,10 +525,14 @@ class CanvasView @JvmOverloads constructor(
             val bounds = element.getTightTextBounds()
 
             val corners = floatArrayOf(
-                bounds.left, bounds.top,
-                bounds.right, bounds.top,
-                bounds.right, bounds.bottom,
-                bounds.left, bounds.bottom
+                bounds.left,
+                bounds.top,
+                bounds.right,
+                bounds.top,
+                bounds.right,
+                bounds.bottom,
+                bounds.left,
+                bounds.bottom
             )
 
             val matrix = Matrix().apply {
@@ -568,10 +568,14 @@ class CanvasView @JvmOverloads constructor(
         val avgRotation = selectedElements.map { it.rotation }.average().toFloat()
 
         val corners = floatArrayOf(
-            bounds.left, bounds.top,
-            bounds.right, bounds.top,
-            bounds.right, bounds.bottom,
-            bounds.left, bounds.bottom
+            bounds.left,
+            bounds.top,
+            bounds.right,
+            bounds.top,
+            bounds.right,
+            bounds.bottom,
+            bounds.left,
+            bounds.bottom
         )
 
         val matrix = Matrix().apply {
@@ -593,10 +597,14 @@ class CanvasView @JvmOverloads constructor(
         val avgRotation = selectedElements.map { it.rotation }.average().toFloat()
 
         val corners = floatArrayOf(
-            bounds.left, bounds.top,
-            bounds.right, bounds.top,
-            bounds.right, bounds.bottom,
-            bounds.left, bounds.bottom
+            bounds.left,
+            bounds.top,
+            bounds.right,
+            bounds.top,
+            bounds.right,
+            bounds.bottom,
+            bounds.left,
+            bounds.bottom
         )
 
         val matrix = Matrix().apply {
@@ -634,8 +642,7 @@ class CanvasView @JvmOverloads constructor(
 
     private fun removeSelectedElement() {
         // Remove all selected elements
-        val elementsToRemove =
-            selectedElements.toList()
+        val elementsToRemove = selectedElements.toList()
         elementsToRemove.forEach { element ->
             canvasElements.remove(element)
             onElementRemoved?.invoke(element) // Notify ViewModel to remove for each
@@ -706,9 +713,7 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private fun createBackgroundGradientShader(
-        gradientItem: GradientItem,
-        width: Float,
-        height: Float
+        gradientItem: GradientItem, width: Float, height: Float
     ): Shader {
         val colors = gradientItem.colors.toIntArray()
         val positions = gradientItem.positions.toFloatArray()
@@ -727,10 +732,7 @@ class CanvasView @JvmOverloads constructor(
                 val dy = (sin(theta) * halfLen).toFloat()
 
                 LinearGradient(
-                    cx - dx, cy - dy,
-                    cx + dx, cy + dy,
-                    colors, positions,
-                    Shader.TileMode.CLAMP
+                    cx - dx, cy - dy, cx + dx, cy + dy, colors, positions, Shader.TileMode.CLAMP
                 )
             }
 
@@ -739,10 +741,7 @@ class CanvasView @JvmOverloads constructor(
                 val radius =
                     min(width, height) / 2f * gradientItem.radialRadiusFactor * gradientItem.scale
                 RadialGradient(
-                    cx, cy,
-                    radius,
-                    colors, positions,
-                    Shader.TileMode.CLAMP
+                    cx, cy, radius, colors, positions, Shader.TileMode.CLAMP
                 )
             }
 
@@ -775,9 +774,7 @@ class CanvasView @JvmOverloads constructor(
 
     fun setCanvasBackgroundImage(src: Bitmap) {
         ensureBackgroundElement()
-        canvasElements
-            .first { it.type == ElementType.BACKGROUND }
-            .apply {
+        canvasElements.first { it.type == ElementType.BACKGROUND }.apply {
                 fillGradient = null
                 backgroundColor = Color.WHITE
                 bitmap = src        // ← keep the full-size image
@@ -803,8 +800,7 @@ class CanvasView @JvmOverloads constructor(
     }
 
     fun exportCanvas(
-        options: ExportOptions,
-        onProgress: ((percent: Int, stage: String) -> Unit)? = null
+        options: ExportOptions, onProgress: ((percent: Int, stage: String) -> Unit)? = null
     ): Pair<Bitmap, String> {
         val contentWidth = this.canvasWidth
         val contentHeight = this.canvasHeight
@@ -1114,23 +1110,18 @@ class CanvasView @JvmOverloads constructor(
         }
         Log.d(
             "CanvasDraw",
-            "onDraw: overallScale=$overallScale overallOffset=($overallOffsetX,$overallOffsetY) " +
-                    "offset=($offsetX,$offsetY) scale=$scale"
+            "onDraw: overallScale=$overallScale overallOffset=($overallOffsetX,$overallOffsetY) " + "offset=($offsetX,$offsetY) scale=$scale"
         )
 
         if (showVerticalGuide) {
             canvas.drawLine(
-                width / 2f, 0f,
-                width / 2f, height.toFloat(),
-                alignmentPaint
+                width / 2f, 0f, width / 2f, height.toFloat(), alignmentPaint
             )
         }
 
         if (showHorizontalGuide) {
             canvas.drawLine(
-                0f, height / 2f,
-                width.toFloat(), height / 2f,
-                alignmentPaint
+                0f, height / 2f, width.toFloat(), height / 2f, alignmentPaint
             )
         }
 
@@ -1138,18 +1129,14 @@ class CanvasView @JvmOverloads constructor(
         if (showRotationVerticalGuide) {
             // Draw a vertical line through the center of the canvas
             canvas.drawLine(
-                width / 2f, 0f,
-                width / 2f, height.toFloat(),
-                alignmentPaint
+                width / 2f, 0f, width / 2f, height.toFloat(), alignmentPaint
             )
         }
 
         if (showRotationHorizontalGuide) {
             // Draw a horizontal line through the center of the canvas
             canvas.drawLine(
-                0f, height / 2f,
-                width.toFloat(), height / 2f,
-                alignmentPaint
+                0f, height / 2f, width.toFloat(), height / 2f, alignmentPaint
             )
         }
     }
@@ -1163,107 +1150,305 @@ class CanvasView @JvmOverloads constructor(
             })
 
             ImageFilter.Sepia -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    0.393f, 0.769f, 0.189f, 0f, 0f,
-                    0.349f, 0.686f, 0.168f, 0f, 0f,
-                    0.272f, 0.534f, 0.131f, 0f, 0f,
-                    0f,     0f,     0f,    1f, 0f
-                ))
+                set(
+                    floatArrayOf(
+                        0.393f,
+                        0.769f,
+                        0.189f,
+                        0f,
+                        0f,
+                        0.349f,
+                        0.686f,
+                        0.168f,
+                        0f,
+                        0f,
+                        0.272f,
+                        0.534f,
+                        0.131f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.Invert -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    -1f, 0f, 0f, 0f, 255f,
-                    0f, -1f, 0f, 0f, 255f,
-                    0f, 0f, -1f, 0f, 255f,
-                    0f, 0f, 0f, 1f, 0f
-                ))
+                set(
+                    floatArrayOf(
+                        -1f,
+                        0f,
+                        0f,
+                        0f,
+                        255f,
+                        0f,
+                        -1f,
+                        0f,
+                        0f,
+                        255f,
+                        0f,
+                        0f,
+                        -1f,
+                        0f,
+                        255f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.CoolTint -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1.1f, 0f,   0f, 0f, -20f,
-                    0f,   1f,   0f, 0f,   0f,
-                    0f,   0f, 1.3f, 0f,  20f,
-                    0f,   0f,   0f, 1f,   0f
-                ))
+                set(
+                    floatArrayOf(
+                        1.1f,
+                        0f,
+                        0f,
+                        0f,
+                        -20f,
+                        0f,
+                        1f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        1.3f,
+                        0f,
+                        20f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.WarmTint -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1.3f, 0f,   0f, 0f,  30f,
-                    0f,   1f,   0f, 0f,   0f,
-                    0f,   0f, 0.8f, 0f, -20f,
-                    0f,   0f,   0f, 1f,   0f
-                ))
+                set(
+                    floatArrayOf(
+                        1.3f,
+                        0f,
+                        0f,
+                        0f,
+                        30f,
+                        0f,
+                        1f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        0.8f,
+                        0f,
+                        -20f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.Vintage -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    0.9f, 0.3f, 0.1f, 0f,  5f,
-                    0.2f, 0.8f, 0.2f, 0f,  5f,
-                    0.1f, 0.2f, 0.7f, 0f, -10f,
-                    0f,   0f,   0f, 1f,   0f
-                ))
+                set(
+                    floatArrayOf(
+                        0.9f,
+                        0.3f,
+                        0.1f,
+                        0f,
+                        5f,
+                        0.2f,
+                        0.8f,
+                        0.2f,
+                        0f,
+                        5f,
+                        0.1f,
+                        0.2f,
+                        0.7f,
+                        0f,
+                        -10f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.Film -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1.2f, 0.1f, 0.1f, 0f,  15f,
-                    0.1f, 1.2f, 0.1f, 0f,  10f,
-                    0.1f, 0.1f, 0.9f, 0f, -10f,
-                    0f,   0f,   0f, 1f,   0f
-                ))
+                set(
+                    floatArrayOf(
+                        1.2f,
+                        0.1f,
+                        0.1f,
+                        0f,
+                        15f,
+                        0.1f,
+                        1.2f,
+                        0.1f,
+                        0f,
+                        10f,
+                        0.1f,
+                        0.1f,
+                        0.9f,
+                        0f,
+                        -10f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.TealOrange -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1.2f, 0f,   0f, 0f, 20f,
-                    0f,   1f,   0f, 0f,  0f,
-                    0f,   0f, 0.8f, 0f,-10f,
-                    0f,   0f,   0f, 1f,  0f
-                ))
+                set(
+                    floatArrayOf(
+                        1.2f,
+                        0f,
+                        0f,
+                        0f,
+                        20f,
+                        0f,
+                        1f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        0.8f,
+                        0f,
+                        -10f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.HighContrast -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1.5f, 0f, 0f, 0f, -50f,
-                    0f, 1.5f, 0f, 0f, -50f,
-                    0f, 0f, 1.5f, 0f, -50f,
-                    0f, 0f, 0f, 1f,   0f
-                ))
+                set(
+                    floatArrayOf(
+                        1.5f,
+                        0f,
+                        0f,
+                        0f,
+                        -50f,
+                        0f,
+                        1.5f,
+                        0f,
+                        0f,
+                        -50f,
+                        0f,
+                        0f,
+                        1.5f,
+                        0f,
+                        -50f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.BlackWhite -> {
                 val cm = ColorMatrix().apply { setSaturation(0f) }
                 val contrast = ColorMatrix().apply {
-                    set(floatArrayOf(
-                        1.4f, 0f, 0f, 0f, -50f,
-                        0f, 1.4f, 0f, 0f, -50f,
-                        0f, 0f, 1.4f, 0f, -50f,
-                        0f, 0f, 0f, 1f,   0f
-                    ))
+                    set(
+                        floatArrayOf(
+                            1.4f,
+                            0f,
+                            0f,
+                            0f,
+                            -50f,
+                            0f,
+                            1.4f,
+                            0f,
+                            0f,
+                            -50f,
+                            0f,
+                            0f,
+                            1.4f,
+                            0f,
+                            -50f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
+                    )
                 }
                 cm.postConcat(contrast)
                 ColorMatrixColorFilter(cm)
             }
 
             ImageFilter.BrightnessBoost -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1.2f, 0f,   0f, 0f, 30f,
-                    0f, 1.2f,   0f, 0f, 30f,
-                    0f,   0f, 1.2f, 0f, 30f,
-                    0f,   0f,   0f, 1f,  0f
-                ))
+                set(
+                    floatArrayOf(
+                        1.2f,
+                        0f,
+                        0f,
+                        0f,
+                        30f,
+                        0f,
+                        1.2f,
+                        0f,
+                        0f,
+                        30f,
+                        0f,
+                        0f,
+                        1.2f,
+                        0f,
+                        30f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.Sharpen -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    2f, -1f, -1f, 0f, 0f,
-                    -1f,  2f, -1f, 0f, 0f,
-                    -1f, -1f,  2f, 0f, 0f,
-                    0f,  0f,  0f, 1f, 0f
-                ))
+                set(
+                    floatArrayOf(
+                        2f,
+                        -1f,
+                        -1f,
+                        0f,
+                        0f,
+                        -1f,
+                        2f,
+                        -1f,
+                        0f,
+                        0f,
+                        -1f,
+                        -1f,
+                        2f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.Sketch -> ColorMatrixColorFilter(ColorMatrix().apply {
@@ -1271,66 +1456,192 @@ class CanvasView @JvmOverloads constructor(
             })
 
             ImageFilter.Cartoon -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1.5f, 0f, 0f, 0f, -30f,
-                    0f, 1.5f, 0f, 0f, -30f,
-                    0f, 0f, 1.5f, 0f, -30f,
-                    0f, 0f, 0f, 1f,   0f
-                ))
+                set(
+                    floatArrayOf(
+                        1.5f,
+                        0f,
+                        0f,
+                        0f,
+                        -30f,
+                        0f,
+                        1.5f,
+                        0f,
+                        0f,
+                        -30f,
+                        0f,
+                        0f,
+                        1.5f,
+                        0f,
+                        -30f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.HDR -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1.3f, 0f, 0f, 0f, -20f,
-                    0f, 1.3f, 0f, 0f, -20f,
-                    0f, 0f, 1.3f, 0f, -20f,
-                    0f, 0f, 0f, 1f,   0f
-                ))
+                set(
+                    floatArrayOf(
+                        1.3f,
+                        0f,
+                        0f,
+                        0f,
+                        -20f,
+                        0f,
+                        1.3f,
+                        0f,
+                        0f,
+                        -20f,
+                        0f,
+                        0f,
+                        1.3f,
+                        0f,
+                        -20f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.Lomo -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1.2f, 0.2f, 0.1f, 0f, 10f,
-                    0.1f, 1.0f, 0.1f, 0f,  5f,
-                    0.1f, 0.1f, 1.2f, 0f,-10f,
-                    0f,   0f,   0f, 1f,   0f
-                ))
+                set(
+                    floatArrayOf(
+                        1.2f,
+                        0.2f,
+                        0.1f,
+                        0f,
+                        10f,
+                        0.1f,
+                        1.0f,
+                        0.1f,
+                        0f,
+                        5f,
+                        0.1f,
+                        0.1f,
+                        1.2f,
+                        0f,
+                        -10f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.Pastel -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1.0f, 0f, 0f, 0f, 20f,
-                    0f, 1.0f, 0f, 0f, 20f,
-                    0f, 0f, 1.0f, 0f, 20f,
-                    0f, 0f, 0f, 1f,   0f
-                ))
+                set(
+                    floatArrayOf(
+                        1.0f,
+                        0f,
+                        0f,
+                        0f,
+                        20f,
+                        0f,
+                        1.0f,
+                        0f,
+                        0f,
+                        20f,
+                        0f,
+                        0f,
+                        1.0f,
+                        0f,
+                        20f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.Dramatic -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1.5f, 0f, 0f, 0f, -40f,
-                    0f, 1.5f, 0f, 0f, -40f,
-                    0f, 0f, 1.5f, 0f, -40f,
-                    0f, 0f, 0f, 1f,   0f
-                ))
+                set(
+                    floatArrayOf(
+                        1.5f,
+                        0f,
+                        0f,
+                        0f,
+                        -40f,
+                        0f,
+                        1.5f,
+                        0f,
+                        0f,
+                        -40f,
+                        0f,
+                        0f,
+                        1.5f,
+                        0f,
+                        -40f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.GoldenHour -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    1.2f, 0.2f, 0f, 0f, 30f,
-                    0.1f, 1.1f, 0f, 0f, 20f,
-                    0f, 0f, 0.8f, 0f,-10f,
-                    0f, 0f, 0f, 1f,  0f
-                ))
+                set(
+                    floatArrayOf(
+                        1.2f,
+                        0.2f,
+                        0f,
+                        0f,
+                        30f,
+                        0.1f,
+                        1.1f,
+                        0f,
+                        0f,
+                        20f,
+                        0f,
+                        0f,
+                        0.8f,
+                        0f,
+                        -10f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.Cyberpunk -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(floatArrayOf(
-                    0.9f, 0.2f, 0.6f, 0f, 30f,
-                    0.1f, 0.8f, 0.5f, 0f, 10f,
-                    0.2f, 0.3f, 1.5f, 0f,-20f,
-                    0f,   0f,   0f, 1f,   0f
-                ))
+                set(
+                    floatArrayOf(
+                        0.9f,
+                        0.2f,
+                        0.6f,
+                        0f,
+                        30f,
+                        0.1f,
+                        0.8f,
+                        0.5f,
+                        0f,
+                        10f,
+                        0.2f,
+                        0.3f,
+                        1.5f,
+                        0f,
+                        -20f,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
             })
 
             ImageFilter.Glow -> {
@@ -1340,13 +1651,12 @@ class CanvasView @JvmOverloads constructor(
             ImageFilter.SoftBlur -> {
                 null
             }
+
         }
     }
 
     private fun drawCanvasElements(
-        canvas: Canvas,
-        showOverlays: Boolean = true,
-        showCheckerboard: Boolean = true
+        canvas: Canvas, showOverlays: Boolean = true, showCheckerboard: Boolean = true
     ) {
         canvas.save()
         canvas.clipRect(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat())
@@ -1357,9 +1667,7 @@ class CanvasView @JvmOverloads constructor(
         }
 
         // Draw all elements
-        canvasElements
-            .sortedBy { it.zIndex }
-            .forEach { element ->
+        canvasElements.sortedBy { it.zIndex }.forEach { element ->
                 if (!element.isVisible) return@forEach
 
                 if (element.type == ElementType.BACKGROUND) {
@@ -1375,29 +1683,62 @@ class CanvasView @JvmOverloads constructor(
                             ElementType.TEXT -> drawTextElement(canvas, element)
                             else -> {
                                 element.bitmap?.let { bmp ->
-                                    element.paint.colorFilter = colorFilterFor(element.imageFilter)
+                                    // ✅ Apply both adjustments + filter in one go
+                                    val adjustedBitmap = ImageAdjustmentHelper.applyAllAdjustments(
+                                        bmp, element.adjustments
+                                    )
+                                    val finalBitmap =
+                                        adjustedBitmap // already includes all 12 adjustments
 
+                                    element.paint.colorFilter = colorFilterFor(element.imageFilter)
                                     element.paint.maskFilter = null
 
                                     when (element.imageFilter) {
                                         ImageFilter.SoftBlur -> {
-                                            element.paint.maskFilter = BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
-                                            canvas.drawBitmap(bmp, -bmp.width / 2f, -bmp.height / 2f, element.paint)
+                                            element.paint.maskFilter =
+                                                BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
+                                            canvas.drawBitmap(
+                                                finalBitmap,
+                                                -finalBitmap.width / 2f,
+                                                -finalBitmap.height / 2f,
+                                                element.paint
+                                            )
                                         }
 
                                         ImageFilter.Glow -> {
-                                            canvas.drawBitmap(bmp, -bmp.width / 2f, -bmp.height / 2f, element.paint)
+                                            canvas.drawBitmap(
+                                                finalBitmap,
+                                                -finalBitmap.width / 2f,
+                                                -finalBitmap.height / 2f,
+                                                element.paint
+                                            )
 
                                             val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                                                color = Color.argb(180, 255, 255, 200) // glowing yellow
-                                                maskFilter = BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
+                                                color = Color.argb(180, 255, 255, 200)
+                                                maskFilter =
+                                                    BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
                                             }
-                                            canvas.drawBitmap(bmp, -bmp.width / 2f, -bmp.height / 2f, glowPaint)
+                                            canvas.drawBitmap(
+                                                finalBitmap,
+                                                -finalBitmap.width / 2f,
+                                                -finalBitmap.height / 2f,
+                                                glowPaint
+                                            )
                                         }
 
                                         else -> {
-                                            canvas.drawBitmap(bmp, -bmp.width / 2f, -bmp.height / 2f, element.paint)
+                                            canvas.drawBitmap(
+                                                finalBitmap,
+                                                -finalBitmap.width / 2f,
+                                                -finalBitmap.height / 2f,
+                                                element.paint
+                                            )
                                         }
+                                    }
+
+                                    // 🧹 Optional: recycle the temporary adjusted bitmap
+                                    if (adjustedBitmap != bmp && !adjustedBitmap.isRecycled) {
+                                        adjustedBitmap.recycle()
                                     }
                                 }
                             }
@@ -1419,8 +1760,7 @@ class CanvasView @JvmOverloads constructor(
             val boxPaint = Paint().apply {
                 color = Color.GRAY
                 style = Paint.Style.STROKE
-                pathEffect =
-                    DashPathEffect(floatArrayOf(localDashLength, localGapLength), 0f)
+                pathEffect = DashPathEffect(floatArrayOf(localDashLength, localGapLength), 0f)
                 strokeWidth = localSpaceStrokeWidth
             }
 
@@ -1501,23 +1841,27 @@ class CanvasView @JvmOverloads constructor(
 
                     val corners = element.getRotatedCorners()
                     iconMap["delete"] = Pair(
-                        corners[2],
-                        corners[3]
+                        corners[2], corners[3]
                     )
 
                     iconMap["edit"] = Pair(
-                        corners[0],
-                        corners[1]
+                        corners[0], corners[1]
                     )
                     // Resize icon (bottom-left)
-                    iconMap["rotate"] = Pair(
-                        corners[6],
-                        corners[7]
-                    )
+                    val topCenterX = (corners[0] + corners[2]) / 2f
+                    val topCenterY = (corners[1] + corners[3]) / 2f
+
+                    // Offset upwards for space between box and icon
+                    val elementHeight = element.logicalContentHeight
+                    val offset = max(120f, elementHeight * 0.25f) / scale
+                    val rotateX = topCenterX
+                    val rotateY = topCenterY - offset
+
+                    iconMap["rotate"] = Pair(rotateX, rotateY)
+
                     // Rotate icon (bottom-right)
                     iconMap["resize"] = Pair(
-                        corners[4],
-                        corners[5]
+                        corners[4], corners[5]
                     )
                 }
 
@@ -1531,17 +1875,89 @@ class CanvasView @JvmOverloads constructor(
                     }
 
                     iconBitmap?.let { bmp ->
-                        val dstRect = RectF(
+                        var dstRect = RectF(
                             position.first - localIconDrawWidth / 2f,
                             position.second - localIconDrawHeight / 2f,
                             position.first + localIconDrawWidth / 2f,
                             position.second + localIconDrawHeight / 2f
                         )
+
+                        // --- ROTATE ICON HANDLING ---
+                        if (iconName == "rotate" && selectedElements.isNotEmpty()) {
+
+                            val (localTopCenter, localRotateIcon) = if (selectedElements.size == 1) {
+                                // === SINGLE ELEMENT ===
+                                val element = selectedElements.first()
+                                val bounds = element.getTightTextBounds()
+
+                                val matrix = Matrix().apply {
+                                    postScale(
+                                        element.scale * if (element.isFlippedX) -1f else 1f,
+                                        element.scale * if (element.isFlippedY) -1f else 1f
+                                    )
+                                    postRotate(element.rotation)
+                                    postTranslate(element.x, element.y)
+                                }
+
+                                val topCenter = floatArrayOf(bounds.centerX(), bounds.top)
+                                val rotateIcon = floatArrayOf(
+                                    bounds.centerX(),
+                                    bounds.top - (max(120f, element.logicalContentHeight * 0.25f) / scale)
+                                )
+                                matrix.mapPoints(topCenter)
+                                matrix.mapPoints(rotateIcon)
+                                topCenter to rotateIcon
+
+                            } else {
+                                // === MULTI-SELECTION ===
+                                val groupBounds = getGroupRotatedBounds()
+                                val groupRotation = selectedElements.map { it.rotation }.average().toFloat()
+
+                                val pivotX = (groupBounds[0] + groupBounds[2]) / 2f
+                                val pivotY = (groupBounds[1] + groupBounds[3]) / 2f
+                                val topCenter = floatArrayOf(pivotX, groupBounds[1])
+                                val offset = max(120f, (groupBounds[3] - groupBounds[1]) * 0.25f) / scale
+                                val angleRad = Math.toRadians(groupRotation.toDouble())
+                                val dx = (sin(angleRad) * offset).toFloat()
+                                val dy = (-cos(angleRad) * offset).toFloat()
+                                val matrix = Matrix().apply { postRotate(groupRotation, pivotX, pivotY) }
+                                matrix.mapPoints(topCenter)
+                                val rotateIcon = floatArrayOf(
+                                    topCenter[0] + dx,
+                                    topCenter[1] + dy
+                                )
+                                topCenter to rotateIcon
+                            }
+
+                            // --- Draw connecting dashed line ---
+                            val linePaint = Paint().apply {
+                                color = Color.GRAY
+                                style = Paint.Style.STROKE
+                                strokeWidth = 4f / scale
+                                isAntiAlias = true
+                                val phase = (System.currentTimeMillis() % 1000L) / 20f
+                                pathEffect = DashPathEffect(floatArrayOf(10f / scale, 10f / scale), phase)
+                            }
+
+                            canvas.drawLine(
+                                localTopCenter[0],
+                                localTopCenter[1],
+                                localRotateIcon[0],
+                                localRotateIcon[1],
+                                linePaint
+                            )
+
+                            // --- Update icon rect so it “sticks” at the end of line ---
+                            dstRect = RectF(
+                                localRotateIcon[0] - localIconDrawWidth / 2f,
+                                localRotateIcon[1] - localIconDrawHeight / 2f,
+                                localRotateIcon[0] + localIconDrawWidth / 2f,
+                                localRotateIcon[1] + localIconDrawHeight / 2f
+                            )
+                        }
+
+                        // --- Draw icon bitmap ---
                         lastDrawnIconRect[iconName] = dstRect
-                        Log.d(
-                            "IconDraw",
-                            "Drawn icon=$iconName at Rect(${dstRect.left}, ${dstRect.top}, ${dstRect.right}, ${dstRect.bottom})"
-                        )
                         bmp.setBounds(
                             dstRect.left.toInt(),
                             dstRect.top.toInt(),
@@ -1563,37 +1979,25 @@ class CanvasView @JvmOverloads constructor(
             val dark = pixelColor?.let { isColorDark(it) }
 
             canvas.drawCircle(
-                pickerX,
-                pickerY - halfIcon * 3,
-                halfIcon + 10f,
-                Paint().apply {
+                pickerX, pickerY - halfIcon * 3, halfIcon + 10f, Paint().apply {
                     color = pixelColor!!
                     style = Paint.Style.FILL
                     isAntiAlias = true
-                }
-            )
+                })
 
             canvas.drawCircle(
-                pickerX,
-                pickerY - halfIcon * 3,
-                halfIcon + 10f,
-                Paint().apply {
+                pickerX, pickerY - halfIcon * 3, halfIcon + 10f, Paint().apply {
                     color = if (dark!!) Color.WHITE else Color.BLACK
                     style = Paint.Style.STROKE
                     strokeWidth = 4f
-                }
-            )
+                })
 
             canvas.drawCircle(
-                pickerX,
-                pickerY,
-                halfIcon / 2,
-                Paint().apply {
+                pickerX, pickerY, halfIcon / 2, Paint().apply {
                     color = Color.BLACK
                     style = Paint.Style.FILL
                     isAntiAlias = true
-                }
-            )
+                })
         }
     }
 
@@ -1621,11 +2025,9 @@ class CanvasView @JvmOverloads constructor(
                 val cosA = abs(cos(theta))
                 val sinA = abs(sin(theta))
 
-                // half-width/height of the axis-aligned box after rotation
                 val halfW = (sw / 2) * cosA + (sh / 2) * sinA
                 val halfH = (sw / 2) * sinA + (sh / 2) * cosA
 
-                // valid center range so that the rotated box stays fully on-canvas
                 val xMin = halfW
                 val xMax = w - halfW
                 val yMax = h - halfH
@@ -1634,44 +2036,55 @@ class CanvasView @JvmOverloads constructor(
                     e.x = e.x.coerceIn(xMin.toFloat(), xMax.toFloat())
                     e.y = e.y.coerceIn(halfH.toFloat(), yMax.toFloat())
                 } else {
-                    // image too big to ever fully fit when rotated → switch to free-drag
                     allowFreeDrag = true
                 }
             }
-            // otherwise: leave e.x/e.y exactly as the user dragged them
 
             val left = e.x - sw / 2f
             val top = e.y - sh / 2f
 
-
             canvas.withTranslation(left, top) {
                 scale(totalScale, totalScale)
                 rotate(e.rotation, bmp.width / 2f, bmp.height / 2f)
+
+                val adjustedBackground =
+                    ImageAdjustmentHelper.applyAllAdjustments(bmp, e.adjustments)
+
+                // temporarily disable blend mode so brightness/contrast are visible
+                val originalXfer = backgroundPaint.xfermode
+                backgroundPaint.xfermode = null
+
                 backgroundPaint.colorFilter = colorFilterFor(e.imageFilter)
                 backgroundPaint.maskFilter = null
 
                 when (e.imageFilter) {
                     ImageFilter.SoftBlur -> {
-                        backgroundPaint.maskFilter =
-                            BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
-                        drawBitmap(bmp, 0f, 0f, backgroundPaint)
+                        backgroundPaint.maskFilter = BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
+                        drawBitmap(adjustedBackground, 0f, 0f, backgroundPaint)
                     }
 
                     ImageFilter.Glow -> {
-                        drawBitmap(bmp, 0f, 0f, backgroundPaint)
-
+                        drawBitmap(adjustedBackground, 0f, 0f, backgroundPaint)
                         val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                             color = Color.argb(180, 255, 255, 200)
                             maskFilter = BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
                         }
-                        drawBitmap(bmp, 0f, 0f, glowPaint)
+                        drawBitmap(adjustedBackground, 0f, 0f, glowPaint)
                     }
 
                     else -> {
-                        drawBitmap(bmp, 0f, 0f, backgroundPaint)
+                        drawBitmap(adjustedBackground, 0f, 0f, backgroundPaint)
                     }
                 }
+
+                // restore original blend mode
+                backgroundPaint.xfermode = originalXfer
+
+                if (adjustedBackground != bmp && !adjustedBackground.isRecycled) {
+                    adjustedBackground.recycle()
+                }
             }
+
             return
         }
 
@@ -1731,10 +2144,7 @@ class CanvasView @JvmOverloads constructor(
                 val dy = (sin(theta) * halfLen).toFloat()
 
                 rawShader = LinearGradient(
-                    -dx, -dy,
-                    dx, dy,
-                    colors, positions,
-                    Shader.TileMode.CLAMP
+                    -dx, -dy, dx, dy, colors, positions, Shader.TileMode.CLAMP
                 )
             }
 
@@ -1743,10 +2153,7 @@ class CanvasView @JvmOverloads constructor(
                     min(width, height) / 2f * gradientItem.radialRadiusFactor * gradientItem.scale
 
                 rawShader = RadialGradient(
-                    0f, 0f,
-                    radius,
-                    colors, positions,
-                    Shader.TileMode.CLAMP
+                    0f, 0f, radius, colors, positions, Shader.TileMode.CLAMP
                 )
             }
 
@@ -1799,8 +2206,7 @@ class CanvasView @JvmOverloads constructor(
                 val rectH = labelRect.height()
                 labelPaint.shader = createGradientShader(
                     gradientItem = gradient,  // assume you store gradient settings here
-                    width = rectW,
-                    height = rectH
+                    width = rectW, height = rectH
                 )
             } ?: run {
                 labelPaint.shader = null
@@ -1850,10 +2256,7 @@ class CanvasView @JvmOverloads constructor(
                 LabelShape.ROUNDED_RECTANGLE_FILL -> {
                     labelPaint.style = Paint.Style.FILL
                     canvas.drawRoundRect(
-                        labelRect,
-                        20f,
-                        20f,
-                        labelPaint
+                        labelRect, 20f, 20f, labelPaint
                     ) // Adjust corner radius as needed
                 }
 
@@ -1861,10 +2264,7 @@ class CanvasView @JvmOverloads constructor(
                     labelPaint.style = Paint.Style.STROKE
                     labelPaint.strokeWidth = 4f // Adjust stroke width as needed
                     canvas.drawRoundRect(
-                        labelRect,
-                        20f,
-                        20f,
-                        labelPaint
+                        labelRect, 20f, 20f, labelPaint
                     ) // Adjust corner radius as needed
                 }
             }
@@ -1939,9 +2339,7 @@ class CanvasView @JvmOverloads constructor(
                 val textWidth = fillPaint.measureText(displayText)
                 val textHeight = fillPaint.textSize
                 fillPaint.shader = createGradientShader(
-                    gradientItem = gradient,
-                    width = textWidth,
-                    height = textHeight
+                    gradientItem = gradient, width = textWidth, height = textHeight
                 )
             } ?: run {
                 fillPaint.shader = null
@@ -1992,9 +2390,7 @@ class CanvasView @JvmOverloads constructor(
                             val textWidth = fillPaint.measureText(displayText)
                             val textHeight = fillPaint.textSize
                             shader = createGradientShader(
-                                gradientItem = gradient,
-                                width = textWidth,
-                                height = textHeight
+                                gradientItem = gradient, width = textWidth, height = textHeight
                             )
                         } ?: run {
                             shader = null
@@ -2082,15 +2478,18 @@ class CanvasView @JvmOverloads constructor(
     fun CanvasElement.containsPoint(px: Float, py: Float): Boolean {
         val bounds = getTightTextBounds()
         val corners = floatArrayOf(
-            bounds.left, bounds.top,
-            bounds.right, bounds.top,
-            bounds.right, bounds.bottom,
-            bounds.left, bounds.bottom
+            bounds.left,
+            bounds.top,
+            bounds.right,
+            bounds.top,
+            bounds.right,
+            bounds.bottom,
+            bounds.left,
+            bounds.bottom
         )
         val m = Matrix().apply {
             postScale(
-                scale * if (isFlippedX) -1f else 1f,
-                scale * if (isFlippedY) -1f else 1f
+                scale * if (isFlippedX) -1f else 1f, scale * if (isFlippedY) -1f else 1f
             )
             postRotate(rotation)
             postTranslate(x, y)
@@ -2107,8 +2506,8 @@ class CanvasView @JvmOverloads constructor(
             val yi = pts[i + 1]
             val xj = pts[j]
             val yj = pts[j + 1]
-            val intersect = ((yi > py) != (yj > py)) &&
-                    (px < (xj - xi) * (py - yi) / (yj - yi) + xi)
+            val intersect =
+                ((yi > py) != (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi)
             if (intersect) result = !result
             j = i
         }
@@ -2135,10 +2534,7 @@ class CanvasView @JvmOverloads constructor(
                         tightBounds.contains(touchPoint[0], touchPoint[1])
                     }
 
-            if (touchedElement != null && currentMode == Mode.GROUP_EDIT
-                && touchedElement.groupId == activeGroupId
-                && touchedElement.type != ElementType.BACKGROUND
-            ) {
+            if (touchedElement != null && currentMode == Mode.GROUP_EDIT && touchedElement.groupId == activeGroupId && touchedElement.type != ElementType.BACKGROUND) {
 
                 canvasElements.forEach { it.isSelected = false }
                 selectedElements.clear()
@@ -2162,7 +2558,7 @@ class CanvasView @JvmOverloads constructor(
                 onElementSelected?.invoke(selectedElements)
                 invalidate()
                 return true
-            } else if (touchedElement != null && touchedElement.type != ElementType.BACKGROUND) {
+            } else if (touchedElement != null) {
                 canvasElements.forEach { it.isSelected = false }
                 selectedElements.clear()
                 touchedElement.isSelected = true
@@ -2171,16 +2567,6 @@ class CanvasView @JvmOverloads constructor(
                 onEditTextRequested?.invoke(touchedElement)
                 invalidate()
                 return true
-            } else if (touchedElement != null && touchedElement.type == ElementType.BACKGROUND) {
-                val bg = canvasElements
-                    .firstOrNull { it.type == ElementType.BACKGROUND && !it.isLocked }
-                if (bg?.bitmap != null) {
-                    stepZoom(bg)
-                    selectOnly(bg)
-                    onElementChanged?.invoke(bg)
-                    invalidate()
-                    return true
-                }
             }
 
             stepZoomOverall()
@@ -2190,10 +2576,8 @@ class CanvasView @JvmOverloads constructor(
         override fun onLongPress(e: MotionEvent) {
             val (x, y) = screenToCanvas(e.x, e.y)
 
-            val touchedElement = canvasElements
-                .filter { !it.isLocked } // ignore locked
-                .sortedByDescending { it.zIndex }
-                .firstOrNull { it.containsPoint(x, y) }
+            val touchedElement = canvasElements.filter { !it.isLocked } // ignore locked
+                .sortedByDescending { it.zIndex }.firstOrNull { it.containsPoint(x, y) }
 
             if (touchedElement != null && touchedElement.type != ElementType.BACKGROUND) {
                 if (!inSelectionMode) {
@@ -2251,38 +2635,6 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
-    private fun animateZoom(elem: CanvasElement, toScale: Float) {
-        val fromScale = elem.scale
-        ValueAnimator.ofFloat(fromScale, toScale).apply {
-            duration = 500L
-            interpolator = DecelerateInterpolator()
-            addUpdateListener { animation ->
-                elem.scale = animation.animatedValue as Float
-                onElementChanged?.invoke(elem)
-                invalidate()
-            }
-            start()
-        }
-    }
-
-    private fun stepZoom(elem: CanvasElement) {
-        val next = when (elem.scale) {
-            1f -> 2f
-            2f -> 4f
-            else -> 1f
-        }
-        clampOverallPan()
-        animateZoom(elem, next)
-    }
-
-    private fun selectOnly(elem: CanvasElement) {
-        canvasElements.forEach { it.isSelected = false }
-        selectedElements.clear()
-        elem.isSelected = true
-        selectedElements.add(elem)
-        onElementSelected?.invoke(selectedElements)
-    }
-
     private fun screenToCanvas(sx: Float, sy: Float): Pair<Float, Float> {
         val pt = floatArrayOf(sx, sy)
 
@@ -2307,8 +2659,7 @@ class CanvasView @JvmOverloads constructor(
 
         val (x, y) = screenToCanvas(event.x, event.y)
         Log.d(
-            "TouchDebug",
-            "RawTouch=(${event.x}, ${event.y}) | CanvasTouch=($x, $y)"
+            "TouchDebug", "RawTouch=(${event.x}, ${event.y}) | CanvasTouch=($x, $y)"
         )
         if (isColorPickerMode) {
             when (event.actionMasked) {
@@ -2342,10 +2693,8 @@ class CanvasView @JvmOverloads constructor(
                     currentMode = Mode.MULTI_TOUCH
                     initialPinchDistance = getPinchDistance(event)
                     initialPinchAngle = getPinchAngle(event)
-                    initialScale = selectedElements.firstOrNull()?.scale
-                        ?: 1f
-                    initialRotation =
-                        selectedElements.firstOrNull()?.rotation ?: 0f
+                    initialScale = selectedElements.firstOrNull()?.scale ?: 1f
+                    initialRotation = selectedElements.firstOrNull()?.rotation ?: 0f
                 }
                 if (event.pointerCount == 2 && selectedElements.isEmpty()) {
                     currentMode = Mode.CANVAS_PAN
@@ -2363,23 +2712,22 @@ class CanvasView @JvmOverloads constructor(
                 showRotationHorizontalGuide = false
 
                 if (currentMode == Mode.GROUP_EDIT && activeGroupId != null) {
-                    val hitChild = canvasElements
-                        .filter { it.groupId == activeGroupId && !it.isLocked }
-                        .sortedByDescending { it.zIndex }
-                        .firstOrNull { element ->
-                            val matrix = Matrix().apply {
-                                postTranslate(-element.x, -element.y)
-                                postRotate(-element.rotation)
-                                postScale(1f / element.scale, 1f / element.scale)
+                    val hitChild =
+                        canvasElements.filter { it.groupId == activeGroupId && !it.isLocked }
+                            .sortedByDescending { it.zIndex }.firstOrNull { element ->
+                                val matrix = Matrix().apply {
+                                    postTranslate(-element.x, -element.y)
+                                    postRotate(-element.rotation)
+                                    postScale(1f / element.scale, 1f / element.scale)
+                                }
+                                val pt = floatArrayOf(x, y).also { matrix.mapPoints(it) }
+                                RectF(
+                                    -element.getLocalContentWidth() / 2f,
+                                    -element.getLocalContentHeight() / 2f,
+                                    element.getLocalContentWidth() / 2f,
+                                    element.getLocalContentHeight() / 2f
+                                ).contains(pt[0], pt[1])
                             }
-                            val pt = floatArrayOf(x, y).also { matrix.mapPoints(it) }
-                            RectF(
-                                -element.getLocalContentWidth() / 2f,
-                                -element.getLocalContentHeight() / 2f,
-                                element.getLocalContentWidth() / 2f,
-                                element.getLocalContentHeight() / 2f
-                            ).contains(pt[0], pt[1])
-                        }
 
                     if (hitChild != null) {
                         activeGroupId = null
@@ -2416,8 +2764,7 @@ class CanvasView @JvmOverloads constructor(
 
                     if (touchedIconEntry != null) {
                         Log.d(
-                            "IconHit",
-                            "User tapped inside icon=${touchedIconEntry.key} at ($x,$y)"
+                            "IconHit", "User tapped inside icon=${touchedIconEntry.key} at ($x,$y)"
                         )
                         iconTouched = touchedIconEntry.key
                         when (iconTouched) {
@@ -2441,11 +2788,10 @@ class CanvasView @JvmOverloads constructor(
                                 selectedElements.forEach { element ->
                                     initialElementRotations[element.id] = element.rotation
                                     // Store initial position relative to the group's center
-                                    initialElementPositionsRelativeToGroupPivot[element.id] =
-                                        Pair(
-                                            element.x - initialGroupPivotX,
-                                            element.y - initialGroupPivotY
-                                        )
+                                    initialElementPositionsRelativeToGroupPivot[element.id] = Pair(
+                                        element.x - initialGroupPivotX,
+                                        element.y - initialGroupPivotY
+                                    )
                                 }
                                 initialAngle = atan2(
                                     touchStartY - initialGroupPivotY,
@@ -2699,8 +3045,7 @@ class CanvasView @JvmOverloads constructor(
                                 val scaleFactor = newPinchDistance / initialPinchDistance
                                 selectedElements.filter { !it.isLocked }.forEach { element ->
                                     val newScale = (initialScale * scaleFactor).coerceIn(
-                                        0.1f,
-                                        5f
+                                        0.1f, 5f
                                     ) // Apply to initial scale
                                     element.scale = newScale
                                     onElementChanged?.invoke(element)
@@ -2713,6 +3058,14 @@ class CanvasView @JvmOverloads constructor(
                                 element.rotation = (initialRotation + rotationDelta) % 360
                                 onElementChanged?.invoke(element)
                             }
+
+                            checkDragSnap()
+
+                            if (selectedElements.size == 1) {
+                                checkRotationAlignment(selectedElements.first())
+                            } else {
+                                checkGroupRotationAlignment()
+                            }
                             invalidate()
                         }
                     }
@@ -2721,8 +3074,7 @@ class CanvasView @JvmOverloads constructor(
                         if (selectedElements.isEmpty()) return true
 
                         val currentAngle = atan2(
-                            y - initialGroupPivotY,
-                            x - initialGroupPivotX
+                            y - initialGroupPivotY, x - initialGroupPivotX
                         ) // Calculate angle relative to initial group pivot
                         val deltaAngle =
                             Math.toDegrees((currentAngle - initialAngle).toDouble()).toFloat()
@@ -2942,6 +3294,18 @@ class CanvasView @JvmOverloads constructor(
         } else {
             overallOffsetY = 0f
         }
+    }
+
+    fun clearCallbacks() {
+        onEditTextRequested = null
+        onElementChanged = null
+        onElementRemoved = null
+        onElementSelected = null
+        onStartBatchUpdate = null
+        onEndBatchUpdate = null
+        onColorPicked = null
+        onRequestOpenLayers = null
+        onExitSelectionMode = null
     }
 
     override fun onAttachedToWindow() {

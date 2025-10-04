@@ -1,14 +1,232 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".ui.editor.panels.adjustments.ToneAdjustmentsFragment">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/footer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
 
-</FrameLayout>
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/brightnessCard"
+            android:visibility="visible"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="3dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/contrastCard"
+            app:layout_constraintBottom_toTopOf="@id/exposureCard">
+
+            <TextView
+                android:id="@+id/brightnessTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/brightness"
+                android:fontFamily="@font/medium"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:textSize="12sp"
+                android:layout_marginStart="12dp"
+                android:textColor="@color/black"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="10"
+                android:fontFamily="@font/regular"
+                app:layout_constraintTop_toTopOf="@id/brightnessTitle"
+                app:layout_constraintBottom_toBottomOf="@id/brightnessTitle"
+                app:layout_constraintStart_toEndOf="@id/brightnessTitle"
+                android:textSize="12sp"
+                android:background="@drawable/edit_bg_stroke"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="4dp"
+                android:textColor="@color/black"
+                android:layout_marginStart="6dp"
+                android:id="@+id/brightnessSize"/>
+
+            <SeekBar
+                android:id="@+id/brightness"
+                android:layout_marginTop="3dp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/brightnessSize"
+                android:thumbTint="@color/appColor"
+                android:indeterminateTint="@color/appColor"
+                android:progressTint="@color/appColor"
+                android:progress="20"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/contrastCard"
+            android:visibility="visible"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="3dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toEndOf="@id/brightnessCard"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/exposureCard">
+
+            <TextView
+                android:id="@+id/contrastTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contrast"
+                android:fontFamily="@font/medium"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:textSize="12sp"
+                android:layout_marginStart="12dp"
+                android:textColor="@color/black"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="10"
+                android:fontFamily="@font/regular"
+                app:layout_constraintTop_toTopOf="@id/contrastTitle"
+                app:layout_constraintBottom_toBottomOf="@id/contrastTitle"
+                app:layout_constraintStart_toEndOf="@id/contrastTitle"
+                android:textSize="12sp"
+                android:background="@drawable/edit_bg_stroke"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="4dp"
+                android:textColor="@color/black"
+                android:layout_marginStart="6dp"
+                android:id="@+id/contrastSize"/>
+
+
+            <SeekBar
+                android:id="@+id/contrast"
+                android:layout_marginTop="3dp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/contrastSize"
+                android:thumbTint="@color/appColor"
+                android:indeterminateTint="@color/appColor"
+                android:progressTint="@color/appColor"
+                android:progress="20"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/exposureCard"
+            android:visibility="visible"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/brightnessCard"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/shadowsCard">
+
+            <TextView
+                android:id="@+id/exposureTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/exposure"
+                android:fontFamily="@font/medium"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:textSize="12sp"
+                android:layout_marginStart="12dp"
+                android:textColor="@color/black"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="10"
+                android:fontFamily="@font/regular"
+                app:layout_constraintTop_toTopOf="@id/exposureTitle"
+                app:layout_constraintBottom_toBottomOf="@id/exposureTitle"
+                app:layout_constraintStart_toEndOf="@id/exposureTitle"
+                android:textSize="12sp"
+                android:background="@drawable/edit_bg_stroke"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="4dp"
+                android:textColor="@color/black"
+                android:layout_marginStart="6dp"
+                android:id="@+id/exposureSize"/>
+
+            <SeekBar
+                android:id="@+id/exposure"
+                android:layout_marginTop="3dp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/exposureSize"
+                android:thumbTint="@color/appColor"
+                android:indeterminateTint="@color/appColor"
+                android:progressTint="@color/appColor"
+                android:progress="20"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/shadowsCard"
+            android:visibility="visible"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/contrastCard"
+            app:layout_constraintStart_toEndOf="@id/exposureCard"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <TextView
+                android:id="@+id/shadowsTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/shadows"
+                android:fontFamily="@font/medium"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:textSize="12sp"
+                android:layout_marginStart="12dp"
+                android:textColor="@color/black"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="10"
+                android:fontFamily="@font/regular"
+                app:layout_constraintTop_toTopOf="@id/shadowsTitle"
+                app:layout_constraintBottom_toBottomOf="@id/shadowsTitle"
+                app:layout_constraintStart_toEndOf="@id/shadowsTitle"
+                android:textSize="12sp"
+                android:background="@drawable/edit_bg_stroke"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="4dp"
+                android:textColor="@color/black"
+                android:layout_marginStart="6dp"
+                android:id="@+id/shadowsSize"/>
+
+
+            <SeekBar
+                android:id="@+id/shadows"
+                android:layout_marginTop="3dp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/shadowsSize"
+                android:thumbTint="@color/appColor"
+                android:indeterminateTint="@color/appColor"
+                android:progressTint="@color/appColor"
+                android:progress="20"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

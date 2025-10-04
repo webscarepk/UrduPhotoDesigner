@@ -40,10 +40,11 @@
         android:layout_height="30dp"
         android:src="@drawable/ic_done"
         android:padding="6dp"
+        android:layout_marginTop="6dp"
         android:id="@+id/done"
         app:tint="@color/black"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
-        app:layout_constraintTop_toTopOf="parent"/>
+        app:layout_constraintTop_toBottomOf="@id/topGuide"/>
 
     <ImageView
         android:layout_width="30dp"
@@ -52,9 +53,10 @@
         android:padding="6dp"
         android:id="@+id/adjustments"
         app:tint="@color/black"
+        android:layout_marginTop="6dp"
         android:layout_marginEnd="10dp"
         app:layout_constraintEnd_toStartOf="@id/done"
-        app:layout_constraintTop_toTopOf="parent"/>
+        app:layout_constraintTop_toBottomOf="@id/topGuide"/>
 
     <TextView
         android:layout_width="wrap_content"
@@ -72,8 +74,8 @@
         android:layout_height="0dp"
         android:paddingHorizontal="5dp"
         android:clipToPadding="false"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/done"
         app:layout_constraintBottom_toTopOf="@id/bottomGuide"
         android:orientation="horizontal"

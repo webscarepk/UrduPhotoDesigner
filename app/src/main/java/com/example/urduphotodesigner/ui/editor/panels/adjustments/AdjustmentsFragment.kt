@@ -6,12 +6,12 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.viewpager2.widget.ViewPager2
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.data.model.PanelTabs
 import com.example.urduphotodesigner.databinding.FragmentAdjustmentsBinding
 import com.example.urduphotodesigner.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter
-import com.example.urduphotodesigner.ui.editor.panels.text.format.FormatPagerAdapter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -21,7 +21,7 @@ class AdjustmentsFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var tabs: ArrayList<PanelTabs>
     private lateinit var adapter: PanelTabsAdapter
-    private lateinit var pagerAdapter: FormatPagerAdapter
+    private lateinit var pagerAdapter: AdjustmentsPagerAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -39,7 +39,7 @@ class AdjustmentsFragment : Fragment() {
     }
 
     private fun setupRecyclerViews() {
-        binding.done.addPressEffect {  }
+        binding.done.addPressEffect { }
         tabs = ArrayList()
         adapter = PanelTabsAdapter { tab ->
             handleFontSelection(tab)
@@ -49,7 +49,7 @@ class AdjustmentsFragment : Fragment() {
         binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
         binding.viewPager.offscreenPageLimit = 1
 
-        pagerAdapter = FormatPagerAdapter(this, tabs)
+        pagerAdapter = AdjustmentsPagerAdapter(this, tabs)
         binding.viewPager.adapter = pagerAdapter
 
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
@@ -60,6 +60,7 @@ class AdjustmentsFragment : Fragment() {
             }
         })
 
+        binding.done.addPressEffect { findNavController().navigateUp() }
     }
 
     private fun initObservers() {

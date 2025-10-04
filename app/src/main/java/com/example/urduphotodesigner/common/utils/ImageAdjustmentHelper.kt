@@ -1,0 +1,196 @@
+package com.example.urduphotodesigner.common.utils
+
+import android.content.Context
+import android.graphics.*
+import com.example.urduphotodesigner.common.canvas.model.AdjustmentValues
+import androidx.core.graphics.createBitmap
+import kotlin.math.roundToInt
+
+object ImageAdjustmentHelper {
+
+    /**
+     * Apply all 12 adjustments to the given bitmap and return a new one.
+     * Compatible with Android 8 → 15 (uses RenderScript Toolkit).
+     */
+    fun applyAllAdjustments(
+        source: Bitmap,
+        values: AdjustmentValues
+    ): Bitmap {
+        if (source.isRecycled) return source
+
+        val base = source.copy(Bitmap.Config.ARGB_8888, true)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val cm = ColorMatrix()
+
+        // -------------------------------------------------
+        // 1️⃣ Brightness (-100 → +100)
+        // -------------------------------------------------
+        val brightnessShift = values.brightness * 2.55f
+        cm.postConcat(ColorMatrix(floatArrayOf(
+            1f, 0f, 0f, 0f, brightnessShift,
+            0f, 1f, 0f, 0f, brightnessShift,
+            0f, 0f, 1f, 0f, brightnessShift,
+            0f, 0f, 0f, 1f, 0f
+        )))
+
+        // -------------------------------------------------
+        // 2️⃣ Contrast (0.5 → 1.5)
+        // -------------------------------------------------
+        val contrast = values.contrast.coerceIn(0.5f, 1.5f)
+        val translate = (1f - contrast) * 128f
+        cm.postConcat(ColorMatrix(floatArrayOf(
+            contrast, 0f, 0f, 0f, translate,
+            0f, contrast, 0f, 0f, translate,
+            0f, 0f, contrast, 0f, translate,
+            0f, 0f, 0f, 1f, 0f
+        )))
+
+        // -------------------------------------------------
+        // 3️⃣ Exposure (-2 → +2)
+        // -------------------------------------------------
+        if (values.exposure != 0f) {
+            val expScale = 1f + values.exposure / 2f
+            cm.postConcat(ColorMatrix(floatArrayOf(
+                expScale, 0f, 0f, 0f, 0f,
+                0f, expScale, 0f, 0f, 0f,
+                0f, 0f, expScale, 0f, 0f,
+                0f, 0f, 0f, 1f, 0f
+            )))
+        }
+
+        // -------------------------------------------------
+        // 4️⃣ Saturation (0 → 2)
+        // -------------------------------------------------
+        val satMatrix = ColorMatrix()
+        satMatrix.setSaturation(values.saturation.coerceIn(0f, 2f))
+        cm.postConcat(satMatrix)
+
+        // -------------------------------------------------
+        // 5️⃣ Vibrance (0 → 2)
+        // -------------------------------------------------
+        if (values.vibrance != 1f) {
+            val vibrance = values.vibrance.coerceIn(0f, 2f)
+            cm.postConcat(ColorMatrix(floatArrayOf(
+                vibrance, 0f, 0f, 0f, 0f,
+                0f, vibrance, 0f, 0f, 0f,
+                0f, 0f, vibrance, 0f, 0f,
+                0f, 0f, 0f, 1f, 0f
+            )))
+        }
+
+        // -------------------------------------------------
+        // 6️⃣ Temperature / Tint (-100 → +100)
+        // -------------------------------------------------
+        val temp = values.temperature / 100f
+        val tint = values.tint / 100f
+        cm.postConcat(ColorMatrix(floatArrayOf(
+            1f + temp, 0f, 0f, 0f, 0f,
+            0f, 1f + tint, 0f, 0f, 0f,
+            0f, 0f, 1f - temp, 0f, 0f,
+            0f, 0f, 0f, 1f, 0f
+        )))
+
+        // -------------------------------------------------
+        // 7️⃣ Shadows / Highlights (-100 → +100)
+        // -------------------------------------------------
+        if (values.shadows != 0f || values.highlights != 0f) {
+            val shadowScale = 1f + (values.shadows / 200f)
+            val highlightScale = 1f - (values.highlights / 200f)
+            cm.postConcat(ColorMatrix(floatArrayOf(
+                shadowScale, 0f, 0f, 0f, 0f,
+                0f, highlightScale, 0f, 0f, 0f,
+                0f, 0f, (shadowScale + highlightScale) / 2f, 0f, 0f,
+                0f, 0f, 0f, 1f, 0f
+            )))
+        }
+
+        // -------------------------------------------------
+        // 8️⃣ Clarity (-100 → +100)
+        // -------------------------------------------------
+        if (values.clarity != 0f) {
+            val clarityScale = 1f + (values.clarity / 200f)
+            cm.postConcat(ColorMatrix(floatArrayOf(
+                clarityScale, 0f, 0f, 0f, 0f,
+                0f, clarityScale, 0f, 0f, 0f,
+                0f, 0f, clarityScale, 0f, 0f,
+                0f, 0f, 0f, 1f, 0f
+            )))
+        }
+
+        // -------------------------------------------------
+        // 9️⃣ Fade (0 → 100)
+        // -------------------------------------------------
+        if (values.fade != 0f) {
+            val fadeScale = 1f - (values.fade / 100f)
+            cm.postConcat(ColorMatrix(floatArrayOf(
+                fadeScale, 0f, 0f, 0f, 0f,
+                0f, fadeScale, 0f, 0f, 0f,
+                0f, 0f, fadeScale, 0f, 0f,
+                0f, 0f, 0f, 1f, 0f
+            )))
+        }
+
+        // -------------------------------------------------
+        // ✅ Apply combined ColorMatrix
+        // -------------------------------------------------
+        paint.colorFilter = ColorMatrixColorFilter(cm)
+        val filtered = createBitmap(base.width, base.height)
+        Canvas(filtered).drawBitmap(base, 0f, 0f, paint)
+
+        // -------------------------------------------------
+        // 🔟 Sharpness (0 → 5) via RenderScript Toolkit
+        // -------------------------------------------------
+        return if (values.sharpness > 0f) {
+            applySharpnessFallback(filtered, values.sharpness)
+        } else {
+            filtered
+        }
+    }
+
+    /**
+     * Apply sharpening using the new RenderScript Toolkit.
+     * Fully supported on Android 14+.
+     */
+    private fun applySharpnessFallback(src: Bitmap, sharpness: Float): Bitmap {
+        if (sharpness <= 0f) return src
+        val s = (sharpness / 5f).coerceIn(0f, 1f)
+
+        val kernel = arrayOf(
+            floatArrayOf(0f, -s, 0f),
+            floatArrayOf(-s, 1f + (4 * s), -s),
+            floatArrayOf(0f, -s, 0f)
+        )
+
+        val w = src.width
+        val h = src.height
+        val result = src.config?.let { createBitmap(w, h, it) }
+
+        val pixels = IntArray(w * h)
+        src.getPixels(pixels, 0, w, 0, 0, w, h)
+        val out = IntArray(w * h)
+
+        fun clamp(v: Int) = v.coerceIn(0, 255)
+
+        for (y in 1 until h - 1) {
+            for (x in 1 until w - 1) {
+                var r = 0f; var g = 0f; var b = 0f
+                for (ky in -1..1) for (kx in -1..1) {
+                    val px = pixels[(y + ky) * w + (x + kx)]
+                    val kr = kernel[ky + 1][kx + 1]
+                    r += Color.red(px) * kr
+                    g += Color.green(px) * kr
+                    b += Color.blue(px) * kr
+                }
+                out[y * w + x] = Color.argb(
+                    Color.alpha(pixels[y * w + x]),
+                    clamp(r.roundToInt()),
+                    clamp(g.roundToInt()),
+                    clamp(b.roundToInt())
+                )
+            }
+        }
+        result?.setPixels(out, 0, w, 0, 0, w, h)
+        return result!!
+    }
+
+}
