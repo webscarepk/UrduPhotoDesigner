@@ -214,7 +214,7 @@ class LayersFragment : Fragment() {
         val allLocked = selected.isNotEmpty() && selected.all { it.isLocked }
         selectionToolbar.lock.setImageDrawable(
             ContextCompat.getDrawable(
-                requireContext(), if (allLocked) R.drawable.ic_unlock else R.drawable.ic_lock
+                requireContext(), if (allLocked) R.drawable.ic_lock else R.drawable.ic_unlock
             )
         )
         selectionToolbar.lock.contentDescription =
@@ -227,14 +227,14 @@ class LayersFragment : Fragment() {
         when {
             allVisible -> {
                 selectionToolbar.visibility.setImageDrawable(
-                    ContextCompat.getDrawable(requireContext(), R.drawable.ic_hide_pass)
+                    ContextCompat.getDrawable(requireContext(), R.drawable.ic_show_pass)
                 )
                 selectionToolbar.visibility.contentDescription = getString(R.string.hide_all)
             }
 
             allHidden -> {
                 selectionToolbar.visibility.setImageDrawable(
-                    ContextCompat.getDrawable(requireContext(), R.drawable.ic_show_pass)
+                    ContextCompat.getDrawable(requireContext(), R.drawable.ic_hide_pass)
                 )
                 selectionToolbar.visibility.contentDescription = getString(R.string.show_all)
             }
@@ -242,7 +242,7 @@ class LayersFragment : Fragment() {
             else -> {
                 // Mixed state → default hide
                 selectionToolbar.visibility.setImageDrawable(
-                    ContextCompat.getDrawable(requireContext(), R.drawable.ic_hide_pass)
+                    ContextCompat.getDrawable(requireContext(), R.drawable.ic_show_pass)
                 )
                 selectionToolbar.visibility.contentDescription = getString(R.string.hide_all)
             }
@@ -252,7 +252,7 @@ class LayersFragment : Fragment() {
         val anyGrouped = selected.any { it.groupId != null }
         selectionToolbar.group.setImageDrawable(
             ContextCompat.getDrawable(
-                requireContext(), if (anyGrouped) R.drawable.ic_un_group else R.drawable.ic_group
+                requireContext(), if (anyGrouped) R.drawable.ic_group else R.drawable.ic_un_group
             )
         )
         selectionToolbar.group.contentDescription =

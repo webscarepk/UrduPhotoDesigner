@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
-import android.graphics.PointF
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.text.TextPaint
@@ -21,10 +20,6 @@ import com.example.urduphotodesigner.common.utils.KashidaProcessor
 import java.io.Serializable
 import java.util.UUID
 
-private const val ICON_PADDING =
-    10f // Or whatever value suits your icon sizes and visual preference
-
-// Make CanvasElement Serializable to allow it to be passed via Bundles and saved.
 data class CanvasElement(
     // Context is transient and should not be serialized. It will be re-provided on load.
     @Transient var context: Context? = null, // Made nullable for deserialization
@@ -152,22 +147,6 @@ data class CanvasElement(
         }
     }
 
-    fun getIconPositions(): Map<String, PointF> {
-        val bounds = getTightTextBounds() // use corrected tight bounds
-        val halfW = bounds.width() / 2f
-        val halfH = bounds.height() / 2f
-
-        val iconOffsetX = halfW + ICON_PADDING
-        val iconOffsetY = halfH + ICON_PADDING
-
-        return mapOf(
-            "delete" to PointF(iconOffsetX, -iconOffsetY),   // top-right
-            "resize" to PointF(iconOffsetX, iconOffsetY),   // bottom-right
-            "rotate" to PointF(-iconOffsetX, iconOffsetY),  // bottom-left
-            "edit" to PointF(-iconOffsetX, -iconOffsetY)    // top-left
-        )
-    }
-
     fun getTextWithKashida(): String {
         return applyKashidaToText(text, kashidaSize)
     }
@@ -185,36 +164,31 @@ data class CanvasElement(
 
     fun getTightTextBounds(): RectF {
         val bounds = RectF()
+
         if (type == ElementType.TEXT && ::paint.isInitialized) {
             val lines = getTextWithKashida().split("\n")
             val fm = paint.fontMetrics
 
-            // Correct line height with spacing
+            // True line height
             val lineHeight = (fm.descent - fm.ascent) * lineSpacing
 
-            var maxWidth = 0f
+            // Get actual text bounds for each line using getTextBounds()
+            val tempRect = android.graphics.Rect()
+            var maxLineWidth = 0f
 
             for (line in lines) {
                 if (line.isEmpty()) continue
-
-                // Base width of all glyphs
-                val baseWidth = paint.measureText(line)
-
-                // Extra width contributed by letterSpacing
-                val extraWidth = if (letterSpacing != 0f) {
-                    (line.length - 1) * (letterSpacing * paint.textSize)
-                } else 0f
-
-                val totalWidth = baseWidth + extraWidth
-                maxWidth = maxOf(maxWidth, totalWidth)
+                paint.getTextBounds(line, 0, line.length, tempRect)
+                maxLineWidth = maxOf(maxLineWidth, tempRect.width().toFloat())
             }
 
             val totalHeight = lines.size * lineHeight
 
+            // === Instead of rotating here, keep bounds in logical space ===
             bounds.set(
-                -maxWidth / 2f,
+                -maxLineWidth / 2f,
                 -totalHeight / 2f,
-                maxWidth / 2f,
+                maxLineWidth / 2f,
                 totalHeight / 2f
             )
         } else {
@@ -226,8 +200,12 @@ data class CanvasElement(
             )
         }
 
-        val padding = 6f
-        bounds.inset(-padding, -padding)
+        // Padding for selection outline
+        val basePadding = 6f
+        val dynamicPadding = paint.textSize * 0.25f
+        val totalPadding = basePadding + dynamicPadding
+
+        bounds.inset(-totalPadding, -totalPadding)
 
         return bounds
     }
@@ -242,13 +220,21 @@ data class CanvasElement(
             bounds.left, bounds.bottom
         )
 
+        // --- Normalize rotation into [0, 360)
+        val normalizedRotation = ((rotation % 360) + 360) % 360
+
         val matrix = Matrix().apply {
-            // include scale + flip exactly like drawCanvasElements()
+            // ✅ include scale + flip exactly like drawCanvasElements()
             postScale(
                 scale * if (isFlippedX) -1f else 1f,
                 scale * if (isFlippedY) -1f else 1f
             )
-            postRotate(rotation)
+
+            // ✅ Rotate around the element’s true local center (0,0)
+            if (normalizedRotation != 0f)
+                postRotate(normalizedRotation)
+
+            // ✅ Move into world space
             postTranslate(x, y)
         }
 

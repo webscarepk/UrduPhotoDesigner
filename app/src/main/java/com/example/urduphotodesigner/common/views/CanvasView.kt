@@ -15,6 +15,7 @@ import android.graphics.DashPathEffect
 import android.graphics.LinearGradient
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.RadialGradient
@@ -107,7 +108,7 @@ class CanvasView @JvmOverloads constructor(
     private var pickerY = 0f
     private var isDraggingPicker = false
     private val desiredPickerIconSizePx = 64f
-    private val desiredIconSizeDp = 16f
+    private val desiredIconSizeDp = 24f
     private val desiredIconScreenSizePx: Float
         get() = desiredIconSizeDp * resources.displayMetrics.density
 
@@ -243,9 +244,8 @@ class CanvasView @JvmOverloads constructor(
     fun enableColorPicker() {
         isColorPickerMode = true
 
-        val marginPx = 100f.dpToPx()
-        pickerX = marginPx
-        pickerY = marginPx
+        pickerX = canvasWidth / 2f
+        pickerY = canvasHeight / 2f
         val (bmp, _) = exportCanvas(
             ExportOptions(
                 resolution = ExportResolution("picker", canvasWidth, canvasHeight, 1f),
@@ -290,18 +290,29 @@ class CanvasView @JvmOverloads constructor(
      * lock it, fill its fields, and insert it at index 0.
      */
     private fun ensureBackgroundElement() {
-        if (canvasElements.isEmpty()) {
-            // Create a new background element (locked, white fill etc.)
-            val newBg = backgroundElement.copy().apply {
-                type = ElementType.BACKGROUND
-                isLocked = true
-                isVisible = true
-                backgroundColor = Color.WHITE
-            }
-            canvasElements.add(0, newBg)
-            onElementChanged?.invoke(newBg)
-            invalidate()
+        // ✅ If user already has a background, do nothing
+        if (canvasElements.any { it.type == ElementType.BACKGROUND }) return
+
+        // ✅ If backgroundElement not initialized → skip creating anything
+        if (!::backgroundElement.isInitialized) {
+            Log.d("CanvasView", "No background element initialized — skipping creation.")
+            return
         }
+
+        val newBg = backgroundElement.copy().apply {
+            type = ElementType.BACKGROUND
+            isLocked = true
+            isVisible = true
+            backgroundColor = Color.WHITE
+            x = canvasWidth / 2f
+            y = canvasHeight / 2f
+            logicalContentWidth = canvasWidth.toFloat()
+            logicalContentHeight = canvasHeight.toFloat()
+        }
+
+        canvasElements.add(0, newBg)
+        onElementChanged?.invoke(newBg)
+        invalidate()
     }
 
     /**
@@ -513,6 +524,7 @@ class CanvasView @JvmOverloads constructor(
      * Calculates the combined bounding box for all currently selected elements.
      * Returns an empty RectF if no elements are selected.
      */
+    /** Returns an axis-aligned bounding box that covers all rotated elements */
     private fun getCombinedSelectedBounds(): RectF {
         if (selectedElements.isEmpty()) return RectF()
 
@@ -522,110 +534,65 @@ class CanvasView @JvmOverloads constructor(
         var maxY = Float.MIN_VALUE
 
         selectedElements.forEach { element ->
-            val bounds = element.getTightTextBounds()
-
-            val corners = floatArrayOf(
-                bounds.left,
-                bounds.top,
-                bounds.right,
-                bounds.top,
-                bounds.right,
-                bounds.bottom,
-                bounds.left,
-                bounds.bottom
-            )
-
-            val matrix = Matrix().apply {
-                postScale(
-                    element.scale * if (element.isFlippedX) -1f else 1f,
-                    element.scale * if (element.isFlippedY) -1f else 1f
-                )
-                postRotate(element.rotation)
-                postTranslate(element.x, element.y)
-            }
-
-            matrix.mapPoints(corners)
-
+            val corners = element.getRotatedCorners()
             for (i in corners.indices step 2) {
-                val px = corners[i]
-                val py = corners[i + 1]
-                minX = minOf(minX, px)
-                minY = minOf(minY, py)
-                maxX = maxOf(maxX, px)
-                maxY = maxOf(maxY, py)
+                val x = corners[i]
+                val y = corners[i + 1]
+                if (x < minX) minX = x
+                if (y < minY) minY = y
+                if (x > maxX) maxX = x
+                if (y > maxY) maxY = y
             }
         }
 
         return RectF(minX, minY, maxX, maxY)
     }
 
+    /** Returns a straight rectangular path around all selected rotated elements. */
     private fun getGroupRotatedBounds(): FloatArray {
-        val bounds = getCombinedSelectedBounds()
-        val centerX = bounds.centerX()
-        val centerY = bounds.centerY()
-
-        // Compute average rotation of selected elements
-        val avgRotation = selectedElements.map { it.rotation }.average().toFloat()
-
-        val corners = floatArrayOf(
-            bounds.left,
-            bounds.top,
-            bounds.right,
-            bounds.top,
-            bounds.right,
-            bounds.bottom,
-            bounds.left,
-            bounds.bottom
-        )
-
-        val matrix = Matrix().apply {
-            postRotate(avgRotation, centerX, centerY)
+        // Collect all rotated corners from all selected elements
+        val allPoints = mutableListOf<Float>()
+        selectedElements.forEach { el ->
+            allPoints.addAll(el.getRotatedCorners().toList())
         }
-        matrix.mapPoints(corners)
 
-        return corners
+        var minX = Float.MAX_VALUE
+        var minY = Float.MAX_VALUE
+        var maxX = Float.MIN_VALUE
+        var maxY = Float.MIN_VALUE
+
+        for (i in allPoints.indices step 2) {
+            val x = allPoints[i]
+            val y = allPoints[i + 1]
+            if (x < minX) minX = x
+            if (y < minY) minY = y
+            if (x > maxX) maxX = x
+            if (y > maxY) maxY = y
+        }
+
+        // Straight axis-aligned bounding box (no extra rotation)
+        return floatArrayOf(minX, minY, maxX, maxY)
     }
 
-    private fun getGroupRotatedPath(): android.graphics.Path? {
+    /** Returns a non-rotated rectangular path that covers all selected elements. */
+    private fun getGroupRotatedPath(): Path? {
         if (selectedElements.size <= 1) return null
 
-        val bounds = getCombinedSelectedBounds()
-        val centerX = bounds.centerX()
-        val centerY = bounds.centerY()
-
-        // Take average rotation of selected elements
-        val avgRotation = selectedElements.map { it.rotation }.average().toFloat()
-
-        val corners = floatArrayOf(
-            bounds.left,
-            bounds.top,
-            bounds.right,
-            bounds.top,
-            bounds.right,
-            bounds.bottom,
-            bounds.left,
-            bounds.bottom
-        )
-
-        val matrix = Matrix().apply {
-            postRotate(avgRotation, centerX, centerY)
-        }
-        matrix.mapPoints(corners)
-
-        return android.graphics.Path().apply {
-            moveTo(corners[0], corners[1])
-            lineTo(corners[2], corners[3])
-            lineTo(corners[4], corners[5])
-            lineTo(corners[6], corners[7])
+        val b = getGroupRotatedBounds()
+        return Path().apply {
+            moveTo(b[0], b[1])
+            lineTo(b[2], b[1])
+            lineTo(b[2], b[3])
+            lineTo(b[0], b[3])
             close()
         }
     }
 
-    private fun getSelectionPath(): android.graphics.Path? {
+    private fun getSelectionPath(): Path? {
         if (selectedElements.isEmpty()) return null
         if (selectedElements.size == 1) {
             val c = selectedElements.first().getRotatedCorners()
-            return android.graphics.Path().apply {
+            return Path().apply {
                 moveTo(c[0], c[1])
                 lineTo(c[2], c[3])
                 lineTo(c[4], c[5])
@@ -635,8 +602,8 @@ class CanvasView @JvmOverloads constructor(
         }
         // Multi-selection → fallback to axis aligned for now
         val b = getCombinedSelectedBounds()
-        return android.graphics.Path().apply {
-            addRect(b, android.graphics.Path.Direction.CW)
+        return Path().apply {
+            addRect(b, Path.Direction.CW)
         }
     }
 
@@ -1655,6 +1622,75 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
+    fun getGroupUnrotatedBounds(): FloatArray {
+        if (selectedElements.isEmpty()) return floatArrayOf(0f, 0f, 0f, 0f)
+
+        var minX = Float.MAX_VALUE
+        var minY = Float.MAX_VALUE
+        var maxX = Float.MIN_VALUE
+        var maxY = Float.MIN_VALUE
+
+        selectedElements.forEach { el ->
+            // Get the element's local (tight) unrotated bounds
+            val bounds = el.getTightTextBounds()
+
+            // Create corners without applying element.rotation yet
+            val corners = floatArrayOf(
+                bounds.left, bounds.top,
+                bounds.right, bounds.top,
+                bounds.right, bounds.bottom,
+                bounds.left, bounds.bottom
+            )
+
+            // Apply scale + flip (but NOT rotation)
+            val matrix = Matrix().apply {
+                postScale(
+                    el.scale * if (el.isFlippedX) -1f else 1f,
+                    el.scale * if (el.isFlippedY) -1f else 1f
+                )
+                postTranslate(el.x, el.y)
+            }
+
+            matrix.mapPoints(corners)
+
+            for (i in corners.indices step 2) {
+                val x = corners[i]
+                val y = corners[i + 1]
+                if (x < minX) minX = x
+                if (y < minY) minY = y
+                if (x > maxX) maxX = x
+                if (y > maxY) maxY = y
+            }
+        }
+
+        return floatArrayOf(minX, minY, maxX, maxY)
+    }
+
+    fun getGroupTrueBounds(): FloatArray {
+        if (selectedElements.isEmpty()) return floatArrayOf(0f, 0f, 0f, 0f)
+
+        val allPoints = mutableListOf<Float>()
+        selectedElements.forEach { el ->
+            allPoints.addAll(el.getRotatedCorners().toList())
+        }
+
+        var minX = Float.MAX_VALUE
+        var minY = Float.MAX_VALUE
+        var maxX = Float.MIN_VALUE
+        var maxY = Float.MIN_VALUE
+
+        for (i in allPoints.indices step 2) {
+            val x = allPoints[i]
+            val y = allPoints[i + 1]
+            if (x < minX) minX = x
+            if (x > maxX) maxX = x
+            if (y < minY) minY = y
+            if (y > maxY) maxY = y
+        }
+
+        return floatArrayOf(minX, minY, maxX, maxY)
+    }
+
     private fun drawCanvasElements(
         canvas: Canvas, showOverlays: Boolean = true, showCheckerboard: Boolean = true
     ) {
@@ -1816,27 +1852,28 @@ class CanvasView @JvmOverloads constructor(
                     cy + textBounds.height() / 2f + padding
                 )
 
-                // Draw background label
                 canvas.drawRoundRect(bgRect, 6f.dpToPx(), 6f.dpToPx(), rotationLabelPaint)
 
-                // Draw rotation text (vertically centered)
                 val textY = cy - (textBounds.exactCenterY())
                 canvas.drawText(rotationValue, cx, textY, rotationTextPaint)
             }
-            // Draw icons if elements are selected and not locked
-            if (selectedElements.any { !it.isLocked }) { // Draw icons if at least one selected element is not locked
+            if (selectedElements.any { !it.isLocked }) {
                 val localIconDrawWidth = desiredIconScreenSizePx / scale
                 val localIconDrawHeight = desiredIconScreenSizePx / scale
 
-                // --- Icon positions for multi-selection or single element selection ---
                 val iconMap = mutableMapOf<String, Pair<Float, Float>>()
 
-                if (selectedElements.size > 1) { // Multi-selection icons
+                if (selectedElements.size > 1) {
                     val c = getGroupRotatedBounds()
-                    iconMap["delete"] = Pair(c[2], c[3])   // top-right
-                    iconMap["rotate"] = Pair(c[6], c[7])   // bottom-left
-                    iconMap["resize"] = Pair(c[4], c[5])
-                } else if (selectedElements.size == 1) { // Single element selection icons
+                    val left = c[0]
+                    val top = c[1]
+                    val right = c[2]
+                    val bottom = c[3]
+
+                    iconMap["delete"] = Pair(right, top)
+                    iconMap["resize"] = Pair(right, bottom)
+                    iconMap["rotate"] = Pair(left, bottom)
+                } else if (selectedElements.size == 1) {
                     val element = selectedElements.first()
 
                     val corners = element.getRotatedCorners()
@@ -1851,9 +1888,8 @@ class CanvasView @JvmOverloads constructor(
                     val topCenterX = (corners[0] + corners[2]) / 2f
                     val topCenterY = (corners[1] + corners[3]) / 2f
 
-                    // Offset upwards for space between box and icon
-                    val elementHeight = element.logicalContentHeight
-                    val offset = max(120f, elementHeight * 0.25f) / scale
+                    val offset = 150f
+
                     val rotateX = topCenterX
                     val rotateY = topCenterY - offset
 
@@ -1900,32 +1936,35 @@ class CanvasView @JvmOverloads constructor(
                                 }
 
                                 val topCenter = floatArrayOf(bounds.centerX(), bounds.top)
+                                val fixedHandleLengthPx = 150f  // visible fixed size on screen
                                 val rotateIcon = floatArrayOf(
                                     bounds.centerX(),
-                                    bounds.top - (max(120f, element.logicalContentHeight * 0.25f) / scale)
+                                    bounds.top - (fixedHandleLengthPx / scale) // convert screen px → canvas units
                                 )
+
                                 matrix.mapPoints(topCenter)
                                 matrix.mapPoints(rotateIcon)
                                 topCenter to rotateIcon
 
                             } else {
                                 // === MULTI-SELECTION ===
-                                val groupBounds = getGroupRotatedBounds()
-                                val groupRotation = selectedElements.map { it.rotation }.average().toFloat()
+                                val groupBounds = getGroupTrueBounds()
 
+                                // Center of group bounds
                                 val pivotX = (groupBounds[0] + groupBounds[2]) / 2f
-                                val pivotY = (groupBounds[1] + groupBounds[3]) / 2f
-                                val topCenter = floatArrayOf(pivotX, groupBounds[1])
-                                val offset = max(120f, (groupBounds[3] - groupBounds[1]) * 0.25f) / scale
-                                val angleRad = Math.toRadians(groupRotation.toDouble())
-                                val dx = (sin(angleRad) * offset).toFloat()
-                                val dy = (-cos(angleRad) * offset).toFloat()
-                                val matrix = Matrix().apply { postRotate(groupRotation, pivotX, pivotY) }
-                                matrix.mapPoints(topCenter)
+                                val topY = groupBounds[1]
+
+                                // --- Step 1: define top-center of the bounding box ---
+                                val topCenter = floatArrayOf(pivotX, topY)
+
+                                // --- Step 2: place handle directly above the box (fixed distance in screen px) ---
+                                val fixedHandleLengthPx = 150f
                                 val rotateIcon = floatArrayOf(
-                                    topCenter[0] + dx,
-                                    topCenter[1] + dy
+                                    pivotX,
+                                    topY - (fixedHandleLengthPx / scale)
                                 )
+
+                                // ❌ No rotation applied here (handle stays fixed above top bound)
                                 topCenter to rotateIcon
                             }
 
@@ -1971,7 +2010,7 @@ class CanvasView @JvmOverloads constructor(
         }
 
         if (showOverlays && isColorPickerMode) {
-            val halfIcon = desiredPickerIconSizePx / 2f
+            val halfIcon = desiredPickerIconSizePx
 
             val px = pickerX.roundToInt().coerceIn(0, colorPickerBitmap?.width!! - 1)
             val py = pickerY.roundToInt().coerceIn(0, colorPickerBitmap?.height!! - 1)
@@ -1979,21 +2018,21 @@ class CanvasView @JvmOverloads constructor(
             val dark = pixelColor?.let { isColorDark(it) }
 
             canvas.drawCircle(
-                pickerX, pickerY - halfIcon * 3, halfIcon + 10f, Paint().apply {
+                pickerX, pickerY - halfIcon * 3, halfIcon + 20f, Paint().apply {
                     color = pixelColor!!
                     style = Paint.Style.FILL
                     isAntiAlias = true
                 })
 
             canvas.drawCircle(
-                pickerX, pickerY - halfIcon * 3, halfIcon + 10f, Paint().apply {
+                pickerX, pickerY - halfIcon * 3, halfIcon + 20f, Paint().apply {
                     color = if (dark!!) Color.WHITE else Color.BLACK
                     style = Paint.Style.STROKE
                     strokeWidth = 4f
                 })
 
             canvas.drawCircle(
-                pickerX, pickerY, halfIcon / 2, Paint().apply {
+                pickerX, pickerY, halfIcon / 4, Paint().apply {
                     color = Color.BLACK
                     style = Paint.Style.FILL
                     isAntiAlias = true

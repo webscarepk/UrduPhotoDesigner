@@ -125,7 +125,6 @@ class MainViewModel @Inject constructor(
         _rawQuery.value = ""
     }
     init {
-        Log.d("FontsViewModel", "ViewModel initialized")
         fetchAndStoreFontsFromApi()
         observeLocalFonts()
         fetchAndStoreImagesFromApi()
