@@ -1,4 +1,4 @@
-package com.example.urduphotodesigner.ui.editor.panels.filters
+package com.example.urduphotodesigner.ui.editor.panels.adjustments.filters
 
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -60,15 +60,7 @@ class ImageFiltersAdapter(
 
             val isCurrentItemSelected = filterItem.filter == selectedFilter
 
-            if (isCurrentItemSelected) {
-                binding.card.strokeWidth = 4
-                binding.card.setCardBackgroundColor(Color.WHITE)
-                binding.card.strokeColor =
-                    ContextCompat.getColor(binding.root.context, R.color.white)
-            } else {
-                binding.card.strokeWidth = 0
-                binding.card.setCardBackgroundColor(Color.WHITE)
-            }
+            binding.card.strokeWidth = if (isCurrentItemSelected) 4 else 0
 
             binding.card.addPressEffect {
                 onFilterSelected.invoke(filterItem)

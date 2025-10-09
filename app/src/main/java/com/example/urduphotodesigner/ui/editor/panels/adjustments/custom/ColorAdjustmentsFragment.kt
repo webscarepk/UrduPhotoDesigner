@@ -1,4 +1,4 @@
-package com.example.urduphotodesigner.ui.editor.panels.adjustments
+package com.example.urduphotodesigner.ui.editor.panels.adjustments.custom
 
 import android.os.Bundle
 import android.view.LayoutInflater

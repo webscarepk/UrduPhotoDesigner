@@ -1,4 +1,4 @@
-package com.example.urduphotodesigner.ui.editor.panels.adjustments
+package com.example.urduphotodesigner.ui.editor.panels.adjustments.custom
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -34,16 +34,16 @@ class AdvancedAdjustmentsFragment : Fragment() {
     // 🎛 Initialize SeekBars
     private fun initSeekBars() {
 
-        // 🟡 Highlights (-100 → +100)
-        binding.highlights.apply {
-            min = -100
-            max = 100
+        // 🟡 Blur (0 → 25)
+        binding.blur.apply {
+            min = 0
+            max = 25
             progress = 0
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                    binding.highlightsSize.text = progress.toString()
+                    binding.blurSize.text = progress.toString()
                     if (fromUser) {
-                        viewModel.setHighlights(progress.toFloat())
+                        viewModel.setBlur(progress.toFloat())
                     }
                 }
 
@@ -111,11 +111,11 @@ class AdvancedAdjustmentsFragment : Fragment() {
     // 🟢 Observe ViewModel LiveData to sync UI
     private fun initObservers() {
 
-        viewModel.highlights.observe(viewLifecycleOwner) { value ->
+        viewModel.blur.observe(viewLifecycleOwner) { value ->
             val safeValue = value?.toInt() ?: 0
-            if (binding.highlights.progress != safeValue) {
-                binding.highlights.progress = safeValue
-                binding.highlightsSize.text = "$safeValue"
+            if (binding.blur.progress != safeValue) {
+                binding.blur.progress = safeValue
+                binding.blurSize.text = "$safeValue"
             }
         }
 

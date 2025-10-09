@@ -108,7 +108,7 @@ class CanvasView @JvmOverloads constructor(
     private var pickerY = 0f
     private var isDraggingPicker = false
     private val desiredPickerIconSizePx = 64f
-    private val desiredIconSizeDp = 24f
+    private val desiredIconSizeDp = 20f
     private val desiredIconScreenSizePx: Float
         get() = desiredIconSizeDp * resources.displayMetrics.density
 
@@ -260,7 +260,9 @@ class CanvasView @JvmOverloads constructor(
     fun disableColorPicker() {
         isColorPickerMode = false
         isDraggingPicker = false
-        colorPickerBitmap?.recycle()
+        colorPickerBitmap?.let {
+            if (!it.isRecycled) it.recycle()
+        }
         colorPickerBitmap = null
         invalidate()
     }
@@ -276,9 +278,9 @@ class CanvasView @JvmOverloads constructor(
         super.onSizeChanged(w, h, oldw, oldh)
 
         canvasElements.firstOrNull { it.type == ElementType.BACKGROUND }?.apply {
-                logicalContentWidth = canvasWidth.toFloat()
-                logicalContentHeight = canvasHeight.toFloat()
-            }
+            logicalContentWidth = canvasWidth.toFloat()
+            logicalContentHeight = canvasHeight.toFloat()
+        }
 
         if (canvasElements.isEmpty()) {
             ensureBackgroundElement()
@@ -742,10 +744,10 @@ class CanvasView @JvmOverloads constructor(
     fun setCanvasBackgroundImage(src: Bitmap) {
         ensureBackgroundElement()
         canvasElements.first { it.type == ElementType.BACKGROUND }.apply {
-                fillGradient = null
-                backgroundColor = Color.WHITE
-                bitmap = src        // ← keep the full-size image
-            }
+            fillGradient = null
+            backgroundColor = Color.WHITE
+            bitmap = src        // ← keep the full-size image
+        }
         invalidate()
     }
 
@@ -1075,10 +1077,6 @@ class CanvasView @JvmOverloads constructor(
                 drawCanvasElements(this)
             }
         }
-        Log.d(
-            "CanvasDraw",
-            "onDraw: overallScale=$overallScale overallOffset=($overallOffsetX,$overallOffsetY) " + "offset=($offsetX,$offsetY) scale=$scale"
-        )
 
         if (showVerticalGuide) {
             canvas.drawLine(
@@ -1622,50 +1620,6 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
-    fun getGroupUnrotatedBounds(): FloatArray {
-        if (selectedElements.isEmpty()) return floatArrayOf(0f, 0f, 0f, 0f)
-
-        var minX = Float.MAX_VALUE
-        var minY = Float.MAX_VALUE
-        var maxX = Float.MIN_VALUE
-        var maxY = Float.MIN_VALUE
-
-        selectedElements.forEach { el ->
-            // Get the element's local (tight) unrotated bounds
-            val bounds = el.getTightTextBounds()
-
-            // Create corners without applying element.rotation yet
-            val corners = floatArrayOf(
-                bounds.left, bounds.top,
-                bounds.right, bounds.top,
-                bounds.right, bounds.bottom,
-                bounds.left, bounds.bottom
-            )
-
-            // Apply scale + flip (but NOT rotation)
-            val matrix = Matrix().apply {
-                postScale(
-                    el.scale * if (el.isFlippedX) -1f else 1f,
-                    el.scale * if (el.isFlippedY) -1f else 1f
-                )
-                postTranslate(el.x, el.y)
-            }
-
-            matrix.mapPoints(corners)
-
-            for (i in corners.indices step 2) {
-                val x = corners[i]
-                val y = corners[i + 1]
-                if (x < minX) minX = x
-                if (y < minY) minY = y
-                if (x > maxX) maxX = x
-                if (y > maxY) maxY = y
-            }
-        }
-
-        return floatArrayOf(minX, minY, maxX, maxY)
-    }
-
     fun getGroupTrueBounds(): FloatArray {
         if (selectedElements.isEmpty()) return floatArrayOf(0f, 0f, 0f, 0f)
 
@@ -1704,77 +1658,70 @@ class CanvasView @JvmOverloads constructor(
 
         // Draw all elements
         canvasElements.sortedBy { it.zIndex }.forEach { element ->
-                if (!element.isVisible) return@forEach
+            if (!element.isVisible) return@forEach
 
-                if (element.type == ElementType.BACKGROUND) {
-                    drawBackgroundElement(canvas, element)
-                } else {
-                    canvas.withTranslation(element.x, element.y) {
-                        canvas.rotate(element.rotation)
-                        val fx = if (element.isFlippedX) -1f else 1f
-                        val fy = if (element.isFlippedY) -1f else 1f
-                        canvas.scale(element.scale * fx, element.scale * fy)
+            if (element.type == ElementType.BACKGROUND) {
+                drawBackgroundElement(canvas, element)
+            } else {
+                canvas.withTranslation(element.x, element.y) {
+                    canvas.rotate(element.rotation)
+                    val fx = if (element.isFlippedX) -1f else 1f
+                    val fy = if (element.isFlippedY) -1f else 1f
+                    canvas.scale(element.scale * fx, element.scale * fy)
 
-                        when (element.type) {
-                            ElementType.TEXT -> drawTextElement(canvas, element)
-                            else -> {
-                                element.bitmap?.let { bmp ->
-                                    // ✅ Apply both adjustments + filter in one go
-                                    val adjustedBitmap = ImageAdjustmentHelper.applyAllAdjustments(
-                                        bmp, element.adjustments
-                                    )
-                                    val finalBitmap =
-                                        adjustedBitmap // already includes all 12 adjustments
+                    when (element.type) {
+                        ElementType.TEXT -> drawTextElement(canvas, element)
+                        else -> {
+                            element.bitmap?.let { bmp ->
+                                var finalBitmap = bmp
 
-                                    element.paint.colorFilter = colorFilterFor(element.imageFilter)
-                                    element.paint.maskFilter = null
+                                if (finalBitmap.isRecycled) return@let
 
-                                    when (element.imageFilter) {
-                                        ImageFilter.SoftBlur -> {
-                                            element.paint.maskFilter =
-                                                BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
-                                            canvas.drawBitmap(
-                                                finalBitmap,
-                                                -finalBitmap.width / 2f,
-                                                -finalBitmap.height / 2f,
-                                                element.paint
-                                            )
-                                        }
+                                finalBitmap = ImageAdjustmentHelper.applyAllAdjustments(bmp, element.adjustments)
 
-                                        ImageFilter.Glow -> {
-                                            canvas.drawBitmap(
-                                                finalBitmap,
-                                                -finalBitmap.width / 2f,
-                                                -finalBitmap.height / 2f,
-                                                element.paint
-                                            )
+                                element.paint.colorFilter = colorFilterFor(element.imageFilter)
+                                element.paint.maskFilter = null
 
-                                            val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                                                color = Color.argb(180, 255, 255, 200)
-                                                maskFilter =
-                                                    BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
-                                            }
-                                            canvas.drawBitmap(
-                                                finalBitmap,
-                                                -finalBitmap.width / 2f,
-                                                -finalBitmap.height / 2f,
-                                                glowPaint
-                                            )
-                                        }
-
-                                        else -> {
-                                            canvas.drawBitmap(
-                                                finalBitmap,
-                                                -finalBitmap.width / 2f,
-                                                -finalBitmap.height / 2f,
-                                                element.paint
-                                            )
-                                        }
+                                when (element.imageFilter) {
+                                    ImageFilter.SoftBlur -> {
+                                        element.paint.maskFilter =
+                                            BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
+                                        canvas.drawBitmap(
+                                            finalBitmap,
+                                            -finalBitmap.width / 2f,
+                                            -finalBitmap.height / 2f,
+                                            element.paint
+                                        )
                                     }
 
-                                    // 🧹 Optional: recycle the temporary adjusted bitmap
-                                    if (adjustedBitmap != bmp && !adjustedBitmap.isRecycled) {
-                                        adjustedBitmap.recycle()
+                                    ImageFilter.Glow -> {
+                                        canvas.drawBitmap(
+                                            finalBitmap,
+                                            -finalBitmap.width / 2f,
+                                            -finalBitmap.height / 2f,
+                                            element.paint
+                                        )
+
+                                        val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                                            color = Color.argb(180, 255, 255, 200)
+                                            maskFilter =
+                                                BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
+                                        }
+                                        canvas.drawBitmap(
+                                            finalBitmap,
+                                            -finalBitmap.width / 2f,
+                                            -finalBitmap.height / 2f,
+                                            glowPaint
+                                        )
+                                    }
+
+                                    else -> {
+                                        canvas.drawBitmap(
+                                            finalBitmap,
+                                            -finalBitmap.width / 2f,
+                                            -finalBitmap.height / 2f,
+                                            element.paint
+                                        )
                                     }
                                 }
                             }
@@ -1782,6 +1729,7 @@ class CanvasView @JvmOverloads constructor(
                     }
                 }
             }
+        }
 
         // --- Draw combined bounding box and icons based on selection state ---
         if (showOverlays && selectedElements.isNotEmpty()) {
@@ -1960,8 +1908,7 @@ class CanvasView @JvmOverloads constructor(
                                 // --- Step 2: place handle directly above the box (fixed distance in screen px) ---
                                 val fixedHandleLengthPx = 150f
                                 val rotateIcon = floatArrayOf(
-                                    pivotX,
-                                    topY - (fixedHandleLengthPx / scale)
+                                    pivotX, topY - (fixedHandleLengthPx / scale)
                                 )
 
                                 // ❌ No rotation applied here (handle stays fixed above top bound)
@@ -1975,7 +1922,8 @@ class CanvasView @JvmOverloads constructor(
                                 strokeWidth = 4f / scale
                                 isAntiAlias = true
                                 val phase = (System.currentTimeMillis() % 1000L) / 20f
-                                pathEffect = DashPathEffect(floatArrayOf(10f / scale, 10f / scale), phase)
+                                pathEffect =
+                                    DashPathEffect(floatArrayOf(10f / scale, 10f / scale), phase)
                             }
 
                             canvas.drawLine(
@@ -2086,11 +2034,15 @@ class CanvasView @JvmOverloads constructor(
                 scale(totalScale, totalScale)
                 rotate(e.rotation, bmp.width / 2f, bmp.height / 2f)
 
-                val adjustedBackground =
-                    ImageAdjustmentHelper.applyAllAdjustments(bmp, e.adjustments)
+                var adjustedBackground = bmp
+                if (adjustedBackground.isRecycled) return@withTranslation
+                adjustedBackground = ImageAdjustmentHelper.applyAllAdjustments(
+                    adjustedBackground,
+                    e.adjustments
+                )
 
                 // temporarily disable blend mode so brightness/contrast are visible
-                val originalXfer = backgroundPaint.xfermode
+                val originalMode = backgroundPaint.xfermode
                 backgroundPaint.xfermode = null
 
                 backgroundPaint.colorFilter = colorFilterFor(e.imageFilter)
@@ -2117,7 +2069,7 @@ class CanvasView @JvmOverloads constructor(
                 }
 
                 // restore original blend mode
-                backgroundPaint.xfermode = originalXfer
+                backgroundPaint.xfermode = originalMode
 
                 if (adjustedBackground != bmp && !adjustedBackground.isRecycled) {
                     adjustedBackground.recycle()

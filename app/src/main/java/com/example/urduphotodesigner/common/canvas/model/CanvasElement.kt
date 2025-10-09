@@ -39,7 +39,7 @@ data class CanvasElement(
     var isLocked: Boolean = false,
     var zIndex: Int = 0,
     var isSelected: Boolean = false,
-    var fontId: String? = null, // Store font ID for serialization
+    var fontId: String? = null,
     // Properties of TextPaint for serialization
     var paintColor: Int = Color.BLACK,
     var paintTextSize: Float = 80f,

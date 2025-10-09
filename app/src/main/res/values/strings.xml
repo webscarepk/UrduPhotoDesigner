@@ -277,6 +277,7 @@
     <string name="sharpness">Sharpness</string>
     <string name="clarity">Clarity</string>
     <string name="fade">Fade</string>
+    <string name="blur">Blur</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

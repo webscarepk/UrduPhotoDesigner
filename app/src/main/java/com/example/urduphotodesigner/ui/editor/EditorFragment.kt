@@ -132,19 +132,7 @@ class EditorFragment : Fragment() {
             _navController = navHostFragment.navController
             _navController?.addOnDestinationChangedListener { _, destination, _ ->
                 // Check the destination
-                if (destination.id == R.id.filtersFragment || destination.id == R.id.adjustmentsFragment) {
-                    binding.bottomNavigation.apply {
-                        visibility = View.GONE
-                        translationY = -height.toFloat()
-                        animate().translationY(0f).setDuration(200).start()
-                    }
-                } else {
-                    binding.bottomNavigation.apply {
-                        visibility = View.VISIBLE
-                        translationY = height.toFloat()
-                        animate().translationY(0f).setDuration(200).start()
-                    }
-                }
+                binding.bottomNavigation.isVisible = destination.id != R.id.adjustmentsParentFragment
             }
         }
 
@@ -578,9 +566,9 @@ class EditorFragment : Fragment() {
                                     BitmapCache.put(key, it.bitmap!!)
                                     val bundle = Bundle().apply { putString("elementId", key) }
                                     val navOptions = NavOptions.Builder().setLaunchSingleTop(true)
-                                        .setPopUpTo(R.id.filtersFragment, inclusive = true).build()
+                                        .setPopUpTo(R.id.adjustmentsParentFragment, inclusive = true).build()
 
-                                    navController.navigate(R.id.filtersFragment, bundle, navOptions)
+                                    navController.navigate(R.id.adjustmentsParentFragment, bundle, navOptions)
                                 }
                             } else {
                                 showTextEditDialog(element)

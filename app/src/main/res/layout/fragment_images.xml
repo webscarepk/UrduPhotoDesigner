@@ -101,8 +101,10 @@
             app:tabIndicatorColor="@color/appColor"
             app:tabIndicatorHeight="1dp"
             app:tabPadding="0dp"
-            app:tabMode="auto"
-            app:tabGravity="fill"
+            app:tabMode="scrollable"
+            app:tabGravity="start"
+            app:tabIndicatorAnimationMode="elastic"
+            app:tabIndicatorFullWidth="false"
             app:tabSelectedTextColor="@color/appColor"
             app:tabTextColor="@color/black"
             app:tabRippleColor="@color/contrast"/>

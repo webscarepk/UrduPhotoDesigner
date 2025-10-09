@@ -212,8 +212,8 @@ class CanvasViewModel @Inject constructor(
     private val _saturation = MutableLiveData(1f)
     val saturation: LiveData<Float> = _saturation
 
-    private val _exposure = MutableLiveData(0f)
-    val exposure: LiveData<Float> = _exposure
+    private val _blur = MutableLiveData(0f)
+    val blur: LiveData<Float> = _blur
 
     private val _shadows = MutableLiveData(0f)
     val shadows: LiveData<Float> = _shadows
@@ -302,8 +302,8 @@ class CanvasViewModel @Inject constructor(
 
     private val _selectedStopIndex = MutableLiveData<Int?>(null)
 
-    private val _canvasView = MutableLiveData<CanvasView>()
-    val canvasView: LiveData<CanvasView> = _canvasView
+    private val _canvasView = MutableLiveData<CanvasView?>()
+    val canvasView: LiveData<CanvasView?> = _canvasView
 
     fun markChanged() {
         hasChanges.value = true
@@ -325,9 +325,9 @@ class CanvasViewModel @Inject constructor(
         updateSelectedElementAdjustments { it.copy(saturation = value) }
     }
 
-    fun setExposure(value: Float) {
-        _exposure.value = value
-        updateSelectedElementAdjustments { it.copy(exposure = value) }
+    fun setBlur(value: Float) {
+        _blur.value = value
+        updateSelectedElementAdjustments { it.copy(blur = value) }
     }
 
     fun setShadows(value: Float) {
@@ -398,7 +398,7 @@ class CanvasViewModel @Inject constructor(
         _brightness.value = 0f
         _contrast.value = 1f
         _saturation.value = 1f
-        _exposure.value = 0f
+        _blur.value = 0f
         _shadows.value = 0f
         _temperature.value = 0f
         _tint.value = 0f
@@ -2320,6 +2320,27 @@ class CanvasViewModel @Inject constructor(
         _canvasElements.value = _canvasElements.value
     }
 
+    fun populateAdjustmentsFromElement(elementId: String) {
+        val element = canvasElements.value?.find { it.id == elementId }
+        if (element == null || element.type != ElementType.IMAGE) return
+
+        val adj = element.adjustments
+
+        // Update LiveData values from element.adjustments
+        _brightness.value = adj.brightness
+        _contrast.value = adj.contrast
+        _saturation.value = adj.saturation
+        _vibrance.value = adj.vibrance
+        _temperature.value = adj.temperature
+        _tint.value = adj.tint
+        _shadows.value = adj.shadows
+        _highlights.value = adj.highlights
+        _clarity.value = adj.clarity
+        _fade.value = adj.fade
+        _sharpness.value = adj.sharpness
+        _blur.value = adj.blur
+    }
+
     fun clearCanvas() {
         _canvasElements.value = emptyList()
         _selectedElements.value = emptyList()
@@ -2412,7 +2433,7 @@ class CanvasViewModel @Inject constructor(
                         _brightness.postValue(it.adjustments.brightness)
                         _contrast.postValue(it.adjustments.contrast)
                         _saturation.postValue(it.adjustments.saturation)
-                        _exposure.postValue(it.adjustments.exposure)
+                        _blur.postValue(it.adjustments.blur)
                         _shadows.postValue(it.adjustments.shadows)
                         _temperature.postValue(it.adjustments.temperature)
                         _tint.postValue(it.adjustments.tint)

@@ -1,4 +1,4 @@
-package com.example.urduphotodesigner.ui.editor.panels.filters
+package com.example.urduphotodesigner.ui.editor.panels.adjustments.filters
 
 import android.graphics.Bitmap
 import android.os.Bundle
@@ -85,14 +85,6 @@ class FiltersFragment : Fragment() {
         binding.filtersRecyclerView.apply {
             adapter = filtersAdapter
         }
-
-        binding.done.addPressEffect {
-            findNavController().navigateUp()
-        }
-
-        binding.adjustments.addPressEffect {
-            findNavController().navigate(R.id.adjustmentsFragment)
-        }
     }
 
     private fun initObservers() {
@@ -107,8 +99,9 @@ class FiltersFragment : Fragment() {
     }
 
     companion object {
-        fun newInstance(): FiltersFragment {
-            return FiltersFragment()
+        fun newInstance(key: String): FiltersFragment {
+            val bundle = Bundle().apply { putString("elementId", key) }
+            return FiltersFragment().apply { arguments = bundle }
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.example.urduphotodesigner.ui.editor.panels.adjustments
+package com.example.urduphotodesigner.ui.editor.panels.adjustments.custom
 
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter

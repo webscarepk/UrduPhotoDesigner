@@ -22,6 +22,7 @@ import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.databinding.FragmentImagesBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
+import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -153,6 +154,43 @@ class ImagesFragment : Fragment() {
             tabView.findViewById<TextView>(R.id.tabTitle).text = tabs[position]
             tab.customView = tabView
         }.attach()
+
+        binding.tabLayout.viewTreeObserver.addOnGlobalLayoutListener {
+            if (isAdded){
+                for (i in 0 until binding.tabLayout.tabCount) {
+                    val tabView = (binding.tabLayout.getChildAt(0) as? ViewGroup)?.getChildAt(i)
+                    tabView?.scaleX = 0.9f
+                    tabView?.scaleY = 0.9f
+                }
+
+                // Make the first tab look selected initially
+                binding.tabLayout.getTabAt(binding.tabLayout.selectedTabPosition)?.view?.apply {
+                    scaleX = 1.0f
+                    scaleY = 1.0f
+                }
+            }
+        }
+
+        binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                tab?.view?.animate()
+                    ?.scaleX(1.0f)
+                    ?.scaleY(1.0f)
+                    ?.setDuration(150)
+                    ?.setInterpolator(android.view.animation.OvershootInterpolator())
+                    ?.start()
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab?) {
+                tab?.view?.animate()
+                    ?.scaleX(0.9f)
+                    ?.scaleY(0.9f)
+                    ?.setDuration(150)
+                    ?.start()
+            }
+
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+        })
     }
 
     override fun onDestroy() {

@@ -107,7 +107,7 @@ class ExportFragment : Fragment() {
 
         viewModel.canvasView.observe(viewLifecycleOwner) { canvas ->
             lifecycleScope.launch(Dispatchers.Main) {
-                canvasView = canvas
+                canvasView = canvas!!
                 Log.d(
                     "ExportFragmentCanvasView",
                     "Received exportResult: ${viewModel.exportResult.value}"

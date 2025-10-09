@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.editor.panels.adjustments.AdvancedAdjustmentsFragment">
+    tools:context=".ui.editor.panels.adjustments.custom.AdvancedAdjustmentsFragment">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/footer"
@@ -17,7 +17,7 @@
 
         <!-- Highlights -->
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/highlightsCard"
+            android:id="@+id/blurCard"
             android:visibility="visible"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -28,10 +28,10 @@
             app:layout_constraintBottom_toTopOf="@id/clarityCard">
 
             <TextView
-                android:id="@+id/highlightsTitle"
+                android:id="@+id/blurTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/highlights"
+                android:text="@string/blur"
                 android:fontFamily="@font/medium"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
@@ -40,14 +40,14 @@
                 android:textColor="@color/black"/>
 
             <TextView
-                android:id="@+id/highlightsSize"
+                android:id="@+id/blurSize"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="0"
                 android:fontFamily="@font/regular"
-                app:layout_constraintTop_toTopOf="@id/highlightsTitle"
-                app:layout_constraintBottom_toBottomOf="@id/highlightsTitle"
-                app:layout_constraintStart_toEndOf="@id/highlightsTitle"
+                app:layout_constraintTop_toTopOf="@id/blurTitle"
+                app:layout_constraintBottom_toBottomOf="@id/blurTitle"
+                app:layout_constraintStart_toEndOf="@id/blurTitle"
                 android:textSize="12sp"
                 android:background="@drawable/edit_bg_stroke"
                 android:paddingHorizontal="6dp"
@@ -56,18 +56,18 @@
                 android:layout_marginStart="6dp"/>
 
             <SeekBar
-                android:id="@+id/highlights"
+                android:id="@+id/blur"
                 android:layout_marginTop="3dp"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/highlightsSize"
+                app:layout_constraintTop_toBottomOf="@id/blurSize"
                 android:thumbTint="@color/appColor"
                 android:indeterminateTint="@color/appColor"
                 android:progressTint="@color/appColor"
-                android:progress="50"/>
+                android:progress="0"/>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <!-- Sharpness -->
@@ -78,7 +78,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="3dp"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toEndOf="@id/highlightsCard"
+            app:layout_constraintStart_toEndOf="@id/blurCard"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toTopOf="@id/clarityCard">
 
@@ -126,59 +126,60 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <!-- Clarity -->
+
+        <!-- Fade / Vignette -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/clarityCard"
-            android:visibility="visible"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            app:layout_constraintTop_toBottomOf="@id/highlightsCard"
+            android:visibility="visible"
+            app:layout_constraintEnd_toStartOf="@id/fadeCard"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/fadeCard">
+            app:layout_constraintTop_toBottomOf="@id/blurCard">
 
             <TextView
                 android:id="@+id/clarityTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/clarity"
-                android:fontFamily="@font/medium"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                android:textSize="12sp"
                 android:layout_marginStart="12dp"
-                android:textColor="@color/black"/>
+                android:fontFamily="@font/medium"
+                android:text="@string/clarity"
+                android:textColor="@color/black"
+                android:textSize="12sp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
                 android:id="@+id/claritySize"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="0"
-                android:fontFamily="@font/regular"
-                app:layout_constraintTop_toTopOf="@id/clarityTitle"
-                app:layout_constraintBottom_toBottomOf="@id/clarityTitle"
-                app:layout_constraintStart_toEndOf="@id/clarityTitle"
-                android:textSize="12sp"
+                android:layout_marginStart="6dp"
                 android:background="@drawable/edit_bg_stroke"
+                android:fontFamily="@font/regular"
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="4dp"
+                android:text="0"
                 android:textColor="@color/black"
-                android:layout_marginStart="6dp"/>
+                android:textSize="12sp"
+                app:layout_constraintBottom_toBottomOf="@id/clarityTitle"
+                app:layout_constraintStart_toEndOf="@id/clarityTitle"
+                app:layout_constraintTop_toTopOf="@id/clarityTitle" />
 
             <SeekBar
                 android:id="@+id/clarity"
-                android:layout_marginTop="3dp"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/claritySize"
-                android:thumbTint="@color/appColor"
+                android:layout_marginTop="3dp"
                 android:indeterminateTint="@color/appColor"
+                android:progress="50"
                 android:progressTint="@color/appColor"
-                android:progress="50"/>
+                android:thumbTint="@color/appColor"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/claritySize" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!-- Fade / Vignette -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/fadeCard"
             android:visibility="visible"

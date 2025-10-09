@@ -1,4 +1,4 @@
-package com.example.urduphotodesigner.ui.editor.panels.adjustments
+package com.example.urduphotodesigner.ui.editor.panels.adjustments.custom
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -39,7 +39,6 @@ class AdjustmentsFragment : Fragment() {
     }
 
     private fun setupRecyclerViews() {
-        binding.done.addPressEffect { }
         tabs = ArrayList()
         adapter = PanelTabsAdapter { tab ->
             handleFontSelection(tab)
@@ -59,13 +58,11 @@ class AdjustmentsFragment : Fragment() {
                 binding.categories.smoothScrollToPosition(position)
             }
         })
-
-        binding.done.addPressEffect { findNavController().navigateUp() }
     }
 
     private fun initObservers() {
         lifecycleScope.launch {
-            tabs.add(PanelTabs(0, "Light & Tone", true))
+            tabs.add(PanelTabs(0, "Lights", true))
             tabs.add(PanelTabs(1, "Colors", false))
             tabs.add(PanelTabs(2, "Advanced", false))
 
@@ -92,5 +89,11 @@ class AdjustmentsFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    companion object {
+        fun newInstance(): AdjustmentsFragment {
+            return AdjustmentsFragment()
+        }
     }
 }

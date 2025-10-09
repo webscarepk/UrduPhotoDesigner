@@ -13,7 +13,7 @@
         android:layout_height="wrap_content"
         app:cardCornerRadius="5dp"
         app:cardBackgroundColor="@color/contrast"
-        app:strokeColor="@android:color/transparent"
+        app:strokeColor="@color/appColor"
         app:strokeWidth="0dp"
         app:cardElevation="0dp"
         android:id="@+id/card">

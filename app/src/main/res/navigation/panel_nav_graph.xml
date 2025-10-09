@@ -32,7 +32,7 @@
         tools:layout="@layout/fragment_layers" />
     <fragment
         android:id="@+id/filtersFragment"
-        android:name="com.example.urduphotodesigner.ui.editor.panels.filters.FiltersFragment"
+        android:name="com.example.urduphotodesigner.ui.editor.panels.adjustments.filters.FiltersFragment"
         android:label="fragment_filters"
         tools:layout="@layout/fragment_filters" />
     <fragment
@@ -42,7 +42,12 @@
         tools:layout="@layout/fragment_color_picker" />
     <fragment
         android:id="@+id/adjustmentsFragment"
-        android:name="com.example.urduphotodesigner.ui.editor.panels.adjustments.AdjustmentsFragment"
+        android:name="com.example.urduphotodesigner.ui.editor.panels.adjustments.custom.AdjustmentsFragment"
         android:label="fragment_adjustments"
         tools:layout="@layout/fragment_adjustments" />
+    <fragment
+        android:id="@+id/adjustmentsParentFragment"
+        android:name="com.example.urduphotodesigner.ui.editor.panels.adjustments.AdjustmentsParentFragment"
+        android:label="fragment_adjustments_parent"
+        tools:layout="@layout/fragment_adjustments_parent" />
 </navigation>

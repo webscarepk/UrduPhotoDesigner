@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".ui.editor.panels.adjustments.ToneAdjustmentsFragment">
+    tools:context=".ui.editor.panels.adjustments.custom.ToneAdjustmentsFragment">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/footer"
@@ -24,7 +24,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toStartOf="@id/contrastCard"
-            app:layout_constraintBottom_toTopOf="@id/exposureCard">
+            app:layout_constraintBottom_toTopOf="@id/shadowsCard">
 
             <TextView
                 android:id="@+id/brightnessTitle"
@@ -41,7 +41,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="10"
+                android:text="0"
                 android:fontFamily="@font/regular"
                 app:layout_constraintTop_toTopOf="@id/brightnessTitle"
                 app:layout_constraintBottom_toBottomOf="@id/brightnessTitle"
@@ -66,7 +66,7 @@
                 android:thumbTint="@color/appColor"
                 android:indeterminateTint="@color/appColor"
                 android:progressTint="@color/appColor"
-                android:progress="20"/>
+                android:progress="0"/>
         </androidx.constraintlayout.widget.ConstraintLayout>
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/contrastCard"
@@ -77,7 +77,7 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toEndOf="@id/brightnessCard"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/exposureCard">
+            app:layout_constraintBottom_toTopOf="@id/shadowsCard">
 
             <TextView
                 android:id="@+id/contrastTitle"
@@ -94,7 +94,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="10"
+                android:text="0"
                 android:fontFamily="@font/regular"
                 app:layout_constraintTop_toTopOf="@id/contrastTitle"
                 app:layout_constraintBottom_toBottomOf="@id/contrastTitle"
@@ -120,68 +120,17 @@
                 android:thumbTint="@color/appColor"
                 android:indeterminateTint="@color/appColor"
                 android:progressTint="@color/appColor"
-                android:progress="20"/>
+                android:progress="0"/>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/exposureCard"
-            android:visibility="visible"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            app:layout_constraintTop_toBottomOf="@id/brightnessCard"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/shadowsCard">
-
-            <TextView
-                android:id="@+id/exposureTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/exposure"
-                android:fontFamily="@font/medium"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                android:textSize="12sp"
-                android:layout_marginStart="12dp"
-                android:textColor="@color/black"/>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="10"
-                android:fontFamily="@font/regular"
-                app:layout_constraintTop_toTopOf="@id/exposureTitle"
-                app:layout_constraintBottom_toBottomOf="@id/exposureTitle"
-                app:layout_constraintStart_toEndOf="@id/exposureTitle"
-                android:textSize="12sp"
-                android:background="@drawable/edit_bg_stroke"
-                android:paddingHorizontal="6dp"
-                android:paddingVertical="4dp"
-                android:textColor="@color/black"
-                android:layout_marginStart="6dp"
-                android:id="@+id/exposureSize"/>
-
-            <SeekBar
-                android:id="@+id/exposure"
-                android:layout_marginTop="3dp"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/exposureSize"
-                android:thumbTint="@color/appColor"
-                android:indeterminateTint="@color/appColor"
-                android:progressTint="@color/appColor"
-                android:progress="20"/>
-        </androidx.constraintlayout.widget.ConstraintLayout>
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/shadowsCard"
             android:visibility="visible"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            app:layout_constraintEnd_toStartOf="@id/highlightsCard"
             app:layout_constraintTop_toBottomOf="@id/contrastCard"
-            app:layout_constraintStart_toEndOf="@id/exposureCard"
-            app:layout_constraintEnd_toEndOf="parent">
+            app:layout_constraintStart_toStartOf="parent">
 
             <TextView
                 android:id="@+id/shadowsTitle"
@@ -198,7 +147,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="10"
+                android:text="0"
                 android:fontFamily="@font/regular"
                 app:layout_constraintTop_toTopOf="@id/shadowsTitle"
                 app:layout_constraintBottom_toBottomOf="@id/shadowsTitle"
@@ -224,9 +173,61 @@
                 android:thumbTint="@color/appColor"
                 android:indeterminateTint="@color/appColor"
                 android:progressTint="@color/appColor"
-                android:progress="20"/>
+                android:progress="0"/>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/highlightsCard"
+            android:visibility="visible"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="3dp"
+            app:layout_constraintTop_toBottomOf="@id/contrastCard"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/shadowsCard">
+
+            <TextView
+                android:id="@+id/highlightsTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/highlights"
+                android:fontFamily="@font/medium"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:textSize="12sp"
+                android:layout_marginStart="12dp"
+                android:textColor="@color/black"/>
+
+            <TextView
+                android:id="@+id/highlightsSize"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:fontFamily="@font/regular"
+                app:layout_constraintTop_toTopOf="@id/highlightsTitle"
+                app:layout_constraintBottom_toBottomOf="@id/highlightsTitle"
+                app:layout_constraintStart_toEndOf="@id/highlightsTitle"
+                android:textSize="12sp"
+                android:background="@drawable/edit_bg_stroke"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="4dp"
+                android:textColor="@color/black"
+                android:layout_marginStart="6dp"/>
+
+            <SeekBar
+                android:id="@+id/highlights"
+                android:layout_marginTop="3dp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/highlightsSize"
+                android:thumbTint="@color/appColor"
+                android:indeterminateTint="@color/appColor"
+                android:progressTint="@color/appColor"
+                android:progress="0"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
