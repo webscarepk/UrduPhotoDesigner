@@ -50,4 +50,9 @@
         android:name="com.example.urduphotodesigner.ui.editor.panels.adjustments.AdjustmentsParentFragment"
         android:label="fragment_adjustments_parent"
         tools:layout="@layout/fragment_adjustments_parent" />
+    <fragment
+        android:id="@+id/drawFragment"
+        android:name="com.example.urduphotodesigner.ui.editor.panels.draw.DrawFragment"
+        android:label="fragment_draw"
+        tools:layout="@layout/fragment_draw" />
 </navigation>

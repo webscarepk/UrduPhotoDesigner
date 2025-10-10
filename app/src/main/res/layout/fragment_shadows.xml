@@ -32,56 +32,57 @@
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/shadowXCard"
-            android:visibility="visible"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginBottom="3dp"
-            app:layout_constraintStart_toStartOf="parent"
+            android:visibility="visible"
+            app:layout_constraintBottom_toTopOf="@id/opacityCard"
             app:layout_constraintEnd_toStartOf="@id/shadowYCard"
-            app:layout_constraintBottom_toTopOf="@id/opacityCard">
+            app:layout_constraintStart_toStartOf="parent">
 
             <TextView
                 android:id="@+id/shadowXTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/shadow_x"
-                android:fontFamily="@font/medium"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                android:textSize="12sp"
                 android:layout_marginStart="12dp"
-                android:textColor="@color/black"/>
+                android:fontFamily="@font/medium"
+                android:text="@string/shadow_x"
+                android:textColor="@color/black"
+                android:textSize="12sp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
+                android:id="@+id/shadowXSize"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="10"
-                android:fontFamily="@font/regular"
-                app:layout_constraintTop_toTopOf="@id/shadowXTitle"
-                app:layout_constraintBottom_toBottomOf="@id/shadowXTitle"
-                app:layout_constraintStart_toEndOf="@id/shadowXTitle"
-                android:textSize="12sp"
+                android:layout_marginStart="6dp"
                 android:background="@drawable/edit_bg_stroke"
+                android:fontFamily="@font/regular"
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="4dp"
+                android:text="10"
                 android:textColor="@color/black"
-                android:layout_marginStart="6dp"
-                android:id="@+id/shadowXSize"/>
+                android:textSize="12sp"
+                app:layout_constraintBottom_toBottomOf="@id/shadowXTitle"
+                app:layout_constraintStart_toEndOf="@id/shadowXTitle"
+                app:layout_constraintTop_toTopOf="@id/shadowXTitle" />
 
             <SeekBar
                 android:id="@+id/shadowX"
-                android:layout_marginTop="3dp"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/shadowXSize"
-                android:thumbTint="@color/appColor"
+                android:layout_marginTop="3dp"
                 android:indeterminateTint="@color/appColor"
+                android:progress="20"
                 android:progressTint="@color/appColor"
-                android:progress="20"/>
+                android:thumbTint="@color/appColor"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/shadowXSize" />
         </androidx.constraintlayout.widget.ConstraintLayout>
+
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/shadowYCard"
             android:visibility="visible"

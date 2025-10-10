@@ -1677,7 +1677,7 @@ class CanvasView @JvmOverloads constructor(
 
                                 if (finalBitmap.isRecycled) return@let
 
-                                finalBitmap = ImageAdjustmentHelper.applyAllAdjustments(bmp, element.adjustments)
+                                finalBitmap = ImageAdjustmentHelper.applyAllAdjustments(element.context!!, bmp, element.adjustments)
 
                                 element.paint.colorFilter = colorFilterFor(element.imageFilter)
                                 element.paint.maskFilter = null
@@ -2037,6 +2037,7 @@ class CanvasView @JvmOverloads constructor(
                 var adjustedBackground = bmp
                 if (adjustedBackground.isRecycled) return@withTranslation
                 adjustedBackground = ImageAdjustmentHelper.applyAllAdjustments(
+                    e.context!!,
                     adjustedBackground,
                     e.adjustments
                 )

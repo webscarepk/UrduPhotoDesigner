@@ -6,6 +6,11 @@
         android:title="@string/text" />
 
     <item
+        android:id="@+id/nav_draw"
+        android:icon="@drawable/ic_draw_selector"
+        android:title="@string/draw" />
+
+    <item
         android:id="@+id/nav_background"
         android:icon="@drawable/ic_background_selector"
         android:title="@string/backgrounds" />
@@ -24,5 +29,4 @@
         android:id="@+id/nav_layers"
         android:icon="@drawable/ic_layers_selector"
         android:title="@string/layers" />
-
 </menu>

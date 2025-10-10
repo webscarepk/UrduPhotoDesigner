@@ -94,7 +94,7 @@ class ObjectsFragment : Fragment() {
                     addAll(extraTabs + baseTabs)
                 }
 
-                if (newTabs != tabs) {
+                if (binding.viewPager.adapter == null || newTabs != tabs) {
                     // only if structure changed
                     tabs.clear()
                     tabs.addAll(newTabs)

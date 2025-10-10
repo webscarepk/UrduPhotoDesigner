@@ -1,11 +1,16 @@
 package com.example.urduphotodesigner.common.utils
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
+import android.renderscript.Allocation
+import android.renderscript.Element
+import android.renderscript.RenderScript
+import android.renderscript.ScriptIntrinsicBlur
 import androidx.core.graphics.createBitmap
 import com.example.urduphotodesigner.common.canvas.model.AdjustmentValues
 import kotlin.math.exp
@@ -17,7 +22,7 @@ object ImageAdjustmentHelper {
      * Apply all 12 adjustments to the given bitmap and return a new one.
      * Compatible with Android 8 → 15 (uses RenderScript Toolkit).
      */
-    fun applyAllAdjustments(
+    fun applyAllAdjustments(context: Context,
         source: Bitmap, values: AdjustmentValues
     ): Bitmap {
         if (source.isRecycled) return source
@@ -281,7 +286,7 @@ object ImageAdjustmentHelper {
         // 🔟 Blur (0 → 25)
         // -------------------------------------------------
         if (values.blur > 0f) {
-            result = applyGaussianBlur(result, values.blur.coerceIn(0f, 25f))
+            result = applyGaussianBlurWithPadding(context, result, values.blur.coerceIn(0f, 25f))
         }
         return result
     }
@@ -289,104 +294,66 @@ object ImageAdjustmentHelper {
     // -------------------------------------------------
     // Gaussian blur fallback (fast + RenderScript-free)
     // -------------------------------------------------
-    private fun applyGaussianBlur(src: Bitmap, radius: Float): Bitmap {
+    private fun applyGaussianBlurWithPadding(context: Context, src: Bitmap, radius: Float): Bitmap {
         if (radius <= 0f) return src
 
-        // 🔹 Create blurred bitmap with expanded bounds (padding around)
-        val blurred = applyGaussianConvolutionBlurWithPadding(src, radius)
-
-        val result = createBitmap(blurred.width, blurred.height)
-        val canvas = Canvas(result)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-
-        // Draw blurred bitmap fully (no crop or masking to src size)
-        canvas.drawBitmap(blurred, 0f, 0f, paint)
-
-        return result
-    }
-
-    // -------------------------------------------------
-    // Expanded Gaussian convolution blur
-    // -------------------------------------------------
-    private fun applyGaussianConvolutionBlurWithPadding(src: Bitmap, radius: Float): Bitmap {
-        if (radius <= 0f) return src
-
-        val sigma = radius / 2f
-        val kernelSize = ((radius * 4).roundToInt() or 1).coerceIn(3, 49)
-        val half = kernelSize / 2
-        val kernel = FloatArray(kernelSize)
-        var sum = 0f
-
-        // --- Build Gaussian kernel ---
-        for (i in 0 until kernelSize) {
-            val x = i - half
-            val g = exp(-(x * x) / (2 * sigma * sigma))
-            kernel[i] = g
-            sum += g
-        }
-
-        // Normalize
-        for (i in kernel.indices) kernel[i] /= sum
-
-        val padding = half
+        val safeRadius = radius.coerceIn(1f, 25f)
+        val padding = (safeRadius * 2).roundToInt()
         val width = src.width
         val height = src.height
         val expandedW = width + padding * 2
         val expandedH = height + padding * 2
 
-        // --- Create padded bitmap ---
         val padded = createBitmap(expandedW, expandedH)
         val canvas = Canvas(padded)
         canvas.drawBitmap(src, padding.toFloat(), padding.toFloat(), null)
+        val blurred = createBitmap(expandedW, expandedH)
+        try {
+            val rs = RenderScript.create(context)
+            val input = Allocation.createFromBitmap(rs, padded)
+            val output = Allocation.createTyped(rs, input.type)
+            val blur = ScriptIntrinsicBlur.create(rs, Element.U8_4(rs))
+            blur.setRadius(safeRadius)
+            blur.setInput(input)
+            blur.forEach(output)
+            output.copyTo(blurred)
+            rs.destroy()
+        } catch (e: Exception) {
+            return fastBoxBlurWithPadding(padded, safeRadius)
+        }
+        return blurred
+    }
 
-        val pixels = IntArray(expandedW * expandedH)
-        val temp = IntArray(expandedW * expandedH)
-        padded.getPixels(pixels, 0, expandedW, 0, 0, expandedW, expandedH)
+    private fun fastBoxBlurWithPadding(src: Bitmap, radius: Float): Bitmap {
+        val w = src.width
+        val h = src.height
+        val pixels = IntArray(w * h)
+        src.getPixels(pixels, 0, w, 0, 0, w, h)
 
-        // --- Horizontal pass ---
-        for (y in 0 until expandedH) {
-            for (x in 0 until expandedW) {
-                var r = 0f
-                var g = 0f
-                var b = 0f
-                var a = 0f
-                for (k in -half..half) {
-                    val px = (x + k).coerceIn(0, expandedW - 1)
-                    val color = pixels[y * expandedW + px]
-                    val w = kernel[k + half]
-                    a += Color.alpha(color) * w
-                    r += Color.red(color) * w
-                    g += Color.green(color) * w
-                    b += Color.blue(color) * w
+        val out = IntArray(w * h)
+        val r = radius.toInt().coerceAtLeast(1)
+
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                var rSum = 0
+                var gSum = 0
+                var bSum = 0
+                var count = 0
+                for (dy in -r..r) {
+                    val ny = (y + dy).coerceIn(0, h - 1)
+                    for (dx in -r..r) {
+                        val nx = (x + dx).coerceIn(0, w - 1)
+                        val c = pixels[ny * w + nx]
+                        rSum += Color.red(c)
+                        gSum += Color.green(c)
+                        bSum += Color.blue(c)
+                        count++
+                    }
                 }
-                temp[y * expandedW + x] = Color.argb(a.toInt(), r.toInt(), g.toInt(), b.toInt())
+                out[y * w + x] = Color.rgb(rSum / count, gSum / count, bSum / count)
             }
         }
-
-        // --- Vertical pass ---
-        val out = IntArray(expandedW * expandedH)
-        for (x in 0 until expandedW) {
-            for (y in 0 until expandedH) {
-                var r = 0f
-                var g = 0f
-                var b = 0f
-                var a = 0f
-                for (k in -half..half) {
-                    val py = (y + k).coerceIn(0, expandedH - 1)
-                    val color = temp[py * expandedW + x]
-                    val w = kernel[k + half]
-                    a += Color.alpha(color) * w
-                    r += Color.red(color) * w
-                    g += Color.green(color) * w
-                    b += Color.blue(color) * w
-                }
-                out[y * expandedW + x] = Color.argb(a.toInt(), r.toInt(), g.toInt(), b.toInt())
-            }
-        }
-
-        val result = createBitmap(expandedW, expandedH)
-        result.setPixels(out, 0, expandedW, 0, 0, expandedW, expandedH)
-        return result
+        return Bitmap.createBitmap(out, w, h, Bitmap.Config.ARGB_8888)
     }
 
     /**
@@ -434,5 +401,4 @@ object ImageAdjustmentHelper {
         result?.setPixels(out, 0, w, 0, 0, w, h)
         return result!!
     }
-
 }

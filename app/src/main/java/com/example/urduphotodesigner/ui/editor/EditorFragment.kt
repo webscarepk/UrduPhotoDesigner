@@ -645,6 +645,7 @@ class EditorFragment : Fragment() {
                     R.id.nav_background -> navController.navigate(R.id.backgroundsFragment)
                     R.id.nav_objects -> navController.navigate(R.id.objectsFragment)
                     R.id.nav_text -> navController.navigate(R.id.textFragment)
+                    R.id.nav_draw -> navController.navigate(R.id.drawFragment)
                     R.id.nav_images -> navController.navigate(R.id.imagesFragment)
                     R.id.nav_layers -> navController.navigate(R.id.layersFragment)
                 }

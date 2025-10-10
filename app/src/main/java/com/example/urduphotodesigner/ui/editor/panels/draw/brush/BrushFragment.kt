@@ -1,4 +1,4 @@
-package com.example.urduphotodesigner.ui.editor.panels.adjustments.custom
+package com.example.urduphotodesigner.ui.editor.panels.draw.brush
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -8,24 +8,23 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.example.urduphotodesigner.data.model.PanelTabs
-import com.example.urduphotodesigner.databinding.FragmentAdjustmentsBinding
+import com.example.urduphotodesigner.databinding.FragmentBrushBinding
 import com.example.urduphotodesigner.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class AdjustmentsFragment : Fragment() {
-    private var _binding: FragmentAdjustmentsBinding? = null
+class BrushFragment : Fragment() {
+    private var _binding: FragmentBrushBinding? = null
     private val binding get() = _binding!!
     private lateinit var tabs: ArrayList<PanelTabs>
     private lateinit var adapter: PanelTabsAdapter
-    private lateinit var pagerAdapter: AdjustmentsPagerAdapter
+    private lateinit var pagerAdapter: BrushPagerAdapter
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentAdjustmentsBinding.inflate(layoutInflater, container, false)
+        _binding = FragmentBrushBinding.inflate(layoutInflater, container, false)
         return binding.root
     }
 
@@ -46,7 +45,7 @@ class AdjustmentsFragment : Fragment() {
         binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
         binding.viewPager.offscreenPageLimit = 1
 
-        pagerAdapter = AdjustmentsPagerAdapter(this, tabs)
+        pagerAdapter = BrushPagerAdapter(this, tabs)
         binding.viewPager.adapter = pagerAdapter
 
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
@@ -60,9 +59,9 @@ class AdjustmentsFragment : Fragment() {
 
     private fun initObservers() {
         lifecycleScope.launch {
-            tabs.add(PanelTabs(0, "Lights", true))
-            tabs.add(PanelTabs(1, "Colors", false))
-            tabs.add(PanelTabs(2, "Advanced", false))
+            tabs.add(PanelTabs(0, "Size", true))
+            tabs.add(PanelTabs(1, "Style", false))
+            tabs.add(PanelTabs(2, "Color", false))
 
             adapter.submitList(ArrayList(tabs))
             handleSelection(tabs.firstOrNull()) // Select "All" by default
@@ -84,14 +83,14 @@ class AdjustmentsFragment : Fragment() {
         }
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
+    override fun onDestroy() {
+        super.onDestroy()
         _binding = null
     }
 
     companion object {
-        fun newInstance(): AdjustmentsFragment {
-            return AdjustmentsFragment()
+        fun newInstance(): BrushFragment {
+            return BrushFragment()
         }
     }
 }

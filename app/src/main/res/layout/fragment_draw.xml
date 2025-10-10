@@ -4,8 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:background="@drawable/panel_bg"
-    tools:context=".ui.editor.panels.adjustments.AdjustmentsParentFragment">
+    tools:context=".ui.editor.panels.draw.DrawFragment"
+    android:background="@drawable/panel_bg">
 
     <androidx.constraintlayout.widget.Guideline
         android:layout_width="wrap_content"
@@ -38,10 +38,10 @@
     <ImageView
         android:layout_width="30dp"
         android:layout_height="30dp"
-        android:src="@drawable/ic_refresh"
+        android:src="@drawable/ic_delete"
         android:padding="6dp"
         android:id="@+id/reset"
-        app:tint="@color/black"
+        app:tint="@android:color/holo_red_dark"
         app:layout_constraintEnd_toStartOf="@id/done"
         app:layout_constraintTop_toTopOf="@id/tabLayout"
         app:layout_constraintBottom_toBottomOf="@id/tabLayout"/>
@@ -85,4 +85,5 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

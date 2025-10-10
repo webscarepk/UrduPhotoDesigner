@@ -1,6 +1,5 @@
-package com.example.urduphotodesigner.ui.editor.panels.adjustments
+package com.example.urduphotodesigner.ui.editor.panels.draw
 
-import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,38 +10,25 @@ import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.utils.BitmapCache
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.databinding.FragmentAdjustmentsParentBinding
-import com.example.urduphotodesigner.ui.editor.panels.background.BackgroundPagerAdapter
+import com.example.urduphotodesigner.databinding.FragmentDrawBinding
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class AdjustmentsParentFragment : Fragment() {
-    private var _binding: FragmentAdjustmentsParentBinding? = null
+class DrawFragment : Fragment() {
+    private var _binding: FragmentDrawBinding? = null
     private val binding get() = _binding!!
 
     private var tabs = mutableListOf<String>()
-    private lateinit var adapter: EffectsPagerAdapter
-    private var previewBitmap: Bitmap? = null
-    private var elementId: String? = null
+    private lateinit var adapter: DrawPagerAdapter
     private val viewModel: CanvasViewModel by activityViewModels()
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let { bundle ->
-            elementId = arguments?.getString("elementId")
-            previewBitmap = BitmapCache.get(elementId ?: "")
-        }
-    }
-
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentAdjustmentsParentBinding.inflate(layoutInflater, container, false)
+        _binding = FragmentDrawBinding.inflate(layoutInflater, container, false)
         return binding.root
     }
 
@@ -50,18 +36,12 @@ class AdjustmentsParentFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // ✅ Setup adapter once
-        tabs = mutableListOf("Adjust", "Filters")
+        tabs = mutableListOf("Brush", "Shape", "Eraser")
 
-        elementId?.let {
-            adapter = EffectsPagerAdapter(
-                requireActivity().supportFragmentManager,
-                lifecycle,
-                tabs,
-                it
-            )
-        }
+        adapter = DrawPagerAdapter(
+            requireActivity().supportFragmentManager, lifecycle, tabs
+        )
 
-        elementId?.let { viewModel.populateAdjustmentsFromElement(it) }
         binding.viewPager.adapter = adapter
         binding.viewPager.isUserInputEnabled = false
         binding.done.addPressEffect { findNavController().navigateUp() }
@@ -77,7 +57,7 @@ class AdjustmentsParentFragment : Fragment() {
         }.attach()
 
         binding.tabLayout.viewTreeObserver.addOnGlobalLayoutListener {
-            if (isAdded){
+            if (isAdded) {
                 for (i in 0 until binding.tabLayout.tabCount) {
                     val tabView = (binding.tabLayout.getChildAt(0) as? ViewGroup)?.getChildAt(i)
                     tabView?.scaleX = 0.9f
@@ -94,20 +74,12 @@ class AdjustmentsParentFragment : Fragment() {
 
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
-                tab?.view?.animate()
-                    ?.scaleX(1.0f)
-                    ?.scaleY(1.0f)
-                    ?.setDuration(150)
-                    ?.setInterpolator(android.view.animation.OvershootInterpolator())
-                    ?.start()
+                tab?.view?.animate()?.scaleX(1.0f)?.scaleY(1.0f)?.setDuration(150)
+                    ?.setInterpolator(android.view.animation.OvershootInterpolator())?.start()
             }
 
             override fun onTabUnselected(tab: TabLayout.Tab?) {
-                tab?.view?.animate()
-                    ?.scaleX(0.9f)
-                    ?.scaleY(0.9f)
-                    ?.setDuration(150)
-                    ?.start()
+                tab?.view?.animate()?.scaleX(0.9f)?.scaleY(0.9f)?.setDuration(150)?.start()
             }
 
             override fun onTabReselected(tab: TabLayout.Tab?) {}

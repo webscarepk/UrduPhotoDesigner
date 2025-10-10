@@ -1363,6 +1363,22 @@ class CanvasViewModel @Inject constructor(
         } else {
             syncUiFormattingWithSelectedTextElement(firstImage)
             _currentImageFilter.value = firstImage?.imageFilter
+            val adj = firstImage?.adjustments
+
+            if (adj != null) {
+                _brightness.value = adj.brightness
+                _contrast.value = adj.contrast
+                _saturation.value = adj.saturation
+                _blur.value = adj.blur
+                _shadows.value = adj.shadows
+                _temperature.value = adj.temperature
+                _tint.value = adj.tint
+                _vibrance.value = adj.vibrance
+                _sharpness.value = adj.sharpness
+                _highlights.value = adj.highlights
+                _clarity.value = adj.clarity
+                _fade.value = adj.fade
+            }
         }
     }
 
