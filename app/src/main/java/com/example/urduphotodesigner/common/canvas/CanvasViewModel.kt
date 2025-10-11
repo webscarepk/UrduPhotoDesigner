@@ -13,6 +13,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.enums.BlendType
+import com.example.urduphotodesigner.common.canvas.enums.BrushStyle
 import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.canvas.enums.GradientPickerTarget
 import com.example.urduphotodesigner.common.canvas.enums.GradientType
@@ -77,6 +78,10 @@ class CanvasViewModel @Inject constructor(
 
     private val _activePicker = MutableLiveData<PickerTarget?>(null)
     val activePicker: LiveData<PickerTarget?> = _activePicker
+
+    private val _isDrawingMode = MutableLiveData(false)
+    val isDrawingMode: LiveData<Boolean> get() = _isDrawingMode
+
     private val _activeGradientPicker = MutableLiveData<GradientPickerTarget?>(null)
     private val _localFonts = MutableStateFlow<List<FontEntity>>(emptyList())
     private val localFonts: StateFlow<List<FontEntity>> = _localFonts.asStateFlow()
@@ -239,6 +244,20 @@ class CanvasViewModel @Inject constructor(
     private val _fade = MutableLiveData(0f)
     val fade: LiveData<Float> = _fade
 
+    private val _currentBrushStyle = MutableLiveData(BrushStyle.PEN)
+    val currentBrushStyle: LiveData<BrushStyle> = _currentBrushStyle
+
+    private val _brushHardness = MutableLiveData(1f)   // softness vs hardness
+    val brushHardness: LiveData<Float> = _brushHardness
+
+    private val _brushThickness = MutableLiveData(20f)
+    val brushThickness: LiveData<Float> = _brushThickness
+
+    private val _brushColor = MutableLiveData(Color.BLACK)
+    val brushColor: LiveData<Int> = _brushColor
+
+    private val _brushGradient = MutableLiveData<GradientItem?>(null)
+    val brushGradient: LiveData<GradientItem?> = _brushGradient
     fun setExportResult(result: ExportResult) {
         Log.d("CanvasVM", "Setting ExportResult: $result")
         _exportResult.value = result
@@ -307,6 +326,27 @@ class CanvasViewModel @Inject constructor(
 
     fun markChanged() {
         hasChanges.value = true
+    }
+
+    fun setBrushColor(color: Int) {
+        _brushColor.value = color
+        _brushGradient.value = null
+    }
+
+    fun setBrushThickness(value: Float) {
+        _brushThickness.value = value
+    }
+
+    fun setBrushHardness(value: Float) {
+        _brushHardness.value = value
+    }
+
+    fun setBrushStyle(style: BrushStyle) {
+        _currentBrushStyle.value = style
+    }
+
+    fun setBrushGradient(gradient: GradientItem?) {
+        _brushGradient.value = gradient
     }
 
     // 🎨 ADJUSTMENT UPDATERS
@@ -436,6 +476,10 @@ class CanvasViewModel @Inject constructor(
                 }
             }
         }
+        _brushThickness.value = 50f
+        _brushHardness.value = 1f
+        _currentBrushStyle.value = BrushStyle.PEN
+        _brushColor.value = Color.BLACK
     }
 
     fun fetchExportOptionsFromDataStore() {
@@ -703,6 +747,14 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
+    fun enterDrawingMode() {
+        _isDrawingMode.value = true
+    }
+
+    fun exitDrawingMode() {
+        _isDrawingMode.value = false
+    }
+
     fun startPicking(slot: PickerTarget) {
         if (_activePicker.value == null) {
             _activePicker.value = slot
@@ -760,6 +812,22 @@ class CanvasViewModel @Inject constructor(
                 _gradientStopColor.value = color
             }
 
+            PickerTarget.EYE_DROPPER_DRAW_STROKE -> {
+                setBrushColor(color)
+            }
+
+            PickerTarget.EYE_DROPPER_DRAW_FILL -> {
+                setBrushColor(color)
+            }
+
+            PickerTarget.COLOR_PICKER_DRAW_STROKE -> {
+                setBrushColor(color)
+            }
+
+            PickerTarget.COLOR_PICKER_DRAW_FILL -> {
+                setBrushColor(color)
+            }
+
             null -> { /* nothing to do */
             }
         }
@@ -782,6 +850,14 @@ class CanvasViewModel @Inject constructor(
             GradientPickerTarget.BACKGROUND -> if (gradientItem != null) setCanvasGradient(
                 gradientItem
             ) else removeCanvasGradient()
+
+            GradientPickerTarget.DRAW_STROKE -> if (gradientItem != null) setBrushGradient(
+                gradientItem
+            ) else setBrushGradient(null)
+
+            GradientPickerTarget.DRAW_FILL -> if (gradientItem != null) setBrushGradient(
+                gradientItem
+            ) else setBrushGradient(null)
 
             null -> {}
         }
@@ -1304,7 +1380,8 @@ class CanvasViewModel @Inject constructor(
 
     fun applyMaskToSelected(maskedBitmap: Bitmap) {
         val currentList = canvasElements.value ?: return
-        val selected = currentList.firstOrNull { it.isSelected && it.type == ElementType.IMAGE } ?: return
+        val selected =
+            currentList.firstOrNull { it.isSelected && it.type == ElementType.IMAGE } ?: return
 
         val context = selected.context
 
@@ -1839,8 +1916,7 @@ class CanvasViewModel @Inject constructor(
     ) {
         _isExplicitChange = isExplicit
         val currentList = _canvasElements.value ?: return
-        val targetElement =
-            currentList.find { it.id == elementId } ?: return
+        val targetElement = currentList.find { it.id == elementId } ?: return
 
         val oldFilter = targetElement.imageFilter
         if (oldFilter != newFilter) {
@@ -2325,9 +2401,8 @@ class CanvasViewModel @Inject constructor(
                 })
                 // If selected element, update LiveData
                 _canvasElements.value?.find { it.id == action.elementId && it.isSelected }?.let {
-                        _currentImageFilter.value =
-                            if (isRedo) action.newFilter else action.oldFilter
-                    }
+                    _currentImageFilter.value = if (isRedo) action.newFilter else action.oldFilter
+                }
             }
         }
 
@@ -2412,7 +2487,8 @@ class CanvasViewModel @Inject constructor(
 
                 _loadingStage.postValue("Hydrating elements" to 60)
                 val hydratedElements = elements.map { raw ->
-                    val fixed = if (raw.adjustments == null) raw.copy(adjustments = AdjustmentValues()) else raw
+                    val fixed =
+                        if (raw.adjustments == null) raw.copy(adjustments = AdjustmentValues()) else raw
                     fixed.copy(context = context).restoreWithContext(context)
                 }
 
@@ -2444,7 +2520,8 @@ class CanvasViewModel @Inject constructor(
 
                     _canvasSize.value = exportResult.canvasSize
                     _canvasElements.value = hydratedElements
-                    val selected = hydratedElements.find { it.isSelected && it.type == ElementType.IMAGE }
+                    val selected =
+                        hydratedElements.find { it.isSelected && it.type == ElementType.IMAGE }
                     selected?.let {
                         _brightness.postValue(it.adjustments.brightness)
                         _contrast.postValue(it.adjustments.contrast)

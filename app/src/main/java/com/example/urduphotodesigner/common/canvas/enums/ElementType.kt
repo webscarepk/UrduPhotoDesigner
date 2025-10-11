@@ -10,5 +10,8 @@ enum class ElementType {
     IMAGE,
 
     @SerializedName("Background")
-    BACKGROUND
+    BACKGROUND,
+
+    @SerializedName("Draw")
+    DRAW
 }

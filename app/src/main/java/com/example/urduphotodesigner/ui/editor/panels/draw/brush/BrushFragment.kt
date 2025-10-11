@@ -5,13 +5,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
+import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.data.model.PanelTabs
 import com.example.urduphotodesigner.databinding.FragmentBrushBinding
 import com.example.urduphotodesigner.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import kotlin.getValue
 
 @AndroidEntryPoint
 class BrushFragment : Fragment() {
@@ -20,6 +23,7 @@ class BrushFragment : Fragment() {
     private lateinit var tabs: ArrayList<PanelTabs>
     private lateinit var adapter: PanelTabsAdapter
     private lateinit var pagerAdapter: BrushPagerAdapter
+    private val viewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -59,8 +63,8 @@ class BrushFragment : Fragment() {
 
     private fun initObservers() {
         lifecycleScope.launch {
-            tabs.add(PanelTabs(0, "Size", true))
-            tabs.add(PanelTabs(1, "Style", false))
+            tabs.add(PanelTabs(0, "Style", true))
+            tabs.add(PanelTabs(1, "Size", false))
             tabs.add(PanelTabs(2, "Color", false))
 
             adapter.submitList(ArrayList(tabs))

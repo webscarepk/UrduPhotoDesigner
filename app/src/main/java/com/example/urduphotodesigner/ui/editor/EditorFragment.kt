@@ -5,6 +5,7 @@ import android.animation.ValueAnimator
 import android.app.Dialog
 import android.content.ContentValues.TAG
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.os.Build
 import android.os.Build.MANUFACTURER
 import android.os.Bundle
@@ -25,7 +26,6 @@ import android.widget.PopupWindow
 import android.widget.SeekBar
 import androidx.activity.OnBackPressedCallback
 import androidx.annotation.AnimRes
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
@@ -42,12 +42,14 @@ import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasManager
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.BlendType
+import com.example.urduphotodesigner.common.canvas.enums.BrushStyle
 import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.canvas.enums.HAlign
 import com.example.urduphotodesigner.common.canvas.enums.MultiAlignMode
 import com.example.urduphotodesigner.common.canvas.enums.PickerTarget
 import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.enums.VAlign
+import com.example.urduphotodesigner.common.canvas.model.BrushSettings
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.canvas.model.ExportOptions
@@ -132,7 +134,8 @@ class EditorFragment : Fragment() {
             _navController = navHostFragment.navController
             _navController?.addOnDestinationChangedListener { _, destination, _ ->
                 // Check the destination
-                binding.bottomNavigation.isVisible = destination.id != R.id.adjustmentsParentFragment
+                binding.bottomNavigation.isVisible =
+                    destination.id != R.id.adjustmentsParentFragment
             }
         }
 
@@ -445,10 +448,36 @@ class EditorFragment : Fragment() {
             binding.blendSpinner.text = type.name
         }
 
+        viewModel.isDrawingMode.observe(viewLifecycleOwner) { isDrawing ->
+            if (::sizedCanvasView.isInitialized) {
+                sizedCanvasView.setDrawingMode(isDrawing)
+            }
+        }
+
+        viewModel.brushColor.observe(viewLifecycleOwner) {
+            sizedCanvasView.updateBrushSettings(color = it)
+        }
+
+        viewModel.brushThickness.observe(viewLifecycleOwner) {
+            sizedCanvasView.updateBrushSettings(thickness = it)
+        }
+
+        viewModel.brushHardness.observe(viewLifecycleOwner) {
+            sizedCanvasView.updateBrushSettings(hardness = it)
+        }
+
+        viewModel.currentBrushStyle.observe(viewLifecycleOwner) {
+            sizedCanvasView.updateBrushSettings(style = it)
+        }
+
+        viewModel.brushGradient.observe(viewLifecycleOwner) {
+            sizedCanvasView.updateBrushSettings(gradient = it)
+        }
+
         viewModel.activePicker.observe(viewLifecycleOwner) { slot ->
             if (::sizedCanvasView.isInitialized) {
                 when (slot) {
-                    PickerTarget.EYE_DROPPER_LABEL, PickerTarget.EYE_DROPPER_SHADOW, PickerTarget.EYE_DROPPER_BACKGROUND, PickerTarget.EYE_DROPPER_TEXT_FILL, PickerTarget.EYE_DROPPER_TEXT_STROKE, PickerTarget.EYE_DROPPER_GRADIENT -> {
+                    PickerTarget.EYE_DROPPER_LABEL, PickerTarget.EYE_DROPPER_SHADOW, PickerTarget.EYE_DROPPER_BACKGROUND, PickerTarget.EYE_DROPPER_TEXT_FILL, PickerTarget.EYE_DROPPER_TEXT_STROKE, PickerTarget.EYE_DROPPER_GRADIENT, PickerTarget.EYE_DROPPER_DRAW_STROKE -> {
                         sizedCanvasView.enableColorPicker()
                     }
 
@@ -565,10 +594,14 @@ class EditorFragment : Fragment() {
                                     val key = it.id
                                     BitmapCache.put(key, it.bitmap!!)
                                     val bundle = Bundle().apply { putString("elementId", key) }
-                                    val navOptions = NavOptions.Builder().setLaunchSingleTop(true)
-                                        .setPopUpTo(R.id.adjustmentsParentFragment, inclusive = true).build()
+                                    val navOptions =
+                                        NavOptions.Builder().setLaunchSingleTop(true).setPopUpTo(
+                                                R.id.adjustmentsParentFragment, inclusive = true
+                                            ).build()
 
-                                    navController.navigate(R.id.adjustmentsParentFragment, bundle, navOptions)
+                                    navController.navigate(
+                                        R.id.adjustmentsParentFragment, bundle, navOptions
+                                    )
                                 }
                             } else {
                                 showTextEditDialog(element)

@@ -43,6 +43,7 @@ import androidx.core.graphics.withSave
 import androidx.core.graphics.withTranslation
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.enums.BlendType
+import com.example.urduphotodesigner.common.canvas.enums.BrushStyle
 import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.canvas.enums.GradientType
 import com.example.urduphotodesigner.common.canvas.enums.HAlign
@@ -60,6 +61,7 @@ import com.example.urduphotodesigner.common.canvas.model.ExportOptions
 import com.example.urduphotodesigner.common.canvas.model.ExportQuality
 import com.example.urduphotodesigner.common.canvas.model.ExportResolution
 import com.example.urduphotodesigner.common.canvas.model.GradientItem
+import com.example.urduphotodesigner.common.canvas.model.StrokeData
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
 import com.example.urduphotodesigner.common.utils.ImageAdjustmentHelper
 import com.example.urduphotodesigner.common.utils.ImageProcessor
@@ -94,7 +96,7 @@ class CanvasView @JvmOverloads constructor(
     var onEndBatchUpdate: ((String) -> Unit)? = null,
     var onColorPicked: ((Int) -> Unit)? = null,
     var onRequestOpenLayers: (() -> Unit)? = null,
-    var onExitSelectionMode: (() -> Unit)? = null
+    var onExitSelectionMode: (() -> Unit)? = null,
 ) : View(context, attrs) {
 
     private val gson: Gson by lazy {
@@ -104,6 +106,17 @@ class CanvasView @JvmOverloads constructor(
 
     private var colorPickerBitmap: Bitmap? = null
     private var isColorPickerMode = false
+
+    private var currentPath: Path? = null
+    private var currentPaint: Paint? = null
+    private var activeDrawElement: CanvasElement? = null
+    private var isDrawing = false
+    private var currentBrushColor: Int = Color.BLACK
+    private var currentBrushThickness: Float = 20f
+    private var currentBrushHardness: Float = 1f
+    private var currentBrushStyle: BrushStyle = BrushStyle.PEN
+    private var currentBrushGradient: GradientItem? = null
+
     private var pickerX = 0f
     private var pickerY = 0f
     private var isDraggingPicker = false
@@ -239,6 +252,24 @@ class CanvasView @JvmOverloads constructor(
         this.canvasHeight = newHeight
         requestLayout()
         invalidate()
+    }
+
+    fun setDrawingMode(enabled: Boolean) {
+        isDrawing = enabled
+    }
+
+    fun updateBrushSettings(
+        color: Int? = null,
+        thickness: Float? = null,
+        hardness: Float? = null,
+        style: BrushStyle? = null,
+        gradient: GradientItem? = null
+    ) {
+        color?.let { currentBrushColor = it }
+        thickness?.let { currentBrushThickness = it }
+        hardness?.let { currentBrushHardness = it }
+        style?.let { currentBrushStyle = it }
+        gradient?.let { currentBrushGradient = it }
     }
 
     fun enableColorPicker() {
@@ -1670,6 +1701,7 @@ class CanvasView @JvmOverloads constructor(
                     canvas.scale(element.scale * fx, element.scale * fy)
 
                     when (element.type) {
+                        ElementType.DRAW -> drawDrawElement(canvas, element)
                         ElementType.TEXT -> drawTextElement(canvas, element)
                         else -> {
                             element.bitmap?.let { bmp ->
@@ -1677,7 +1709,9 @@ class CanvasView @JvmOverloads constructor(
 
                                 if (finalBitmap.isRecycled) return@let
 
-                                finalBitmap = ImageAdjustmentHelper.applyAllAdjustments(element.context!!, bmp, element.adjustments)
+                                finalBitmap = ImageAdjustmentHelper.applyAllAdjustments(
+                                    element.context!!, bmp, element.adjustments
+                                )
 
                                 element.paint.colorFilter = colorFilterFor(element.imageFilter)
                                 element.paint.maskFilter = null
@@ -1770,6 +1804,7 @@ class CanvasView @JvmOverloads constructor(
                             element.scale * if (element.isFlippedX) -1f else 1f,
                             element.scale * if (element.isFlippedY) -1f else 1f
                         )
+                        722761110
                         postRotate(element.rotation)
                         postTranslate(element.x, element.y)
                     }
@@ -1988,6 +2023,85 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
+    private fun drawBrushStroke(canvas: Canvas, stroke: StrokeData, basePaint: Paint) {
+        val path = stroke.path
+        val width = stroke.thickness
+        val hardness = stroke.hardness
+        val softness = (1f - hardness).coerceIn(0f, 1f)
+        val random = java.util.Random()
+
+        val mainShader = basePaint.shader
+
+        // 1️⃣ Main soft stroke
+        val bodyPaint = Paint(basePaint).apply {
+            alpha = (230 - softness * 70).toInt()
+        }
+        canvas.drawPath(path, bodyPaint)
+
+        // 2️⃣ Bristle texture
+        val bristlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = width * 0.06f
+            shader = mainShader
+            xfermode = PorterDuffXfermode(PorterDuff.Mode.MULTIPLY)
+        }
+
+        val pathBounds = RectF()
+        path.computeBounds(pathBounds, true)
+        val totalStreaks = (10 + softness * 25).toInt()
+        for (i in 0 until totalStreaks) {
+            val factor = i.toFloat() / totalStreaks
+            val startX = pathBounds.left + factor * pathBounds.width() * 0.8f
+            val endX = pathBounds.left + factor * pathBounds.width()
+            val yOffset = (random.nextFloat() - 0.5f) * width * (0.8f + softness)
+            val fadeAlpha = (180 * (1f - factor * 0.9f)).toInt()
+
+            bristlePaint.alpha = fadeAlpha
+            canvas.drawLine(startX, pathBounds.centerY() + yOffset, endX, pathBounds.centerY() + yOffset, bristlePaint)
+        }
+
+        // 3️⃣ Edge glow (soft blur for soft brushes)
+        if (softness > 0.05f) {
+            val edgePaint = Paint(basePaint).apply {
+                strokeWidth = width * 1.1f
+                alpha = (softness * 90).toInt()
+                maskFilter = BlurMaskFilter(width * 0.25f * softness, BlurMaskFilter.Blur.NORMAL)
+            }
+            canvas.drawPath(path, edgePaint)
+        }
+    }
+
+    private fun drawDrawElement(
+        canvas: Canvas,
+        element: CanvasElement
+    ) {
+        element.drawStrokes?.forEach { stroke ->
+            val basePaint = makeStrokePaint(stroke, width, height)
+
+            when (stroke.style) {
+                BrushStyle.BRUSH -> {
+                    drawBrushStroke(canvas, stroke, basePaint)
+                }
+                BrushStyle.HIGHLIGHTER -> {
+                    val path = Path(stroke.path)
+                    val offset = stroke.thickness * 0.3f
+                    val m = Matrix()
+                    m.postTranslate(0f, offset)
+                    path.transform(m)
+                    canvas.drawPath(path, basePaint)
+                }
+                else -> {
+                    canvas.drawPath(stroke.path, basePaint)
+                }
+            }
+        }
+
+        // 🟢 live path drawing (when finger moves)
+        if (element == activeDrawElement && currentPath != null && currentPaint != null) {
+            canvas.drawPath(currentPath!!, currentPaint!!)
+        }
+    }
+
     private fun drawBackgroundElement(canvas: Canvas, e: CanvasElement) {
         val w = canvasWidth.toFloat()
         val h = canvasHeight.toFloat()
@@ -2037,9 +2151,7 @@ class CanvasView @JvmOverloads constructor(
                 var adjustedBackground = bmp
                 if (adjustedBackground.isRecycled) return@withTranslation
                 adjustedBackground = ImageAdjustmentHelper.applyAllAdjustments(
-                    e.context!!,
-                    adjustedBackground,
-                    e.adjustments
+                    e.context!!, adjustedBackground, e.adjustments
                 )
 
                 // temporarily disable blend mode so brightness/contrast are visible
@@ -2645,14 +2757,168 @@ class CanvasView @JvmOverloads constructor(
         return pt[0] to pt[1]
     }
 
+    private fun makeStrokePaint(stroke: StrokeData, width: Int, height: Int): Paint {
+        return Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeJoin = Paint.Join.ROUND
+            strokeCap = Paint.Cap.ROUND
+            strokeWidth = stroke.thickness
+
+            // 🌈 Gradient or solid color
+            stroke.gradient?.let {
+                shader = createBackgroundGradientShader(it, width.toFloat(), height.toFloat())
+            } ?: run { color = stroke.color }
+
+            // 🧈 Hardness / softness (blur)
+            val hardness = stroke.hardness
+            maskFilter = if (hardness < 0.9f)
+                BlurMaskFilter((1f - hardness) * 25f, BlurMaskFilter.Blur.NORMAL)
+            else null
+
+            // 🖌️ Style-dependent look
+            when (stroke.style) {
+                BrushStyle.PENCIL -> {
+                    alpha = 190
+                    pathEffect = DashPathEffect(floatArrayOf(4f, 5f, 1f, 3f), 0f)
+                }
+
+                BrushStyle.MARKER -> {
+                    alpha = 240
+                    strokeCap = Paint.Cap.BUTT
+                }
+
+                BrushStyle.HIGHLIGHTER -> {
+                    alpha = 130
+                    strokeCap = Paint.Cap.BUTT
+                }
+
+                BrushStyle.BRUSH -> {
+                    // handled separately below
+                    alpha = 240
+                }
+
+                BrushStyle.PEN -> {
+                    alpha = 255
+                    pathEffect = null
+                }
+
+                BrushStyle.ERASER -> {
+                    xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+                }
+            }
+        }
+    }
+
+    private fun startNewPath(x: Float, y: Float) {
+        currentPath = Path().apply { moveTo(x, y) }
+
+        // Configure paint based on brush settings
+        currentPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeJoin = Paint.Join.ROUND
+            strokeCap = Paint.Cap.ROUND
+            strokeWidth = currentBrushThickness
+            color = currentBrushColor
+
+            when (currentBrushStyle) {
+                BrushStyle.PEN -> {
+                    alpha = 255
+                    pathEffect = null
+                }
+
+                BrushStyle.PENCIL -> {
+                    alpha = 190
+                    pathEffect = DashPathEffect(floatArrayOf(4f, 5f, 1f, 3f), 0f)
+                }
+
+                BrushStyle.BRUSH -> {
+                    val radius = ((1f - currentBrushHardness) * 25f).coerceAtLeast(0.5f)
+                    maskFilter = BlurMaskFilter(radius, BlurMaskFilter.Blur.NORMAL)
+                    alpha = (230 - (1f - currentBrushHardness) * 70).toInt()
+                }
+
+                BrushStyle.MARKER -> {
+                    alpha = 240
+                    strokeCap = Paint.Cap.BUTT
+                }
+
+                BrushStyle.HIGHLIGHTER -> {
+                    alpha = 130
+                    strokeCap = Paint.Cap.BUTT
+                }
+
+                BrushStyle.ERASER -> {
+                    xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+                }
+            }
+
+            currentBrushGradient?.let {
+                shader = createBackgroundGradientShader(it, canvasWidth.toFloat(), canvasHeight.toFloat())
+            }
+        }
+
+        val stroke = StrokeData(
+            path = currentPath!!,
+            color = currentBrushColor,
+            thickness = currentBrushThickness,
+            hardness = currentBrushHardness,
+            style = currentBrushStyle,
+            gradient = currentBrushGradient
+        )
+
+        activeDrawElement = activeDrawElement?.createDrawElement(listOf(stroke))
+
+        invalidate()
+    }
+
+    private fun updatePath(x: Float, y: Float) {
+        currentPath?.lineTo(x, y)
+        invalidate()
+    }
+
+    private fun finishPath() {
+        currentPath?.let { path ->
+            val stroke = StrokeData(
+                path = Path(path),
+                color = currentBrushColor,
+                thickness = currentBrushThickness,
+                hardness = currentBrushHardness,
+                style = currentBrushStyle,
+                gradient = currentBrushGradient
+            )
+
+            val newElement = activeDrawElement?.createDrawElement(listOf(stroke))
+            newElement?.let { it ->
+                it.zIndex = (canvasElements.maxOfOrNull { it.zIndex } ?: 0) + 1
+                it.type = ElementType.DRAW
+                it.isVisible = true
+                canvasElements.add(it)
+                onElementChanged?.invoke(it)
+            }
+        }
+
+        // clear live drawing
+        currentPath = null
+        currentPaint = null
+        activeDrawElement = null
+        invalidate()
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         gestureDetector.onTouchEvent(event)
 
         val (x, y) = screenToCanvas(event.x, event.y)
-        Log.d(
-            "TouchDebug", "RawTouch=(${event.x}, ${event.y}) | CanvasTouch=($x, $y)"
-        )
+
+        if (isDrawing) {
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> startNewPath(x, y)
+                MotionEvent.ACTION_MOVE -> updatePath(x, y)
+                MotionEvent.ACTION_UP -> finishPath()
+            }
+            return true
+        }
+
         if (isColorPickerMode) {
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {

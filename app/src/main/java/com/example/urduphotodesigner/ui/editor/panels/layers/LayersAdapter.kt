@@ -87,6 +87,7 @@ class LayersAdapter(
                 title.text = when (element.type) {
                     ElementType.TEXT -> element.text ?: "Text"
                     ElementType.IMAGE -> "Sticker"
+                    ElementType.DRAW -> "Brush"
                     else -> "Background"
                 }
 

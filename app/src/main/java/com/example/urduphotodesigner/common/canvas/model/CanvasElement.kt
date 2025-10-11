@@ -93,7 +93,10 @@ data class CanvasElement(
 
     var isFlippedX: Boolean = false,
     var isFlippedY: Boolean = false,
-    var kashidaSize: Int = 0
+    var kashidaSize: Int = 0,
+    var drawStrokes: MutableList<StrokeData>? = null,
+    var brushSettings: BrushSettings? = null,
+    var allowsStrokeEditing: Boolean = false,
 ) : Serializable {
 
     @Transient
@@ -242,4 +245,23 @@ data class CanvasElement(
         return corners
     }
 
+    fun createDrawElement(
+        strokes: List<StrokeData>,
+        brush: BrushSettings? = null
+    ): CanvasElement {
+        return CanvasElement(
+            type = ElementType.DRAW,
+            drawStrokes = strokes.toMutableList(),
+            brushSettings = brush,
+            allowsStrokeEditing = true,
+            backgroundColor = Color.TRANSPARENT,
+            isVisible = true,
+        ).apply {
+            x = 0f
+            y = 0f
+            scale = 1f
+            rotation = 0f
+            zIndex = 0
+        }
+    }
 }

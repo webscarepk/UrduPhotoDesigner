@@ -18,6 +18,12 @@ enum class PickerTarget {
   @SerializedName("EyeDropperLabel")
   EYE_DROPPER_LABEL,
 
+  @SerializedName("EyeDropperDrawStroke")
+  EYE_DROPPER_DRAW_STROKE,
+
+  @SerializedName("EyeDropperDrawFill")
+  EYE_DROPPER_DRAW_FILL,
+
   @SerializedName("EyeDropperGradient")
   EYE_DROPPER_GRADIENT,
 
@@ -36,6 +42,11 @@ enum class PickerTarget {
   @SerializedName("ColorPickerLabel")
   COLOR_PICKER_LABEL,
 
+  @SerializedName("ColorPickerDrawStroke")
+  COLOR_PICKER_DRAW_STROKE,
+
+  @SerializedName("ColorPickerDrawFill")
+  COLOR_PICKER_DRAW_FILL,
   @SerializedName("ColorPickerGradient")
   COLOR_PICKER_GRADIENT
 }

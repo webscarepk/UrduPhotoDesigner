@@ -281,6 +281,7 @@
     <string name="draw">Draw</string>
     <string name="thickness">Thickness</string>
     <string name="hardness">Hardness</string>
+    <string name="brush_preview">Brush Preview</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

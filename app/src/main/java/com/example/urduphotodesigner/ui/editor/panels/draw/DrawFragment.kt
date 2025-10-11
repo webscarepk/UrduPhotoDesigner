@@ -44,7 +44,10 @@ class DrawFragment : Fragment() {
 
         binding.viewPager.adapter = adapter
         binding.viewPager.isUserInputEnabled = false
-        binding.done.addPressEffect { findNavController().navigateUp() }
+        binding.done.addPressEffect {
+            findNavController().navigateUp()
+            viewModel.exitDrawingMode()
+        }
         binding.reset.addPressEffect { viewModel.resetAdjustments() }
         setupTabLayout()
     }
