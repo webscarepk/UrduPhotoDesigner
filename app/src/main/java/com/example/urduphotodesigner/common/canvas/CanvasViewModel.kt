@@ -328,6 +328,18 @@ class CanvasViewModel @Inject constructor(
         hasChanges.value = true
     }
 
+    fun addDrawElement(stroke: CanvasElement) {
+        val currentList = _canvasElements.value.orEmpty().toMutableList()
+        currentList.add(stroke)
+        _canvasElements.postValue(currentList)
+
+        // 🟢 Push to undo stack as a draw stroke (not sticker)
+        _canvasActions.push(CanvasAction.AddDrawStroke(stroke.copy(context = null, bitmap = null)))
+
+        _redoStack.clear()
+        notifyUndoRedoChanged()
+    }
+
     fun setBrushColor(color: Int) {
         _brushColor.value = color
         _brushGradient.value = null
@@ -2221,6 +2233,18 @@ class CanvasViewModel @Inject constructor(
                 } else {
                     // Undo: remove by ID
                     _canvasElements.value = currentList.filter { it.id != action.sticker.id }
+                }
+            }
+
+            is CanvasAction.AddDrawStroke -> {
+                val currentList = _canvasElements.value.orEmpty()
+                if (isRedo) {
+                    // Reapply context & paint/typeface/bitmap, then add
+                    val restored = action.element.restoreWithContext(context)
+                    _canvasElements.value = currentList + restored
+                } else {
+                    // Undo: remove by ID
+                    _canvasElements.value = currentList.filter { it.id != action.element.id }
                 }
             }
 

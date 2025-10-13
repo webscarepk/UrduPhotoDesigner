@@ -5,7 +5,6 @@ import android.animation.ValueAnimator
 import android.app.Dialog
 import android.content.ContentValues.TAG
 import android.graphics.Bitmap
-import android.graphics.Color
 import android.os.Build
 import android.os.Build.MANUFACTURER
 import android.os.Bundle
@@ -42,14 +41,12 @@ import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasManager
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
 import com.example.urduphotodesigner.common.canvas.enums.BlendType
-import com.example.urduphotodesigner.common.canvas.enums.BrushStyle
 import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.canvas.enums.HAlign
 import com.example.urduphotodesigner.common.canvas.enums.MultiAlignMode
 import com.example.urduphotodesigner.common.canvas.enums.PickerTarget
 import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.enums.VAlign
-import com.example.urduphotodesigner.common.canvas.model.BrushSettings
 import com.example.urduphotodesigner.common.canvas.model.CanvasElement
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.canvas.model.ExportOptions
@@ -596,8 +593,8 @@ class EditorFragment : Fragment() {
                                     val bundle = Bundle().apply { putString("elementId", key) }
                                     val navOptions =
                                         NavOptions.Builder().setLaunchSingleTop(true).setPopUpTo(
-                                                R.id.adjustmentsParentFragment, inclusive = true
-                                            ).build()
+                                            R.id.adjustmentsParentFragment, inclusive = true
+                                        ).build()
 
                                     navController.navigate(
                                         R.id.adjustmentsParentFragment, bundle, navOptions
@@ -656,6 +653,9 @@ class EditorFragment : Fragment() {
                 },
                 onExitSelectionMode = {
                     viewModel.exitSelectionMode()
+                },
+                onDrawStrokeCompleted = { element ->
+                    viewModel.addDrawElement(element)
                 }).apply {
                 binding.canvasContainer.addView(this)
             }
