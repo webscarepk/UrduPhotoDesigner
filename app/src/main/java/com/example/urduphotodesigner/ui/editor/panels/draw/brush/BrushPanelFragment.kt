@@ -85,7 +85,6 @@ class BrushPanelFragment : Fragment() {
     private fun setEvents() {
         binding.brushPreview.post {
             updateBrushPreview()
-            viewModel.enterDrawingMode()
         }
 
         binding.sizePane.isVisible = tabName == "Size"

@@ -148,27 +148,27 @@
            app:layout_constraintTop_toTopOf="parent">
 
            <ImageView
-               android:layout_width="45dp"
-               android:layout_height="45dp"
+               android:layout_width="35dp"
+               android:layout_height="35dp"
                android:background="@drawable/button_bg"
                android:backgroundTint="@color/contrast"
                android:src="@drawable/ic_pen"
                android:id="@+id/pen"
-               app:layout_constraintEnd_toStartOf="@id/pencil"
-               app:layout_constraintStart_toStartOf="parent"
+               android:padding="10dp"
+               app:layout_constraintStart_toEndOf="@id/highlighter"
+               app:layout_constraintEnd_toEndOf="parent"
                app:layout_constraintTop_toTopOf="parent"
                app:layout_constraintBottom_toBottomOf="parent"
-               android:padding="10dp"
                app:tint="@color/gray"/>
 
            <ImageView
-               android:layout_width="45dp"
-               android:layout_height="45dp"
+               android:layout_width="35dp"
+               android:layout_height="35dp"
                android:background="@drawable/button_bg"
                android:backgroundTint="@color/contrast"
                android:src="@drawable/ic_pencil"
                android:id="@+id/pencil"
-               app:layout_constraintStart_toEndOf="@id/pen"
+               app:layout_constraintStart_toEndOf="@id/brush"
                app:layout_constraintEnd_toStartOf="@id/marker"
                app:layout_constraintTop_toTopOf="parent"
                app:layout_constraintBottom_toBottomOf="parent"
@@ -176,8 +176,8 @@
                app:tint="@color/gray"/>
 
            <ImageView
-               android:layout_width="45dp"
-               android:layout_height="45dp"
+               android:layout_width="35dp"
+               android:layout_height="35dp"
                android:background="@drawable/button_bg"
                android:backgroundTint="@color/contrast"
                android:src="@drawable/ic_marker"
@@ -190,28 +190,28 @@
                app:tint="@color/gray"/>
 
            <ImageView
-               android:layout_width="45dp"
-               android:layout_height="45dp"
+               android:layout_width="35dp"
+               android:layout_height="35dp"
                android:background="@drawable/button_bg"
                android:backgroundTint="@color/contrast"
                android:src="@drawable/ic_highlighter"
                android:id="@+id/highlighter"
                app:layout_constraintStart_toEndOf="@id/marker"
-               app:layout_constraintEnd_toStartOf="@id/brush"
+               app:layout_constraintEnd_toStartOf="@id/pen"
                app:layout_constraintTop_toTopOf="parent"
                app:layout_constraintBottom_toBottomOf="parent"
                android:padding="10dp"
                app:tint="@color/gray"/>
 
            <ImageView
-               android:layout_width="45dp"
-               android:layout_height="45dp"
+               android:layout_width="35dp"
+               android:layout_height="35dp"
                android:background="@drawable/button_bg"
                android:backgroundTint="@color/contrast"
                android:src="@drawable/ic_brush"
                android:id="@+id/brush"
-               app:layout_constraintStart_toEndOf="@id/highlighter"
-               app:layout_constraintEnd_toEndOf="parent"
+               app:layout_constraintEnd_toStartOf="@id/pencil"
+               app:layout_constraintStart_toStartOf="parent"
                app:layout_constraintTop_toTopOf="parent"
                app:layout_constraintBottom_toBottomOf="parent"
                android:padding="10dp"
@@ -229,7 +229,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@id/previewCard"
         android:layout_marginHorizontal="10dp"
-        android:visibility="visible"
+        android:visibility="gone"
         android:id="@+id/colorPane">
 
         <androidx.constraintlayout.widget.ConstraintLayout

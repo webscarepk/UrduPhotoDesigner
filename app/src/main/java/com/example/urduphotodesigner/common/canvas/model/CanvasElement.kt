@@ -194,7 +194,11 @@ data class CanvasElement(
                 maxLineWidth / 2f,
                 totalHeight / 2f
             )
-        } else {
+        } else if (type == ElementType.DRAW && ::paint.isInitialized){
+            val drawBounds = getDrawBounds()
+            bounds.set(drawBounds)
+        }
+        else {
             bounds.set(
                 -getLocalContentWidth() / 2f,
                 -getLocalContentHeight() / 2f,
@@ -245,23 +249,38 @@ data class CanvasElement(
         return corners
     }
 
-    fun createDrawElement(
-        strokes: List<StrokeData>,
-        brush: BrushSettings? = null
-    ): CanvasElement {
-        return CanvasElement(
-            type = ElementType.DRAW,
-            drawStrokes = strokes.toMutableList(),
-            brushSettings = brush,
-            allowsStrokeEditing = true,
-            backgroundColor = Color.TRANSPARENT,
-            isVisible = true,
-        ).apply {
-            x = 0f
-            y = 0f
-            scale = 1f
-            rotation = 0f
-            zIndex = 0
+    fun getDrawBounds(): RectF {
+        val strokes = drawStrokes ?: return RectF(0f, 0f, 0f, 0f)
+        val bounds = RectF()
+
+        var minX = Float.MAX_VALUE
+        var minY = Float.MAX_VALUE
+        var maxX = -Float.MAX_VALUE
+        var maxY = -Float.MAX_VALUE
+
+        for (stroke in strokes) {
+            val pathBounds = RectF()
+            stroke.path.computeBounds(pathBounds, true)
+
+            // Account for stroke thickness
+            val expand = stroke.thickness * 0.5f
+            pathBounds.inset(-expand, -expand)
+
+            minX = minOf(minX, pathBounds.left)
+            minY = minOf(minY, pathBounds.top)
+            maxX = maxOf(maxX, pathBounds.right)
+            maxY = maxOf(maxY, pathBounds.bottom)
         }
+
+        // ✅ Convert to local-space centered bounds (like text)
+        val width = maxX - minX
+        val height = maxY - minY
+        bounds.set(-width / 2f, -height / 2f, width / 2f, height / 2f)
+
+        // ✅ Optional small padding for selection clarity
+        bounds.inset(-6f, -6f)
+
+        return bounds
     }
+
 }

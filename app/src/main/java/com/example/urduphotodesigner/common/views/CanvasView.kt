@@ -232,6 +232,11 @@ class CanvasView @JvmOverloads constructor(
         isAntiAlias = true
     }
 
+    private val drawingModeOverlayPaint = Paint().apply {
+        color = Color.argb(120, 255, 255, 255)
+        style = Paint.Style.FILL
+    }
+
     private var showVerticalGuide = false
     private var showHorizontalGuide = false
     private var showRotationVerticalGuide = false
@@ -264,6 +269,7 @@ class CanvasView @JvmOverloads constructor(
 
     fun setDrawingMode(enabled: Boolean) {
         isDrawing = enabled
+        invalidate()
     }
 
     fun updateBrushSettings(
@@ -837,7 +843,9 @@ class CanvasView @JvmOverloads constructor(
 //                    element.bitmapData = ImageProcessor.bitmapToFilePath(context, it)
                     element.bitmapData = ImageProcessor.bitmapToBase64(it)
                 }
-
+                element.drawStrokes?.forEach { stroke ->
+                    stroke.serializePath()
+                }
                 val progress = 70 + ((index + 1) * 20 / total)
                 onProgress?.invoke(progress, "Saving ${index + 1} of $total")
             }
@@ -892,6 +900,9 @@ class CanvasView @JvmOverloads constructor(
                 element.bitmap?.let {
                     element.bitmapData = ImageProcessor.bitmapToBase64(it)
                 }
+                element.drawStrokes?.forEach { stroke ->
+                    stroke.serializePath()
+                }
                 val progress = 70 + ((index + 1) * 20 / total)
                 onProgress?.invoke(progress, "Saving ${index + 1} of $total")
             }
@@ -907,17 +918,29 @@ class CanvasView @JvmOverloads constructor(
         return Pair(bitmap, json)
     }
 
-    suspend fun exportCanvasJson(): String {
-        return withContext(Dispatchers.IO) {
-            val canvasElementsCopy = ArrayList(canvasElements)
-            canvasElementsCopy.forEach { element ->
-                element.bitmap?.let {
-//                    element.bitmapData = ImageProcessor.bitmapToFilePath(context, it)
-                    element.bitmapData = ImageProcessor.bitmapToBase64(it)
-                }
-            }
-            Gson().toJson(canvasElementsCopy)
+    suspend fun exportCanvasJson(): String = withContext(Dispatchers.IO) {
+        // ✅ Step 1: Create a deep snapshot to prevent concurrent modifications
+        val safeElements = canvasElements.toList().map { element ->
+            element.copy(
+                drawStrokes = element.drawStrokes?.toList()?.map { s ->
+                    // Copy each stroke (with its own path)
+                    s.copy(path = Path(s.path))
+                }?.toMutableList()
+            )
         }
+
+        // ✅ Step 2: Safely iterate over the snapshot
+        safeElements.forEach { element ->
+            element.bitmap?.let {
+                element.bitmapData = ImageProcessor.bitmapToBase64(it)
+            }
+            element.drawStrokes?.forEach { stroke ->
+                stroke.serializePath()
+            }
+        }
+
+        // ✅ Step 3: Serialize safely
+        Gson().toJson(safeElements)
     }
 
     /**
@@ -1156,11 +1179,21 @@ class CanvasView @JvmOverloads constructor(
 
             withTranslation(offsetX, offsetY) {
                 scale(scale, scale)
-                drawCanvasElements(this)
-                if (isDrawing && currentStrokePath != null && currentStrokePaint != null) {
-                   drawLivePreviewStroke(this)
-                }
+                if (isDrawing) {
+                    // 🟢 Draw all non-draw elements dimmed
+                    canvas.saveLayer(null, null)
+                    drawCanvasElements(this) // draw all normally first
+                    canvas.drawRect(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat(), drawingModeOverlayPaint)
+                    canvas.restore()
 
+                    // 🟢 Draw live preview path
+                    if (currentStrokePath != null && currentStrokePaint != null) {
+                        drawLivePreviewStroke(this)
+                    }
+                } else {
+                    // 🔵 Normal render when not drawing
+                    drawCanvasElements(this)
+                }
             }
         }
 
@@ -1859,7 +1892,6 @@ class CanvasView @JvmOverloads constructor(
                             element.scale * if (element.isFlippedX) -1f else 1f,
                             element.scale * if (element.isFlippedY) -1f else 1f
                         )
-                        722761110
                         postRotate(element.rotation)
                         postTranslate(element.x, element.y)
                     }
@@ -1926,7 +1958,7 @@ class CanvasView @JvmOverloads constructor(
                     val topCenterX = (corners[0] + corners[2]) / 2f
                     val topCenterY = (corners[1] + corners[3]) / 2f
 
-                    val offset = 150f
+                    val offset = 80f
 
                     val rotateX = topCenterX
                     val rotateY = topCenterY - offset
@@ -1974,7 +2006,7 @@ class CanvasView @JvmOverloads constructor(
                                 }
 
                                 val topCenter = floatArrayOf(bounds.centerX(), bounds.top)
-                                val fixedHandleLengthPx = 150f  // visible fixed size on screen
+                                val fixedHandleLengthPx = 80f  // visible fixed size on screen
                                 val rotateIcon = floatArrayOf(
                                     bounds.centerX(),
                                     bounds.top - (fixedHandleLengthPx / scale) // convert screen px → canvas units
@@ -1983,7 +2015,6 @@ class CanvasView @JvmOverloads constructor(
                                 matrix.mapPoints(topCenter)
                                 matrix.mapPoints(rotateIcon)
                                 topCenter to rotateIcon
-
                             } else {
                                 // === MULTI-SELECTION ===
                                 val groupBounds = getGroupTrueBounds()
@@ -1996,7 +2027,7 @@ class CanvasView @JvmOverloads constructor(
                                 val topCenter = floatArrayOf(pivotX, topY)
 
                                 // --- Step 2: place handle directly above the box (fixed distance in screen px) ---
-                                val fixedHandleLengthPx = 150f
+                                val fixedHandleLengthPx = 80f
                                 val rotateIcon = floatArrayOf(
                                     pivotX, topY - (fixedHandleLengthPx / scale)
                                 )
@@ -2079,24 +2110,33 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private fun drawBrushStroke(canvas: Canvas, stroke: StrokeData) {
+        // 🟢 1. Create isolated drawing layer
+        canvas.saveLayer(null, null)
+
+        // 🎨 Base stroke paint
         val paint = makeStrokePaint(stroke, width, height).apply {
             style = Paint.Style.STROKE
             strokeJoin = Paint.Join.ROUND
             strokeCap = Paint.Cap.ROUND
             isAntiAlias = true
+            maskFilter = null
+            setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
         }
 
-        // Draw main smooth body first
-        val layerId = canvas.saveLayer(null, null)
+        // 🖌️ Draw main tapered stroke on isolated layer
         drawTaperedStroke(canvas, stroke, paint)
 
+        // 🧽 Eraser paint (for bristles / negative space)
         val erasePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             strokeCap = Paint.Cap.ROUND
             color = Color.TRANSPARENT
             xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+            maskFilter = null
+            setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
         }
 
+        // 🌾 Bristle generation logic
         val random = java.util.Random()
         val pathMeasure = PathMeasure(stroke.path, false)
         val pathLength = pathMeasure.length
@@ -2105,22 +2145,17 @@ class CanvasView @JvmOverloads constructor(
 
         val softness = (1f - stroke.hardness).coerceIn(0f, 1f)
         val totalBristles = (10 + softness * 60).toInt()
-        val maxOffset = stroke.thickness * (0.25f + softness * 0.4f)
         val baseSpacing = stroke.thickness * 0.22f
 
         var dist = 0f
         while (dist < pathLength) {
-            val t = dist / pathLength // 0 = start, 1 = end
+            val t = dist / pathLength
 
-            // 🟢 Linear taper (start → end)
+            // Taper and density logic
             val taperFactor = (1f - 0.45f * t).coerceAtLeast(0.3f)
             val localThickness = stroke.thickness * taperFactor
-
-            // 🟢 Density increases toward end (soft exponential)
             val densityFactor = t.pow(1.3f)
             val localBristles = (totalBristles * densityFactor).toInt().coerceAtLeast(1)
-
-            // 🟢 Soft brush = fuzzier, scattered bristles
             val scatter = 0.05f + softness * 0.08f
             erasePaint.strokeWidth = localThickness * (0.012f + 0.025f * softness)
 
@@ -2131,32 +2166,29 @@ class CanvasView @JvmOverloads constructor(
             val perpX = -dirY
             val perpY = dirX
 
-            // 🟢 Disperse bristles across full stroke width
+            // Bristle drawing
             repeat(localBristles) {
-                // Randomize across top-to-bottom of stroke width
-                val spreadOffset = (random.nextFloat() - 0.5f) * stroke.thickness * 1.0f
+                val spreadOffset = (random.nextFloat() - 0.5f) * stroke.thickness
                 val baseX = pos[0] + perpX * spreadOffset
                 val baseY = pos[1] + perpY * spreadOffset
 
-                // Slight random forward shift → natural uneven ends
                 val forwardJitter = (random.nextFloat() - 0.3f) * stroke.thickness * 0.15f
-
-                // Extend bristle slightly beyond end → prevents closed tip
                 val lenFactor = stroke.thickness * (0.25f + 0.9f * t)
                 val bx = baseX + dirX * (lenFactor + forwardJitter)
                 val by = baseY + dirY * (lenFactor + forwardJitter)
 
-                // Random jitter in position → soft fuzz
                 val jx = (random.nextFloat() - 0.5f) * stroke.thickness * scatter
                 val jy = (random.nextFloat() - 0.5f) * stroke.thickness * scatter
 
+                // 🧽 Now erasing only within this stroke layer
                 canvas.drawLine(baseX + jx, baseY + jy, bx + jx, by + jy, erasePaint)
             }
 
             dist += baseSpacing
         }
 
-        canvas.restoreToCount(layerId)
+        // 🟢 2. Merge this stroke layer back to main canvas
+        canvas.restore()
     }
 
     private fun drawTaperedStroke(
@@ -3047,28 +3079,39 @@ class CanvasView @JvmOverloads constructor(
                 }
 
                 MotionEvent.ACTION_UP -> {
-
                     currentStrokePath?.lineTo(x, y)
                     currentStrokePoints.add(x to y)
 
                     if (currentStrokePath == null) return false
 
-                    val bounds = RectF()
-                    currentStrokePath!!.computeBounds(bounds, true)
+                    // --- 1️⃣ Compute full stroke bounds in absolute canvas coordinates
+                    val rawBounds = RectF()
+                    currentStrokePath!!.computeBounds(rawBounds, true)
 
+                    // --- 2️⃣ Determine the visual center
+                    val centerX = rawBounds.centerX()
+                    val centerY = rawBounds.centerY()
+
+                    // --- 3️⃣ Translate the path so it becomes local (centered around 0,0)
+                    val normalizedPath = Path(currentStrokePath!!)
+                    val matrix = Matrix().apply { postTranslate(-centerX, -centerY) }
+                    normalizedPath.transform(matrix)
+
+                    // --- 4️⃣ Create the StrokeData (with the normalized path)
                     val strokeData = StrokeData(
-                        path = Path(currentStrokePath!!),
+                        path = normalizedPath,
                         color = currentBrushColor,
                         thickness = currentBrushThickness,
                         hardness = currentBrushHardness,
                         style = currentBrushStyle,
-                        gradient = currentBrushGradient
+                        gradient = currentBrushGradient,
                     )
 
+                    // --- 5️⃣ Create a centered CanvasElement positioned at the stroke center
                     val drawElement = CanvasElement(
                         type = ElementType.DRAW,
-                        x = 0f,
-                        y = 0f,
+                        x = centerX,
+                        y = centerY,
                         drawStrokes = mutableListOf(strokeData),
                         brushSettings = BrushSettings(
                             defaultColor = currentBrushColor,
@@ -3081,12 +3124,14 @@ class CanvasView @JvmOverloads constructor(
                         isVisible = true,
                         backgroundColor = Color.TRANSPARENT
                     ).apply {
-                        logicalContentWidth = bounds.width()
-                        logicalContentHeight = bounds.height()
+                        logicalContentWidth = rawBounds.width()
+                        logicalContentHeight = rawBounds.height()
                     }
 
+                    // --- 6️⃣ Add to canvas
                     onDrawStrokeCompleted?.invoke(drawElement)
 
+                    // --- 7️⃣ Cleanup
                     currentStrokePath = null
                     currentStrokePaint = null
                     currentStrokePoints.clear()

@@ -5,8 +5,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
@@ -15,6 +17,7 @@ import com.example.urduphotodesigner.databinding.FragmentDrawBinding
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class DrawFragment : Fragment() {
@@ -45,11 +48,20 @@ class DrawFragment : Fragment() {
         binding.viewPager.adapter = adapter
         binding.viewPager.isUserInputEnabled = false
         binding.done.addPressEffect {
-            findNavController().navigateUp()
             viewModel.exitDrawingMode()
         }
-        binding.reset.addPressEffect { viewModel.resetAdjustments() }
+        binding.startDraw.addPressEffect { viewModel.enterDrawingMode() }
+        binding.reset.addPressEffect { viewModel.resetBrushSettings() }
+        initObservers()
         setupTabLayout()
+    }
+
+    private fun initObservers(){
+        lifecycleScope.launch {
+            viewModel.isDrawingMode.observe(viewLifecycleOwner){ isDrawingMode ->
+                binding.done.isVisible = isDrawingMode
+            }
+        }
     }
 
     private fun setupTabLayout() {

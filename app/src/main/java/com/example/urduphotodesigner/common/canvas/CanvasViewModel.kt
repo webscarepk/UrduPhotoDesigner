@@ -3,6 +3,7 @@ package com.example.urduphotodesigner.common.canvas
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.Path
 import android.graphics.Typeface
 import android.util.Log
 import androidx.core.content.res.ResourcesCompat
@@ -244,13 +245,13 @@ class CanvasViewModel @Inject constructor(
     private val _fade = MutableLiveData(0f)
     val fade: LiveData<Float> = _fade
 
-    private val _currentBrushStyle = MutableLiveData(BrushStyle.PEN)
+    private val _currentBrushStyle = MutableLiveData(BrushStyle.BRUSH)
     val currentBrushStyle: LiveData<BrushStyle> = _currentBrushStyle
 
     private val _brushHardness = MutableLiveData(1f)   // softness vs hardness
     val brushHardness: LiveData<Float> = _brushHardness
 
-    private val _brushThickness = MutableLiveData(20f)
+    private val _brushThickness = MutableLiveData(10f)
     val brushThickness: LiveData<Float> = _brushThickness
 
     private val _brushColor = MutableLiveData(Color.BLACK)
@@ -330,7 +331,9 @@ class CanvasViewModel @Inject constructor(
 
     fun addDrawElement(stroke: CanvasElement) {
         val currentList = _canvasElements.value.orEmpty().toMutableList()
-        currentList.add(stroke)
+        val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
+
+        currentList.add(stroke.copy(zIndex = newZIndex, isSelected = false))
         _canvasElements.postValue(currentList)
 
         // 🟢 Push to undo stack as a draw stroke (not sticker)
@@ -340,25 +343,92 @@ class CanvasViewModel @Inject constructor(
         notifyUndoRedoChanged()
     }
 
+    // 🖌️ Update brush-related properties, and if a draw element is selected, apply directly
+    fun updateBrushProperties(
+        color: Int? = null,
+        thickness: Float? = null,
+        hardness: Float? = null,
+        style: BrushStyle? = null,
+        gradient: GradientItem? = null
+    ) {
+        val currentList = _canvasElements.value?.toMutableList() ?: mutableListOf()
+        val selected = currentList.firstOrNull { it.isSelected && it.type == ElementType.DRAW }
+
+        // --- Step 1: Always update LiveData ---
+        color?.let { _brushColor.value = it }
+        thickness?.let { _brushThickness.value = it }
+        hardness?.let { _brushHardness.value = it }
+        style?.let { _currentBrushStyle.value = it }
+        gradient?.let { _brushGradient.value = it }
+
+        // --- Step 2: If a draw element is selected, update its stroke data ---
+        if (selected != null) {
+            val updatedStrokes = selected.drawStrokes?.map { stroke ->
+                stroke.copy(
+                    color = color ?: stroke.color,
+                    thickness = thickness ?: stroke.thickness,
+                    hardness = hardness ?: stroke.hardness,
+                    style = style ?: stroke.style,
+                    gradient = gradient ?: stroke.gradient
+                )
+            }
+
+            val updatedElement = selected.copy(drawStrokes = updatedStrokes?.toMutableList())
+
+            // Replace in list
+            val updatedList = currentList.map {
+                if (it.id == selected.id) updatedElement else it
+            }
+
+            _canvasElements.value = updatedList
+
+            // Push to undo/redo stack
+            _canvasActions.push(
+                CanvasAction.UpdateElement(
+                    elementId = selected.id,
+                    newElement = updatedElement.copy(context = null, bitmap = null),
+                    oldElement = selected.copy(context = null, bitmap = null)
+                )
+            )
+
+            _redoStack.clear()
+            notifyUndoRedoChanged()
+        }
+    }
+
+    fun resetBrushSettings() {
+        // 🔹 Reset all brush-related LiveData values to default
+        _brushColor.value = Color.BLACK
+        _brushThickness.value = 10f
+        _brushHardness.value = 1f
+        _currentBrushStyle.value = BrushStyle.BRUSH
+        _brushGradient.value = null
+    }
+
     fun setBrushColor(color: Int) {
         _brushColor.value = color
         _brushGradient.value = null
+        updateBrushProperties(color = color)
     }
 
     fun setBrushThickness(value: Float) {
         _brushThickness.value = value
+        updateBrushProperties(thickness = value)
     }
 
     fun setBrushHardness(value: Float) {
         _brushHardness.value = value
+        updateBrushProperties(hardness = value)
     }
 
     fun setBrushStyle(style: BrushStyle) {
         _currentBrushStyle.value = style
+        updateBrushProperties(style = style)
     }
 
     fun setBrushGradient(gradient: GradientItem?) {
         _brushGradient.value = gradient
+        updateBrushProperties(gradient = gradient)
     }
 
     // 🎨 ADJUSTMENT UPDATERS
@@ -490,7 +560,7 @@ class CanvasViewModel @Inject constructor(
         }
         _brushThickness.value = 50f
         _brushHardness.value = 1f
-        _currentBrushStyle.value = BrushStyle.PEN
+        _currentBrushStyle.value = BrushStyle.BRUSH
         _brushColor.value = Color.BLACK
     }
 
@@ -1281,15 +1351,22 @@ class CanvasViewModel @Inject constructor(
             // Only push to undo stack if no batch action is in progress.
             // Continuous actions (drag, rotate, resize) will be handled by endBatchUpdate.
             if (currentBatchAction == null) {
+                val oldCopy = oldElement.copy(
+                    context = null,
+                    bitmap = null,
+                    drawStrokes = oldElement.drawStrokes?.map { it.copy(path = Path(it.path)) }?.toMutableList()
+                )
+                val newCopy = elementToUpdate.copy(
+                    context = null,
+                    bitmap = null,
+                    drawStrokes = elementToUpdate.drawStrokes?.map { it.copy(path = Path(it.path)) }?.toMutableList()
+                )
+
                 _canvasActions.push(
                     CanvasAction.UpdateElement(
                         elementId = elementToUpdate.id,
-                        newElement = elementToUpdate.copy( // Copy for serialization, without transient data
-                            context = null, bitmap = null
-                        ),
-                        oldElement = oldElement.copy( // Full copy without transient data
-                            context = null, bitmap = null
-                        )
+                        newElement = newCopy,
+                        oldElement = oldCopy
                     )
                 )
                 _redoStack.clear()
@@ -1445,28 +1522,50 @@ class CanvasViewModel @Inject constructor(
 
         val firstText = selectedListFromCanvas.firstOrNull { it.type == ElementType.TEXT }
         val firstImage = selectedListFromCanvas.firstOrNull { it.type == ElementType.IMAGE }
+        val firstDraw = selectedListFromCanvas.firstOrNull { it.type == ElementType.DRAW }
 
-        if (firstText != null) {
-            syncUiFormattingWithSelectedTextElement(firstText)
-            _currentImageFilter.value = null
-        } else {
-            syncUiFormattingWithSelectedTextElement(firstImage)
-            _currentImageFilter.value = firstImage?.imageFilter
-            val adj = firstImage?.adjustments
+        when {
+            firstText != null -> {
+                syncUiFormattingWithSelectedTextElement(firstText)
+                _currentImageFilter.value = null
+            }
 
-            if (adj != null) {
-                _brightness.value = adj.brightness
-                _contrast.value = adj.contrast
-                _saturation.value = adj.saturation
-                _blur.value = adj.blur
-                _shadows.value = adj.shadows
-                _temperature.value = adj.temperature
-                _tint.value = adj.tint
-                _vibrance.value = adj.vibrance
-                _sharpness.value = adj.sharpness
-                _highlights.value = adj.highlights
-                _clarity.value = adj.clarity
-                _fade.value = adj.fade
+            firstImage != null -> {
+                syncUiFormattingWithSelectedTextElement(firstImage)
+                _currentImageFilter.value = firstImage.imageFilter
+                val adj = firstImage.adjustments
+                if (adj != null) {
+                    _brightness.value = adj.brightness
+                    _contrast.value = adj.contrast
+                    _saturation.value = adj.saturation
+                    _blur.value = adj.blur
+                    _shadows.value = adj.shadows
+                    _temperature.value = adj.temperature
+                    _tint.value = adj.tint
+                    _vibrance.value = adj.vibrance
+                    _sharpness.value = adj.sharpness
+                    _highlights.value = adj.highlights
+                    _clarity.value = adj.clarity
+                    _fade.value = adj.fade
+                }
+            }
+
+            firstDraw != null -> {
+                // 🖌️ Update brush LiveData to defaults or selected draw element values
+                _brushColor.value = firstDraw.drawStrokes?.lastOrNull()?.color ?: Color.BLACK
+                _brushThickness.value = firstDraw.drawStrokes?.lastOrNull()?.thickness ?: 10f
+                _brushHardness.value = firstDraw.drawStrokes?.lastOrNull()?.hardness ?: 1f
+                _currentBrushStyle.value = firstDraw.drawStrokes?.lastOrNull()?.style ?: BrushStyle.BRUSH
+                _brushGradient.value = firstDraw.drawStrokes?.lastOrNull()?.gradient
+            }
+
+            else -> {
+                // No text, image, or draw → reset brushes
+                _brushColor.value = Color.BLACK
+                _brushThickness.value = 10f
+                _brushHardness.value = 1f
+                _currentBrushStyle.value = BrushStyle.BRUSH
+                _brushGradient.value = null
             }
         }
     }
@@ -2513,7 +2612,11 @@ class CanvasViewModel @Inject constructor(
                 val hydratedElements = elements.map { raw ->
                     val fixed =
                         if (raw.adjustments == null) raw.copy(adjustments = AdjustmentValues()) else raw
-                    fixed.copy(context = context).restoreWithContext(context)
+                    fixed.copy(context = context).apply {
+                        drawStrokes?.forEach { stroke ->
+                            stroke.restorePath()
+                        }
+                    }.restoreWithContext(context)
                 }
 
                 _loadingStage.postValue("Applying to canvas" to 90)
