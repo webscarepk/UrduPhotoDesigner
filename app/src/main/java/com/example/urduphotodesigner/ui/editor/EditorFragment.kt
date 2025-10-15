@@ -584,24 +584,41 @@ class EditorFragment : Fragment() {
                 onEditTextRequested = { element ->
                     viewLifecycleOwner.lifecycleScope.launch {
                         try {
-                            if (element.type == ElementType.IMAGE || element.type == ElementType.BACKGROUND) {
-                                val selected =
-                                    viewModel.canvasElements.value?.find { it.id == element.id }
-                                selected?.let {
-                                    val key = it.id
-                                    BitmapCache.put(key, it.bitmap!!)
-                                    val bundle = Bundle().apply { putString("elementId", key) }
-                                    val navOptions =
-                                        NavOptions.Builder().setLaunchSingleTop(true).setPopUpTo(
-                                            R.id.adjustmentsParentFragment, inclusive = true
-                                        ).build()
+                            when (element.type) {
+
+                                ElementType.IMAGE, ElementType.BACKGROUND -> {
+                                    val selected =
+                                        viewModel.canvasElements.value?.find { it.id == element.id }
+                                    selected?.let {
+                                        val key = it.id
+                                        BitmapCache.put(key, it.bitmap!!)
+                                        val bundle = Bundle().apply { putString("elementId", key) }
+
+                                        val navOptions =
+                                            NavOptions.Builder().setLaunchSingleTop(true)
+                                                .setPopUpTo(
+                                                    R.id.adjustmentsParentFragment, inclusive = true
+                                                ).build()
+
+                                        navController.navigate(
+                                            R.id.adjustmentsParentFragment, bundle, navOptions
+                                        )
+                                    }
+                                }
+
+                                ElementType.DRAW -> {
+                                    val navOptions = NavOptions.Builder().setLaunchSingleTop(true)
+                                        .setPopUpTo(R.id.drawFragment, inclusive = true).build()
 
                                     navController.navigate(
-                                        R.id.adjustmentsParentFragment, bundle, navOptions
+                                        R.id.drawFragment, null, navOptions
                                     )
                                 }
-                            } else {
-                                showTextEditDialog(element)
+
+                                else -> {
+                                    // ✍️ Text element or other types
+                                    showTextEditDialog(element)
+                                }
                             }
                         } catch (e: Exception) {
                             Log.e("EditorFragment", "Navigation failed: ${e.message}")

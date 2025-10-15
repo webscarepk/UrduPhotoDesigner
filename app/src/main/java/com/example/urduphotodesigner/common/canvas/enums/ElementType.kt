@@ -13,5 +13,8 @@ enum class ElementType {
     BACKGROUND,
 
     @SerializedName("Draw")
-    DRAW
+    DRAW,
+
+    @SerializedName("Shape")
+    SHAPE
 }

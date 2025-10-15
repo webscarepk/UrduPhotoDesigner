@@ -21,6 +21,7 @@ sealed class CanvasAction {
     ) : CanvasAction()
 
     data class AddDrawStroke(val element: CanvasElement) : CanvasAction()
+    data class AddShape(val element: CanvasElement) : CanvasAction()
     data class AddSticker(val sticker: CanvasElement) : CanvasAction()
     data class AddText(val text: String, val element: CanvasElement) : CanvasAction()
 

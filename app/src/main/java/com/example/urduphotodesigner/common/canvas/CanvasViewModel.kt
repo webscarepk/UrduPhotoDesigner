@@ -22,6 +22,7 @@ import com.example.urduphotodesigner.common.canvas.enums.LabelShape
 import com.example.urduphotodesigner.common.canvas.enums.LetterCasing
 import com.example.urduphotodesigner.common.canvas.enums.ListStyle
 import com.example.urduphotodesigner.common.canvas.enums.PickerTarget
+import com.example.urduphotodesigner.common.canvas.enums.ShapeType
 import com.example.urduphotodesigner.common.canvas.enums.TextAlignment
 import com.example.urduphotodesigner.common.canvas.enums.TextDecoration
 import com.example.urduphotodesigner.common.canvas.enums.UnitType
@@ -257,6 +258,33 @@ class CanvasViewModel @Inject constructor(
     private val _brushColor = MutableLiveData(Color.BLACK)
     val brushColor: LiveData<Int> = _brushColor
 
+    private val _currentShapeType = MutableLiveData(ShapeType.RECTANGLE)
+    val currentShapeType: LiveData<ShapeType> = _currentShapeType
+
+    private val _shapeFillEnabled = MutableLiveData(true)
+    val shapeFillEnabled: LiveData<Boolean> = _shapeFillEnabled
+
+    private val _shapeStrokeEnabled = MutableLiveData(true)
+    val shapeStrokeEnabled: LiveData<Boolean> = _shapeStrokeEnabled
+
+    private val _shapeStrokeWidth = MutableLiveData(10f)
+    val shapeStrokeWidth: LiveData<Float> = _shapeStrokeWidth
+
+    private val _shapeCornerRadius = MutableLiveData(0f)
+    val shapeCornerRadius: LiveData<Float> = _shapeCornerRadius
+
+    private val _shapeFillColor = MutableLiveData(Color.WHITE)
+    val shapeFillColor: LiveData<Int> = _shapeFillColor
+
+    private val _shapeStrokeColor = MutableLiveData(Color.BLACK)
+    val shapeStrokeColor: LiveData<Int> = _shapeStrokeColor
+
+    private val _shapeFillGradient = MutableLiveData<GradientItem?>(null)
+    val shapeFillGradient: LiveData<GradientItem?> = _shapeFillGradient
+
+    private val _shapeStrokeGradient = MutableLiveData<GradientItem?>(null)
+    val shapeStrokeGradient: LiveData<GradientItem?> = _shapeStrokeGradient
+
     private val _brushGradient = MutableLiveData<GradientItem?>(null)
     val brushGradient: LiveData<GradientItem?> = _brushGradient
     fun setExportResult(result: ExportResult) {
@@ -327,6 +355,94 @@ class CanvasViewModel @Inject constructor(
 
     fun markChanged() {
         hasChanges.value = true
+    }
+
+    fun updateShapeType(shape: ShapeType) {
+        _currentShapeType.value = shape
+        updateSelectedShape { it.copy(shapeType = shape) }
+    }
+
+    fun updateCornerRadius(value: Float) {
+        _shapeCornerRadius.value = value
+        updateSelectedShape { it.copy(shapeCornerRadius = value) }
+    }
+
+    fun updateStrokeWidth(value: Float) {
+        _shapeStrokeWidth.value = value
+        updateSelectedShape { it.copy(shapeStrokeWidth = value) }
+    }
+
+    fun toggleFillEnabled(enabled: Boolean) {
+        _shapeFillEnabled.value = enabled
+        updateSelectedShape { it.copy(shapeHasFill = enabled) }
+    }
+
+    fun toggleStrokeEnabled(enabled: Boolean) {
+        _shapeStrokeEnabled.value = enabled
+        updateSelectedShape { it.copy(shapeHasStroke = enabled) }
+    }
+
+    fun setFillColor(color: Int) {
+        _shapeFillColor.value = color
+        updateSelectedShape { it.copy(shapeFillColor = color) }
+    }
+
+    fun setStrokeColor(color: Int) {
+        _shapeStrokeColor.value = color
+        updateSelectedShape { it.copy(shapeStrokeColor = color) }
+    }
+
+    fun setFillGradient(grad: GradientItem?) {
+        _shapeFillGradient.value = grad
+        updateSelectedShape { it.copy(shapeFillGradient = grad) }
+    }
+
+    fun setStrokeGradient(grad: GradientItem?) {
+        _shapeStrokeGradient.value = grad
+        updateSelectedShape { it.copy(shapeStrokeGradient = grad) }
+    }
+
+    private fun updateSelectedShape(update: (CanvasElement) -> CanvasElement) {
+        val currentList = _canvasElements.value ?: return
+        val updatedList = currentList.map { element ->
+            if (element.isSelected && element.type == ElementType.SHAPE) {
+                val oldElement = element.copy()
+                val newElement = update(element)
+                _canvasActions.push(CanvasAction.UpdateElement(element.id, newElement, oldElement))
+                newElement
+            } else element
+        }
+        _canvasElements.value = updatedList
+        _redoStack.clear()
+        notifyUndoRedoChanged()
+    }
+
+    fun addShapeElement() {
+        val canvasW = _canvasSize.value?.width ?: 0f
+        val canvasH = _canvasSize.value?.height ?: 0f
+        val element = CanvasElement(
+            id = UUID.randomUUID().toString(),
+            type = ElementType.SHAPE,
+            shapeType = _currentShapeType.value,
+            shapeHasStroke = _shapeStrokeEnabled.value ?: true,
+            shapeHasFill = _shapeFillEnabled.value ?: true,
+            shapeStrokeWidth = _shapeStrokeWidth.value ?: 6f,
+            shapeCornerRadius = _shapeCornerRadius.value ?: 25f,
+            shapeStrokeColor = _shapeStrokeColor.value ?: Color.BLACK,
+            shapeFillColor = _shapeFillColor.value ?: Color.WHITE,
+            shapeStrokeGradient = _shapeStrokeGradient.value,
+            shapeFillGradient = _shapeFillGradient.value,
+            x = canvasW / 2f,
+            y = canvasH / 2f,
+            scale = 1f,
+            rotation = 0f,
+            isSelected = true
+        )
+
+        _canvasElements.value = _canvasElements.value?.plus(element)
+        _canvasActions.push(CanvasAction.AddShape(element))
+        _redoStack.clear()
+        notifyUndoRedoChanged()
     }
 
     fun addDrawElement(stroke: CanvasElement) {
@@ -495,7 +611,7 @@ class CanvasViewModel @Inject constructor(
     private fun updateSelectedElementAdjustments(update: (AdjustmentValues) -> AdjustmentValues) {
         val currentList = _canvasElements.value ?: return
         val updatedList = currentList.map { element ->
-            if (element.isSelected && element.type == ElementType.IMAGE) {
+            if (element.isSelected && (element.type == ElementType.IMAGE || element.type == ElementType.BACKGROUND && element.bitmap != null)) {
                 val oldElement = element.copy(context = null, bitmap = null)
                 val newAdjustments = update(element.adjustments)
                 val updated = element.copy(adjustments = newAdjustments)
@@ -910,6 +1026,11 @@ class CanvasViewModel @Inject constructor(
                 setBrushColor(color)
             }
 
+            PickerTarget.EYE_DROPPER_SHAPE_STROKE -> setStrokeColor(color)
+            PickerTarget.EYE_DROPPER_SHAPE_FILL -> setFillColor(color)
+            PickerTarget.COLOR_PICKER_SHAPE_STROKE -> setStrokeColor(color)
+            PickerTarget.COLOR_PICKER_SHAPE_FILL -> setFillColor(color)
+
             null -> { /* nothing to do */
             }
         }
@@ -942,6 +1063,12 @@ class CanvasViewModel @Inject constructor(
             ) else setBrushGradient(null)
 
             null -> {}
+            GradientPickerTarget.SHAPE_STROKE -> if (gradientItem != null) setStrokeGradient(
+                gradientItem
+            ) else setStrokeGradient(null)
+            GradientPickerTarget.SHAPE_FILL -> if (gradientItem != null) setFillGradient(
+                gradientItem
+            ) else setFillGradient(null)
         }
     }
 
@@ -1354,19 +1481,17 @@ class CanvasViewModel @Inject constructor(
                 val oldCopy = oldElement.copy(
                     context = null,
                     bitmap = null,
-                    drawStrokes = oldElement.drawStrokes?.map { it.copy(path = Path(it.path)) }?.toMutableList()
-                )
+                    drawStrokes = oldElement.drawStrokes?.map { it.copy(path = Path(it.path)) }
+                        ?.toMutableList())
                 val newCopy = elementToUpdate.copy(
                     context = null,
                     bitmap = null,
-                    drawStrokes = elementToUpdate.drawStrokes?.map { it.copy(path = Path(it.path)) }?.toMutableList()
-                )
+                    drawStrokes = elementToUpdate.drawStrokes?.map { it.copy(path = Path(it.path)) }
+                        ?.toMutableList())
 
                 _canvasActions.push(
                     CanvasAction.UpdateElement(
-                        elementId = elementToUpdate.id,
-                        newElement = newCopy,
-                        oldElement = oldCopy
+                        elementId = elementToUpdate.id, newElement = newCopy, oldElement = oldCopy
                     )
                 )
                 _redoStack.clear()
@@ -1555,7 +1680,8 @@ class CanvasViewModel @Inject constructor(
                 _brushColor.value = firstDraw.drawStrokes?.lastOrNull()?.color ?: Color.BLACK
                 _brushThickness.value = firstDraw.drawStrokes?.lastOrNull()?.thickness ?: 10f
                 _brushHardness.value = firstDraw.drawStrokes?.lastOrNull()?.hardness ?: 1f
-                _currentBrushStyle.value = firstDraw.drawStrokes?.lastOrNull()?.style ?: BrushStyle.BRUSH
+                _currentBrushStyle.value =
+                    firstDraw.drawStrokes?.lastOrNull()?.style ?: BrushStyle.BRUSH
                 _brushGradient.value = firstDraw.drawStrokes?.lastOrNull()?.gradient
             }
 
@@ -2336,6 +2462,18 @@ class CanvasViewModel @Inject constructor(
             }
 
             is CanvasAction.AddDrawStroke -> {
+                val currentList = _canvasElements.value.orEmpty()
+                if (isRedo) {
+                    // Reapply context & paint/typeface/bitmap, then add
+                    val restored = action.element.restoreWithContext(context)
+                    _canvasElements.value = currentList + restored
+                } else {
+                    // Undo: remove by ID
+                    _canvasElements.value = currentList.filter { it.id != action.element.id }
+                }
+            }
+
+            is CanvasAction.AddShape -> {
                 val currentList = _canvasElements.value.orEmpty()
                 if (isRedo) {
                     // Reapply context & paint/typeface/bitmap, then add

@@ -70,6 +70,10 @@ class BrushFragment : Fragment() {
             adapter.submitList(ArrayList(tabs))
             handleSelection(tabs.firstOrNull()) // Select "All" by default
         }
+
+        viewModel.pagingLocked.observe(viewLifecycleOwner){ locked ->
+            binding.viewPager.isUserInputEnabled = !locked
+        }
     }
 
     private fun handleSelection(selectedCategory: PanelTabs?) {

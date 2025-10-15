@@ -282,6 +282,10 @@
     <string name="thickness">Thickness</string>
     <string name="hardness">Hardness</string>
     <string name="brush_preview">Brush Preview</string>
+    <string name="fill">Fill</string>
+    <string name="stroke">Stroke</string>
+    <string name="stroke_width">Width</string>
+    <string name="corner_radius">Radius</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

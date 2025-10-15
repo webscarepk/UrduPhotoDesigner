@@ -86,7 +86,9 @@ class ExportOptionsFragment : BottomSheetDialogFragment() {
                 )
             }
             binding.options.postDelayed({
-                dismiss()
+                if (isAdded && view != null) {
+                    dismissAllowingStateLoss()
+                }
             }, 500)
         }
 

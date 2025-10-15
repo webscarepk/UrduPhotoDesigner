@@ -53,6 +53,7 @@ import com.example.urduphotodesigner.common.canvas.enums.LetterCasing
 import com.example.urduphotodesigner.common.canvas.enums.ListStyle
 import com.example.urduphotodesigner.common.canvas.enums.Mode
 import com.example.urduphotodesigner.common.canvas.enums.MultiAlignMode
+import com.example.urduphotodesigner.common.canvas.enums.ShapeType
 import com.example.urduphotodesigner.common.canvas.enums.TextAlignment
 import com.example.urduphotodesigner.common.canvas.enums.TextDecoration
 import com.example.urduphotodesigner.common.canvas.enums.VAlign
@@ -65,8 +66,14 @@ import com.example.urduphotodesigner.common.canvas.model.ExportResolution
 import com.example.urduphotodesigner.common.canvas.model.GradientItem
 import com.example.urduphotodesigner.common.canvas.model.StrokeData
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
+import com.example.urduphotodesigner.common.utils.BrushRenderUtils
+import com.example.urduphotodesigner.common.utils.BrushRenderUtils.drawBrushStroke
+import com.example.urduphotodesigner.common.utils.BrushRenderUtils.drawTaperedPenStroke
+import com.example.urduphotodesigner.common.utils.BrushRenderUtils.drawTaperedStroke
+import com.example.urduphotodesigner.common.utils.BrushRenderUtils.makeStrokePaint
 import com.example.urduphotodesigner.common.utils.ImageAdjustmentHelper
 import com.example.urduphotodesigner.common.utils.ImageProcessor
+import com.example.urduphotodesigner.common.utils.ShapeRenderUtils.drawShape
 import com.example.urduphotodesigner.common.utils.Utils.vibrateSoft
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.di.GsonEntryPoint
@@ -556,7 +563,7 @@ class CanvasView @JvmOverloads constructor(
 
             if (newcomer.type != ElementType.BACKGROUND) {
                 canvasElements.forEach { it.isSelected = false }
-                newcomer.isSelected = true
+                newcomer.isSelected = (newcomer.type != ElementType.DRAW)
                 selectedElements.add(newcomer)
             } else {
                 selectedElements.addAll(canvasElements.filter { it.isSelected })
@@ -724,53 +731,6 @@ class CanvasView @JvmOverloads constructor(
             }
         }
         invalidate()
-    }
-
-    private fun createBackgroundGradientShader(
-        gradientItem: GradientItem, width: Float, height: Float
-    ): Shader {
-        val colors = gradientItem.colors.toIntArray()
-        val positions = gradientItem.positions.toFloatArray()
-
-        // compute actual center from relative values
-        val cx = width * gradientItem.centerX
-        val cy = height * gradientItem.centerY
-
-        val baseShader = when (gradientItem.type) {
-            GradientType.LINEAR -> {
-                // angle in radians
-                val theta = Math.toRadians(gradientItem.angle.toDouble())
-                // full hypotenuse scaled, half on each side
-                val halfLen = (hypot(width, height) * gradientItem.scale / 2f)
-                val dx = (cos(theta) * halfLen).toFloat()
-                val dy = (sin(theta) * halfLen).toFloat()
-
-                LinearGradient(
-                    cx - dx, cy - dy, cx + dx, cy + dy, colors, positions, Shader.TileMode.CLAMP
-                )
-            }
-
-            GradientType.RADIAL -> {
-                // radius based on the smaller dimension
-                val radius =
-                    min(width, height) / 2f * gradientItem.radialRadiusFactor * gradientItem.scale
-                RadialGradient(
-                    cx, cy, radius, colors, positions, Shader.TileMode.CLAMP
-                )
-            }
-
-            GradientType.SWEEP -> {
-                SweepGradient(cx, cy, colors, positions).apply {
-                    // rotate start angle around the chosen center
-                    val m = Matrix().apply {
-                        postRotate(gradientItem.sweepStartAngle, cx, cy)
-                    }
-                    setLocalMatrix(m)
-                }
-            }
-        }
-
-        return baseShader
     }
 
     fun setCanvasBackgroundGradient(gradientItem: GradientItem) {
@@ -1790,6 +1750,7 @@ class CanvasView @JvmOverloads constructor(
 
                     when (element.type) {
                         ElementType.DRAW -> drawDrawElement(canvas, element)
+                        ElementType.SHAPE -> drawShapeElement(canvas, element)
                         ElementType.TEXT -> drawTextElement(canvas, element)
                         else -> {
                             element.bitmap?.let { bmp ->
@@ -2109,175 +2070,46 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
-    private fun drawBrushStroke(canvas: Canvas, stroke: StrokeData) {
-        // 🟢 1. Create isolated drawing layer
-        canvas.saveLayer(null, null)
-
-        // 🎨 Base stroke paint
-        val paint = makeStrokePaint(stroke, width, height).apply {
-            style = Paint.Style.STROKE
-            strokeJoin = Paint.Join.ROUND
-            strokeCap = Paint.Cap.ROUND
-            isAntiAlias = true
-            maskFilter = null
-            setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
-        }
-
-        // 🖌️ Draw main tapered stroke on isolated layer
-        drawTaperedStroke(canvas, stroke, paint)
-
-        // 🧽 Eraser paint (for bristles / negative space)
-        val erasePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeCap = Paint.Cap.ROUND
-            color = Color.TRANSPARENT
-            xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
-            maskFilter = null
-            setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
-        }
-
-        // 🌾 Bristle generation logic
-        val random = java.util.Random()
-        val pathMeasure = PathMeasure(stroke.path, false)
-        val pathLength = pathMeasure.length
-        val pos = FloatArray(2)
-        val tan = FloatArray(2)
-
-        val softness = (1f - stroke.hardness).coerceIn(0f, 1f)
-        val totalBristles = (10 + softness * 60).toInt()
-        val baseSpacing = stroke.thickness * 0.22f
-
-        var dist = 0f
-        while (dist < pathLength) {
-            val t = dist / pathLength
-
-            // Taper and density logic
-            val taperFactor = (1f - 0.45f * t).coerceAtLeast(0.3f)
-            val localThickness = stroke.thickness * taperFactor
-            val densityFactor = t.pow(1.3f)
-            val localBristles = (totalBristles * densityFactor).toInt().coerceAtLeast(1)
-            val scatter = 0.05f + softness * 0.08f
-            erasePaint.strokeWidth = localThickness * (0.012f + 0.025f * softness)
-
-            pathMeasure.getPosTan(dist, pos, tan)
-            val len = hypot(tan[0], tan[1])
-            val dirX = if (len != 0f) tan[0] / len else 0f
-            val dirY = if (len != 0f) tan[1] / len else 0f
-            val perpX = -dirY
-            val perpY = dirX
-
-            // Bristle drawing
-            repeat(localBristles) {
-                val spreadOffset = (random.nextFloat() - 0.5f) * stroke.thickness
-                val baseX = pos[0] + perpX * spreadOffset
-                val baseY = pos[1] + perpY * spreadOffset
-
-                val forwardJitter = (random.nextFloat() - 0.3f) * stroke.thickness * 0.15f
-                val lenFactor = stroke.thickness * (0.25f + 0.9f * t)
-                val bx = baseX + dirX * (lenFactor + forwardJitter)
-                val by = baseY + dirY * (lenFactor + forwardJitter)
-
-                val jx = (random.nextFloat() - 0.5f) * stroke.thickness * scatter
-                val jy = (random.nextFloat() - 0.5f) * stroke.thickness * scatter
-
-                // 🧽 Now erasing only within this stroke layer
-                canvas.drawLine(baseX + jx, baseY + jy, bx + jx, by + jy, erasePaint)
-            }
-
-            dist += baseSpacing
-        }
-
-        // 🟢 2. Merge this stroke layer back to main canvas
-        canvas.restore()
-    }
-
-    private fun drawTaperedStroke(
+    private fun drawShapeElement(
         canvas: Canvas,
-        stroke: StrokeData,
-        paint: Paint
+        element: CanvasElement
     ) {
-        val pathMeasure = PathMeasure(stroke.path, false)
-        val length = pathMeasure.length
-        val pos = FloatArray(2)
-        val tan = FloatArray(2)
-        val smoothness = 80
+        val rect = RectF(
+            element.x,
+            element.y,
+            element.x + element.getLocalContentWidth(),
+            element.y + element.getLocalContentHeight()
+        )
 
-        val path = Path()
-        pathMeasure.getPosTan(0f, pos, tan)
-        path.moveTo(pos[0], pos[1])
+        // 🧠 Base paint setup
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            strokeWidth = element.shapeStrokeWidth ?: 10f
+            style = if (element.shapeHasFill && element.shapeHasStroke)
+                Paint.Style.FILL_AND_STROKE
+            else if (element.shapeHasFill)
+                Paint.Style.FILL
+            else
+                Paint.Style.STROKE
 
-        for (i in 1..smoothness) {
-            val t = i / smoothness.toFloat()
-
-            // 🟢 NEW: Smooth continuous taper (start → end)
-            val baseFactor = 1f - 0.45f * t      // starts reducing right from beginning
-            val endEase = (1f - t).pow(0.6f)     // softens tail
-            val factor = (baseFactor * endEase).coerceIn(0.3f, 1f)
-
-            val width = stroke.thickness * factor
-
-            pathMeasure.getPosTan(length * t, pos, tan)
-            paint.strokeWidth = width
-            path.lineTo(pos[0], pos[1])
-            canvas.drawPath(path, paint)
-            path.reset()
-            path.moveTo(pos[0], pos[1])
-        }
-    }
-
-    private fun drawTaperedPenStroke(canvas: Canvas, stroke: StrokeData) {
-        val pathMeasure = PathMeasure(stroke.path, false)
-        val pathLength = pathMeasure.length
-        val position = FloatArray(2)
-        val tangent = FloatArray(2)
-        val prevPos = FloatArray(2)
-
-        val paint = makeStrokePaint(stroke, width, height).apply {
-            style = Paint.Style.STROKE
-            strokeCap = Paint.Cap.ROUND
-            strokeJoin = Paint.Join.ROUND
-            isAntiAlias = true
-        }
-
-        val path = Path()
-        val samples = 100
-        var prevWidth = stroke.thickness
-
-        for (i in 0 until samples) {
-            val t = i / samples.toFloat()
-            val dist = pathLength * t
-            pathMeasure.getPosTan(dist, position, tangent)
-
-            if (i == 0) {
-                path.moveTo(position[0], position[1])
-                prevPos[0] = position[0]
-                prevPos[1] = position[1]
-                continue
+            // ✅ Apply fill gradient or solid
+            if (element.shapeHasFill) {
+                if (element.fillGradient != null) {
+                    shader = LinearGradient(
+                        rect.left, rect.top, rect.right, rect.bottom,
+                        element.fillGradient!!.colors.toIntArray(),
+                        element.fillGradient!!.positions?.toFloatArray(),
+                        Shader.TileMode.CLAMP
+                    )
+                } else {
+                    color = element.shapeFillColor ?: Color.TRANSPARENT
+                }
+            } else if (element.shapeHasStroke) {
+                color = element.strokeColor ?: Color.BLACK
             }
-
-            // 🧮 movement speed for pressure simulation
-            val dx = position[0] - prevPos[0]
-            val dy = position[1] - prevPos[1]
-            val speed = hypot(dx, dy).coerceAtMost(40f)
-            val pressureFactor = (1f - (speed / 40f)).coerceIn(0.25f, 1f)
-
-            // 🟢 Linear taper (start→end)
-            // 1.0 at start → 0.5 at end = gentle, continuous reduction
-            val taperFactor = (1f - 0.5f * t).coerceAtLeast(0.3f)
-
-            val width = stroke.thickness * taperFactor * pressureFactor
-            val smoothWidth = (prevWidth * 0.7f + width * 0.3f)
-            paint.strokeWidth = smoothWidth
-
-            path.lineTo(position[0], position[1])
-            canvas.drawPath(path, paint)
-
-            prevWidth = smoothWidth
-            prevPos[0] = position[0]
-            prevPos[1] = position[1]
-            path.reset()
-            path.moveTo(position[0], position[1])
         }
+
+        // ✴️ Draw using shared shape function
+        drawShape(canvas, paint, element.shapeType ?: ShapeType.RECTANGLE, rect, element.shapeCornerRadius ?: 0f)
     }
 
     private fun drawDrawElement(
@@ -2326,7 +2158,6 @@ class CanvasView @JvmOverloads constructor(
             alpha = e.paintAlpha
             style = Paint.Style.FILL
             isAntiAlias = true
-            xfermode = drawWithBlend(e)
         }
 
         e.bitmap?.let { bmp ->
@@ -2370,10 +2201,6 @@ class CanvasView @JvmOverloads constructor(
                     e.context!!, adjustedBackground, e.adjustments
                 )
 
-                // temporarily disable blend mode so brightness/contrast are visible
-                val originalMode = backgroundPaint.xfermode
-                backgroundPaint.xfermode = null
-
                 backgroundPaint.colorFilter = colorFilterFor(e.imageFilter)
                 backgroundPaint.maskFilter = null
 
@@ -2396,15 +2223,8 @@ class CanvasView @JvmOverloads constructor(
                         drawBitmap(adjustedBackground, 0f, 0f, backgroundPaint)
                     }
                 }
-
-                // restore original blend mode
-                backgroundPaint.xfermode = originalMode
-
-                if (adjustedBackground != bmp && !adjustedBackground.isRecycled) {
-                    adjustedBackground.recycle()
-                }
             }
-
+            backgroundPaint.xfermode = drawWithBlend(e)
             return
         }
 
@@ -2419,7 +2239,7 @@ class CanvasView @JvmOverloads constructor(
                 scale(e.scale, e.scale, pivotX, pivotY)
                 rotate(e.rotation, pivotX, pivotY)
 
-                backgroundPaint.shader = createBackgroundGradientShader(grad, w, h)
+                backgroundPaint.shader = BrushRenderUtils.createBackgroundGradientShader(grad, w, h)
                 drawRect(0f, 0f, w, h, backgroundPaint)
                 backgroundPaint.shader = null
             }
@@ -2973,59 +2793,6 @@ class CanvasView @JvmOverloads constructor(
         return pt[0] to pt[1]
     }
 
-    private fun makeStrokePaint(stroke: StrokeData, width: Int, height: Int): Paint {
-        return Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeJoin = Paint.Join.ROUND
-            strokeCap = Paint.Cap.ROUND
-            strokeWidth = stroke.thickness
-
-            // 🌈 Gradient or solid color
-            stroke.gradient?.let {
-                shader = createBackgroundGradientShader(it, width.toFloat(), height.toFloat())
-            } ?: run { color = stroke.color }
-
-            // 🧈 Hardness / softness (blur)
-            val hardness = stroke.hardness
-            maskFilter = if (hardness < 0.9f) BlurMaskFilter(
-                (1f - hardness) * 25f, BlurMaskFilter.Blur.NORMAL
-            )
-            else null
-
-            // 🖌️ Style-dependent look
-            when (stroke.style) {
-                BrushStyle.PENCIL -> {
-                    alpha = 190
-                    pathEffect = DashPathEffect(floatArrayOf(4f, 5f, 1f, 3f), 0f)
-                }
-
-                BrushStyle.MARKER -> {
-                    alpha = 240
-                    strokeCap = Paint.Cap.BUTT
-                }
-
-                BrushStyle.HIGHLIGHTER -> {
-                    alpha = 130
-                    strokeCap = Paint.Cap.BUTT
-                }
-
-                BrushStyle.BRUSH -> {
-                    // handled separately below
-                    alpha = 240
-                }
-
-                BrushStyle.PEN -> {
-                    alpha = 255
-                    pathEffect = null
-                }
-
-                BrushStyle.ERASER -> {
-                    xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
-                }
-            }
-        }
-    }
-
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         gestureDetector.onTouchEvent(event)
@@ -3060,7 +2827,7 @@ class CanvasView @JvmOverloads constructor(
                         }
 
                         currentBrushGradient?.let {
-                            shader = createBackgroundGradientShader(
+                            shader = BrushRenderUtils.createBackgroundGradientShader(
                                 it, width.toFloat(), height.toFloat()
                             )
                         }

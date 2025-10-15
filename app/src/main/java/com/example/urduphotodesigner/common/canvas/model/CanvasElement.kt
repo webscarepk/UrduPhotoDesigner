@@ -13,6 +13,7 @@ import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.canvas.enums.LabelShape
 import com.example.urduphotodesigner.common.canvas.enums.LetterCasing
 import com.example.urduphotodesigner.common.canvas.enums.ListStyle
+import com.example.urduphotodesigner.common.canvas.enums.ShapeType
 import com.example.urduphotodesigner.common.canvas.enums.TextAlignment
 import com.example.urduphotodesigner.common.canvas.enums.TextDecoration
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
@@ -97,6 +98,15 @@ data class CanvasElement(
     var drawStrokes: MutableList<StrokeData>? = null,
     var brushSettings: BrushSettings? = null,
     var allowsStrokeEditing: Boolean = false,
+    var shapeType: ShapeType? = null,
+    var shapeFillColor: Int = Color.TRANSPARENT,
+    var shapeStrokeColor: Int = Color.BLACK,
+    var shapeStrokeWidth: Float = 6f,
+    var shapeCornerRadius: Float = 0f,
+    var shapeHasFill: Boolean = true,
+    var shapeHasStroke: Boolean = true,
+    var shapeFillGradient: GradientItem? = null,
+    var shapeStrokeGradient: GradientItem? = null
 ) : Serializable {
 
     @Transient
@@ -258,9 +268,12 @@ data class CanvasElement(
         var maxX = -Float.MAX_VALUE
         var maxY = -Float.MAX_VALUE
 
+        var hasValidStroke = false
+
         for (stroke in strokes) {
+            val path = stroke.path
             val pathBounds = RectF()
-            stroke.path.computeBounds(pathBounds, true)
+            path.computeBounds(pathBounds, true)
 
             // Account for stroke thickness
             val expand = stroke.thickness * 0.5f
@@ -270,7 +283,11 @@ data class CanvasElement(
             minY = minOf(minY, pathBounds.top)
             maxX = maxOf(maxX, pathBounds.right)
             maxY = maxOf(maxY, pathBounds.bottom)
+
+            hasValidStroke = true
         }
+
+        if (!hasValidStroke) return RectF(0f, 0f, 0f, 0f)
 
         // ✅ Convert to local-space centered bounds (like text)
         val width = maxX - minX
@@ -282,5 +299,4 @@ data class CanvasElement(
 
         return bounds
     }
-
 }
