@@ -261,19 +261,19 @@ class CanvasViewModel @Inject constructor(
     private val _currentShapeType = MutableLiveData(ShapeType.RECTANGLE)
     val currentShapeType: LiveData<ShapeType> = _currentShapeType
 
-    private val _shapeFillEnabled = MutableLiveData(true)
+    private val _shapeFillEnabled = MutableLiveData(false)
     val shapeFillEnabled: LiveData<Boolean> = _shapeFillEnabled
 
     private val _shapeStrokeEnabled = MutableLiveData(true)
     val shapeStrokeEnabled: LiveData<Boolean> = _shapeStrokeEnabled
 
-    private val _shapeStrokeWidth = MutableLiveData(10f)
+    private val _shapeStrokeWidth = MutableLiveData(1f)
     val shapeStrokeWidth: LiveData<Float> = _shapeStrokeWidth
 
     private val _shapeCornerRadius = MutableLiveData(0f)
     val shapeCornerRadius: LiveData<Float> = _shapeCornerRadius
 
-    private val _shapeFillColor = MutableLiveData(Color.WHITE)
+    private val _shapeFillColor = MutableLiveData(Color.BLACK)
     val shapeFillColor: LiveData<Int> = _shapeFillColor
 
     private val _shapeStrokeColor = MutableLiveData(Color.BLACK)
@@ -426,17 +426,19 @@ class CanvasViewModel @Inject constructor(
             shapeType = _currentShapeType.value,
             shapeHasStroke = _shapeStrokeEnabled.value ?: true,
             shapeHasFill = _shapeFillEnabled.value ?: true,
-            shapeStrokeWidth = _shapeStrokeWidth.value ?: 6f,
-            shapeCornerRadius = _shapeCornerRadius.value ?: 25f,
+            shapeStrokeWidth = _shapeStrokeWidth.value ?: 1f,
+            shapeCornerRadius = _shapeCornerRadius.value ?: 0f,
             shapeStrokeColor = _shapeStrokeColor.value ?: Color.BLACK,
-            shapeFillColor = _shapeFillColor.value ?: Color.WHITE,
+            shapeFillColor = _shapeFillColor.value ?: Color.BLACK,
             shapeStrokeGradient = _shapeStrokeGradient.value,
             shapeFillGradient = _shapeFillGradient.value,
             x = canvasW / 2f,
             y = canvasH / 2f,
             scale = 1f,
             rotation = 0f,
-            isSelected = true
+            isSelected = true,
+            logicalContentWidth = 150f,
+            logicalContentHeight = 150f
         )
 
         _canvasElements.value = _canvasElements.value?.plus(element)

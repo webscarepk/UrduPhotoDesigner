@@ -14,6 +14,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.canvas.enums.GradientPickerTarget
 import com.example.urduphotodesigner.common.canvas.enums.PickerTarget
 import com.example.urduphotodesigner.common.canvas.enums.ShapeType
@@ -27,6 +28,7 @@ import com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.gra
 import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @AndroidEntryPoint
 class ShapePanelFragment : Fragment() {
@@ -81,11 +83,20 @@ class ShapePanelFragment : Fragment() {
         binding.stroke.addPressEffect {
             selectColorFor = true
             togglePanelStrokeFill(true)
+
+            colorsAdapter.selectedColor = viewModel.shapeStrokeColor.value ?: android.graphics.Color.TRANSPARENT
+            colorsAdapter.notifyDataSetChanged()
+            gradientsAdapter.selectedItem = viewModel.shapeStrokeGradient.value
+            gradientsAdapter.notifyDataSetChanged()
         }
 
         binding.fill.addPressEffect {
             selectColorFor = false
             togglePanelStrokeFill(false)
+            colorsAdapter.selectedColor = viewModel.shapeFillColor.value ?: android.graphics.Color.TRANSPARENT
+            colorsAdapter.notifyDataSetChanged()
+            gradientsAdapter.selectedItem = viewModel.shapeFillGradient.value
+            gradientsAdapter.notifyDataSetChanged()
         }
 
         binding.strokeSwitch.addPressEffect {
@@ -158,7 +169,7 @@ class ShapePanelFragment : Fragment() {
 
             // 🟢 Stroke width
             viewModel.shapeStrokeWidth.observe(viewLifecycleOwner) { width ->
-                val safeWidth = width ?: 10f
+                val safeWidth = width ?: 1f
                 binding.strokeWidthBar.progress = safeWidth.toInt().coerceIn(1, 100)
                 binding.strokeWidth.text = safeWidth.toInt().toString()
             }
@@ -166,8 +177,9 @@ class ShapePanelFragment : Fragment() {
             // 🟣 Corner radius
             viewModel.shapeCornerRadius.observe(viewLifecycleOwner) { radius ->
                 val safeRadius = radius ?: 0f
-                binding.cornerRadiusBar.progress = safeRadius.toInt().coerceIn(0, 300)
-                binding.cornerRadius.text = "${safeRadius.toInt()}%"
+                val progress = (safeRadius * 100f).roundToInt().coerceIn(0, 300)
+                binding.cornerRadiusBar.progress = progress
+                binding.cornerRadius.text = "${progress}%"
             }
 
             // ⚫ Fill enabled
@@ -185,33 +197,25 @@ class ShapePanelFragment : Fragment() {
             // 🎨 Fill color
             viewModel.shapeFillColor.observe(viewLifecycleOwner) { color ->
                 color?.let {
-                    if (!selectColorFor) {
-                        colorsAdapter.selectedColor = it
-                    }
+                    colorsAdapter.selectedColor = it
                 }
             }
 
             // 🖌 Stroke color
             viewModel.shapeStrokeColor.observe(viewLifecycleOwner) { color ->
                 color?.let {
-                    if (selectColorFor) {
-                        colorsAdapter.selectedColor = it
-                    }
+                    colorsAdapter.selectedColor = it
                 }
             }
 
             // 🌈 Fill gradient
             viewModel.shapeFillGradient.observe(viewLifecycleOwner) { gradient ->
-                if (!selectColorFor) {
-                    gradientsAdapter.selectedItem = gradient
-                }
+                gradientsAdapter.selectedItem = gradient
             }
 
             // 🌈 Stroke gradient
             viewModel.shapeStrokeGradient.observe(viewLifecycleOwner) { gradient ->
-                if (selectColorFor) {
-                    gradientsAdapter.selectedItem = gradient
-                }
+                gradientsAdapter.selectedItem = gradient
             }
         }
     }
@@ -220,40 +224,47 @@ class ShapePanelFragment : Fragment() {
         colorsAdapter = ColorsAdapter(Constants.colorList, onColorSelected = { color ->
             val selectedColor = color.colorCode.toColorInt()
             if (selectColorFor){
+                viewModel.setStrokeGradient(null)
                 viewModel.setStrokeColor(selectedColor)
             }else{
+                viewModel.setFillGradient(null)
                 viewModel.setFillColor(selectedColor)
             }
-            viewModel.setBrushGradient(null)
         }, onNoneSelected = {
             if (selectColorFor){
+                viewModel.setStrokeGradient(null)
                 viewModel.setStrokeColor(android.R.color.transparent)
             }else{
+                viewModel.setFillGradient(null)
                 viewModel.setFillColor(android.R.color.transparent)
             }
-            viewModel.setBrushGradient(null)
         }, onColorPickerClicked = {
             if (selectColorFor){
+                viewModel.setStrokeGradient(null)
                 viewModel.startPicking(PickerTarget.COLOR_PICKER_SHAPE_STROKE)
             }else{
+                viewModel.setFillGradient(null)
                 viewModel.startPicking(PickerTarget.COLOR_PICKER_SHAPE_FILL)
             }
-
-            viewModel.setBrushGradient(null)
             childFragmentManager.beginTransaction().replace(R.id.brushPanel, ColorPickerFragment())
                 .addToBackStack(null).commit()
         }, onEyeDropperClicked = {
             if (selectColorFor){
+                viewModel.setStrokeGradient(null)
                 viewModel.startPicking(PickerTarget.EYE_DROPPER_SHAPE_STROKE)
             }else{
+                viewModel.setFillGradient(null)
                 viewModel.startPicking(PickerTarget.EYE_DROPPER_SHAPE_FILL)
             }
-            viewModel.setBrushGradient(null)
         })
 
         gradientsAdapter =
             GradientsAdapter(gradientList = emptyList(), onGradientSelected = { _, item ->
-                viewModel.setBrushGradient(item)
+                if (selectColorFor) {
+                    viewModel.setStrokeGradient(item)
+                } else {
+                    viewModel.setFillGradient(item)
+                }
             }, onGradientEditSelected = { _, item ->
                 if (selectColorFor){
                     viewModel.startPickingGradient(GradientPickerTarget.SHAPE_STROKE)
@@ -290,8 +301,13 @@ class ShapePanelFragment : Fragment() {
             })
 
         shapesAdapter = ShapeAdapter(requireContext(), ShapeType.entries) { shape ->
-            viewModel.updateShapeType(shape)
-            viewModel.addShapeElement()
+            val elements = viewModel.canvasElements.value
+            val isShapeSelected = elements?.any { it.isSelected && it.type == ElementType.SHAPE } == true
+            if (isShapeSelected) {
+                viewModel.updateShapeType(shape)
+            } else {
+                viewModel.addShapeElement()
+            }
         }
 
         binding.shapes.apply {

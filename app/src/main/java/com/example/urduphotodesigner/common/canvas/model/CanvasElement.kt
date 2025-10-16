@@ -129,6 +129,8 @@ data class CanvasElement(
     fun getLocalContentWidth(): Float {
         return if (type == ElementType.BACKGROUND) {
             logicalContentWidth
+        } else if (type == ElementType.SHAPE) {
+            logicalContentWidth
         } else if (type == ElementType.TEXT) {
             val lines = getTextWithKashida().split("\n")
             // Ensure paint is initialized before using it
@@ -144,6 +146,8 @@ data class CanvasElement(
 
     fun getLocalContentHeight(): Float {
         return if (type == ElementType.BACKGROUND) {
+            logicalContentHeight
+        } else if (type == ElementType.SHAPE) {
             logicalContentHeight
         } else if (type == ElementType.TEXT) {
             // Ensure paint is initialized before using it
@@ -298,5 +302,23 @@ data class CanvasElement(
         bounds.inset(-6f, -6f)
 
         return bounds
+    }
+
+    fun getMatrix(): Matrix {
+        val matrix = Matrix()
+
+        // 1. Scale around the local origin (0, 0)
+        matrix.postScale(scale, scale)
+
+        // 2. Rotate around the local origin (0, 0)
+        val normalizedRotation = rotation % 360f
+        if (normalizedRotation != 0f) {
+            matrix.postRotate(normalizedRotation)
+        }
+
+        // 3. Translate to the final world position (x, y)
+        matrix.postTranslate(x, y)
+
+        return matrix
     }
 }

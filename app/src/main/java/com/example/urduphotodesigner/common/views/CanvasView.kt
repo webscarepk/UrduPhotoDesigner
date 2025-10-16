@@ -16,7 +16,6 @@ import android.graphics.LinearGradient
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.PathMeasure
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.RadialGradient
@@ -69,7 +68,6 @@ import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
 import com.example.urduphotodesigner.common.utils.BrushRenderUtils
 import com.example.urduphotodesigner.common.utils.BrushRenderUtils.drawBrushStroke
 import com.example.urduphotodesigner.common.utils.BrushRenderUtils.drawTaperedPenStroke
-import com.example.urduphotodesigner.common.utils.BrushRenderUtils.drawTaperedStroke
 import com.example.urduphotodesigner.common.utils.BrushRenderUtils.makeStrokePaint
 import com.example.urduphotodesigner.common.utils.ImageAdjustmentHelper
 import com.example.urduphotodesigner.common.utils.ImageProcessor
@@ -88,7 +86,6 @@ import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sign
 import kotlin.math.sin
@@ -1098,6 +1095,7 @@ class CanvasView @JvmOverloads constructor(
                 }
                 canvas.drawPath(tempStroke.path, paint)
             }
+
             BrushStyle.HIGHLIGHTER -> {
                 val paint = makeStrokePaint(tempStroke, width, height).apply {
                     alpha = 130
@@ -1105,6 +1103,7 @@ class CanvasView @JvmOverloads constructor(
                 }
                 canvas.drawPath(tempStroke.path, paint)
             }
+
             BrushStyle.MARKER -> {
                 val paint = makeStrokePaint(tempStroke, width, height).apply {
                     alpha = 240
@@ -1112,6 +1111,7 @@ class CanvasView @JvmOverloads constructor(
                 }
                 canvas.drawPath(tempStroke.path, paint)
             }
+
             else -> {
                 val paint = makeStrokePaint(tempStroke, width, height)
                 canvas.drawPath(tempStroke.path, paint)
@@ -1143,7 +1143,13 @@ class CanvasView @JvmOverloads constructor(
                     // 🟢 Draw all non-draw elements dimmed
                     canvas.saveLayer(null, null)
                     drawCanvasElements(this) // draw all normally first
-                    canvas.drawRect(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat(), drawingModeOverlayPaint)
+                    canvas.drawRect(
+                        0f,
+                        0f,
+                        canvasWidth.toFloat(),
+                        canvasHeight.toFloat(),
+                        drawingModeOverlayPaint
+                    )
                     canvas.restore()
 
                     // 🟢 Draw live preview path
@@ -2070,51 +2076,76 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
-    private fun drawShapeElement(
-        canvas: Canvas,
-        element: CanvasElement
-    ) {
-        val rect = RectF(
-            element.x,
-            element.y,
-            element.x + element.getLocalContentWidth(),
-            element.y + element.getLocalContentHeight()
+    // In CanvasView.kt's drawShapeElement function
+
+    private fun drawShapeElement(canvas: Canvas, element: CanvasElement) {
+        val localHalfW = element.logicalContentWidth / 2f
+        val localHalfH = element.logicalContentHeight / 2f
+
+        val localRect = RectF(
+            -localHalfW,
+            -localHalfH,
+            localHalfW,
+            localHalfH
         )
 
-        // 🧠 Base paint setup
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            strokeWidth = element.shapeStrokeWidth ?: 10f
-            style = if (element.shapeHasFill && element.shapeHasStroke)
-                Paint.Style.FILL_AND_STROKE
-            else if (element.shapeHasFill)
-                Paint.Style.FILL
-            else
-                Paint.Style.STROKE
+        if (element.shapeHasFill) {
+            val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                // Must be FILL style to ensure the stroke doesn't interfere
+                style = Paint.Style.FILL
 
-            // ✅ Apply fill gradient or solid
-            if (element.shapeHasFill) {
-                if (element.fillGradient != null) {
-                    shader = LinearGradient(
-                        rect.left, rect.top, rect.right, rect.bottom,
-                        element.fillGradient!!.colors.toIntArray(),
-                        element.fillGradient!!.positions?.toFloatArray(),
-                        Shader.TileMode.CLAMP
+                // Set fill color or gradient
+                if (element.shapeFillGradient != null) {
+                    shader = createGradientShader(
+                        element.shapeFillGradient!!, localRect.width(), localRect.height()
                     )
                 } else {
                     color = element.shapeFillColor ?: Color.TRANSPARENT
                 }
-            } else if (element.shapeHasStroke) {
-                color = element.strokeColor ?: Color.BLACK
+                alpha = element.paintAlpha
             }
+            // Draw the fill
+            drawShape(
+                canvas,
+                fillPaint,
+                element.shapeType ?: ShapeType.RECTANGLE,
+                localRect,
+                element.shapeCornerRadius
+            )
         }
 
-        // ✴️ Draw using shared shape function
-        drawShape(canvas, paint, element.shapeType ?: ShapeType.RECTANGLE, rect, element.shapeCornerRadius ?: 0f)
+        // --- Draw the STROKE second (if enabled) ---
+        if (element.shapeHasStroke) {
+            val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                // Must be STROKE style to ensure the fill doesn't interfere
+                style = Paint.Style.STROKE
+                strokeWidth = element.shapeStrokeWidth ?: 1f
+
+                // Set stroke color or gradient
+                if (element.shapeStrokeGradient != null) {
+                    shader = createGradientShader(
+                        element.shapeStrokeGradient!!, localRect.width(), localRect.height()
+                    )
+                } else {
+                    color = element.shapeStrokeColor ?: Color.BLACK
+                }
+                alpha = element.paintAlpha
+                strokeJoin = Paint.Join.ROUND
+                strokeCap = Paint.Cap.ROUND
+            }
+            // Draw the stroke using the same (now inset) rect
+            drawShape(
+                canvas,
+                strokePaint,
+                element.shapeType ?: ShapeType.RECTANGLE,
+                localRect,
+                element.shapeCornerRadius
+            )
+        }
     }
 
     private fun drawDrawElement(
-        canvas: Canvas,
-        element: CanvasElement
+        canvas: Canvas, element: CanvasElement
     ) {
         element.drawStrokes?.forEach { stroke ->
 

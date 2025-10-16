@@ -23,10 +23,5 @@ enum class ShapeType {
     STAR_SEVEN,
     STAR_TEN,
     HEART,
-    CLOUD,
-    DIAMOND,
-    CUBE,
-    BLOCK_ARC,
-    CALL_OUT,
-    CIRCLE
+    DIAMOND
 }

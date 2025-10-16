@@ -1,10 +1,14 @@
 package com.example.urduphotodesigner.ui.editor
 
+import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
+import android.annotation.SuppressLint
 import android.app.Dialog
 import android.content.ContentValues.TAG
+import android.content.Context
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Build
 import android.os.Build.MANUFACTURER
 import android.os.Bundle
@@ -13,6 +17,7 @@ import android.text.TextWatcher
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
@@ -24,7 +29,9 @@ import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.SeekBar
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.AnimRes
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
@@ -61,6 +68,7 @@ import com.example.urduphotodesigner.databinding.DialogAutoSavingLayoutBinding
 import com.example.urduphotodesigner.databinding.FragmentEditorBinding
 import com.example.urduphotodesigner.databinding.LayoutBlendPopupBinding
 import com.example.urduphotodesigner.viewmodels.MainViewModel
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -71,6 +79,10 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+fun Int.dpToPx(context: Context): Int {
+    return (this * context.resources.displayMetrics.density + 0.5f).toInt()
+}
 
 @AndroidEntryPoint
 class EditorFragment : Fragment() {
@@ -102,6 +114,18 @@ class EditorFragment : Fragment() {
     private var lastJsonSaveTime = 0L
     private val saveDebounce = 500L
 
+    private var isFabMenuOpen = false
+    private var fabInitialX = 0f
+    private var fabInitialY = 0f
+    private var fabInitialTouchX = 0f
+    private var fabInitialTouchY = 0f
+    private var fabMargin = 0
+
+    private val pickImage =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+            uri?.let { handlePickedUri(it) }
+        }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -129,8 +153,15 @@ class EditorFragment : Fragment() {
             val navHostFragment =
                 childFragmentManager.findFragmentById(R.id.panelNavHost) as NavHostFragment
             _navController = navHostFragment.navController
+            val destinationMap = mapOf(
+                R.id.textFragment to R.id.nav_text,
+                R.id.drawFragment to R.id.nav_draw,
+                R.id.imagesFragment to R.id.nav_images,
+                R.id.layersFragment to R.id.nav_layers,
+                R.id.objectsFragment to R.id.nav_objects,
+                R.id.backgroundsFragment to R.id.nav_background
+            )
             _navController?.addOnDestinationChangedListener { _, destination, _ ->
-                // Check the destination
                 binding.bottomNavigation.isVisible =
                     destination.id != R.id.adjustmentsParentFragment
             }
@@ -143,9 +174,190 @@ class EditorFragment : Fragment() {
 
         jsonPath = File(requireContext().filesDir, jsonFileName).absolutePath
         imagePath = File(requireContext().filesDir, imageFileName).absolutePath
-
+        fabMargin = 8.dpToPx(requireContext())
         viewModel.clearLoading()
         observeViewModel()
+    }
+
+    private fun handlePickedUri(uri: Uri) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val filePath =
+                    ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+
+                withContext(Dispatchers.Main) {
+                    viewModel.addSticker(
+                        ImageProcessor.filePathToBitmap(filePath!!), requireActivity()
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("ImagesFragment", "Failed to import image", e)
+            }
+        }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun initFab() {
+        val fabMenu = binding.fabMenu
+        val fabAdd = binding.fabAdd
+
+        fabAdd.setOnClickListener {
+            toggleFabMenu(!isFabMenuOpen)
+        }
+
+        binding.addText.addPressEffect {
+            viewModel.addText(requireActivity().getString(R.string.dummyText), requireActivity())
+            navController.navigate(R.id.textFragment)
+            toggleFabMenu(false)
+        }
+
+        binding.addObject.setOnClickListener {
+            navController.navigate(R.id.objectsFragment)
+            toggleFabMenu(false)
+        }
+
+        binding.addShapes.setOnClickListener {
+            viewModel.addShapeElement()
+            val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
+            val bundle = Bundle().apply { putInt("startPage", 1) } // Assuming page 1 is index 0
+            navController.navigate(R.id.drawFragment, bundle, navOptions)
+            toggleFabMenu(false)
+        }
+
+        binding.addImage.setOnClickListener {
+            pickImage.launch("image/*")
+            navController.navigate(R.id.imagesFragment)
+            toggleFabMenu(false)
+        }
+
+        binding.addDraw.setOnClickListener {
+            viewModel.enterDrawingMode()
+            val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
+            val bundle = Bundle().apply { putInt("startPage", 0) } // Assuming page 2 is index 1
+            navController.navigate(R.id.drawFragment, bundle, navOptions)
+            toggleFabMenu(false)
+        }
+
+        fabAdd.setOnTouchListener { v, event ->
+            val parent = binding.fabContainer
+            val parentWidth = parent.width
+            val parentHeight = parent.height
+
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    fabInitialX = v.x
+                    fabInitialY = v.y
+                    fabInitialTouchX = event.rawX
+                    fabInitialTouchY = event.rawY
+                    v.translationZ = 11f
+                }
+
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = event.rawX - fabInitialTouchX
+                    val dy = event.rawY - fabInitialTouchY
+
+                    var newX = fabInitialX + dx
+                    var newY = fabInitialY + dy
+
+                    newX = newX.coerceIn(fabMargin.toFloat(), (parentWidth - v.width - fabMargin).toFloat())
+                    newY = newY.coerceIn(fabMargin.toFloat(), (parentHeight - v.height - fabMargin).toFloat())
+
+                    v.x = newX
+                    v.y = newY
+
+                    if (isFabMenuOpen) {
+                        updateFabMenuPosition(fabAdd, fabMenu)
+                    }
+                }
+                MotionEvent.ACTION_UP -> {
+                    v.translationZ = 10f
+
+                    if (isFabMenuOpen) {
+                        updateFabMenuPosition(fabAdd, fabMenu)
+                    }
+
+                    val deltaX = event.rawX - fabInitialTouchX
+                    val deltaY = event.rawY - fabInitialTouchY
+                    val distance = kotlin.math.sqrt(deltaX * deltaX + deltaY * deltaY)
+
+                    if (distance < 10) {
+                        v.performClick()
+                    }
+                }
+            }
+            true
+        }
+    }
+
+    private fun updateFabMenuPosition(fab: FloatingActionButton, menu: ConstraintLayout) {
+        val menuHeight = menu.height
+
+        val spaceAboveFab = fab.y
+        val isExpandDown = spaceAboveFab < menuHeight + fabMargin
+
+        if (isExpandDown) {
+            menu.x = fab.x + fab.width / 2 - menu.width / 2
+            menu.y = fab.y + fab.height + fabMargin
+        } else {
+            menu.x = fab.x + fab.width / 2 - menu.width / 2
+            menu.y = fab.y - menu.height - fabMargin
+        }
+    }
+
+    private fun toggleFabMenu(show: Boolean) {
+        isFabMenuOpen = show
+        val fabMenu = binding.fabMenu
+        val fabAdd = binding.fabAdd
+
+        if (show) {
+            fabMenu.visibility = View.VISIBLE
+
+            fabMenu.post {
+                updateFabMenuPosition(fabAdd, fabMenu)
+
+                val pivotX = fabAdd.x + fabAdd.width / 2 - fabMenu.x
+                val pivotY = fabAdd.y + fabAdd.height / 2 - fabMenu.y
+
+                fabMenu.pivotX = pivotX
+                fabMenu.pivotY = pivotY
+
+                fabMenu.alpha = 0f
+                fabMenu.scaleX = 0.5f
+                fabMenu.scaleY = 0.5f
+
+                val animatorSet = AnimatorSet()
+                animatorSet.playTogether(
+                    ObjectAnimator.ofFloat(fabMenu, View.ALPHA, 0f, 1f),
+                    ObjectAnimator.ofFloat(fabMenu, View.SCALE_X, 0.5f, 1f),
+                    ObjectAnimator.ofFloat(fabMenu, View.SCALE_Y, 0.5f, 1f)
+                )
+                animatorSet.duration = 200
+                animatorSet.start()
+            }
+
+            // Change FAB icon to 'X' (or rotate the '+')
+            fabAdd.animate().rotation(45f).setDuration(200).start()
+
+        } else {
+            // Collapse/Hide Menu
+            fabAdd.animate().rotation(0f).setDuration(200).start()
+
+            // Recalculate pivots for a smooth collapse animation back to the FAB center
+            val pivotX = fabAdd.x + fabAdd.width / 2 - fabMenu.x
+            val pivotY = fabAdd.y + fabAdd.height / 2 - fabMenu.y
+
+            fabMenu.pivotX = pivotX
+            fabMenu.pivotY = pivotY
+
+            fabMenu.animate()
+                .alpha(0f)
+                .scaleX(0.5f)
+                .scaleY(0.5f)
+                .setDuration(200)
+                .withEndAction {
+                    fabMenu.visibility = View.GONE
+                }.start()
+        }
     }
 
     private fun showTextEditDialog(element: CanvasElement) {
@@ -606,17 +818,22 @@ class EditorFragment : Fragment() {
                                     }
                                 }
 
-                                ElementType.DRAW -> {
-                                    val navOptions = NavOptions.Builder().setLaunchSingleTop(true)
-                                        .setPopUpTo(R.id.drawFragment, inclusive = true).build()
+                                ElementType.DRAW, ElementType.SHAPE -> {
+                                    val startPage = when (element.type) {
+                                        ElementType.DRAW -> 0
+                                        ElementType.SHAPE -> 1
+                                        else -> 0
+                                    }
+
+                                    val bundle = Bundle().apply { putInt("startPage", startPage) }
+                                    val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
 
                                     navController.navigate(
-                                        R.id.drawFragment, null, navOptions
+                                        R.id.drawFragment, bundle, navOptions
                                     )
                                 }
 
                                 else -> {
-                                    // ✍️ Text element or other types
                                     showTextEditDialog(element)
                                 }
                             }
@@ -706,6 +923,20 @@ class EditorFragment : Fragment() {
 
     /** Setup UI controls (undo, redo, align, opacity, etc.) */
     private fun initUIControls() {
+        binding.fabContainer.post {
+            // Set initial position of the FAB to the bottom right of the container
+            val fab = binding.fabAdd
+            val container = binding.fabContainer
+
+            // Ensure width/height are measured (should be by 'post')
+            if (container.width > 0 && container.height > 0) {
+                fab.x = container.width - fab.width - fabMargin.toFloat()
+                fab.y = container.height - fab.height - fabMargin.toFloat()
+            }
+
+            initFab()
+        }
+
         binding.undo.addPressEffect { viewModel.undo() }
         binding.redo.addPressEffect { viewModel.redo() }
         binding.showHide.addPressEffect {

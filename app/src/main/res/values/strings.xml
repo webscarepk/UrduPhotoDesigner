@@ -286,6 +286,11 @@
     <string name="stroke">Stroke</string>
     <string name="stroke_width">Width</string>
     <string name="corner_radius">Radius</string>
+    <string name="add_object">Add Object</string>
+    <string name="add_image">Add Image</string>
+    <string name="add_shape">Add Shape</string>
+    <string name="close_menu">Close Menu</string>
+    <string name="add_elements">Add Elements</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

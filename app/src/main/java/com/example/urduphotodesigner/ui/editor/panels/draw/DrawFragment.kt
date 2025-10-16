@@ -39,7 +39,7 @@ class DrawFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // ✅ Setup adapter once
-        tabs = mutableListOf("Brush", "Shape", "Eraser")
+        tabs = mutableListOf("Brush", "Shape")
 
         adapter = DrawPagerAdapter(
             requireActivity().supportFragmentManager, lifecycle, tabs
@@ -54,6 +54,12 @@ class DrawFragment : Fragment() {
         binding.reset.addPressEffect { viewModel.resetBrushSettings() }
         initObservers()
         setupTabLayout()
+
+        val startPage = arguments?.getInt("startPage", 0) ?: 0
+
+        if (startPage in 0 until tabs.size) {
+            binding.viewPager.setCurrentItem(startPage, false)
+        }
     }
 
     private fun initObservers(){
