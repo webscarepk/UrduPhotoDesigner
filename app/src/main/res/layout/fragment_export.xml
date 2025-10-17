@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white"
+    android:background="@color/contrast"
     tools:context=".ui.editor.export.ExportFragment">
 
     <androidx.constraintlayout.widget.Guideline
@@ -49,10 +49,11 @@
 
     <ImageView
         android:id="@+id/back"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:paddingVertical="12dp"
-        android:paddingEnd="12dp"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:backgroundTint="@color/white"
+        android:padding="7dp"
+        android:background="@drawable/button_bg_round"
         android:src="@drawable/ic_back"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintTop_toBottomOf="@id/topGuide" />
@@ -473,7 +474,7 @@
         android:layout_marginBottom="12dp"
         app:layout_constraintBottom_toTopOf="@id/btnReset"
         android:background="@drawable/button_bg"
-        android:backgroundTint="@color/contrast"
+        android:backgroundTint="@color/white"
         android:id="@+id/exportSummaryCard"
         android:padding="12dp">
         <TextView

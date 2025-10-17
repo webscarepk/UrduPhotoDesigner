@@ -342,6 +342,7 @@ class ExportFragment : Fragment() {
                 withContext(Dispatchers.Main) {
                     stopRotationAnimation(binding.view4)
                     stopIconRotation()
+                    binding.exportProgress.visibility = View.GONE
                     binding.btnExport.isEnabled = true
                     binding.btnExport.alpha = 1.0f
                     binding.btnExport.text = "Export"

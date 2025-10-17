@@ -4,6 +4,7 @@ import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.BitmapShader
 import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
@@ -89,6 +90,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sign
 import kotlin.math.sin
+import androidx.core.graphics.withRotation
 
 class CanvasView @JvmOverloads constructor(
     context: Context,
@@ -770,6 +772,39 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
+    private fun addWatermark(canvas: Canvas, width: Int, height: Int) {
+        val watermarkText = "UrduCanvas"  // Watermark text
+
+        // Load the custom font from the 'res/fonts' folder
+        val watermarkTypeface = ResourcesCompat.getFont(context, R.font.regular)
+
+        // Create a paint object with desired properties
+        val watermarkPaint = Paint().apply {
+            color = "#000000".toColorInt()  // Light gray color for the watermark
+            textSize = 40f  // Adjust text size for the watermark
+            alpha = 50  // Semi-transparent effect (80 out of 255)
+            textAlign = Paint.Align.CENTER
+            isAntiAlias = true
+            style = Paint.Style.FILL
+            typeface = watermarkTypeface
+        }
+
+        val horizontalStep = 250
+        val verticalStep = 250
+        val rotationAngle = 45f
+
+        for (x in 0 until width step horizontalStep) {
+            for (y in 0 until height step verticalStep) {
+                val xPos = x + watermarkPaint.textSize / 2
+                val yPos = y + watermarkPaint.textSize / 2
+
+                canvas.withRotation(rotationAngle, xPos.toFloat(), yPos.toFloat()) {
+                    drawText(watermarkText, xPos.toFloat(), yPos.toFloat(), watermarkPaint)
+                }
+            }
+        }
+    }
+
     fun exportCanvas(
         options: ExportOptions, onProgress: ((percent: Int, stage: String) -> Unit)? = null
     ): Pair<Bitmap, String> {
@@ -789,6 +824,7 @@ class CanvasView @JvmOverloads constructor(
         onProgress?.invoke(40, "Just a few moments")
 
         renderCanvasTo(canvas, scaleFactor)
+        addWatermark(canvas, outputWidth, outputHeight)
         onProgress?.invoke(50, "Please wait")
 
         val elementsWithBitmap = canvasElements.filter { it.bitmap != null }
@@ -847,7 +883,6 @@ class CanvasView @JvmOverloads constructor(
 
         onProgress?.invoke(30, "Rendering thumbnail")
         renderCanvasTo(canvas, scaleFactor)
-
         // Encode element bitmaps (if any)
         val elementsWithBitmap = canvasElements.filter { it.bitmap != null }
         val total = elementsWithBitmap.size
@@ -2133,6 +2168,7 @@ class CanvasView @JvmOverloads constructor(
                 strokeJoin = Paint.Join.ROUND
                 strokeCap = Paint.Cap.ROUND
             }
+            Log.d("CanvasView", "drawShapeElement: ${element.shapeCornerRadius}")
             // Draw the stroke using the same (now inset) rect
             drawShape(
                 canvas,

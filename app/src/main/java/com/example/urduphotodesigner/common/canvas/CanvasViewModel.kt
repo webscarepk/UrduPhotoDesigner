@@ -418,6 +418,8 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun addShapeElement() {
+        val currentList = _canvasElements.value.orEmpty().toMutableList()
+        val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
         val canvasW = _canvasSize.value?.width ?: 0f
         val canvasH = _canvasSize.value?.height ?: 0f
         val element = CanvasElement(
@@ -436,6 +438,7 @@ class CanvasViewModel @Inject constructor(
             y = canvasH / 2f,
             scale = 1f,
             rotation = 0f,
+            zIndex = newZIndex,
             isSelected = true,
             logicalContentWidth = 150f,
             logicalContentHeight = 150f
@@ -454,14 +457,12 @@ class CanvasViewModel @Inject constructor(
         currentList.add(stroke.copy(zIndex = newZIndex, isSelected = false))
         _canvasElements.postValue(currentList)
 
-        // 🟢 Push to undo stack as a draw stroke (not sticker)
         _canvasActions.push(CanvasAction.AddDrawStroke(stroke.copy(context = null, bitmap = null)))
 
         _redoStack.clear()
         notifyUndoRedoChanged()
     }
 
-    // 🖌️ Update brush-related properties, and if a draw element is selected, apply directly
     fun updateBrushProperties(
         color: Int? = null,
         thickness: Float? = null,

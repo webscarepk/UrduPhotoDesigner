@@ -306,6 +306,7 @@ class ShapePanelFragment : Fragment() {
             if (isShapeSelected) {
                 viewModel.updateShapeType(shape)
             } else {
+                viewModel.updateShapeType(shape)
                 viewModel.addShapeElement()
             }
         }
