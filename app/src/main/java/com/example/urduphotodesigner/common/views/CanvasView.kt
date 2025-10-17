@@ -2126,10 +2126,8 @@ class CanvasView @JvmOverloads constructor(
 
         if (element.shapeHasFill) {
             val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                // Must be FILL style to ensure the stroke doesn't interfere
                 style = Paint.Style.FILL
 
-                // Set fill color or gradient
                 if (element.shapeFillGradient != null) {
                     shader = createGradientShader(
                         element.shapeFillGradient!!, localRect.width(), localRect.height()
@@ -2148,7 +2146,6 @@ class CanvasView @JvmOverloads constructor(
                 element.shapeCornerRadius
             )
         }
-
         // --- Draw the STROKE second (if enabled) ---
         if (element.shapeHasStroke) {
             val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -2168,8 +2165,6 @@ class CanvasView @JvmOverloads constructor(
                 strokeJoin = Paint.Join.ROUND
                 strokeCap = Paint.Cap.ROUND
             }
-            Log.d("CanvasView", "drawShapeElement: ${element.shapeCornerRadius}")
-            // Draw the stroke using the same (now inset) rect
             drawShape(
                 canvas,
                 strokePaint,

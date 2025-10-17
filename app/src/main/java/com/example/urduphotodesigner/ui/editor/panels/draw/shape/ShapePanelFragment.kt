@@ -2,6 +2,7 @@ package com.example.urduphotodesigner.ui.editor.panels.draw.shape
 
 import android.content.res.ColorStateList
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -139,10 +140,10 @@ class ShapePanelFragment : Fragment() {
             max = 300
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                    binding.cornerRadius.text = "$progress%"
+                    binding.cornerRadius.text = "$progress"  // Show the progress directly as the value
                     if (fromUser) {
-                        val radius = progress.toFloat() / 100f   // normalized 0.0–1.0
-                        viewModel.updateCornerRadius(radius)
+                        val radius = progress.toFloat()  // Get the radius directly in the range 0-300
+                        viewModel.updateCornerRadius(radius)  // Pass the radius to the viewModel
                     }
                 }
 
@@ -176,10 +177,11 @@ class ShapePanelFragment : Fragment() {
 
             // 🟣 Corner radius
             viewModel.shapeCornerRadius.observe(viewLifecycleOwner) { radius ->
+                Log.d("TAG", "initObserver: $radius")
                 val safeRadius = radius ?: 0f
-                val progress = (safeRadius * 100f).roundToInt().coerceIn(0, 300)
+                val progress = (safeRadius).roundToInt().coerceIn(0, 300)
                 binding.cornerRadiusBar.progress = progress
-                binding.cornerRadius.text = "${progress}%"
+                binding.cornerRadius.text = "$progress"
             }
 
             // ⚫ Fill enabled
