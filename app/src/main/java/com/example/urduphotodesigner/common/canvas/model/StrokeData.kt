@@ -17,20 +17,26 @@ data class StrokeData(
 
     /** Convert Path to list of float coordinates for saving */
     fun serializePath(step: Float = 2f) {
-        if (path.isEmpty) return
+        if (path.isEmpty) {
+            pathData = emptyList()
+            return
+        }
+
         val measure = PathMeasure(path, false)
         val points = mutableListOf<Float>()
         val pos = FloatArray(2)
         var distance = 0f
+
         while (distance < measure.length) {
             measure.getPosTan(distance, pos, null)
             points.add(pos[0])
             points.add(pos[1])
             distance += step
         }
+
         pathData = points
     }
-
+    
     /** Restore Path from saved coordinates when loading JSON */
     fun restorePath() {
         val pts = pathData ?: return
