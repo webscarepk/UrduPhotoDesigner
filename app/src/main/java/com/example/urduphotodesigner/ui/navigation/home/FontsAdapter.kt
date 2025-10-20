@@ -68,7 +68,7 @@ class FontsAdapter(
 
         fun bind(item: FontEntity, progress: ProgressUi) {
             // Preview (if you have thumbnail url or local file)
-            if (item.image_url.isEmpty() && item.font_image.isNotEmpty()) {
+            if (item.image_url.isEmpty() && item.font_image?.isNotEmpty() == true) {
                 // Parse font_image from Base64 to Bitmap
                 Glide.with(itemView.context)
                     .load(item.font_image)

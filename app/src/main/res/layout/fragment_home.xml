@@ -79,20 +79,21 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:background="@drawable/button_bg_stroke_fill"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
             android:fontFamily="@font/regular"
             android:drawableEnd="@drawable/ic_search"
             android:drawablePadding="12dp"
             android:paddingHorizontal="12dp"
             android:paddingVertical="10dp"
             android:textSize="12sp"
-            android:hint="@string/search_templates"
-            android:textColorHint="@color/gray"
-            android:drawableTint="@color/gray"
-            android:textColor="@color/black"
+            android:hint="@string/search_templates_fonts_and_assets"
+            android:translationZ="1dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/subscriptions"
-            android:layout_marginTop="18dp"/>
+            android:textColorHint="@color/gray"
+            android:textColor="@color/black"
+            android:layout_marginEnd="6dp"
+            android:layout_marginTop="12dp"/>
 
         <LinearLayout
             android:layout_width="0dp"

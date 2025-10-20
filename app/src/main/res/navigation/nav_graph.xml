@@ -97,4 +97,9 @@
         android:name="com.example.urduphotodesigner.ui.editor.panels.removeBg.BgRemovalFragment"
         android:label="fragment_bg_removal"
         tools:layout="@layout/fragment_bg_removal" />
+    <fragment
+        android:id="@+id/searchFragment"
+        android:name="com.example.urduphotodesigner.ui.navigation.home.SearchFragment"
+        android:label="fragment_search"
+        tools:layout="@layout/fragment_search" />
 </navigation>

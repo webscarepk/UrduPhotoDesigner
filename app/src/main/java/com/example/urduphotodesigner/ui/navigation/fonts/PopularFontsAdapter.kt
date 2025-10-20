@@ -110,7 +110,7 @@ class PopularFontsAdapter(
         }
 
         private fun loadImage(item: FontEntity) {
-            if (item.image_url.isEmpty() && item.font_image.isNotEmpty()) {
+            if (item.image_url.isEmpty() && item.font_image?.isNotEmpty() == true) {
                 Glide.with(itemView.context).load(item.font_image).into(binding.image)
                 binding.shimmerLayout.hideShimmer()
             } else {

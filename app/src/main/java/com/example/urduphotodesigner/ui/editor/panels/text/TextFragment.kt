@@ -274,10 +274,7 @@ class TextFragment : Fragment() {
                 }
 
                 val fontFile = copyToTempWithExtension(uri, ".$ext")
-                val typeface = Typeface.createFromFile(fontFile)
 
-                val fontImageBitmap = createFontSampleBitmap(typeface)
-                val bitmapData = ImageProcessor.bitmapToFilePath(requireActivity(), fontImageBitmap)
                 val exportDate =
                     SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
                 val fontEntity = FontEntity(
@@ -288,7 +285,7 @@ class TextFragment : Fragment() {
                     font_language = "Imported",
                     file_url = "",
                     file_size = fontFile.length().toString(),
-                    font_image = bitmapData,
+                    font_image = null,
                     image_url = "",
                     alt_text = "Font sample image",
                     user_id = 0,

@@ -291,6 +291,8 @@
     <string name="add_shape">Add Shape</string>
     <string name="close_menu">Close Menu</string>
     <string name="add_elements">Add Elements</string>
+    <string name="search">Search</string>
+    <string name="search_templates_fonts_and_assets">Search templates, fonts and assets</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

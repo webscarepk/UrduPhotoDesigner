@@ -179,10 +179,6 @@ class FilesListFragment : Fragment() {
                 lifecycleScope.launch(Dispatchers.IO) {
                     try {
                         val fontFile = copyToTemp(uri, ".$ext")
-                        val typeface = Typeface.createFromFile(fontFile)
-                        val fontImage = createFontSampleBitmap(typeface)
-                        val previewPath =
-                            ImageProcessor.bitmapToFilePath(requireActivity(), fontImage)
                         val exportDate =
                             SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
@@ -194,7 +190,7 @@ class FilesListFragment : Fragment() {
                             font_language = "Imported",
                             file_url = "",
                             file_size = fontFile.length().toString(),
-                            font_image = previewPath,
+                            font_image = null,
                             image_url = "",
                             alt_text = "Font sample image",
                             user_id = 0,

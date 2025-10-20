@@ -6,6 +6,8 @@ import android.app.Dialog
 import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -55,6 +57,7 @@ class HomeFragment : Fragment() {
     private var downloadingTemplate: TemplateEntity? = null
     private var rotationAnimator: ObjectAnimator? = null
 
+    private var isNavigatingToSearch = false
     val navOptions = NavOptions.Builder()
         .setLaunchSingleTop(true)
         .build()
@@ -286,6 +289,37 @@ class HomeFragment : Fragment() {
         binding.fileTab.addPressEffect {
            view?.post {  findNavController().navigate(R.id.filesFragment) }
         }
+
+        binding.searchBar.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                val query = s.toString()
+
+                if (!isNavigatingToSearch && query.isNotEmpty()) {
+                    isNavigatingToSearch = true
+
+                    mainViewModel.setQuery(query)
+                    val bundle = Bundle().apply {
+                        putString("initialQuery", query)
+                    }
+
+                    val options = NavOptions.Builder()
+                        .setEnterAnim(R.anim.slide_in_up)
+                        .setExitAnim(0)
+                        .setPopEnterAnim(0)
+                        .setPopExitAnim(R.anim.slide_out_down)
+                        .build()
+
+                    findNavController().navigate(R.id.searchFragment, bundle, options)
+                } else if (query.isEmpty()) {
+                    // Reset when user clears text
+                    isNavigatingToSearch = false
+                }
+            }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        })
+
     }
 
     private fun initObservers() {
@@ -506,6 +540,8 @@ class HomeFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        isNavigatingToSearch = false
+        binding.searchBar.text?.clear()
         if (findNavController().currentDestination?.id!! != R.id.editorFragment) {
             viewModel.clearCanvas()
         }
