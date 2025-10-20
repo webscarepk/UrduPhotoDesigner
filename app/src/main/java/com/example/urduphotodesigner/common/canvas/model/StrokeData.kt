@@ -36,7 +36,7 @@ data class StrokeData(
 
         pathData = points
     }
-    
+
     /** Restore Path from saved coordinates when loading JSON */
     fun restorePath() {
         val pts = pathData ?: return
