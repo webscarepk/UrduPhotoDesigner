@@ -94,6 +94,17 @@ class BrushFragment : Fragment() {
     override fun onDestroy() {
         super.onDestroy()
         _binding = null
+        viewModel.exitDrawingMode()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        viewModel.stopPicking()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        viewModel.exitDrawingMode()
     }
 
     companion object {

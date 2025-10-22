@@ -265,22 +265,32 @@ data class CanvasElement(
 
     fun getDrawBounds(): RectF {
         val strokes = drawStrokes ?: return RectF(0f, 0f, 0f, 0f)
-        val bounds = RectF()
+        if (strokes.isEmpty()) return RectF(0f, 0f, 0f, 0f)
 
         var minX = Float.MAX_VALUE
         var minY = Float.MAX_VALUE
         var maxX = -Float.MAX_VALUE
         var maxY = -Float.MAX_VALUE
-
         var hasValidStroke = false
 
         for (stroke in strokes) {
-            val path = stroke.path
-            val pathBounds = RectF()
-            path.computeBounds(pathBounds, true)
+            // ✅ Defensive guard — make sure path exists and has data
+            if (stroke.path == null || stroke.path!!.isEmpty) {
+                stroke.restorePath()
+            }
 
-            // Account for stroke thickness
-            val expand = stroke.thickness * 0.5f
+            val path = stroke.path
+            if (path == null || path.isEmpty) continue // skip invalid stroke
+
+            val pathBounds = RectF()
+            try {
+                path.computeBounds(pathBounds, true)
+            } catch (e: Exception) {
+                // Skip broken path safely
+                continue
+            }
+
+            val expand = (stroke.thickness.takeIf { it.isFinite() } ?: 0f) * 0.5f
             pathBounds.inset(-expand, -expand)
 
             minX = minOf(minX, pathBounds.left)
@@ -293,32 +303,8 @@ data class CanvasElement(
 
         if (!hasValidStroke) return RectF(0f, 0f, 0f, 0f)
 
-        // ✅ Convert to local-space centered bounds (like text)
         val width = maxX - minX
         val height = maxY - minY
-        bounds.set(-width / 2f, -height / 2f, width / 2f, height / 2f)
-
-        // ✅ Optional small padding for selection clarity
-        bounds.inset(-6f, -6f)
-
-        return bounds
-    }
-
-    fun getMatrix(): Matrix {
-        val matrix = Matrix()
-
-        // 1. Scale around the local origin (0, 0)
-        matrix.postScale(scale, scale)
-
-        // 2. Rotate around the local origin (0, 0)
-        val normalizedRotation = rotation % 360f
-        if (normalizedRotation != 0f) {
-            matrix.postRotate(normalizedRotation)
-        }
-
-        // 3. Translate to the final world position (x, y)
-        matrix.postTranslate(x, y)
-
-        return matrix
+        return RectF(-width / 2f - 6f, -height / 2f - 6f, width / 2f + 6f, height / 2f + 6f)
     }
 }

@@ -6,7 +6,7 @@ import com.example.urduphotodesigner.common.canvas.enums.BrushStyle
 import java.io.Serializable
 
 data class StrokeData(
-    @Transient var path: Path = Path(),
+    @Transient var path: Path? = Path(),
     var color: Int = 0,
     var thickness: Float = 0f,
     var hardness: Float = 1f,
@@ -17,11 +17,15 @@ data class StrokeData(
 
     /** Convert Path to list of float coordinates for saving */
     fun serializePath(step: Float = 2f) {
-        if (path.isEmpty) {
+        val currentPath = path ?: run {
             pathData = emptyList()
             return
         }
 
+        if (currentPath.isEmpty) {
+            pathData = emptyList()
+            return
+        }
         val measure = PathMeasure(path, false)
         val points = mutableListOf<Float>()
         val pos = FloatArray(2)
@@ -42,9 +46,9 @@ data class StrokeData(
         val pts = pathData ?: return
         if (pts.size < 4) return
         path = Path()
-        path.moveTo(pts[0], pts[1])
+        path?.moveTo(pts[0], pts[1])
         for (i in 2 until pts.size step 2) {
-            path.lineTo(pts[i], pts[i + 1])
+            path?.lineTo(pts[i], pts[i + 1])
         }
     }
 }

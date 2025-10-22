@@ -92,7 +92,6 @@ class MainActivity : AppCompatActivity() {
         binding.bottomNavigation.setupWithNavController(navController)
 
         binding.bottomNavigation.setOnItemSelectedListener { item ->
-            // Navigation only, NO selection handling here
             when (item.itemId) {
                 R.id.nav_home -> {
                     if (navController.currentDestination?.id != R.id.homeFragment) {

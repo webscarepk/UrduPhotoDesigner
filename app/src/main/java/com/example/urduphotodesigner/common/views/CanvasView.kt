@@ -827,7 +827,7 @@ class CanvasView @JvmOverloads constructor(
         addWatermark(canvas, outputWidth, outputHeight)
         onProgress?.invoke(50, "Please wait")
 
-        val elementsWithBitmap = canvasElements.filter { it.bitmap != null }
+        val elementsWithBitmap = canvasElements
         val total = elementsWithBitmap.size
         if (total > 0) {
             onProgress?.invoke(70, "Encoding image data")
@@ -884,7 +884,7 @@ class CanvasView @JvmOverloads constructor(
         onProgress?.invoke(30, "Rendering thumbnail")
         renderCanvasTo(canvas, scaleFactor)
         // Encode element bitmaps (if any)
-        val elementsWithBitmap = canvasElements.filter { it.bitmap != null }
+        val elementsWithBitmap = canvasElements
         val total = elementsWithBitmap.size
         if (total > 0) {
             onProgress?.invoke(70, "Encoding image data")
@@ -916,7 +916,7 @@ class CanvasView @JvmOverloads constructor(
             element.copy(
                 drawStrokes = element.drawStrokes?.toList()?.map { s ->
                     // Copy each stroke (with its own path)
-                    s.copy(path = Path(s.path))
+                    s.copy(path = s.path?.let { Path(it) })
                 }?.toMutableList()
             )
         }
@@ -1128,7 +1128,7 @@ class CanvasView @JvmOverloads constructor(
                     pathEffect = DashPathEffect(floatArrayOf(4f, 4f), 0f)
                     alpha = 180
                 }
-                canvas.drawPath(tempStroke.path, paint)
+                canvas.drawPath(tempStroke.path!!, paint)
             }
 
             BrushStyle.HIGHLIGHTER -> {
@@ -1136,7 +1136,7 @@ class CanvasView @JvmOverloads constructor(
                     alpha = 130
                     strokeCap = Paint.Cap.BUTT
                 }
-                canvas.drawPath(tempStroke.path, paint)
+                canvas.drawPath(tempStroke.path!!, paint)
             }
 
             BrushStyle.MARKER -> {
@@ -1144,12 +1144,12 @@ class CanvasView @JvmOverloads constructor(
                     alpha = 240
                     strokeCap = Paint.Cap.BUTT
                 }
-                canvas.drawPath(tempStroke.path, paint)
+                canvas.drawPath(tempStroke.path!!, paint)
             }
 
             else -> {
                 val paint = makeStrokePaint(tempStroke, width, height)
-                canvas.drawPath(tempStroke.path, paint)
+                canvas.drawPath(tempStroke.path!!, paint)
             }
         }
     }
@@ -2201,7 +2201,7 @@ class CanvasView @JvmOverloads constructor(
 
                 else -> {
                     val paint = makeStrokePaint(stroke, width, height)
-                    canvas.drawPath(stroke.path, paint)
+                    canvas.drawPath(stroke.path!!, paint)
                 }
             }
         }

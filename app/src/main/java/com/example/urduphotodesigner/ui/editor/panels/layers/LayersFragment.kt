@@ -325,7 +325,7 @@ class LayersFragment : Fragment() {
                 titleText = getString(R.string.confirm_delete),
                 subtitleText = getString(R.string.delete_layer)
             ) {
-                viewModel.removeSelectedElements()
+                viewModel.removeElement(element)
 
             }
             popupWindow.dismiss()
@@ -339,7 +339,6 @@ class LayersFragment : Fragment() {
             val anchorTop = location[1]
             val anchorBottom = anchorTop + anchorView.height
 
-            // Measure popup height
             popupBinding.root.measure(
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
@@ -350,16 +349,13 @@ class LayersFragment : Fragment() {
             val spaceAbove = anchorTop
 
             if (spaceBelow >= popupHeight) {
-                // Enough space below → dropdown
                 popupWindow.showAsDropDown(anchorView)
             } else if (spaceAbove >= popupHeight) {
-                // Enough space above → show on top
                 popupWindow.showAtLocation(
                     anchorView, Gravity.NO_GRAVITY, location[0], // x
                     anchorTop - popupHeight // y (above anchor)
                 )
             } else {
-                // Default fallback → force dropdown
                 popupWindow.showAsDropDown(anchorView)
             }
         }

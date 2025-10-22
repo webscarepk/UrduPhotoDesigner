@@ -3,25 +3,32 @@ package com.example.urduphotodesigner.common.canvas.enums
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class ShapeType {
-    RECTANGLE,
-    ROUNDED_RECTANGLE,
-    ELLIPSE,
-    LINE,
-    ARROW_RIGHT,
-    ARROW_LEFT,
-    DOUBLE_ARROW,
-    TRIANGLE,
-    RIGHT_TRIANGLE,
-    PARALLELOGRAM,
-    TRAPEZOID,
-    PENTAGON,
-    HEXAGON,
-    OCTAGON,
-    STAR_FIVE,
-    STAR_SIX,
-    STAR_SEVEN,
-    STAR_TEN,
-    HEART,
-    DIAMOND
+enum class ShapeType(val displayName: String) {
+    RECTANGLE("Rectangle"),
+    ROUNDED_RECTANGLE("Rounded Rectangle"),
+    ELLIPSE("Ellipse"),
+    LINE("Line"),
+    ARROW_RIGHT("Arrow →"),
+    ARROW_LEFT("← Arrow"),
+    DOUBLE_ARROW("⇄ Double Arrow"),
+    TRIANGLE("Triangle"),
+    RIGHT_TRIANGLE("Right Triangle"),
+    PARALLELOGRAM("Parallelogram"),
+    TRAPEZOID("Trapezoid"),
+    PENTAGON("Pentagon"),
+    HEXAGON("Hexagon"),
+    OCTAGON("Octagon"),
+    STAR_FIVE("★ 5-Point Star"),
+    STAR_SIX("✶ 6-Point Star"),
+    STAR_SEVEN("✷ 7-Point Star"),
+    STAR_TEN("✸ 10-Point Star"),
+    HEART("♥ Heart"),
+    DIAMOND("♦ Diamond");
+
+    companion object {
+        /** Get ShapeType by display name (case-insensitive) */
+        fun fromDisplayName(name: String): ShapeType? {
+            return values().find { it.displayName.equals(name, ignoreCase = true) }
+        }
+    }
 }

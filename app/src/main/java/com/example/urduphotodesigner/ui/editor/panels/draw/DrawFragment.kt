@@ -110,5 +110,23 @@ class DrawFragment : Fragment() {
     override fun onDestroy() {
         super.onDestroy()
         _binding = null
+        viewModel.exitDrawingMode()
+    }
+
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        if (hidden) {
+            viewModel.exitDrawingMode()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        viewModel.exitDrawingMode()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        viewModel.exitDrawingMode()
     }
 }

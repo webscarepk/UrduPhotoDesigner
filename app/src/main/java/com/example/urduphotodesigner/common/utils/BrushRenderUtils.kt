@@ -256,8 +256,8 @@ object BrushRenderUtils {
             BrushStyle.HIGHLIGHTER -> {
                 val paint = makePaint(stroke, width, height)
                 val offset = stroke.thickness * 0.3f
-                val path = android.graphics.Path(stroke.path)
-                val m = android.graphics.Matrix()
+                val path = Path(stroke.path)
+                val m = Matrix()
                 m.postTranslate(0f, offset)
                 path.transform(m)
                 canvas.drawPath(path, paint)
@@ -265,7 +265,7 @@ object BrushRenderUtils {
 
             else -> {
                 val paint = makePaint(stroke, width, height)
-                canvas.drawPath(stroke.path, paint)
+                canvas.drawPath(stroke.path!!, paint)
             }
         }
     }

@@ -43,6 +43,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.core.view.isVisible
 
 @AndroidEntryPoint
 class ExportFragment : Fragment() {
@@ -393,7 +394,7 @@ class ExportFragment : Fragment() {
             .setListener(null)
             .withEndAction {
                 // Loop the rotation
-                if (view.visibility == View.VISIBLE) {
+                if (view.isVisible) {
                     startRotationAnimation(view)
                 }
             }
@@ -420,12 +421,10 @@ class ExportFragment : Fragment() {
         options: ExportOptions,
         bitmap: Bitmap? = null
     ): Double {
-        // 1. Agar exportResult me fileSize already save hai
         if (exportResult?.fileSizeMB != null && exportResult.fileSizeMB > 0) {
             return exportResult.fileSizeMB
         }
 
-        // 2. Agar koi path available hai aur file exist karti hai
         val path = exportResult?.imagePath ?: exportResult?.pdfPath
         if (!path.isNullOrEmpty()) {
             val file = File(path)
@@ -434,10 +433,8 @@ class ExportFragment : Fragment() {
             }
         }
 
-        // 3. Fallback estimation (agar abhi tak file generate nahi hui)
         return when {
             options.format.name.equals("PDF", true) -> {
-                // rough estimation for PDF
                 val canvasSize = viewModel.canvasSize.value
                 if (canvasSize != null) {
                     (canvasSize.width * canvasSize.height * 3.0) / (1024.0 * 1024.0)
@@ -480,7 +477,6 @@ class ExportFragment : Fragment() {
                     requireContext().contentResolver.openOutputStream(it)?.use { stream ->
                         val pdfDoc = PdfDocument()
 
-                        // use 72dpi A4 (lighter than 300dpi)
                         val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
                         val page = pdfDoc.startPage(pageInfo)
 

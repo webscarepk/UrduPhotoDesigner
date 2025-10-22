@@ -356,14 +356,27 @@ class BrushPanelFragment : Fragment() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        _binding = null
+        viewModel.exitDrawingMode()
+    }
+
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        if (hidden) {
+            viewModel.exitDrawingMode()
+        }
+    }
+
     override fun onPause() {
         super.onPause()
         viewModel.stopPicking()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        _binding = null
+    override fun onStop() {
+        super.onStop()
+        viewModel.exitDrawingMode()
     }
 
     companion object {
