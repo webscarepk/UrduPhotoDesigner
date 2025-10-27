@@ -61,9 +61,14 @@ class FontLanguagesAdapter(
                 val pos = adapterPosition
                 if (pos == RecyclerView.NO_POSITION) return@addPressEffect
                 val row = fonts[pos]
-                val collapse = row.is_selected
-                onLanguageExpanded(row.name, collapse)
+
+                // Toggle selection
+                row.is_selected = !row.is_selected
+                notifyItemChanged(pos)
+
+                onLanguageExpanded(row.name, !row.is_selected)
             }
+
         }
 
         fun bind(font: FontLanguages) {

@@ -58,7 +58,7 @@
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
             android:contentDescription="@string/add_elements"
-            app:fabSize="normal"
+            app:fabSize="mini"
             app:tint="@color/black"
             app:backgroundTint="@color/white"
             android:src="@drawable/ic_add"
