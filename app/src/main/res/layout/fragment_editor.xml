@@ -380,6 +380,8 @@
                     android:layout_width="38dp"
                     android:layout_height="38dp"
                     android:text="32"
+                    android:background="@drawable/button_bg"
+                    android:backgroundTint="@color/white"
                     android:visibility="gone"
                     android:fontFamily="@font/bold"
                     android:textColor="@color/black"
@@ -431,6 +433,8 @@
                     android:id="@+id/blendIcon"
                     android:tooltipText="@string/blend"
                     android:padding="6dp"
+                    android:background="@drawable/button_bg"
+                    android:backgroundTint="@color/white"
                     android:src="@drawable/ic_blend"
                     app:tint="@color/black"/>
 
@@ -470,6 +474,8 @@
                 android:layout_width="38dp"
                 android:layout_height="38dp"
                 android:text="32"
+                android:background="@drawable/button_bg"
+                android:backgroundTint="@color/white"
                 android:visibility="visible"
                 android:fontFamily="@font/bold"
                 android:textColor="@color/black"
