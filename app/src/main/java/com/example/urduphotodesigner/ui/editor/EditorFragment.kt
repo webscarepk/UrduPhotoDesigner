@@ -7,6 +7,7 @@ import android.annotation.SuppressLint
 import android.app.Dialog
 import android.content.ContentValues.TAG
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
@@ -31,7 +32,9 @@ import android.widget.SeekBar
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.AnimRes
+import androidx.annotation.ColorRes
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
@@ -96,7 +99,7 @@ class EditorFragment : Fragment() {
     private var currentUnit = UnitType.PIXELS
     private val viewModel: CanvasViewModel by activityViewModels()
     private var lastSelection: List<CanvasElement> = emptyList()
-
+    private var activePanel: View? = null
     private val mainViewModel: MainViewModel by activityViewModels()
     private var currentPanelItemId: Int? = null
     private lateinit var sizedCanvasView: CanvasView
@@ -952,10 +955,55 @@ class EditorFragment : Fragment() {
             updateToolbarVisibility(viewModel.selectedElements.value ?: emptyList())
         }
 
-        binding.opacityIcon.addPressEffect { togglePanel(showOpacityPanel = true) }
-        binding.opacityValue.addPressEffect { togglePanel(showOpacityPanel = true) }
-        binding.fontSize.addPressEffect { togglePanel(showOpacityPanel = false) }
-        binding.blendIcon.addPressEffect { toggleBlendPanel() }
+        binding.opacityIcon.addPressEffect {
+            togglePanel(showOpacityPanel = true)
+            binding.opacityValue.setTextColor(ColorStateList.valueOf(colorOf(R.color.white)))
+            binding.opacityValue.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.appColor))
+            resetFontSizeState()
+            resetBlendState()
+            activePanel = binding.opacityValue
+        }
+
+        binding.opacityValue.addPressEffect {
+            togglePanel(showOpacityPanel = true)
+            binding.opacityValue.setTextColor(ColorStateList.valueOf(colorOf(R.color.black)))
+            binding.opacityValue.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.white))
+            resetFontSizeState()
+            resetBlendState()
+            activePanel = null
+        }
+
+        binding.fontSize.addPressEffect {
+            if (activePanel == binding.fontSize){
+                resetFontSizeState()
+                resetOpacityState()
+                resetBlendState()
+                activePanel = null
+            }else{
+                binding.fontSize.setTextColor(ColorStateList.valueOf(colorOf(R.color.white)))
+                binding.fontSize.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.appColor))
+                resetOpacityState()
+                resetBlendState()
+                activePanel = binding.fontSize
+            }
+            togglePanel(showOpacityPanel = false)
+        }
+
+        binding.blendIcon.addPressEffect {
+            if (activePanel == binding.blendIcon){
+                resetBlendState()
+                resetOpacityState()
+                resetFontSizeState()
+                activePanel = null
+            }else{
+                binding.blendIcon.imageTintList = ColorStateList.valueOf(colorOf(R.color.white))
+                binding.blendIcon.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.appColor))
+                resetOpacityState()
+                resetFontSizeState()
+                activePanel = binding.blendIcon
+            }
+            toggleBlendPanel()
+        }
 
         binding.artBoard.addPressEffect {
             if (currentMode != MultiAlignMode.CANVAS) {
@@ -1044,6 +1092,25 @@ class EditorFragment : Fragment() {
                 findNavController().navigate(R.id.exportFragment)
             }
         }
+    }
+
+    private fun colorOf(@ColorRes colorRes: Int): Int {
+        return ContextCompat.getColor(requireActivity(), colorRes)
+    }
+
+    private fun resetOpacityState() {
+        binding.opacityValue.setTextColor(ColorStateList.valueOf(colorOf(R.color.black)))
+        binding.opacityValue.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.white))
+    }
+
+    private fun resetFontSizeState() {
+        binding.fontSize.setTextColor(ColorStateList.valueOf(colorOf(R.color.black)))
+        binding.fontSize.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.white))
+    }
+
+    private fun resetBlendState() {
+        binding.blendIcon.imageTintList = ColorStateList.valueOf(colorOf(R.color.black))
+        binding.blendIcon.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.white))
     }
 
     private fun showItemPopupMenu(anchorView: View) {
@@ -1144,6 +1211,7 @@ class EditorFragment : Fragment() {
             binding.blendSpinner.isVisible = false
         } else {
             // show blendSpinner, hide other panels
+            activePanel = binding.blendIcon
             binding.blendSpinner.isVisible = true
             binding.seekBarOpacity.isVisible = false
             binding.opacityValue.isVisible = false
@@ -1160,6 +1228,7 @@ class EditorFragment : Fragment() {
                 binding.opacityValue.isVisible = false
                 binding.opacityIcon.isVisible = true
             } else {
+                activePanel = binding.opacityValue
                 binding.seekBarOpacity.isVisible = true
                 binding.opacityIcon.isVisible = false
                 binding.opacityValue.isVisible = true
@@ -1172,6 +1241,7 @@ class EditorFragment : Fragment() {
             if (isCurrentlyVisible) {
                 binding.seekBarFontSize.isVisible = false
             } else {
+                activePanel = binding.fontSize
                 binding.seekBarFontSize.isVisible = true
                 binding.seekBarOpacity.isVisible = false
                 binding.opacityValue.isVisible = false
