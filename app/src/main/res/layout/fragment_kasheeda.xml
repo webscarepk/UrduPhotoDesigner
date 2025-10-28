@@ -151,6 +151,7 @@
             android:id="@+id/kashidaValue"/>
 
         <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
             android:id="@+id/kashidaSeekBar"
             android:layout_marginTop="3dp"
             android:layout_width="0dp"

@@ -6,6 +6,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.example.urduphotodesigner.ui.editor.panels.adjustments.custom.AdjustmentsFragment
 import com.example.urduphotodesigner.ui.editor.panels.adjustments.filters.FiltersFragment
+import com.example.urduphotodesigner.ui.editor.panels.adjustments.mask.MaskFragment
 
 class EffectsPagerAdapter(
     fragmentManager: FragmentManager,
@@ -21,6 +22,7 @@ class EffectsPagerAdapter(
         return when (position) {
             0 -> AdjustmentsFragment.newInstance()  // Brightness, contrast, etc.
             1 -> FiltersFragment.newInstance(elementId)      // Filters, presets, etc.
+            2 -> MaskFragment.newInstance(elementId)      // Filters, presets, etc.
             else -> AdjustmentsFragment.newInstance()
         }
     }

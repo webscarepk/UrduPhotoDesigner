@@ -133,6 +133,7 @@
 
 
         <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
             android:id="@+id/border"
             android:layout_width="0dp"
             android:layout_height="wrap_content"

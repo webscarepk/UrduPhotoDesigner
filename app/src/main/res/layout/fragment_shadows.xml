@@ -69,6 +69,7 @@
                 app:layout_constraintTop_toTopOf="@id/shadowXTitle" />
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/shadowX"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -123,6 +124,7 @@
 
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/shadowY"
                 android:layout_marginTop="3dp"
                 android:layout_width="0dp"
@@ -175,6 +177,7 @@
                 android:id="@+id/opacitySize"/>
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/opacity"
                 android:layout_marginTop="3dp"
                 android:layout_width="0dp"
@@ -227,6 +230,7 @@
 
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/radius"
                 android:layout_marginTop="3dp"
                 android:layout_width="0dp"

@@ -58,6 +58,7 @@
                 app:layout_constraintTop_toTopOf="@id/thicknessTitle" />
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/thicknessBar"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -112,6 +113,7 @@
                 app:layout_constraintTop_toTopOf="@id/hardnessTitle" />
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/hardnessBar"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"

@@ -55,6 +55,7 @@
                 android:id="@+id/brightnessSize"/>
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/brightness"
                 android:layout_marginTop="3dp"
                 android:layout_width="0dp"
@@ -109,6 +110,7 @@
 
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/contrast"
                 android:layout_marginTop="3dp"
                 android:layout_width="0dp"
@@ -162,6 +164,7 @@
 
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/shadows"
                 android:layout_marginTop="3dp"
                 android:layout_width="0dp"
@@ -215,6 +218,7 @@
                 android:layout_marginStart="6dp"/>
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/highlights"
                 android:layout_marginTop="3dp"
                 android:layout_width="0dp"

@@ -8,9 +8,11 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.utils.BitmapCache
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentAdjustmentsParentBinding
@@ -18,6 +20,7 @@ import com.example.urduphotodesigner.ui.editor.panels.background.BackgroundPager
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class AdjustmentsParentFragment : Fragment() {
@@ -49,7 +52,41 @@ class AdjustmentsParentFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // ✅ Setup adapter once
+        setEvents()
+        setupTabLayout()
+        initObservers()
+    }
+
+    private fun initObservers() {
+        viewModel.selectedElements.observe(viewLifecycleOwner) { selectedList ->
+            val selected = selectedList.firstOrNull()
+            val hasMask = selected?.type == ElementType.SHAPE && selected.bitmap != null
+
+            val newTabs = mutableListOf("Adjust", "Filters")
+            if (hasMask) newTabs.add("Mask")
+
+            if (tabs != newTabs) {
+                tabs = newTabs
+
+                // 🧠 Recreate the adapter with new tabs
+                elementId?.let {
+                    adapter = EffectsPagerAdapter(
+                        requireActivity().supportFragmentManager,
+                        lifecycle,
+                        tabs,
+                        it
+                    )
+                }
+
+                // 🌀 Re-attach adapter & re-bind tab layout
+                binding.viewPager.adapter = adapter
+                binding.viewPager.isUserInputEnabled = false
+                setupTabLayout()
+            }
+        }
+    }
+
+    private fun setEvents() {
         tabs = mutableListOf("Adjust", "Filters")
 
         elementId?.let {
@@ -66,7 +103,6 @@ class AdjustmentsParentFragment : Fragment() {
         binding.viewPager.isUserInputEnabled = false
         binding.done.addPressEffect { findNavController().navigateUp() }
         binding.reset.addPressEffect { viewModel.resetAdjustments() }
-        setupTabLayout()
     }
 
     private fun setupTabLayout() {

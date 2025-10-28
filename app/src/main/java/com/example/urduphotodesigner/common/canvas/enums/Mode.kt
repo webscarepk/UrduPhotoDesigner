@@ -14,6 +14,8 @@ enum class Mode {
 
     @SerializedName("Resize")
     RESIZE,
+    @SerializedName("TransForm")
+    TRANSFORM,
 
     @SerializedName("MultiTouch")
     MULTI_TOUCH,

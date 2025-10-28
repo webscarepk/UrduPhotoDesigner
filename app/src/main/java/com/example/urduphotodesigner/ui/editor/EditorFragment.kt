@@ -139,7 +139,7 @@ class EditorFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        activity?.window?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+//        activity?.window?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             requireActivity().window.insetsController?.show(
@@ -158,14 +158,7 @@ class EditorFragment : Fragment() {
             val navHostFragment =
                 childFragmentManager.findFragmentById(R.id.panelNavHost) as NavHostFragment
             _navController = navHostFragment.navController
-            val destinationMap = mapOf(
-                R.id.textFragment to R.id.nav_text,
-                R.id.drawFragment to R.id.nav_draw,
-                R.id.imagesFragment to R.id.nav_images,
-                R.id.layersFragment to R.id.nav_layers,
-                R.id.objectsFragment to R.id.nav_objects,
-                R.id.backgroundsFragment to R.id.nav_background
-            )
+
             _navController?.addOnDestinationChangedListener { _, destination, _ ->
                 binding.bottomNavigation.isVisible =
                     destination.id != R.id.adjustmentsParentFragment
@@ -741,13 +734,14 @@ class EditorFragment : Fragment() {
         val hasText = selected.any { it.type == ElementType.TEXT }
         val hasImage = selected.any { it.type == ElementType.IMAGE }
         val hasBackground = selected.any { it.type == ElementType.BACKGROUND }
+        val hasShapeMask = selected.any { it.type == ElementType.SHAPE && it.bitmap != null}
         val isMulti = selected.size > 1
         val anySelected = selected.isNotEmpty()
 
         val showFont = anySelected && hasText && !isMulti && !hasImage && !hasBackground
         val showCopy = anySelected && !hasBackground && !isMulti
         val showAlignWithSelection = isMulti
-        val showRemoveBg = hasImage || hasBackground && !isMulti
+        val showRemoveBg = hasImage || hasBackground || hasShapeMask && !isMulti
 
         updateIconVisibility(binding.opacityPane, anySelected)
         updateIconVisibility(binding.blendPane, anySelected)
@@ -824,18 +818,42 @@ class EditorFragment : Fragment() {
                                 }
 
                                 ElementType.DRAW, ElementType.SHAPE -> {
-                                    val startPage = when (element.type) {
-                                        ElementType.DRAW -> 0
-                                        ElementType.SHAPE -> 1
-                                        else -> 0
+                                    // ✅ If SHAPE contains a masked image → open Image Adjustments instead
+                                    if (element.type == ElementType.SHAPE && element.bitmap != null) {
+                                        val selected = viewModel.canvasElements.value?.find { it.id == element.id }
+                                        selected?.let {
+                                            val key = it.id
+                                            BitmapCache.put(key, it.bitmap!!)
+                                            val bundle = Bundle().apply { putString("elementId", key) }
+
+                                            val navOptions = NavOptions.Builder()
+                                                .setLaunchSingleTop(true)
+                                                .setPopUpTo(R.id.adjustmentsParentFragment, inclusive = true)
+                                                .build()
+
+                                            navController.navigate(
+                                                R.id.adjustmentsParentFragment,
+                                                bundle,
+                                                navOptions
+                                            )
+                                        }
+                                    } else {
+                                        // 🧠 Normal Shape or Draw Mode — open DrawFragment as usual
+                                        val startPage = when (element.type) {
+                                            ElementType.DRAW -> 0
+                                            ElementType.SHAPE -> 1
+                                            else -> 0
+                                        }
+
+                                        val bundle = Bundle().apply { putInt("startPage", startPage) }
+                                        val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
+
+                                        navController.navigate(
+                                            R.id.drawFragment,
+                                            bundle,
+                                            navOptions
+                                        )
                                     }
-
-                                    val bundle = Bundle().apply { putInt("startPage", startPage) }
-                                    val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
-
-                                    navController.navigate(
-                                        R.id.drawFragment, bundle, navOptions
-                                    )
                                 }
 
                                 else -> {

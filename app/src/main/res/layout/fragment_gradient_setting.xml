@@ -80,6 +80,7 @@
                 android:id="@+id/shadowXSize"/>
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/shadowX"
                 android:layout_marginTop="3dp"
                 android:layout_width="0dp"
@@ -134,6 +135,7 @@
 
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/shadowY"
                 android:layout_marginTop="3dp"
                 android:layout_width="0dp"
@@ -187,6 +189,7 @@
                 android:id="@+id/scaleSize"/>
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/scale"
                 android:layout_marginTop="3dp"
                 android:layout_width="0dp"
@@ -250,6 +253,7 @@
 
 
                 <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                     android:id="@+id/angle"
                     android:layout_marginTop="3dp"
                     android:layout_width="0dp"
@@ -304,6 +308,7 @@
 
 
                 <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                     android:id="@+id/sweepAngle"
                     android:layout_marginTop="3dp"
                     android:layout_width="0dp"
@@ -358,6 +363,7 @@
 
 
                 <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                     android:id="@+id/radius"
                     android:layout_marginTop="3dp"
                     android:layout_width="0dp"

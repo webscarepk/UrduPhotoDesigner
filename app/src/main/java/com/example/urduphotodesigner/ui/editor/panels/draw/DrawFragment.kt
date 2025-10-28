@@ -5,13 +5,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.findNavController
+import androidx.viewpager2.widget.ViewPager2
+import androidx.viewpager2.widget.ViewPager2.*
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentDrawBinding
 import com.google.android.material.tabs.TabLayout
@@ -23,10 +26,28 @@ import kotlinx.coroutines.launch
 class DrawFragment : Fragment() {
     private var _binding: FragmentDrawBinding? = null
     private val binding get() = _binding!!
-
     private var tabs = mutableListOf<String>()
     private lateinit var adapter: DrawPagerAdapter
     private val viewModel: CanvasViewModel by activityViewModels()
+
+    private val imagePickerLauncher =
+        registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri ->
+            uri?.let {
+                val bitmap = requireContext().contentResolver.openInputStream(uri)?.use { stream ->
+                    android.graphics.BitmapFactory.decodeStream(stream)
+                }
+
+                if (bitmap != null) {
+                    viewModel.addImageInsideShape(bitmap)
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        "Please select a shape first",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -50,21 +71,46 @@ class DrawFragment : Fragment() {
         binding.done.addPressEffect {
             viewModel.exitDrawingMode()
         }
-        binding.startDraw.addPressEffect { viewModel.enterDrawingMode() }
+        binding.startDraw.addPressEffect {
+            if (binding.viewPager.currentItem == 0) {
+                viewModel.enterDrawingMode()
+            } else {
+                imagePickerLauncher.launch("image/*")
+            }
+        }
+
         binding.reset.addPressEffect { viewModel.resetBrushSettings() }
         initObservers()
         setupTabLayout()
 
         val startPage = arguments?.getInt("startPage", 0) ?: 0
+        updateStartDrawIcon(startPage)
 
         if (startPage in 0 until tabs.size) {
             binding.viewPager.setCurrentItem(startPage, false)
+            updateStartDrawIcon(startPage)
         }
+
+        binding.viewPager.registerOnPageChangeCallback(object : OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                updateStartDrawIcon(position)
+            }
+        })
     }
 
-    private fun initObservers(){
+    fun updateStartDrawIcon(position: Int) {
+        val iconRes = when (tabs[position]) {
+            "Brush" -> R.drawable.ic_start_draw
+            "Shape" -> R.drawable.ic_import
+            else -> R.drawable.ic_start_draw
+        }
+        binding.startDraw.setImageResource(iconRes)
+    }
+
+    private fun initObservers() {
         lifecycleScope.launch {
-            viewModel.isDrawingMode.observe(viewLifecycleOwner){ isDrawingMode ->
+            viewModel.isDrawingMode.observe(viewLifecycleOwner) { isDrawingMode ->
                 binding.done.isVisible = isDrawingMode
             }
         }
@@ -85,7 +131,6 @@ class DrawFragment : Fragment() {
                     tabView?.scaleY = 0.9f
                 }
 
-                // Make the first tab look selected initially
                 binding.tabLayout.getTabAt(binding.tabLayout.selectedTabPosition)?.view?.apply {
                     scaleX = 1.0f
                     scaleY = 1.0f

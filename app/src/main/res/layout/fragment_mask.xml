@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@color/white"
+    tools:context=".ui.editor.panels.adjustments.mask.MaskFragment">
+
+    <androidx.constraintlayout.widget.Guideline
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.01"
+        android:id="@+id/topGuide"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintGuide_percent="0.3"
+        android:orientation="vertical"
+        android:id="@+id/centerGuide"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintGuide_percent="0.99"
+        android:orientation="horizontal"
+        android:id="@+id/bottomGuide"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintGuide_percent="0.02"
+        android:orientation="vertical"
+        android:id="@+id/startGuide"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintGuide_percent="0.98"
+        android:orientation="vertical"
+        android:id="@+id/endGuide"/>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/fitToolbar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:padding="1dp"
+        android:background="@drawable/button_bg_small"
+        android:backgroundTint="@color/contrast"
+        app:layout_constraintTop_toBottomOf="@id/topGuide"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintEnd_toStartOf="@id/endGuide">
+
+        <TextView
+            android:id="@+id/cover"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:background="@drawable/button_bg_small"
+            android:backgroundTint="@color/white"
+            android:fontFamily="@font/medium"
+            android:gravity="center"
+            android:paddingVertical="3dp"
+            android:text="@string/cover"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/stretch"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/stretch"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:background="@drawable/button_bg_small"
+            android:backgroundTint="@color/contrast"
+            android:fontFamily="@font/medium"
+            android:gravity="center"
+            android:paddingVertical="3dp"
+            android:text="@string/stretch"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/contain"
+            app:layout_constraintStart_toEndOf="@id/cover"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/contain"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:background="@drawable/button_bg_small"
+            android:backgroundTint="@color/contrast"
+            android:fontFamily="@font/medium"
+            android:gravity="center"
+            android:paddingVertical="3dp"
+            android:text="@string/contain"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/stretch"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
+        app:layout_constraintBottom_toTopOf="@id/editShape"
+        app:layout_constraintTop_toBottomOf="@id/fitToolbar"
+        android:layout_marginHorizontal="10dp"
+        android:id="@+id/fitPane">
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/zoomCard"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="3dp"
+            android:visibility="visible"
+            app:layout_constraintBottom_toTopOf="@id/panXCard"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <TextView
+                android:id="@+id/zoomTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:fontFamily="@font/medium"
+                android:text="@string/scale"
+                android:textColor="@color/black"
+                android:textSize="12sp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/zoom"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/edit_bg_stroke"
+                android:fontFamily="@font/regular"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="4dp"
+                android:text="10"
+                android:textColor="@color/black"
+                android:textSize="12sp"
+                app:layout_constraintBottom_toBottomOf="@id/zoomTitle"
+                app:layout_constraintStart_toEndOf="@id/zoomTitle"
+                app:layout_constraintTop_toTopOf="@id/zoomTitle" />
+
+            <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
+                android:id="@+id/zoomBar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:indeterminateTint="@color/appColor"
+                android:progress="20"
+                android:progressTint="@color/appColor"
+                android:thumbTint="@color/appColor"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/zoom" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/panXCard"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="3dp"
+            android:visibility="visible"
+            app:layout_constraintTop_toBottomOf="@id/zoomCard"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/panYCard"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <TextView
+                android:id="@+id/panXTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:fontFamily="@font/medium"
+                android:text="@string/pan_x"
+                android:textColor="@color/black"
+                android:textSize="12sp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/panX"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/edit_bg_stroke"
+                android:fontFamily="@font/regular"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="4dp"
+                android:text="10"
+                android:textColor="@color/black"
+                android:textSize="12sp"
+                app:layout_constraintBottom_toBottomOf="@id/panXTitle"
+                app:layout_constraintStart_toEndOf="@id/panXTitle"
+                app:layout_constraintTop_toTopOf="@id/panXTitle" />
+
+            <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
+                android:id="@+id/panXBar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:indeterminateTint="@color/appColor"
+                android:progress="20"
+                android:progressTint="@color/appColor"
+                android:thumbTint="@color/appColor"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/panX" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/panYCard"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:visibility="visible"
+            app:layout_constraintTop_toBottomOf="@id/zoomCard"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@id/panXCard"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <TextView
+                android:id="@+id/panYTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:fontFamily="@font/medium"
+                android:text="@string/pan_y"
+                android:textColor="@color/black"
+                android:textSize="12sp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/panY"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/edit_bg_stroke"
+                android:fontFamily="@font/regular"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="4dp"
+                android:text="10"
+                android:textColor="@color/black"
+                android:textSize="12sp"
+                app:layout_constraintBottom_toBottomOf="@id/panYTitle"
+                app:layout_constraintStart_toEndOf="@id/panYTitle"
+                app:layout_constraintTop_toTopOf="@id/panYTitle" />
+
+            <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
+                android:id="@+id/panYBar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:indeterminateTint="@color/appColor"
+                android:progress="20"
+                android:progressTint="@color/appColor"
+                android:thumbTint="@color/appColor"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/panY" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <TextView
+        android:id="@+id/editShape"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/edit_bg_stroke"
+        android:fontFamily="@font/regular"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="10dp"
+        android:layout_marginBottom="20dp"
+        android:text="@string/edit_shape"
+        android:textColor="@color/black"
+        android:textSize="12sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/fitPane"/>
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -265,6 +265,7 @@
                 app:layout_constraintTop_toTopOf="@id/strokeWidthTitle" />
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/strokeWidthBar"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -319,6 +320,7 @@
                 app:layout_constraintTop_toTopOf="@id/cornerRadiusTitle" />
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/cornerRadiusBar"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"

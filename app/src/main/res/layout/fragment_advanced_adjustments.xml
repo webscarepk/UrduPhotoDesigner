@@ -56,6 +56,7 @@
                 android:layout_marginStart="6dp"/>
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/blur"
                 android:layout_marginTop="3dp"
                 android:layout_width="0dp"
@@ -76,11 +77,10 @@
             android:visibility="visible"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="3dp"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toEndOf="@id/blurCard"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/clarityCard">
+            app:layout_constraintBottom_toBottomOf="@id/blurCard">
 
             <TextView
                 android:id="@+id/sharpnessTitle"
@@ -111,6 +111,7 @@
                 android:layout_marginStart="6dp"/>
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/sharpness"
                 android:layout_marginTop="3dp"
                 android:layout_width="0dp"
@@ -166,6 +167,7 @@
                 app:layout_constraintTop_toTopOf="@id/clarityTitle" />
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/clarity"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -218,6 +220,7 @@
                 android:layout_marginStart="6dp"/>
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/fade"
                 android:layout_marginTop="3dp"
                 android:layout_width="0dp"

@@ -40,7 +40,7 @@ class ShapeAdapter(
                 style = Paint.Style.STROKE
             }
 
-            val radius = size * 0.35f
+            val radius = size * 0.15f
             val rect = RectF(size * 0.2f, size * 0.2f, size * 0.8f, size * 0.8f)
 
             drawShape(canvas, paint, shape, rect,radius)

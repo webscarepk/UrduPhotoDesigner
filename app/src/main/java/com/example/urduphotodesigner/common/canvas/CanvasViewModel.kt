@@ -287,6 +287,19 @@ class CanvasViewModel @Inject constructor(
 
     private val _brushGradient = MutableLiveData<GradientItem?>(null)
     val brushGradient: LiveData<GradientItem?> = _brushGradient
+
+    private val _imagePanX = MutableLiveData(0f)
+    val imagePanX: LiveData<Float> = _imagePanX
+
+    private val _imagePanY = MutableLiveData(0f)
+    val imagePanY: LiveData<Float> = _imagePanY
+
+    private val _imageScale = MutableLiveData(1f)
+    val imageScale: LiveData<Float> = _imageScale
+
+    private val _imageFitMode = MutableLiveData("cover")
+    val imageFitMode: LiveData<String> = _imageFitMode
+
     fun setExportResult(result: ExportResult) {
         Log.d("CanvasVM", "Setting ExportResult: $result")
         _exportResult.value = result
@@ -400,6 +413,51 @@ class CanvasViewModel @Inject constructor(
     fun setStrokeGradient(grad: GradientItem?) {
         _shapeStrokeGradient.value = grad
         updateSelectedShape { it.copy(shapeStrokeGradient = grad) }
+    }
+
+    fun setImagePanX(value: Float) {
+        _imagePanX.value = value
+        updateSelectedShape { it.copy(imagePanX = value) }
+    }
+
+    fun setImagePanY(value: Float) {
+        _imagePanY.value = value
+        updateSelectedShape { it.copy(imagePanY = value) }
+    }
+
+    fun setImageScale(value: Float) {
+        _imageScale.value = value
+        updateSelectedShape { it.copy(imageScale = value) }
+    }
+
+    fun setImageFitMode(mode: String) {
+        _imageFitMode.value = mode
+        updateSelectedShape { it.copy(imageFitMode = mode) }
+    }
+
+    fun updateImageTransform(offsetX: Float? = null, offsetY: Float? = null, scale: Float? = null) {
+        updateSelectedShape { element ->
+            if (element.bitmap != null) {
+                element.copy(
+                    imagePanX = offsetX ?: element.imagePanX,
+                    imagePanY = offsetY ?: element.imagePanY,
+                    imageScale = scale ?: element.imageScale,
+                )
+            } else element
+        }
+    }
+
+    fun addImageInsideShape(bitmap: Bitmap) {
+        updateSelectedShape { element ->
+            // 🧠 Only apply if it's a shape
+            if (element.type == ElementType.SHAPE) {
+                element.copy(
+                    bitmap = bitmap
+                )
+            } else {
+                element
+            }
+        }
     }
 
     private fun updateSelectedShape(update: (CanvasElement) -> CanvasElement) {
@@ -614,7 +672,7 @@ class CanvasViewModel @Inject constructor(
     private fun updateSelectedElementAdjustments(update: (AdjustmentValues) -> AdjustmentValues) {
         val currentList = _canvasElements.value ?: return
         val updatedList = currentList.map { element ->
-            if (element.isSelected && (element.type == ElementType.IMAGE || element.type == ElementType.BACKGROUND && element.bitmap != null)) {
+            if (element.isSelected && (element.type == ElementType.IMAGE || element.type == ElementType.SHAPE || (element.type == ElementType.BACKGROUND && element.bitmap != null))) {
                 val oldElement = element.copy(context = null, bitmap = null)
                 val newAdjustments = update(element.adjustments)
                 val updated = element.copy(adjustments = newAdjustments)
@@ -1069,6 +1127,7 @@ class CanvasViewModel @Inject constructor(
             GradientPickerTarget.SHAPE_STROKE -> if (gradientItem != null) setStrokeGradient(
                 gradientItem
             ) else setStrokeGradient(null)
+
             GradientPickerTarget.SHAPE_FILL -> if (gradientItem != null) setFillGradient(
                 gradientItem
             ) else setFillGradient(null)
@@ -1597,8 +1656,16 @@ class CanvasViewModel @Inject constructor(
 
     fun applyMaskToSelected(maskedBitmap: Bitmap) {
         val currentList = canvasElements.value ?: return
-        val selected =
-            currentList.firstOrNull { it.isSelected && it.type == ElementType.IMAGE } ?: return
+        val selected = currentList.firstOrNull {
+            it.isSelected && (
+                    it.type == ElementType.IMAGE ||
+                            it.type == ElementType.SHAPE ||
+                            it.type == ElementType.BACKGROUND
+                    )
+        } ?: return
+
+        // Only proceed if this element supports masking (bitmap container)
+        if (selected.bitmap == null && selected.type != ElementType.IMAGE) return
 
         val context = selected.context
 
@@ -1611,7 +1678,7 @@ class CanvasViewModel @Inject constructor(
             updatePaintProperties()
         }
 
-        updateElement(updated) // reuse your undo/redo safe updater
+        updateElement(updated) // ✅ reuse your undo/redo-safe updater
     }
 
     private fun getTypefaceForElement(element: CanvasElement, context: Context?): Typeface {
@@ -1651,6 +1718,7 @@ class CanvasViewModel @Inject constructor(
         val firstText = selectedListFromCanvas.firstOrNull { it.type == ElementType.TEXT }
         val firstImage = selectedListFromCanvas.firstOrNull { it.type == ElementType.IMAGE }
         val firstDraw = selectedListFromCanvas.firstOrNull { it.type == ElementType.DRAW }
+        val firstShape = selectedListFromCanvas.firstOrNull { it.type == ElementType.SHAPE }
 
         when {
             firstText != null -> {
@@ -1688,6 +1756,14 @@ class CanvasViewModel @Inject constructor(
                 _brushGradient.value = firstDraw.drawStrokes?.lastOrNull()?.gradient
             }
 
+            firstShape != null -> {
+                if (firstShape.bitmap != null) {
+                    _imagePanX.value = firstShape.imagePanX
+                    _imagePanY.value = firstShape.imagePanY
+                    _imageScale.value = firstShape.imageScale
+                    _imageFitMode.value = firstShape.imageFitMode ?: "cover"
+                }
+            }
             else -> {
                 // No text, image, or draw → reset brushes
                 _brushColor.value = Color.BLACK
@@ -2789,8 +2865,11 @@ class CanvasViewModel @Inject constructor(
                     _canvasSize.value = exportResult.canvasSize
                     _canvasElements.value = hydratedElements
                     val selected =
-                        hydratedElements.find { it.isSelected && it.type == ElementType.IMAGE }
+                        hydratedElements.find { it.isSelected && it.type == ElementType.IMAGE || it.type == ElementType.SHAPE }
                     selected?.let {
+                        if (it.bitmapData != null) {
+                            it.bitmap = ImageProcessor.base64ToBitmap(it.bitmapData!!)
+                        }
                         _brightness.postValue(it.adjustments.brightness)
                         _contrast.postValue(it.adjustments.contrast)
                         _saturation.postValue(it.adjustments.saturation)

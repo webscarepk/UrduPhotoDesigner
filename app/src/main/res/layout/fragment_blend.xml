@@ -45,6 +45,7 @@
             android:id="@+id/opacitySize"/>
 
         <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
             android:id="@+id/opacity"
             android:layout_marginTop="3dp"
             android:layout_width="0dp"
@@ -97,6 +98,7 @@
 
 
         <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
             android:id="@+id/radius"
             android:layout_marginTop="3dp"
             android:layout_width="0dp"

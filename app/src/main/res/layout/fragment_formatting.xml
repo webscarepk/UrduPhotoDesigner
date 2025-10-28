@@ -46,6 +46,7 @@
             android:id="@+id/lineSpacing"/>
 
         <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
             android:id="@+id/lineSpace"
             android:layout_marginTop="3dp"
             android:layout_width="0dp"
@@ -100,6 +101,7 @@
             android:id="@+id/letterSpacing"/>
 
         <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
             android:id="@+id/letterSpace"
             android:layout_marginTop="3dp"
             android:layout_width="0dp"

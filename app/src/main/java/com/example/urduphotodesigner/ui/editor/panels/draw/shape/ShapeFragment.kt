@@ -8,12 +8,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.example.urduphotodesigner.data.model.PanelTabs
-import com.example.urduphotodesigner.databinding.FragmentEraserBinding
 import com.example.urduphotodesigner.databinding.FragmentShapeBinding
-import com.example.urduphotodesigner.databinding.FragmentShapePanelBinding
-import com.example.urduphotodesigner.ui.editor.panels.draw.brush.BrushFragment
-import com.example.urduphotodesigner.ui.editor.panels.draw.eraser.EraserFragment
-import com.example.urduphotodesigner.ui.editor.panels.draw.eraser.EraserPagerAdapter
 import com.example.urduphotodesigner.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch

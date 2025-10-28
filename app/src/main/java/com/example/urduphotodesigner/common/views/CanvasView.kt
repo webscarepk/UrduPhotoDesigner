@@ -91,6 +91,7 @@ import kotlin.math.roundToInt
 import kotlin.math.sign
 import kotlin.math.sin
 import androidx.core.graphics.withRotation
+import com.example.urduphotodesigner.common.utils.ShapeRenderUtils.buildShapePath
 
 class CanvasView @JvmOverloads constructor(
     context: Context,
@@ -150,6 +151,9 @@ class CanvasView @JvmOverloads constructor(
     private var touchedDownElement: CanvasElement? = null
     private var isDragCandidate = false
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+
+    private val initialElementSizes = mutableMapOf<String, Pair<Float, Float>>()
+
 
     private val checkerShader: BitmapShader by lazy {
         // create a 2×2 tile
@@ -259,6 +263,10 @@ class CanvasView @JvmOverloads constructor(
     }
     private val editIcon: Drawable by lazy {
         AppCompatResources.getDrawable(context, R.drawable.ic_edit_text)!!
+    }
+
+    private val transformIcon: Drawable by lazy {
+        AppCompatResources.getDrawable(context, R.drawable.ic_resize)!!
     }
 
     private var selectedElements: CopyOnWriteArrayList<CanvasElement> = CopyOnWriteArrayList()
@@ -1971,6 +1979,11 @@ class CanvasView @JvmOverloads constructor(
                     iconMap["resize"] = Pair(
                         corners[4], corners[5]
                     )
+                    if (element.type == ElementType.SHAPE){
+                        iconMap["transform"] = Pair(corners[6], corners[7])
+
+                    }
+
                 }
 
                 iconMap.forEach { (iconName, position) ->
@@ -1979,6 +1992,7 @@ class CanvasView @JvmOverloads constructor(
                         "rotate" -> rotateIcon
                         "resize" -> resizeIcon
                         "edit" -> editIcon
+                        "transform" -> transformIcon
                         else -> null
                     }
 
@@ -2111,33 +2125,27 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
-    // In CanvasView.kt's drawShapeElement function
-
     private fun drawShapeElement(canvas: Canvas, element: CanvasElement) {
         val localHalfW = element.logicalContentWidth / 2f
         val localHalfH = element.logicalContentHeight / 2f
+        val localRect = RectF(-localHalfW, -localHalfH, localHalfW, localHalfH)
 
-        val localRect = RectF(
-            -localHalfW,
-            -localHalfH,
-            localHalfW,
-            localHalfH
-        )
-
+        // --- 1️⃣ Fill Layer ---
         if (element.shapeHasFill) {
             val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.FILL
-
                 if (element.shapeFillGradient != null) {
                     shader = createGradientShader(
-                        element.shapeFillGradient!!, localRect.width(), localRect.height()
+                        element.shapeFillGradient!!,
+                        localRect.width(),
+                        localRect.height()
                     )
                 } else {
                     color = element.shapeFillColor ?: Color.TRANSPARENT
                 }
                 alpha = element.paintAlpha
             }
-            // Draw the fill
+
             drawShape(
                 canvas,
                 fillPaint,
@@ -2146,17 +2154,95 @@ class CanvasView @JvmOverloads constructor(
                 element.shapeCornerRadius
             )
         }
-        // --- Draw the STROKE second (if enabled) ---
+
+        // --- 2️⃣ Bitmap Layer (masked inside shape path) ---
+        element.bitmap?.let { bmp ->
+            if (bmp.isRecycled) return@let
+
+            val saveCount = canvas.save()
+
+            // Build clipping path for the shape
+            val path = buildShapePath(
+                element.shapeType ?: ShapeType.RECTANGLE,
+                localRect,
+                element.shapeCornerRadius
+            )
+            canvas.clipPath(path) // ✅ Mask bitmap inside shape
+
+            // --- 🧠 Apply Adjustments ---
+            val finalBitmap = ImageAdjustmentHelper.applyAllAdjustments(
+                element.context!!,
+                bmp,
+                element.adjustments
+            )
+
+            // --- 🧩 Setup Paint and Filters ---
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                colorFilter = colorFilterFor(element.imageFilter)
+                maskFilter = null
+            }
+
+            // --- 🧭 Compute Transformations ---
+            val fit = element.imageFitMode ?: "cover"
+            val srcW = finalBitmap.width.toFloat()
+            val srcH = finalBitmap.height.toFloat()
+            val scaleX = localRect.width() / srcW
+            val scaleY = localRect.height() / srcH
+            val baseScale = when (fit) {
+                "contain" -> minOf(scaleX, scaleY)
+                "stretch" -> scaleX
+                else -> maxOf(scaleX, scaleY) // cover
+            }
+
+            val finalScale = baseScale * (element.imageScale.takeIf { it != 0f } ?: 1f)
+            val drawW = srcW * finalScale
+            val drawH = srcH * finalScale
+            val dx = localRect.left + (localRect.width() - drawW) / 2f + element.imagePanX
+            val dy = localRect.top + (localRect.height() - drawH) / 2f + element.imagePanY
+
+            val matrix = Matrix().apply {
+                postScale(finalScale, finalScale)
+                postTranslate(dx, dy)
+            }
+
+            // --- ✨ Apply Filter Types ---
+            when (element.imageFilter) {
+                ImageFilter.SoftBlur -> {
+                    paint.maskFilter = BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
+                    canvas.drawBitmap(finalBitmap, matrix, paint)
+                }
+
+                ImageFilter.Glow -> {
+                    // Base layer
+                    canvas.drawBitmap(finalBitmap, matrix, paint)
+
+                    // Glow overlay
+                    val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        color = Color.argb(180, 255, 255, 200)
+                        maskFilter = BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
+                    }
+                    canvas.drawBitmap(finalBitmap, matrix, glowPaint)
+                }
+
+                else -> {
+                    // Default filterless draw
+                    canvas.drawBitmap(finalBitmap, matrix, paint)
+                }
+            }
+
+            canvas.restoreToCount(saveCount)
+        }
+
+        // --- 3️⃣ Stroke Layer ---
         if (element.shapeHasStroke) {
             val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                // Must be STROKE style to ensure the fill doesn't interfere
                 style = Paint.Style.STROKE
                 strokeWidth = element.shapeStrokeWidth ?: 1f
-
-                // Set stroke color or gradient
                 if (element.shapeStrokeGradient != null) {
                     shader = createGradientShader(
-                        element.shapeStrokeGradient!!, localRect.width(), localRect.height()
+                        element.shapeStrokeGradient!!,
+                        localRect.width(),
+                        localRect.height()
                     )
                 } else {
                     color = element.shapeStrokeColor ?: Color.BLACK
@@ -2165,6 +2251,7 @@ class CanvasView @JvmOverloads constructor(
                 strokeJoin = Paint.Join.ROUND
                 strokeCap = Paint.Cap.ROUND
             }
+
             drawShape(
                 canvas,
                 strokePaint,
@@ -3133,6 +3220,23 @@ class CanvasView @JvmOverloads constructor(
                                 }
                                 return true
                             }
+
+                            "transform" -> {
+                                currentMode = Mode.TRANSFORM
+                                touchStartX = x
+                                touchStartY = y
+
+                                // Store initial logical sizes for direct geometry resize
+                                selectedElements.forEach { element ->
+                                    initialElementSizes[element.id] = Pair(
+                                        element.logicalContentWidth,
+                                        element.logicalContentHeight
+                                    )
+                                    onStartBatchUpdate?.invoke(element.id, "transform")
+                                }
+                                return true
+                            }
+
                         }
                     }
                 }
@@ -3527,6 +3631,27 @@ class CanvasView @JvmOverloads constructor(
                             }
                         }
                     }
+                    Mode.TRANSFORM -> {
+                        if (selectedElements.isEmpty()) return true
+
+                        val dx = x - touchStartX
+                        val dy = y - touchStartY
+
+                        selectedElements.forEach { element ->
+                            val (initialW, initialH) = initialElementSizes[element.id] ?: return@forEach
+
+                            val newW = (initialW - dx).coerceAtLeast(10f)
+                            val newH = (initialH + dy).coerceAtLeast(10f)
+
+                            element.logicalContentWidth = newW
+                            element.logicalContentHeight = newH
+                            onElementChanged?.invoke(element)
+                        }
+
+                        invalidate()
+                        return true
+                    }
+
                 }
                 return true
             }
@@ -3539,6 +3664,14 @@ class CanvasView @JvmOverloads constructor(
                 if (currentMode == Mode.CANVAS_PAN) {
                     currentMode = Mode.NONE
                 }
+
+                if (currentMode == Mode.TRANSFORM) {
+                    selectedElements.forEach {
+                        onElementChanged?.invoke(it)
+                        onEndBatchUpdate?.invoke(it.id)
+                    }
+                }
+
 
                 if (currentMode == Mode.DRAG || currentMode == Mode.ROTATE || currentMode == Mode.RESIZE) {
                     selectedElements.filter { !it.isLocked }.forEach {

@@ -401,6 +401,7 @@
                     app:tint="@color/black"/>
 
                 <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                     android:min="0"
                     android:visibility="gone"
                     android:id="@+id/seekBarOpacity"
@@ -484,6 +485,7 @@
                 android:layout_gravity="center_vertical"/>
 
             <SeekBar
+                android:progressBackgroundTint="@color/light_gray"
                 android:visibility="gone"
                 android:id="@+id/seekBarFontSize"
                 android:layout_width="150dp"

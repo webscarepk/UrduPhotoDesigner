@@ -5,7 +5,7 @@ import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.Lifecycle
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.example.urduphotodesigner.ui.editor.panels.draw.brush.BrushFragment
-import com.example.urduphotodesigner.ui.editor.panels.draw.eraser.EraserFragment
+import com.example.urduphotodesigner.ui.editor.panels.adjustments.mask.MaskFragment
 import com.example.urduphotodesigner.ui.editor.panels.draw.shape.ShapeFragment
 
 class DrawPagerAdapter(
@@ -21,7 +21,6 @@ class DrawPagerAdapter(
         return when (position) {
             0 -> BrushFragment.newInstance()
             1 -> ShapeFragment.newInstance()
-            2 -> EraserFragment.newInstance()
             else -> BrushFragment.newInstance()
         }
     }

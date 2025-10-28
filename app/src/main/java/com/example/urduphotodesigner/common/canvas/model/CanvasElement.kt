@@ -106,7 +106,12 @@ data class CanvasElement(
     var shapeHasFill: Boolean = true,
     var shapeHasStroke: Boolean = true,
     var shapeFillGradient: GradientItem? = null,
-    var shapeStrokeGradient: GradientItem? = null
+    var shapeStrokeGradient: GradientItem? = null,
+    var imagePanX: Float = 0f,
+    var imagePanY: Float = 0f,
+    var imageScale: Float = 1f,
+    var imageFitMode: String? = "cover"
+
 ) : Serializable {
 
     @Transient
