@@ -10,11 +10,9 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import androidx.viewpager2.widget.ViewPager2
-import androidx.viewpager2.widget.ViewPager2.*
+import androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentDrawBinding
 import com.google.android.material.tabs.TabLayout
@@ -38,12 +36,10 @@ class DrawFragment : Fragment() {
                 }
 
                 if (bitmap != null) {
-                    viewModel.addImageInsideShape(bitmap)
+                    viewModel.addImageInsideShape(bitmap, requireActivity())
                 } else {
                     Toast.makeText(
-                        requireContext(),
-                        "Please select a shape first",
-                        Toast.LENGTH_SHORT
+                        requireContext(), "Please select a shape first", Toast.LENGTH_SHORT
                     ).show()
                 }
             }

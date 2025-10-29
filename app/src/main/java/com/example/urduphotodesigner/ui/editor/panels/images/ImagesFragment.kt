@@ -17,6 +17,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.data.model.ImageEntity
@@ -109,7 +110,7 @@ class ImagesFragment : Fragment() {
 
                 withContext(Dispatchers.Main) {
                     viewModel.addSticker(
-                        ImageProcessor.filePathToBitmap(filePath!!), requireActivity()
+                        ImageProcessor.filePathToBitmap(filePath!!), requireActivity(), ElementType.IMAGE
                     )
                 }
             } catch (e: Exception) {

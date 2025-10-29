@@ -185,7 +185,7 @@ class EditorFragment : Fragment() {
 
                 withContext(Dispatchers.Main) {
                     viewModel.addSticker(
-                        ImageProcessor.filePathToBitmap(filePath!!), requireActivity()
+                        ImageProcessor.filePathToBitmap(filePath!!), requireActivity(), ElementType.IMAGE
                     )
                 }
             } catch (e: Exception) {
@@ -732,7 +732,7 @@ class EditorFragment : Fragment() {
         }
 
         val hasText = selected.any { it.type == ElementType.TEXT }
-        val hasImage = selected.any { it.type == ElementType.IMAGE }
+        val hasImage = selected.any { it.type == ElementType.IMAGE || it.type == ElementType.STICKER }
         val hasBackground = selected.any { it.type == ElementType.BACKGROUND }
         val hasShapeMask = selected.any { it.type == ElementType.SHAPE && it.bitmap != null}
         val isMulti = selected.size > 1
@@ -797,7 +797,7 @@ class EditorFragment : Fragment() {
                         try {
                             when (element.type) {
 
-                                ElementType.IMAGE, ElementType.BACKGROUND -> {
+                                ElementType.IMAGE, ElementType.BACKGROUND, ElementType.STICKER -> {
                                     val selected =
                                         viewModel.canvasElements.value?.find { it.id == element.id }
                                     selected?.let {

@@ -683,7 +683,7 @@ class CanvasView @JvmOverloads constructor(
         val elementsToFilter =
             selectedElements.toList() // Create a copy to avoid concurrent modification
         elementsToFilter.forEach { element ->
-            if (element != null && element.type == ElementType.IMAGE) {
+            if (element != null && (element.type == ElementType.IMAGE || element.type == ElementType.STICKER)) {
                 element.imageFilter = filter!!
                 onElementChanged?.invoke(element) // Notify ViewModel of change
                 invalidate()
@@ -2159,78 +2159,77 @@ class CanvasView @JvmOverloads constructor(
         element.bitmap?.let { bmp ->
             if (bmp.isRecycled) return@let
 
-            val saveCount = canvas.save()
+            canvas.withSave {
 
-            // Build clipping path for the shape
-            val path = buildShapePath(
-                element.shapeType ?: ShapeType.RECTANGLE,
-                localRect,
-                element.shapeCornerRadius
-            )
-            canvas.clipPath(path) // ✅ Mask bitmap inside shape
+                val path = buildShapePath(
+                    element.shapeType ?: ShapeType.RECTANGLE,
+                    localRect,
+                    element.shapeCornerRadius
+                )
+                canvas.clipPath(path) // ✅ Mask bitmap inside shape
 
-            // --- 🧠 Apply Adjustments ---
-            val finalBitmap = ImageAdjustmentHelper.applyAllAdjustments(
-                element.context!!,
-                bmp,
-                element.adjustments
-            )
+                // --- 🧠 Apply Adjustments ---
+                val finalBitmap = ImageAdjustmentHelper.applyAllAdjustments(
+                    element.context!!,
+                    bmp,
+                    element.adjustments
+                )
 
-            // --- 🧩 Setup Paint and Filters ---
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                colorFilter = colorFilterFor(element.imageFilter)
-                maskFilter = null
-            }
-
-            // --- 🧭 Compute Transformations ---
-            val fit = element.imageFitMode ?: "cover"
-            val srcW = finalBitmap.width.toFloat()
-            val srcH = finalBitmap.height.toFloat()
-            val scaleX = localRect.width() / srcW
-            val scaleY = localRect.height() / srcH
-            val baseScale = when (fit) {
-                "contain" -> minOf(scaleX, scaleY)
-                "stretch" -> scaleX
-                else -> maxOf(scaleX, scaleY) // cover
-            }
-
-            val finalScale = baseScale * (element.imageScale.takeIf { it != 0f } ?: 1f)
-            val drawW = srcW * finalScale
-            val drawH = srcH * finalScale
-            val dx = localRect.left + (localRect.width() - drawW) / 2f + element.imagePanX
-            val dy = localRect.top + (localRect.height() - drawH) / 2f + element.imagePanY
-
-            val matrix = Matrix().apply {
-                postScale(finalScale, finalScale)
-                postTranslate(dx, dy)
-            }
-
-            // --- ✨ Apply Filter Types ---
-            when (element.imageFilter) {
-                ImageFilter.SoftBlur -> {
-                    paint.maskFilter = BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
-                    canvas.drawBitmap(finalBitmap, matrix, paint)
+                // --- 🧩 Setup Paint and Filters ---
+                val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    colorFilter = colorFilterFor(element.imageFilter)
+                    maskFilter = null
                 }
 
-                ImageFilter.Glow -> {
-                    // Base layer
-                    canvas.drawBitmap(finalBitmap, matrix, paint)
+                // --- 🧭 Compute Transformations ---
+                val fit = element.imageFitMode ?: "cover"
+                val srcW = finalBitmap.width.toFloat()
+                val srcH = finalBitmap.height.toFloat()
+                val scaleX = localRect.width() / srcW
+                val scaleY = localRect.height() / srcH
+                val baseScale = when (fit) {
+                    "contain" -> minOf(scaleX, scaleY)
+                    "stretch" -> scaleX
+                    else -> maxOf(scaleX, scaleY) // cover
+                }
 
-                    // Glow overlay
-                    val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                        color = Color.argb(180, 255, 255, 200)
-                        maskFilter = BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
+                val finalScale = baseScale * (element.imageScale.takeIf { it != 0f } ?: 1f)
+                val drawW = srcW * finalScale
+                val drawH = srcH * finalScale
+                val dx = localRect.left + (localRect.width() - drawW) / 2f + element.imagePanX
+                val dy = localRect.top + (localRect.height() - drawH) / 2f + element.imagePanY
+
+                val matrix = Matrix().apply {
+                    postScale(finalScale, finalScale)
+                    postTranslate(dx, dy)
+                }
+
+                // --- ✨ Apply Filter Types ---
+                when (element.imageFilter) {
+                    ImageFilter.SoftBlur -> {
+                        paint.maskFilter = BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
+                        canvas.drawBitmap(finalBitmap, matrix, paint)
                     }
-                    canvas.drawBitmap(finalBitmap, matrix, glowPaint)
+
+                    ImageFilter.Glow -> {
+                        // Base layer
+                        canvas.drawBitmap(finalBitmap, matrix, paint)
+
+                        // Glow overlay
+                        val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                            color = Color.argb(180, 255, 255, 200)
+                            maskFilter = BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
+                        }
+                        canvas.drawBitmap(finalBitmap, matrix, glowPaint)
+                    }
+
+                    else -> {
+                        // Default filterless draw
+                        canvas.drawBitmap(finalBitmap, matrix, paint)
+                    }
                 }
 
-                else -> {
-                    // Default filterless draw
-                    canvas.drawBitmap(finalBitmap, matrix, paint)
-                }
             }
-
-            canvas.restoreToCount(saveCount)
         }
 
         // --- 3️⃣ Stroke Layer ---
@@ -2666,9 +2665,6 @@ class CanvasView @JvmOverloads constructor(
                 element.paint = fillPaint
                 justifyText(canvas, displayText, yOffset, element)
             } else {
-                // Draw filled text
-                canvas.drawText(displayText, xPosition, yOffset, fillPaint)
-
                 // Draw border (stroke) if needed
                 if (element.hasStroke && element.strokeWidth > 0f) {
                     val strokePaint = TextPaint(fillPaint).apply {
@@ -2689,6 +2685,8 @@ class CanvasView @JvmOverloads constructor(
                     }
                     canvas.drawText(displayText, xPosition, yOffset, strokePaint)
                 }
+                // Draw filled text
+                canvas.drawText(displayText, xPosition, yOffset, fillPaint)
             }
 
             yOffset += lineHeight

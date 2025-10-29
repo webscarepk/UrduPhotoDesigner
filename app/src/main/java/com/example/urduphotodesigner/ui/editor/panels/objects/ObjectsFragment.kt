@@ -23,6 +23,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.utils.ImageProcessor
 import com.example.urduphotodesigner.common.utils.ImageProcessor.bitmapCompress
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
@@ -255,7 +256,7 @@ class ObjectsFragment : Fragment() {
                                     )
                                 }
                             }
-                        }, requireActivity()
+                        }, requireActivity(), ElementType.STICKER
                     )
                 }
             } catch (e: Exception) {

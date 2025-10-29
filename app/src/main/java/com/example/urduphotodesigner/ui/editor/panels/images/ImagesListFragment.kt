@@ -8,6 +8,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.utils.ImageProcessor.bitmapCompress
 import com.example.urduphotodesigner.common.utils.ImageProcessor.trimTransparentEdges
 import com.example.urduphotodesigner.data.model.ImageEntity
@@ -59,7 +60,7 @@ class ImagesListFragment : Fragment() {
                     )
                 }
             }
-            viewModel.addSticker(resized?.trimTransparentEdges(), requireActivity())
+            viewModel.addSticker(resized?.trimTransparentEdges(), requireActivity(), ElementType.IMAGE)
         }
         binding.backgrounds.adapter = imagesAdapter
     }

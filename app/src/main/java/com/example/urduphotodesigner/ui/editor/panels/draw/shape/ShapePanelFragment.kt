@@ -304,12 +304,20 @@ class ShapePanelFragment : Fragment() {
 
         shapesAdapter = ShapeAdapter(requireContext(), ShapeType.entries) { shape ->
             val elements = viewModel.canvasElements.value
+            val isMask = viewModel.isMaskingMode.value
             val isShapeSelected = elements?.any { it.isSelected && it.type == ElementType.SHAPE } == true
-            if (isShapeSelected) {
-                viewModel.updateShapeType(shape)
+            if (isMask == true) {
+                val selectedElement = elements?.find { it.isSelected && it.type == ElementType.IMAGE }
+                selectedElement?.let {
+                    viewModel.mergeImageToShape(it, shape, requireActivity())
+                }
             } else {
-                viewModel.updateShapeType(shape)
-                viewModel.addShapeElement()
+                if (isShapeSelected) {
+                    viewModel.updateShapeType(shape)
+                } else {
+                    viewModel.updateShapeType(shape)
+                    viewModel.addShapeElement()
+                }
             }
         }
 

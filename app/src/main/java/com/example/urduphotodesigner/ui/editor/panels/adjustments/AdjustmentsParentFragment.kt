@@ -54,40 +54,10 @@ class AdjustmentsParentFragment : Fragment() {
 
         setEvents()
         setupTabLayout()
-        initObservers()
-    }
-
-    private fun initObservers() {
-        viewModel.selectedElements.observe(viewLifecycleOwner) { selectedList ->
-            val selected = selectedList.firstOrNull()
-            val hasMask = selected?.type == ElementType.SHAPE && selected.bitmap != null
-
-            val newTabs = mutableListOf("Adjust", "Filters")
-            if (hasMask) newTabs.add("Mask")
-
-            if (tabs != newTabs) {
-                tabs = newTabs
-
-                // 🧠 Recreate the adapter with new tabs
-                elementId?.let {
-                    adapter = EffectsPagerAdapter(
-                        requireActivity().supportFragmentManager,
-                        lifecycle,
-                        tabs,
-                        it
-                    )
-                }
-
-                // 🌀 Re-attach adapter & re-bind tab layout
-                binding.viewPager.adapter = adapter
-                binding.viewPager.isUserInputEnabled = false
-                setupTabLayout()
-            }
-        }
     }
 
     private fun setEvents() {
-        tabs = mutableListOf("Adjust", "Filters")
+        tabs = mutableListOf("Adjust", "Filters", "Mask")
 
         elementId?.let {
             adapter = EffectsPagerAdapter(

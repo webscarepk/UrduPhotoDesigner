@@ -7,31 +7,22 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
 import androidx.core.content.ContextCompat
-import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.fragment.app.viewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
-import androidx.navigation.fragment.findNavController
-import androidx.viewpager2.widget.ViewPager2
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.data.model.PanelTabs
 import com.example.urduphotodesigner.databinding.FragmentMaskBinding
-import com.example.urduphotodesigner.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MaskFragment : Fragment() {
     private var _binding: FragmentMaskBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var tabs: ArrayList<PanelTabs>
-    private lateinit var adapter: PanelTabsAdapter
     private val viewModel: CanvasViewModel by activityViewModels()
     private var elementId: String? = null
 
@@ -57,6 +48,7 @@ class MaskFragment : Fragment() {
     }
 
     private fun setEvents() {
+        updateAddMaskButtonText()
         binding.cover.addPressEffect { viewModel.setImageFitMode("cover") }
         binding.contain.addPressEffect { viewModel.setImageFitMode("contain") }
         binding.stretch.addPressEffect { viewModel.setImageFitMode("stretch") }
@@ -116,6 +108,16 @@ class MaskFragment : Fragment() {
 
     }
 
+    private fun updateAddMaskButtonText() {
+        val selectedElement = viewModel.canvasElements.value?.find { it.isSelected }
+        if (selectedElement != null && (selectedElement.type == ElementType.IMAGE || selectedElement.type == ElementType.STICKER)) {
+            binding.editShape.text = getString(R.string.mask_image_as_shape)
+        } else {
+            binding.editShape.text = getString(R.string.edit_shape)
+        }
+    }
+
+
     private fun updateFitModeButtonState(mode: String) {
         val contrastColor = ContextCompat.getColor(requireContext(), R.color.contrast)
         val whiteColor = ContextCompat.getColor(requireContext(), R.color.white)
@@ -134,6 +136,9 @@ class MaskFragment : Fragment() {
     }
 
     private fun goToShapePanel() {
+        if (binding.editShape.text != getString(R.string.edit_shape)) {
+            viewModel.enterMaskMode()
+        }
         val args = Bundle().apply { putInt("startPage", 1) }
         val nav = requireActivity().findNavController(R.id.panelNavHost)
 
@@ -164,6 +169,7 @@ class MaskFragment : Fragment() {
         viewModel.imageFitMode.observe(viewLifecycleOwner) { mode ->
             updateFitModeButtonState(mode)
         }
+
     }
 
     override fun onDestroy() {

@@ -86,7 +86,8 @@ class LayersAdapter(
                 // Title: for TEXT use element.text, for IMAGE show "Sticker" or another label
                 title.text = when (element.type) {
                     ElementType.TEXT -> element.text ?: "Text"
-                    ElementType.IMAGE -> "Sticker"
+                    ElementType.IMAGE -> "Image"
+                    ElementType.STICKER -> "Sticker"
                     ElementType.DRAW -> element.brushSettings?.style?.displayName
                     ElementType.SHAPE -> element.shapeType?.displayName
                     else -> "Background"
@@ -97,13 +98,15 @@ class LayersAdapter(
                     when (element.type) {
                         ElementType.TEXT -> R.drawable.ic_text_layer
                         ElementType.IMAGE -> R.drawable.ic_image_layer
+                        ElementType.STICKER -> R.drawable.ic_sticker
+                        ElementType.DRAW -> R.drawable.ic_pen
+                        ElementType.SHAPE -> R.drawable.ic_objects
                         else -> R.drawable.ic_background
                     }
                 )
 
                 if (element.isSelected) {
                     if (inSelectionMode) {
-                        // Multi-selection → filled background
                         binding.root.setCardBackgroundColor(
                             ContextCompat.getColor(binding.root.context, R.color.contrast)
                         )

@@ -8,6 +8,8 @@ enum class ElementType {
 
     @SerializedName("Image")
     IMAGE,
+    @SerializedName("Sticker")
+    STICKER,
 
     @SerializedName("Background")
     BACKGROUND,

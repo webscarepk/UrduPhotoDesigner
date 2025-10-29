@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.canvas.enums.ElementType
 import com.example.urduphotodesigner.common.canvas.model.EmojiMeta
 import com.example.urduphotodesigner.common.utils.Constants
 import com.example.urduphotodesigner.common.utils.ImageProcessor.bitmapCompress
@@ -83,7 +84,7 @@ class ObjectsListFragment : Fragment() {
                     bitmapCompress(image, w.roundToInt(), h)
                 }
             }
-            viewModel.addSticker(resized?.trimTransparentEdges(), requireActivity())
+            viewModel.addSticker(resized?.trimTransparentEdges(), requireActivity(), ElementType.STICKER)
         }
 
         if (isBaseTab(category)) {
@@ -107,7 +108,7 @@ class ObjectsListFragment : Fragment() {
             binding.noEmojis.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
 
             val emojiAdapter = EmojiAdapter(requireActivity(), filtered) { bmp ->
-                viewModel.addSticker(bmp, requireActivity())
+                viewModel.addSticker(bmp, requireActivity(), ElementType.STICKER)
             }
             binding.objects.adapter = emojiAdapter
         } else {
