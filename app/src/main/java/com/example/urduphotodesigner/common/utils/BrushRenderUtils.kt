@@ -159,7 +159,7 @@ object BrushRenderUtils {
         }
     }
 
-    fun drawBrushStroke(canvas: Canvas, stroke: StrokeData) {
+    fun drawBrushStroke(canvas: Canvas, stroke: StrokeData, paintAlpha: Int) {
         // 🟢 1. Create isolated drawing layer
         canvas.saveLayer(null, null)
 
@@ -170,6 +170,7 @@ object BrushRenderUtils {
             strokeCap = Paint.Cap.ROUND
             isAntiAlias = true
             maskFilter = null
+            alpha = paintAlpha
             setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
         }
 
@@ -244,17 +245,19 @@ object BrushRenderUtils {
     fun drawStrokePreview(
         canvas: Canvas,
         stroke: StrokeData,
+        paintAlpha: Int,
         width: Int,
         height: Int,
         makePaint: (StrokeData, Int, Int) -> Paint,
-        drawBrush: (Canvas, StrokeData) -> Unit,
-        drawPen: (Canvas, StrokeData) -> Unit
+        drawBrush: (Canvas, StrokeData, Int) -> Unit,
+        drawPen: (Canvas, StrokeData, Int) -> Unit
     ) {
         when (stroke.style) {
-            BrushStyle.BRUSH -> drawBrush(canvas, stroke)
-            BrushStyle.PEN -> drawPen(canvas, stroke)
+            BrushStyle.BRUSH -> drawBrush(canvas, stroke, paintAlpha)
+            BrushStyle.PEN -> drawPen(canvas, stroke, paintAlpha)
             BrushStyle.HIGHLIGHTER -> {
                 val paint = makePaint(stroke, width, height)
+                paint.alpha = paintAlpha
                 val offset = stroke.thickness * 0.3f
                 val path = Path(stroke.path)
                 val m = Matrix()
@@ -265,12 +268,13 @@ object BrushRenderUtils {
 
             else -> {
                 val paint = makePaint(stroke, width, height)
+                paint.alpha = paintAlpha
                 canvas.drawPath(stroke.path!!, paint)
             }
         }
     }
 
-    fun drawTaperedPenStroke(canvas: Canvas, stroke: StrokeData) {
+    fun drawTaperedPenStroke(canvas: Canvas, stroke: StrokeData, paintAlpha: Int) {
         val pathMeasure = PathMeasure(stroke.path, false)
         val pathLength = pathMeasure.length
         val position = FloatArray(2)
@@ -282,6 +286,7 @@ object BrushRenderUtils {
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
             isAntiAlias = true
+            alpha = paintAlpha
         }
 
         val path = Path()

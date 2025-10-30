@@ -124,6 +124,8 @@
                     android:background="@null"
                     android:gravity="center"
                     android:hint="@string/_0_0"
+                    android:textColorHint="@color/light_gray"
+                    android:textColor="@color/black"
                     android:inputType="numberDecimal"
                     android:digits="0123456789."
                     app:layout_constraintTop_toTopOf="parent"
@@ -197,6 +199,8 @@
                     android:background="@null"
                     android:gravity="center"
                     android:hint="@string/_0_0"
+                    android:textColorHint="@color/light_gray"
+                    android:textColor="@color/black"
                     android:inputType="numberDecimal"
                     android:digits="0123456789."
                     app:layout_constraintTop_toTopOf="parent"
@@ -260,6 +264,8 @@
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     android:id="@+id/unit"
+                    android:textColor="@color/black"
+                    android:textColorHint="@color/gray"
                     android:fontFamily="@font/regular"
                     android:textSize="12sp"/>
 

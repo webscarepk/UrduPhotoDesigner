@@ -58,9 +58,7 @@ class HomeFragment : Fragment() {
     private var rotationAnimator: ObjectAnimator? = null
 
     private var isNavigatingToSearch = false
-    val navOptions = NavOptions.Builder()
-        .setLaunchSingleTop(true)
-        .build()
+    val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri?.let {
@@ -76,15 +74,15 @@ class HomeFragment : Fragment() {
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(canvasSize)
                 viewModel.setCanvasBackgroundImage(bitmap)
-                view?.post {
-                    findNavController().navigate(R.id.editorFragment, bundle, navOptions)
-                }
+                val editorNavOptions = NavOptions.Builder().setLaunchSingleTop(true)
+                    .setPopUpTo(R.id.editorFragment, inclusive = true) // 🔥 this line is key
+                    .build()
+                findNavController().navigate(R.id.editorFragment, null, editorNavOptions)
             }
         }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentHomeBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -165,9 +163,7 @@ class HomeFragment : Fragment() {
             } else {
                 viewModel.setCanvasSize(CanvasSize("", 2000f, 2000f))
                 viewModel.addTextWithFont(
-                    requireActivity().getString(R.string.dummyText),
-                    font,
-                    requireActivity()
+                    requireActivity().getString(R.string.dummyText), font, requireActivity()
                 )
 
                 view?.post { findNavController().navigate(R.id.editorFragment, null, navOptions) }
@@ -178,79 +174,71 @@ class HomeFragment : Fragment() {
 
         binding.fontsRV.adapter = fontsAdapter
 
-        trendsAdapter = TrendsAdapter(
-            onSeeAll = { trendTitle ->
-                val args = Bundle().apply { putString("TREND_NAME", trendTitle) }
-                view?.post { findNavController().navigate(R.id.templatesListFragment, args) }
-            },
-            onTemplateClick = { template, isDownloaded ->
-                if (template.is_downloading) return@TrendsAdapter
-                if (isDownloaded) {
-                    if (template.file_path.isNullOrEmpty()) {
-                        trendsAdapter.updateTemplateProgress(
-                            template.id,
-                            ProgressUi(progress = 0, isDownloading = true, isDownloaded = false)
-                        )
-                        mainViewModel.downloadTemplate(template)
-                        return@TrendsAdapter
-                    } else {
-                        val exportResult = template.toExportResultFinal()
-                        lifecycleScope.launch {
-                            withContext(Dispatchers.Default) {
-                                viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
-                            }
-                        }
-                        return@TrendsAdapter
-                    }
-                }
-                downloadingTemplate = template
-                // start download
-                trendsAdapter.updateTemplateProgress(
-                    template.id,
-                    ProgressUi(
-                        progress = 0,
-                        isDownloading = true,
-                        isDownloaded = false
+        trendsAdapter = TrendsAdapter(onSeeAll = { trendTitle ->
+            val args = Bundle().apply { putString("TREND_NAME", trendTitle) }
+            view?.post { findNavController().navigate(R.id.templatesListFragment, args) }
+        }, onTemplateClick = { template, isDownloaded ->
+            if (template.is_downloading) return@TrendsAdapter
+            if (isDownloaded) {
+                if (template.file_path.isNullOrEmpty()) {
+                    trendsAdapter.updateTemplateProgress(
+                        template.id,
+                        ProgressUi(progress = 0, isDownloading = true, isDownloaded = false)
                     )
-                )
-                mainViewModel.downloadTemplate(template)
+                    mainViewModel.downloadTemplate(template)
+                    return@TrendsAdapter
+                } else {
+                    val exportResult = template.toExportResultFinal()
+                    lifecycleScope.launch {
+                        withContext(Dispatchers.Default) {
+                            viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
+                        }
+                    }
+                    return@TrendsAdapter
+                }
             }
-        )
+            downloadingTemplate = template
+            // start download
+            trendsAdapter.updateTemplateProgress(
+                template.id, ProgressUi(
+                    progress = 0, isDownloading = true, isDownloaded = false
+                )
+            )
+            mainViewModel.downloadTemplate(template)
+        })
 
         binding.trendsRV.apply {
             adapter = trendsAdapter
             setHasFixedSize(true)
         }
 
-        popularTemplatesAdapter = PopularTemplatesAdapter(
-            onClick = { template, isDownloaded ->
-                if (template.is_downloading) return@PopularTemplatesAdapter
-                if (isDownloaded) {
-                    if (template.file_path.isNullOrEmpty()) {
-                        popularTemplatesAdapter.updateProgress(
-                            template.id,
-                            ProgressUi(progress = 0, isDownloading = true, isDownloaded = false)
-                        )
-                        mainViewModel.downloadTemplate(template)
-                        return@PopularTemplatesAdapter
-                    } else {
-                        val exportResult = template.toExportResultFinal()
-                        lifecycleScope.launch {
-                            withContext(Dispatchers.Default) {
-                                viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
-                            }
-                        }
-                    }
-                } else {
-                    downloadingTemplate = template
+        popularTemplatesAdapter = PopularTemplatesAdapter(onClick = { template, isDownloaded ->
+            if (template.is_downloading) return@PopularTemplatesAdapter
+            if (isDownloaded) {
+                if (template.file_path.isNullOrEmpty()) {
                     popularTemplatesAdapter.updateProgress(
                         template.id,
                         ProgressUi(progress = 0, isDownloading = true, isDownloaded = false)
                     )
                     mainViewModel.downloadTemplate(template)
+                    return@PopularTemplatesAdapter
+                } else {
+                    val exportResult = template.toExportResultFinal()
+                    lifecycleScope.launch {
+                        withContext(Dispatchers.Default) {
+                            viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
+                        }
+                    }
                 }
-            },
-            progressProvider = { id -> null } // you can wire TemplateDownloadState here
+            } else {
+                downloadingTemplate = template
+                popularTemplatesAdapter.updateProgress(
+                    template.id,
+                    ProgressUi(progress = 0, isDownloading = true, isDownloaded = false)
+                )
+                mainViewModel.downloadTemplate(template)
+            }
+        }, progressProvider = { id -> null } // you can wire TemplateDownloadState here
         )
 
         binding.popularTemplateRV.apply {
@@ -287,7 +275,7 @@ class HomeFragment : Fragment() {
         }
 
         binding.fileTab.addPressEffect {
-           view?.post {  findNavController().navigate(R.id.filesFragment) }
+            view?.post { findNavController().navigate(R.id.filesFragment) }
         }
 
         binding.searchBar.addTextChangedListener(object : TextWatcher {
@@ -302,12 +290,9 @@ class HomeFragment : Fragment() {
                         putString("initialQuery", query)
                     }
 
-                    val options = NavOptions.Builder()
-                        .setEnterAnim(R.anim.slide_in_up)
-                        .setExitAnim(0)
-                        .setPopEnterAnim(0)
-                        .setPopExitAnim(R.anim.slide_out_down)
-                        .build()
+                    val options =
+                        NavOptions.Builder().setEnterAnim(R.anim.slide_in_up).setExitAnim(0)
+                            .setPopEnterAnim(0).setPopExitAnim(R.anim.slide_out_down).build()
 
                     findNavController().navigate(R.id.searchFragment, bundle, options)
                 } else if (query.isEmpty()) {
@@ -330,8 +315,7 @@ class HomeFragment : Fragment() {
                     is TemplateDownloadState.Progress -> {
                         val t = state.template
                         trendsAdapter.updateTemplateProgress(
-                            t.id,
-                            ProgressUi(
+                            t.id, ProgressUi(
                                 progress = state.progress,
                                 isDownloading = true,
                                 isDownloaded = false
@@ -339,8 +323,7 @@ class HomeFragment : Fragment() {
                         )
 
                         popularTemplatesAdapter.updateProgress(
-                            t.id,
-                            ProgressUi(
+                            t.id, ProgressUi(
                                 progress = state.progress,
                                 isDownloading = true,
                                 isDownloaded = false
@@ -351,20 +334,14 @@ class HomeFragment : Fragment() {
                     is TemplateDownloadState.SuccessWithTemplate -> {
                         val t = state.template
                         trendsAdapter.updateTemplateProgress(
-                            t.id,
-                            ProgressUi(
-                                progress = 100,
-                                isDownloading = false,
-                                isDownloaded = true
+                            t.id, ProgressUi(
+                                progress = 100, isDownloading = false, isDownloaded = true
                             )
                         )
 
                         popularTemplatesAdapter.updateProgress(
-                            t.id,
-                            ProgressUi(
-                                progress = 100,
-                                isDownloading = false,
-                                isDownloaded = true
+                            t.id, ProgressUi(
+                                progress = 100, isDownloading = false, isDownloaded = true
                             )
                         )
                         mainViewModel.clearTemplateDownloadState()
@@ -385,19 +362,13 @@ class HomeFragment : Fragment() {
 
                         downloadingTemplate?.let { t ->
                             trendsAdapter.updateTemplateProgress(
-                                t.id,
-                                ProgressUi(
-                                    progress = 0,
-                                    isDownloading = false,
-                                    isDownloaded = false
+                                t.id, ProgressUi(
+                                    progress = 0, isDownloading = false, isDownloaded = false
                                 )
                             )
                             popularTemplatesAdapter.updateProgress(
-                                t.id,
-                                ProgressUi(
-                                    progress = 0,
-                                    isDownloading = false,
-                                    isDownloaded = false
+                                t.id, ProgressUi(
+                                    progress = 0, isDownloading = false, isDownloaded = false
                                 )
                             )
                         }
@@ -444,8 +415,7 @@ class HomeFragment : Fragment() {
                     is FontDownloadState.Progress -> {
                         val font = downloadState.fontEntity
                         fontsAdapter.updateProgress(
-                            font.id,
-                            ProgressUi(
+                            font.id, ProgressUi(
                                 progress = downloadState.progress,
                                 isDownloading = true,
                                 isDownloaded = false
@@ -457,8 +427,7 @@ class HomeFragment : Fragment() {
                         val font = downloadState.fontEntity
 
                         fontsAdapter.updateProgress(
-                            font.id,
-                            ProgressUi(100, isDownloading = false, isDownloaded = true)
+                            font.id, ProgressUi(100, isDownloading = false, isDownloaded = true)
                         )
 
                         showGlobalSuccessSnack("Font downloaded") {
@@ -475,11 +444,11 @@ class HomeFragment : Fragment() {
                                 )
 
                                 if (isAdded && findNavController().currentDestination?.id != R.id.editorFragment) {
-                                    view?.post { findNavController().navigate(
-                                        R.id.editorFragment,
-                                        bundle,
-                                        navOptions
-                                    ) }
+                                    view?.post {
+                                        findNavController().navigate(
+                                            R.id.editorFragment, bundle, navOptions
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -489,16 +458,13 @@ class HomeFragment : Fragment() {
                     is FontDownloadState.Error -> {
                         val font = downloadState.fontEntity
                         fontsAdapter.updateProgress(
-                            font.id,
-                            ProgressUi(
-                                progress = 0,
-                                isDownloading = false,
-                                isDownloaded = false
+                            font.id, ProgressUi(
+                                progress = 0, isDownloading = false, isDownloaded = false
                             )
                         )
 
                         mainViewModel.clearDownloadState()
-                        if (isAdded){
+                        if (isAdded) {
                             Snackbar.make(requireView(), "Download failed!", Snackbar.LENGTH_SHORT)
                                 .show()
                         }
@@ -531,7 +497,11 @@ class HomeFragment : Fragment() {
                 lifecycleScope.launch {
                     delay(500)
                     if (findNavController().currentDestination?.id != R.id.editorFragment) {
-                       view?.post {  findNavController().navigate(R.id.editorFragment, bundle, navOptions) }
+                        view?.post {
+                            findNavController().navigate(
+                                R.id.editorFragment, bundle, navOptions
+                            )
+                        }
                     }
                 }
             }

@@ -153,8 +153,8 @@ class CreateFragment : BottomSheetDialogFragment() {
                 width.setText(newWidth.toString())
 
                 if (isLinked && aspectRatio != null) {
-                    val newHeight = (newWidth / aspectRatio!!).toInt()
-                    height.setText(newHeight.toString())
+                    val newWidth = clampCanvasSize(getSafeIntValue(width) + 1, currentUnit)
+                    width.setText(String.format("%.1f", newWidth))
                 }
             }
 
@@ -165,8 +165,8 @@ class CreateFragment : BottomSheetDialogFragment() {
                     width.setText(newWidth.toString())
 
                     if (isLinked && aspectRatio != null) {
-                        val newHeight = (newWidth / aspectRatio!!).toInt()
-                        height.setText(newHeight.toString())
+                        val newWidth = clampCanvasSize(getSafeIntValue(width) + 1, currentUnit)
+                        width.setText(String.format("%.1f", newWidth))
                     }
                 }
             }
@@ -176,8 +176,8 @@ class CreateFragment : BottomSheetDialogFragment() {
                 height.setText(newHeight.toString())
 
                 if (isLinked && aspectRatio != null) {
-                    val newWidth = (newHeight * aspectRatio!!).toInt()
-                    width.setText(newWidth.toString())
+                    val newWidth = clampCanvasSize(getSafeIntValue(width) + 1, currentUnit)
+                    width.setText(String.format("%.1f", newWidth))
                 }
             }
 
@@ -188,8 +188,8 @@ class CreateFragment : BottomSheetDialogFragment() {
                     height.setText(newHeight.toString())
 
                     if (isLinked && aspectRatio != null) {
-                        val newWidth = (newHeight * aspectRatio!!).toInt()
-                        width.setText(newWidth.toString())
+                        val newWidth = clampCanvasSize(getSafeIntValue(width) + 1, currentUnit)
+                        width.setText(String.format("%.1f", newWidth))
                     }
                 }
             }
@@ -213,31 +213,40 @@ class CreateFragment : BottomSheetDialogFragment() {
 
             // Create button click
             binding.create.addPressEffect {
-                val widthText = width.text.toString().trim()
-                val heightText = height.text.toString().trim()
-
-                if (widthText.isEmpty() || widthText.toFloatOrNull() == 0f ) {
-                    Snackbar.make(binding.root, "Width cannot be 0", Snackbar.LENGTH_SHORT).show()
-                    return@addPressEffect
-                }
-                if (heightText.isEmpty() || heightText.toFloatOrNull() == 0f){
-                    Snackbar.make(binding.root, "Height cannot be 0", Snackbar.LENGTH_SHORT).show()
-                    return@addPressEffect
-                }
-
-                val widthVal = getSafeIntValue(width)
-                val heightVal = getSafeIntValue(height)
+                val widthVal = clampCanvasSize(getSafeIntValue(width), currentUnit)
+                val heightVal = clampCanvasSize(getSafeIntValue(height), currentUnit)
 
                 val canvasSize = CanvasSize("Custom", widthVal, heightVal)
-
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(canvasSize)
-                view?.post {  }
+                view?.post { findNavController().navigate(R.id.editorFragment, null) }
                 dismiss()
             }
 
             back.addPressEffect { dismiss() }
         }
+    }
+
+    private fun clampCanvasSize(value: Float, unit: UnitType): Float {
+        val (min, max, unitLabel) = when (unit) {
+            UnitType.PIXELS -> Triple(256f, 8000f, "px")
+            UnitType.INCHES -> Triple(1f, 80f, "inches")
+            UnitType.CENTIMETERS -> Triple(2.5f, 200f, "cm")
+        }
+
+        val clamped = value.coerceIn(min, max)
+
+        if (clamped != value && _binding != null) {
+            val msg = if (value > max) {
+                "Maximum allowed is $max $unitLabel"
+            } else {
+                "Minimum allowed is $min $unitLabel"
+            }
+            Snackbar.make(requireActivity().findViewById(android.R.id.content), msg, Snackbar.LENGTH_SHORT)
+                .setAnchorView(binding.create)
+                .show()        }
+
+        return clamped
     }
 
     private fun updateListForUnit(unitType: UnitType) {

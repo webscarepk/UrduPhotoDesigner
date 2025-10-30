@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "268632351979",
+    "project_id": "urducanvas-36260",
+    "storage_bucket": "urducanvas-36260.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:268632351979:android:8be54fbf719275f34b4aae",
+        "android_client_info": {
+          "package_name": "com.example.urduphotodesigner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD39LmKw3mY3KBZYitxLcAZXMT996LvZx0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -162,6 +162,7 @@ class BrushPanelFragment : Fragment() {
         drawStrokePreview(
             canvas = canvas,
             stroke = stroke,
+            paintAlpha = 255,
             width = width,
             height = height,
             makePaint = ::makeStrokePaint,

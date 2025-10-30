@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
     id ("kotlin-kapt")
     id("com.google.dagger.hilt.android")
+    id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
 }
 
 android {
@@ -126,4 +128,7 @@ dependencies {
     
     //ML Kit
     implementation(libs.play.services.mlkit.subject.segmentation)
+
+    //Firebase Crashlytics
+    implementation(libs.firebase.crashlytics)
 }

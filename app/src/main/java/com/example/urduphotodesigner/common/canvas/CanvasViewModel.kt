@@ -1018,14 +1018,14 @@ class CanvasViewModel @Inject constructor(
                                     println("Error re-applying typeface in observeLocalFonts: ${font.file_path}. Error: ${e.message}")
                                     updatedElement.paint.typeface = updatedElement.context?.let {
                                         ResourcesCompat.getFont(
-                                            it, R.font.regular
+                                            it, R.font.default_canvas
                                         )
                                     } ?: Typeface.DEFAULT
                                 }
                             } else {
                                 updatedElement.paint.typeface = updatedElement.context?.let {
                                     ResourcesCompat.getFont(
-                                        it, R.font.regular
+                                        it, R.font.default_canvas
                                     )
                                 } ?: Typeface.DEFAULT
                             }
@@ -1033,7 +1033,7 @@ class CanvasViewModel @Inject constructor(
                             // Ensure non-text elements or text elements without fontId also have a default typeface if applicable
                             updatedElement.paint.typeface = updatedElement.context?.let {
                                 ResourcesCompat.getFont(
-                                    it, R.font.regular
+                                    it, R.font.default_canvas
                                 )
                             } ?: Typeface.DEFAULT
                         }
@@ -1566,14 +1566,14 @@ class CanvasViewModel @Inject constructor(
                     // If font not found or path is blank, revert to default system font
                     elementToUpdate.paint.typeface = elementToUpdate.context?.let {
                         ResourcesCompat.getFont(
-                            it, R.font.regular
+                            it, R.font.default_canvas
                         )
                     } ?: Typeface.DEFAULT
                 }
             } else {
                 // Ensure non-text elements or text elements without fontId also have a default typeface if applicable
                 elementToUpdate.paint.typeface =
-                    elementToUpdate.context?.let { ResourcesCompat.getFont(it, R.font.regular) }
+                    elementToUpdate.context?.let { ResourcesCompat.getFont(it, R.font.default_canvas) }
                         ?: Typeface.DEFAULT
             }
 
@@ -1625,20 +1625,20 @@ class CanvasViewModel @Inject constructor(
                         println("Error re-applying typeface in updateCanvasElementsOrderAndZIndex: ${font.file_path}. Error: ${e.message}")
                         copiedElement.paint.typeface = copiedElement.context?.let {
                             ResourcesCompat.getFont(
-                                it, R.font.regular
+                                it, R.font.default_canvas
                             )
                         } ?: Typeface.DEFAULT
                     }
                 } else {
                     copiedElement.paint.typeface = copiedElement.context?.let {
                         ResourcesCompat.getFont(
-                            it, R.font.regular
+                            it, R.font.default_canvas
                         )
                     } ?: Typeface.DEFAULT
                 }
             } else {
                 copiedElement.paint.typeface =
-                    copiedElement.context?.let { ResourcesCompat.getFont(it, R.font.regular) }
+                    copiedElement.context?.let { ResourcesCompat.getFont(it, R.font.default_canvas) }
                         ?: Typeface.DEFAULT
             }
             copiedElement
@@ -1672,7 +1672,7 @@ class CanvasViewModel @Inject constructor(
                 paint.typeface = if (type == ElementType.TEXT && fontId != null) {
                     applyTypefaceFromFontList()
                 } else {
-                    context?.let { ResourcesCompat.getFont(it, R.font.regular) } ?: Typeface.DEFAULT
+                    context?.let { ResourcesCompat.getFont(it, R.font.default_canvas) } ?: Typeface.DEFAULT
                 }
             }
             copiedElement
@@ -1735,13 +1735,13 @@ class CanvasViewModel @Inject constructor(
                 try {
                     Typeface.createFromFile(path)
                 } catch (e: Exception) {
-                    ResourcesCompat.getFont(context ?: return Typeface.DEFAULT, R.font.regular)
+                    ResourcesCompat.getFont(context ?: return Typeface.DEFAULT, R.font.default_canvas)
                         ?: Typeface.DEFAULT
                 }
-            } ?: ResourcesCompat.getFont(context ?: return Typeface.DEFAULT, R.font.regular)
+            } ?: ResourcesCompat.getFont(context ?: return Typeface.DEFAULT, R.font.default_canvas)
             ?: Typeface.DEFAULT
         } else {
-            ResourcesCompat.getFont(context ?: return Typeface.DEFAULT, R.font.regular)
+            ResourcesCompat.getFont(context ?: return Typeface.DEFAULT, R.font.default_canvas)
                 ?: Typeface.DEFAULT
         }
     }
@@ -2079,7 +2079,7 @@ class CanvasViewModel @Inject constructor(
             } catch (e: Exception) {
                 println("Error applying font: ${fontEntity.file_path}. Error: ${e.message}")
                 element.fontId = null
-                ResourcesCompat.getFont(context, R.font.regular) ?: Typeface.DEFAULT
+                ResourcesCompat.getFont(context, R.font.default_canvas) ?: Typeface.DEFAULT
             }
         }
 
@@ -2121,7 +2121,7 @@ class CanvasViewModel @Inject constructor(
                     } catch (e: Exception) {
                         println("Error applying font: ${fontEntity.file_path}. Error: ${e.message}")
                         fontId = null
-                        context?.let { ResourcesCompat.getFont(it, R.font.regular) }
+                        context?.let { ResourcesCompat.getFont(it, R.font.default_canvas) }
                             ?: Typeface.DEFAULT
                     }
                 }
@@ -2175,7 +2175,7 @@ class CanvasViewModel @Inject constructor(
         return fontId?.let { id ->
             localFonts.value.firstOrNull { it.id.toString() == id }?.file_path?.takeIf { it.isNotBlank() }
                 ?.let { Typeface.createFromFile(it) }
-        } ?: context?.let { ResourcesCompat.getFont(it, R.font.regular) } ?: Typeface.DEFAULT
+        } ?: context?.let { ResourcesCompat.getFont(it, R.font.default_canvas) } ?: Typeface.DEFAULT
     }
 
     fun setTextColor(color: Int) {
@@ -2535,7 +2535,7 @@ class CanvasViewModel @Inject constructor(
         return fontId?.let { id ->
             localFonts.value.firstOrNull { it.id.toString() == id }?.file_path?.takeIf { it.isNotBlank() }
                 ?.let { Typeface.createFromFile(it) }
-        } ?: context?.let { ResourcesCompat.getFont(it, R.font.regular) } ?: Typeface.DEFAULT
+        } ?: context?.let { ResourcesCompat.getFont(it, R.font.default_canvas) } ?: Typeface.DEFAULT
     }
 
     private fun updateSingleElement(
@@ -2664,20 +2664,20 @@ class CanvasViewModel @Inject constructor(
                                 } catch (e: Exception) {
                                     copied.paint.typeface = context?.let {
                                         ResourcesCompat.getFont(
-                                            it, R.font.regular
+                                            it, R.font.default_canvas
                                         )
                                     } ?: Typeface.DEFAULT
                                     copied.fontId = null
                                 }
                             } else {
                                 copied.paint.typeface =
-                                    context?.let { ResourcesCompat.getFont(it, R.font.regular) }
+                                    context?.let { ResourcesCompat.getFont(it, R.font.default_canvas) }
                                         ?: Typeface.DEFAULT
                                 copied.fontId = null
                             }
                         } else {
                             copied.paint.typeface =
-                                context?.let { ResourcesCompat.getFont(it, R.font.regular) }
+                                context?.let { ResourcesCompat.getFont(it, R.font.default_canvas) }
                                     ?: Typeface.DEFAULT
                             copied.fontId = null
                         }

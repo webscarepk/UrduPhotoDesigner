@@ -233,7 +233,7 @@ class CanvasView @JvmOverloads constructor(
         style = Paint.Style.FILL
         isAntiAlias = true
         textAlign = Paint.Align.CENTER
-        typeface = ResourcesCompat.getFont(context, R.font.regular)
+        typeface = ResourcesCompat.getFont(context, R.font.default_canvas)
     }
 
     private val rotationLabelPaint = Paint().apply {
@@ -784,7 +784,7 @@ class CanvasView @JvmOverloads constructor(
         val watermarkText = "UrduCanvas"  // Watermark text
 
         // Load the custom font from the 'res/fonts' folder
-        val watermarkTypeface = ResourcesCompat.getFont(context, R.font.regular)
+        val watermarkTypeface = ResourcesCompat.getFont(context, R.font.default_canvas)
 
         // Create a paint object with desired properties
         val watermarkPaint = Paint().apply {
@@ -1129,8 +1129,8 @@ class CanvasView @JvmOverloads constructor(
         )
 
         when (currentBrushStyle) {
-            BrushStyle.BRUSH -> drawBrushStroke(canvas, tempStroke)
-            BrushStyle.PEN -> drawTaperedPenStroke(canvas, tempStroke)
+            BrushStyle.BRUSH -> drawBrushStroke(canvas, tempStroke, 255)
+            BrushStyle.PEN -> drawTaperedPenStroke(canvas, tempStroke, 255)
             BrushStyle.PENCIL -> {
                 val paint = makeStrokePaint(tempStroke, width, height).apply {
                     pathEffect = DashPathEffect(floatArrayOf(4f, 4f), 0f)
@@ -2268,15 +2268,16 @@ class CanvasView @JvmOverloads constructor(
 
             when (stroke.style) {
                 BrushStyle.BRUSH -> {
-                    drawBrushStroke(canvas, stroke)
+                    drawBrushStroke(canvas, stroke, element.paintAlpha)
                 }
 
                 BrushStyle.PEN -> {
-                    drawTaperedPenStroke(canvas, stroke)
+                    drawTaperedPenStroke(canvas, stroke, element.paintAlpha)
                 }
 
                 BrushStyle.HIGHLIGHTER -> {
                     val paint = makeStrokePaint(stroke, width, height)
+                    paint.alpha = element.paintAlpha
                     val offset = stroke.thickness * 0.3f
                     val path = Path(stroke.path)
                     val m = Matrix()
@@ -2287,6 +2288,7 @@ class CanvasView @JvmOverloads constructor(
 
                 else -> {
                     val paint = makeStrokePaint(stroke, width, height)
+                    paint.alpha = element.paintAlpha
                     canvas.drawPath(stroke.path!!, paint)
                 }
             }
@@ -2388,6 +2390,7 @@ class CanvasView @JvmOverloads constructor(
                 rotate(e.rotation, pivotX, pivotY)
 
                 backgroundPaint.shader = BrushRenderUtils.createBackgroundGradientShader(grad, w, h)
+                backgroundPaint.alpha = e.paintAlpha
                 drawRect(0f, 0f, w, h, backgroundPaint)
                 backgroundPaint.shader = null
             }
@@ -2401,6 +2404,7 @@ class CanvasView @JvmOverloads constructor(
 
             backgroundPaint.shader = null
             backgroundPaint.color = e.backgroundColor
+            backgroundPaint.alpha = e.paintAlpha
             drawRect(0f, 0f, w, h, backgroundPaint)
         }
     }
@@ -2487,6 +2491,7 @@ class CanvasView @JvmOverloads constructor(
                 color = element.labelColor
                 style = Paint.Style.FILL
                 isAntiAlias = true
+                alpha = element.paintAlpha
             }
 
             element.labelGradient?.let { gradient ->
@@ -2499,6 +2504,7 @@ class CanvasView @JvmOverloads constructor(
             } ?: run {
                 labelPaint.shader = null
                 labelPaint.color = element.labelColor
+                labelPaint.alpha = element.paintAlpha
             }
 
             when (element.labelShape) {
@@ -2567,11 +2573,9 @@ class CanvasView @JvmOverloads constructor(
             val fillPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = element.paintColor
                 textSize = element.paintTextSize
-                alpha = element.paintAlpha
                 letterSpacing = element.letterSpacing
                 isAntiAlias = true
                 style = Paint.Style.FILL
-
                 // Underline
                 isUnderlineText = TextDecoration.UNDERLINE in element.textDecoration
 
@@ -2587,6 +2591,7 @@ class CanvasView @JvmOverloads constructor(
                     else -> Typeface.NORMAL
                 }
                 typeface = Typeface.create(baseTypeface, style)
+                alpha = element.paintAlpha
             }
 
             // Handle list styles
@@ -2639,9 +2644,6 @@ class CanvasView @JvmOverloads constructor(
                 fillPaint.maskFilter = blurMaskFilter
             }
 
-            // Apply opacity (alpha)
-            fillPaint.alpha = element.paintAlpha
-
             // Apply layer blending (based on imageFilter)
             fillPaint.xfermode = drawWithBlend(element)
 
@@ -2649,29 +2651,35 @@ class CanvasView @JvmOverloads constructor(
                 val shadowColorWithOpacity =
                     (element.shadowColor and 0x00FFFFFF) or (element.shadowOpacity shl 24)
                 val shadowPaint = TextPaint(fillPaint).apply {
-                    setShadowLayer(
-                        element.shadowRadius,
-                        element.shadowDx,
-                        element.shadowDy,
-                        shadowColorWithOpacity
-                    )
+                    style = Paint.Style.FILL
                     shader = null
+                    color = shadowColorWithOpacity
+                    maskFilter = BlurMaskFilter(element.shadowRadius, BlurMaskFilter.Blur.NORMAL)
+                    alpha = Color.alpha(shadowColorWithOpacity)
+
+                    xfermode = null
                 }
-                canvas.drawText(displayText, xPosition, yOffset, shadowPaint)
+
+                canvas.drawText(
+                    displayText,
+                    xPosition + element.shadowDx,
+                    yOffset + element.shadowDy,
+                    shadowPaint
+                )
             }
+
+            fillPaint.alpha = element.paintAlpha
 
             // Handle justified text separately
             if (element.alignment == TextAlignment.JUSTIFY) {
                 element.paint = fillPaint
                 justifyText(canvas, displayText, yOffset, element)
             } else {
-                // Draw border (stroke) if needed
                 if (element.hasStroke && element.strokeWidth > 0f) {
                     val strokePaint = TextPaint(fillPaint).apply {
                         style = Paint.Style.STROKE
                         strokeWidth = element.strokeWidth
                         element.strokeGradient?.let { gradient ->
-                            // use same width to span stroke gradient
                             val textWidth = fillPaint.measureText(displayText)
                             val textHeight = fillPaint.textSize
                             shader = createGradientShader(
@@ -2681,11 +2689,13 @@ class CanvasView @JvmOverloads constructor(
                             shader = null
                             color = element.strokeColor
                         }
-                        textAlign = alignment
+                        maskFilter = null
+                        alpha = element.paintAlpha
                     }
                     canvas.drawText(displayText, xPosition, yOffset, strokePaint)
                 }
-                // Draw filled text
+
+                fillPaint.alpha = element.paintAlpha
                 canvas.drawText(displayText, xPosition, yOffset, fillPaint)
             }
 
@@ -2713,6 +2723,7 @@ class CanvasView @JvmOverloads constructor(
 
         val basePaint = TextPaint(element.paint).apply {
             isAntiAlias = true
+            alpha = element.paintAlpha
             letterSpacing = element.letterSpacing
             textAlign = Paint.Align.LEFT
         }

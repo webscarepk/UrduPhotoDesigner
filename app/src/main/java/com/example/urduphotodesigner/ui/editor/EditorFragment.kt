@@ -713,6 +713,7 @@ class EditorFragment : Fragment() {
     private fun resetPanelsOnSelectionChange() {
         binding.seekBarOpacity.isVisible = false
         binding.opacityValue.isVisible = false
+        binding.opacityIcon.isVisible = true
         binding.seekBarFontSize.isVisible = false
         binding.blendSpinner.isVisible = false
     }
