@@ -2041,6 +2041,8 @@ class CanvasViewModel @Inject constructor(
         )
 
         element.updatePaintProperties()
+        element.originalTypeface = element.applyTypefaceFromFontList()
+        element.paint.typeface = element.applyTypefaceFromFontList()
 
         val action = CanvasAction.AddText(
             text, element.copy(context = null, bitmap = null)

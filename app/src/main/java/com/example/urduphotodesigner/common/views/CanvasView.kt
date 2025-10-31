@@ -2130,6 +2130,33 @@ class CanvasView @JvmOverloads constructor(
         val localHalfH = element.logicalContentHeight / 2f
         val localRect = RectF(-localHalfW, -localHalfH, localHalfW, localHalfH)
 
+        // --- 3️⃣ Stroke Layer ---
+        if (element.shapeHasStroke) {
+            val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = element.shapeStrokeWidth ?: 1f
+                if (element.shapeStrokeGradient != null) {
+                    shader = createGradientShader(
+                        element.shapeStrokeGradient!!,
+                        localRect.width(),
+                        localRect.height()
+                    )
+                } else {
+                    color = element.shapeStrokeColor ?: Color.BLACK
+                }
+                alpha = element.paintAlpha
+                strokeJoin = Paint.Join.ROUND
+                strokeCap = Paint.Cap.ROUND
+            }
+
+            drawShape(
+                canvas,
+                strokePaint,
+                element.shapeType ?: ShapeType.RECTANGLE,
+                localRect,
+                element.shapeCornerRadius
+            )
+        }
         // --- 1️⃣ Fill Layer ---
         if (element.shapeHasFill) {
             val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -2230,34 +2257,6 @@ class CanvasView @JvmOverloads constructor(
                 }
 
             }
-        }
-
-        // --- 3️⃣ Stroke Layer ---
-        if (element.shapeHasStroke) {
-            val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
-                strokeWidth = element.shapeStrokeWidth ?: 1f
-                if (element.shapeStrokeGradient != null) {
-                    shader = createGradientShader(
-                        element.shapeStrokeGradient!!,
-                        localRect.width(),
-                        localRect.height()
-                    )
-                } else {
-                    color = element.shapeStrokeColor ?: Color.BLACK
-                }
-                alpha = element.paintAlpha
-                strokeJoin = Paint.Join.ROUND
-                strokeCap = Paint.Cap.ROUND
-            }
-
-            drawShape(
-                canvas,
-                strokePaint,
-                element.shapeType ?: ShapeType.RECTANGLE,
-                localRect,
-                element.shapeCornerRadius
-            )
         }
     }
 
@@ -2473,11 +2472,14 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private fun drawTextElement(canvas: Canvas, element: CanvasElement) {
+        if (element.paintAlpha == 0) return
+
         val lines = element.getTextWithKashida().split("\n")
         val fm = element.paint.fontMetrics
         val lineHeight = (fm.descent - fm.ascent) * element.lineSpacing
         val totalHeight = lineHeight * lines.size
 
+        // ----- DRAW LABEL -----
         if (element.hasLabel) {
             val maxLineWidth = lines.maxOf { element.paint.measureText(it) }
             val labelPadding = 16f
@@ -2487,188 +2489,142 @@ class CanvasView @JvmOverloads constructor(
             val bottom = totalHeight / 2f + labelPadding
 
             val labelRect = RectF(left, top, right, bottom)
-            val labelPaint = Paint().apply {
-                color = element.labelColor
+            val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.FILL
                 isAntiAlias = true
-                alpha = element.paintAlpha
             }
 
-            element.labelGradient?.let { gradient ->
+            if (element.labelGradient != null) {
                 val rectW = labelRect.width()
                 val rectH = labelRect.height()
                 labelPaint.shader = createGradientShader(
-                    gradientItem = gradient,  // assume you store gradient settings here
-                    width = rectW, height = rectH
+                    gradientItem = element.labelGradient!!,
+                    width = rectW,
+                    height = rectH
                 )
-            } ?: run {
+            } else {
                 labelPaint.shader = null
                 labelPaint.color = element.labelColor
-                labelPaint.alpha = element.paintAlpha
             }
+
+            val prevAlpha = labelPaint.alpha
+            labelPaint.alpha = element.paintAlpha
 
             when (element.labelShape) {
-                LabelShape.RECTANGLE_FILL -> {
-                    labelPaint.style = Paint.Style.FILL
-                    canvas.drawRect(labelRect, labelPaint)
-                }
-
+                LabelShape.RECTANGLE_FILL -> canvas.drawRect(labelRect, labelPaint)
                 LabelShape.RECTANGLE_STROKE -> {
                     labelPaint.style = Paint.Style.STROKE
-                    labelPaint.strokeWidth = 4f // You can adjust the stroke width as needed
+                    labelPaint.strokeWidth = 4f
                     canvas.drawRect(labelRect, labelPaint)
                 }
-
-                LabelShape.OVAL_FILL -> {
-                    labelPaint.style = Paint.Style.FILL
-                    canvas.drawOval(labelRect, labelPaint)
-                }
-
+                LabelShape.OVAL_FILL -> canvas.drawOval(labelRect, labelPaint)
                 LabelShape.OVAL_STROKE -> {
                     labelPaint.style = Paint.Style.STROKE
-                    labelPaint.strokeWidth = 4f // Adjust stroke width as needed
+                    labelPaint.strokeWidth = 4f
                     canvas.drawOval(labelRect, labelPaint)
                 }
-
                 LabelShape.CIRCLE_FILL -> {
-                    labelPaint.style = Paint.Style.FILL
-                    val radius = labelRect.width().coerceAtMost(labelRect.height()) / 2f
-                    val centerX = labelRect.centerX()
-                    val centerY = labelRect.centerY()
-                    canvas.drawCircle(centerX, centerY, radius, labelPaint)
+                    val r = min(labelRect.width(), labelRect.height()) / 2f
+                    canvas.drawCircle(labelRect.centerX(), labelRect.centerY(), r, labelPaint)
                 }
-
                 LabelShape.CIRCLE_STROKE -> {
                     labelPaint.style = Paint.Style.STROKE
-                    labelPaint.strokeWidth = 4f // Adjust stroke width as needed
-                    val radius = labelRect.width().coerceAtMost(labelRect.height()) / 2f
-                    val centerX = labelRect.centerX()
-                    val centerY = labelRect.centerY()
-                    canvas.drawCircle(centerX, centerY, radius, labelPaint)
+                    labelPaint.strokeWidth = 4f
+                    val r = min(labelRect.width(), labelRect.height()) / 2f
+                    canvas.drawCircle(labelRect.centerX(), labelRect.centerY(), r, labelPaint)
                 }
-
                 LabelShape.ROUNDED_RECTANGLE_FILL -> {
-                    labelPaint.style = Paint.Style.FILL
-                    canvas.drawRoundRect(
-                        labelRect, 20f, 20f, labelPaint
-                    ) // Adjust corner radius as needed
+                    canvas.drawRoundRect(labelRect, 20f, 20f, labelPaint)
                 }
-
                 LabelShape.ROUNDED_RECTANGLE_STROKE -> {
                     labelPaint.style = Paint.Style.STROKE
-                    labelPaint.strokeWidth = 4f // Adjust stroke width as needed
-                    canvas.drawRoundRect(
-                        labelRect, 20f, 20f, labelPaint
-                    ) // Adjust corner radius as needed
+                    labelPaint.strokeWidth = 4f
+                    canvas.drawRoundRect(labelRect, 20f, 20f, labelPaint)
                 }
             }
+
+            labelPaint.alpha = prevAlpha
         }
 
+        // ----- DRAW TEXT -----
         // Font correction for baseline alignment
         val baselineShift = (fm.ascent + fm.descent) / 2f
         var yOffset = -((lines.size - 1) * lineHeight / 2f) - baselineShift
 
-        lines.forEachIndexed { i, line ->
+        lines.forEachIndexed { i, rawLine ->
 
             val fillPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = element.paintColor
                 textSize = element.paintTextSize
                 letterSpacing = element.letterSpacing
-                isAntiAlias = true
                 style = Paint.Style.FILL
-                // Underline
+                isAntiAlias = true
+
+                // Bold / Italic / Underline
                 isUnderlineText = TextDecoration.UNDERLINE in element.textDecoration
-
-                // Bold / Italic
-                val baseTypeface = element.paint.typeface ?: Typeface.DEFAULT
-                val isBold = TextDecoration.BOLD in element.textDecoration
-                val isItalic = TextDecoration.ITALIC in element.textDecoration
-
+                val baseTf = element.paint.typeface ?: Typeface.DEFAULT
+                val bold = TextDecoration.BOLD in element.textDecoration
+                val italic = TextDecoration.ITALIC in element.textDecoration
                 val style = when {
-                    isBold && isItalic -> Typeface.BOLD_ITALIC
-                    isBold -> Typeface.BOLD
-                    isItalic -> Typeface.ITALIC
+                    bold && italic -> Typeface.BOLD_ITALIC
+                    bold -> Typeface.BOLD
+                    italic -> Typeface.ITALIC
                     else -> Typeface.NORMAL
                 }
-                typeface = Typeface.create(baseTypeface, style)
-                alpha = element.paintAlpha
+                typeface = Typeface.create(baseTf, style)
+            }
+            // Apply text formatting
+            val text = when (element.listStyle) {
+                ListStyle.BULLETED -> "• $rawLine"
+                ListStyle.NUMBERED -> "${i + 1}. $rawLine"
+                else -> rawLine
             }
 
-            // Handle list styles
-            val textToDraw = when (element.listStyle) {
-                ListStyle.BULLETED -> "• $line"
-                ListStyle.NUMBERED -> "${i + 1}. $line"
-                else -> line
-            }
-
-            // Letter casing
             val displayText = when (element.letterCasing) {
-                LetterCasing.ALL_CAPS -> textToDraw.uppercase()
-                LetterCasing.LOWER_CASE -> textToDraw.lowercase()
-                LetterCasing.TITLE_CASE -> textToDraw.split(" ")
-                    .joinToString(" ") { it.replaceFirstChar { c -> c.uppercaseChar() } }
-
-                else -> textToDraw
+                LetterCasing.ALL_CAPS -> text.uppercase()
+                LetterCasing.LOWER_CASE -> text.lowercase()
+                LetterCasing.TITLE_CASE -> text.split(" ").joinToString(" ") { it.replaceFirstChar(Char::uppercase) }
+                else -> text
             }
 
-            // Alignment
             val alignment = when (element.alignment) {
                 TextAlignment.LEFT -> Paint.Align.LEFT
                 TextAlignment.CENTER -> Paint.Align.CENTER
                 TextAlignment.RIGHT -> Paint.Align.RIGHT
                 TextAlignment.JUSTIFY -> Paint.Align.LEFT
             }
+            fillPaint.textAlign = alignment
 
             val indentOffset = if (i == 0) element.currentIndent else 0f
-
-            fillPaint.textAlign = alignment
-            val xPosition = when (alignment) {
+            val xPos = when (alignment) {
                 Paint.Align.LEFT -> -element.getLocalContentWidth() / 2f + indentOffset
                 Paint.Align.CENTER -> 0f
                 Paint.Align.RIGHT -> element.getLocalContentWidth() / 2f + indentOffset
             }
 
-            element.fillGradient?.let { gradient ->
-                val textWidth = fillPaint.measureText(displayText)
-                val textHeight = fillPaint.textSize
-                fillPaint.shader = createGradientShader(
-                    gradientItem = gradient, width = textWidth, height = textHeight
-                )
-            } ?: run {
-                fillPaint.shader = null
-                fillPaint.color = element.paintColor
+            // Gradient Fill
+            if (element.fillGradient != null) {
+                val w = fillPaint.measureText(displayText)
+                fillPaint.shader = createGradientShader(element.fillGradient!!, w, fillPaint.textSize)
             }
 
-            if (element.hasBlur) {
-                val blurMaskFilter = BlurMaskFilter(element.blurValue, BlurMaskFilter.Blur.NORMAL)
-                fillPaint.maskFilter = blurMaskFilter
-            }
-
-            // Apply layer blending (based on imageFilter)
+            // Blur and Blend
+            if (element.hasBlur) fillPaint.maskFilter = BlurMaskFilter(element.blurValue, BlurMaskFilter.Blur.NORMAL)
             fillPaint.xfermode = drawWithBlend(element)
 
+            // Shadow
             if (element.hasShadow) {
-                val shadowColorWithOpacity =
-                    (element.shadowColor and 0x00FFFFFF) or (element.shadowOpacity shl 24)
-                val shadowPaint = TextPaint(fillPaint).apply {
-                    style = Paint.Style.FILL
+                val sc = (element.shadowColor and 0x00FFFFFF) or (element.shadowOpacity shl 24)
+                val sp = TextPaint(fillPaint).apply {
                     shader = null
-                    color = shadowColorWithOpacity
+                    color = sc
                     maskFilter = BlurMaskFilter(element.shadowRadius, BlurMaskFilter.Blur.NORMAL)
-                    alpha = Color.alpha(shadowColorWithOpacity)
-
-                    xfermode = null
                 }
-
-                canvas.drawText(
-                    displayText,
-                    xPosition + element.shadowDx,
-                    yOffset + element.shadowDy,
-                    shadowPaint
-                )
+                val sa = sp.alpha
+                sp.alpha = element.paintAlpha
+                canvas.drawText(displayText, xPos + element.shadowDx, yOffset + element.shadowDy, sp)
+                sp.alpha = sa
             }
-
-            fillPaint.alpha = element.paintAlpha
 
             // Handle justified text separately
             if (element.alignment == TextAlignment.JUSTIFY) {
@@ -2679,24 +2635,23 @@ class CanvasView @JvmOverloads constructor(
                     val strokePaint = TextPaint(fillPaint).apply {
                         style = Paint.Style.STROKE
                         strokeWidth = element.strokeWidth
-                        element.strokeGradient?.let { gradient ->
-                            val textWidth = fillPaint.measureText(displayText)
-                            val textHeight = fillPaint.textSize
-                            shader = createGradientShader(
-                                gradientItem = gradient, width = textWidth, height = textHeight
-                            )
-                        } ?: run {
-                            shader = null
-                            color = element.strokeColor
-                        }
-                        maskFilter = null
-                        alpha = element.paintAlpha
                     }
-                    canvas.drawText(displayText, xPosition, yOffset, strokePaint)
+                    if (element.strokeGradient != null) {
+                        val w = fillPaint.measureText(displayText)
+                        strokePaint.shader = createGradientShader(element.strokeGradient!!, w, fillPaint.textSize)
+                    } else {
+                        strokePaint.color = element.strokeColor
+                    }
+                    val old = strokePaint.alpha
+                    strokePaint.alpha = element.paintAlpha
+                    canvas.drawText(displayText, xPos, yOffset, strokePaint)
+                    strokePaint.alpha = old
                 }
 
+                val oldFillAlpha = fillPaint.alpha
                 fillPaint.alpha = element.paintAlpha
-                canvas.drawText(displayText, xPosition, yOffset, fillPaint)
+                canvas.drawText(displayText, xPos, yOffset, fillPaint)
+                fillPaint.alpha = oldFillAlpha
             }
 
             yOffset += lineHeight
@@ -2714,49 +2669,74 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
+    private fun isRTL(text: String): Boolean {
+        return text.any { Character.UnicodeBlock.of(it) == Character.UnicodeBlock.ARABIC }
+    }
+
     private fun justifyText(canvas: Canvas, text: String, yOffset: Float, element: CanvasElement) {
-        if (text.length <= 1) {
+
+        if (element.paintAlpha == 0) return
+
+        val isRTL = isRTL(text)
+        val words = text.split(" ")
+        if (words.size <= 1) {
             val x = -element.getLocalContentWidth() / 2f
+            element.paint.alpha = element.paintAlpha
             canvas.drawText(text, x, yOffset, element.paint)
             return
         }
-
-        val basePaint = TextPaint(element.paint).apply {
+        val fillPaint = TextPaint(element.paint).apply {
             isAntiAlias = true
-            alpha = element.paintAlpha
-            letterSpacing = element.letterSpacing
-            textAlign = Paint.Align.LEFT
-        }
-
-        // Create FILL and STROKE paints, both retaining shadow and font features
-        val fillPaint = TextPaint(basePaint).apply {
             style = Paint.Style.FILL
             color = element.paintColor
+            alpha = element.paintAlpha
+            element.fillGradient?.let {
+                val w = element.getLocalContentWidth()
+                shader = createGradientShader(it, w, textSize)
+            }
         }
-
         val strokePaint = if (element.hasStroke && element.strokeWidth > 0f) {
-            TextPaint(basePaint).apply {
+            TextPaint(fillPaint).apply {
                 style = Paint.Style.STROKE
                 strokeWidth = element.strokeWidth
-                color = element.strokeColor
+                element.strokeGradient?.let {
+                    val w = element.getLocalContentWidth()
+                    shader = createGradientShader(it, w, textSize)
+                } ?: run { color = element.strokeColor }
             }
         } else null
 
-        val charWidths = text.map { fillPaint.measureText(it.toString()) }
-        val textWidth = charWidths.sum()
-        val totalAvailable = element.getLocalContentWidth()
-        val extraSpace = (totalAvailable - textWidth) / (text.length - 1)
+        val wordWidths = words.map { fillPaint.measureText(it) }
+        val textWidth = wordWidths.sum()
+        val totalWidth = element.getLocalContentWidth()
+        val space = (totalWidth - textWidth) / (words.size - 1)
 
-        var xOffset = -totalAvailable / 2f
+        // ✅ START POSITION
+        var xOffset = if (isRTL) totalWidth / 2f else -totalWidth / 2f
 
-        text.forEachIndexed { index, char ->
-            val charStr = char.toString()
-            // Draw stroke first
-            strokePaint?.let { canvas.drawText(charStr, xOffset, yOffset, it) }
-            // Then draw fill
-            canvas.drawText(charStr, xOffset, yOffset, fillPaint)
-            // Move to next char position
-            xOffset += charWidths[index] + extraSpace
+        words.forEachIndexed { index, word ->
+
+            val w = wordWidths[index]
+
+            // ✅ Move before drawing
+            if (isRTL) xOffset -= w
+
+            // ---- Stroke ----
+            strokePaint?.let {
+                val old = it.alpha
+                it.alpha = element.paintAlpha
+                canvas.drawText(word, xOffset, yOffset, it)
+                it.alpha = old
+            }
+
+            // ---- Fill ----
+            canvas.drawText(word, xOffset, yOffset, fillPaint)
+
+            // ✅ Move after drawing
+            if (!isRTL) xOffset += w
+
+            // ✅ Add justify spacing
+            xOffset += if (index < words.size - 1) (if (isRTL) -space else space) else 0f
         }
     }
 

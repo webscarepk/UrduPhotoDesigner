@@ -91,6 +91,9 @@ class DrawFragment : Fragment() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
                 updateStartDrawIcon(position)
+                if (position == 1) {
+                    viewModel.exitDrawingMode()
+                }
             }
         })
     }

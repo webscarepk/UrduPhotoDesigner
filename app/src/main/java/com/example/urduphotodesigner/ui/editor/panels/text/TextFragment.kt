@@ -115,12 +115,8 @@ class TextFragment : Fragment() {
         }
 
         binding.searchIcon.addPressEffect {
-            // hide icon
             binding.searchIcon.isVisible = false
-
-            // show search bar
             binding.searchBar.isVisible = true
-
             binding.searchBar.requestFocus()
             val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showSoftInput(binding.searchBar, InputMethodManager.SHOW_IMPLICIT)

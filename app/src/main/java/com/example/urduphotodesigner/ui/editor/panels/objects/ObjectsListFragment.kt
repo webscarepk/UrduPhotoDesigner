@@ -84,7 +84,9 @@ class ObjectsListFragment : Fragment() {
                     bitmapCompress(image, w.roundToInt(), h)
                 }
             }
-            viewModel.addSticker(resized?.trimTransparentEdges(), requireActivity(), ElementType.STICKER)
+            if (isAdded){
+                viewModel.addSticker(resized?.trimTransparentEdges(), requireActivity(), ElementType.STICKER)
+            }
         }
 
         if (isBaseTab(category)) {
