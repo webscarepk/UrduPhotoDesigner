@@ -55,17 +55,39 @@ class ColorsAdapter(
 
     inner class ColorViewHolder(val binding: LayoutColorItemBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(colorItem: ColorItem) {
-            binding.colorView.setBackgroundColor(colorItem.colorCode.toColorInt())
-            val isSelected = colorItem.colorCode.toColorInt() == selectedColor
+            val colorInt = colorItem.colorCode.toColorInt()
+            val isSelected = colorInt == selectedColor
+
+            // Set main color background
+            binding.colorView.setBackgroundColor(colorInt)
+
+            // Calculate luminance to detect if it's a light color
+            val r = Color.red(colorInt)
+            val g = Color.green(colorInt)
+            val b = Color.blue(colorInt)
+            val luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+
             if (isSelected) {
+                // Selected color — use app color stroke
                 binding.root.strokeWidth = 4
                 binding.root.setCardBackgroundColor(Color.WHITE)
-                binding.root.strokeColor = ContextCompat.getColor(binding.root.context, R.color.appColor)
+                binding.root.strokeColor =
+                    ContextCompat.getColor(binding.root.context, R.color.appColor)
             } else {
-                binding.root.strokeWidth = 0
+                // Not selected — handle white or very light colors
                 binding.root.setCardBackgroundColor(Color.WHITE)
+                binding.root.strokeWidth = 2
+
+                if (luminance > 0.8) {
+                    // Very light color, use dark border
+                    binding.root.strokeColor = "#A0A0A0".toColorInt() // light gray border
+                } else {
+                    // Normal color, use subtle border
+                    binding.root.strokeColor = Color.TRANSPARENT
+                }
             }
             binding.root.addPressEffect { onColorSelected.invoke(colorItem) }
+
         }
     }
 

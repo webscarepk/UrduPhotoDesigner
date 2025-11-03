@@ -248,7 +248,7 @@ class ShapePanelFragment : Fragment() {
                 viewModel.setFillGradient(null)
                 viewModel.startPicking(PickerTarget.COLOR_PICKER_SHAPE_FILL)
             }
-            childFragmentManager.beginTransaction().replace(R.id.brushPanel, ColorPickerFragment())
+            childFragmentManager.beginTransaction().replace(R.id.shapePanel, ColorPickerFragment())
                 .addToBackStack(null).commit()
         }, onEyeDropperClicked = {
             if (selectColorFor){

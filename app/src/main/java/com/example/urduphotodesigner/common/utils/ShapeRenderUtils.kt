@@ -10,7 +10,7 @@ import kotlin.math.sin
 
 object ShapeRenderUtils {
     fun drawShape(
-        canvas: Canvas, paint: Paint, shapeType: ShapeType, rect: RectF, cornerRadius: Float = 5f
+        canvas: Canvas, paint: Paint, shapeType: ShapeType, rect: RectF, cornerRadius: Float = 0f
     ) {
         val cx = rect.centerX()
         val cy = rect.centerY()
@@ -20,7 +20,7 @@ object ShapeRenderUtils {
         when (shapeType) {
             // RECTANGLE is always sharp corners
             ShapeType.RECTANGLE ->
-                canvas.drawRect(safeRect, paint)
+                canvas.drawRoundRect(safeRect, cornerRadius, cornerRadius, paint)
             // ROUNDED_RECTANGLE uses the provided radius
             ShapeType.ROUNDED_RECTANGLE ->
                 canvas.drawRoundRect(safeRect, cornerRadius, cornerRadius, paint)

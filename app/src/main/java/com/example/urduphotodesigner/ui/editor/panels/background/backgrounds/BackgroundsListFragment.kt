@@ -15,13 +15,14 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class BackgroundsListFragment(private val tabName: String) : Fragment() {
+class BackgroundsListFragment() : Fragment() {
     private var _binding: FragmentBackgroundsListBinding? = null
     private val binding get() = _binding!!
 
     private val mainViewModel: MainViewModel by activityViewModels()
     private val viewModel: CanvasViewModel by activityViewModels()
     private lateinit var imagesAdapter: ImagesAdapter
+    val tabName: String? get() = arguments?.getString("tabName")
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -39,6 +40,7 @@ class BackgroundsListFragment(private val tabName: String) : Fragment() {
     }
 
     private fun setEvents() {
+
         imagesAdapter = ImagesAdapter { image, imageEntity ->
             if (isAdded) {
                 mainViewModel.updateImage(imageEntity.copy(is_recent = true))
@@ -82,7 +84,12 @@ class BackgroundsListFragment(private val tabName: String) : Fragment() {
 
     companion object {
         fun newInstance(tabName: String): BackgroundsListFragment {
-            return BackgroundsListFragment(tabName)
+            val fragment = BackgroundsListFragment()
+            val bundle = Bundle().apply {
+                putString("tabName", tabName)
+            }
+            fragment.arguments = bundle
+            return fragment
         }
     }
 }

@@ -43,7 +43,11 @@ class ShapeAdapter(
             val radius = size * 0.15f
             val rect = RectF(size * 0.2f, size * 0.2f, size * 0.8f, size * 0.8f)
 
-            drawShape(canvas, paint, shape, rect,radius)
+            if (shape== ShapeType.RECTANGLE){
+                drawShape(canvas, paint, shape, rect,0f)
+            }else{
+                drawShape(canvas, paint, shape, rect,radius)
+            }
 
             // 🟢 Apply shape bitmap
             binding.colorView.setImageBitmap(bitmap)
