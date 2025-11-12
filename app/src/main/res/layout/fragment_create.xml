@@ -87,7 +87,7 @@
                 android:id="@+id/link"
                 android:layout_width="23dp"
                 android:layout_height="23dp"
-                android:src="@drawable/ic_unlink"
+                android:src="@drawable/ic_linked"
                 app:tint="@color/black"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@id/customTitle"

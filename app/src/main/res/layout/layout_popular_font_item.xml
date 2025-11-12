@@ -29,7 +29,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:src="@drawable/ic_launcher_background"
-                android:background="@color/contrast"
+                android:background="@color/white"
+                android:padding="6dp"
                 android:scaleType="centerCrop" />
 
         </com.facebook.shimmer.ShimmerFrameLayout>
@@ -75,7 +76,7 @@
             android:src="@drawable/ic_download"
             android:visibility="gone"
             android:background="@drawable/button_bg_round"
-            android:backgroundTint="@color/white"
+            android:backgroundTint="@color/contrast"
             android:padding="6dp"
             app:tint="@color/appColor" />
     </FrameLayout>

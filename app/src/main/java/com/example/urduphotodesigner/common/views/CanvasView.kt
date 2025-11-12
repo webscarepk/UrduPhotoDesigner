@@ -1777,7 +1777,8 @@ class CanvasView @JvmOverloads constructor(
         canvas: Canvas, showOverlays: Boolean = true, showCheckerboard: Boolean = true
     ) {
         canvas.save()
-        canvas.clipRect(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat())
+        val clipRect = RectF(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat())
+        canvas.clipRect(clipRect)
 
         if (showCheckerboard) {
             val checkerPaint = Paint().apply { shader = checkerShader }
@@ -1863,7 +1864,42 @@ class CanvasView @JvmOverloads constructor(
             }
         }
 
+        canvas.restore()
         // --- Draw combined bounding box and icons based on selection state ---
+        drawElementOverlays(canvas, showOverlays)
+
+        if (showOverlays && isColorPickerMode) {
+            val halfIcon = desiredPickerIconSizePx
+
+            val px = pickerX.roundToInt().coerceIn(0, colorPickerBitmap?.width!! - 1)
+            val py = pickerY.roundToInt().coerceIn(0, colorPickerBitmap?.height!! - 1)
+            val pixelColor = colorPickerBitmap?.getPixel(px, py)
+            val dark = pixelColor?.let { isColorDark(it) }
+
+            canvas.drawCircle(
+                pickerX, pickerY - halfIcon * 3, halfIcon + 20f, Paint().apply {
+                    color = pixelColor!!
+                    style = Paint.Style.FILL
+                    isAntiAlias = true
+                })
+
+            canvas.drawCircle(
+                pickerX, pickerY - halfIcon * 3, halfIcon + 20f, Paint().apply {
+                    color = if (dark!!) Color.WHITE else Color.BLACK
+                    style = Paint.Style.STROKE
+                    strokeWidth = 4f
+                })
+
+            canvas.drawCircle(
+                pickerX, pickerY, halfIcon / 4, Paint().apply {
+                    color = Color.BLACK
+                    style = Paint.Style.FILL
+                    isAntiAlias = true
+                })
+        }
+    }
+
+    private fun drawElementOverlays(canvas: Canvas, showOverlays: Boolean = true){
         if (showOverlays && selectedElements.isNotEmpty()) {
             val desiredScreenStrokeWidth = 2f
             val localSpaceStrokeWidth = desiredScreenStrokeWidth / scale // Scale stroke width
@@ -1883,7 +1919,7 @@ class CanvasView @JvmOverloads constructor(
             val rotatedPath = if (selectedElements.size > 1) {
                 getGroupRotatedPath()
             } else {
-                getSelectionPath() // existing single-element case
+                getSelectionPath()
             }
             if (rotatedPath != null) {
                 canvas.drawPath(rotatedPath, boxPaint)
@@ -2048,11 +2084,9 @@ class CanvasView @JvmOverloads constructor(
                                     pivotX, topY - (fixedHandleLengthPx / scale)
                                 )
 
-                                // ❌ No rotation applied here (handle stays fixed above top bound)
                                 topCenter to rotateIcon
                             }
 
-                            // --- Draw connecting dashed line ---
                             val linePaint = Paint().apply {
                                 color = Color.GRAY
                                 style = Paint.Style.STROKE
@@ -2071,7 +2105,6 @@ class CanvasView @JvmOverloads constructor(
                                 linePaint
                             )
 
-                            // --- Update icon rect so it “sticks” at the end of line ---
                             dstRect = RectF(
                                 localRotateIcon[0] - localIconDrawWidth / 2f,
                                 localRotateIcon[1] - localIconDrawHeight / 2f,
@@ -2080,7 +2113,6 @@ class CanvasView @JvmOverloads constructor(
                             )
                         }
 
-                        // --- Draw icon bitmap ---
                         lastDrawnIconRect[iconName] = dstRect
                         bmp.setBounds(
                             dstRect.left.toInt(),
@@ -2094,35 +2126,6 @@ class CanvasView @JvmOverloads constructor(
             }
         }
 
-        if (showOverlays && isColorPickerMode) {
-            val halfIcon = desiredPickerIconSizePx
-
-            val px = pickerX.roundToInt().coerceIn(0, colorPickerBitmap?.width!! - 1)
-            val py = pickerY.roundToInt().coerceIn(0, colorPickerBitmap?.height!! - 1)
-            val pixelColor = colorPickerBitmap?.getPixel(px, py)
-            val dark = pixelColor?.let { isColorDark(it) }
-
-            canvas.drawCircle(
-                pickerX, pickerY - halfIcon * 3, halfIcon + 20f, Paint().apply {
-                    color = pixelColor!!
-                    style = Paint.Style.FILL
-                    isAntiAlias = true
-                })
-
-            canvas.drawCircle(
-                pickerX, pickerY - halfIcon * 3, halfIcon + 20f, Paint().apply {
-                    color = if (dark!!) Color.WHITE else Color.BLACK
-                    style = Paint.Style.STROKE
-                    strokeWidth = 4f
-                })
-
-            canvas.drawCircle(
-                pickerX, pickerY, halfIcon / 4, Paint().apply {
-                    color = Color.BLACK
-                    style = Paint.Style.FILL
-                    isAntiAlias = true
-                })
-        }
     }
 
     private fun drawShapeElement(canvas: Canvas, element: CanvasElement) {

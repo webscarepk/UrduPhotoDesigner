@@ -16,7 +16,6 @@ import androidx.recyclerview.widget.SimpleItemAnimator
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.canvas.sealed.FontDownloadState
 import com.example.urduphotodesigner.common.utils.showGlobalSuccessSnack
@@ -50,9 +49,7 @@ class PopularFontsListFragment : Fragment() {
     private var baseFonts: List<FontEntity> = emptyList()
     private var category: String = "All"
     private var bundle: Bundle = Bundle()
-    val navOptions = NavOptions.Builder()
-        .setLaunchSingleTop(true)
-        .build()
+    val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
 
     companion object {
         private const val ARG_CATEGORY = "arg_category"
@@ -72,8 +69,7 @@ class PopularFontsListFragment : Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentPopularFontsListBinding.inflate(inflater, container, false)
         return binding.root
@@ -92,9 +88,7 @@ class PopularFontsListFragment : Fragment() {
             } else {
                 viewModel.setCanvasSize(CanvasSize("", 2000f, 2000f))
                 viewModel.addTextWithFont(
-                    requireActivity().getString(R.string.dummyText),
-                    font,
-                    requireActivity()
+                    requireActivity().getString(R.string.dummyText), font, requireActivity()
                 )
                 view?.post { findNavController().navigate(R.id.editorFragment, bundle, navOptions) }
             }
@@ -130,9 +124,7 @@ class PopularFontsListFragment : Fragment() {
     }
 
     private fun filterFonts(
-        source: List<FontEntity>,
-        category: String,
-        query: String
+        source: List<FontEntity>, category: String, query: String
     ): List<FontEntity> {
         val withoutImported = source.filter { !it.font_category.equals("Imported", true) }
         val byCategory = if (category.equals("All", true)) withoutImported
@@ -203,8 +195,7 @@ class PopularFontsListFragment : Fragment() {
                     is FontDownloadState.Progress -> {
                         val font = downloadState.fontEntity
                         adapter.updateProgress(
-                            font.id,
-                            ProgressUi(
+                            font.id, ProgressUi(
                                 progress = downloadState.progress,
                                 isDownloading = true,
                                 isDownloaded = false
@@ -216,8 +207,7 @@ class PopularFontsListFragment : Fragment() {
                         val font = downloadState.fontEntity
 
                         adapter.updateProgress(
-                            font.id,
-                            ProgressUi(100, isDownloading = false, isDownloaded = true)
+                            font.id, ProgressUi(100, isDownloading = false, isDownloaded = true)
                         )
 
                         showGlobalSuccessSnack("Font downloaded") {
@@ -230,11 +220,10 @@ class PopularFontsListFragment : Fragment() {
                                 )
 
                                 if (isAdded && findNavController().currentDestination?.id != R.id.editorFragment) {
-                                    view?.post { findNavController().navigate(
-                                        R.id.editorFragment,
-                                        bundle,
-                                        navOptions
-                                    )
+                                    view?.post {
+                                        findNavController().navigate(
+                                            R.id.editorFragment, bundle, navOptions
+                                        )
                                     }
                                 }
                             }
@@ -245,11 +234,8 @@ class PopularFontsListFragment : Fragment() {
                     is FontDownloadState.Error -> {
                         val font = downloadState.fontEntity
                         adapter.updateProgress(
-                            font.id,
-                            ProgressUi(
-                                progress = 0,
-                                isDownloading = false,
-                                isDownloaded = false
+                            font.id, ProgressUi(
+                                progress = 0, isDownloading = false, isDownloaded = false
                             )
                         )
 

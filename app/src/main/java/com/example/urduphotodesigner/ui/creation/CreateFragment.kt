@@ -12,17 +12,17 @@ import android.view.WindowInsets
 import android.widget.EditText
 import android.widget.PopupMenu
 import androidx.core.view.ViewCompat
-import androidx.fragment.app.Fragment
+import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.canvas.enums.UnitType
+import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.utils.Converter.cmToPx
 import com.example.urduphotodesigner.common.utils.Converter.inchesToPx
 import com.example.urduphotodesigner.common.utils.Converter.pxToCm
 import com.example.urduphotodesigner.common.utils.Converter.pxToInches
-import com.example.urduphotodesigner.common.canvas.enums.UnitType
-import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
 import com.example.urduphotodesigner.databinding.FragmentCreateBinding
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -48,7 +48,7 @@ class CreateFragment : BottomSheetDialogFragment() {
         CanvasSize("YouTube Channel Art", 2560f, 1440f),
         CanvasSize("A4", 2480f, 3508f),               // 210mm × 297mm
         CanvasSize("Letter", 2550f, 3300f),          // 8.5in × 11in
-        CanvasSize("Poster",3600f, 5400f),          // 12in × 18in
+        CanvasSize("Poster", 3600f, 5400f),          // 12in × 18in
         CanvasSize("Business Card", 1050f, 600f), // 3.5in × 2in
         CanvasSize("Billboard", 1920f, 1080f),
         CanvasSize("Vertical Banner", 1080f, 1920f),
@@ -66,8 +66,7 @@ class CreateFragment : BottomSheetDialogFragment() {
     private lateinit var adapter: CanvasSizeAdapter
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentCreateBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -81,6 +80,8 @@ class CreateFragment : BottomSheetDialogFragment() {
 
     private fun setEvents() {
         binding.apply {
+
+            // 🔹 Unit selection (same as before)
             unitBox.addPressEffect {
                 spinner.rotation = 180f
                 val popup = PopupMenu(requireContext(), unit)
@@ -91,70 +92,103 @@ class CreateFragment : BottomSheetDialogFragment() {
                     val selectedUnitStr = unitList[menuItem.itemId]
                     unit.text = selectedUnitStr
 
-                    // Convert old width/height to pixels first (if not PIXELS)
-                    val oldWidthPx = when(currentUnit) {
+                    // Convert old width/height to px first
+                    val oldWidthPx = when (currentUnit) {
                         UnitType.PIXELS -> getSafeIntValue(width)
-                        UnitType.INCHES -> inchesToPx(width.text.toString().toFloatOrNull() ?: 1f)
-                        UnitType.CENTIMETERS -> cmToPx(width.text.toString().toFloatOrNull() ?: 1f)
+                        UnitType.INCHES -> inchesToPx(getSafeIntValue(width))
+                        UnitType.CENTIMETERS -> cmToPx(getSafeIntValue(width))
                     }
-                    val oldHeightPx = when(currentUnit) {
+                    val oldHeightPx = when (currentUnit) {
                         UnitType.PIXELS -> getSafeIntValue(height)
-                        UnitType.INCHES -> inchesToPx(height.text.toString().toFloatOrNull() ?: 1f)
-                        UnitType.CENTIMETERS -> cmToPx(height.text.toString().toFloatOrNull() ?: 1f)
+                        UnitType.INCHES -> inchesToPx(getSafeIntValue(height))
+                        UnitType.CENTIMETERS -> cmToPx(getSafeIntValue(height))
                     }
 
-                    // Update current unit
-                    currentUnit = when(selectedUnitStr) {
+                    currentUnit = when (selectedUnitStr) {
                         "Pixels" -> UnitType.PIXELS
                         "Inches" -> UnitType.INCHES
                         "Centimeters" -> UnitType.CENTIMETERS
                         else -> UnitType.PIXELS
                     }
 
-                    // Convert pixel values to selected unit for UI display
-                    when(currentUnit) {
+                    // Convert back for display
+                    when (currentUnit) {
                         UnitType.PIXELS -> {
-                            width.setText(oldWidthPx.toString())
-                            height.setText(oldHeightPx.toString())
+                            width.setText(oldWidthPx.toFloat().toString())
+                            height.setText(oldHeightPx.toFloat().toString())
                         }
+
                         UnitType.INCHES -> {
                             width.setText(String.format("%.1f", pxToInches(oldWidthPx.toFloat())))
                             height.setText(String.format("%.1f", pxToInches(oldHeightPx.toFloat())))
                         }
+
                         UnitType.CENTIMETERS -> {
                             width.setText(String.format("%.1f", pxToCm(oldWidthPx.toFloat())))
                             height.setText(String.format("%.1f", pxToCm(oldHeightPx.toFloat())))
                         }
                     }
 
-                    // Update the RecyclerView list with converted sizes
                     updateListForUnit(currentUnit)
-
                     true
                 }
-                popup.setOnDismissListener {
-                    spinner.rotation = 0f
-                }
+                popup.setOnDismissListener { spinner.rotation = 0f }
                 popup.show()
             }
 
-            adapter = CanvasSizeAdapter(sizeList, onClick =  { selected ->
+            // 🔹 Adapter setup
+            adapter = CanvasSizeAdapter(sizeList, onClick = { selected ->
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(selected)
-                view?.post {
-                    findNavController().navigate(R.id.editorFragment, null)
-                }
+                view?.post { findNavController().navigate(R.id.editorFragment, null) }
                 dismiss()
             }, true)
             sizesRV.adapter = adapter
 
+            // ------------------------------
+            // 🔹 Aspect Ratio Sync Logic
+            // ------------------------------
+
+            fun updateAspectRatio() {
+                val w = getSafeIntValue(width)
+                val h = getSafeIntValue(height)
+                aspectRatio = if (h > 0f) w / h else null
+            }
+
+            // 🔹 Link toggle
+            link.addPressEffect {
+                isLinked = !isLinked
+                link.setImageResource(if (isLinked) R.drawable.ic_linked else R.drawable.ic_unlinked)
+                if (isLinked) updateAspectRatio()
+            }
+
+            // 🔹 Text watchers for live proportional resizing
+            width.addTextChangedListener {
+                if (isLinked && aspectRatio != null && width.hasFocus()) {
+                    val w = getSafeIntValue(width)
+                    val h = (w / aspectRatio!!).coerceAtLeast(1f)
+                    height.setText(String.format("%.1f", h))
+                }
+            }
+
+            height.addTextChangedListener {
+                if (isLinked && aspectRatio != null && height.hasFocus()) {
+                    val h = getSafeIntValue(height)
+                    val w = (h * aspectRatio!!).coerceAtLeast(1f)
+                    width.setText(String.format("%.1f", w))
+                }
+            }
+
+            // ------------------------------
+            // 🔹 Increment / Decrement buttons
+            // ------------------------------
+
             incWidth.addPressEffect {
                 val newWidth = getSafeIntValue(width) + 1
-                width.setText(newWidth.toString())
-
+                width.setText(String.format("%.1f", newWidth))
                 if (isLinked && aspectRatio != null) {
-                    val newWidth = clampCanvasSize(getSafeIntValue(width) + 1, currentUnit)
-                    width.setText(String.format("%.1f", newWidth))
+                    val newHeight = (newWidth / aspectRatio!!).coerceAtLeast(1f)
+                    height.setText(String.format("%.1f", newHeight))
                 }
             }
 
@@ -162,21 +196,19 @@ class CreateFragment : BottomSheetDialogFragment() {
                 val current = getSafeIntValue(width)
                 if (current > 1) {
                     val newWidth = current - 1
-                    width.setText(newWidth.toString())
-
+                    width.setText(String.format("%.1f", newWidth))
                     if (isLinked && aspectRatio != null) {
-                        val newWidth = clampCanvasSize(getSafeIntValue(width) + 1, currentUnit)
-                        width.setText(String.format("%.1f", newWidth))
+                        val newHeight = (newWidth / aspectRatio!!).coerceAtLeast(1f)
+                        height.setText(String.format("%.1f", newHeight))
                     }
                 }
             }
 
             incHeight.addPressEffect {
                 val newHeight = getSafeIntValue(height) + 1
-                height.setText(newHeight.toString())
-
+                height.setText(String.format("%.1f", newHeight))
                 if (isLinked && aspectRatio != null) {
-                    val newWidth = clampCanvasSize(getSafeIntValue(width) + 1, currentUnit)
+                    val newWidth = (newHeight * aspectRatio!!).coerceAtLeast(1f)
                     width.setText(String.format("%.1f", newWidth))
                 }
             }
@@ -185,38 +217,22 @@ class CreateFragment : BottomSheetDialogFragment() {
                 val current = getSafeIntValue(height)
                 if (current > 1) {
                     val newHeight = current - 1
-                    height.setText(newHeight.toString())
-
+                    height.setText(String.format("%.1f", newHeight))
                     if (isLinked && aspectRatio != null) {
-                        val newWidth = clampCanvasSize(getSafeIntValue(width) + 1, currentUnit)
+                        val newWidth = (newHeight * aspectRatio!!).coerceAtLeast(1f)
                         width.setText(String.format("%.1f", newWidth))
                     }
                 }
             }
 
-            link.addPressEffect {
-                isLinked = !isLinked
-                link.setImageResource(
-                    if (isLinked) R.drawable.ic_link else R.drawable.ic_unlink
-                )
+            // ------------------------------
+            // 🔹 Create Button
+            // ------------------------------
 
-                if (isLinked) {
-                    val widthVal = getSafeIntValue(width)
-                    val heightVal = getSafeIntValue(height)
-                    if (heightVal != 0.toFloat()) {
-                        aspectRatio = widthVal / heightVal
-                    }
-                } else {
-                    aspectRatio = null
-                }
-            }
-
-            // Create button click
-            binding.create.addPressEffect {
-                val widthVal = clampCanvasSize(getSafeIntValue(width), currentUnit)
-                val heightVal = clampCanvasSize(getSafeIntValue(height), currentUnit)
-
-                val canvasSize = CanvasSize("Custom", widthVal, heightVal)
+            create.addPressEffect {
+                val wVal = clampCanvasSize(getSafeIntValue(width), currentUnit)
+                val hVal = clampCanvasSize(getSafeIntValue(height), currentUnit)
+                val canvasSize = CanvasSize("Custom", wVal, hVal)
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(canvasSize)
                 view?.post { findNavController().navigate(R.id.editorFragment, null) }
@@ -242,21 +258,23 @@ class CreateFragment : BottomSheetDialogFragment() {
             } else {
                 "Minimum allowed is $min $unitLabel"
             }
-            Snackbar.make(requireActivity().findViewById(android.R.id.content), msg, Snackbar.LENGTH_SHORT)
-                .setAnchorView(binding.create)
-                .show()        }
+            Snackbar.make(
+                requireActivity().findViewById(android.R.id.content), msg, Snackbar.LENGTH_SHORT
+            ).setAnchorView(binding.create).show()
+        }
 
         return clamped
     }
 
     private fun updateListForUnit(unitType: UnitType) {
         val convertedList = sizeList.map { size ->
-            when(unitType) {
+            when (unitType) {
                 UnitType.PIXELS -> size.copy()
                 UnitType.INCHES -> size.copy(
                     width = String.format("%.1f", pxToInches(size.width)).toFloat(),
                     height = String.format("%.1f", pxToInches(size.height)).toFloat()
                 )
+
                 UnitType.CENTIMETERS -> size.copy(
                     width = String.format("%.1f", pxToCm(size.width)).toFloat(),
                     height = String.format("%.1f", pxToCm(size.height)).toFloat()
@@ -279,7 +297,7 @@ class CreateFragment : BottomSheetDialogFragment() {
             UnitType.PIXELS -> "Pixels"
         }
         binding.link.setImageResource(
-            if (isLinked) R.drawable.ic_link else R.drawable.ic_unlink
+            if (isLinked) R.drawable.ic_linked else R.drawable.ic_unlinked
         )
     }
 
@@ -289,10 +307,9 @@ class CreateFragment : BottomSheetDialogFragment() {
             com.google.android.material.R.id.design_bottom_sheet
         ) ?: return
 
-        val shapeAppearanceModel = ShapeAppearanceModel.builder()
-            .setTopLeftCorner(CornerFamily.ROUNDED, 32f)
-            .setTopRightCorner(CornerFamily.ROUNDED, 32f)
-            .build()
+        val shapeAppearanceModel =
+            ShapeAppearanceModel.builder().setTopLeftCorner(CornerFamily.ROUNDED, 32f)
+                .setTopRightCorner(CornerFamily.ROUNDED, 32f).build()
 
         val materialShapeDrawable = MaterialShapeDrawable(shapeAppearanceModel).apply {
             fillColor = ColorStateList.valueOf(Color.WHITE)
@@ -311,8 +328,7 @@ class CreateFragment : BottomSheetDialogFragment() {
                 window.insetsController?.hide(WindowInsets.Type.navigationBars())
             } else {
                 window.decorView.systemUiVisibility =
-                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             }
         }
     }

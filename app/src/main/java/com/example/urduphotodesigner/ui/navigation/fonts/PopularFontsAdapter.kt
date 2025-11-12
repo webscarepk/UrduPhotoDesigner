@@ -101,9 +101,6 @@ class PopularFontsAdapter(
             loadImage(item)
             binding.assetName.text = item.font_name
             binding.metaData.text = "${formatSize(item.file_size)}"
-//            imageView.scaleType = android.widget.ImageView.ScaleType.CENTER
-//            imageView.setImageResource(R.drawable.ic_font_thumbnail)
-
             binding.root.addPressEffect { onFontClick(item, item.is_downloaded) }
             binding.download.addPressEffect { onDownload(item) }
             applyProgress(progress)
@@ -181,27 +178,53 @@ class PopularFontsAdapter(
             loadImage(item)
             binding.assetName.text = item.font_name
             binding.metaData.text = "${formatSize(item.file_size)}"
-//            imageView.scaleType = android.widget.ImageView.ScaleType.CENTER
-//            imageView.setImageResource(R.drawable.ic_font_thumbnail)
             binding.root.addPressEffect { onFontClick(item, item.is_downloaded) }
             binding.download.addPressEffect { onDownload(item) }
             applyProgress(progress)
         }
 
-        private fun loadImage(item: FontEntity) {
-                val url = Constants.BASE_URL_GLIDE + item.image_url
-                Glide.with(itemView.context).load(url)
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .thumbnail(0.1f)
-                    .listener(object : RequestListener<Drawable> {
-                        override fun onLoadFailed(
-                            e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean
-                        ): Boolean { binding.shimmerLayout.hideShimmer(); return false }
+        private fun svgListener() = object : RequestListener<PictureDrawable> {
+            override fun onLoadFailed(
+                e: GlideException?, model: Any?, target: Target<PictureDrawable>, isFirstResource: Boolean
+            ) = false.also { binding.shimmerLayout.hideShimmer() }
 
-                        override fun onResourceReady(
-                            resource: Drawable, model: Any, target: Target<Drawable>?, dataSource: DataSource, isFirstResource: Boolean
-                        ): Boolean { binding.shimmerLayout.hideShimmer(); return false }
-                    }).into(binding.image)
+            override fun onResourceReady(
+                resource: PictureDrawable, model: Any, target: Target<PictureDrawable>?, dataSource: DataSource, isFirstResource: Boolean
+            ) = false.also { binding.shimmerLayout.hideShimmer() }
+        }
+
+        private fun drawableListener() = object : RequestListener<Drawable> {
+            override fun onLoadFailed(
+                e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean
+            ): Boolean { binding.shimmerLayout.hideShimmer(); return false }
+
+            override fun onResourceReady(
+                resource: Drawable, model: Any, target: Target<Drawable>?, dataSource: DataSource, isFirstResource: Boolean
+            ): Boolean { binding.shimmerLayout.hideShimmer(); return false }
+        }
+
+        private fun loadImage(item: FontEntity) {
+            if (item.image_url.isEmpty() && item.font_image?.isNotEmpty() == true) {
+                Glide.with(itemView.context).load(item.font_image).into(binding.image)
+                binding.shimmerLayout.hideShimmer()
+            } else {
+                val url = Constants.BASE_URL_GLIDE + item.image_url
+                if (url.endsWith(".svg", true)) {
+                    Glide.with(itemView.context)
+                        .`as`(PictureDrawable::class.java)
+                        .load(url)
+                        .diskCacheStrategy(DiskCacheStrategy.DATA)
+                        .listener(svgListener())
+                        .into(binding.image)
+                } else {
+                    Glide.with(itemView.context)
+                        .load(url)
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .thumbnail(0.1f)
+                        .listener(drawableListener())
+                        .into(binding.image)
+                }
+            }
         }
 
         fun applyProgress(ui: ProgressUi) {

@@ -21,4 +21,8 @@ class PopularFontsPagerAdapter(
         tabs = newTabs
         notifyDataSetChanged()
     }
+
+    override fun getItemId(position: Int): Long = tabs[position].hashCode().toLong()
+    override fun containsItem(itemId: Long): Boolean = tabs.any { it.hashCode().toLong() == itemId }
+
 }

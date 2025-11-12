@@ -100,8 +100,7 @@ class FontsAdapter(
                         .diskCacheStrategy(DiskCacheStrategy.DATA)
                         .listener(object : RequestListener<PictureDrawable> {
                             override fun onLoadFailed(
-                                e: GlideException?, model: Any?, target: Target<PictureDrawable>,
-                                isFirstResource: Boolean
+                                e: GlideException?, model: Any?, target: Target<PictureDrawable>, isFirstResource: Boolean
                             ) = false.also { binding.shimmerLayout.hideShimmer() }
 
                             override fun onResourceReady(
@@ -113,6 +112,7 @@ class FontsAdapter(
                             ) = false.also { binding.shimmerLayout.hideShimmer() }
                         })
                         .into(binding.font)
+
                 }else{
                     Glide.with(binding.root.context)
                         .load(url)

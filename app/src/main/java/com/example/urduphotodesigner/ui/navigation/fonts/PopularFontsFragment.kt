@@ -45,7 +45,6 @@ class PopularFontsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setEvents()
-        setupTabsAndPager()
         initObservers()
     }
 
@@ -73,7 +72,11 @@ class PopularFontsFragment : Fragment() {
                 }
 
                 tabs = categories
-                pagerAdapter.updateTabs(categories)
+                if (!::pagerAdapter.isInitialized) {
+                    setupTabsAndPager()
+                } else {
+                    pagerAdapter.updateTabs(categories)
+                }
             }
         }
     }
