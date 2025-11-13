@@ -3664,7 +3664,6 @@ class CanvasView @JvmOverloads constructor(
                     }
                 }
 
-
                 if (currentMode == Mode.DRAG || currentMode == Mode.ROTATE || currentMode == Mode.RESIZE) {
                     selectedElements.filter { !it.isLocked }.forEach {
                         onElementChanged?.invoke(it)
@@ -3672,7 +3671,6 @@ class CanvasView @JvmOverloads constructor(
                     }
                 }
                 if (isDragCandidate && touchedDownElement != null) {
-                    // No drag happened → treat as deselect
                     val element = touchedDownElement!!
                     element.isSelected = false
                     selectedElements.remove(element)
