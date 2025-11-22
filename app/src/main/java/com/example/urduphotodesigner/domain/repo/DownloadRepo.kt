@@ -27,7 +27,7 @@ class DownloadRepo @Inject constructor(
         onProgress: (Int) -> Unit
     ): File = withContext(Dispatchers.IO) {
         val outputFile = File(fontsDir, fileName)
-        
+
         val request = Request.Builder()
             .url(url)
             .build()
@@ -50,7 +50,6 @@ class DownloadRepo @Inject constructor(
                         outputStream.write(buffer, 0, bytesRead)
                         bytesDownloaded += bytesRead
 
-                        // Calculate and update progress
                         if (contentLength > 0) {
                             val progress = ((bytesDownloaded * 100) / contentLength).toInt()
                             if (progress > lastProgress) {

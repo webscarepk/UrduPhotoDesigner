@@ -357,7 +357,7 @@ class MainViewModel @Inject constructor(
             try {
                 val downloadedFile = fontRepository.downloadAssets(
                     url = Constants.BASE_URL_GLIDE+font.file_url,
-                    fileName = font.file_name,
+                    fileName = font.font_name+".ttf",
                     onProgress = { progress ->
                         _downloadState.value = FontDownloadState.Progress(progress, font.copy(is_downloading = true,  download_progress = progress))
                     }

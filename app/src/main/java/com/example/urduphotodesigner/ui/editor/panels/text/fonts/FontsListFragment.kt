@@ -92,7 +92,35 @@ class FontsListFragment : Fragment() {
                 }
             }
 
-            fontsAdapter.submitList(filtered)
+            val finalList =
+                if (currentCategory == null && currentLanguage == "All") {
+
+                    // 1) Separate Urdu & English
+                    val urdu = filtered
+                        .filter { it.font_language.equals("Urdu", true) }
+                        .sortedBy { it.font_name.lowercase() }
+
+                    val english = filtered
+                        .filter { it.font_language.equals("English", true) }
+                        .sortedBy { it.font_name.lowercase() }
+
+                    // 2) Interleave for horizontal grid
+                    val merged = mutableListOf<FontEntity>()
+                    val maxSize = maxOf(urdu.size, english.size)
+
+                    for (i in 0 until maxSize) {
+                        if (i < urdu.size) merged.add(urdu[i])      // TOP ROW
+                        if (i < english.size) merged.add(english[i]) // BOTTOM ROW
+                    }
+
+                    merged
+                } else {
+                    // Normal case → sort all fonts alphabetically
+                    filtered.sortedBy { it.font_name.lowercase() }
+                }
+
+            fontsAdapter.submitList(finalList)
+
         }
     }
 
@@ -156,7 +184,34 @@ class FontsListFragment : Fragment() {
                         tokens.all { it in haystack }
                     }
                 }.collect { filtered ->
-                    fontsAdapter.submitList(filtered)
+                    val finalList =
+                        if (currentCategory == null && currentLanguage == "All") {
+
+                            // 1) Separate Urdu & English
+                            val urdu = filtered
+                                .filter { it.font_language.equals("Urdu", true) }
+                                .sortedBy { it.font_name.lowercase() }
+
+                            val english = filtered
+                                .filter { it.font_language.equals("English", true) }
+                                .sortedBy { it.font_name.lowercase() }
+
+                            // 2) Interleave for horizontal grid
+                            val merged = mutableListOf<FontEntity>()
+                            val maxSize = maxOf(urdu.size, english.size)
+
+                            for (i in 0 until maxSize) {
+                                if (i < urdu.size) merged.add(urdu[i])      // TOP ROW
+                                if (i < english.size) merged.add(english[i]) // BOTTOM ROW
+                            }
+
+                            merged
+                        } else {
+                            // Normal case → sort all fonts alphabetically
+                            filtered.sortedBy { it.font_name.lowercase() }
+                        }
+
+                    fontsAdapter.submitList(finalList)
                 }
             }
         }

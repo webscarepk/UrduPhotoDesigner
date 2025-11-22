@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">https://dashboard.urdufonts.com/api/</domain>
+
+    <!-- Allow HTTPS domain (correct way) -->
+    <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">dashboard.urdufonts.com</domain>
     </domain-config>
+
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
 </network-security-config>

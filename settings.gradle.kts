@@ -21,5 +21,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "UrduPhotoDesigner"
+rootProject.name = "UrduCanvas"
 include(":app")
