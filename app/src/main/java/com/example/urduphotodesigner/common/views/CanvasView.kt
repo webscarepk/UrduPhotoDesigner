@@ -2133,58 +2133,6 @@ class CanvasView @JvmOverloads constructor(
         val localHalfH = element.logicalContentHeight / 2f
         val localRect = RectF(-localHalfW, -localHalfH, localHalfW, localHalfH)
 
-        // --- 3️⃣ Stroke Layer ---
-        if (element.shapeHasStroke) {
-            val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
-                strokeWidth = element.shapeStrokeWidth ?: 1f
-                if (element.shapeStrokeGradient != null) {
-                    shader = createGradientShader(
-                        element.shapeStrokeGradient!!,
-                        localRect.width(),
-                        localRect.height()
-                    )
-                } else {
-                    color = element.shapeStrokeColor ?: Color.BLACK
-                }
-                alpha = element.paintAlpha
-                strokeJoin = Paint.Join.ROUND
-                strokeCap = Paint.Cap.ROUND
-            }
-
-            drawShape(
-                canvas,
-                strokePaint,
-                element.shapeType ?: ShapeType.RECTANGLE,
-                localRect,
-                element.shapeCornerRadius
-            )
-        }
-        // --- 1️⃣ Fill Layer ---
-        if (element.shapeHasFill) {
-            val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.FILL
-                if (element.shapeFillGradient != null) {
-                    shader = createGradientShader(
-                        element.shapeFillGradient!!,
-                        localRect.width(),
-                        localRect.height()
-                    )
-                } else {
-                    color = element.shapeFillColor ?: Color.TRANSPARENT
-                }
-                alpha = element.paintAlpha
-            }
-
-            drawShape(
-                canvas,
-                fillPaint,
-                element.shapeType ?: ShapeType.RECTANGLE,
-                localRect,
-                element.shapeCornerRadius
-            )
-        }
-
         // --- 2️⃣ Bitmap Layer (masked inside shape path) ---
         element.bitmap?.let { bmp ->
             if (bmp.isRecycled) return@let
@@ -2260,6 +2208,57 @@ class CanvasView @JvmOverloads constructor(
                 }
 
             }
+        }
+        // --- 3️⃣ Stroke Layer ---
+        if (element.shapeHasStroke) {
+            val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = element.shapeStrokeWidth ?: 1f
+                if (element.shapeStrokeGradient != null) {
+                    shader = createGradientShader(
+                        element.shapeStrokeGradient!!,
+                        localRect.width(),
+                        localRect.height()
+                    )
+                } else {
+                    color = element.shapeStrokeColor ?: Color.BLACK
+                }
+                alpha = element.paintAlpha
+                strokeJoin = Paint.Join.ROUND
+                strokeCap = Paint.Cap.ROUND
+            }
+
+            drawShape(
+                canvas,
+                strokePaint,
+                element.shapeType ?: ShapeType.RECTANGLE,
+                localRect,
+                element.shapeCornerRadius
+            )
+        }
+        // --- 1️⃣ Fill Layer ---
+        if (element.shapeHasFill) {
+            val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                if (element.shapeFillGradient != null) {
+                    shader = createGradientShader(
+                        element.shapeFillGradient!!,
+                        localRect.width(),
+                        localRect.height()
+                    )
+                } else {
+                    color = element.shapeFillColor ?: Color.TRANSPARENT
+                }
+                alpha = element.paintAlpha
+            }
+
+            drawShape(
+                canvas,
+                fillPaint,
+                element.shapeType ?: ShapeType.RECTANGLE,
+                localRect,
+                element.shapeCornerRadius
+            )
         }
     }
 
