@@ -476,78 +476,101 @@ class ExportFragment : Fragment() {
         return file.absolutePath
     }
 
+    private fun saveDirectToDownloads(bitmap: Bitmap, options: ExportOptions): Uri {
+        val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+            getString(R.string.app_name))
+        if (!dir.exists()) dir.mkdirs()
+
+        val ext = when (options.format.format) {
+            Bitmap.CompressFormat.PNG -> "png"
+            Bitmap.CompressFormat.JPEG -> "jpg"
+            Bitmap.CompressFormat.WEBP -> "webp"
+            else -> "png"
+        }
+
+        val file = File(dir, "design_${System.currentTimeMillis()}.$ext")
+        file.outputStream().use {
+            bitmap.compress(options.format.format!!, options.quality.quality, it)
+        }
+
+        return Uri.fromFile(file)
+    }
+
     private suspend fun saveImageOrPdf(bitmap: Bitmap, options: ExportOptions): Uri? =
         withContext(Dispatchers.IO) {
-            if (options.format.name.equals("PDF", ignoreCase = true)) {
-                val filename = "design_${System.currentTimeMillis()}.pdf"
-                val contentValues = ContentValues().apply {
-                    put(MediaStore.Files.FileColumns.DISPLAY_NAME, filename)
-                    put(MediaStore.Files.FileColumns.MIME_TYPE, "application/pdf")
-                    put(
-                        MediaStore.Files.FileColumns.RELATIVE_PATH,
-                        Environment.DIRECTORY_DOCUMENTS + "/${getString(R.string.app_name)}"
-                    )
-                }
-
-                val uri = requireContext().contentResolver.insert(
-                    MediaStore.Files.getContentUri("external"), contentValues
-                )
-
-                uri?.let {
-                    requireContext().contentResolver.openOutputStream(it)?.use { stream ->
-                        val pdfDoc = PdfDocument()
-
-                        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
-                        val page = pdfDoc.startPage(pageInfo)
-
-                        val scale = minOf(
-                            pageInfo.pageWidth.toFloat() / bitmap.width,
-                            pageInfo.pageHeight.toFloat() / bitmap.height
-                        )
-                        val matrix = android.graphics.Matrix().apply { postScale(scale, scale) }
-                        page.canvas.drawBitmap(bitmap, matrix, null)
-
-                        pdfDoc.finishPage(page)
-                        pdfDoc.writeTo(stream)
-                        pdfDoc.close()
-                    }
-                }
-                uri
-            } else {
-                val formatExt = when (options.format.format) {
-                    Bitmap.CompressFormat.PNG -> "png"
-                    Bitmap.CompressFormat.JPEG -> "jpg"
-                    Bitmap.CompressFormat.WEBP -> "webp"
-                    else -> "png"
-                }
-                val mimeType = when (options.format.format) {
-                    Bitmap.CompressFormat.PNG -> "image/png"
-                    Bitmap.CompressFormat.JPEG -> "image/jpeg"
-                    Bitmap.CompressFormat.WEBP -> "image/webp"
-                    else -> "image/png"
-                }
-                val filename = "design_${System.currentTimeMillis()}.$formatExt"
-
-                val contentValues = ContentValues().apply {
-                    put(MediaStore.Images.Media.DISPLAY_NAME, filename)
-                    put(MediaStore.Images.Media.MIME_TYPE, mimeType)
-                    put(
-                        MediaStore.Images.Media.RELATIVE_PATH,
-                        Environment.DIRECTORY_PICTURES + "/${getString(R.string.app_name)}"
-                    )
-                }
-
-                val uri = requireContext().contentResolver.insert(
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues
-                )
-
-                uri?.let {
-                    requireContext().contentResolver.openOutputStream(it)?.use { stream ->
-                        bitmap.compress(options.format.format!!, options.quality.quality, stream)
-                    }
-                }
-                uri
-            }
+//            if (isBlueStacks()) {
+                saveDirectToDownloads(bitmap, options)
+//            }
+//            if (options.format.name.equals("PDF", ignoreCase = true)) {
+//                val filename = "design_${System.currentTimeMillis()}.pdf"
+//                val contentValues = ContentValues().apply {
+//                    put(MediaStore.Files.FileColumns.DISPLAY_NAME, filename)
+//                    put(MediaStore.Files.FileColumns.MIME_TYPE, "application/pdf")
+//                    put(
+//                        MediaStore.Files.FileColumns.RELATIVE_PATH,
+//                        Environment.DIRECTORY_DOCUMENTS + "/${getString(R.string.app_name)}"
+//                    )
+//                }
+//
+//                val uri = requireContext().contentResolver.insert(
+//                    MediaStore.Files.getContentUri("external"), contentValues
+//                )
+//
+//                uri?.let {
+//                    requireContext().contentResolver.openOutputStream(it)?.use { stream ->
+//                        val pdfDoc = PdfDocument()
+//
+//                        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
+//                        val page = pdfDoc.startPage(pageInfo)
+//
+//                        val scale = minOf(
+//                            pageInfo.pageWidth.toFloat() / bitmap.width,
+//                            pageInfo.pageHeight.toFloat() / bitmap.height
+//                        )
+//                        val matrix = android.graphics.Matrix().apply { postScale(scale, scale) }
+//                        page.canvas.drawBitmap(bitmap, matrix, null)
+//
+//                        pdfDoc.finishPage(page)
+//                        pdfDoc.writeTo(stream)
+//                        pdfDoc.close()
+//                    }
+//                }
+//                uri
+//            } else {
+//                val formatExt = when (options.format.format) {
+//                    Bitmap.CompressFormat.PNG -> "png"
+//                    Bitmap.CompressFormat.JPEG -> "jpg"
+//                    Bitmap.CompressFormat.WEBP -> "webp"
+//                    else -> "png"
+//                }
+//                val mimeType = when (options.format.format) {
+//                    Bitmap.CompressFormat.PNG -> "image/png"
+//                    Bitmap.CompressFormat.JPEG -> "image/jpeg"
+//                    Bitmap.CompressFormat.WEBP -> "image/webp"
+//                    else -> "image/png"
+//                }
+//                val filename = "design_${System.currentTimeMillis()}.$formatExt"
+//
+//                val contentValues = ContentValues().apply {
+//                    put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+//                    put(MediaStore.Images.Media.MIME_TYPE, mimeType)
+//                    put(
+//                        MediaStore.Images.Media.RELATIVE_PATH,
+//                        Environment.DIRECTORY_PICTURES + "/${getString(R.string.app_name)}"
+//                    )
+//                }
+//
+//                val uri = requireContext().contentResolver.insert(
+//                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues
+//                )
+//
+//                uri?.let {
+//                    requireContext().contentResolver.openOutputStream(it)?.use { stream ->
+//                        bitmap.compress(options.format.format!!, options.quality.quality, stream)
+//                    }
+//                }
+//                uri
+//            }
         }
 
     private fun startIconRotation() {
@@ -570,6 +593,12 @@ class ExportFragment : Fragment() {
     private fun updateProgress(percent: Int, message: String) = with(binding) {
         progressBar.progress = percent
         tvProgressPercent.text = "$message ($percent%)"
+    }
+
+    fun isBlueStacks(): Boolean {
+        return (Build.MANUFACTURER.lowercase().contains("bluestacks") ||
+                Build.BRAND.lowercase().contains("bluestacks") ||
+                Build.DEVICE.lowercase().contains("bluestacks"))
     }
 
     override fun onDestroy() {

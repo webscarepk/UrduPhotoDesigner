@@ -832,7 +832,7 @@ class CanvasView @JvmOverloads constructor(
         onProgress?.invoke(40, "Just a few moments")
 
         renderCanvasTo(canvas, scaleFactor)
-        addWatermark(canvas, outputWidth, outputHeight)
+//        addWatermark(canvas, outputWidth, outputHeight)
         onProgress?.invoke(50, "Please wait")
 
         val elementsWithBitmap = canvasElements

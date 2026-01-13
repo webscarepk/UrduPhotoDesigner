@@ -57,8 +57,11 @@ class FinishExportFragment : Fragment() {
             binding.fileResolutionDetail.text = result?.resolution
             binding.fileQualityDetail.text = result?.quality
             binding.fileLocationDetail.text = result?.pdfPath ?: result?.imagePath
-            binding.previewImage.setImageBitmap(ImageProcessor.filePathToBitmap(result?.imagePath!!))
-        }
+            result?.imagePath?.let { path ->
+                ImageProcessor.filePathToBitmap(path)?.let { bitmap ->
+                    binding.previewImage.setImageBitmap(bitmap)
+                }
+            }        }
     }
 
     private fun setEvents() {
