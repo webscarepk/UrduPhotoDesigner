@@ -34,9 +34,10 @@ class TemplatesRepoImpl @Inject constructor(
         id: String,
         isDownloaded: Boolean,
         isDownloading: Boolean,
+        progress: Int,
         filePath: String?
     ) {
-        appDatabase.allTemplatesDao().updateTemplate(id, isDownloaded, isDownloading, filePath)
+        appDatabase.allTemplatesDao().updateTemplate(id, isDownloaded, isDownloading,progress, filePath)
     }
 
     override suspend fun updateStatusTemplates(id: String, isDownloading: Boolean) {

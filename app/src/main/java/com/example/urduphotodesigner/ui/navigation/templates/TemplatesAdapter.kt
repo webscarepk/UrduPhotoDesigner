@@ -23,20 +23,6 @@ class TemplatesAdapter(
     private val onTemplateSelected: (TemplateEntity, Boolean) -> Unit
 ) : ListAdapter<TemplateEntity, TemplatesAdapter.VH>(Diff()) {
 
-    init {
-        setHasStableIds(true)
-    }
-
-    private val progressById = mutableMapOf<Int, ProgressUi>()
-
-    fun updateProgress(templateId: Int, ui: ProgressUi) {
-        val prev = progressById[templateId]
-        if (prev == ui) return
-        progressById[templateId] = ui
-        val pos = currentList.indexOfFirst { it.id == templateId }
-        if (pos != -1) notifyItemChanged(pos, ui)
-    }
-
     override fun getItemId(position: Int) = getItem(position).id.toLong()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
@@ -54,28 +40,7 @@ class TemplatesAdapter(
     }
 
     override fun onBindViewHolder(holder: VH, position: Int) {
-        val item = getItem(position)
-
-        holder.bind(
-            item = item,
-            progress = progressById[item.id] ?: ProgressUi(
-                progress = item.download_progress,
-                isDownloading = item.is_downloading,
-                isDownloaded = item.is_downloaded
-            )
-        )
-    }
-
-    override fun onBindViewHolder(holder: VH, position: Int, payloads: MutableList<Any>) {
-        if (payloads.isNotEmpty()) {
-            val last = payloads.last()
-            when (last) {
-                is ProgressUi -> holder.applyProgress(last)
-                else -> super.onBindViewHolder(holder, position, payloads)
-            }
-        } else {
-            super.onBindViewHolder(holder, position, payloads)
-        }
+        holder.bind(getItem(position))
     }
 
     private fun onItemClick(item: TemplateEntity) {
@@ -87,20 +52,36 @@ class TemplatesAdapter(
         private val onClick: (TemplateEntity) -> Unit,
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(item: TemplateEntity, progress: ProgressUi) {
-            binding.download.addPressEffect {
-                onClick(item)
+        fun bind(item: TemplateEntity) {
+
+            binding.download.addPressEffect { onClick(item) }
+            binding.fontCard.addPressEffect { onClick(item) }
+
+            // 🔥 PROGRESS FROM ENTITY (truth)
+            val downloading = item.is_downloading && !item.is_downloaded
+
+            binding.progressBox.visibility = if (downloading) View.VISIBLE else View.GONE
+            binding.progressBar.visibility = if (downloading) View.VISIBLE else View.GONE
+            binding.percentage.visibility = if (downloading) View.VISIBLE else View.GONE
+
+            binding.download.visibility =
+                if (downloading || item.is_downloaded) View.GONE else View.VISIBLE
+
+            if (downloading) {
+                val pct = item.download_progress.coerceIn(0, 100)
+                binding.progressBar.progress = pct
+                binding.percentage.text = "$pct%"
+            } else {
+                binding.progressBar.progress = 0
+                binding.percentage.text = ""
             }
 
-            applyProgress(progress)
+            // IMAGE
             val url = Constants.BASE_URL_GLIDE + item.thumbnail_url
 
             if (url.isNotEmpty()) {
-                Glide.with(binding.root.context)
-                    .asBitmap()
-                    .load(url)
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .thumbnail(0.1f)
+                Glide.with(binding.root.context).asBitmap().load(url)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL).thumbnail(0.1f)
                     .listener(object : RequestListener<Bitmap> {
                         override fun onLoadFailed(
                             e: GlideException?,
@@ -122,28 +103,9 @@ class TemplatesAdapter(
                             binding.shimmerLayout.hideShimmer()
                             return false
                         }
-                    })
-                    .into(binding.template)
+                    }).into(binding.template)
 
                 binding.shimmerLayout.startShimmer()
-            }
-        }
-
-        fun applyProgress(ui: ProgressUi) {
-            val downloading = ui.isDownloading && !ui.isDownloaded
-            binding.download.visibility =
-                if (downloading || ui.isDownloaded) View.GONE else View.VISIBLE
-            binding.progressBox.visibility = if (downloading) View.VISIBLE else View.GONE
-            binding.progressBar.visibility = if (downloading) View.VISIBLE else View.GONE
-            binding.percentage.visibility = if (downloading) View.VISIBLE else View.GONE
-
-            if (downloading) {
-                val pct = ui.progress.coerceIn(0, 100)
-                binding.progressBar.progress = pct
-                binding.percentage.text = "$pct%"
-            } else {
-                binding.progressBar.progress = 0
-                binding.percentage.text = ""
             }
         }
     }

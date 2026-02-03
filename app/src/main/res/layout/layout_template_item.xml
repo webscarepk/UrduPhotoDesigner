@@ -80,7 +80,7 @@
             android:layout_gravity="end|bottom"
             android:layout_margin="6dp"
             android:src="@drawable/ic_download"
-            android:visibility="visible"
+            android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             android:background="@drawable/button_bg_round"

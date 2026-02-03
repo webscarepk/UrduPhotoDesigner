@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import androidx.core.view.doOnPreDraw
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
-import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -19,7 +18,6 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.canvas.sealed.HomeRow
 import com.example.urduphotodesigner.common.canvas.sealed.TemplateDownloadState
@@ -90,8 +88,7 @@ class TemplatesFragment : Fragment() {
     )
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentTemplatesBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -107,10 +104,8 @@ class TemplatesFragment : Fragment() {
     private fun showLoadingDialog() {
         dialogBinding = DialogLoadingProgressBinding.inflate(LayoutInflater.from(requireActivity()))
 
-        loadingDialog = AlertDialog.Builder(requireActivity())
-            .setView(dialogBinding!!.root)
-            .setCancelable(false)
-            .create()
+        loadingDialog = AlertDialog.Builder(requireActivity()).setView(dialogBinding!!.root)
+            .setCancelable(false).create()
 
         loadingDialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
         loadingDialog?.show()
@@ -136,38 +131,36 @@ class TemplatesFragment : Fragment() {
         setupHeaderUi()
 
         canvasSizeAdapter = CanvasSizeAdapter(sizeList, onClick = { selected ->
-            val newSize = if (filtersVM.filters.value.size?.name == selected.name) null else selected
+            val newSize =
+                if (filtersVM.filters.value.size?.name == selected.name) null else selected
             filtersVM.setSize(newSize)
             canvasSizeAdapter.selectedSizeName = newSize?.name ?: ""
 
         }, false)
         binding.sizesRV.adapter = canvasSizeAdapter
 
-        categoryAdapter = TemplateCategoriesAdapter(
-            onSeeAll = { category ->
-                val args = Bundle().apply { putString("TAB_NAME", category) }
-                view?.post { findNavController().navigate(R.id.templatesListFragment, args) }
-            },
-            onTemplateClick = { template, bool ->
-                if (bool) {
-                    val exportResult = template.toExportResultFinal()
-                    lifecycleScope.launch {
-                        withContext(Dispatchers.Default) {
-                            viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
-                        }
+        categoryAdapter = TemplateCategoriesAdapter(onSeeAll = { category ->
+            val args = Bundle().apply { putString("TAB_NAME", category) }
+            view?.post { findNavController().navigate(R.id.templatesListFragment, args) }
+        }, onTemplateClick = { template, bool ->
+            if (bool) {
+                val exportResult = template.toExportResultFinal()
+                lifecycleScope.launch {
+                    withContext(Dispatchers.Default) {
+                        viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
                     }
-                    return@TemplateCategoriesAdapter
                 }
-                downloadingTemplate = template
-                categoryAdapter.updateTemplateProgress(
-                    templateId = template.id,
-                    progress = 0,
-                    isDownloading = true,
-                    isDownloaded = false
-                )
-                mainViewModel.downloadTemplate(template)
+                return@TemplateCategoriesAdapter
             }
-        )
+            downloadingTemplate = template
+            categoryAdapter.updateTemplateProgress(
+                templateId = template.id,
+                progress = 0,
+                isDownloading = true,
+                isDownloaded = false
+            )
+            mainViewModel.downloadTemplate(template)
+        })
         binding.categoriesRV.adapter = categoryAdapter
 
         templatesAdapter = TemplatesAdapter { template, isDownloaded ->
@@ -182,14 +175,7 @@ class TemplatesFragment : Fragment() {
             }
 
             downloadingTemplate = template
-            templatesAdapter.updateProgress(
-                template.id,
-                ProgressUi(
-                    progress = 0,
-                    isDownloading = true,
-                    isDownloaded = false
-                )
-            )
+
             mainViewModel.downloadTemplate(template)
         }
 
@@ -230,20 +216,15 @@ class TemplatesFragment : Fragment() {
 
     private fun rebalanceSpans() {
         binding.categoriesRV.post {
-            (binding.categoriesRV.layoutManager as? StaggeredGridLayoutManager)
-                ?.invalidateSpanAssignments()
+            (binding.categoriesRV.layoutManager as? StaggeredGridLayoutManager)?.invalidateSpanAssignments()
         }
     }
 
     private fun updateCategoriesFromData(list: List<TemplateEntity>) {
         val cats = buildList {
             add("All")
-            addAll(
-                list.map { it.category?.trim() ?: "Unknown" }
-                    .filter { it.isNotEmpty() }
-                    .distinct()
-                    .sorted()
-            )
+            addAll(list.map { it.category?.trim() ?: "Unknown" }.filter { it.isNotEmpty() }
+                .distinct().sorted())
         }
         renderCategoryChips(cats)
     }
@@ -304,25 +285,33 @@ class TemplatesFragment : Fragment() {
         // If current active disappeared, default to All
         if (!categories.any { it.equals(selectedCat, true) }) {
             filtersVM.setCategory("All")
-            (0 until cg.childCount)
-                .map { cg.getChildAt(it) as Chip }
-                .firstOrNull { it.text.toString().equals("All", true) }
-                ?.isChecked = true
+            (0 until cg.childCount).map { cg.getChildAt(it) as Chip }
+                .firstOrNull { it.text.toString().equals("All", true) }?.isChecked = true
         }
     }
 
     private fun findChipByText(group: ViewGroup, text: String): Chip? =
-        (0 until group.childCount)
-            .mapNotNull { group.getChildAt(it) as? Chip }
+        (0 until group.childCount).mapNotNull { group.getChildAt(it) as? Chip }
             .firstOrNull { it.text.toString().equals(text, true) }
 
     private fun setupHeaderUi() {
-        binding.searchBar.doAfterTextChanged {
-            val newQ = it?.toString().orEmpty()
-            if (newQ != filtersVM.filters.value.query) {
-                filtersVM.setQuery(newQ) // triggers collector → applyFilters()
+        binding.searchBar.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) {
+                val query = binding.searchBar.text.toString()
+                filtersVM.setQuery(query)
+
+                // keyboard hide
+                binding.searchBar.clearFocus()
+                val imm =
+                    requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                imm.hideSoftInputFromWindow(binding.searchBar.windowToken, 0)
+
+                true
+            } else {
+                false
             }
         }
+
         binding.filters.addPressEffect { toggleFilterPanel() }
     }
 
@@ -341,32 +330,20 @@ class TemplatesFragment : Fragment() {
 
                 panel.translationY = -panel.height.toFloat()  // hidden behind the bar
                 panel.alpha = 0f
-                panel.animate()
-                    .translationY(0f)
-                    .translationY(0f)
-                    .alpha(1f)
-                    .setDuration(200)
-                    .start()
+                panel.animate().translationY(0f).translationY(0f).alpha(1f).setDuration(200).start()
             }
         } else {
             // hide: slide back up behind the bar
-            panel.animate()
-                .translationY(-panel.height.toFloat())
-                .alpha(0f)
-                .setDuration(180)
+            panel.animate().translationY(-panel.height.toFloat()).alpha(0f).setDuration(180)
                 .withEndAction {
                     panel.isGone = true
-                }
-                .start()
+                }.start()
         }
         filterPanelVisible = !filterPanelVisible
     }
 
     private fun filterTemplates(
-        source: List<TemplateEntity>,
-        category: String,
-        query: String,
-        size: CanvasSize?
+        source: List<TemplateEntity>, category: String, query: String, size: CanvasSize?
     ): List<TemplateEntity> {
         val byCat = if (category.equals("All", true)) {
             source
@@ -411,8 +388,7 @@ class TemplatesFragment : Fragment() {
             switchToSections()
 
             val filtered = filterTemplates(allTemplates, "All", activeQuery, activeSize)
-            val rows = filtered
-                .groupBy { it.category.takeIf { it!!.isNotBlank() } ?: "Others" }
+            val rows = filtered.groupBy { it.category.takeIf { it!!.isNotBlank() } ?: "Others" }
                 .map { (cat, list) -> HomeRow.CategoryRow(cat, list.distinctBy { it.id }.take(10)) }
 
             categoryAdapter.submitList(rows)
@@ -462,20 +438,26 @@ class TemplatesFragment : Fragment() {
                         }
                     }
 
-                    // When categories list is (re)rendered, chips will be checked using activeCategory
-                    // Apply filters to the list now
                     applyFilters()
-
-                    // If category changed, also switch list mode (sections/grid) inside applyFilters()
                 }
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
             mainViewModel.localTemplates.collect { templates ->
+                val isStructuralChange = templates.size != allTemplates.size
+
                 allTemplates = templates
-                updateCategoriesFromData(templates)
-                applyFilters()
+
+                if (isStructuralChange) {
+                    updateCategoriesFromData(templates)
+                    applyFilters()   // only when list structure changed
+                } else {
+                    // only progress/state changed → tell adapter to update child
+                    templates.forEach {
+                        categoryAdapter.notifyTemplateStateChanged(it)
+                    }
+                }
             }
         }
 
@@ -493,85 +475,31 @@ class TemplatesFragment : Fragment() {
             mainViewModel.templateDownloadState.collect { state ->
                 when (state) {
                     is TemplateDownloadState.Progress -> {
-                        val t = state.template
+                        val t = downloadingTemplate ?: return@collect
                         if (isGridMode()) {
-                            // Grid screen (TemplatesAdapter)
-                            templatesAdapter.updateProgress(
-                                t.id,
-                                ProgressUi(
-                                    progress = state.progress,
-                                    isDownloading = true,
-                                    isDownloaded = false
-                                )
-                            )
-                            // optional: keep the grid tidy while heights change
                             rebalanceSpans()
-                        } else {
-                            // Sectioned screen (TemplateCategoriesAdapter)
-                            categoryAdapter.updateTemplateProgress(
-                                templateId = t.id,
-                                progress = state.progress,
-                                isDownloading = true,
-                                isDownloaded = false
-                            )
                         }
                     }
 
                     is TemplateDownloadState.SuccessWithTemplate -> {
-                        val t = state.template
-                        if (isGridMode()) {
-                            templatesAdapter.updateProgress(
-                                t.id,
-                                ProgressUi(
-                                    progress = 100,
-                                    isDownloading = false,
-                                    isDownloaded = true
-                                )
-                            )
-                            rebalanceSpans()
-                        } else {
-                            categoryAdapter.updateTemplateProgress(
-                                templateId = t.id,
-                                progress = 100,
-                                isDownloading = false,
-                                isDownloaded = true,
-                                filePath = t.file_path
-                            )
-                        }
-                        mainViewModel.clearTemplateDownloadState()
+                        val t = downloadingTemplate ?: return@collect
 
                         showGlobalSuccessSnack("Template ready") {
                             val exportResult = t.toExportResultFinal()
                             lifecycleScope.launch {
                                 withContext(Dispatchers.Default) {
                                     viewModel.loadTemplateFromJsonFile(
-                                        exportResult,
-                                        requireContext()
+                                        exportResult, requireContext()
                                     )
                                 }
                             }
                         }
+                        downloadingTemplate = null
+                        mainViewModel.clearTemplateDownloadState()
                     }
 
                     is TemplateDownloadState.Error -> {
-                        val t = downloadingTemplate ?: return@collect
-                        if (isGridMode()) {
-                            templatesAdapter.updateProgress(
-                                t.id,
-                                ProgressUi(
-                                    progress = 0,
-                                    isDownloading = false,
-                                    isDownloaded = false
-                                )
-                            )
-                        } else {
-                            categoryAdapter.updateTemplateProgress(
-                                templateId = t.id,
-                                progress = 0,
-                                isDownloading = false,
-                                isDownloaded = false
-                            )
-                        }
+
                         downloadingTemplate = null
                     }
 

@@ -98,7 +98,8 @@ class FinishExportFragment : Fragment() {
                 return@addPressEffect
             }
 
-            val zipFile = File(requireContext().cacheDir, "design_${System.currentTimeMillis()}.zip")
+            val downloadFolder = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+            val zipFile = File(downloadFolder, "design_${System.currentTimeMillis()}.zip")
             createZipFromFiles(listOf(jsonFile, imageFile), zipFile)
 
             val uri = FileProvider.getUriForFile(

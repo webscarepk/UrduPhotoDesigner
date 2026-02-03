@@ -271,14 +271,7 @@ class TemplatesListFragment : Fragment() {
             }
 
             downloadingTemplate = template
-            adapter.updateProgress(
-                template.id,
-                ProgressUi(
-                    progress = 0,
-                    isDownloading = true,
-                    isDownloaded = false
-                )
-            )
+
             mainViewModel.downloadTemplate(template)
         }
 
@@ -325,14 +318,20 @@ class TemplatesListFragment : Fragment() {
     private fun applyFiltersList(forceShuffle: Boolean = false) {
         filterJob?.cancel()
         filterJob = viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Default) {
-            val filtered = filterTemplatesList(baseTemplates, activeSubcategory, activeQuery, activeSize)
+
+            val filtered = filterTemplatesList(
+                baseTemplates,
+                activeSubcategory,
+                activeQuery,
+                activeSize
+            )
+
             val result = if (forceShuffle) filtered.shuffled() else filtered
 
-            val fresh = result.map { it.copy() }
-
             withContext(Dispatchers.Main) {
-                adapter.submitList(fresh)
+                adapter.submitList(result)   // ✅ NO copy()
                 sglm.invalidateSpanAssignments()
+
                 if (!binding.templatesRV.canScrollVertically(-1)) {
                     binding.templatesRV.scrollToPosition(0)
                 }
@@ -439,30 +438,13 @@ class TemplatesListFragment : Fragment() {
                     is TemplateDownloadState.Progress -> {
                         val t = state.template
                         downloadingTemplate = t
-                        adapter.updateProgress(
-                            t.id,
-                            ProgressUi(
-                                progress = state.progress,
-                                isDownloading = true,
-                                isDownloaded = false
-                            )
-                        )
+
                     }
 
                     is TemplateDownloadState.SuccessWithTemplate -> {
                         binding.swipeRefresh.isRefreshing = false
                         val t = state.template
                         downloadingTemplate = t
-
-                        // Immediately flip UI to "downloaded" for that row
-                        adapter.updateProgress(
-                            t.id,
-                            ProgressUi(
-                                progress = 100,
-                                isDownloading = false,
-                                isDownloaded = true
-                            )
-                        )
 
                         // Persist to DB; the list collector above will bring in the updated entity
                         mainViewModel.insertTemplate(
@@ -488,16 +470,7 @@ class TemplatesListFragment : Fragment() {
                     }
 
                     is TemplateDownloadState.Error -> {
-                        downloadingTemplate?.let { t ->
-                            adapter.updateProgress(
-                                t.id,
-                                ProgressUi(
-                                    progress = 0,
-                                    isDownloading = false,
-                                    isDownloaded = false
-                                )
-                            )
-                        }
+
                         downloadingTemplate = null
                     }
 

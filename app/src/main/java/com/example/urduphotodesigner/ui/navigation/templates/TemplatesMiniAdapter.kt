@@ -21,27 +21,43 @@ import com.example.urduphotodesigner.data.model.TemplateEntity
 import com.example.urduphotodesigner.databinding.LayoutTemplateCategoryBinding
 
 class TemplatesMiniAdapter(
-    private val onClick: (TemplateEntity, Boolean) -> Unit,
-    private val progressProvider: (Int) -> ProgressUi?
+    private val onClick: (TemplateEntity, Boolean) -> Unit
 ) : ListAdapter<TemplateEntity, TemplatesMiniAdapter.VH>(Diff()) {
 
     inner class VH(val binding: LayoutTemplateCategoryBinding) :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(item: TemplateEntity) {
-            binding.shimmerLayout.startShimmer()
 
-            binding.root.strokeColor =
-                ContextCompat.getColor(binding.root.context, R.color.appColor)
-
-            renderProgressFor(item.id)
-
+            // CLICK
             binding.root.addPressEffect {
-                val state = progressProvider(item.id)
-                val isDownloaded = state?.isDownloaded == true || item.is_downloaded
-                onClick(item, isDownloaded)
+                onClick(item, item.is_downloaded)
             }
 
-            // Thumbnail
+            // PROGRESS UI FROM ENTITY (truth)
+            val downloading = item.is_downloading && !item.is_downloaded
+
+            binding.download.visibility =
+                if (downloading || item.is_downloaded) View.GONE else View.VISIBLE
+
+            binding.progressBox.visibility =
+                if (downloading) View.VISIBLE else View.GONE
+
+            binding.progressBar.visibility =
+                if (downloading) View.VISIBLE else View.GONE
+
+            binding.percentage.visibility =
+                if (downloading) View.VISIBLE else View.GONE
+
+            if (downloading) {
+                val p = item.download_progress.coerceIn(0, 100)
+                binding.progressBar.progress = p
+                binding.percentage.text = "$p%"
+            } else {
+                binding.progressBar.progress = 0
+                binding.percentage.text = ""
+            }
+
+            // IMAGE
             val url = Constants.BASE_URL_GLIDE + item.thumbnail_url
 
             Glide.with(binding.root.context)
@@ -73,41 +89,26 @@ class TemplatesMiniAdapter(
                 .into(binding.image)
         }
 
-        fun renderProgressFor(templateId: Int, fallback: TemplateEntity? = null) {
-            val st = progressProvider(templateId)
+        fun renderProgressFromState(ui: ProgressUi?) {
+            val downloading = ui?.isDownloading == true && !ui.isDownloaded
 
-            val isDownloaded = st?.isDownloaded == true ||
-                    fallback?.is_downloaded == true ||
-                    currentList.find { it.id == templateId }?.is_downloaded == true
-
-            val downloading = when {
-                st != null -> st.isDownloading && !isDownloaded
-                fallback != null -> fallback.is_downloading && !isDownloaded
-                else -> false
-            }
-
-            binding.download.visibility    = if (downloading || isDownloaded) View.GONE else View.VISIBLE
             binding.progressBox.visibility = if (downloading) View.VISIBLE else View.GONE
             binding.progressBar.visibility = if (downloading) View.VISIBLE else View.GONE
             binding.percentage.visibility  = if (downloading) View.VISIBLE else View.GONE
 
             if (downloading) {
-                val p = (st?.progress ?: fallback?.download_progress ?: 0).coerceIn(0, 100)
+                val p = (ui.progress ?: 0).coerceIn(0, 100)
                 binding.progressBar.progress = p
                 binding.percentage.text = "$p%"
-            } else {
-                binding.progressBar.progress = 0
-                binding.percentage.text = ""
             }
         }
-
     }
 
     override fun onBindViewHolder(h: VH, pos: Int, payloads: MutableList<Any>) {
         if (payloads.isNotEmpty()) {
             val state = payloads.firstOrNull() as? ProgressUi
             if (state != null) {
-                h.renderProgressFor(getItem(pos).id)
+                h.renderProgressFromState(state)
             }
         } else {
             super.onBindViewHolder(h, pos, payloads)
@@ -122,6 +123,18 @@ class TemplatesMiniAdapter(
     fun updateProgress(templateId: Int, state: ProgressUi) {
         val idx = currentList.indexOfFirst { it.id == templateId }
         if (idx != -1) notifyItemChanged(idx, state)
+    }
+
+    fun updateItem(updated: TemplateEntity) {
+        val idx = currentList.indexOfFirst { it.id == updated.id }
+        if (idx != -1) {
+            currentList[idx].apply {
+                download_progress = updated.download_progress
+                is_downloading = updated.is_downloading
+                is_downloaded = updated.is_downloaded
+            }
+            notifyItemChanged(idx)
+        }
     }
 
     class Diff : DiffUtil.ItemCallback<TemplateEntity>() {

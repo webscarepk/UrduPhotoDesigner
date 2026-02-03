@@ -51,9 +51,7 @@ class TemplateCategoriesAdapter(
         RecyclerView.ViewHolder(b.root) {
 
         private val miniAdapter = TemplatesMiniAdapter(
-            onClick = onTemplateClick,
-            progressProvider = { id -> progressById[id] }
-        )
+            onClick = onTemplateClick)
 
         init {
             b.listRV.adapter = miniAdapter
@@ -63,38 +61,43 @@ class TemplateCategoriesAdapter(
         fun bind(row: HomeRow.CategoryRow) {
             b.title.text = row.title
             b.seeAll.addPressEffect { onSeeAll(row.title) }
-
-            val current = miniAdapter.currentList
-            val same = current.size == row.templates.size &&
-                    current.zip(row.templates).all { (a, b) -> a.id == b.id }
-            if (!same) {
-                miniAdapter.submitList(row.templates)
-            }
+            miniAdapter.submitList(row.templates)
         }
 
         fun updateChildProgress(templateId: Int, state: ProgressUi) {
-            miniAdapter.updateProgress(templateId, state) // payload down to one item
+            // This updates the internal cache so new binds get the state
+            progressById[templateId] = state
+            miniAdapter.updateProgress(templateId, state) // Pass payload to child
         }
+
+        fun notifyChildChanged(template: TemplateEntity) {
+            miniAdapter.updateItem(template)
+        }
+
     }
 
-    fun updateTemplateProgress(
-        templateId: Int,
-        progress: Int,
-        isDownloading: Boolean,
-        isDownloaded: Boolean,
-        filePath: String? = null
-    ) {
-        // cache UI state
-        val state = ProgressUi(progress, isDownloading, isDownloaded, filePath)
+    fun updateTemplateProgress(templateId: Int, progress: Int, isDownloading: Boolean, isDownloaded: Boolean) {
+        val state = ProgressUi(progress, isDownloading, isDownloaded)
         progressById[templateId] = state
 
-        // find which row has this template
         val rowIndex = currentList.indexOfFirst { row ->
             row is HomeRow.CategoryRow && row.templates.any { it.id == templateId }
         }
+        if (rowIndex != -1) {
+            val holder = hostRv?.findViewHolderForAdapterPosition(rowIndex) as? CategoryVH
+            holder?.updateChildProgress(templateId, state)
+        }
+    }
+
+    fun notifyTemplateStateChanged(template: TemplateEntity) {
+        val rowIndex = currentList.indexOfFirst { row ->
+            row is HomeRow.CategoryRow &&
+                    row.templates.any { it.id == template.id }
+        }
         if (rowIndex == -1) return
+
         val holder = hostRv?.findViewHolderForAdapterPosition(rowIndex) as? CategoryVH
-        holder?.updateChildProgress(templateId, state)
+        holder?.notifyChildChanged(template)
     }
 
     class Diff : DiffUtil.ItemCallback<HomeRow>() {

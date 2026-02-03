@@ -1,5 +1,6 @@
 package com.example.urduphotodesigner.domain.repo
 
+import android.content.ContentValues.TAG
 import android.content.Context
 import android.os.Environment
 import android.util.Log
@@ -53,6 +54,7 @@ class DownloadRepo @Inject constructor(
                         if (contentLength > 0) {
                             val progress = ((bytesDownloaded * 100) / contentLength).toInt()
                             if (progress > lastProgress) {
+                                Log.d(TAG, "downloadAssets: $progress")
                                 lastProgress = progress
                                 onProgress(progress)
                             }

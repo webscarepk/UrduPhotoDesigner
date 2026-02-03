@@ -6,19 +6,17 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.common.canvas.model.GradientItem
-import com.example.urduphotodesigner.common.utils.Constants
 import com.example.urduphotodesigner.common.canvas.sealed.FontDownloadState
 import com.example.urduphotodesigner.common.canvas.sealed.HomeRow
 import com.example.urduphotodesigner.common.canvas.sealed.TemplateDownloadState
 import com.example.urduphotodesigner.common.sealed.Response
+import com.example.urduphotodesigner.common.utils.Constants
 import com.example.urduphotodesigner.common.utils.GradientPresets
+import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.data.model.TemplateEntity
-import com.example.urduphotodesigner.data.model.TrendEntity
-import com.example.urduphotodesigner.data.model.TrendWithTemplates
 import com.example.urduphotodesigner.domain.repo.DownloadRepo
 import com.example.urduphotodesigner.domain.usecase.DeleteFontsUseCase
 import com.example.urduphotodesigner.domain.usecase.DeleteGradientUseCase
@@ -43,11 +41,16 @@ import com.example.urduphotodesigner.domain.usecase.UpdateFontStatusUseCase
 import com.example.urduphotodesigner.domain.usecase.UpdateFontsUseCase
 import com.example.urduphotodesigner.domain.usecase.UpdateGradientUseCase
 import com.example.urduphotodesigner.domain.usecase.UpdateImagesUseCase
-import com.example.urduphotodesigner.domain.usecase.UpdateTemplateStatusUseCase
 import com.example.urduphotodesigner.domain.usecase.UpdateTemplatesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 @HiltViewModel
@@ -78,6 +81,8 @@ class MainViewModel @Inject constructor(
     private val getTrendsUseCase: GetTrendsUseCase,
     private val insertTrendsUseCase: InsertTrendsUseCase
 ) : ViewModel() {
+
+    private val progressMutex = kotlinx.coroutines.sync.Mutex()
 
     private val _trendRows = MutableStateFlow<List<HomeRow>>(emptyList())
     val trendRows: StateFlow<List<HomeRow>> = _trendRows.asStateFlow()
@@ -113,9 +118,7 @@ class MainViewModel @Inject constructor(
     val rawQuery: StateFlow<String> = _rawQuery.asStateFlow()
 
     // Debounced, distinct stream for UI filtering
-    val queryDebounced = rawQuery
-        .map { it.trim() }
-        .distinctUntilChanged()
+    val queryDebounced = rawQuery.map { it.trim() }.distinctUntilChanged()
 
     fun setQuery(q: String) {
         _rawQuery.value = q
@@ -124,6 +127,7 @@ class MainViewModel @Inject constructor(
     fun clearQuery() {
         _rawQuery.value = ""
     }
+
     init {
         fetchAndStoreFontsFromApi()
         observeLocalFonts()
@@ -140,14 +144,14 @@ class MainViewModel @Inject constructor(
 
         viewModelScope.launch {
             getAll().collect { uiList ->
-                    _gradients.value = uiList
-                }
+                _gradients.value = uiList
+            }
         }
     }
 
     fun deleteGradient(id: Long) = viewModelScope.launch { delete(id) }
-    fun updateGradient(g: GradientItem)   = viewModelScope.launch { update(g) }
-    fun insertGradient(g: GradientItem)   = viewModelScope.launch { insert(g) }
+    fun updateGradient(g: GradientItem) = viewModelScope.launch { update(g) }
+    fun insertGradient(g: GradientItem) = viewModelScope.launch { insert(g) }
 
     fun fetchAndStoreTemplatesFromApi() {
         viewModelScope.launch {
@@ -216,6 +220,7 @@ class MainViewModel @Inject constructor(
                         _isLoading.value = false
                         insertTrendsUseCase.invoke(response.data!!) // saves in Room
                     }
+
                     is Response.Error -> {
                         _isLoading.value = false
                         _error.value = response.message
@@ -229,16 +234,13 @@ class MainViewModel @Inject constructor(
 
     private fun observeLocalTrends() {
         viewModelScope.launch {
-            getTrendsUseCase()
-                .map { trendsWithTemplates ->
+            getTrendsUseCase().map { trendsWithTemplates ->
                     trendsWithTemplates.map { twt ->
                         HomeRow.TrendRow(
-                            title = twt.trend.name,
-                            templates = twt.templates
+                            title = twt.trend.name, templates = twt.templates
                         )
                     }
-                }
-                .collect { rows ->
+                }.collect { rows ->
                     _trendRows.value = rows
                 }
         }
@@ -302,45 +304,72 @@ class MainViewModel @Inject constructor(
 
     fun downloadTemplate(template: TemplateEntity) {
         viewModelScope.launch {
-            // UI-only progress; DO NOT write is_downloading to DB here
-            _templateDownloadState.value =
-                TemplateDownloadState.Progress(0, template.copy(is_downloading = true, download_progress = 0))
+            _templateDownloadState.value = TemplateDownloadState.Progress(
+                0, template.copy(is_downloading = true, download_progress = 0)
+            )
 
             try {
-                val downloadedFile = fontRepository.downloadAssets(
-                    url  = Constants.BASE_URL_DOWNLOAD + template.json_url,
-                    fileName = "template_${template.id}.json",
-                    onProgress = { progress ->
-                        Log.d(TAG, "downloadTemplate: ${template.id} $progress")
-                        _templateDownloadState.value =
-                            TemplateDownloadState.Progress(progress, template.copy(is_downloading = true, download_progress = progress))
-                    }
+                // 1️⃣ Mark as downloading in DB (0%)
+                updateTemplatesUseCase.invoke(
+                    template.id.toString(),
+                    isDownloaded = false,
+                    isDownloading = true,
+                    progress = 0,
+                    filePath = null
                 )
 
-                // Only persist final state
+                val downloadedFile = fontRepository.downloadAssets(
+                    url = Constants.BASE_URL_DOWNLOAD + template.json_url,
+                    fileName = "template_${template.id}.json",
+                    onProgress = { progress ->
+
+                        Log.d(TAG, "downloadTemplate: ${template.id} $progress")
+
+                        viewModelScope.launch {
+                            progressMutex.withLock {
+                                updateTemplatesUseCase.invoke(
+                                    template.id.toString(),
+                                    isDownloaded = false,
+                                    isDownloading = true,
+                                    progress = progress,
+                                    filePath = null
+                                )
+                            }
+                        }
+                        _templateDownloadState.value = TemplateDownloadState.Progress(
+                            progress,
+                            template.copy(is_downloading = true, download_progress = progress)
+                        )
+
+                    })
+
                 updateTemplatesUseCase.invoke(
                     template.id.toString(),
                     isDownloaded = true,
                     isDownloading = false,
+                    progress = 100,
                     filePath = downloadedFile.absolutePath
                 )
-
                 val updated = template.copy(
                     is_downloaded = true,
                     file_path = downloadedFile.absolutePath,
                     download_progress = 100
                 )
-                _templateDownloadState.value = TemplateDownloadState.SuccessWithTemplate(downloadedFile, updated)
+                _templateDownloadState.value =
+                    TemplateDownloadState.SuccessWithTemplate(downloadedFile, updated)
 
             } catch (e: Exception) {
-                // DO NOT write is_downloading=false to DB either (avoid extra emit)
-                updateTemplatesUseCase.invoke(template.id.toString(),
+
+                updateTemplatesUseCase.invoke(
+                    template.id.toString(),
                     isDownloaded = false,
                     isDownloading = false,
+                    progress = 0,
                     filePath = null
                 )
+                _templateDownloadState.value =
+                    TemplateDownloadState.Error(e.message ?: "Download failed")
 
-                _templateDownloadState.value = TemplateDownloadState.Error(e.message ?: "Download failed")
             }
         }
     }
@@ -356,14 +385,16 @@ class MainViewModel @Inject constructor(
 
             try {
                 val downloadedFile = fontRepository.downloadAssets(
-                    url = Constants.BASE_URL_GLIDE+font.file_url,
-                    fileName = font.font_name+".ttf",
+                    url = Constants.BASE_URL_GLIDE + font.file_url,
+                    fileName = font.font_name + ".ttf",
                     onProgress = { progress ->
-                        _downloadState.value = FontDownloadState.Progress(progress, font.copy(is_downloading = true,  download_progress = progress))
-                    }
-                )
+                        _downloadState.value = FontDownloadState.Progress(
+                            progress, font.copy(is_downloading = true, download_progress = progress)
+                        )
+                    })
 
-                updateFontsUseCase.invoke(font.id.toString(),
+                updateFontsUseCase.invoke(
+                    font.id.toString(),
                     isDownloaded = true,
                     isDownloading = false,
                     filePath = downloadedFile.absolutePath
@@ -377,7 +408,8 @@ class MainViewModel @Inject constructor(
                     file_path = downloadedFile.absolutePath
                 )
 
-                _downloadState.value = FontDownloadState.SuccessWithTypeface(downloadedFile, updatedFont)
+                _downloadState.value =
+                    FontDownloadState.SuccessWithTypeface(downloadedFile, updatedFont)
             } catch (e: Exception) {
                 updateFontStatusUseCase.invoke(font.id.toString(), false)
                 _downloadState.value = FontDownloadState.Error(e.message ?: "Download failed", font)

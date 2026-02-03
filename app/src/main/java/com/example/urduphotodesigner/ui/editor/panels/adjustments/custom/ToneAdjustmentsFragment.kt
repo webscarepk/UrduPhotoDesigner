@@ -66,10 +66,14 @@ class ToneAdjustmentsFragment : Fragment() {
     }
 
     private fun initSeekBars() {
-
         // 🟡 Brightness
         binding.brightness.apply {
-            min = -100
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                min = -100
+            } else {
+                // Workaround for older versions (use progress manually)
+                progress = 0
+            }
             max = 100
             progress = 0
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -86,7 +90,11 @@ class ToneAdjustmentsFragment : Fragment() {
         }
 
         binding.highlights.apply {
-            min = -100
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                min = -100
+            } else {
+                progress = 0
+            }
             max = 100
             progress = 0
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -104,7 +112,11 @@ class ToneAdjustmentsFragment : Fragment() {
 
         // 🟢 Contrast
         binding.contrast.apply {
-            min = 0
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                min = 0
+            } else {
+                progress = 100
+            }
             max = 200
             progress = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -123,7 +135,11 @@ class ToneAdjustmentsFragment : Fragment() {
 
         // 🟣 Shadows
         binding.shadows.apply {
-            min = -100
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                min = -100
+            } else {
+                progress = 0
+            }
             max = 100
             progress = 0
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {

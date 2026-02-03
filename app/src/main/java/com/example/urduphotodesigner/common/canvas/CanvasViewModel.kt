@@ -1720,7 +1720,7 @@ class CanvasViewModel @Inject constructor(
         val updated = selected.copy(
             context = context,
             bitmap = maskedBitmap,
-            bitmapData = ImageProcessor.bitmapToBase64(maskedBitmap) // keep persistence in sync
+            bitmapData = ImageProcessor.bitmapToFilePath(selected.context!!, maskedBitmap) // keep persistence in sync
         ).apply {
             updatePaintProperties()
         }
@@ -1975,8 +1975,8 @@ class CanvasViewModel @Inject constructor(
             context = context,
             type = elementType,
             bitmap = bitmap,
-//            bitmapData = ImageProcessor.bitmapToFilePath(context, bitmap!!),
-            bitmapData = ImageProcessor.bitmapToBase64(bitmap!!),
+            bitmapData = ImageProcessor.bitmapToFilePath(context, bitmap!!),
+//            bitmapData = ImageProcessor.bitmapToBase64(bitmap!!),
             x = canvasW / 2f,
             y = canvasH / 2f,
             paintAlpha = 255,
@@ -2884,6 +2884,10 @@ class CanvasViewModel @Inject constructor(
                     return@launch
                 }
 
+                CanvasElement::class.java.declaredFields.forEach {
+                    Log.e("FIELDS", it.name)
+                }
+
                 _loadingStage.postValue("Parsing JSON" to 30)
                 val jsonContent = jsonFile.readText()
                 val elements = gson.fromJson(jsonContent, Array<CanvasElement>::class.java).toList()
@@ -2910,6 +2914,7 @@ class CanvasViewModel @Inject constructor(
 
                         if (bg.bitmapData != null) {
                             val bitmap = ImageProcessor.base64ToBitmap(bg.bitmapData!!)
+//                            val bitmap = ImageProcessor.filePathToBitmap(bg.bitmapData!!)
                             if (bitmap != null) {
                                 _backgroundImage.value = bitmap
                             } else {
@@ -2932,6 +2937,7 @@ class CanvasViewModel @Inject constructor(
                     selected?.let {
                         if (it.bitmapData != null) {
                             it.bitmap = ImageProcessor.base64ToBitmap(it.bitmapData!!)
+//                            it.bitmap = ImageProcessor.filePathToBitmap(it.bitmapData!!)
                         }
                         _brightness.postValue(it.adjustments.brightness)
                         _contrast.postValue(it.adjustments.contrast)
@@ -2947,6 +2953,8 @@ class CanvasViewModel @Inject constructor(
                     }
                     _exportResult.value = exportResult
                 }
+                Log.e("CanvasViewModel", "Successful")
+
             } catch (e: Exception) {
                 Log.e("CanvasViewModel", "Error loading template: ${e.message}")
             } finally {

@@ -53,8 +53,7 @@ class TrendsAdapter(
         RecyclerView.ViewHolder(b.root) {
 
         private val miniAdapter = TemplatesMiniAdapter(
-            onClick = onTemplateClick,
-            progressProvider = { id -> progressById[id] }
+            onClick = onTemplateClick
         )
 
         init {

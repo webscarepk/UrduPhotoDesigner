@@ -1,16 +1,18 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="27dp"
-    android:height="24dp"
-    android:viewportWidth="27"
-    android:viewportHeight="24">
+    android:width="16dp"
+    android:height="16dp"
+    android:viewportWidth="16"
+    android:viewportHeight="16">
     <path
-        android:fillColor="#FF1E1E1E"
-        android:pathData="M22.31 1.15v5.91h-0.58C21.4 5.7 21.01 4.72 20.6 4.13c-0.42-0.6-1-1.08-1.73-1.43-0.4-0.2-1.12-0.3-2.14-0.3H15.1v16.86c0 1.12 0.06 1.82 0.18 2.1 0.13 0.28 0.37 0.52 0.73 0.74 0.36 0.2 0.86 0.3 1.48 0.3h0.72V23H6.76v-0.6H7.5c0.63 0 1.14-0.1 1.53-0.33 0.28-0.16 0.5-0.41 0.66-0.78 0.12-0.26 0.18-0.93 0.18-2.03V2.41H8.28c-1.47 0-2.54 0.3-3.2 0.93C4.13 4.21 3.54 5.45 3.3 7.06H2.69V1.15H22.3Z"/>
+        android:fillColor="#FF8E969F"
+        android:pathData="M6.46 7.98V1.3c0-0.18-0.02-0.25-0.24-0.25h-4.9c-0.18 0-0.26 0.03-0.25 0.24 0.02 0.43 0 0.86 0 1.28 0 0.38-0.2 0.62-0.54 0.62C0.21 3.2 0 2.96 0 2.6v-2C0 0.2 0.2 0 0.6 0h12.8C13.8 0 14 0.2 14 0.6v2c0 0.36-0.21 0.6-0.53 0.6-0.34 0-0.55-0.23-0.55-0.62v-1.3c0-0.15-0.01-0.22-0.2-0.22h-5c-0.16 0-0.18 0.06-0.18 0.2v13.49c0 0.16 0.05 0.19 0.2 0.19H9.1c0.35 0 0.59 0.2 0.6 0.52C9.7 15.78 9.45 16 9.1 16H4.9c-0.36 0-0.6-0.22-0.6-0.54 0.01-0.31 0.24-0.52 0.6-0.53h1.26c0.23 0.02 0.3-0.03 0.3-0.29V7.98Z"/>
     <path
-        android:fillAlpha="0.3"
-        android:strokeColor="#FF1E1E1E"
-        android:strokeWidth="1"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M26 18h-8m4 4v-8"/>
+        android:strokeColor="#FF8E969F"
+        android:strokeWidth="0.7"
+        android:pathData="M12.5 8.35A3.15 3.15 0 1 0 12.5 14.65 3.15 3.15 0 1 0 12.5 8.35z"/>
+    <path
+        android:fillColor="#FF8E969F"
+        android:strokeColor="#FF8E969F"
+        android:strokeWidth="0.1"
+        android:pathData="M12.29 11.71H11.2c-0.06 0-0.1-0.02-0.15-0.06C11.02 11.61 11 11.56 11 11.5s0.02-0.11 0.06-0.15c0.04-0.04 0.1-0.06 0.15-0.06h1.08V10.2c0-0.06 0.02-0.1 0.06-0.15 0.04-0.04 0.09-0.06 0.15-0.06s0.11 0.02 0.15 0.06c0.04 0.04 0.06 0.1 0.06 0.15v1.08h1.08c0.06 0 0.1 0.02 0.15 0.06 0.04 0.04 0.06 0.09 0.06 0.15s-0.02 0.11-0.06 0.15c-0.04 0.04-0.1 0.06-0.15 0.06H12.7v1.08c0 0.06-0.02 0.1-0.06 0.15C12.61 12.98 12.56 13 12.5 13s-0.11-0.02-0.15-0.06c-0.04-0.04-0.06-0.1-0.06-0.15V11.7Z"/>
 </vector>

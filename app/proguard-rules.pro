@@ -45,3 +45,21 @@
 
 # Keep all custom views and UI-related optimization classes
 -keep class com.example.urduphotodesigner.common.views.** { *; }
+
+# Keep model fields for Gson
+-keepclassmembers class com.example.urduphotodesigner.common.canvas.model.** {
+    <fields>;
+}
+
+# Keep enum names
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+-keep class com.example.urduphotodesigner.common.canvas.model.** { *; }
+-keep class com.example.urduphotodesigner.common.canvas.enums.** { *; }
+# Keep annotations and generic info
+-keepattributes Signature
+-keepattributes *Annotation*
+

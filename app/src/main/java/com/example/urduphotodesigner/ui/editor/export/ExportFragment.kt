@@ -108,11 +108,16 @@ class ExportFragment : Fragment() {
 
         viewModel.canvasView.observe(viewLifecycleOwner) { canvas ->
             lifecycleScope.launch(Dispatchers.Main) {
-                canvasView = canvas!!
-                Log.d(
-                    "ExportFragmentCanvasView",
-                    "Received exportResult: ${viewModel.exportResult.value}"
-                )
+                if (canvas != null) {
+                    canvasView = canvas
+                    Log.d(
+                        "ExportFragmentCanvasView",
+                        "Received exportResult: ${viewModel.exportResult.value}"
+                    )
+                } else {
+                    Log.e("ExportFragment", "Canvas is null.")
+                    // Handle the null case, maybe show an error or fallback
+                }
             }
         }
 
@@ -499,78 +504,78 @@ class ExportFragment : Fragment() {
     private suspend fun saveImageOrPdf(bitmap: Bitmap, options: ExportOptions): Uri? =
         withContext(Dispatchers.IO) {
 //            if (isBlueStacks()) {
-                saveDirectToDownloads(bitmap, options)
+//                saveDirectToDownloads(bitmap, options)
 //            }
-//            if (options.format.name.equals("PDF", ignoreCase = true)) {
-//                val filename = "design_${System.currentTimeMillis()}.pdf"
-//                val contentValues = ContentValues().apply {
-//                    put(MediaStore.Files.FileColumns.DISPLAY_NAME, filename)
-//                    put(MediaStore.Files.FileColumns.MIME_TYPE, "application/pdf")
-//                    put(
-//                        MediaStore.Files.FileColumns.RELATIVE_PATH,
-//                        Environment.DIRECTORY_DOCUMENTS + "/${getString(R.string.app_name)}"
-//                    )
-//                }
-//
-//                val uri = requireContext().contentResolver.insert(
-//                    MediaStore.Files.getContentUri("external"), contentValues
-//                )
-//
-//                uri?.let {
-//                    requireContext().contentResolver.openOutputStream(it)?.use { stream ->
-//                        val pdfDoc = PdfDocument()
-//
-//                        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
-//                        val page = pdfDoc.startPage(pageInfo)
-//
-//                        val scale = minOf(
-//                            pageInfo.pageWidth.toFloat() / bitmap.width,
-//                            pageInfo.pageHeight.toFloat() / bitmap.height
-//                        )
-//                        val matrix = android.graphics.Matrix().apply { postScale(scale, scale) }
-//                        page.canvas.drawBitmap(bitmap, matrix, null)
-//
-//                        pdfDoc.finishPage(page)
-//                        pdfDoc.writeTo(stream)
-//                        pdfDoc.close()
-//                    }
-//                }
-//                uri
-//            } else {
-//                val formatExt = when (options.format.format) {
-//                    Bitmap.CompressFormat.PNG -> "png"
-//                    Bitmap.CompressFormat.JPEG -> "jpg"
-//                    Bitmap.CompressFormat.WEBP -> "webp"
-//                    else -> "png"
-//                }
-//                val mimeType = when (options.format.format) {
-//                    Bitmap.CompressFormat.PNG -> "image/png"
-//                    Bitmap.CompressFormat.JPEG -> "image/jpeg"
-//                    Bitmap.CompressFormat.WEBP -> "image/webp"
-//                    else -> "image/png"
-//                }
-//                val filename = "design_${System.currentTimeMillis()}.$formatExt"
-//
-//                val contentValues = ContentValues().apply {
-//                    put(MediaStore.Images.Media.DISPLAY_NAME, filename)
-//                    put(MediaStore.Images.Media.MIME_TYPE, mimeType)
-//                    put(
-//                        MediaStore.Images.Media.RELATIVE_PATH,
-//                        Environment.DIRECTORY_PICTURES + "/${getString(R.string.app_name)}"
-//                    )
-//                }
-//
-//                val uri = requireContext().contentResolver.insert(
-//                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues
-//                )
-//
-//                uri?.let {
-//                    requireContext().contentResolver.openOutputStream(it)?.use { stream ->
-//                        bitmap.compress(options.format.format!!, options.quality.quality, stream)
-//                    }
-//                }
-//                uri
-//            }
+            if (options.format.name.equals("PDF", ignoreCase = true)) {
+                val filename = "design_${System.currentTimeMillis()}.pdf"
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.Files.FileColumns.DISPLAY_NAME, filename)
+                    put(MediaStore.Files.FileColumns.MIME_TYPE, "application/pdf")
+                    put(
+                        MediaStore.Files.FileColumns.RELATIVE_PATH,
+                        Environment.DIRECTORY_DOCUMENTS + "/${getString(R.string.app_name)}"
+                    )
+                }
+
+                val uri = requireContext().contentResolver.insert(
+                    MediaStore.Files.getContentUri("external"), contentValues
+                )
+
+                uri?.let {
+                    requireContext().contentResolver.openOutputStream(it)?.use { stream ->
+                        val pdfDoc = PdfDocument()
+
+                        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
+                        val page = pdfDoc.startPage(pageInfo)
+
+                        val scale = minOf(
+                            pageInfo.pageWidth.toFloat() / bitmap.width,
+                            pageInfo.pageHeight.toFloat() / bitmap.height
+                        )
+                        val matrix = android.graphics.Matrix().apply { postScale(scale, scale) }
+                        page.canvas.drawBitmap(bitmap, matrix, null)
+
+                        pdfDoc.finishPage(page)
+                        pdfDoc.writeTo(stream)
+                        pdfDoc.close()
+                    }
+                }
+                uri
+            } else {
+                val formatExt = when (options.format.format) {
+                    Bitmap.CompressFormat.PNG -> "png"
+                    Bitmap.CompressFormat.JPEG -> "jpg"
+                    Bitmap.CompressFormat.WEBP -> "webp"
+                    else -> "png"
+                }
+                val mimeType = when (options.format.format) {
+                    Bitmap.CompressFormat.PNG -> "image/png"
+                    Bitmap.CompressFormat.JPEG -> "image/jpeg"
+                    Bitmap.CompressFormat.WEBP -> "image/webp"
+                    else -> "image/png"
+                }
+                val filename = "design_${System.currentTimeMillis()}.$formatExt"
+
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+                    put(MediaStore.Images.Media.MIME_TYPE, mimeType)
+                    put(
+                        MediaStore.Images.Media.RELATIVE_PATH,
+                        Environment.DIRECTORY_PICTURES + "/${getString(R.string.app_name)}"
+                    )
+                }
+
+                val uri = requireContext().contentResolver.insert(
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues
+                )
+
+                uri?.let {
+                    requireContext().contentResolver.openOutputStream(it)?.use { stream ->
+                        bitmap.compress(options.format.format!!, options.quality.quality, stream)
+                    }
+                }
+                uri
+            }
         }
 
     private fun startIconRotation() {

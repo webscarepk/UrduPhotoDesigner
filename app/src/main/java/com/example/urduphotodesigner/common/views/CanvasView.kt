@@ -4,7 +4,6 @@ import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.BitmapShader
 import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
@@ -40,6 +39,7 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.toColorInt
+import androidx.core.graphics.withRotation
 import androidx.core.graphics.withSave
 import androidx.core.graphics.withTranslation
 import com.example.urduphotodesigner.R
@@ -72,6 +72,7 @@ import com.example.urduphotodesigner.common.utils.BrushRenderUtils.drawTaperedPe
 import com.example.urduphotodesigner.common.utils.BrushRenderUtils.makeStrokePaint
 import com.example.urduphotodesigner.common.utils.ImageAdjustmentHelper
 import com.example.urduphotodesigner.common.utils.ImageProcessor
+import com.example.urduphotodesigner.common.utils.ShapeRenderUtils.buildShapePath
 import com.example.urduphotodesigner.common.utils.ShapeRenderUtils.drawShape
 import com.example.urduphotodesigner.common.utils.Utils.vibrateSoft
 import com.example.urduphotodesigner.data.model.FontEntity
@@ -90,8 +91,6 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sign
 import kotlin.math.sin
-import androidx.core.graphics.withRotation
-import com.example.urduphotodesigner.common.utils.ShapeRenderUtils.buildShapePath
 
 class CanvasView @JvmOverloads constructor(
     context: Context,
@@ -891,14 +890,18 @@ class CanvasView @JvmOverloads constructor(
 
         onProgress?.invoke(30, "Rendering thumbnail")
         renderCanvasTo(canvas, scaleFactor)
+
+        // Make an immutable copy of the canvas elements
+        val elementsWithBitmap = canvasElements.toList()  // Safe copy
+
         // Encode element bitmaps (if any)
-        val elementsWithBitmap = canvasElements
         val total = elementsWithBitmap.size
         if (total > 0) {
             onProgress?.invoke(70, "Encoding image data")
             elementsWithBitmap.forEachIndexed { index, element ->
                 element.bitmap?.let {
                     element.bitmapData = ImageProcessor.bitmapToBase64(it)
+//                    element.bitmapData = ImageProcessor.bitmapToFilePath(context, it)
                 }
                 element.drawStrokes?.forEach { stroke ->
                     stroke.serializePath()
@@ -910,7 +913,7 @@ class CanvasView @JvmOverloads constructor(
             onProgress?.invoke(90, "No bitmaps to encode")
         }
 
-        val snapshot = canvasElements.toList()   // immutable copy
+        val snapshot = elementsWithBitmap  // Use the safe copy
         val json = gson.toJson(snapshot)
 
         onProgress?.invoke(95, "Thumbnail ready")
@@ -919,17 +922,15 @@ class CanvasView @JvmOverloads constructor(
     }
 
     suspend fun exportCanvasJson(): String = withContext(Dispatchers.IO) {
-        // ✅ Step 1: Create a deep snapshot to prevent concurrent modifications
+        // ✅ Step 1: Create a deep snapshot
         val safeElements = canvasElements.toList().map { element ->
             element.copy(
                 drawStrokes = element.drawStrokes?.toList()?.map { s ->
-                    // Copy each stroke (with its own path)
                     s.copy(path = s.path?.let { Path(it) })
                 }?.toMutableList()
             )
         }
 
-        // ✅ Step 2: Safely iterate over the snapshot
         safeElements.forEach { element ->
             element.bitmap?.let {
                 element.bitmapData = ImageProcessor.bitmapToBase64(it)
@@ -939,8 +940,7 @@ class CanvasView @JvmOverloads constructor(
             }
         }
 
-        // ✅ Step 3: Serialize safely
-        Gson().toJson(safeElements)
+        return@withContext gson.toJson(safeElements)
     }
 
     /**
@@ -1899,7 +1899,7 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
-    private fun drawElementOverlays(canvas: Canvas, showOverlays: Boolean = true){
+    private fun drawElementOverlays(canvas: Canvas, showOverlays: Boolean = true) {
         if (showOverlays && selectedElements.isNotEmpty()) {
             val desiredScreenStrokeWidth = 2f
             val localSpaceStrokeWidth = desiredScreenStrokeWidth / scale // Scale stroke width
@@ -2015,7 +2015,7 @@ class CanvasView @JvmOverloads constructor(
                     iconMap["resize"] = Pair(
                         corners[4], corners[5]
                     )
-                    if (element.type == ElementType.SHAPE){
+                    if (element.type == ElementType.SHAPE) {
                         iconMap["transform"] = Pair(corners[6], corners[7])
 
                     }
@@ -2140,17 +2140,13 @@ class CanvasView @JvmOverloads constructor(
             canvas.withSave {
 
                 val path = buildShapePath(
-                    element.shapeType ?: ShapeType.RECTANGLE,
-                    localRect,
-                    element.shapeCornerRadius
+                    element.shapeType ?: ShapeType.RECTANGLE, localRect, element.shapeCornerRadius
                 )
                 canvas.clipPath(path) // ✅ Mask bitmap inside shape
 
                 // --- 🧠 Apply Adjustments ---
                 val finalBitmap = ImageAdjustmentHelper.applyAllAdjustments(
-                    element.context!!,
-                    bmp,
-                    element.adjustments
+                    element.context!!, bmp, element.adjustments
                 )
 
                 // --- 🧩 Setup Paint and Filters ---
@@ -2216,9 +2212,7 @@ class CanvasView @JvmOverloads constructor(
                 strokeWidth = element.shapeStrokeWidth ?: 1f
                 if (element.shapeStrokeGradient != null) {
                     shader = createGradientShader(
-                        element.shapeStrokeGradient!!,
-                        localRect.width(),
-                        localRect.height()
+                        element.shapeStrokeGradient!!, localRect.width(), localRect.height()
                     )
                 } else {
                     color = element.shapeStrokeColor ?: Color.BLACK
@@ -2242,9 +2236,7 @@ class CanvasView @JvmOverloads constructor(
                 style = Paint.Style.FILL
                 if (element.shapeFillGradient != null) {
                     shader = createGradientShader(
-                        element.shapeFillGradient!!,
-                        localRect.width(),
-                        localRect.height()
+                        element.shapeFillGradient!!, localRect.width(), localRect.height()
                     )
                 } else {
                     color = element.shapeFillColor ?: Color.TRANSPARENT
@@ -2500,9 +2492,7 @@ class CanvasView @JvmOverloads constructor(
                 val rectW = labelRect.width()
                 val rectH = labelRect.height()
                 labelPaint.shader = createGradientShader(
-                    gradientItem = element.labelGradient!!,
-                    width = rectW,
-                    height = rectH
+                    gradientItem = element.labelGradient!!, width = rectW, height = rectH
                 )
             } else {
                 labelPaint.shader = null
@@ -2519,25 +2509,30 @@ class CanvasView @JvmOverloads constructor(
                     labelPaint.strokeWidth = 4f
                     canvas.drawRect(labelRect, labelPaint)
                 }
+
                 LabelShape.OVAL_FILL -> canvas.drawOval(labelRect, labelPaint)
                 LabelShape.OVAL_STROKE -> {
                     labelPaint.style = Paint.Style.STROKE
                     labelPaint.strokeWidth = 4f
                     canvas.drawOval(labelRect, labelPaint)
                 }
+
                 LabelShape.CIRCLE_FILL -> {
                     val r = min(labelRect.width(), labelRect.height()) / 2f
                     canvas.drawCircle(labelRect.centerX(), labelRect.centerY(), r, labelPaint)
                 }
+
                 LabelShape.CIRCLE_STROKE -> {
                     labelPaint.style = Paint.Style.STROKE
                     labelPaint.strokeWidth = 4f
                     val r = min(labelRect.width(), labelRect.height()) / 2f
                     canvas.drawCircle(labelRect.centerX(), labelRect.centerY(), r, labelPaint)
                 }
+
                 LabelShape.ROUNDED_RECTANGLE_FILL -> {
                     canvas.drawRoundRect(labelRect, 20f, 20f, labelPaint)
                 }
+
                 LabelShape.ROUNDED_RECTANGLE_STROKE -> {
                     labelPaint.style = Paint.Style.STROKE
                     labelPaint.strokeWidth = 4f
@@ -2585,7 +2580,9 @@ class CanvasView @JvmOverloads constructor(
             val displayText = when (element.letterCasing) {
                 LetterCasing.ALL_CAPS -> text.uppercase()
                 LetterCasing.LOWER_CASE -> text.lowercase()
-                LetterCasing.TITLE_CASE -> text.split(" ").joinToString(" ") { it.replaceFirstChar(Char::uppercase) }
+                LetterCasing.TITLE_CASE -> text.split(" ")
+                    .joinToString(" ") { it.replaceFirstChar(Char::uppercase) }
+
                 else -> text
             }
 
@@ -2607,11 +2604,13 @@ class CanvasView @JvmOverloads constructor(
             // Gradient Fill
             if (element.fillGradient != null) {
                 val w = fillPaint.measureText(displayText)
-                fillPaint.shader = createGradientShader(element.fillGradient!!, w, fillPaint.textSize)
+                fillPaint.shader =
+                    createGradientShader(element.fillGradient!!, w, fillPaint.textSize)
             }
 
             // Blur and Blend
-            if (element.hasBlur) fillPaint.maskFilter = BlurMaskFilter(element.blurValue, BlurMaskFilter.Blur.NORMAL)
+            if (element.hasBlur) fillPaint.maskFilter =
+                BlurMaskFilter(element.blurValue, BlurMaskFilter.Blur.NORMAL)
             fillPaint.xfermode = drawWithBlend(element)
 
             // Shadow
@@ -2624,7 +2623,9 @@ class CanvasView @JvmOverloads constructor(
                 }
                 val sa = sp.alpha
                 sp.alpha = element.paintAlpha
-                canvas.drawText(displayText, xPos + element.shadowDx, yOffset + element.shadowDy, sp)
+                canvas.drawText(
+                    displayText, xPos + element.shadowDx, yOffset + element.shadowDy, sp
+                )
                 sp.alpha = sa
             }
 
@@ -2640,7 +2641,8 @@ class CanvasView @JvmOverloads constructor(
                     }
                     if (element.strokeGradient != null) {
                         val w = fillPaint.measureText(displayText)
-                        strokePaint.shader = createGradientShader(element.strokeGradient!!, w, fillPaint.textSize)
+                        strokePaint.shader =
+                            createGradientShader(element.strokeGradient!!, w, fillPaint.textSize)
                     } else {
                         strokePaint.color = element.strokeColor
                     }
@@ -3220,8 +3222,7 @@ class CanvasView @JvmOverloads constructor(
                                 // Store initial logical sizes for direct geometry resize
                                 selectedElements.forEach { element ->
                                     initialElementSizes[element.id] = Pair(
-                                        element.logicalContentWidth,
-                                        element.logicalContentHeight
+                                        element.logicalContentWidth, element.logicalContentHeight
                                     )
                                     onStartBatchUpdate?.invoke(element.id, "transform")
                                 }
@@ -3622,6 +3623,7 @@ class CanvasView @JvmOverloads constructor(
                             }
                         }
                     }
+
                     Mode.TRANSFORM -> {
                         if (selectedElements.isEmpty()) return true
 
@@ -3629,7 +3631,8 @@ class CanvasView @JvmOverloads constructor(
                         val dy = y - touchStartY
 
                         selectedElements.forEach { element ->
-                            val (initialW, initialH) = initialElementSizes[element.id] ?: return@forEach
+                            val (initialW, initialH) = initialElementSizes[element.id]
+                                ?: return@forEach
 
                             val newW = (initialW - dx).coerceAtLeast(10f)
                             val newH = (initialH + dy).coerceAtLeast(10f)

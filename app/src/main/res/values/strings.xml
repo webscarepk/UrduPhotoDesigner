@@ -300,6 +300,16 @@
     <string name="pan_y">Pan Y</string>
     <string name="edit_shape">Edit Shape</string>
     <string name="mask_image_as_shape">Mask Image as Shape</string>
+    <string name="rs_399">Rs 399</string>
+    <string name="save_25">Save 25%</string>
+    <string name="restore">Restore</string>
+    <string name="no_commitment_cancel_anytime">No Commitment, Cancel Anytime</string>
+    <string name="continue_">Continue</string>
+    <string name="premium_urdu_templates">Premium Urdu Templates</string>
+    <string name="install_custom_urdu_fonts_ttf_otf">Install Custom Urdu Fonts (TTF/OTF)</string>
+    <string name="premium_stickers_amp_design_library"><![CDATA[Premium Stickers & Design Library]]></string>
+    <string name="request_custom_urdu_designs">Request Custom Urdu Designs</string>
+    <string name="no_ads_ever">No Ads – Ever</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

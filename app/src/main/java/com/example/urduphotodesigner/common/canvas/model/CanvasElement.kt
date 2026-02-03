@@ -18,103 +18,228 @@ import com.example.urduphotodesigner.common.canvas.enums.TextAlignment
 import com.example.urduphotodesigner.common.canvas.enums.TextDecoration
 import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
 import com.example.urduphotodesigner.common.utils.KashidaProcessor
+import com.google.gson.annotations.SerializedName
 import java.io.Serializable
 import java.util.UUID
 
 data class CanvasElement(
     // Context is transient and should not be serialized. It will be re-provided on load.
-    @Transient var context: Context? = null, // Made nullable for deserialization
+    @field:Transient var context: Context? = null, // Made nullable for deserialization
+
+    @SerializedName("type")
     var type: ElementType,
+
+    @SerializedName("text")
     var text: String = "",
     // Bitmap is also transient. It needs to be handled separately for serialization (e.g., to Base64 or URI).
-    @Transient var bitmap: Bitmap? = null,
+    @SerializedName("bitmap")
+    @field:Transient var bitmap: Bitmap? = null,
+
+    @SerializedName("bitmapData")
     var bitmapData: String? = null,
+
+    @SerializedName("groupId")
     var groupId: String? = null,
+
+    @SerializedName("imageFilter")
     var imageFilter: ImageFilter = ImageFilter.None,
+
+    @SerializedName("adjustments")
     var adjustments: AdjustmentValues = AdjustmentValues(),
+
+    @SerializedName("x")
     var x: Float = 0f,
+
+    @SerializedName("y")
     var y: Float = 0f,
+
+    @SerializedName("scale")
     var scale: Float = 1f,
+
+    @SerializedName("rotation")
     var rotation: Float = 0f,
+
+    @SerializedName("id")
     val id: String = UUID.randomUUID().toString(),
+
+    @SerializedName("isLocked")
     var isLocked: Boolean = false,
+
+    @SerializedName("zIndex")
     var zIndex: Int = 0,
+
+    @SerializedName("isSelected")
     var isSelected: Boolean = false,
+
+    @SerializedName("fontId")
     var fontId: String? = null,
+
+    @SerializedName("paintColor")
     // Properties of TextPaint for serialization
     var paintColor: Int = Color.BLACK,
+
+    @SerializedName("paintTextSize")
     var paintTextSize: Float = 80f,
+
+    @SerializedName("paintAlpha")
     var paintAlpha: Int = 255,
+
+    @SerializedName("hasStroke")
     // Border
     var hasStroke: Boolean = false,
+
+    @SerializedName("strokeColor")
     var strokeColor: Int = Color.BLACK,
+
+    @SerializedName("strokeWidth")
     var strokeWidth: Float = 1f,
 
+    @SerializedName("hasShadow")
     // Shadow
     var hasShadow: Boolean = false,
+
+    @SerializedName("shadowColor")
     var shadowColor: Int = Color.GRAY,
+
+    @SerializedName("shadowDx")
     var shadowDx: Float = 1f,
+
+    @SerializedName("shadowDy")
     var shadowDy: Float = 1f,
+
+    @SerializedName("shadowRadius")
     var shadowRadius: Float = 1f,
+
+    @SerializedName("shadowOpacity")
     var shadowOpacity: Int = 1,
 
+    @SerializedName("hasLabel")
     // Label
     var hasLabel: Boolean = false,
+
+    @SerializedName("labelColor")
     var labelColor: Int = Color.YELLOW,
+
+    @SerializedName("labelShape")
     var labelShape: LabelShape = LabelShape.RECTANGLE_FILL,
 
+    @SerializedName("lineSpacing")
     var lineSpacing: Float = 1.0f,
+
+    @SerializedName("letterSpacing")
     var letterSpacing: Float = 0f,
+
+    @SerializedName("letterCasing")
     var letterCasing: LetterCasing = LetterCasing.NONE,
+
+    @SerializedName("textDecoration")
     var textDecoration: Set<TextDecoration> = emptySet(),
+
+    @SerializedName("alignment")
     var alignment: TextAlignment = TextAlignment.CENTER,
+
+    @SerializedName("currentIndent")
     var currentIndent: Float = 0f,
+
+    @SerializedName("listStyle")
     var listStyle: ListStyle = ListStyle.NONE,
 
+    @SerializedName("fillGradient")
     // text fill gradient
     var fillGradient: GradientItem? = null,
 
+    @SerializedName("strokeGradient")
     // text stroke gradient
     var strokeGradient: GradientItem? = null,
 
+    @SerializedName("labelGradient")
     // text label gradient
     var labelGradient: GradientItem? = null,
 
-    @Transient
-    var originalTypeface: Typeface? = null,
+    @SerializedName("originalTypeface")
+    @field:Transient var originalTypeface: Typeface? = null,
+
+    @SerializedName("hasBlur")
     var hasBlur: Boolean = false,
+
+    @SerializedName("blurValue")
     var blurValue: Float = 0f,
+
+    @SerializedName("blendType")
     var blendType: BlendType = BlendType.NORMAL,
 
+    @SerializedName("isVisible")
     var isVisible: Boolean = true,
+
+    @SerializedName("backgroundColor")
     var backgroundColor: Int = Color.WHITE,
 
+    @SerializedName("logicalContentWidth")
     var logicalContentWidth: Float = 0f,
+
+    @SerializedName("logicalContentHeight")
     var logicalContentHeight: Float = 0f,
 
+    @SerializedName("isFlippedX")
     var isFlippedX: Boolean = false,
+
+    @SerializedName("isFlippedY")
     var isFlippedY: Boolean = false,
+
+    @SerializedName("kashidaSize")
     var kashidaSize: Int = 0,
+
+    @SerializedName("drawStrokes")
     var drawStrokes: MutableList<StrokeData>? = null,
+
+    @SerializedName("brushSettings")
     var brushSettings: BrushSettings? = null,
+
+    @SerializedName("allowsStrokeEditing")
     var allowsStrokeEditing: Boolean = false,
+
+    @SerializedName("shapeType")
     var shapeType: ShapeType? = null,
+
+    @SerializedName("shapeFillColor")
     var shapeFillColor: Int = Color.TRANSPARENT,
+
+    @SerializedName("shapeStrokeColor")
     var shapeStrokeColor: Int = Color.BLACK,
+
+    @SerializedName("shapeStrokeWidth")
     var shapeStrokeWidth: Float = 6f,
+
+    @SerializedName("shapeCornerRadius")
     var shapeCornerRadius: Float = 0f,
+
+    @SerializedName("shapeHasFill")
     var shapeHasFill: Boolean = true,
+
+    @SerializedName("shapeHasStroke")
     var shapeHasStroke: Boolean = true,
+
+    @SerializedName("shapeFillGradient")
     var shapeFillGradient: GradientItem? = null,
+
+    @SerializedName("shapeStrokeGradient")
     var shapeStrokeGradient: GradientItem? = null,
+
+    @SerializedName("imagePanX")
     var imagePanX: Float = 0f,
+
+    @SerializedName("imagePanY")
     var imagePanY: Float = 0f,
+
+    @SerializedName("imageScale")
     var imageScale: Float = 1f,
+
+    @SerializedName("imageFitMode")
     var imageFitMode: String? = "cover"
 
 ) : Serializable {
 
-    @Transient
+    @field:Transient
     lateinit var paint: TextPaint
 
     init {
@@ -155,7 +280,6 @@ data class CanvasElement(
         } else if (type == ElementType.SHAPE) {
             logicalContentHeight
         } else if (type == ElementType.TEXT) {
-            // Ensure paint is initialized before using it
             if (::paint.isInitialized) {
                 val fm = paint.fontMetrics
                 val lineHeight = (fm.bottom - fm.top) * lineSpacing
@@ -208,16 +332,12 @@ data class CanvasElement(
 
             // === Instead of rotating here, keep bounds in logical space ===
             bounds.set(
-                -maxLineWidth / 2f,
-                -totalHeight / 2f,
-                maxLineWidth / 2f,
-                totalHeight / 2f
+                -maxLineWidth / 2f, -totalHeight / 2f, maxLineWidth / 2f, totalHeight / 2f
             )
-        } else if (type == ElementType.DRAW && ::paint.isInitialized){
+        } else if (type == ElementType.DRAW && ::paint.isInitialized) {
             val drawBounds = getDrawBounds()
             bounds.set(drawBounds)
-        }
-        else {
+        } else {
             bounds.set(
                 -getLocalContentWidth() / 2f,
                 -getLocalContentHeight() / 2f,
@@ -240,10 +360,14 @@ data class CanvasElement(
         val bounds = getTightTextBounds()
 
         val corners = floatArrayOf(
-            bounds.left, bounds.top,
-            bounds.right, bounds.top,
-            bounds.right, bounds.bottom,
-            bounds.left, bounds.bottom
+            bounds.left,
+            bounds.top,
+            bounds.right,
+            bounds.top,
+            bounds.right,
+            bounds.bottom,
+            bounds.left,
+            bounds.bottom
         )
 
         // --- Normalize rotation into [0, 360)
@@ -252,13 +376,11 @@ data class CanvasElement(
         val matrix = Matrix().apply {
             // ✅ include scale + flip exactly like drawCanvasElements()
             postScale(
-                scale * if (isFlippedX) -1f else 1f,
-                scale * if (isFlippedY) -1f else 1f
+                scale * if (isFlippedX) -1f else 1f, scale * if (isFlippedY) -1f else 1f
             )
 
             // ✅ Rotate around the element’s true local center (0,0)
-            if (normalizedRotation != 0f)
-                postRotate(normalizedRotation)
+            if (normalizedRotation != 0f) postRotate(normalizedRotation)
 
             // ✅ Move into world space
             postTranslate(x, y)
