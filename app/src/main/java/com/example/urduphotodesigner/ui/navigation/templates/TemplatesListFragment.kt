@@ -433,48 +433,49 @@ class TemplatesListFragment : Fragment() {
 
         // 2) Download state: update only the affected row via payload; avoid submitList
         viewLifecycleOwner.lifecycleScope.launch {
-            mainViewModel.templateDownloadState.collect { state ->
-                when (state) {
-                    is TemplateDownloadState.Progress -> {
-                        val t = state.template
-                        downloadingTemplate = t
+            mainViewModel.templateDownloadStates.collect { downloadState ->
+                downloadState.values.forEach { state ->
+                    when (state) {
+                        is TemplateDownloadState.Progress -> {
+                            val t = state.template
+                            downloadingTemplate = t
 
-                    }
+                        }
 
-                    is TemplateDownloadState.SuccessWithTemplate -> {
-                        binding.swipeRefresh.isRefreshing = false
-                        val t = state.template
-                        downloadingTemplate = t
+                        is TemplateDownloadState.SuccessWithTemplate -> {
+                            binding.swipeRefresh.isRefreshing = false
+                            val t = state.template
+                            downloadingTemplate = t
 
-                        // Persist to DB; the list collector above will bring in the updated entity
-                        mainViewModel.insertTemplate(
-                            t.copy(is_downloading = false, is_downloaded = true)
-                        )
-                        mainViewModel.clearTemplateDownloadState()
+                            mainViewModel.insertTemplate(
+                                t.copy(is_downloading = false, is_downloaded = true)
+                            )
+                            mainViewModel.clearTemplateDownloadState()
 
-                        showGlobalSuccessSnack("Template ready") {
-                            val exportResult = t.toExportResultFinal()
-                            lifecycleScope.launch {
-                                withContext(Dispatchers.Default) {
-                                    viewModel.loadTemplateFromJsonFile(
-                                        exportResult,
-                                        requireContext()
-                                    )
+                            showGlobalSuccessSnack("Template ready") {
+                                val exportResult = t.toExportResultFinal()
+                                lifecycleScope.launch {
+                                    withContext(Dispatchers.Default) {
+                                        viewModel.loadTemplateFromJsonFile(
+                                            exportResult,
+                                            requireContext()
+                                        )
+                                    }
                                 }
                             }
                         }
+
+                        is TemplateDownloadState.Success -> {
+                            mainViewModel.clearTemplateDownloadState()
+                        }
+
+                        is TemplateDownloadState.Error -> {
+
+                            downloadingTemplate = null
+                        }
+
+                        null -> Unit
                     }
-
-                    is TemplateDownloadState.Success -> {
-                        mainViewModel.clearTemplateDownloadState()
-                    }
-
-                    is TemplateDownloadState.Error -> {
-
-                        downloadingTemplate = null
-                    }
-
-                    null -> Unit
                 }
             }
         }

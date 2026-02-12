@@ -7,6 +7,7 @@ import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.data.model.ExportResult
 import java.io.File
 import java.util.Locale
+import androidx.core.net.toUri
 
 @Entity(tableName = "templates")
 data class TemplateEntity(
@@ -19,7 +20,8 @@ data class TemplateEntity(
     val category: String? = null,
     val subcategory: String,
     val tags: List<String>,
-    val is_premium: Boolean,
+    val is_premium: Boolean = false,
+    val is_popular: Boolean = false,
     val created_at: String? = null,
     val updated_at: String? = null,
     var is_downloaded:Boolean = false,
@@ -31,7 +33,7 @@ data class TemplateEntity(
     ): ExportResult {
         val jsonFile = File(file_path!!)
         val fileName = jsonFile.name.ifBlank {
-            Uri.parse(json_url).lastPathSegment ?: "template_${id}.json"
+            json_url.toUri().lastPathSegment ?: "template_${id}.json"
         }
         val sizeMb = if (jsonFile.exists()) {
             (jsonFile.length() / (1024.0 * 1024.0)).formatTwoDecimals()

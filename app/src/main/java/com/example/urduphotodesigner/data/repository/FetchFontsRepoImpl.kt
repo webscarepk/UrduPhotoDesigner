@@ -22,6 +22,7 @@ class FetchFontsRepoImpl @Inject constructor(
             Log.e(TAG, "fetchFontsAPI: $response")
             trySend(Response.Success(response))
         } catch (e: Exception) {
+            Log.e(TAG, "fetchFontsAPI: $e")
             if (e.message?.contains("Connection reset") == true){
                 trySend(Response.Error("Unstable Internet Connection!"))
             }else{

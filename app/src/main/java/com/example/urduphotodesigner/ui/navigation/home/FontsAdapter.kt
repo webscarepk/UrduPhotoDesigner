@@ -5,6 +5,7 @@ import android.graphics.drawable.PictureDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -135,6 +136,7 @@ class FontsAdapter(
             // Download button → trigger font download
             binding.download.addPressEffect { onDownload(item) }
 
+            binding.isPremium.isVisible = item.is_premium
             applyProgress(progress)
         }
 

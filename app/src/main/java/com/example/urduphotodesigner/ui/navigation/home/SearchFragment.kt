@@ -1,6 +1,7 @@
 package com.example.urduphotodesigner.ui.navigation.home
 
 import android.content.Context
+import android.graphics.Canvas
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -22,17 +23,23 @@ import com.example.urduphotodesigner.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.lifecycle.asFlow
 import androidx.navigation.fragment.findNavController
+import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.data.model.ProgressUi
+import com.example.urduphotodesigner.data.model.toExportResultFinal
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @AndroidEntryPoint
 class SearchFragment : Fragment() {
     private var _binding: FragmentSearchBinding? = null
     private val binding get() = _binding!!
     private val mainViewModel: MainViewModel by activityViewModels()
+    private val canvasViewModel: CanvasViewModel by activityViewModels()
     private lateinit var templatesAdapter: PopularTemplatesAdapter
     private lateinit var fontsAdapter: FontsAdapter
     private lateinit var filesAdapter: FilesAdapter
@@ -68,8 +75,31 @@ class SearchFragment : Fragment() {
     private fun setupAdapters() {
         // Templates
         templatesAdapter = PopularTemplatesAdapter(onClick = { template, isDownloaded ->
-            // just navigate to template preview or load
-        }, progressProvider = { null })
+            if (template.is_downloading) return@PopularTemplatesAdapter
+            if (isDownloaded) {
+                if (template.file_path.isNullOrEmpty()) {
+                    templatesAdapter.updateProgress(
+                        template.id,
+                        ProgressUi(progress = 0, isDownloading = true, isDownloaded = false)
+                    )
+                    mainViewModel.downloadTemplate(template)
+                    return@PopularTemplatesAdapter
+                } else {
+                    val exportResult = template.toExportResultFinal()
+                    lifecycleScope.launch {
+                        withContext(Dispatchers.Default) {
+                            canvasViewModel.loadTemplateFromJsonFile(exportResult, requireContext())
+                        }
+                    }
+                }
+            } else {
+                templatesAdapter.updateProgress(
+                    template.id,
+                    ProgressUi(progress = 0, isDownloading = true, isDownloaded = false)
+                )
+                mainViewModel.downloadTemplate(template)
+            }
+        })
         binding.popularTemplateRV.apply {
             adapter = templatesAdapter
             layoutManager =

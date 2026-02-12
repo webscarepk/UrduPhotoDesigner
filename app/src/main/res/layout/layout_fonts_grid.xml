@@ -17,14 +17,14 @@
             android:layout_width="match_parent"
             android:layout_height="120dp"
             android:layout_margin="@dimen/_5sdp"
+            android:outlineSpotShadowColor="@color/shadowColor"
             app:cardBackgroundColor="@color/light_gray"
             app:cardCornerRadius="10dp"
             app:cardElevation="3dp"
-            android:outlineSpotShadowColor="@color/shadowColor"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:strokeWidth="1dp"
-            app:strokeColor="@color/white">
+            app:strokeColor="@color/white"
+            app:strokeWidth="1dp">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
@@ -43,51 +43,64 @@
 
                     <ImageView
                         android:id="@+id/image"
-                        android:padding="6dp"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:background="@color/contrast"
+                        android:padding="6dp"
                         android:src="@drawable/ic_launcher_background" />
 
                 </com.facebook.shimmer.ShimmerFrameLayout>
+
+                <ImageView
+                    android:id="@+id/isPremium"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top|end"
+                    android:src="@drawable/ic_premium_icon"
+                    android:visibility="visible"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
 
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:id="@+id/downloadSection"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent">
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
                     <LinearLayout
                         android:id="@+id/progressBox"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
+                        android:layout_margin="4dp"
                         android:background="@drawable/button_bg_round"
                         android:backgroundTint="@color/appColor"
+                        android:gravity="center"
+                        android:orientation="horizontal"
                         android:paddingHorizontal="4dp"
                         android:paddingVertical="3dp"
-                        android:layout_margin="4dp"
                         android:visibility="gone"
-                        app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintBottom_toBottomOf="parent"
-                        android:gravity="center">
+                        app:layout_constraintEnd_toEndOf="parent">
+
                         <ProgressBar
                             android:id="@+id/progressBar"
                             style="?android:attr/progressBarStyleSmall"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center"
-                            android:indeterminate="true"
                             android:layout_marginEnd="6dp"
-                            android:indeterminateTint="@color/white"/>
+                            android:indeterminate="true"
+                            android:indeterminateTint="@color/white" />
+
                         <TextView
+                            android:id="@+id/percentage"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:fontFamily="@font/medium"
                             android:text="28%"
                             android:textColor="@color/white"
-                            android:textSize="10sp"
-                            android:fontFamily="@font/medium"
-                            android:id="@+id/percentage"/>
+                            android:textSize="10sp" />
                     </LinearLayout>
 
                     <ImageView
@@ -96,14 +109,14 @@
                         android:layout_height="20dp"
                         android:layout_gravity="end|bottom"
                         android:layout_margin="4dp"
-                        android:src="@drawable/ic_download"
-                        android:visibility="gone"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
                         android:background="@drawable/button_bg_round"
                         android:backgroundTint="@color/white"
                         android:padding="6dp"
+                        android:src="@drawable/ic_download"
+                        android:visibility="gone"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
                         app:tint="@color/appColor" />
                 </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -111,9 +124,9 @@
         </com.google.android.material.card.MaterialCardView>
 
         <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/parentForPadding"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/parentForPadding"
             android:layout_marginHorizontal="@dimen/_5sdp"
             android:layout_marginTop="5dp"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -121,33 +134,33 @@
             app:layout_constraintTop_toBottomOf="@id/imageCard">
 
             <TextView
-                android:visibility="visible"
-                android:ellipsize="end"
-                android:maxLines="1"
                 android:id="@+id/assetName"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:ellipsize="end"
                 android:fontFamily="@font/bold"
+                android:maxLines="1"
                 android:text="@string/social_media_post"
                 android:textColor="@color/black"
                 android:textSize="14sp"
-                app:layout_constraintEnd_toEndOf="parent"
+                android:visibility="visible"
                 app:layout_constraintBottom_toTopOf="@id/metaData"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
-                android:ellipsize="end"
-                android:maxLines="1"
                 android:id="@+id/metaData"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:ellipsize="end"
                 android:fontFamily="@font/bold"
+                android:maxLines="1"
                 android:text="@string/project_8_5_mb_12_08_2025"
                 android:textColor="@color/gray"
                 android:textSize="12sp"
-                app:layout_constraintEnd_toEndOf="@id/assetName"
                 app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="@id/assetName"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/assetName" />
 

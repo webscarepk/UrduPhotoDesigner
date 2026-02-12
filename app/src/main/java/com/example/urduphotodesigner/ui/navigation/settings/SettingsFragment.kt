@@ -31,7 +31,7 @@ class SettingsFragment : Fragment() {
     }
 
     private fun setEvents() {
-        binding.subscriptions.addPressEffect { view?.post { findNavController().navigate(R.id.subscriptionsFragment) } }
+        binding.upgradeNow.addPressEffect { view?.post { findNavController().navigate(R.id.subscriptionsFragment) } }
         binding.preferences.addPressEffect { view?.post {  findNavController().navigate(R.id.preferencesFragment) } }
     }
 

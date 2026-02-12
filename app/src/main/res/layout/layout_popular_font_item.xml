@@ -63,9 +63,18 @@
                 android:text="28%"
                 android:textColor="@color/white"
                 android:textSize="10sp"
+                android:gravity="center_vertical"
                 android:fontFamily="@font/medium"
                 android:id="@+id/percentage"/>
         </LinearLayout>
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_premium_icon"
+            android:layout_gravity="top|end"
+            android:id="@+id/isPremium"
+            android:visibility="gone"/>
 
         <ImageView
             android:id="@+id/download"

@@ -78,18 +78,17 @@ class TrendsAdapter(
         }
     }
 
-    fun updateTemplateProgress(
-        templateId: Int,
-        progress: ProgressUi,
-    ) {
+    fun updateTemplateProgress(templateId: Int, progress: ProgressUi) {
         progressById[templateId] = progress
 
-        val rowIndex = currentList.indexOfFirst { row ->
-            row is HomeRow.TrendRow && row.templates.any { it.id == templateId }
+        val size = currentList.size
+        for (i in 0 until size) {
+            val row = currentList[i]
+            if (row is HomeRow.TrendRow && row.templates.any { it.id == templateId }) {
+                val holder = hostRv?.findViewHolderForAdapterPosition(i) as? TrendVH
+                holder?.updateChildProgress(templateId, progress)
+            }
         }
-        if (rowIndex == -1) return
-        val holder = hostRv?.findViewHolderForAdapterPosition(rowIndex) as? TrendVH
-        holder?.updateChildProgress(templateId, progress)
     }
 
     class Diff : DiffUtil.ItemCallback<HomeRow>() {

@@ -24,6 +24,7 @@ import com.example.urduphotodesigner.common.utils.Constants
 import com.example.urduphotodesigner.data.model.ImageEntity
 import com.example.urduphotodesigner.databinding.LayoutImagesItemBinding
 import androidx.core.graphics.createBitmap
+import androidx.core.view.isVisible
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
 import com.example.urduphotodesigner.common.utils.ImageProcessor
@@ -71,8 +72,8 @@ class ImagesAdapter(
                 binding.root.setCardBackgroundColor(Color.WHITE)
             }
 
+            binding.isPremium.isVisible = image.is_premium
             binding.root.addPressEffect {
-                // Check if bitmapData is available (not empty)
                 if (image.bitmapData != null) {
                     val bitmap = ImageProcessor.filePathToBitmap(image.bitmapData!!)
                     onImageSelected(bitmap!!, image)

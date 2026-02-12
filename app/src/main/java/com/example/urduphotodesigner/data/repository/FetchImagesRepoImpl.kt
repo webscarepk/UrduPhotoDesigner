@@ -19,9 +19,10 @@ class FetchImagesRepoImpl @Inject constructor(
             trySend(Response.Loading)
             val response = api.getAllImages()
 
-            Log.e(TAG, "fetchFonts: $response")
+            Log.e(TAG, "fetchImages: $response")
             trySend(Response.Success(response))
         } catch (e: Exception) {
+            Log.e(TAG, "fetchImages: $e")
             if (e.message?.contains("Connection reset") == true) {
                 trySend(Response.Error("Unstable Internet Connection!"))
             } else {

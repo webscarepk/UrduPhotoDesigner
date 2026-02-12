@@ -52,7 +52,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
+        <ImageView
             android:id="@+id/fabAdd"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -60,7 +60,11 @@
             android:contentDescription="@string/add_elements"
             app:fabSize="normal"
             app:tint="@color/black"
+            android:background="@drawable/button_bg_round"
             app:backgroundTint="@color/white"
+            android:translationZ="10dp"
+            android:outlineSpotShadowColor="@color/shadowColor"
+            android:padding="15dp"
             android:src="@drawable/ic_add"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
@@ -585,8 +589,8 @@
         android:layout_gravity="center_vertical"
         android:background="@color/white"
         android:fitsSystemWindows="true"
-        android:padding="0dp"
         android:paddingBottom="0dp"
+        android:paddingHorizontal="20dp"
         app:itemIconTint="@color/bottom_nav_icon_color"
         app:activeIndicatorLabelPadding="0dp"
         app:itemActiveIndicatorStyle="@null"

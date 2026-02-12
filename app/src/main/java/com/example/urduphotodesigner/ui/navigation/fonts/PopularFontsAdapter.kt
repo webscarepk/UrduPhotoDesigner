@@ -5,6 +5,7 @@ import android.graphics.drawable.PictureDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -99,6 +100,8 @@ class PopularFontsAdapter(
 
         fun bind(item: FontEntity, progress: ProgressUi) {
             loadImage(item)
+
+            binding.isPremium.isVisible = item.is_premium
             binding.assetName.text = item.font_name
             binding.metaData.text = "${formatSize(item.file_size)}"
             binding.root.addPressEffect { onFontClick(item, item.is_downloaded) }
@@ -176,6 +179,8 @@ class PopularFontsAdapter(
 
         fun bind(item: FontEntity, progress: ProgressUi) {
             loadImage(item)
+
+            binding.isPremium.isVisible = item.is_premium
             binding.assetName.text = item.font_name
             binding.metaData.text = "${formatSize(item.file_size)}"
             binding.root.addPressEffect { onFontClick(item, item.is_downloaded) }

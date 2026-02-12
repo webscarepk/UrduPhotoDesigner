@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 class PopularFontsFragment : Fragment() {
     private var _binding: FragmentPopularFontsBinding? = null
     private val binding get() = _binding!!
-
+    private val handledFontIds = mutableSetOf<Int>()
     private var tabs = emptyList<String>()
     private val viewModel: FiltersViewModel by activityViewModels()
     private val mainViewModel: MainViewModel by activityViewModels()

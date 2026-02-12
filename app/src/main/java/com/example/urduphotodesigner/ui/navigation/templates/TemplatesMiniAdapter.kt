@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -28,6 +29,8 @@ class TemplatesMiniAdapter(
         RecyclerView.ViewHolder(binding.root) {
         fun bind(item: TemplateEntity) {
 
+
+            binding.isPremium.isVisible = item.is_premium
             // CLICK
             binding.root.addPressEffect {
                 onClick(item, item.is_downloaded)

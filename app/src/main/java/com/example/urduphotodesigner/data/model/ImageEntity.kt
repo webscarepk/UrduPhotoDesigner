@@ -12,6 +12,7 @@ data class ImageEntity(
     val alt_text: String? = null,
     val category: String,
     val user_id: Int,
+    val is_premium: Boolean = false,
     var is_selected: Boolean = false,
     var bitmapData: String? = null,
     var created_at: String? = null,

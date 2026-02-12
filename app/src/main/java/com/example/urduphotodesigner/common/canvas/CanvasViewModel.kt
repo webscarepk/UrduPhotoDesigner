@@ -44,6 +44,7 @@ import com.example.urduphotodesigner.common.views.CanvasView
 import com.example.urduphotodesigner.data.model.ExportResult
 import com.example.urduphotodesigner.data.model.FontEntity
 import com.example.urduphotodesigner.domain.usecase.GetFontsUseCase
+import com.example.urduphotodesigner.viewmodels.FontGate
 import com.google.gson.Gson
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -61,7 +62,8 @@ import javax.inject.Inject
 class CanvasViewModel @Inject constructor(
     private val getFontsUseCase: GetFontsUseCase,
     private val gson: Gson,
-    private val dataStore: PreferencesDataStoreHelper
+    private val dataStore: PreferencesDataStoreHelper,
+    private val fontGate: FontGate
 ) : ViewModel() {
     private val _pagingLocked = MutableLiveData(false)
     val pagingLocked: LiveData<Boolean> = _pagingLocked
@@ -2891,6 +2893,18 @@ class CanvasViewModel @Inject constructor(
                 _loadingStage.postValue("Parsing JSON" to 30)
                 val jsonContent = jsonFile.readText()
                 val elements = gson.fromJson(jsonContent, Array<CanvasElement>::class.java).toList()
+
+                val requiredFontIds = elements
+                    .filter { it.type == ElementType.TEXT }
+                    .mapNotNull { it.fontId }
+                    .distinct()
+
+                _loadingStage.postValue("Preparing fonts" to 40)
+
+                fontGate.ensureFonts(requiredFontIds)
+
+                _loadingStage.postValue("Fonts ready" to 55)
+
 
                 _loadingStage.postValue("Hydrating elements" to 60)
                 val hydratedElements = elements.map { raw ->

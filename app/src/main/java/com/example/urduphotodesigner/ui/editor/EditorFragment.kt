@@ -26,6 +26,7 @@ import android.view.WindowManager
 import android.view.animation.AnimationUtils
 import android.view.animation.LinearInterpolator
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.SeekBar
@@ -287,7 +288,7 @@ class EditorFragment : Fragment() {
         }
     }
 
-    private fun updateFabMenuPosition(fab: FloatingActionButton, menu: ConstraintLayout) {
+    private fun updateFabMenuPosition(fab: ImageView, menu: ConstraintLayout) {
         val menuHeight = menu.height
 
         val spaceAboveFab = fab.y

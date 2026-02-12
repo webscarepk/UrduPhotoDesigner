@@ -23,14 +23,14 @@
     <androidx.constraintlayout.widget.Guideline
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.05"
+        app:layout_constraintGuide_percent="0.1"
         android:orientation="vertical"
         android:id="@+id/startGuide"/>
 
     <androidx.constraintlayout.widget.Guideline
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.95"
+        app:layout_constraintGuide_percent="0.9"
         android:orientation="vertical"
         android:id="@+id/endGuide"/>
 
@@ -51,11 +51,13 @@
     <ImageView
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:id="@+id/mainBgImage"
         android:src="@drawable/ic_subscription_bg"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         android:scaleType="centerCrop"
+        android:alpha="0"
         app:layout_constraintBottom_toTopOf="@id/centerGuide"/>
 
     <ImageView
@@ -97,6 +99,8 @@
         android:background="@drawable/ic_button_bg"
         android:backgroundTint="@color/white"
         android:layout_marginBottom="20dp"
+        android:alpha="0"
+        android:translationY="300dp"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintBottom_toTopOf="@id/subscriptionsRV"
@@ -198,11 +202,12 @@
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:paddingHorizontal="@dimen/_16sdp"
+        android:paddingHorizontal="40dp"
         app:layout_constraintBottom_toTopOf="@id/continueBtn"
         app:layout_constraintTop_toBottomOf="@id/subscriptionsCard"
         android:layout_marginBottom="20dp"
         android:paddingBottom="20dp"
+        android:alpha="0"
         android:clipToPadding="false"
         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
         tools:listitem="@layout/layout_subscriptions_item"
@@ -220,6 +225,7 @@
         android:text="@string/continue_"
         android:gravity="center"
         android:padding="15dp"
+        android:alpha="0"
         android:background="@drawable/ic_button_gradient_wrap"
         android:layout_marginBottom="10dp"
         android:fontFamily="@font/bold"
@@ -235,6 +241,7 @@
         app:layout_constraintBottom_toTopOf="@id/termsOfUse"
         android:text="@string/no_commitment_cancel_anytime"
         android:gravity="center"
+        android:alpha="0"
         android:layout_marginBottom="30dp"
         android:fontFamily="@font/regular"
         android:textColor="@color/gray"
@@ -250,7 +257,9 @@
         android:text="@string/terms_of_use"
         android:fontFamily="@font/regular"
         android:gravity="center"
+        android:textColor="@color/gray"
         android:textSize="12sp"
+        android:alpha="0"
         android:id="@+id/termsOfUse"/>
 
     <View
@@ -260,6 +269,7 @@
         app:layout_constraintBottom_toBottomOf="@id/termsOfUse"
         android:background="@color/light_gray"
         android:layout_marginVertical="10dp"
+        android:alpha="0"
         app:layout_constraintStart_toEndOf="@id/termsOfUse"
         app:layout_constraintEnd_toStartOf="@id/privacyPolicy"
         android:id="@+id/view1"/>
@@ -274,6 +284,8 @@
         android:text="@string/privacy_policy"
         android:fontFamily="@font/regular"
         android:textSize="12sp"
+        android:textColor="@color/gray"
+        android:alpha="0"
         android:gravity="center"
         android:id="@+id/privacyPolicy"/>
 
@@ -284,6 +296,7 @@
         app:layout_constraintTop_toTopOf="@id/termsOfUse"
         app:layout_constraintBottom_toBottomOf="@id/termsOfUse"
         android:background="@color/light_gray"
+        android:alpha="0"
         app:layout_constraintStart_toEndOf="@id/privacyPolicy"
         app:layout_constraintEnd_toStartOf="@id/restore"
         android:id="@+id/view2"/>
@@ -296,6 +309,8 @@
         app:layout_constraintBottom_toTopOf="@id/bottomGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         android:text="@string/restore"
+        android:alpha="0"
+        android:textColor="@color/gray"
         android:fontFamily="@font/regular"
         android:textSize="12sp"
         android:gravity="center"

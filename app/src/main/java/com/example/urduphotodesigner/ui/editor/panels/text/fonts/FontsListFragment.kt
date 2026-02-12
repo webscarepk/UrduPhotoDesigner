@@ -217,40 +217,42 @@ class FontsListFragment : Fragment() {
         }
 
         lifecycleScope.launch {
-            mainViewModel.downloadState.collect { downloadState ->
-                when (downloadState) {
-                    is FontDownloadState.Progress -> {
-                        fontEntity = downloadState.fontEntity
-                        fontEntity?.let { font ->
-                            fontsAdapter.selectedFontId = font.id.toString()
-                        }
-                    }
-
-                    is FontDownloadState.SuccessWithTypeface -> {
-                        fontEntity = downloadState.fontEntity
-                        viewModel.setFont(fontEntity!!)
-                        fontEntity?.let { font ->
-                            fontsAdapter.selectedFontId = font.id.toString()
-                        }
-                        mainViewModel.clearDownloadState()
-                    }
-
-                    is FontDownloadState.Success -> {
-                        fontEntity?.let { font ->
-                            if (font.is_downloaded) {
-                                viewModel.setFont(font)
+            mainViewModel.fontDownloadStates.collect { downloadState ->
+                downloadState.values.forEach { state ->
+                    when (state) {
+                        is FontDownloadState.Progress -> {
+                            fontEntity = state.fontEntity
+                            fontEntity?.let { font ->
+                                fontsAdapter.selectedFontId = font.id.toString()
                             }
                         }
-                    }
 
-                    is FontDownloadState.Error -> {
-                        view?.let {
-                            Snackbar.make(it, "Download failed!", Snackbar.LENGTH_SHORT).show()
+                        is FontDownloadState.SuccessWithTypeface -> {
+                            fontEntity = state.fontEntity
+                            viewModel.setFont(fontEntity!!)
+                            fontEntity?.let { font ->
+                                fontsAdapter.selectedFontId = font.id.toString()
+                            }
+                            mainViewModel.clearFontDownloadState()
                         }
-                        fontEntity = null
-                    }
 
-                    else -> {}
+                        is FontDownloadState.Success -> {
+                            fontEntity?.let { font ->
+                                if (font.is_downloaded) {
+                                    viewModel.setFont(font)
+                                }
+                            }
+                        }
+
+                        is FontDownloadState.Error -> {
+                            view?.let {
+                                Snackbar.make(it, "Download failed!", Snackbar.LENGTH_SHORT).show()
+                            }
+                            fontEntity = null
+                        }
+
+                        else -> {}
+                    }
                 }
             }
         }

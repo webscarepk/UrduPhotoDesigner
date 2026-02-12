@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -63,6 +64,7 @@ class FontsAdapter(
                 R.color.appColor
             )
 
+            binding.isPremium.isVisible = font.is_premium
             // Download UI
             binding.download.visibility =
                 if (font.is_downloaded || font.is_downloading) View.GONE else View.VISIBLE

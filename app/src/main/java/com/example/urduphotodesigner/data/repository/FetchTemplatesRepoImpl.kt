@@ -22,6 +22,7 @@ class FetchTemplatesRepoImpl @Inject constructor(
             Log.e(TAG, "fetchTemplates: $response")
             trySend(Response.Success(response))
         } catch (e: Exception) {
+            Log.e(TAG, "fetchTemplates: $e")
             if (e.message?.contains("Connection reset") == true){
                 trySend(Response.Error("Unstable Internet Connection!"))
             }else{

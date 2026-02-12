@@ -66,6 +66,14 @@
         </LinearLayout>
 
         <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_premium_icon"
+            android:layout_gravity="top|end"
+            android:id="@+id/isPremium"
+            android:visibility="gone"/>
+
+        <ImageView
             android:id="@+id/download"
             android:layout_width="20dp"
             android:layout_height="20dp"

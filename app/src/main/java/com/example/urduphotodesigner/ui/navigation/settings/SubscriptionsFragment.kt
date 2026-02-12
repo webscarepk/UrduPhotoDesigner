@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AnimationUtils
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
@@ -30,6 +31,79 @@ class SubscriptionsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setEvents()
+        loadDummyPlans()
+
+        binding.root.post {
+            startEntranceAnimation()
+        }
+
+    }
+
+    private fun View.slideUpSoft(delay: Long = 0) {
+        this.translationY = this.height.toFloat()
+        this.alpha = 0f
+
+        this.animate()
+            .translationY(0f)
+            .alpha(1f)
+            .setStartDelay(delay)
+            .setDuration(700)
+            .setInterpolator(android.view.animation.DecelerateInterpolator())
+            .start()
+    }
+
+    private fun startEntranceAnimation() {
+
+        // Phase 1 — BG fade
+        binding.mainBgImage.alpha = 0f
+        binding.mainBgImage.animate()
+            .alpha(1f)
+            .setDuration(500)
+            .setInterpolator(android.view.animation.DecelerateInterpolator())
+            .withEndAction {
+
+                // Phase 2 — Card soft slide
+                binding.subscriptionsCard.slideUpSoft()
+
+                // Phase 3 — RV after card
+                binding.subscriptionsCard.postDelayed({
+
+                    binding.subscriptionsRV.alpha = 1f
+
+                    val controller = AnimationUtils.loadLayoutAnimation(
+                        requireContext(),
+                        R.anim.layout_drop_controller
+                    )
+                    binding.subscriptionsRV.layoutAnimation = controller
+
+                    // IMPORTANT — run after layout
+                    binding.subscriptionsRV.post {
+                        binding.subscriptionsRV.scheduleLayoutAnimation()
+                    }
+                    loadDummyPlans()
+                }, 550)
+
+                // Phase 4 — Bottom section together
+                binding.subscriptionsCard.postDelayed({
+                    showBottomSection()
+                }, 700)
+            }
+    }
+
+    private fun showBottomSection() {
+        val views = listOf(
+            binding.continueBtn,
+            binding.subTitle,
+            binding.termsOfUse,
+            binding.view1,
+            binding.privacyPolicy,
+            binding.view2,
+            binding.restore
+        )
+
+        views.forEachIndexed { index, view ->
+            view.slideUpSoft(delay = (index * 40).toLong())
+        }
     }
 
     private fun loadDummyPlans() {
@@ -62,13 +136,13 @@ class SubscriptionsFragment : Fragment() {
     }
 
     private fun setEvents() {
+        binding.subscriptionsRV.layoutManager = GridLayoutManager(requireContext(), 3)
+
         adapter = SubscriptionsAdapter { selectedPlan ->
             // handle selection
         }
 
         binding.subscriptionsRV.adapter = adapter
-
-        loadDummyPlans()
         binding.back.addPressEffect { findNavController().navigateUp() }
     }
 

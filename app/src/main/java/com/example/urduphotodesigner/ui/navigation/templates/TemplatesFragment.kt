@@ -461,6 +461,14 @@ class TemplatesFragment : Fragment() {
             }
         }
 
+        viewModel.loadingStage.observe(viewLifecycleOwner) { (message, percent) ->
+            dialogBinding?.apply {
+                progressBar.progress = percent
+                subtitle.text = "$message... $percent%"
+                tvProgressPercent.text = "$percent% complete"
+            }
+        }
+
         viewModel.isLoadingTemplate.observe(viewLifecycleOwner) { isLoading ->
             if (isLoading == true) {
                 showLoadingDialog()
@@ -472,42 +480,44 @@ class TemplatesFragment : Fragment() {
 
         // download state
         viewLifecycleOwner.lifecycleScope.launch {
-            mainViewModel.templateDownloadState.collect { state ->
-                when (state) {
-                    is TemplateDownloadState.Progress -> {
-                        val t = downloadingTemplate ?: return@collect
-                        if (isGridMode()) {
-                            rebalanceSpans()
-                        }
-                    }
-
-                    is TemplateDownloadState.SuccessWithTemplate -> {
-                        val t = downloadingTemplate ?: return@collect
-
-                        showGlobalSuccessSnack("Template ready") {
-                            val exportResult = t.toExportResultFinal()
-                            lifecycleScope.launch {
-                                withContext(Dispatchers.Default) {
-                                    viewModel.loadTemplateFromJsonFile(
-                                        exportResult, requireContext()
-                                    )
-                                }
+            mainViewModel.templateDownloadStates.collect { downloadState ->
+                downloadState.values.forEach { state ->
+                    when (state) {
+                        is TemplateDownloadState.Progress -> {
+                            val t = downloadingTemplate ?: return@collect
+                            if (isGridMode()) {
+                                rebalanceSpans()
                             }
                         }
-                        downloadingTemplate = null
-                        mainViewModel.clearTemplateDownloadState()
+
+                        is TemplateDownloadState.SuccessWithTemplate -> {
+                            val t = downloadingTemplate ?: return@collect
+
+                            showGlobalSuccessSnack("Template ready") {
+                                val exportResult = t.toExportResultFinal()
+                                lifecycleScope.launch {
+                                    withContext(Dispatchers.Default) {
+                                        viewModel.loadTemplateFromJsonFile(
+                                            exportResult, requireContext()
+                                        )
+                                    }
+                                }
+                            }
+                            downloadingTemplate = null
+                            mainViewModel.clearTemplateDownloadState()
+                        }
+
+                        is TemplateDownloadState.Error -> {
+
+                            downloadingTemplate = null
+                        }
+
+                        is TemplateDownloadState.Success -> {
+                            mainViewModel.clearTemplateDownloadState()
+                        }
+
+                        null -> Unit
                     }
-
-                    is TemplateDownloadState.Error -> {
-
-                        downloadingTemplate = null
-                    }
-
-                    is TemplateDownloadState.Success -> {
-                        mainViewModel.clearTemplateDownloadState()
-                    }
-
-                    null -> Unit
                 }
             }
         }

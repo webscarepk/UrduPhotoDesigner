@@ -190,61 +190,63 @@ class PopularFontsListFragment : Fragment() {
         }
 
         lifecycleScope.launch {
-            mainViewModel.downloadState.collect { downloadState ->
-                when (downloadState) {
-                    is FontDownloadState.Progress -> {
-                        val font = downloadState.fontEntity
-                        adapter.updateProgress(
-                            font.id, ProgressUi(
-                                progress = downloadState.progress,
-                                isDownloading = true,
-                                isDownloaded = false
-                            )
-                        )
-                    }
-
-                    is FontDownloadState.SuccessWithTypeface -> {
-                        val font = downloadState.fontEntity
-
-                        adapter.updateProgress(
-                            font.id, ProgressUi(100, isDownloading = false, isDownloaded = true)
-                        )
-
-                        showGlobalSuccessSnack("Font downloaded") {
-                            lifecycleScope.launch {
-                                viewModel.setCanvasSize(CanvasSize("", 2000f, 2000f))
-                                viewModel.addTextWithFont(
-                                    requireActivity().getString(R.string.dummyText),
-                                    font,
-                                    requireActivity()
+            mainViewModel.fontDownloadStates.collect { downloadState ->
+                downloadState.values.forEach { state ->
+                    when (state) {
+                        is FontDownloadState.Progress -> {
+                            val font = state.fontEntity
+                            adapter.updateProgress(
+                                font.id, ProgressUi(
+                                    progress = state.progress,
+                                    isDownloading = true,
+                                    isDownloaded = false
                                 )
+                            )
+                        }
 
-                                if (isAdded && findNavController().currentDestination?.id != R.id.editorFragment) {
-                                    view?.post {
-                                        findNavController().navigate(
-                                            R.id.editorFragment, bundle, navOptions
-                                        )
+                        is FontDownloadState.SuccessWithTypeface -> {
+                            val font = state.fontEntity
+
+                            adapter.updateProgress(
+                                font.id, ProgressUi(100, isDownloading = false, isDownloaded = true)
+                            )
+
+                            showGlobalSuccessSnack("Font downloaded") {
+                                lifecycleScope.launch {
+                                    viewModel.setCanvasSize(CanvasSize("", 2000f, 2000f))
+                                    viewModel.addTextWithFont(
+                                        requireActivity().getString(R.string.dummyText),
+                                        font,
+                                        requireActivity()
+                                    )
+
+                                    if (isAdded && findNavController().currentDestination?.id != R.id.editorFragment) {
+                                        view?.post {
+                                            findNavController().navigate(
+                                                R.id.editorFragment, bundle, navOptions
+                                            )
+                                        }
                                     }
                                 }
                             }
+                            mainViewModel.clearFontDownloadState()
                         }
-                        mainViewModel.clearDownloadState()
-                    }
 
-                    is FontDownloadState.Error -> {
-                        val font = downloadState.fontEntity
-                        adapter.updateProgress(
-                            font.id, ProgressUi(
-                                progress = 0, isDownloading = false, isDownloaded = false
+                        is FontDownloadState.Error -> {
+                            val font = state.fontEntity
+                            adapter.updateProgress(
+                                font.id, ProgressUi(
+                                    progress = 0, isDownloading = false, isDownloaded = false
+                                )
                             )
-                        )
 
-                        mainViewModel.clearDownloadState()
-                        Snackbar.make(requireView(), "Download failed!", Snackbar.LENGTH_SHORT)
-                            .show()
+                            mainViewModel.clearFontDownloadState()
+                            Snackbar.make(requireView(), "Download failed!", Snackbar.LENGTH_SHORT)
+                                .show()
+                        }
+
+                        else -> {}
                     }
-
-                    else -> {}
                 }
             }
         }
@@ -260,5 +262,6 @@ class PopularFontsListFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        filtersViewModel.clearFilters()
     }
 }

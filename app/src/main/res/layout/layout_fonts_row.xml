@@ -55,7 +55,13 @@
                         android:background="@color/contrast" />
 
                 </com.facebook.shimmer.ShimmerFrameLayout>
-
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_premium_icon"
+                    android:layout_gravity="top|end"
+                    android:id="@+id/isPremium"
+                    android:visibility="visible"/>
             </com.google.android.material.card.MaterialCardView>
 
             <androidx.constraintlayout.widget.ConstraintLayout
