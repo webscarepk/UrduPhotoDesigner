@@ -66,7 +66,7 @@ class MainViewModel @Inject constructor(
     private val fetchAPIImagesUseCase: FetchAPIImagesUseCase,
     private val insertImagesUseCase: InsertImagesUseCase,
     private val getImagesUseCase: GetImagesUseCase,
-    private val fontRepository: DownloadRepo,
+    private val downloadRepository: DownloadRepo,
     private val updateFontsUseCase: UpdateFontsUseCase,
     private val updateFontStatusUseCase: UpdateFontStatusUseCase,
     private val getAll: GetAllGradientsUseCase,
@@ -321,7 +321,7 @@ class MainViewModel @Inject constructor(
             )
 
             try {
-                val file = fontRepository.downloadAssets(
+                val file = downloadRepository.downloadAssets(
                     url = Constants.BASE_URL_DOWNLOAD + template.json_url,
                     fileName = "template_${id}.json",
                     onProgress = { progress ->
@@ -381,7 +381,7 @@ class MainViewModel @Inject constructor(
             )
 
             try {
-                val downloadedFile = fontRepository.downloadAssets(
+                val downloadedFile = downloadRepository.downloadAssets(
                     url = Constants.BASE_URL_GLIDE + font.file_url,
                     fileName = font.font_name + ".ttf",
                     onProgress = { progress ->

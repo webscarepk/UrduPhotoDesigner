@@ -276,7 +276,7 @@ class TemplatesListFragment : Fragment() {
         }
 
         sglm = StaggeredGridLayoutManager(2, RecyclerView.VERTICAL).apply {
-            gapStrategy = StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS
+            gapStrategy = StaggeredGridLayoutManager.GAP_HANDLING_NONE
             isItemPrefetchEnabled = true
         }
 
@@ -291,7 +291,6 @@ class TemplatesListFragment : Fragment() {
 
         binding.templatesRV.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {
-                // enable only when at top and filter panel is hidden
                 binding.swipeRefresh.isEnabled = !rv.canScrollVertically(-1) && !filterPanelVisible
             }
         })

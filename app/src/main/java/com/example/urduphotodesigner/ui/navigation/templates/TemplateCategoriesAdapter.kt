@@ -31,6 +31,7 @@ class TemplateCategoriesAdapter(
         super.onAttachedToRecyclerView(rv)
         hostRv = rv
     }
+
     override fun onDetachedFromRecyclerView(rv: RecyclerView) {
         super.onDetachedFromRecyclerView(rv)
         hostRv = null

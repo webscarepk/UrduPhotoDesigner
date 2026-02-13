@@ -50,7 +50,7 @@ class DownloadRepo @Inject constructor(
                     while (inputStream.read(buffer).also { bytesRead = it } != -1) {
                         outputStream.write(buffer, 0, bytesRead)
                         bytesDownloaded += bytesRead
-
+                        Log.d(TAG, "downloadAssets: $contentLength")
                         if (contentLength > 0) {
                             val progress = ((bytesDownloaded * 100) / contentLength).toInt()
                             if (progress > lastProgress) {

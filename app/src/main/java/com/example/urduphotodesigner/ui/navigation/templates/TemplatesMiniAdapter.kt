@@ -25,6 +25,14 @@ class TemplatesMiniAdapter(
     private val onClick: (TemplateEntity, Boolean) -> Unit
 ) : ListAdapter<TemplateEntity, TemplatesMiniAdapter.VH>(Diff()) {
 
+    init {
+        setHasStableIds(true)
+    }
+
+    override fun getItemId(position: Int): Long {
+        return getItem(position).id.toLong()
+    }
+
     inner class VH(val binding: LayoutTemplateCategoryBinding) :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(item: TemplateEntity) {
@@ -45,18 +53,10 @@ class TemplatesMiniAdapter(
             binding.progressBox.visibility =
                 if (downloading) View.VISIBLE else View.GONE
 
-            binding.progressBar.visibility =
-                if (downloading) View.VISIBLE else View.GONE
-
-            binding.percentage.visibility =
-                if (downloading) View.VISIBLE else View.GONE
-
             if (downloading) {
                 val p = item.download_progress.coerceIn(0, 100)
-                binding.progressBar.progress = p
                 binding.percentage.text = "$p%"
             } else {
-                binding.progressBar.progress = 0
                 binding.percentage.text = ""
             }
 
@@ -96,12 +96,11 @@ class TemplatesMiniAdapter(
             val downloading = ui?.isDownloading == true && !ui.isDownloaded
 
             binding.progressBox.visibility = if (downloading) View.VISIBLE else View.GONE
-            binding.progressBar.visibility = if (downloading) View.VISIBLE else View.GONE
-            binding.percentage.visibility  = if (downloading) View.VISIBLE else View.GONE
+            binding.download.visibility =
+                if (downloading || ui?.isDownloaded == true) View.GONE else View.VISIBLE
 
             if (downloading) {
                 val p = (ui.progress ?: 0).coerceIn(0, 100)
-                binding.progressBar.progress = p
                 binding.percentage.text = "$p%"
             }
         }
@@ -129,14 +128,11 @@ class TemplatesMiniAdapter(
     }
 
     fun updateItem(updated: TemplateEntity) {
-        val idx = currentList.indexOfFirst { it.id == updated.id }
+        val newList = currentList.toMutableList()
+        val idx = newList.indexOfFirst { it.id == updated.id }
         if (idx != -1) {
-            currentList[idx].apply {
-                download_progress = updated.download_progress
-                is_downloading = updated.is_downloading
-                is_downloaded = updated.is_downloaded
-            }
-            notifyItemChanged(idx)
+            newList[idx] = updated
+            submitList(newList)
         }
     }
 

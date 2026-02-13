@@ -182,8 +182,7 @@ class HomeFragment : Fragment() {
             if (isDownloaded) {
                 if (template.file_path.isNullOrEmpty()) {
                     trendsAdapter.updateTemplateProgress(
-                        template.id,
-                        ProgressUi(progress = 0, isDownloading = true, isDownloaded = false)
+                        template.id, progress = 0, isDownloading = true, isDownloaded = false
                     )
                     mainViewModel.downloadTemplate(template)
                     return@TrendsAdapter
@@ -200,9 +199,7 @@ class HomeFragment : Fragment() {
             downloadingTemplate = template
             // start download
             trendsAdapter.updateTemplateProgress(
-                template.id, ProgressUi(
-                    progress = 0, isDownloading = true, isDownloaded = false
-                )
+                template.id, progress = 0, isDownloading = true, isDownloaded = false
             )
             mainViewModel.downloadTemplate(template)
         })
@@ -309,8 +306,6 @@ class HomeFragment : Fragment() {
     }
 
     private fun initObservers() {
-
-        // HomeFragment.kt ke collect block mein changes
         lifecycleScope.launch {
             mainViewModel.templateDownloadStates.collect { downloadState ->
                 downloadState.values.forEach { state ->
@@ -319,14 +314,19 @@ class HomeFragment : Fragment() {
                             val ui = ProgressUi(
                                 state.progress, isDownloading = true, isDownloaded = false
                             )
-                            trendsAdapter.updateTemplateProgress(state.template.id, ui)
+                            trendsAdapter.updateTemplateProgress(
+                                state.template.id, state.progress, true, false
+                            )
                             popularTemplatesAdapter.updateProgress(state.template.id, ui)
                         }
 
                         is TemplateDownloadState.SuccessWithTemplate -> {
                             val t = state.template
                             val ui = ProgressUi(100, isDownloading = false, isDownloaded = true)
-                            trendsAdapter.updateTemplateProgress(state.template.id, ui)
+                            trendsAdapter.updateTemplateProgress(
+                                t.id, 100, isDownloading = false, isDownloaded = true
+                            )
+                            trendsAdapter.notifyTemplateStateChanged(t)
                             popularTemplatesAdapter.updateProgress(state.template.id, ui)
 
                             mainViewModel.clearTemplateDownloadState()
@@ -349,7 +349,7 @@ class HomeFragment : Fragment() {
                             val ui = ProgressUi(0, isDownloading = false, isDownloaded = false)
                             downloadingTemplate?.let { t ->
                                 trendsAdapter.updateTemplateProgress(
-                                    t.id, ui
+                                    t.id, 0, isDownloading = false, isDownloaded = false
                                 )
                                 popularTemplatesAdapter.updateProgress(
                                     t.id, ui

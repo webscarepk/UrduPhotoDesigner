@@ -45,18 +45,14 @@ class PopularTemplatesAdapter(
 
             val downloading = item.is_downloading && !item.is_downloaded
 
-            binding.download.isVisible =
-                !(downloading || item.is_downloaded)
+            binding.progressBox.isVisible = downloading
 
-            binding.progressBar.isVisible = downloading
-            binding.percentage.isVisible = downloading
+            binding.download.isVisible = !(downloading || item.is_downloaded)
 
             if (downloading) {
                 val p = item.download_progress.coerceIn(0, 100)
-                binding.progressBar.progress = p
                 binding.percentage.text = "$p%"
             } else {
-                binding.progressBar.progress = 0
                 binding.percentage.text = ""
             }
 
@@ -96,19 +92,17 @@ class PopularTemplatesAdapter(
 
         fun applyProgress(state: ProgressUi) {
             binding.apply {
-                if (state.isDownloading) {
-                    progressBar.isVisible = true
-                    percentage.isVisible = true
-                    progressBar.progress = state.progress
-                    percentage.text = "${state.progress}%"
-                    download.isVisible = false // Hide icon while downloading
+                val downloading = state.isDownloading && !state.isDownloaded
+
+                progressBox.isVisible = downloading
+
+                download.isVisible = !(downloading || state.isDownloaded)
+
+                if (downloading) {
+                    val p = state.progress.coerceIn(0, 100)
+                    percentage.text = "$p%"
                 } else {
-                    // Fix: Hide progress bar when not downloading
-                    progressBar.isVisible = false
-                    percentage.isVisible = false
-                    progressBar.progress = 0
                     percentage.text = ""
-                    download.isVisible = !state.isDownloaded
                 }
             }
         }

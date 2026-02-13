@@ -143,7 +143,7 @@ class TemplatesFragment : Fragment() {
             val args = Bundle().apply { putString("TAB_NAME", category) }
             view?.post { findNavController().navigate(R.id.templatesListFragment, args) }
         }, onTemplateClick = { template, bool ->
-            if (bool) {
+            if (bool && template != null) {
                 val exportResult = template.toExportResultFinal()
                 lifecycleScope.launch {
                     withContext(Dispatchers.Default) {

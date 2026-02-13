@@ -44,7 +44,7 @@
             android:paddingHorizontal="4dp"
             android:paddingVertical="3dp"
             android:layout_gravity="end|bottom"
-            android:visibility="gone"
+            android:visibility="visible"
             android:layout_margin="4dp">
             <ProgressBar
                 android:id="@+id/progressBar"
@@ -80,7 +80,7 @@
             android:layout_gravity="end|bottom"
             android:layout_margin="4dp"
             android:src="@drawable/ic_download"
-            android:visibility="gone"
+            android:visibility="visible"
             android:background="@drawable/button_bg_round"
             android:backgroundTint="@color/white"
             android:padding="6dp"
