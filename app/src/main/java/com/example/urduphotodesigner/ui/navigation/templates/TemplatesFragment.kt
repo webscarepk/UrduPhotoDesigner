@@ -52,10 +52,7 @@ class TemplatesFragment : Fragment() {
     private var bundle: Bundle = Bundle()
     private var loadingDialog: AlertDialog? = null
     private var dialogBinding: DialogLoadingProgressBinding? = null
-
-    private lateinit var sglm: StaggeredGridLayoutManager
     private lateinit var templatesAdapter: TemplatesAdapter
-
     private var allTemplates: List<TemplateEntity> = emptyList()
     private var activeCategory: String = "All"
     private var activeQuery: String = ""
@@ -143,7 +140,17 @@ class TemplatesFragment : Fragment() {
             val args = Bundle().apply { putString("TAB_NAME", category) }
             view?.post { findNavController().navigate(R.id.templatesListFragment, args) }
         }, onTemplateClick = { template, bool ->
-            if (bool && template != null) {
+            if (template.is_downloading) return@TemplateCategoriesAdapter
+            if (!bool) {
+                if (template.file_path.isNullOrEmpty()) {
+                    downloadingTemplate = template
+                    categoryAdapter.updateTemplateProgress(
+                        template.id, progress = 0, isDownloading = true, isDownloaded = false
+                    )
+                    mainViewModel.downloadTemplate(template)
+                    return@TemplateCategoriesAdapter
+                }
+            } else {
                 val exportResult = template.toExportResultFinal()
                 lifecycleScope.launch {
                     withContext(Dispatchers.Default) {
@@ -152,14 +159,6 @@ class TemplatesFragment : Fragment() {
                 }
                 return@TemplateCategoriesAdapter
             }
-            downloadingTemplate = template
-            categoryAdapter.updateTemplateProgress(
-                templateId = template.id,
-                progress = 0,
-                isDownloading = true,
-                isDownloaded = false
-            )
-            mainViewModel.downloadTemplate(template)
         })
         binding.categoriesRV.adapter = categoryAdapter
 
@@ -196,22 +195,32 @@ class TemplatesFragment : Fragment() {
     }
 
     private fun switchToGrid() {
-        if (!::sglm.isInitialized) {
-            sglm = StaggeredGridLayoutManager(2, RecyclerView.VERTICAL).apply {
-                gapStrategy = StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS
-            }
-        }
-        val rv = binding.categoriesRV
-        if (rv.adapter !== templatesAdapter) {
-            rv.layoutManager = sglm
-            rv.adapter = templatesAdapter
-            rv.itemAnimator = null
-            rv.isNestedScrollingEnabled = false
 
-            val pad = resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._18sdp)
-            rv.setPadding(pad, rv.paddingTop, pad, rv.paddingBottom)
-            rv.clipToPadding = false
+        val rv = binding.categoriesRV
+
+        if (rv.layoutManager !is StaggeredGridLayoutManager) {
+
+            val newManager = StaggeredGridLayoutManager(
+                2,
+                RecyclerView.VERTICAL
+            ).apply {
+                gapStrategy =
+                    StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS
+            }
+
+            rv.layoutManager = newManager
         }
+
+        if (rv.adapter !== templatesAdapter) {
+            rv.adapter = templatesAdapter
+        }
+
+        rv.itemAnimator = null
+        rv.isNestedScrollingEnabled = false
+
+        val pad = resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._18sdp)
+        rv.setPadding(pad, rv.paddingTop, pad, rv.paddingBottom)
+        rv.clipToPadding = false
     }
 
     private fun rebalanceSpans() {
@@ -388,8 +397,13 @@ class TemplatesFragment : Fragment() {
             switchToSections()
 
             val filtered = filterTemplates(allTemplates, "All", activeQuery, activeSize)
-            val rows = filtered.groupBy { it.category.takeIf { it!!.isNotBlank() } ?: "Others" }
-                .map { (cat, list) -> HomeRow.CategoryRow(cat, list.distinctBy { it.id }.take(10)) }
+
+            // Safely group by category
+            val rows = filtered.groupBy { it.category?.trim() ?: "Others" }
+                .map { entry ->
+                    val title = entry.key.ifEmpty { "Others" }
+                    HomeRow.CategoryRow(title, entry.value.distinctBy { it.id }.take(10))
+                }
 
             categoryAdapter.submitList(rows)
         } else {
@@ -397,23 +411,9 @@ class TemplatesFragment : Fragment() {
             switchToGrid()
 
             val filtered = filterTemplates(allTemplates, activeCategory, activeQuery, activeSize)
-            submitGridPreservingOrder(filtered)
+            templatesAdapter.submitList(filtered)
             rebalanceSpans()
         }
-    }
-
-    private fun submitGridPreservingOrder(filtered: List<TemplateEntity>) {
-        val current = templatesAdapter.currentList
-        if (current.isEmpty()) {
-            templatesAdapter.submitList(filtered)
-            return
-        }
-        val byId = filtered.associateBy { it.id }
-        val merged = buildList {
-            current.forEach { cur -> byId[cur.id]?.let { add(it) } } // keep visible order
-            filtered.forEach { f -> if (current.none { it.id == f.id }) add(f) } // append new
-        }
-        templatesAdapter.submitList(merged)
     }
 
     private fun observeTemplateCategories() {
@@ -445,19 +445,9 @@ class TemplatesFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             mainViewModel.localTemplates.collect { templates ->
-                val isStructuralChange = templates.size != allTemplates.size
-
                 allTemplates = templates
-
-                if (isStructuralChange) {
-                    updateCategoriesFromData(templates)
-                    applyFilters()   // only when list structure changed
-                } else {
-                    // only progress/state changed → tell adapter to update child
-                    templates.forEach {
-                        categoryAdapter.notifyTemplateStateChanged(it)
-                    }
-                }
+                updateCategoriesFromData(templates)
+                applyFilters()
             }
         }
 
@@ -484,14 +474,42 @@ class TemplatesFragment : Fragment() {
                 downloadState.values.forEach { state ->
                     when (state) {
                         is TemplateDownloadState.Progress -> {
-                            val t = downloadingTemplate ?: return@collect
                             if (isGridMode()) {
-                                rebalanceSpans()
+                                templatesAdapter.updateProgress(
+                                    state.template.id,
+                                    ProgressUi(state.progress,
+                                        isDownloading = true,
+                                        isDownloaded = false
+                                    )
+                                )
+                            } else {
+                                categoryAdapter.updateTemplateProgress(
+                                    state.template.id, state.progress,
+                                    isDownloading = true,
+                                    isDownloaded = false
+                                )
                             }
                         }
 
                         is TemplateDownloadState.SuccessWithTemplate -> {
-                            val t = downloadingTemplate ?: return@collect
+                            val t = state.template
+                            mainViewModel.clearTemplateDownloadState()
+                            val finalState = ProgressUi(100, isDownloading = false, isDownloaded = true)
+                            val finalTemplate = t.copy(is_downloading = false, is_downloaded = true)
+
+                            if (isGridMode()) {
+//                                val updated = templatesAdapter.currentList.toMutableList()
+//                                val index = updated.indexOfFirst { it.id == t.id }
+//                                if (index != -1) {
+//                                    updated[index] = finalTemplate
+//                                    templatesAdapter.submitList(updated)
+//                                }
+
+                            } else {
+                                categoryAdapter.updateTemplateProgress(t.id, 100, isDownloading = false, isDownloaded = true)
+
+                                categoryAdapter.notifyTemplateStateChanged(finalTemplate)
+                            }
 
                             showGlobalSuccessSnack("Template ready") {
                                 val exportResult = t.toExportResultFinal()
@@ -504,12 +522,18 @@ class TemplatesFragment : Fragment() {
                                 }
                             }
                             downloadingTemplate = null
-                            mainViewModel.clearTemplateDownloadState()
                         }
 
                         is TemplateDownloadState.Error -> {
+                            downloadingTemplate?.let { t ->
+                                val finalState = ProgressUi(0, isDownloading = false, isDownloaded = false)
 
-                            downloadingTemplate = null
+                                categoryAdapter.updateTemplateProgress(downloadingTemplate!!.id, 0, isDownloading = false, isDownloaded = false)
+                                templatesAdapter.updateProgress(downloadingTemplate!!.id, finalState)
+
+                                downloadingTemplate = null
+                            }
+
                         }
 
                         is TemplateDownloadState.Success -> {

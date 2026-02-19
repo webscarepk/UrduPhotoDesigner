@@ -48,6 +48,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
+import androidx.navigation.ui.setupWithNavController
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasManager
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
@@ -160,6 +161,8 @@ class EditorFragment : Fragment() {
                 childFragmentManager.findFragmentById(R.id.panelNavHost) as NavHostFragment
             _navController = navHostFragment.navController
 
+            binding.bottomNavigation.setupWithNavController(navController)
+
             _navController?.addOnDestinationChangedListener { _, destination, _ ->
                 binding.bottomNavigation.isVisible =
                     destination.id != R.id.adjustmentsParentFragment
@@ -207,11 +210,13 @@ class EditorFragment : Fragment() {
         binding.addText.addPressEffect {
             viewModel.addText(requireActivity().getString(R.string.dummyText), requireActivity())
             navController.navigate(R.id.textFragment)
+            binding.bottomNavigation.selectedItemId = R.id.nav_text
             toggleFabMenu(false)
         }
 
         binding.addObject.setOnClickListener {
             navController.navigate(R.id.objectsFragment)
+            binding.bottomNavigation.selectedItemId = R.id.nav_objects
             toggleFabMenu(false)
         }
 
@@ -220,12 +225,14 @@ class EditorFragment : Fragment() {
             val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
             val bundle = Bundle().apply { putInt("startPage", 1) } // Assuming page 1 is index 0
             navController.navigate(R.id.drawFragment, bundle, navOptions)
+            binding.bottomNavigation.selectedItemId = R.id.drawFragment
             toggleFabMenu(false)
         }
 
         binding.addImage.setOnClickListener {
             pickImage.launch("image/*")
             navController.navigate(R.id.imagesFragment)
+            binding.bottomNavigation.selectedItemId = R.id.nav_images
             toggleFabMenu(false)
         }
 
@@ -234,6 +241,7 @@ class EditorFragment : Fragment() {
             val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
             val bundle = Bundle().apply { putInt("startPage", 0) } // Assuming page 2 is index 1
             navController.navigate(R.id.drawFragment, bundle, navOptions)
+            binding.bottomNavigation.selectedItemId = R.id.nav_draw
             toggleFabMenu(false)
         }
 

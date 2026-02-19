@@ -302,6 +302,9 @@ class BgRemovalFragment : Fragment() {
     }
 
     private fun setupImage() {
+
+        binding.bottomNavigation.selectedItemId = R.id.nav_lasso
+
         val selected = viewModel.selectedElements.value?.firstOrNull()
         val bitmap = selected?.bitmap
         originalBitmap = bitmap?.copy(Bitmap.Config.ARGB_8888, true)

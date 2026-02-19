@@ -1,6 +1,5 @@
 package com.example.urduphotodesigner.data.remote
 
-import com.example.urduphotodesigner.common.sealed.Response
 import com.example.urduphotodesigner.common.utils.Constants
 import com.example.urduphotodesigner.data.model.FontsResponse
 import com.example.urduphotodesigner.data.model.ImageResponse
@@ -54,6 +53,9 @@ interface EndPointsInterface {
         @Header("X-API-KEY") apiKey: String = Constants.X_API_KEY
     ): TrendResponse
 
-    @GET("api/template/json/{id}")
-    suspend fun getTemplateJson(@Path("id") id: String): retrofit2.Response<ResponseBody>
+    @GET("template/json/{id}")
+    suspend fun getTemplateJson(
+        @Header("X-API-KEY") apiKey: String = Constants.X_API_KEY,
+        @Path("id") id: String
+    ): retrofit2.Response<ResponseBody>
 }

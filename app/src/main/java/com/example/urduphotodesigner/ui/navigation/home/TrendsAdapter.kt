@@ -48,6 +48,16 @@ class TrendsAdapter(
         holder.bind(getItem(position) as HomeRow.TrendRow)
     }
 
+    override fun onBindViewHolder(holder: TrendVH, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isNotEmpty()) {
+            val item = getItem(position) as HomeRow.TrendRow
+
+            holder.refreshTemplates(item.templates)
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
+    }
+
     inner class TrendVH(private val b: LayoutCategoryRowBinding) : RecyclerView.ViewHolder(b.root) {
         private val miniAdapter = TemplatesMiniAdapter(onClick = onTemplateClick)
 
@@ -56,11 +66,17 @@ class TrendsAdapter(
             b.listRV.setHasFixedSize(true)
         }
 
+        fun refreshTemplates(templates: List<TemplateEntity>) {
+            miniAdapter.submitList(templates)
+        }
+
         fun bind(row: HomeRow.TrendRow) {
             b.title.text = row.title
             b.seeAll.addPressEffect { onSeeAll(row.title) }
 
-            miniAdapter.submitList(row.templates)
+            if (miniAdapter.currentList != row.templates) {
+                miniAdapter.submitList(row.templates)
+            }
         }
 
         fun updateChildProgress(templateId: Int, state: ProgressUi) {
@@ -86,28 +102,32 @@ class TrendsAdapter(
         }
     }
 
-    fun notifyTemplateStateChanged(template: TemplateEntity) {
+    fun notifyTemplateStateChanged(updatedTemplate: TemplateEntity) {
         val rowIndex = currentList.indexOfFirst { row ->
-            row is HomeRow.TrendRow &&
-                    row.templates.any { it.id == template.id }
+            row is HomeRow.TrendRow && row.templates.any { it.id == updatedTemplate.id }
         }
         if (rowIndex == -1) return
 
+        val row = currentList[rowIndex] as HomeRow.TrendRow
+        val templateIdx = row.templates.indexOfFirst { it.id == updatedTemplate.id }
+        if (templateIdx != -1) {
+            (row.templates as? MutableList)?.set(templateIdx, updatedTemplate)
+        }
+
         val holder = hostRv?.findViewHolderForAdapterPosition(rowIndex) as? TrendVH
-        holder?.notifyChildChanged(template)
+        holder?.notifyChildChanged(updatedTemplate)
     }
 
     class Diff : DiffUtil.ItemCallback<HomeRow>() {
-        override fun areItemsTheSame(o: HomeRow, n: HomeRow) =
-            (o as? HomeRow.TrendRow)?.title == (n as? HomeRow.TrendRow)?.title
-
-        override fun areContentsTheSame(o: HomeRow, n: HomeRow): Boolean {
-            val oldRow = o as? HomeRow.TrendRow ?: return false
-            val newRow = n as? HomeRow.TrendRow ?: return false
-
-            return oldRow.title == newRow.title &&
-                    oldRow.templates.size == newRow.templates.size &&
-                    oldRow.templates.firstOrNull()?.id == newRow.templates.firstOrNull()?.id
+        override fun areItemsTheSame(old: HomeRow, new: HomeRow): Boolean {
+            return when {
+                old is HomeRow.TrendRow && new is HomeRow.TrendRow -> true // Ya unique ID agar hai
+                old is HomeRow.CategoryRow && new is HomeRow.CategoryRow -> old.title == new.title
+                else -> false
+            }
         }
+        override fun getChangePayload(oldItem: HomeRow, newItem: HomeRow): Any? = Any()
+        override fun areContentsTheSame(old: HomeRow, new: HomeRow): Boolean {
+            return old is HomeRow.TrendRow && new is HomeRow.TrendRow && old.templates.size == new.templates.size        }
     }
 }

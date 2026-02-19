@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -34,10 +35,6 @@ class TemplatesAdapter(
         val binding = LayoutTemplateItemBinding.inflate(
             LayoutInflater.from(parent.context), parent, false
         )
-        binding.template.apply {
-            adjustViewBounds = true
-        }
-
         return VH(
             binding = binding,
             onClick = ::onItemClick,
@@ -57,6 +54,7 @@ class TemplatesAdapter(
             val state = payloads.firstOrNull() as? ProgressUi
             if (state != null) {
                 holder.applyProgress(state)
+
                 return
             }
         }
@@ -76,15 +74,31 @@ class TemplatesAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: TemplateEntity) {
-            binding.template.adjustViewBounds = true
+
+            val width = item.canvas_width
+            val height = item.canvas_height
+
+            if (width > 0 && height > 0) {
+                val ratio = "$width:$height"
+
+                val params = binding.imageContainer.layoutParams as ConstraintLayout.LayoutParams
+                params.dimensionRatio = ratio
+                binding.imageContainer.layoutParams = params
+            }
+
             binding.isPremium.isVisible = item.is_premium
 
-            binding.download.visibility = View.GONE
-            binding.download.addPressEffect { onClick(item) }
-            binding.fontCard.addPressEffect { onClick(item) }
+            binding.download.addPressEffect {
+                val currentItem = (bindingAdapter as TemplatesAdapter)
+                    .currentList[bindingAdapterPosition]
+                onClick(currentItem)
+            }
 
-            // Load Image
-            val downloading = item.is_downloading && !item.is_downloaded
+            binding.fontCard.addPressEffect {
+                val currentItem = (bindingAdapter as TemplatesAdapter)
+                    .currentList[bindingAdapterPosition]
+                onClick(currentItem)
+            }
 
             val url = Constants.BASE_URL_GLIDE + item.thumbnail_url
             if (url.isNotEmpty()) {
@@ -105,40 +119,22 @@ class TemplatesAdapter(
                             res: Bitmap, m: Any, t: Target<Bitmap>?, d: DataSource, isFirst: Boolean
                         ): Boolean {
                             binding.shimmerLayout.hideShimmer()
-
-                            if (!item.is_downloaded && !downloading) {
-                                binding.download.visibility = View.VISIBLE
-                            }
+                            binding.download.isVisible = !item.is_downloaded && !item.is_downloading
+                            binding.loading.isVisible = item.is_downloading && !item.is_downloaded
                             return false
                         }
                     }).into(binding.template)
 
                 binding.shimmerLayout.startShimmer()
-
-                val currentState = ProgressUi(
-                    progress = item.download_progress,
-                    isDownloading = item.is_downloading,
-                    isDownloaded = item.is_downloaded
-                )
-                applyProgress(currentState)
             }
         }
 
-        // --- Exact Logic from Popular Adapter ---
         fun applyProgress(state: ProgressUi) {
             binding.apply {
                 val downloading = state.isDownloading && !state.isDownloaded
 
-                progressBox.isVisible = downloading
-
-                if (downloading) {
-                    val p = state.progress.coerceIn(0, 100)
-                    progressBar.progress = p
-                    percentage.text = "$p%"
-                } else {
-                    progressBar.progress = 0
-                    percentage.text = ""
-                }
+                loading.isVisible = downloading
+                binding.download.isVisible = !(downloading || state.isDownloaded)
             }
         }
     }

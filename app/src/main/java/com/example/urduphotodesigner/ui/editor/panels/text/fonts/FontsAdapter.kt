@@ -69,8 +69,8 @@ class FontsAdapter(
             binding.download.visibility =
                 if (font.is_downloaded || font.is_downloading) View.GONE else View.VISIBLE
 
-            binding.progressBar.visibility =
-                if (font.is_downloading) View.VISIBLE else View.GONE
+            binding.loading.visibility = if (font.is_downloading) View.VISIBLE else View.GONE
+//            binding.progressBar.visibility = if (font.is_downloading) View.VISIBLE else View.GONE
 
             binding.root.addPressEffect {
                 selectedFontId = font.id.toString()

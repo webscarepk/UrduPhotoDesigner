@@ -41,7 +41,11 @@ class TemplatesMiniAdapter(
             binding.isPremium.isVisible = item.is_premium
             // CLICK
             binding.root.addPressEffect {
-                onClick(item, item.is_downloaded)
+                val pos = bindingAdapterPosition
+                if (pos != RecyclerView.NO_POSITION) {
+                    val freshItem = currentList[pos]
+                    onClick(freshItem, freshItem.is_downloaded)
+                }
             }
 
             // PROGRESS UI FROM ENTITY (truth)
@@ -50,15 +54,15 @@ class TemplatesMiniAdapter(
             binding.download.visibility =
                 if (downloading || item.is_downloaded) View.GONE else View.VISIBLE
 
-            binding.progressBox.visibility =
-                if (downloading) View.VISIBLE else View.GONE
+            binding.loading.visibility = if (downloading) View.VISIBLE else View.GONE
+//            binding.progressBox.visibility = if (downloading) View.VISIBLE else View.GONE
 
-            if (downloading) {
-                val p = item.download_progress.coerceIn(0, 100)
-                binding.percentage.text = "$p%"
-            } else {
-                binding.percentage.text = ""
-            }
+//            if (downloading) {
+//                val p = item.download_progress.coerceIn(0, 100)
+//                binding.percentage.text = "$p%"
+//            } else {
+//                binding.percentage.text = ""
+//            }
 
             // IMAGE
             val url = Constants.BASE_URL_GLIDE + item.thumbnail_url
@@ -93,16 +97,24 @@ class TemplatesMiniAdapter(
         }
 
         fun renderProgressFromState(ui: ProgressUi?) {
-            val downloading = ui?.isDownloading == true && !ui.isDownloaded
+            if (ui == null) return
 
-            binding.progressBox.visibility = if (downloading) View.VISIBLE else View.GONE
-            binding.download.visibility =
-                if (downloading || ui?.isDownloaded == true) View.GONE else View.VISIBLE
-
-            if (downloading) {
-                val p = (ui.progress ?: 0).coerceIn(0, 100)
-                binding.percentage.text = "$p%"
+            if (ui.isDownloaded) {
+                binding.loading.isVisible = false
+//                binding.progressBox.isVisible = false
+                binding.download.isVisible = false
+                return
             }
+
+            val isBusy = ui.isDownloading
+            binding.loading.isVisible = isBusy
+//            binding.progressBox.isVisible = isBusy
+            binding.download.isVisible = !isBusy
+
+//            if (isBusy) {
+//                val p = (ui.progress ?: 0).coerceIn(0, 100)
+//                binding.percentage.text = "$p%"
+//            }
         }
     }
 
@@ -132,12 +144,18 @@ class TemplatesMiniAdapter(
         val idx = newList.indexOfFirst { it.id == updated.id }
         if (idx != -1) {
             newList[idx] = updated
-            submitList(newList)
+            submitList(newList){
+                notifyItemChanged(idx)
+            }
         }
     }
 
     class Diff : DiffUtil.ItemCallback<TemplateEntity>() {
         override fun areItemsTheSame(o: TemplateEntity, n: TemplateEntity) = o.id == n.id
-        override fun areContentsTheSame(o: TemplateEntity, n: TemplateEntity) = o == n
+        override fun areContentsTheSame(o: TemplateEntity, n: TemplateEntity): Boolean {
+            return o.is_downloaded == n.is_downloaded &&
+                    o.is_downloading == n.is_downloading &&
+                    o.download_progress == n.download_progress
+        }
     }
 }

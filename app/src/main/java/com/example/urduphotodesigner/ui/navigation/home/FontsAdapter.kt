@@ -151,16 +151,17 @@ class FontsAdapter(
 
             binding.download.visibility =
                 if (downloading || completed) View.GONE else View.VISIBLE
-            binding.progressBox.visibility = if (downloading) View.VISIBLE else View.GONE
+//            binding.progressBox.visibility = if (downloading) View.VISIBLE else View.GONE
+            binding.loading.visibility = if (downloading) View.VISIBLE else View.GONE
 
-            if (downloading) {
-                val pct = ui.progress.coerceIn(0, 100)
-                binding.progressBar.progress = pct
-                binding.percentage.text = "$pct%"
-            } else {
-                binding.progressBar.progress = 0
-                binding.percentage.text = ""
-            }
+//            if (downloading) {
+//                val pct = ui.progress.coerceIn(0, 100)
+//                binding.progressBar.progress = pct
+//                binding.percentage.text = "$pct%"
+//            } else {
+//                binding.progressBar.progress = 0
+//                binding.percentage.text = ""
+//            }
         }
     }
 

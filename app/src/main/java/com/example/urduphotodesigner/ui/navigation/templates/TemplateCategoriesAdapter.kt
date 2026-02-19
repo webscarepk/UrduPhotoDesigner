@@ -48,6 +48,15 @@ class TemplateCategoriesAdapter(
         holder.bind(getItem(position) as HomeRow.CategoryRow)
     }
 
+    override fun onBindViewHolder(holder: CategoryVH, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isNotEmpty()) {
+            val item = getItem(position) as HomeRow.CategoryRow
+            holder.refreshTemplates(item.templates)
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
+    }
+
     inner class CategoryVH(private val b: LayoutCategoryRowBinding) :
         RecyclerView.ViewHolder(b.root) {
 
@@ -59,10 +68,16 @@ class TemplateCategoriesAdapter(
             b.listRV.setHasFixedSize(true)
         }
 
+        fun refreshTemplates(templates: List<TemplateEntity>) {
+            miniAdapter.submitList(templates)
+        }
+
         fun bind(row: HomeRow.CategoryRow) {
             b.title.text = row.title
             b.seeAll.addPressEffect { onSeeAll(row.title) }
-            miniAdapter.submitList(row.templates)
+            if (miniAdapter.currentList != row.templates) {
+                miniAdapter.submitList(row.templates)
+            }
         }
 
         fun updateChildProgress(templateId: Int, state: ProgressUi) {
@@ -90,20 +105,35 @@ class TemplateCategoriesAdapter(
         }
     }
 
-    fun notifyTemplateStateChanged(template: TemplateEntity) {
+    fun notifyTemplateStateChanged(updatedTemplate: TemplateEntity) {
         val rowIndex = currentList.indexOfFirst { row ->
-            row is HomeRow.CategoryRow &&
-                    row.templates.any { it.id == template.id }
+            row is HomeRow.CategoryRow && row.templates.any { it.id == updatedTemplate.id }
         }
         if (rowIndex == -1) return
 
+        val row = currentList[rowIndex] as HomeRow.CategoryRow
+        val templateIdx = row.templates.indexOfFirst { it.id == updatedTemplate.id }
+        if (templateIdx != -1) {
+            (row.templates as? MutableList)?.set(templateIdx, updatedTemplate)
+        }
+
         val holder = hostRv?.findViewHolderForAdapterPosition(rowIndex) as? CategoryVH
-        holder?.notifyChildChanged(template)
+        holder?.notifyChildChanged(updatedTemplate)
     }
 
     class Diff : DiffUtil.ItemCallback<HomeRow>() {
-        override fun areItemsTheSame(o: HomeRow, n: HomeRow) =
-            (o as? HomeRow.CategoryRow)?.title == (n as? HomeRow.CategoryRow)?.title
-        override fun areContentsTheSame(o: HomeRow, n: HomeRow) = o == n
+        override fun areItemsTheSame(old: HomeRow, new: HomeRow): Boolean {
+            return (old as? HomeRow.CategoryRow)?.title == (new as? HomeRow.CategoryRow)?.title
+        }
+
+        override fun areContentsTheSame(old: HomeRow, new: HomeRow): Boolean {
+            // Agar templates ki list badli hai (download state change), to false den
+            // taake getChangePayload chale aur onBind(payloads) trigger ho
+            return old == new
+        }
+
+        override fun getChangePayload(oldItem: HomeRow, newItem: HomeRow): Any? {
+            return Any() // Empty payload to trigger partial bind
+        }
     }
 }

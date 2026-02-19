@@ -179,29 +179,22 @@ class HomeFragment : Fragment() {
             view?.post { findNavController().navigate(R.id.templatesListFragment, args) }
         }, onTemplateClick = { template, isDownloaded ->
             if (template.is_downloading) return@TrendsAdapter
-            if (isDownloaded) {
-                if (template.file_path.isNullOrEmpty()) {
-                    trendsAdapter.updateTemplateProgress(
-                        template.id, progress = 0, isDownloading = true, isDownloaded = false
-                    )
-                    mainViewModel.downloadTemplate(template)
-                    return@TrendsAdapter
-                } else {
-                    val exportResult = template.toExportResultFinal()
-                    lifecycleScope.launch {
-                        withContext(Dispatchers.Default) {
-                            viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
-                        }
+            if (!isDownloaded) {
+                downloadingTemplate = template
+                trendsAdapter.updateTemplateProgress(
+                    template.id, progress = 0, isDownloading = true, isDownloaded = false
+                )
+                mainViewModel.downloadTemplate(template)
+                return@TrendsAdapter
+            } else {
+                val exportResult = template.toExportResultFinal()
+                lifecycleScope.launch {
+                    withContext(Dispatchers.Default) {
+                        viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
                     }
-                    return@TrendsAdapter
                 }
+                return@TrendsAdapter
             }
-            downloadingTemplate = template
-            // start download
-            trendsAdapter.updateTemplateProgress(
-                template.id, progress = 0, isDownloading = true, isDownloaded = false
-            )
-            mainViewModel.downloadTemplate(template)
         })
 
         binding.trendsRV.apply {
@@ -435,7 +428,7 @@ class HomeFragment : Fragment() {
                                     }
                                 }
                             }
-                            mainViewModel.clearTemplateDownloadState()
+                            mainViewModel.clearFontDownloadState()
                         }
 
                         is FontDownloadState.Error -> {
@@ -446,7 +439,7 @@ class HomeFragment : Fragment() {
                                 )
                             )
 
-                            mainViewModel.clearTemplateDownloadState()
+                            mainViewModel.clearFontDownloadState()
                             if (isAdded) {
                                 Snackbar.make(
                                     requireView(), "Download failed!", Snackbar.LENGTH_SHORT

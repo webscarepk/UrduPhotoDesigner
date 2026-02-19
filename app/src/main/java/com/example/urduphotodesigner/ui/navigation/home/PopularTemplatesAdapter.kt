@@ -45,16 +45,17 @@ class PopularTemplatesAdapter(
 
             val downloading = item.is_downloading && !item.is_downloaded
 
-            binding.progressBox.isVisible = downloading
+//            binding.progressBox.isVisible = downloading
+            binding.loading.isVisible = downloading
 
             binding.download.isVisible = !(downloading || item.is_downloaded)
 
-            if (downloading) {
-                val p = item.download_progress.coerceIn(0, 100)
-                binding.percentage.text = "$p%"
-            } else {
-                binding.percentage.text = ""
-            }
+//            if (downloading) {
+//                val p = item.download_progress.coerceIn(0, 100)
+//                binding.percentage.text = "$p%"
+//            } else {
+//                binding.percentage.text = ""
+//            }
 
             binding.root.addPressEffect {
                 if (!item.is_downloading) {
@@ -94,16 +95,17 @@ class PopularTemplatesAdapter(
             binding.apply {
                 val downloading = state.isDownloading && !state.isDownloaded
 
-                progressBox.isVisible = downloading
+//                progressBox.isVisible = downloading
+                loading.isVisible = downloading
 
                 download.isVisible = !(downloading || state.isDownloaded)
 
-                if (downloading) {
-                    val p = state.progress.coerceIn(0, 100)
-                    percentage.text = "$p%"
-                } else {
-                    percentage.text = ""
-                }
+//                if (downloading) {
+//                    val p = state.progress.coerceIn(0, 100)
+//                    percentage.text = "$p%"
+//                } else {
+//                    percentage.text = ""
+//                }
             }
         }
     }

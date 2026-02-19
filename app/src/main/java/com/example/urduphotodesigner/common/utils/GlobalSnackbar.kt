@@ -43,7 +43,6 @@ object GlobalSnackbar {
                 com.google.android.material.R.id.snackbar_text
             )?.setTextColor(ContextCompat.getColor(activity, android.R.color.white))
 
-            // optional anchor (keeps it above BottomNavigationView/FAB)
             if (anchor != null) snack.anchorView = anchor
 
             // action

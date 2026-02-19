@@ -130,44 +130,28 @@
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintTop_toTopOf="parent">
-                    <LinearLayout
-                        android:id="@+id/progressBox"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:background="@drawable/button_bg_round"
-                        android:backgroundTint="@color/appColor"
-                        android:paddingHorizontal="4dp"
-                        android:paddingVertical="3dp"
+
+                    <com.airbnb.lottie.LottieAnimationView
+                        android:id="@+id/loading"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        app:lottie_rawRes="@raw/loading_gray"
+                        app:lottie_autoPlay="true"
+                        android:layout_gravity="end|bottom"
                         android:layout_margin="10dp"
                         android:visibility="gone"
+                        android:background="@drawable/button_bg_round"
+                        android:backgroundTint="@color/white"
+                        app:lottie_loop="true"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintTop_toTopOf="parent"
-                        android:gravity="center">
-                        <ProgressBar
-                            android:id="@+id/progressBar"
-                            style="?android:attr/progressBarStyleSmall"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:indeterminate="true"
-                            android:layout_marginEnd="6dp"
-                            android:indeterminateTint="@color/white"/>
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="28%"
-                            android:textColor="@color/white"
-                            android:textSize="10sp"
-                            android:fontFamily="@font/medium"
-                            android:id="@+id/percentage"/>
-                    </LinearLayout>
+                        android:padding="6dp"/>
 
                     <ImageView
                         android:id="@+id/download"
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:layout_gravity="end|bottom"
                         android:layout_margin="10dp"
                         android:src="@drawable/ic_download"

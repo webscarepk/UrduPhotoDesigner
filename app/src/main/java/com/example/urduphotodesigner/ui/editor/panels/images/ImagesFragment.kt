@@ -141,8 +141,9 @@ class ImagesFragment : Fragment() {
                     tabs.clear()
                     tabs.addAll(newTabs)
                     adapter.setTabs(tabs)
+                    binding.noEmojis.isVisible = tabs.isEmpty()
                 } else {
-                    // just refresh fragments
+                    binding.noEmojis.isVisible = images.isEmpty()
                     adapter.refreshData(images)
                 }
             }

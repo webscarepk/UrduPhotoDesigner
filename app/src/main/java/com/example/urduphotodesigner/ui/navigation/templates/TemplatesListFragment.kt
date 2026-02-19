@@ -18,7 +18,6 @@ import androidx.recyclerview.widget.SimpleItemAnimator
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.example.urduphotodesigner.R
 import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.canvas.enums.UnitType
 import com.example.urduphotodesigner.common.canvas.model.CanvasSize
 import com.example.urduphotodesigner.common.canvas.sealed.HomeRow
 import com.example.urduphotodesigner.common.canvas.sealed.TemplateDownloadState
@@ -89,8 +88,7 @@ class TemplatesListFragment : Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentTemplatesListBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -129,10 +127,8 @@ class TemplatesListFragment : Fragment() {
     private fun showLoadingDialog() {
         dialogBinding = DialogLoadingProgressBinding.inflate(LayoutInflater.from(requireActivity()))
 
-        loadingDialog = AlertDialog.Builder(requireActivity())
-            .setView(dialogBinding!!.root)
-            .setCancelable(false)
-            .create()
+        loadingDialog = AlertDialog.Builder(requireActivity()).setView(dialogBinding!!.root)
+            .setCancelable(false).create()
 
         loadingDialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
         loadingDialog?.show()
@@ -160,19 +156,11 @@ class TemplatesListFragment : Fragment() {
                 // start just behind the bar
                 panel.translationY = -panel.height.toFloat()
                 panel.alpha = 0f
-                panel.animate()
-                    .translationY(0f)
-                    .alpha(1f)
-                    .setDuration(200)
-                    .start()
+                panel.animate().translationY(0f).alpha(1f).setDuration(200).start()
             }
         } else {
-            panel.animate()
-                .translationY(-panel.height.toFloat())
-                .alpha(0f)
-                .setDuration(180)
-                .withEndAction { panel.isGone = true }
-                .start()
+            panel.animate().translationY(-panel.height.toFloat()).alpha(0f).setDuration(180)
+                .withEndAction { panel.isGone = true }.start()
         }
         binding.swipeRefresh.isEnabled = true
         filterPanelVisible = !filterPanelVisible
@@ -240,22 +228,21 @@ class TemplatesListFragment : Fragment() {
         }
     }
 
-    private fun findChipByText(group: ViewGroup, text: String): com.google.android.material.chip.Chip? =
-        (0 until group.childCount)
-            .mapNotNull { group.getChildAt(it) as? com.google.android.material.chip.Chip }
+    private fun findChipByText(
+        group: ViewGroup, text: String
+    ): com.google.android.material.chip.Chip? =
+        (0 until group.childCount).mapNotNull { group.getChildAt(it) as? com.google.android.material.chip.Chip }
             .firstOrNull { it.text.toString().equals(text, true) }
 
     private fun setupRecycler() {
         binding.title.text = currentTrend ?: currentCategory ?: "Templates"
 
         sizeAdapter = CanvasSizeAdapter(
-            sizeList,
-            onClick = { selected ->
+            sizeList, onClick = { selected ->
                 activeSize = if (activeSize?.name == selected.name) null else selected
                 sizeAdapter.selectedSizeName = activeSize?.name ?: ""
                 applyFiltersList()
-            },
-            false
+            }, false
         )
         binding.sizesRV.adapter = sizeAdapter
 
@@ -297,10 +284,7 @@ class TemplatesListFragment : Fragment() {
     }
 
     private fun filterTemplatesList(
-        source: List<TemplateEntity>,
-        subcategory: String,
-        query: String,
-        size: CanvasSize?
+        source: List<TemplateEntity>, subcategory: String, query: String, size: CanvasSize?
     ): List<TemplateEntity> {
         // 1) subcategory
         val bySub = if (subcategory.equals("All", true)) source
@@ -319,10 +303,7 @@ class TemplatesListFragment : Fragment() {
         filterJob = viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Default) {
 
             val filtered = filterTemplatesList(
-                baseTemplates,
-                activeSubcategory,
-                activeQuery,
-                activeSize
+                baseTemplates, activeSubcategory, activeQuery, activeSize
             )
 
             val result = if (forceShuffle) filtered.shuffled() else filtered
@@ -384,11 +365,16 @@ class TemplatesListFragment : Fragment() {
                 baseTemplates = when {
                     // If trend name passed, filter by it
                     !currentTrend.isNullOrBlank() -> {
-                        val trendRow = mainViewModel.trendRows.value
-                            .filterIsInstance<HomeRow.TrendRow>()
-                            .firstOrNull { it.title.equals(currentTrend, true) }
+                        val trendTemplateIds =
+                            mainViewModel.trendRows.value.filterIsInstance<HomeRow.TrendRow>()
+                                .firstOrNull {
+                                    it.title.equals(
+                                        currentTrend,
+                                        true
+                                    )
+                                }?.templates?.map { it.id }?.toSet() ?: emptySet()
 
-                        trendRow?.templates ?: emptyList()
+                        all.filter { it.id in trendTemplateIds }
                     }
 
                     // If category name passed, filter by it
@@ -403,17 +389,12 @@ class TemplatesListFragment : Fragment() {
                 // Build subcategory chips from baseTemplates
                 val subcats = buildList {
                     add("All")
-                    addAll(
-                        baseTemplates
-                            .map { it.subcategory.trim() }
-                            .filter { it.isNotEmpty() }
-                            .distinct()
-                            .sorted()
-                    )
+                    addAll(baseTemplates.map { it.subcategory.trim() }.filter { it.isNotEmpty() }
+                        .distinct().sorted())
                 }
                 val cg = binding.subCategoryChips
-                val current = (0 until cg.childCount)
-                    .mapNotNull { (cg.getChildAt(it) as? com.google.android.material.chip.Chip)?.text?.toString() }
+                val current =
+                    (0 until cg.childCount).mapNotNull { (cg.getChildAt(it) as? com.google.android.material.chip.Chip)?.text?.toString() }
                 if (current != subcats) renderSubcategoryChips(subcats)
 
                 applyFiltersList()
@@ -438,26 +419,25 @@ class TemplatesListFragment : Fragment() {
                         is TemplateDownloadState.Progress -> {
                             val t = state.template
                             downloadingTemplate = t
-
+                            adapter.updateProgress(
+                                state.template.id, ProgressUi(
+                                    state.progress, isDownloading = true, isDownloaded = false
+                                )
+                            )
                         }
 
                         is TemplateDownloadState.SuccessWithTemplate -> {
                             binding.swipeRefresh.isRefreshing = false
                             val t = state.template
-                            downloadingTemplate = t
-
-                            mainViewModel.insertTemplate(
-                                t.copy(is_downloading = false, is_downloaded = true)
-                            )
                             mainViewModel.clearTemplateDownloadState()
+                            downloadingTemplate = t
 
                             showGlobalSuccessSnack("Template ready") {
                                 val exportResult = t.toExportResultFinal()
                                 lifecycleScope.launch {
                                     withContext(Dispatchers.Default) {
                                         viewModel.loadTemplateFromJsonFile(
-                                            exportResult,
-                                            requireContext()
+                                            exportResult, requireContext()
                                         )
                                     }
                                 }

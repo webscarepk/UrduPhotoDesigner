@@ -34,36 +34,37 @@
 
         </com.facebook.shimmer.ShimmerFrameLayout>
 
-        <LinearLayout
-            android:id="@+id/progressBox"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="@drawable/button_bg_round"
-            android:backgroundTint="@color/appColor"
-            android:paddingHorizontal="4dp"
-            android:paddingVertical="3dp"
-            android:layout_gravity="end|bottom"
-            android:visibility="visible"
-            android:layout_margin="4dp">
-            <ProgressBar
-                android:id="@+id/progressBar"
-                style="?android:attr/progressBarStyleSmall"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:indeterminate="true"
-                android:layout_marginEnd="6dp"
-                android:indeterminateTint="@color/white"/>
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="28%"
-                android:textColor="@color/white"
-                android:textSize="10sp"
-                android:fontFamily="@font/medium"
-                android:id="@+id/percentage"/>
-        </LinearLayout>
+<!--        <LinearLayout-->
+<!--            android:id="@+id/progressBox"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:orientation="horizontal"-->
+<!--            android:background="@drawable/button_bg_round"-->
+<!--            android:backgroundTint="@color/appColor"-->
+<!--            android:paddingHorizontal="4dp"-->
+<!--            android:paddingVertical="3dp"-->
+<!--            android:layout_gravity="end|bottom"-->
+<!--            android:visibility="visible"-->
+<!--            android:layout_margin="4dp">-->
+<!--            -->
+<!--            <ProgressBar-->
+<!--                android:id="@+id/progressBar"-->
+<!--                style="?android:attr/progressBarStyleSmall"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:layout_gravity="center"-->
+<!--                android:indeterminate="true"-->
+<!--                android:layout_marginEnd="6dp"-->
+<!--                android:indeterminateTint="@color/white"/>-->
+<!--            <TextView-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="28%"-->
+<!--                android:textColor="@color/white"-->
+<!--                android:textSize="10sp"-->
+<!--                android:fontFamily="@font/medium"-->
+<!--                android:id="@+id/percentage"/>-->
+<!--        </LinearLayout>-->
 
         <ImageView
             android:layout_width="wrap_content"
@@ -72,6 +73,19 @@
             android:layout_gravity="top|end"
             android:id="@+id/isPremium"
             android:visibility="gone"/>
+
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/loading"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            app:lottie_rawRes="@raw/loading_gray"
+            app:lottie_autoPlay="true"
+            android:layout_gravity="end|bottom"
+            android:layout_margin="4dp"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/white"
+            app:lottie_loop="true"
+            android:padding="4dp"/>
 
         <ImageView
             android:id="@+id/download"

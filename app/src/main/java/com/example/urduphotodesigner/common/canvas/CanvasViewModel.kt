@@ -57,6 +57,7 @@ import java.io.File
 import java.util.Stack
 import java.util.UUID
 import javax.inject.Inject
+import androidx.core.graphics.scale
 
 @HiltViewModel
 class CanvasViewModel @Inject constructor(
@@ -1705,29 +1706,45 @@ class CanvasViewModel @Inject constructor(
     fun applyMaskToSelected(maskedBitmap: Bitmap) {
         val currentList = canvasElements.value ?: return
         val selected = currentList.firstOrNull {
-            it.isSelected && (
-                    it.type == ElementType.IMAGE ||
+            it.isSelected &&
+                    (it.type == ElementType.IMAGE ||
                             it.type == ElementType.STICKER ||
                             it.type == ElementType.SHAPE ||
-                            it.type == ElementType.BACKGROUND
-                    )
+                            it.type == ElementType.BACKGROUND)
         } ?: return
 
-        // Only proceed if this element supports masking (bitmap container)
-        if (selected.bitmap == null) return
+        val context = selected.context ?: return
 
-        val context = selected.context
+        val oldCopy = selected.copy(
+            context = null,
+            bitmap = null
+        )
 
-        // Build updated element
-        val updated = selected.copy(
+        val newBitmapData = ImageProcessor.bitmapToBase64(maskedBitmap)
+
+        val newElement = selected.copy(
             context = context,
             bitmap = maskedBitmap,
-            bitmapData = ImageProcessor.bitmapToFilePath(selected.context!!, maskedBitmap) // keep persistence in sync
+            bitmapData = newBitmapData
         ).apply {
             updatePaintProperties()
         }
 
-        updateElement(updated) // ✅ reuse your undo/redo-safe updater
+        _canvasActions.push(
+            CanvasAction.UpdateElement(
+                elementId = selected.id,
+                newElement = newElement.copy(context = null, bitmap = null),
+                oldElement = oldCopy
+            )
+        )
+
+        _redoStack.clear()
+
+        _canvasElements.value = currentList.map {
+            if (it.id == selected.id) newElement else it
+        }
+
+        notifyUndoRedoChanged()
     }
 
     private fun getTypefaceForElement(element: CanvasElement, context: Context?): Typeface {
@@ -1969,31 +1986,56 @@ class CanvasViewModel @Inject constructor(
 
 
     fun addSticker(bitmap: Bitmap?, context: Context, elementType: ElementType) {
+
+        if (bitmap == null) return
+
         val currentList = _canvasElements.value ?: emptyList()
         val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
-        val canvasW = _canvasSize.value?.width ?: 0f
-        val canvasH = _canvasSize.value?.height ?: 0f
+
+        val canvasW = _canvasSize.value?.width ?: return
+        val canvasH = _canvasSize.value?.height ?: return
+
+        val imageW = bitmap.width.toFloat()
+        val imageH = bitmap.height.toFloat()
+
+        val maxAllowedW = canvasW * 0.8f
+        val maxAllowedH = canvasH * 0.8f
+
+        var finalBitmap = bitmap
+
+        // 🔥 Only scale if larger than 80% of canvas
+        if (imageW > maxAllowedW || imageH > maxAllowedH) {
+
+            val scaleFactor = minOf(
+                maxAllowedW / imageW,
+                maxAllowedH / imageH
+            )
+
+            val scaledWidth = (imageW * scaleFactor).toInt()
+            val scaledHeight = (imageH * scaleFactor).toInt()
+
+            finalBitmap = bitmap.scale(scaledWidth, scaledHeight)
+        }
+
         val element = CanvasElement(
             context = context,
             type = elementType,
-            bitmap = bitmap,
-            bitmapData = ImageProcessor.bitmapToFilePath(context, bitmap!!),
-//            bitmapData = ImageProcessor.bitmapToBase64(bitmap!!),
+            bitmap = finalBitmap,
+            bitmapData = ImageProcessor.bitmapToBase64(finalBitmap),
             x = canvasW / 2f,
             y = canvasH / 2f,
             paintAlpha = 255,
             zIndex = newZIndex
         )
-        // Ensure paint properties are set correctly after construction (including context)
+
         element.updatePaintProperties()
 
         _canvasActions.push(
             CanvasAction.AddSticker(
-                element.copy(
-                    context = null, bitmap = null
-                )
+                element.copy(context = null, bitmap = null)
             )
-        ) // Push a copy for undo, without transient data
+        )
+
         _redoStack.clear()
         _canvasElements.value = currentList + element
         notifyUndoRedoChanged()
@@ -2523,6 +2565,12 @@ class CanvasViewModel @Inject constructor(
                 ElementType.SHAPE -> {
                     bitmapData?.let { data ->
 //                        bitmap = ImageProcessor.filePathToBitmap(data)
+                        bitmap = ImageProcessor.base64ToBitmap(data)
+                    }
+                }
+
+                ElementType.BACKGROUND -> {   // ✅ ADD THIS
+                    bitmapData?.let { data ->
                         bitmap = ImageProcessor.base64ToBitmap(data)
                     }
                 }

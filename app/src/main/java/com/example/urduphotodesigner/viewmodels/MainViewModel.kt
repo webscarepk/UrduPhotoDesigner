@@ -321,18 +321,24 @@ class MainViewModel @Inject constructor(
             )
 
             try {
-                val file = downloadRepository.downloadAssets(
-                    url = Constants.BASE_URL_DOWNLOAD + template.json_url,
+                val file = downloadRepository.downloadTemplateById(
+                    templateId = id,
                     fileName = "template_${id}.json",
+                    totalSizeFromApi = template.json_size,
                     onProgress = { progress ->
                         updateTemplateState(
-                            id, TemplateDownloadState.Progress(
-                                progress, template.copy(
-                                    is_downloading = true, download_progress = progress
+                            id,
+                            TemplateDownloadState.Progress(
+                                progress,
+                                template.copy(
+                                    is_downloading = true,
+                                    download_progress = progress
                                 )
                             )
                         )
-                    })
+                    }
+                )
+
 
                 updateTemplatesUseCase.invoke(
                     id,

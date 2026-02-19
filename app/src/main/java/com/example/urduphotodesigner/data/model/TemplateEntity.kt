@@ -27,7 +27,8 @@ data class TemplateEntity(
     var is_downloaded:Boolean = false,
     var is_downloading:Boolean = false,
     var file_path: String? = null,
-    var download_progress: Int = 0
+    var download_progress: Int = 0,
+    var json_size: Long = 0
 )
     fun TemplateEntity.toExportResultFinal(
     ): ExportResult {
