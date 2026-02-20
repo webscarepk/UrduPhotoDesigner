@@ -2,7 +2,7 @@ package com.webscare.urducanvas.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.example.urduphotodesigner.common.canvas.model.CanvasSize
+import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import java.io.Serializable
 
 @Entity(tableName = "recent_exports")

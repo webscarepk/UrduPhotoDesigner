@@ -2,10 +2,10 @@ package com.webscare.urducanvas.data.repository
 
 import android.content.ContentValues.TAG
 import android.util.Log
-import com.example.urduphotodesigner.common.sealed.Response
-import com.example.urduphotodesigner.data.model.ImageResponse
-import com.example.urduphotodesigner.data.remote.EndPointsInterface
-import com.example.urduphotodesigner.domain.repo.FetchImagesRepo
+import com.webscare.urducanvas.common.sealed.Response
+import com.webscare.urducanvas.data.model.ImageResponse
+import com.webscare.urducanvas.data.remote.EndPointsInterface
+import com.webscare.urducanvas.domain.repo.FetchImagesRepo
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import javax.inject.Inject

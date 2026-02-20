@@ -2,7 +2,7 @@ package com.webscare.urducanvas.viewmodels
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import com.example.urduphotodesigner.common.canvas.model.CanvasSize
+import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

@@ -7,8 +7,8 @@ import android.view.ViewGroup
 import android.widget.SeekBar
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.databinding.FragmentColorAdjustmentsBinding
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.databinding.FragmentColorAdjustmentsBinding
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint

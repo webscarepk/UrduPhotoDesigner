@@ -1,7 +1,7 @@
 package com.webscare.urducanvas.domain.usecase
 
-import com.example.urduphotodesigner.data.model.TrendResponse
-import com.example.urduphotodesigner.domain.repo.TrendsRepo
+import com.webscare.urducanvas.data.model.TrendResponse
+import com.webscare.urducanvas.domain.repo.TrendsRepo
 import javax.inject.Inject
 
 class InsertTrendsUseCase @Inject constructor(

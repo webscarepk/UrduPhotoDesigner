@@ -2,9 +2,9 @@ package com.webscare.urducanvas.data.repository
 
 import android.content.ContentValues.TAG
 import android.util.Log
-import com.example.urduphotodesigner.data.local.AppDatabase
-import com.example.urduphotodesigner.data.model.FontEntity
-import com.example.urduphotodesigner.domain.repo.FontsRepo
+import com.webscare.urducanvas.data.local.AppDatabase
+import com.webscare.urducanvas.data.model.FontEntity
+import com.webscare.urducanvas.domain.repo.FontsRepo
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 

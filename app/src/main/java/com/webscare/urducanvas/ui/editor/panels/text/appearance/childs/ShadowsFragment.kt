@@ -9,13 +9,13 @@ import android.widget.SeekBar
 import androidx.core.graphics.toColorInt
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.canvas.enums.PickerTarget
-import com.example.urduphotodesigner.common.utils.Constants
-import com.example.urduphotodesigner.databinding.FragmentShadowsBinding
-import com.example.urduphotodesigner.ui.editor.panels.text.appearance.adapters.ColorsAdapter
-import com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.canvas.enums.PickerTarget
+import com.webscare.urducanvas.common.utils.Constants
+import com.webscare.urducanvas.databinding.FragmentShadowsBinding
+import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter
+import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint

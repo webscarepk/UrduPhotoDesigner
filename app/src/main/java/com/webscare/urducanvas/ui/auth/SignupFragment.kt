@@ -13,10 +13,10 @@ import android.widget.EditText
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.sealed.SignInUiState
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.databinding.FragmentSignupBinding
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.sealed.SignInUiState
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.databinding.FragmentSignupBinding
 import com.google.android.material.snackbar.Snackbar
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint

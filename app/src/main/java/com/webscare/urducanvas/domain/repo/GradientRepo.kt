@@ -1,6 +1,6 @@
 package com.webscare.urducanvas.domain.repo
 
-import com.example.urduphotodesigner.common.canvas.model.GradientItem
+import com.webscare.urducanvas.common.canvas.model.GradientItem
 import kotlinx.coroutines.flow.Flow
 
 interface GradientRepo {

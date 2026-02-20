@@ -8,13 +8,13 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.canvas.model.FilterItem
-import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
-import com.example.urduphotodesigner.common.utils.BitmapCache
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.databinding.FragmentFiltersBinding
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.canvas.model.FilterItem
+import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
+import com.webscare.urducanvas.common.utils.BitmapCache
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.databinding.FragmentFiltersBinding
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint

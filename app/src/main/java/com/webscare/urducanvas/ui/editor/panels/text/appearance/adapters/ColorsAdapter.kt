@@ -6,12 +6,12 @@ import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColorInt
 import androidx.recyclerview.widget.RecyclerView
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.canvas.model.ColorItem
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.databinding.LayoutColorItemBinding
-import com.example.urduphotodesigner.databinding.LayoutColorPickerItemBinding // Assuming you create this layout
-import com.example.urduphotodesigner.databinding.LayoutEyeDropperItemBinding // New layout for eye dropper
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.model.ColorItem
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.databinding.LayoutColorItemBinding
+import com.webscare.urducanvas.databinding.LayoutColorPickerItemBinding // Assuming you create this layout
+import com.webscare.urducanvas.databinding.LayoutEyeDropperItemBinding // New layout for eye dropper
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class ColorsAdapter(

@@ -3,8 +3,8 @@ package com.webscare.urducanvas.data.model
 import android.net.Uri
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.example.urduphotodesigner.common.canvas.model.CanvasSize
-import com.example.urduphotodesigner.data.model.ExportResult
+import com.webscare.urducanvas.common.canvas.model.CanvasSize
+import com.webscare.urducanvas.data.model.ExportResult
 import java.io.File
 import java.util.Locale
 import androidx.core.net.toUri

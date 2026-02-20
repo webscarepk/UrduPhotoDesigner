@@ -42,42 +42,9 @@ import androidx.core.graphics.toColorInt
 import androidx.core.graphics.withRotation
 import androidx.core.graphics.withSave
 import androidx.core.graphics.withTranslation
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.canvas.enums.BlendType
-import com.example.urduphotodesigner.common.canvas.enums.BrushStyle
-import com.example.urduphotodesigner.common.canvas.enums.ElementType
-import com.example.urduphotodesigner.common.canvas.enums.GradientType
-import com.example.urduphotodesigner.common.canvas.enums.HAlign
-import com.example.urduphotodesigner.common.canvas.enums.LabelShape
-import com.example.urduphotodesigner.common.canvas.enums.LetterCasing
-import com.example.urduphotodesigner.common.canvas.enums.ListStyle
-import com.example.urduphotodesigner.common.canvas.enums.Mode
-import com.example.urduphotodesigner.common.canvas.enums.MultiAlignMode
-import com.example.urduphotodesigner.common.canvas.enums.ShapeType
-import com.example.urduphotodesigner.common.canvas.enums.TextAlignment
-import com.example.urduphotodesigner.common.canvas.enums.TextDecoration
-import com.example.urduphotodesigner.common.canvas.enums.VAlign
-import com.example.urduphotodesigner.common.canvas.model.BrushSettings
-import com.example.urduphotodesigner.common.canvas.model.CanvasElement
-import com.example.urduphotodesigner.common.canvas.model.ExportFormat
-import com.example.urduphotodesigner.common.canvas.model.ExportOptions
-import com.example.urduphotodesigner.common.canvas.model.ExportQuality
-import com.example.urduphotodesigner.common.canvas.model.ExportResolution
-import com.example.urduphotodesigner.common.canvas.model.GradientItem
-import com.example.urduphotodesigner.common.canvas.model.StrokeData
-import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
-import com.example.urduphotodesigner.common.utils.BrushRenderUtils
-import com.example.urduphotodesigner.common.utils.BrushRenderUtils.drawBrushStroke
-import com.example.urduphotodesigner.common.utils.BrushRenderUtils.drawTaperedPenStroke
-import com.example.urduphotodesigner.common.utils.BrushRenderUtils.makeStrokePaint
-import com.example.urduphotodesigner.common.utils.ImageAdjustmentHelper
-import com.example.urduphotodesigner.common.utils.ImageProcessor
-import com.example.urduphotodesigner.common.utils.ShapeRenderUtils.buildShapePath
-import com.example.urduphotodesigner.common.utils.ShapeRenderUtils.drawShape
-import com.example.urduphotodesigner.common.utils.Utils.vibrateSoft
-import com.example.urduphotodesigner.data.model.FontEntity
-import com.example.urduphotodesigner.di.GsonEntryPoint
 import com.google.gson.Gson
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.enums.BrushStyle
 import com.webscare.urducanvas.common.utils.Utils.vibrateSoft
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
@@ -111,7 +78,9 @@ class CanvasView @JvmOverloads constructor(
 ) : View(context, attrs) {
 
     private val gson: Gson by lazy {
-        EntryPointAccessors.fromApplication(context, com.webscare.urducanvas.di.GsonEntryPoint::class.java).gson()
+        EntryPointAccessors.fromApplication(
+            context, com.webscare.urducanvas.di.GsonEntryPoint::class.java
+        ).gson()
     }
     private var gestureDetector: GestureDetector
 
@@ -129,8 +98,10 @@ class CanvasView @JvmOverloads constructor(
     private var currentBrushColor: Int = Color.BLACK
     private var currentBrushThickness: Float = 20f
     private var currentBrushHardness: Float = 1f
-    private var currentBrushStyle: com.webscare.urducanvas.common.canvas.enums.BrushStyle = com.webscare.urducanvas.common.canvas.enums.BrushStyle.PEN
-    private var currentBrushGradient: com.webscare.urducanvas.common.canvas.model.GradientItem? = null
+    private var currentBrushStyle: com.webscare.urducanvas.common.canvas.enums.BrushStyle =
+        com.webscare.urducanvas.common.canvas.enums.BrushStyle.PEN
+    private var currentBrushGradient: com.webscare.urducanvas.common.canvas.model.GradientItem? =
+        null
 
     private var pickerX = 0f
     private var pickerY = 0f
@@ -148,7 +119,8 @@ class CanvasView @JvmOverloads constructor(
 
     private var activeGroupId: String? = null
     private var inSelectionMode = false
-    private var touchedDownElement: com.webscare.urducanvas.common.canvas.model.CanvasElement? = null
+    private var touchedDownElement: com.webscare.urducanvas.common.canvas.model.CanvasElement? =
+        null
     private var isDragCandidate = false
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
 
@@ -180,12 +152,14 @@ class CanvasView @JvmOverloads constructor(
         BitmapShader(bmp, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
     }
 
-    private val canvasElements = mutableListOf<com.webscare.urducanvas.common.canvas.model.CanvasElement>()
+    private val canvasElements =
+        mutableListOf<com.webscare.urducanvas.common.canvas.model.CanvasElement>()
     private lateinit var backgroundElement: com.webscare.urducanvas.common.canvas.model.CanvasElement
 
     private var touchStartX = 0f
     private var touchStartY = 0f
-    private var currentMode: com.webscare.urducanvas.common.canvas.enums.Mode = com.webscare.urducanvas.common.canvas.enums.Mode.NONE
+    private var currentMode: com.webscare.urducanvas.common.canvas.enums.Mode =
+        com.webscare.urducanvas.common.canvas.enums.Mode.NONE
 
     private var initialElementRotations = mutableMapOf<String, Float>()
 
@@ -224,7 +198,7 @@ class CanvasView @JvmOverloads constructor(
         color = Color.RED
         strokeWidth = 1f
         style = Paint.Style.STROKE
-        Paint.setPathEffect = DashPathEffect(floatArrayOf(10f, 10f), 0f)
+        pathEffect = DashPathEffect(floatArrayOf(10f, 10f), 0f)
     }
 
     private val rotationTextPaint = Paint().apply {
@@ -233,7 +207,7 @@ class CanvasView @JvmOverloads constructor(
         style = Paint.Style.FILL
         isAntiAlias = true
         textAlign = Paint.Align.CENTER
-        Paint.setTypeface = ResourcesCompat.getFont(context, R.font.default_canvas)
+        typeface = ResourcesCompat.getFont(context, R.font.default_canvas)
     }
 
     private val rotationLabelPaint = Paint().apply {
@@ -269,8 +243,10 @@ class CanvasView @JvmOverloads constructor(
         AppCompatResources.getDrawable(context, R.drawable.ic_resize)!!
     }
 
-    private var selectedElements: CopyOnWriteArrayList<com.webscare.urducanvas.common.canvas.model.CanvasElement> = CopyOnWriteArrayList()
-    private var lastTouchedElement: com.webscare.urducanvas.common.canvas.model.CanvasElement? = null
+    private var selectedElements: CopyOnWriteArrayList<com.webscare.urducanvas.common.canvas.model.CanvasElement> =
+        CopyOnWriteArrayList()
+    private var lastTouchedElement: com.webscare.urducanvas.common.canvas.model.CanvasElement? =
+        null
 
     private fun Float.dpToPx(): Float = this * resources.displayMetrics.density
 
@@ -308,22 +284,13 @@ class CanvasView @JvmOverloads constructor(
         val (bmp, _) = exportCanvas(
             _root_ide_package_.com.webscare.urducanvas.common.canvas.model.ExportOptions(
                 resolution = _root_ide_package_.com.webscare.urducanvas.common.canvas.model.ExportResolution(
-                    "picker",
-                    canvasWidth,
-                    canvasHeight,
-                    1f
+                    "picker", canvasWidth, canvasHeight, 1f
                 ),
                 quality = _root_ide_package_.com.webscare.urducanvas.common.canvas.model.ExportQuality(
-                    "",
-                    100,
-                    "",
-                    0
+                    "", 100, "", 0
                 ),
                 format = _root_ide_package_.com.webscare.urducanvas.common.canvas.model.ExportFormat(
-                    "",
-                    Bitmap.CompressFormat.PNG,
-                    "",
-                    emptyList()
+                    "", Bitmap.CompressFormat.PNG, "", emptyList()
                 )
             )
         )
@@ -351,10 +318,11 @@ class CanvasView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
 
-        canvasElements.firstOrNull { it.type == com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND }?.apply {
-            logicalContentWidth = canvasWidth.toFloat()
-            logicalContentHeight = canvasHeight.toFloat()
-        }
+        canvasElements.firstOrNull { it.type == com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND }
+            ?.apply {
+                logicalContentWidth = canvasWidth.toFloat()
+                logicalContentHeight = canvasHeight.toFloat()
+            }
 
         if (canvasElements.isEmpty()) {
             ensureBackgroundElement()
@@ -399,7 +367,8 @@ class CanvasView @JvmOverloads constructor(
      *     • SELECTION: snap each element’s own LEFT/CENTER/RIGHT to the first element
      */
     fun alignHorizontal(
-        align: com.webscare.urducanvas.common.canvas.enums.HAlign, mode: com.webscare.urducanvas.common.canvas.enums.MultiAlignMode = com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.CANVAS
+        align: com.webscare.urducanvas.common.canvas.enums.HAlign,
+        mode: com.webscare.urducanvas.common.canvas.enums.MultiAlignMode = com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.CANVAS
     ) {
         when {
             selectedElements.isEmpty() -> return
@@ -495,7 +464,8 @@ class CanvasView @JvmOverloads constructor(
     }
 
     fun alignVertical(
-        align: com.webscare.urducanvas.common.canvas.enums.VAlign, mode: com.webscare.urducanvas.common.canvas.enums.MultiAlignMode = com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.CANVAS
+        align: com.webscare.urducanvas.common.canvas.enums.VAlign,
+        mode: com.webscare.urducanvas.common.canvas.enums.MultiAlignMode = com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.CANVAS
     ) {
         when {
             selectedElements.isEmpty() -> return
@@ -585,7 +555,8 @@ class CanvasView @JvmOverloads constructor(
 
             if (newcomer.type != com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND) {
                 canvasElements.forEach { it.isSelected = false }
-                newcomer.isSelected = (newcomer.type != com.webscare.urducanvas.common.canvas.enums.ElementType.DRAW)
+                newcomer.isSelected =
+                    (newcomer.type != com.webscare.urducanvas.common.canvas.enums.ElementType.DRAW)
                 selectedElements.add(newcomer)
             } else {
                 selectedElements.addAll(canvasElements.filter { it.isSelected })
@@ -707,30 +678,31 @@ class CanvasView @JvmOverloads constructor(
     }
 
     fun setFont(fontEntity: com.webscare.urducanvas.data.model.FontEntity) {
-        selectedElements.filter { it.type == com.webscare.urducanvas.common.canvas.enums.ElementType.TEXT }.forEach { element ->
-            element.fontId = fontEntity.id.toString()
+        selectedElements.filter { it.type == com.webscare.urducanvas.common.canvas.enums.ElementType.TEXT }
+            .forEach { element ->
+                element.fontId = fontEntity.id.toString()
 
-            // Check if the file_path is not blank before attempting to create a typeface
-            if (fontEntity.file_path?.isNotBlank()!!) {
-                try {
-                    element.paint.typeface = Typeface.createFromFile(fontEntity.file_path)
-                } catch (e: Exception) {
-                    // Handle potential errors if the file path is valid but the file itself is corrupt or unreadable
-                    // You might log the error or set a default typeface here if needed
-                    println("Error loading typeface from file: ${fontEntity.file_path}. Error: ${e.message}")
+                // Check if the file_path is not blank before attempting to create a typeface
+                if (fontEntity.file_path?.isNotBlank()!!) {
+                    try {
+                        element.paint.typeface = Typeface.createFromFile(fontEntity.file_path)
+                    } catch (e: Exception) {
+                        // Handle potential errors if the file path is valid but the file itself is corrupt or unreadable
+                        // You might log the error or set a default typeface here if needed
+                        println("Error loading typeface from file: ${fontEntity.file_path}. Error: ${e.message}")
 
-                    element.paint.typeface = Typeface.DEFAULT
+                        element.paint.typeface = Typeface.DEFAULT
+                    }
+                } else {
+                    // If file_path is blank, do not set the typeface.
+                    // The existing typeface on the element will remain, or you could explicitly
+                    // set it to a default system typeface if that's desired when no custom font is selected.
+                    // For example:
+                    // element.paint.typeface = Typeface.DEFAULT
                 }
-            } else {
-                // If file_path is blank, do not set the typeface.
-                // The existing typeface on the element will remain, or you could explicitly
-                // set it to a default system typeface if that's desired when no custom font is selected.
-                // For example:
-                // element.paint.typeface = Typeface.DEFAULT
-            }
 
-            onElementChanged?.invoke(element)
-        }
+                onElementChanged?.invoke(element)
+            }
         invalidate()
     }
 
@@ -770,11 +742,12 @@ class CanvasView @JvmOverloads constructor(
 
     fun setCanvasBackgroundImage(src: Bitmap) {
         ensureBackgroundElement()
-        canvasElements.first { it.type == com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND }.apply {
-            fillGradient = null
-            backgroundColor = Color.WHITE
-            bitmap = src        // ← keep the full-size image
-        }
+        canvasElements.first { it.type == com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND }
+            .apply {
+                fillGradient = null
+                backgroundColor = Color.WHITE
+                bitmap = src        // ← keep the full-size image
+            }
         invalidate()
     }
 
@@ -809,7 +782,7 @@ class CanvasView @JvmOverloads constructor(
             textAlign = Paint.Align.CENTER
             isAntiAlias = true
             style = Paint.Style.FILL
-            Paint.setTypeface = watermarkTypeface
+            typeface = watermarkTypeface
         }
 
         val horizontalStep = 250
@@ -829,7 +802,8 @@ class CanvasView @JvmOverloads constructor(
     }
 
     fun exportCanvas(
-        options: com.webscare.urducanvas.common.canvas.model.ExportOptions, onProgress: ((percent: Int, stage: String) -> Unit)? = null
+        options: com.webscare.urducanvas.common.canvas.model.ExportOptions,
+        onProgress: ((percent: Int, stage: String) -> Unit)? = null
     ): Pair<Bitmap, String> {
         val contentWidth = this.canvasWidth
         val contentHeight = this.canvasHeight
@@ -857,7 +831,8 @@ class CanvasView @JvmOverloads constructor(
             elementsWithBitmap.forEachIndexed { index, element ->
                 element.bitmap?.let {
 //                    element.bitmapData = ImageProcessor.bitmapToFilePath(context, it)
-                    element.bitmapData = com.webscare.urducanvas.common.utils.ImageProcessor.bitmapToBase64(it)
+                    element.bitmapData =
+                        com.webscare.urducanvas.common.utils.ImageProcessor.bitmapToBase64(it)
                 }
                 element.drawStrokes?.forEach { stroke ->
                     stroke.serializePath()
@@ -916,7 +891,8 @@ class CanvasView @JvmOverloads constructor(
             onProgress?.invoke(70, "Encoding image data")
             elementsWithBitmap.forEachIndexed { index, element ->
                 element.bitmap?.let {
-                    element.bitmapData = com.webscare.urducanvas.common.utils.ImageProcessor.bitmapToBase64(it)
+                    element.bitmapData =
+                        com.webscare.urducanvas.common.utils.ImageProcessor.bitmapToBase64(it)
 //                    element.bitmapData = ImageProcessor.bitmapToFilePath(context, it)
                 }
                 element.drawStrokes?.forEach { stroke ->
@@ -949,7 +925,8 @@ class CanvasView @JvmOverloads constructor(
 
         safeElements.forEach { element ->
             element.bitmap?.let {
-                element.bitmapData = com.webscare.urducanvas.common.utils.ImageProcessor.bitmapToBase64(it)
+                element.bitmapData =
+                    com.webscare.urducanvas.common.utils.ImageProcessor.bitmapToBase64(it)
             }
             element.drawStrokes?.forEach { stroke ->
                 stroke.serializePath()
@@ -1146,32 +1123,26 @@ class CanvasView @JvmOverloads constructor(
 
         when (currentBrushStyle) {
             com.webscare.urducanvas.common.canvas.enums.BrushStyle.BRUSH -> com.webscare.urducanvas.common.utils.BrushRenderUtils.drawBrushStroke(
-                canvas,
-                tempStroke,
-                255
+                canvas, tempStroke, 255
             )
+
             com.webscare.urducanvas.common.canvas.enums.BrushStyle.PEN -> com.webscare.urducanvas.common.utils.BrushRenderUtils.drawTaperedPenStroke(
-                canvas,
-                tempStroke,
-                255
+                canvas, tempStroke, 255
             )
+
             com.webscare.urducanvas.common.canvas.enums.BrushStyle.PENCIL -> {
                 val paint = com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
-                    tempStroke,
-                    width,
-                    height
+                    tempStroke, width, height
                 ).apply {
-                    Paint.setPathEffect = DashPathEffect(floatArrayOf(4f, 4f), 0f)
+                    pathEffect = DashPathEffect(floatArrayOf(4f, 4f), 0f)
                     alpha = 180
                 }
                 canvas.drawPath(tempStroke.path!!, paint)
             }
 
-            com.webscare.urducanvas.common.canvas.enums.BrushStyle.HIGHLIGHTER -> {
+            BrushStyle.HIGHLIGHTER -> {
                 val paint = com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
-                    tempStroke,
-                    width,
-                    height
+                    tempStroke, width, height
                 ).apply {
                     alpha = 130
                     strokeCap = Paint.Cap.BUTT
@@ -1181,9 +1152,7 @@ class CanvasView @JvmOverloads constructor(
 
             com.webscare.urducanvas.common.canvas.enums.BrushStyle.MARKER -> {
                 val paint = com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
-                    tempStroke,
-                    width,
-                    height
+                    tempStroke, width, height
                 ).apply {
                     alpha = 240
                     strokeCap = Paint.Cap.BUTT
@@ -1193,9 +1162,7 @@ class CanvasView @JvmOverloads constructor(
 
             else -> {
                 val paint = com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
-                    tempStroke,
-                    width,
-                    height
+                    tempStroke, width, height
                 )
                 canvas.drawPath(tempStroke.path!!, paint)
             }
@@ -1278,225 +1245,234 @@ class CanvasView @JvmOverloads constructor(
         return when (filter) {
             null, com.webscare.urducanvas.common.canvas.sealed.ImageFilter.None -> null
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Grayscale -> ColorMatrixColorFilter(ColorMatrix().apply {
-                setSaturation(0f)
-            })
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Grayscale -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    setSaturation(0f)
+                })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Sepia -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        0.393f,
-                        0.769f,
-                        0.189f,
-                        0f,
-                        0f,
-                        0.349f,
-                        0.686f,
-                        0.168f,
-                        0f,
-                        0f,
-                        0.272f,
-                        0.534f,
-                        0.131f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Sepia -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    set(
+                        floatArrayOf(
+                            0.393f,
+                            0.769f,
+                            0.189f,
+                            0f,
+                            0f,
+                            0.349f,
+                            0.686f,
+                            0.168f,
+                            0f,
+                            0f,
+                            0.272f,
+                            0.534f,
+                            0.131f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
-                )
-            })
+                })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Invert -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        -1f,
-                        0f,
-                        0f,
-                        0f,
-                        255f,
-                        0f,
-                        -1f,
-                        0f,
-                        0f,
-                        255f,
-                        0f,
-                        0f,
-                        -1f,
-                        0f,
-                        255f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Invert -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    set(
+                        floatArrayOf(
+                            -1f,
+                            0f,
+                            0f,
+                            0f,
+                            255f,
+                            0f,
+                            -1f,
+                            0f,
+                            0f,
+                            255f,
+                            0f,
+                            0f,
+                            -1f,
+                            0f,
+                            255f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
-                )
-            })
+                })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.CoolTint -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        1.1f,
-                        0f,
-                        0f,
-                        0f,
-                        -20f,
-                        0f,
-                        1f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        1.3f,
-                        0f,
-                        20f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.CoolTint -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    set(
+                        floatArrayOf(
+                            1.1f,
+                            0f,
+                            0f,
+                            0f,
+                            -20f,
+                            0f,
+                            1f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            1.3f,
+                            0f,
+                            20f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
-                )
-            })
+                })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.WarmTint -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        1.3f,
-                        0f,
-                        0f,
-                        0f,
-                        30f,
-                        0f,
-                        1f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        0.8f,
-                        0f,
-                        -20f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.WarmTint -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    set(
+                        floatArrayOf(
+                            1.3f,
+                            0f,
+                            0f,
+                            0f,
+                            30f,
+                            0f,
+                            1f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0.8f,
+                            0f,
+                            -20f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
-                )
-            })
+                })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Vintage -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        0.9f,
-                        0.3f,
-                        0.1f,
-                        0f,
-                        5f,
-                        0.2f,
-                        0.8f,
-                        0.2f,
-                        0f,
-                        5f,
-                        0.1f,
-                        0.2f,
-                        0.7f,
-                        0f,
-                        -10f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Vintage -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    set(
+                        floatArrayOf(
+                            0.9f,
+                            0.3f,
+                            0.1f,
+                            0f,
+                            5f,
+                            0.2f,
+                            0.8f,
+                            0.2f,
+                            0f,
+                            5f,
+                            0.1f,
+                            0.2f,
+                            0.7f,
+                            0f,
+                            -10f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
-                )
-            })
+                })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Film -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        1.2f,
-                        0.1f,
-                        0.1f,
-                        0f,
-                        15f,
-                        0.1f,
-                        1.2f,
-                        0.1f,
-                        0f,
-                        10f,
-                        0.1f,
-                        0.1f,
-                        0.9f,
-                        0f,
-                        -10f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Film -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    set(
+                        floatArrayOf(
+                            1.2f,
+                            0.1f,
+                            0.1f,
+                            0f,
+                            15f,
+                            0.1f,
+                            1.2f,
+                            0.1f,
+                            0f,
+                            10f,
+                            0.1f,
+                            0.1f,
+                            0.9f,
+                            0f,
+                            -10f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
-                )
-            })
+                })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.TealOrange -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        1.2f,
-                        0f,
-                        0f,
-                        0f,
-                        20f,
-                        0f,
-                        1f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        0.8f,
-                        0f,
-                        -10f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.TealOrange -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    set(
+                        floatArrayOf(
+                            1.2f,
+                            0f,
+                            0f,
+                            0f,
+                            20f,
+                            0f,
+                            1f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0.8f,
+                            0f,
+                            -10f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
-                )
-            })
+                })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.HighContrast -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        1.5f,
-                        0f,
-                        0f,
-                        0f,
-                        -50f,
-                        0f,
-                        1.5f,
-                        0f,
-                        0f,
-                        -50f,
-                        0f,
-                        0f,
-                        1.5f,
-                        0f,
-                        -50f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.HighContrast -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    set(
+                        floatArrayOf(
+                            1.5f,
+                            0f,
+                            0f,
+                            0f,
+                            -50f,
+                            0f,
+                            1.5f,
+                            0f,
+                            0f,
+                            -50f,
+                            0f,
+                            0f,
+                            1.5f,
+                            0f,
+                            -50f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
-                )
-            })
+                })
 
             com.webscare.urducanvas.common.canvas.sealed.ImageFilter.BlackWhite -> {
                 val cm = ColorMatrix().apply { setSaturation(0f) }
@@ -1530,252 +1506,262 @@ class CanvasView @JvmOverloads constructor(
                 ColorMatrixColorFilter(cm)
             }
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.BrightnessBoost -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        1.2f,
-                        0f,
-                        0f,
-                        0f,
-                        30f,
-                        0f,
-                        1.2f,
-                        0f,
-                        0f,
-                        30f,
-                        0f,
-                        0f,
-                        1.2f,
-                        0f,
-                        30f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.BrightnessBoost -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    set(
+                        floatArrayOf(
+                            1.2f,
+                            0f,
+                            0f,
+                            0f,
+                            30f,
+                            0f,
+                            1.2f,
+                            0f,
+                            0f,
+                            30f,
+                            0f,
+                            0f,
+                            1.2f,
+                            0f,
+                            30f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
-                )
-            })
+                })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Sharpen -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        2f,
-                        -1f,
-                        -1f,
-                        0f,
-                        0f,
-                        -1f,
-                        2f,
-                        -1f,
-                        0f,
-                        0f,
-                        -1f,
-                        -1f,
-                        2f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Sharpen -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    set(
+                        floatArrayOf(
+                            2f,
+                            -1f,
+                            -1f,
+                            0f,
+                            0f,
+                            -1f,
+                            2f,
+                            -1f,
+                            0f,
+                            0f,
+                            -1f,
+                            -1f,
+                            2f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
-                )
-            })
+                })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Sketch -> ColorMatrixColorFilter(ColorMatrix().apply {
-                setSaturation(0f)
-            })
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Sketch -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    setSaturation(0f)
+                })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Cartoon -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        1.5f,
-                        0f,
-                        0f,
-                        0f,
-                        -30f,
-                        0f,
-                        1.5f,
-                        0f,
-                        0f,
-                        -30f,
-                        0f,
-                        0f,
-                        1.5f,
-                        0f,
-                        -30f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Cartoon -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    set(
+                        floatArrayOf(
+                            1.5f,
+                            0f,
+                            0f,
+                            0f,
+                            -30f,
+                            0f,
+                            1.5f,
+                            0f,
+                            0f,
+                            -30f,
+                            0f,
+                            0f,
+                            1.5f,
+                            0f,
+                            -30f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
-                )
-            })
+                })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.HDR -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        1.3f,
-                        0f,
-                        0f,
-                        0f,
-                        -20f,
-                        0f,
-                        1.3f,
-                        0f,
-                        0f,
-                        -20f,
-                        0f,
-                        0f,
-                        1.3f,
-                        0f,
-                        -20f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.HDR -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    set(
+                        floatArrayOf(
+                            1.3f,
+                            0f,
+                            0f,
+                            0f,
+                            -20f,
+                            0f,
+                            1.3f,
+                            0f,
+                            0f,
+                            -20f,
+                            0f,
+                            0f,
+                            1.3f,
+                            0f,
+                            -20f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
-                )
-            })
+                })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Lomo -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        1.2f,
-                        0.2f,
-                        0.1f,
-                        0f,
-                        10f,
-                        0.1f,
-                        1.0f,
-                        0.1f,
-                        0f,
-                        5f,
-                        0.1f,
-                        0.1f,
-                        1.2f,
-                        0f,
-                        -10f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Lomo -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    set(
+                        floatArrayOf(
+                            1.2f,
+                            0.2f,
+                            0.1f,
+                            0f,
+                            10f,
+                            0.1f,
+                            1.0f,
+                            0.1f,
+                            0f,
+                            5f,
+                            0.1f,
+                            0.1f,
+                            1.2f,
+                            0f,
+                            -10f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
-                )
-            })
+                })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Pastel -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        1.0f,
-                        0f,
-                        0f,
-                        0f,
-                        20f,
-                        0f,
-                        1.0f,
-                        0f,
-                        0f,
-                        20f,
-                        0f,
-                        0f,
-                        1.0f,
-                        0f,
-                        20f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Pastel -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    set(
+                        floatArrayOf(
+                            1.0f,
+                            0f,
+                            0f,
+                            0f,
+                            20f,
+                            0f,
+                            1.0f,
+                            0f,
+                            0f,
+                            20f,
+                            0f,
+                            0f,
+                            1.0f,
+                            0f,
+                            20f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
-                )
-            })
+                })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Dramatic -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        1.5f,
-                        0f,
-                        0f,
-                        0f,
-                        -40f,
-                        0f,
-                        1.5f,
-                        0f,
-                        0f,
-                        -40f,
-                        0f,
-                        0f,
-                        1.5f,
-                        0f,
-                        -40f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Dramatic -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    set(
+                        floatArrayOf(
+                            1.5f,
+                            0f,
+                            0f,
+                            0f,
+                            -40f,
+                            0f,
+                            1.5f,
+                            0f,
+                            0f,
+                            -40f,
+                            0f,
+                            0f,
+                            1.5f,
+                            0f,
+                            -40f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
-                )
-            })
+                })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.GoldenHour -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        1.2f,
-                        0.2f,
-                        0f,
-                        0f,
-                        30f,
-                        0.1f,
-                        1.1f,
-                        0f,
-                        0f,
-                        20f,
-                        0f,
-                        0f,
-                        0.8f,
-                        0f,
-                        -10f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.GoldenHour -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    set(
+                        floatArrayOf(
+                            1.2f,
+                            0.2f,
+                            0f,
+                            0f,
+                            30f,
+                            0.1f,
+                            1.1f,
+                            0f,
+                            0f,
+                            20f,
+                            0f,
+                            0f,
+                            0.8f,
+                            0f,
+                            -10f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
-                )
-            })
+                })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Cyberpunk -> ColorMatrixColorFilter(ColorMatrix().apply {
-                set(
-                    floatArrayOf(
-                        0.9f,
-                        0.2f,
-                        0.6f,
-                        0f,
-                        30f,
-                        0.1f,
-                        0.8f,
-                        0.5f,
-                        0f,
-                        10f,
-                        0.2f,
-                        0.3f,
-                        1.5f,
-                        0f,
-                        -20f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Cyberpunk -> ColorMatrixColorFilter(
+                ColorMatrix().apply {
+                    set(
+                        floatArrayOf(
+                            0.9f,
+                            0.2f,
+                            0.6f,
+                            0f,
+                            30f,
+                            0.1f,
+                            0.8f,
+                            0.5f,
+                            0f,
+                            10f,
+                            0.2f,
+                            0.3f,
+                            1.5f,
+                            0f,
+                            -20f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
-                )
-            })
+                })
 
             com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Glow -> {
                 null
@@ -1821,7 +1807,7 @@ class CanvasView @JvmOverloads constructor(
         canvas.clipRect(clipRect)
 
         if (showCheckerboard) {
-            val checkerPaint = Paint().apply { Paint.setShader = checkerShader }
+            val checkerPaint = Paint().apply { shader = checkerShader }
             canvas.drawRect(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat(), checkerPaint)
         }
 
@@ -1839,18 +1825,28 @@ class CanvasView @JvmOverloads constructor(
                     canvas.scale(element.scale * fx, element.scale * fy)
 
                     when (element.type) {
-                        com.webscare.urducanvas.common.canvas.enums.ElementType.DRAW -> drawDrawElement(canvas, element)
-                        com.webscare.urducanvas.common.canvas.enums.ElementType.SHAPE -> drawShapeElement(canvas, element)
-                        com.webscare.urducanvas.common.canvas.enums.ElementType.TEXT -> drawTextElement(canvas, element)
+                        com.webscare.urducanvas.common.canvas.enums.ElementType.DRAW -> drawDrawElement(
+                            canvas, element
+                        )
+
+                        com.webscare.urducanvas.common.canvas.enums.ElementType.SHAPE -> drawShapeElement(
+                            canvas, element
+                        )
+
+                        com.webscare.urducanvas.common.canvas.enums.ElementType.TEXT -> drawTextElement(
+                            canvas, element
+                        )
+
                         else -> {
                             element.bitmap?.let { bmp ->
                                 var finalBitmap = bmp
 
                                 if (finalBitmap.isRecycled) return@let
 
-                                finalBitmap = com.webscare.urducanvas.common.utils.ImageAdjustmentHelper.applyAllAdjustments(
-                                    element.context!!, bmp, element.adjustments
-                                )
+                                finalBitmap =
+                                    com.webscare.urducanvas.common.utils.ImageAdjustmentHelper.applyAllAdjustments(
+                                        element.context!!, bmp, element.adjustments
+                                    )
 
                                 element.paint.colorFilter = colorFilterFor(element.imageFilter)
                                 element.paint.maskFilter = null
@@ -1877,7 +1873,7 @@ class CanvasView @JvmOverloads constructor(
 
                                         val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                                             color = Color.argb(180, 255, 255, 200)
-                                            Paint.setMaskFilter =
+                                            maskFilter =
                                                 BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
                                         }
                                         canvas.drawBitmap(
@@ -1952,7 +1948,7 @@ class CanvasView @JvmOverloads constructor(
             val boxPaint = Paint().apply {
                 color = Color.GRAY
                 style = Paint.Style.STROKE
-                Paint.setPathEffect = DashPathEffect(floatArrayOf(localDashLength, localGapLength), 0f)
+                pathEffect = DashPathEffect(floatArrayOf(localDashLength, localGapLength), 0f)
                 strokeWidth = localSpaceStrokeWidth
             }
 
@@ -2133,7 +2129,7 @@ class CanvasView @JvmOverloads constructor(
                                 strokeWidth = 4f / scale
                                 isAntiAlias = true
                                 val phase = (System.currentTimeMillis() % 1000L) / 20f
-                                Paint.setPathEffect =
+                                pathEffect =
                                     DashPathEffect(floatArrayOf(10f / scale, 10f / scale), phase)
                             }
 
@@ -2168,7 +2164,9 @@ class CanvasView @JvmOverloads constructor(
 
     }
 
-    private fun drawShapeElement(canvas: Canvas, element: com.webscare.urducanvas.common.canvas.model.CanvasElement) {
+    private fun drawShapeElement(
+        canvas: Canvas, element: com.webscare.urducanvas.common.canvas.model.CanvasElement
+    ) {
         val localHalfW = element.logicalContentWidth / 2f
         val localHalfH = element.logicalContentHeight / 2f
         val localRect = RectF(-localHalfW, -localHalfH, localHalfW, localHalfH)
@@ -2188,14 +2186,15 @@ class CanvasView @JvmOverloads constructor(
                 canvas.clipPath(path) // ✅ Mask bitmap inside shape
 
                 // --- 🧠 Apply Adjustments ---
-                val finalBitmap = com.webscare.urducanvas.common.utils.ImageAdjustmentHelper.applyAllAdjustments(
-                    element.context!!, bmp, element.adjustments
-                )
+                val finalBitmap =
+                    com.webscare.urducanvas.common.utils.ImageAdjustmentHelper.applyAllAdjustments(
+                        element.context!!, bmp, element.adjustments
+                    )
 
                 // --- 🧩 Setup Paint and Filters ---
                 val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    Paint.setColorFilter = colorFilterFor(element.imageFilter)
-                    Paint.setMaskFilter = null
+                    colorFilter = colorFilterFor(element.imageFilter)
+                    maskFilter = null
                 }
 
                 // --- 🧭 Compute Transformations ---
@@ -2235,7 +2234,7 @@ class CanvasView @JvmOverloads constructor(
                         // Glow overlay
                         val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                             color = Color.argb(180, 255, 255, 200)
-                            Paint.setMaskFilter = BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
+                            maskFilter = BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
                         }
                         canvas.drawBitmap(finalBitmap, matrix, glowPaint)
                     }
@@ -2254,7 +2253,7 @@ class CanvasView @JvmOverloads constructor(
                 style = Paint.Style.STROKE
                 strokeWidth = element.shapeStrokeWidth ?: 1f
                 if (element.shapeStrokeGradient != null) {
-                    Paint.setShader = createGradientShader(
+                    shader = createGradientShader(
                         element.shapeStrokeGradient!!, localRect.width(), localRect.height()
                     )
                 } else {
@@ -2279,7 +2278,7 @@ class CanvasView @JvmOverloads constructor(
             val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.FILL
                 if (element.shapeFillGradient != null) {
-                    Paint.setShader = createGradientShader(
+                    shader = createGradientShader(
                         element.shapeFillGradient!!, localRect.width(), localRect.height()
                     )
                 } else {
@@ -2307,26 +2306,20 @@ class CanvasView @JvmOverloads constructor(
             when (stroke.style) {
                 com.webscare.urducanvas.common.canvas.enums.BrushStyle.BRUSH -> {
                     com.webscare.urducanvas.common.utils.BrushRenderUtils.drawBrushStroke(
-                        canvas,
-                        stroke,
-                        element.paintAlpha
+                        canvas, stroke, element.paintAlpha
                     )
                 }
 
                 com.webscare.urducanvas.common.canvas.enums.BrushStyle.PEN -> {
                     com.webscare.urducanvas.common.utils.BrushRenderUtils.drawTaperedPenStroke(
-                        canvas,
-                        stroke,
-                        element.paintAlpha
+                        canvas, stroke, element.paintAlpha
                     )
                 }
 
                 com.webscare.urducanvas.common.canvas.enums.BrushStyle.HIGHLIGHTER -> {
                     val paint =
                         com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
-                            stroke,
-                            width,
-                            height
+                            stroke, width, height
                         )
                     paint.alpha = element.paintAlpha
                     val offset = stroke.thickness * 0.3f
@@ -2340,9 +2333,7 @@ class CanvasView @JvmOverloads constructor(
                 else -> {
                     val paint =
                         com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
-                            stroke,
-                            width,
-                            height
+                            stroke, width, height
                         )
                     paint.alpha = element.paintAlpha
                     canvas.drawPath(stroke.path!!, paint)
@@ -2356,7 +2347,9 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
-    private fun drawBackgroundElement(canvas: Canvas, e: com.webscare.urducanvas.common.canvas.model.CanvasElement) {
+    private fun drawBackgroundElement(
+        canvas: Canvas, e: com.webscare.urducanvas.common.canvas.model.CanvasElement
+    ) {
         val w = canvasWidth.toFloat()
         val h = canvasHeight.toFloat()
 
@@ -2403,9 +2396,10 @@ class CanvasView @JvmOverloads constructor(
 
                 var adjustedBackground = bmp
                 if (adjustedBackground.isRecycled) return@withTranslation
-                adjustedBackground = com.webscare.urducanvas.common.utils.ImageAdjustmentHelper.applyAllAdjustments(
-                    e.context!!, adjustedBackground, e.adjustments
-                )
+                adjustedBackground =
+                    com.webscare.urducanvas.common.utils.ImageAdjustmentHelper.applyAllAdjustments(
+                        e.context!!, adjustedBackground, e.adjustments
+                    )
 
                 backgroundPaint.colorFilter = colorFilterFor(e.imageFilter)
                 backgroundPaint.maskFilter = null
@@ -2420,7 +2414,7 @@ class CanvasView @JvmOverloads constructor(
                         drawBitmap(adjustedBackground, 0f, 0f, backgroundPaint)
                         val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                             color = Color.argb(180, 255, 255, 200)
-                            Paint.setMaskFilter = BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
+                            maskFilter = BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
                         }
                         drawBitmap(adjustedBackground, 0f, 0f, glowPaint)
                     }
@@ -2445,7 +2439,10 @@ class CanvasView @JvmOverloads constructor(
                 scale(e.scale, e.scale, pivotX, pivotY)
                 rotate(e.rotation, pivotX, pivotY)
 
-                backgroundPaint.shader = com.webscare.urducanvas.common.utils.BrushRenderUtils.createBackgroundGradientShader(grad, w, h)
+                backgroundPaint.shader =
+                    com.webscare.urducanvas.common.utils.BrushRenderUtils.createBackgroundGradientShader(
+                        grad, w, h
+                    )
                 backgroundPaint.alpha = e.paintAlpha
                 drawRect(0f, 0f, w, h, backgroundPaint)
                 backgroundPaint.shader = null
@@ -2528,7 +2525,9 @@ class CanvasView @JvmOverloads constructor(
         return rawShader
     }
 
-    private fun drawTextElement(canvas: Canvas, element: com.webscare.urducanvas.common.canvas.model.CanvasElement) {
+    private fun drawTextElement(
+        canvas: Canvas, element: com.webscare.urducanvas.common.canvas.model.CanvasElement
+    ) {
         if (element.paintAlpha == 0) return
 
         val lines = element.getTextWithKashida().split("\n")
@@ -2566,14 +2565,20 @@ class CanvasView @JvmOverloads constructor(
             labelPaint.alpha = element.paintAlpha
 
             when (element.labelShape) {
-                com.webscare.urducanvas.common.canvas.enums.LabelShape.RECTANGLE_FILL -> canvas.drawRect(labelRect, labelPaint)
+                com.webscare.urducanvas.common.canvas.enums.LabelShape.RECTANGLE_FILL -> canvas.drawRect(
+                    labelRect, labelPaint
+                )
+
                 com.webscare.urducanvas.common.canvas.enums.LabelShape.RECTANGLE_STROKE -> {
                     labelPaint.style = Paint.Style.STROKE
                     labelPaint.strokeWidth = 4f
                     canvas.drawRect(labelRect, labelPaint)
                 }
 
-                com.webscare.urducanvas.common.canvas.enums.LabelShape.OVAL_FILL -> canvas.drawOval(labelRect, labelPaint)
+                com.webscare.urducanvas.common.canvas.enums.LabelShape.OVAL_FILL -> canvas.drawOval(
+                    labelRect, labelPaint
+                )
+
                 com.webscare.urducanvas.common.canvas.enums.LabelShape.OVAL_STROKE -> {
                     labelPaint.style = Paint.Style.STROKE
                     labelPaint.strokeWidth = 4f
@@ -2621,17 +2626,20 @@ class CanvasView @JvmOverloads constructor(
                 isAntiAlias = true
 
                 // Bold / Italic / Underline
-                isUnderlineText = com.webscare.urducanvas.common.canvas.enums.TextDecoration.UNDERLINE in element.textDecoration
+                isUnderlineText =
+                    com.webscare.urducanvas.common.canvas.enums.TextDecoration.UNDERLINE in element.textDecoration
                 val baseTf = element.paint.typeface ?: Typeface.DEFAULT
-                val bold = com.webscare.urducanvas.common.canvas.enums.TextDecoration.BOLD in element.textDecoration
-                val italic = com.webscare.urducanvas.common.canvas.enums.TextDecoration.ITALIC in element.textDecoration
+                val bold =
+                    com.webscare.urducanvas.common.canvas.enums.TextDecoration.BOLD in element.textDecoration
+                val italic =
+                    com.webscare.urducanvas.common.canvas.enums.TextDecoration.ITALIC in element.textDecoration
                 val style = when {
                     bold && italic -> Typeface.BOLD_ITALIC
                     bold -> Typeface.BOLD
                     italic -> Typeface.ITALIC
                     else -> Typeface.NORMAL
                 }
-                Paint.setTypeface = Typeface.create(baseTf, style)
+                typeface = Typeface.create(baseTf, style)
             }
             // Apply text formatting
             val text = when (element.listStyle) {
@@ -2680,9 +2688,9 @@ class CanvasView @JvmOverloads constructor(
             if (element.hasShadow) {
                 val sc = (element.shadowColor and 0x00FFFFFF) or (element.shadowOpacity shl 24)
                 val sp = TextPaint(fillPaint).apply {
-                    Paint.setShader = null
+                    shader = null
                     color = sc
-                    Paint.setMaskFilter = BlurMaskFilter(element.shadowRadius, BlurMaskFilter.Blur.NORMAL)
+                    maskFilter = BlurMaskFilter(element.shadowRadius, BlurMaskFilter.Blur.NORMAL)
                 }
                 val sa = sp.alpha
                 sp.alpha = element.paintAlpha
@@ -2727,12 +2735,26 @@ class CanvasView @JvmOverloads constructor(
 
     private fun drawWithBlend(element: com.webscare.urducanvas.common.canvas.model.CanvasElement): Xfermode? {
         return when (element.blendType) {
-            com.webscare.urducanvas.common.canvas.enums.BlendType.SRC -> PorterDuffXfermode(PorterDuff.Mode.SRC)
+            com.webscare.urducanvas.common.canvas.enums.BlendType.SRC -> PorterDuffXfermode(
+                PorterDuff.Mode.SRC
+            )
+
             com.webscare.urducanvas.common.canvas.enums.BlendType.NORMAL -> null
-            com.webscare.urducanvas.common.canvas.enums.BlendType.DARKEN -> PorterDuffXfermode(PorterDuff.Mode.DARKEN)
-            com.webscare.urducanvas.common.canvas.enums.BlendType.LIGHTEN -> PorterDuffXfermode(PorterDuff.Mode.LIGHTEN)
-            com.webscare.urducanvas.common.canvas.enums.BlendType.MULTIPLY -> PorterDuffXfermode(PorterDuff.Mode.MULTIPLY)
-            com.webscare.urducanvas.common.canvas.enums.BlendType.SCREEN -> PorterDuffXfermode(PorterDuff.Mode.SCREEN)
+            com.webscare.urducanvas.common.canvas.enums.BlendType.DARKEN -> PorterDuffXfermode(
+                PorterDuff.Mode.DARKEN
+            )
+
+            com.webscare.urducanvas.common.canvas.enums.BlendType.LIGHTEN -> PorterDuffXfermode(
+                PorterDuff.Mode.LIGHTEN
+            )
+
+            com.webscare.urducanvas.common.canvas.enums.BlendType.MULTIPLY -> PorterDuffXfermode(
+                PorterDuff.Mode.MULTIPLY
+            )
+
+            com.webscare.urducanvas.common.canvas.enums.BlendType.SCREEN -> PorterDuffXfermode(
+                PorterDuff.Mode.SCREEN
+            )
         }
     }
 
@@ -2740,7 +2762,12 @@ class CanvasView @JvmOverloads constructor(
         return text.any { Character.UnicodeBlock.of(it) == Character.UnicodeBlock.ARABIC }
     }
 
-    private fun justifyText(canvas: Canvas, text: String, yOffset: Float, element: com.webscare.urducanvas.common.canvas.model.CanvasElement) {
+    private fun justifyText(
+        canvas: Canvas,
+        text: String,
+        yOffset: Float,
+        element: com.webscare.urducanvas.common.canvas.model.CanvasElement
+    ) {
 
         if (element.paintAlpha == 0) return
 
@@ -2759,7 +2786,7 @@ class CanvasView @JvmOverloads constructor(
             alpha = element.paintAlpha
             element.fillGradient?.let {
                 val w = element.getLocalContentWidth()
-                Paint.setShader = createGradientShader(it, w, textSize)
+                shader = createGradientShader(it, w, textSize)
             }
         }
         val strokePaint = if (element.hasStroke && element.strokeWidth > 0f) {
@@ -2768,7 +2795,7 @@ class CanvasView @JvmOverloads constructor(
                 strokeWidth = element.strokeWidth
                 element.strokeGradient?.let {
                     val w = element.getLocalContentWidth()
-                    Paint.setShader = createGradientShader(it, w, textSize)
+                    shader = createGradientShader(it, w, textSize)
                 } ?: run { color = element.strokeColor }
             }
         } else null
@@ -2820,7 +2847,9 @@ class CanvasView @JvmOverloads constructor(
         return Math.toDegrees(atan2(y.toDouble(), x.toDouble())).toFloat()
     }
 
-    fun com.webscare.urducanvas.common.canvas.model.CanvasElement.containsPoint(px: Float, py: Float): Boolean {
+    fun com.webscare.urducanvas.common.canvas.model.CanvasElement.containsPoint(
+        px: Float, py: Float
+    ): Boolean {
         val bounds = getTightTextBounds()
         val corners = floatArrayOf(
             bounds.left,
@@ -2969,7 +2998,7 @@ class CanvasView @JvmOverloads constructor(
     private fun animateOverallZoom(toScale: Float) {
         val fromScale = overallScale
         ValueAnimator.ofFloat(fromScale, toScale).apply {
-            ValueAnimator.setDuration = 400L
+            duration = 400L
             interpolator = DecelerateInterpolator()
             addUpdateListener { anim ->
                 overallScale = anim.animatedValue as Float
@@ -3024,7 +3053,7 @@ class CanvasView @JvmOverloads constructor(
 
                         if (currentBrushStyle == com.webscare.urducanvas.common.canvas.enums.BrushStyle.BRUSH) {
                             val blurRadius = max(0.1f, (1f - currentBrushHardness) * 25f)
-                            Paint.setMaskFilter = try {
+                            maskFilter = try {
                                 BlurMaskFilter(blurRadius, BlurMaskFilter.Blur.NORMAL)
                             } catch (e: Exception) {
                                 null
@@ -3032,9 +3061,10 @@ class CanvasView @JvmOverloads constructor(
                         }
 
                         currentBrushGradient?.let {
-                            Paint.setShader = com.webscare.urducanvas.common.utils.BrushRenderUtils.createBackgroundGradientShader(
-                                it, width.toFloat(), height.toFloat()
-                            )
+                            shader =
+                                com.webscare.urducanvas.common.utils.BrushRenderUtils.createBackgroundGradientShader(
+                                    it, width.toFloat(), height.toFloat()
+                                )
                         }
                     }
 
@@ -3081,25 +3111,26 @@ class CanvasView @JvmOverloads constructor(
                         )
 
                     // --- 5️⃣ Create a centered CanvasElement positioned at the stroke center
-                    val drawElement = _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasElement(
-                        type = com.webscare.urducanvas.common.canvas.enums.ElementType.DRAW,
-                        x = centerX,
-                        y = centerY,
-                        drawStrokes = mutableListOf(strokeData),
-                        brushSettings = _root_ide_package_.com.webscare.urducanvas.common.canvas.model.BrushSettings(
-                            defaultColor = currentBrushColor,
-                            defaultThickness = currentBrushThickness,
-                            defaultHardness = currentBrushHardness,
-                            style = currentBrushStyle,
-                            gradient = currentBrushGradient
-                        ),
-                        allowsStrokeEditing = true,
-                        isVisible = true,
-                        backgroundColor = Color.TRANSPARENT
-                    ).apply {
-                        logicalContentWidth = rawBounds.width()
-                        logicalContentHeight = rawBounds.height()
-                    }
+                    val drawElement =
+                        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasElement(
+                            type = com.webscare.urducanvas.common.canvas.enums.ElementType.DRAW,
+                            x = centerX,
+                            y = centerY,
+                            drawStrokes = mutableListOf(strokeData),
+                            brushSettings = _root_ide_package_.com.webscare.urducanvas.common.canvas.model.BrushSettings(
+                                defaultColor = currentBrushColor,
+                                defaultThickness = currentBrushThickness,
+                                defaultHardness = currentBrushHardness,
+                                style = currentBrushStyle,
+                                gradient = currentBrushGradient
+                            ),
+                            allowsStrokeEditing = true,
+                            isVisible = true,
+                            backgroundColor = Color.TRANSPARENT
+                        ).apply {
+                            logicalContentWidth = rawBounds.width()
+                            logicalContentHeight = rawBounds.height()
+                        }
 
                     // --- 6️⃣ Add to canvas
                     onDrawStrokeCompleted?.invoke(drawElement)
@@ -3227,7 +3258,8 @@ class CanvasView @JvmOverloads constructor(
                             }
 
                             "rotate" -> {
-                                currentMode = com.webscare.urducanvas.common.canvas.enums.Mode.ROTATE
+                                currentMode =
+                                    com.webscare.urducanvas.common.canvas.enums.Mode.ROTATE
                                 touchStartX = x
                                 touchStartY = y
 
@@ -3257,7 +3289,8 @@ class CanvasView @JvmOverloads constructor(
                             }
 
                             "resize" -> {
-                                currentMode = com.webscare.urducanvas.common.canvas.enums.Mode.RESIZE
+                                currentMode =
+                                    com.webscare.urducanvas.common.canvas.enums.Mode.RESIZE
                                 touchStartX = x
                                 touchStartY = y
                                 val combined = getCombinedSelectedBounds()
@@ -3279,7 +3312,8 @@ class CanvasView @JvmOverloads constructor(
                             }
 
                             "transform" -> {
-                                currentMode = com.webscare.urducanvas.common.canvas.enums.Mode.TRANSFORM
+                                currentMode =
+                                    com.webscare.urducanvas.common.canvas.enums.Mode.TRANSFORM
                                 touchStartX = x
                                 touchStartY = y
 
@@ -3329,7 +3363,8 @@ class CanvasView @JvmOverloads constructor(
                         }
                         touchStartX = x
                         touchStartY = y
-                        currentMode = com.webscare.urducanvas.common.canvas.enums.Mode.DRAG // Set to drag mode after selecting the group
+                        currentMode =
+                            com.webscare.urducanvas.common.canvas.enums.Mode.DRAG // Set to drag mode after selecting the group
                         vibrateSoft()
                     } else {
                         if (inSelectionMode) {
@@ -3401,7 +3436,8 @@ class CanvasView @JvmOverloads constructor(
                         invalidate()
                     } else {
                         if (overallScale > 1f) {
-                            currentMode = com.webscare.urducanvas.common.canvas.enums.Mode.CANVAS_PAN
+                            currentMode =
+                                com.webscare.urducanvas.common.canvas.enums.Mode.CANVAS_PAN
                             touchStartX = event.x
                             touchStartY = event.y
                             return true
@@ -3762,7 +3798,8 @@ class CanvasView @JvmOverloads constructor(
                 initialGroupPivotY = 0f
                 if (currentMode != _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.Mode.GROUP_EDIT) {
                     lastTouchedElement = null
-                    currentMode = _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.Mode.NONE
+                    currentMode =
+                        _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.Mode.NONE
                 }
                 clampOverallPan()
                 invalidate()

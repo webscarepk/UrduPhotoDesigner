@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.urduphotodesigner"
+    namespace = "com.webscare.urducanvas"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.urduphotodesigner"
+        applicationId = "com.webscare.urducanvas"
         minSdk = 24
         targetSdk = 36
         versionCode = 3

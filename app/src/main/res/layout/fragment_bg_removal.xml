@@ -101,7 +101,7 @@
             app:tint="@color/black" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <com.example.urduphotodesigner.common.views.BgRemovalCanvas
+    <com.webscare.urducanvas.common.views.BgRemovalCanvas
         android:id="@+id/imageCanvas"
         android:layout_width="0dp"
         android:layout_height="0dp"

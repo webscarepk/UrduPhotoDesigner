@@ -4,8 +4,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
-import com.example.urduphotodesigner.common.canvas.enums.BlendType
-import com.example.urduphotodesigner.databinding.SpinnerItemBinding.inflate
+import com.webscare.urducanvas.common.canvas.enums.BlendType
+import com.webscare.urducanvas.databinding.SpinnerItemBinding.inflate
 
 class CustomSpinnerAdapter(
     private val items: List<com.webscare.urducanvas.common.canvas.enums.BlendType>,

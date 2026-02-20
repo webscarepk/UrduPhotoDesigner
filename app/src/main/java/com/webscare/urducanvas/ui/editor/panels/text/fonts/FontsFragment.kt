@@ -8,11 +8,11 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
-import com.example.urduphotodesigner.data.model.FontCategory
-import com.example.urduphotodesigner.data.model.FontEntity
-import com.example.urduphotodesigner.data.model.FontLanguages
-import com.example.urduphotodesigner.databinding.FragmentFontsBinding
-import com.example.urduphotodesigner.viewmodels.MainViewModel
+import com.webscare.urducanvas.data.model.FontCategory
+import com.webscare.urducanvas.data.model.FontEntity
+import com.webscare.urducanvas.data.model.FontLanguages
+import com.webscare.urducanvas.databinding.FragmentFontsBinding
+import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 

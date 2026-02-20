@@ -6,12 +6,12 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.canvas.model.FilterItem
-import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
-import com.example.urduphotodesigner.common.utils.ImageProcessor
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.databinding.LayoutFilterItemBinding // You'll need to create this layout
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.model.FilterItem
+import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
+import com.webscare.urducanvas.common.utils.ImageProcessor
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.databinding.LayoutFilterItemBinding // You'll need to create this layout
 import androidx.core.graphics.scale
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 

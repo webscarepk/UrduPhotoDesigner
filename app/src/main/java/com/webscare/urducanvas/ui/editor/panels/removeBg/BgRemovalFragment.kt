@@ -18,12 +18,12 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.common.views.BgRemovalCanvas
-import com.example.urduphotodesigner.databinding.DialogLoadingProgressBinding
-import com.example.urduphotodesigner.databinding.FragmentBgRemovalBinding
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.common.views.BgRemovalCanvas
+import com.webscare.urducanvas.databinding.DialogLoadingProgressBinding
+import com.webscare.urducanvas.databinding.FragmentBgRemovalBinding
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.segmentation.subject.SubjectSegmentation
 import com.google.mlkit.vision.segmentation.subject.SubjectSegmenter
@@ -124,7 +124,7 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
 
     private fun startProgressLoop() {
         progressAnimator = ValueAnimator.ofInt(0, 100).apply {
-            _root_ide_package_.android.animation.ValueAnimator.setDuration = 1000L
+            duration = 1000L
             repeatMode = ValueAnimator.RESTART
             repeatCount = ValueAnimator.INFINITE
             addUpdateListener { animator ->
@@ -137,7 +137,7 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
     private fun startIconRotation() {
         dialogBinding?.view4?.let { icon ->
             rotationAnimator = ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, 360f).apply {
-                _root_ide_package_.android.animation.ObjectAnimator.setDuration = 1000L
+                duration = 1000L
                 repeatCount = ValueAnimator.INFINITE
                 interpolator = LinearInterpolator()
                 start()

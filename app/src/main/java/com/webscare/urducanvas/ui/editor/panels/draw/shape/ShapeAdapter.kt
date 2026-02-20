@@ -10,11 +10,11 @@ import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
 import androidx.recyclerview.widget.RecyclerView
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.canvas.enums.ShapeType
-import com.example.urduphotodesigner.common.utils.ShapeRenderUtils.drawShape
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.databinding.LayoutColorItemBinding
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.enums.ShapeType
+import com.webscare.urducanvas.common.utils.ShapeRenderUtils.drawShape
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.databinding.LayoutColorItemBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import kotlin.math.cos
 import kotlin.math.sin

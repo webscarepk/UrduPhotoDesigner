@@ -9,17 +9,6 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.text.TextPaint
-import com.example.urduphotodesigner.common.canvas.enums.BlendType
-import com.example.urduphotodesigner.common.canvas.enums.ElementType
-import com.example.urduphotodesigner.common.canvas.enums.LabelShape
-import com.example.urduphotodesigner.common.canvas.enums.LetterCasing
-import com.example.urduphotodesigner.common.canvas.enums.ListStyle
-import com.example.urduphotodesigner.common.canvas.enums.ShapeType
-import com.example.urduphotodesigner.common.canvas.enums.TextAlignment
-import com.example.urduphotodesigner.common.canvas.enums.TextDecoration
-import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
-import com.example.urduphotodesigner.common.utils.KashidaProcessor
-import com.google.gson.annotations.SerializedName
 import com.webscare.urducanvas.common.canvas.enums.BlendType
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.canvas.enums.LabelShape
@@ -30,6 +19,7 @@ import com.webscare.urducanvas.common.canvas.enums.TextAlignment
 import com.webscare.urducanvas.common.canvas.enums.TextDecoration
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import com.webscare.urducanvas.common.utils.KashidaProcessor
+import com.google.gson.annotations.SerializedName
 import java.io.Serializable
 import java.util.UUID
 

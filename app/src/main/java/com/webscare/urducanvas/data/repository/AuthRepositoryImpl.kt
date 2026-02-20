@@ -2,14 +2,14 @@ package com.webscare.urducanvas.data.repository
 
 import android.content.Intent
 import android.util.Log
-import com.example.urduphotodesigner.common.sealed.GoogleSignInResult
-import com.example.urduphotodesigner.common.datastore.PreferenceDataStoreAPI
-import com.example.urduphotodesigner.common.datastore.PreferenceDataStoreKeysConstants
-import com.example.urduphotodesigner.common.utils.Utils.await
-import com.example.urduphotodesigner.data.model.LoginResponse
-import com.example.urduphotodesigner.data.model.RegistrationResponse
-import com.example.urduphotodesigner.data.remote.EndPointsInterface
-import com.example.urduphotodesigner.domain.repo.AuthRepo
+import com.webscare.urducanvas.common.sealed.GoogleSignInResult
+import com.webscare.urducanvas.common.datastore.PreferenceDataStoreAPI
+import com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants
+import com.webscare.urducanvas.common.utils.Utils.await
+import com.webscare.urducanvas.data.model.LoginResponse
+import com.webscare.urducanvas.data.model.RegistrationResponse
+import com.webscare.urducanvas.data.remote.EndPointsInterface
+import com.webscare.urducanvas.domain.repo.AuthRepo
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.BeginSignInResult
 import com.google.android.gms.auth.api.identity.SignInClient

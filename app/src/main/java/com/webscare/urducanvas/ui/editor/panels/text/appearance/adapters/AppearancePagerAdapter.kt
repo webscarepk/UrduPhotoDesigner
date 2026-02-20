@@ -2,12 +2,12 @@ package com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters
 
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
-import com.example.urduphotodesigner.data.model.PanelTabs
-import com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.BlendFragment
-import com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.FillStrokeFragment
-import com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.KasheedaFragment
-import com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.LabelsFragment
-import com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.ShadowsFragment
+import com.webscare.urducanvas.data.model.PanelTabs
+import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.BlendFragment
+import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.FillStrokeFragment
+import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.KasheedaFragment
+import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.LabelsFragment
+import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.ShadowsFragment
 
 class AppearancePagerAdapter(
     fragment: Fragment,

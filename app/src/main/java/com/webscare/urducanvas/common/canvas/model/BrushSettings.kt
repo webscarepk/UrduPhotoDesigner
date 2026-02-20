@@ -1,7 +1,6 @@
 package com.webscare.urducanvas.common.canvas.model
 
 import android.graphics.Color
-import com.example.urduphotodesigner.common.canvas.enums.BrushStyle
 import com.webscare.urducanvas.common.canvas.enums.BrushStyle
 import java.io.Serializable
 

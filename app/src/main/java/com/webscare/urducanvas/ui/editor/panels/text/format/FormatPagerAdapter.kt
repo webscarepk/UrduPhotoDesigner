@@ -2,7 +2,7 @@ package com.webscare.urducanvas.ui.editor.panels.text.format
 
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
-import com.example.urduphotodesigner.data.model.PanelTabs
+import com.webscare.urducanvas.data.model.PanelTabs
 
 class FormatPagerAdapter(
     fragment: Fragment,

@@ -10,11 +10,11 @@ import android.widget.PopupMenu
 import android.widget.SeekBar
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.canvas.enums.BlendType
-import com.example.urduphotodesigner.databinding.FragmentBlendBinding
-import com.example.urduphotodesigner.ui.editor.panels.text.appearance.adapters.ColorsAdapter
-import com.example.urduphotodesigner.ui.editor.panels.text.appearance.adapters.CustomSpinnerAdapter
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.canvas.enums.BlendType
+import com.webscare.urducanvas.databinding.FragmentBlendBinding
+import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter
+import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.CustomSpinnerAdapter
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint

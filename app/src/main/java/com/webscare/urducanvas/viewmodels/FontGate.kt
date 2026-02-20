@@ -1,10 +1,10 @@
 package com.webscare.urducanvas.viewmodels
 
-import com.example.urduphotodesigner.common.utils.Constants
-import com.example.urduphotodesigner.data.model.FontEntity
-import com.example.urduphotodesigner.domain.repo.DownloadRepo
-import com.example.urduphotodesigner.domain.usecase.GetFontsUseCase
-import com.example.urduphotodesigner.domain.usecase.UpdateFontsUseCase
+import com.webscare.urducanvas.common.utils.Constants
+import com.webscare.urducanvas.data.model.FontEntity
+import com.webscare.urducanvas.domain.repo.DownloadRepo
+import com.webscare.urducanvas.domain.usecase.GetFontsUseCase
+import com.webscare.urducanvas.domain.usecase.UpdateFontsUseCase
 import kotlinx.coroutines.NonCancellable.cancel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll

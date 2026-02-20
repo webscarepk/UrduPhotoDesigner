@@ -7,7 +7,7 @@ import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.View
 import androidx.core.content.ContextCompat
-import com.example.urduphotodesigner.R
+import com.webscare.urducanvas.R
 import kotlin.math.min
 
 class FramePreviewView @JvmOverloads constructor(

@@ -1,6 +1,6 @@
 package com.webscare.urducanvas.domain.usecase
 
-import com.example.urduphotodesigner.domain.repo.TemplatesRepo
+import com.webscare.urducanvas.domain.repo.TemplatesRepo
 import javax.inject.Inject
 
 class UpdateTemplateStatusUseCase @Inject constructor(

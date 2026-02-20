@@ -1,6 +1,5 @@
 package com.webscare.urducanvas.common.canvas.sealed
 
-import com.example.urduphotodesigner.data.model.FontEntity
 import com.webscare.urducanvas.data.model.FontEntity
 import java.io.File
 

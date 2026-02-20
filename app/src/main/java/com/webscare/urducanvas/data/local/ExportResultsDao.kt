@@ -6,7 +6,7 @@ import androidx.room.Query
 import androidx.room.Update
 import androidx.room.Delete
 import androidx.room.OnConflictStrategy
-import com.example.urduphotodesigner.data.model.ExportResult
+import com.webscare.urducanvas.data.model.ExportResult
 import kotlinx.coroutines.flow.Flow
 
 @Dao

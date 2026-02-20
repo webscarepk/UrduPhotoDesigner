@@ -1,6 +1,6 @@
 package com.webscare.urducanvas.data.model
 
-import com.example.urduphotodesigner.common.canvas.enums.LabelShape
+import com.webscare.urducanvas.common.canvas.enums.LabelShape
 
 data class ShapeItem(
     val shape: LabelShape,

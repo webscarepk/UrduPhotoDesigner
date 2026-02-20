@@ -1,9 +1,6 @@
 package com.webscare.urducanvas.common.utils
 
 import android.icu.lang.UCharacter
-import com.example.urduphotodesigner.common.canvas.model.ColorItem
-import com.example.urduphotodesigner.common.canvas.model.EmojiMeta
-import com.example.urduphotodesigner.common.canvas.model.GradientItem
 import com.webscare.urducanvas.common.canvas.model.ColorItem
 import com.webscare.urducanvas.common.canvas.model.EmojiMeta
 import java.util.Locale

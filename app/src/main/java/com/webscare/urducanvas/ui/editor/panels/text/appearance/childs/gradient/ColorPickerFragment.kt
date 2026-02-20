@@ -9,9 +9,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.databinding.FragmentColorPickerBinding
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.databinding.FragmentColorPickerBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
 import kotlin.math.roundToInt
@@ -68,12 +68,12 @@ class ColorPickerFragment : androidx.fragment.app.Fragment() {
 
     private fun setupHueBar() {
         binding.seekbarHue.apply {
-            _root_ide_package_.com.webscare.urducanvas.common.views.ColorPickerBar.max = 360
-            _root_ide_package_.com.webscare.urducanvas.common.views.ColorPickerBar.setGradient(
+           max = 360
+           setGradient(
                 rainbow
             )
-            _root_ide_package_.com.webscare.urducanvas.common.views.ColorPickerBar.progress = 0f
-            _root_ide_package_.com.webscare.urducanvas.common.views.ColorPickerBar.onProgressChanged = { hueDeg ->
+            progress = 0f
+            onProgressChanged = { hueDeg ->
                 currentHue = hueDeg.toFloat()
 
                 Log.d(TAG, "setupHueBar: $currentHue")
@@ -90,16 +90,16 @@ class ColorPickerFragment : androidx.fragment.app.Fragment() {
 
     private fun setupAlphaBar() {
         binding.seekbarAlpha.apply {
-            _root_ide_package_.com.webscare.urducanvas.common.views.ColorPickerBar.max = 255
+            max = 255
             val opaque = Color.HSVToColor(floatArrayOf(currentHue, 1f, 1f))
             val rawTransparent = opaque and 0x00FFFFFF
             val bakedTransparent = bakeAlpha(rawTransparent)
 
-            _root_ide_package_.com.webscare.urducanvas.common.views.ColorPickerBar.setGradient(
+            setGradient(
                 intArrayOf(bakedTransparent, opaque)
             )
-            _root_ide_package_.com.webscare.urducanvas.common.views.ColorPickerBar.progress = _root_ide_package_.com.webscare.urducanvas.common.views.ColorPickerBar.max.toFloat()
-            _root_ide_package_.com.webscare.urducanvas.common.views.ColorPickerBar.onProgressChanged = {
+           progress = max.toFloat()
+           onProgressChanged = {
                 applyPickedColor()
             }
         }

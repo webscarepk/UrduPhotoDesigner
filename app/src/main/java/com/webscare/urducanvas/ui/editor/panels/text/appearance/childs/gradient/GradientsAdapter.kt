@@ -11,11 +11,11 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.canvas.model.GradientItem
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.databinding.LayoutColorItemBinding
-import com.example.urduphotodesigner.databinding.LayoutColorPickerItemBinding
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.model.GradientItem
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.databinding.LayoutColorItemBinding
+import com.webscare.urducanvas.databinding.LayoutColorPickerItemBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class GradientsAdapter(

@@ -4,7 +4,7 @@ import android.content.ContentValues.TAG
 import android.content.Context
 import android.os.Environment
 import android.util.Log
-import com.example.urduphotodesigner.data.remote.EndPointsInterface
+import com.webscare.urducanvas.data.remote.EndPointsInterface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient

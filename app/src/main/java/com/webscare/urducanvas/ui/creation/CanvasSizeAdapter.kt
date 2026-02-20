@@ -4,12 +4,12 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.canvas.model.CanvasSize
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.common.utils.Utils.getIconForSize
-import com.example.urduphotodesigner.databinding.LayoutSizesFilterItemBinding
-import com.example.urduphotodesigner.databinding.LayoutSizesItemBinding
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.model.CanvasSize
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.common.utils.Utils.getIconForSize
+import com.webscare.urducanvas.databinding.LayoutSizesFilterItemBinding
+import com.webscare.urducanvas.databinding.LayoutSizesItemBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class CanvasSizeAdapter(

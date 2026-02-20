@@ -1,7 +1,7 @@
 package com.webscare.urducanvas.domain.usecase
 
-import com.example.urduphotodesigner.data.model.LoginResponse
-import com.example.urduphotodesigner.domain.repo.AuthRepo
+import com.webscare.urducanvas.data.model.LoginResponse
+import com.webscare.urducanvas.domain.repo.AuthRepo
 import javax.inject.Inject
 
 class SignUpUserUseCase @Inject constructor(

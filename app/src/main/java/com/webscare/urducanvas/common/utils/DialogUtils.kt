@@ -8,8 +8,8 @@ import android.graphics.drawable.ColorDrawable
 import android.view.LayoutInflater
 import android.view.WindowManager
 import android.widget.TextView
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import androidx.core.graphics.drawable.toDrawable
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 

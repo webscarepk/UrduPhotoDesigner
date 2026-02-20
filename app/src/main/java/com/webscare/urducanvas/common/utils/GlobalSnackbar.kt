@@ -9,7 +9,7 @@ import android.view.View
 import android.widget.TextView
 import androidx.annotation.ColorInt
 import androidx.core.content.ContextCompat
-import com.example.urduphotodesigner.R
+import com.webscare.urducanvas.R
 import com.google.android.material.snackbar.Snackbar
 
 object GlobalSnackbar {

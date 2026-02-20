@@ -31,20 +31,20 @@ import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.canvas.model.CanvasSize
-import com.example.urduphotodesigner.common.utils.DialogUtils
-import com.example.urduphotodesigner.common.utils.ImageProcessor
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.data.model.ExportResult
-import com.example.urduphotodesigner.data.model.FontEntity
-import com.example.urduphotodesigner.data.model.ImageEntity
-import com.example.urduphotodesigner.databinding.DialogLoadingProgressBinding
-import com.example.urduphotodesigner.databinding.FragmentFilesListBinding
-import com.example.urduphotodesigner.databinding.LayoutFilesPopupBinding
-import com.example.urduphotodesigner.viewmodels.FiltersViewModel
-import com.example.urduphotodesigner.viewmodels.MainViewModel
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.canvas.model.CanvasSize
+import com.webscare.urducanvas.common.utils.DialogUtils
+import com.webscare.urducanvas.common.utils.ImageProcessor
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.data.model.ExportResult
+import com.webscare.urducanvas.data.model.FontEntity
+import com.webscare.urducanvas.data.model.ImageEntity
+import com.webscare.urducanvas.databinding.DialogLoadingProgressBinding
+import com.webscare.urducanvas.databinding.FragmentFilesListBinding
+import com.webscare.urducanvas.databinding.LayoutFilesPopupBinding
+import com.webscare.urducanvas.viewmodels.FiltersViewModel
+import com.webscare.urducanvas.viewmodels.MainViewModel
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -823,7 +823,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
     private fun startIconRotation() {
         dialogBinding?.view4?.let { icon ->
             rotationAnimator = ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, 360f).apply {
-                _root_ide_package_.android.animation.ObjectAnimator.setDuration = 1000L
+                duration = 1000L
                 repeatCount = ValueAnimator.INFINITE
                 interpolator = LinearInterpolator()
                 start()

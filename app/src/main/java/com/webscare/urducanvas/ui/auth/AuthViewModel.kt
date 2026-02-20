@@ -3,11 +3,11 @@ package com.webscare.urducanvas.ui.auth
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.urduphotodesigner.common.sealed.GoogleSignInResult
-import com.example.urduphotodesigner.common.sealed.SignInUiState
-import com.example.urduphotodesigner.domain.usecase.LoginUserUseCase
-import com.example.urduphotodesigner.domain.usecase.RegisterUserUseCase
-import com.example.urduphotodesigner.domain.usecase.SignInWithGoogleUseCase
+import com.webscare.urducanvas.common.sealed.GoogleSignInResult
+import com.webscare.urducanvas.common.sealed.SignInUiState
+import com.webscare.urducanvas.domain.usecase.LoginUserUseCase
+import com.webscare.urducanvas.domain.usecase.RegisterUserUseCase
+import com.webscare.urducanvas.domain.usecase.SignInWithGoogleUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

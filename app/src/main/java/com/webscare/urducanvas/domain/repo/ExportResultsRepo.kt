@@ -1,6 +1,6 @@
 package com.webscare.urducanvas.domain.repo
 
-import com.example.urduphotodesigner.data.model.ExportResult
+import com.webscare.urducanvas.data.model.ExportResult
 import kotlinx.coroutines.flow.Flow
 
 interface ExportResultsRepo {

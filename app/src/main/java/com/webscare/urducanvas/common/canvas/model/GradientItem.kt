@@ -12,7 +12,6 @@ import android.graphics.Shader
 import android.graphics.SweepGradient
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
-import com.example.urduphotodesigner.common.canvas.enums.GradientType
 import com.webscare.urducanvas.common.canvas.enums.GradientType
 import kotlin.math.cos
 import kotlin.math.min

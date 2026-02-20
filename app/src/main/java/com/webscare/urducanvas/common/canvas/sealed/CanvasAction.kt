@@ -1,11 +1,6 @@
 package com.webscare.urducanvas.common.canvas.sealed
 
 import android.graphics.Bitmap
-import com.example.urduphotodesigner.common.canvas.enums.TextAlignment
-import com.example.urduphotodesigner.common.canvas.model.CanvasElement
-import com.example.urduphotodesigner.common.canvas.model.CanvasSize
-import com.example.urduphotodesigner.common.canvas.model.GradientItem
-import com.example.urduphotodesigner.data.model.FontEntity
 import com.webscare.urducanvas.common.canvas.enums.TextAlignment
 import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import com.webscare.urducanvas.common.canvas.model.CanvasSize

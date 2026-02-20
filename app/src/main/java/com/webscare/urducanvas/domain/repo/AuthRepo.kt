@@ -1,9 +1,9 @@
 package com.webscare.urducanvas.domain.repo
 
 import android.content.Intent
-import com.example.urduphotodesigner.common.sealed.GoogleSignInResult
-import com.example.urduphotodesigner.data.model.LoginResponse
-import com.example.urduphotodesigner.data.model.RegistrationResponse
+import com.webscare.urducanvas.common.sealed.GoogleSignInResult
+import com.webscare.urducanvas.data.model.LoginResponse
+import com.webscare.urducanvas.data.model.RegistrationResponse
 import com.google.android.gms.auth.api.identity.BeginSignInResult
 
 interface AuthRepo {

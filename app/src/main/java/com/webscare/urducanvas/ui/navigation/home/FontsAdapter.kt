@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
@@ -15,17 +14,17 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
-import com.example.urduphotodesigner.common.utils.Constants
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.data.model.FontEntity
-import com.example.urduphotodesigner.data.model.ProgressUi
-import com.example.urduphotodesigner.databinding.LayoutPopularFontItemBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.data.model.FontEntity
+import com.webscare.urducanvas.data.model.ProgressUi
+import com.webscare.urducanvas.databinding.LayoutPopularFontItemBinding
 
 class FontsAdapter(
     private val onFontClick: (com.webscare.urducanvas.data.model.FontEntity, Boolean) -> Unit,
     private val onDownload: (com.webscare.urducanvas.data.model.FontEntity) -> Unit
-) : androidx.recyclerview.widget.ListAdapter<com.webscare.urducanvas.data.model.FontEntity, FontsAdapter.VH>(Diff()) {
+) : androidx.recyclerview.widget.ListAdapter<com.webscare.urducanvas.data.model.FontEntity, FontsAdapter.VH>(
+    Diff()
+) {
 
     private val progressById = mutableMapOf<Int, com.webscare.urducanvas.data.model.ProgressUi>()
 
@@ -47,8 +46,7 @@ class FontsAdapter(
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = getItem(position)
         holder.bind(
-            item,
-            progressById[item.id] ?: _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
+            item, progressById[item.id] ?: ProgressUi(
                 progress = item.download_progress,
                 isDownloading = item.is_downloading,
                 isDownloaded = item.is_downloaded
@@ -58,7 +56,11 @@ class FontsAdapter(
 
     override fun onBindViewHolder(holder: VH, position: Int, payloads: MutableList<Any>) {
         if (payloads.isNotEmpty()) {
-            (payloads.lastOrNull() as? com.webscare.urducanvas.data.model.ProgressUi)?.let { holder.applyProgress(it) }
+            (payloads.lastOrNull() as? com.webscare.urducanvas.data.model.ProgressUi)?.let {
+                holder.applyProgress(
+                    it
+                )
+            }
         } else super.onBindViewHolder(holder, position, payloads)
     }
 
@@ -68,21 +70,21 @@ class FontsAdapter(
         private val onDownload: (com.webscare.urducanvas.data.model.FontEntity) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(item: com.webscare.urducanvas.data.model.FontEntity, progress: com.webscare.urducanvas.data.model.ProgressUi) {
+        fun bind(
+            item: com.webscare.urducanvas.data.model.FontEntity,
+            progress: com.webscare.urducanvas.data.model.ProgressUi
+        ) {
             // Preview (if you have thumbnail url or local file)
             if (item.image_url.isEmpty() && item.font_image?.isNotEmpty() == true) {
                 // Parse font_image from Base64 to Bitmap
-                Glide.with(itemView.context)
-                    .load(item.font_image)
-                    .into(binding.image)
+                Glide.with(itemView.context).load(item.font_image).into(binding.image)
                 binding.shimmerLayout.hideShimmer()
             } else {
                 // Load font preview using Glide (from image_url)
-                val url = _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.BASE_URL_GLIDE + item.image_url
+                val url =
+                    _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.BASE_URL_GLIDE + item.image_url
                 if (isSvgUrl(url)) {
-                    Glide.with(binding.root.context)
-                        .`as`(PictureDrawable::class.java)
-                        .load(url)
+                    Glide.with(binding.root.context).`as`(PictureDrawable::class.java).load(url)
                         .diskCacheStrategy(DiskCacheStrategy.DATA)
                         .listener(object : RequestListener<PictureDrawable> {
                             override fun onLoadFailed(
@@ -99,13 +101,10 @@ class FontsAdapter(
                                 dataSource: DataSource,
                                 isFirstResource: Boolean
                             ) = false.also { binding.shimmerLayout.hideShimmer() }
-                        })
-                        .into(binding.image)
+                        }).into(binding.image)
                 } else {
-                    Glide.with(binding.root.context)
-                        .load(url)
-                        .diskCacheStrategy(DiskCacheStrategy.ALL)
-                        .thumbnail(0.1f)
+                    Glide.with(binding.root.context).load(url)
+                        .diskCacheStrategy(DiskCacheStrategy.ALL).thumbnail(0.1f)
                         .listener(object : RequestListener<android.graphics.drawable.Drawable> {
                             override fun onLoadFailed(
                                 e: GlideException?,
@@ -118,15 +117,16 @@ class FontsAdapter(
                             }
 
                             override fun onResourceReady(
-                                resource: android.graphics.drawable.Drawable, model: Any,
-                                target: Target<Drawable>?, dataSource: DataSource,
+                                resource: android.graphics.drawable.Drawable,
+                                model: Any,
+                                target: Target<Drawable>?,
+                                dataSource: DataSource,
                                 isFirstResource: Boolean
                             ): Boolean {
                                 binding.shimmerLayout.hideShimmer()
                                 return false
                             }
-                        })
-                        .into(binding.image)
+                        }).into(binding.image)
                 }
             }
             // Card click → use font (if downloaded)
@@ -150,8 +150,7 @@ class FontsAdapter(
             val completed = ui.progress >= 100 || ui.isDownloaded
             val downloading = ui.isDownloading && !completed
 
-            binding.download.visibility =
-                if (downloading || completed) View.GONE else View.VISIBLE
+            binding.download.visibility = if (downloading || completed) View.GONE else View.VISIBLE
 //            binding.progressBox.visibility = if (downloading) View.VISIBLE else View.GONE
             binding.loading.visibility = if (downloading) View.VISIBLE else View.GONE
 
@@ -166,8 +165,8 @@ class FontsAdapter(
         }
     }
 
-    private class Diff : DiffUtil.ItemCallback<com.webscare.urducanvas.data.model.FontEntity>() {
-        override fun areItemsTheSame(o: com.webscare.urducanvas.data.model.FontEntity, n: com.webscare.urducanvas.data.model.FontEntity) = o.id == n.id
-        override fun areContentsTheSame(o: com.webscare.urducanvas.data.model.FontEntity, n: com.webscare.urducanvas.data.model.FontEntity) = o == n
+    private class Diff : DiffUtil.ItemCallback<FontEntity>() {
+        override fun areItemsTheSame(o: FontEntity, n: FontEntity) = o.id == n.id
+        override fun areContentsTheSame(o: FontEntity, n: FontEntity) = o == n
     }
 }

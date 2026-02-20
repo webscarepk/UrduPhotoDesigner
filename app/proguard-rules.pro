@@ -21,8 +21,8 @@
 #-renamesourcefileattribute SourceFile
 
 # Remove unused resources
--keep class com.example.urduphotodesigner.** { *; }
--dontwarn com.example.urduphotodesigner.**
+-keep class com.webscare.urducanvas.** { *; }
+-dontwarn com.webscare.urducanvas.**
 
 
 # Shrink unused code for bitmap handling
@@ -30,7 +30,7 @@
 -keep class android.graphics.drawable.** { *; }
 
 # Keep the custom view class
--keep class com.example.urduphotodesigner.common.views.GradientBarView { *; }
+-keep class com.webscare.urducanvas.common.views.GradientBarView { *; }
 
 # Inline constants for performance
 -assumenosideeffects class android.util.Log {
@@ -44,10 +44,10 @@
 }
 
 # Keep all custom views and UI-related optimization classes
--keep class com.example.urduphotodesigner.common.views.** { *; }
+-keep class com.webscare.urducanvas.common.views.** { *; }
 
 # Keep model fields for Gson
--keepclassmembers class com.example.urduphotodesigner.common.canvas.model.** {
+-keepclassmembers class com.webscare.urducanvas.common.canvas.model.** {
     <fields>;
 }
 
@@ -57,8 +57,8 @@
     public static ** valueOf(java.lang.String);
 }
 
--keep class com.example.urduphotodesigner.common.canvas.model.** { *; }
--keep class com.example.urduphotodesigner.common.canvas.enums.** { *; }
+-keep class com.webscare.urducanvas.common.canvas.model.** { *; }
+-keep class com.webscare.urducanvas.common.canvas.enums.** { *; }
 # Keep annotations and generic info
 -keepattributes Signature
 -keepattributes *Annotation*

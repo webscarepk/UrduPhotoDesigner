@@ -1,8 +1,8 @@
 package com.webscare.urducanvas.data.repository
 
-import com.example.urduphotodesigner.data.model.ExportResult
-import com.example.urduphotodesigner.data.local.ExportResultsDao
-import com.example.urduphotodesigner.domain.repo.ExportResultsRepo
+import com.webscare.urducanvas.data.model.ExportResult
+import com.webscare.urducanvas.data.local.ExportResultsDao
+import com.webscare.urducanvas.domain.repo.ExportResultsRepo
 import kotlinx.coroutines.flow.Flow
 import java.io.File
 import javax.inject.Inject

@@ -9,12 +9,12 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.doOnLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.canvas.enums.GradientType
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.databinding.FragmentGradientEditorBinding
-import com.example.urduphotodesigner.viewmodels.MainViewModel
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.canvas.enums.GradientType
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.databinding.FragmentGradientEditorBinding
+import com.webscare.urducanvas.viewmodels.MainViewModel
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -135,15 +135,15 @@ class GradientEditorFragment : androidx.fragment.app.Fragment() {
 
         // handle callbacks from the view:
         binding.gradientBar.apply {
-            _root_ide_package_.com.webscare.urducanvas.common.views.GradientBarView.onStopAdded = { _, color, pos ->
+            onStopAdded = { _, color, pos ->
                 viewModel.addStop(pos, color)
                 mainViewModel.updateGradient(viewModel.gradient.value!!)
             }
-            _root_ide_package_.com.webscare.urducanvas.common.views.GradientBarView.onStopMoved = { idx, newPos ->
+            onStopMoved = { idx, newPos ->
                 viewModel.moveStop(idx, newPos)
                 mainViewModel.updateGradient(viewModel.gradient.value!!)
             }
-            _root_ide_package_.com.webscare.urducanvas.common.views.GradientBarView.onStopSelected = { idx ->
+            onStopSelected = { idx ->
                 viewModel.selectStop(idx)
                 childFragmentManager
                     .beginTransaction()
@@ -151,7 +151,7 @@ class GradientEditorFragment : androidx.fragment.app.Fragment() {
                     .addToBackStack(null)
                     .commit()
             }
-            _root_ide_package_.com.webscare.urducanvas.common.views.GradientBarView.onStopRemoved = { idx ->
+            onStopRemoved = { idx ->
                 viewModel.removeStop(idx)
                 mainViewModel.updateGradient(viewModel.gradient.value!!)
             }

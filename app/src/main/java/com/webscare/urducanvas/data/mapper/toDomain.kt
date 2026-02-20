@@ -1,7 +1,7 @@
 package com.webscare.urducanvas.data.mapper
 
-import com.example.urduphotodesigner.common.canvas.model.GradientItem
-import com.example.urduphotodesigner.data.model.GradientEntity
+import com.webscare.urducanvas.common.canvas.model.GradientItem
+import com.webscare.urducanvas.data.model.GradientEntity
 
 fun com.webscare.urducanvas.data.model.GradientEntity.toDomain() =
     _root_ide_package_.com.webscare.urducanvas.common.canvas.model.GradientItem(

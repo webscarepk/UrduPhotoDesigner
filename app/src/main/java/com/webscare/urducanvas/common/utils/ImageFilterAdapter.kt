@@ -1,11 +1,10 @@
 package com.webscare.urducanvas.common.utils
 
-import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
+import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import com.google.gson.TypeAdapter
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonToken
 import com.google.gson.stream.JsonWriter
-import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 
 class ImageFilterAdapter : TypeAdapter<ImageFilter>() {
 

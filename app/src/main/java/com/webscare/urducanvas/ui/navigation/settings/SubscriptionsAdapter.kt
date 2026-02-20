@@ -6,10 +6,10 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.data.model.SubscriptionPlan
-import com.example.urduphotodesigner.databinding.LayoutSubscriptionsItemBinding
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.data.model.SubscriptionPlan
+import com.webscare.urducanvas.databinding.LayoutSubscriptionsItemBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class SubscriptionsAdapter(

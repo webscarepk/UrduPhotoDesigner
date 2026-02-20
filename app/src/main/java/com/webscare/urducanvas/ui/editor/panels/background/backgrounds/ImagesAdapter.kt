@@ -19,16 +19,16 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.utils.Constants
-import com.example.urduphotodesigner.data.model.ImageEntity
-import com.example.urduphotodesigner.databinding.LayoutImagesItemBinding
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.utils.Constants
+import com.webscare.urducanvas.data.model.ImageEntity
+import com.webscare.urducanvas.databinding.LayoutImagesItemBinding
 import androidx.core.graphics.createBitmap
 import androidx.core.view.isVisible
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
-import com.example.urduphotodesigner.common.utils.ImageProcessor
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.common.utils.ImageProcessor
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class ImagesAdapter(

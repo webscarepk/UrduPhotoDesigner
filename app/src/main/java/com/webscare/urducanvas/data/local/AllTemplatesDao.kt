@@ -5,7 +5,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Delete
 import androidx.room.OnConflictStrategy
-import com.example.urduphotodesigner.data.model.TemplateEntity
+import com.webscare.urducanvas.data.model.TemplateEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao

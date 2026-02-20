@@ -34,7 +34,7 @@
         android:orientation="vertical"
         android:id="@+id/endGuide"/>
 
-    <com.example.urduphotodesigner.common.views.ZoomableImageView
+    <com.webscare.urducanvas.common.views.ZoomableImageView
         android:id="@+id/zoomableImage"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

@@ -14,10 +14,6 @@ import android.graphics.PorterDuffXfermode
 import android.graphics.RadialGradient
 import android.graphics.Shader
 import android.graphics.SweepGradient
-import com.example.urduphotodesigner.common.canvas.enums.BrushStyle
-import com.example.urduphotodesigner.common.canvas.enums.GradientType
-import com.example.urduphotodesigner.common.canvas.model.GradientItem
-import com.example.urduphotodesigner.common.canvas.model.StrokeData
 import com.webscare.urducanvas.common.canvas.enums.BrushStyle
 import com.webscare.urducanvas.common.canvas.enums.GradientType
 import com.webscare.urducanvas.common.canvas.model.GradientItem
@@ -86,7 +82,7 @@ object BrushRenderUtils {
 
             // 🌈 Gradient or solid color
             stroke.gradient?.let {
-                Paint.setShader = createBackgroundGradientShader(it, width.toFloat(), height.toFloat())
+                shader = createBackgroundGradientShader(it, width.toFloat(), height.toFloat())
             } ?: run { color = stroke.color }
 
             val hardness = stroke.hardness.coerceIn(0f, 1f)
@@ -94,24 +90,24 @@ object BrushRenderUtils {
             when (stroke.style) {
                 BrushStyle.PENCIL -> {
                     alpha = (150 + 90 * hardness).toInt()
-                    Paint.setPathEffect = DashPathEffect(floatArrayOf(4f, 5f, 1f, 3f), 0f)
-                    Paint.setMaskFilter = null
+                    pathEffect = DashPathEffect(floatArrayOf(4f, 5f, 1f, 3f), 0f)
+                    maskFilter = null
                 }
 
                 BrushStyle.MARKER -> {
                     strokeCap = Paint.Cap.BUTT
                     alpha = (90 + 160 * hardness).toInt()
-                    Paint.setMaskFilter = null
+                    maskFilter = null
                 }
 
                 BrushStyle.HIGHLIGHTER -> {
                     strokeCap = Paint.Cap.BUTT
                     alpha = (60 + 100 * hardness).toInt()
-                    Paint.setMaskFilter = null
+                    maskFilter = null
                 }
 
                 BrushStyle.BRUSH -> {
-                    Paint.setMaskFilter = if (hardness < 0.9f)
+                    maskFilter = if (hardness < 0.9f)
                         BlurMaskFilter((1f - hardness) * 25f, BlurMaskFilter.Blur.NORMAL)
                     else null
                     alpha = (200 + 55 * hardness).toInt()
@@ -119,12 +115,12 @@ object BrushRenderUtils {
 
                 BrushStyle.PEN -> {
                     alpha = (120 + 135 * hardness).toInt() // softer = lighter
-                    Paint.setMaskFilter = null
+                    maskFilter = null
                 }
 
                 BrushStyle.ERASER -> {
-                    Paint.setXfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
-                    Paint.setMaskFilter = null
+                    xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+                    maskFilter = null
                 }
             }
         }
@@ -174,7 +170,7 @@ object BrushRenderUtils {
             strokeJoin = Paint.Join.ROUND
             strokeCap = Paint.Cap.ROUND
             isAntiAlias = true
-            Paint.setMaskFilter = null
+            maskFilter = null
             alpha = paintAlpha
             setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
         }
@@ -187,8 +183,8 @@ object BrushRenderUtils {
             style = Paint.Style.STROKE
             strokeCap = Paint.Cap.ROUND
             color = Color.TRANSPARENT
-            Paint.setXfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
-            Paint.setMaskFilter = null
+            xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+            maskFilter = null
             setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
         }
 

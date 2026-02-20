@@ -9,11 +9,11 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
-import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.data.model.PanelTabs
-import com.example.urduphotodesigner.databinding.FragmentAppearanceBinding
-import com.example.urduphotodesigner.ui.editor.panels.text.appearance.adapters.AppearancePagerAdapter
-import com.example.urduphotodesigner.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.data.model.PanelTabs
+import com.webscare.urducanvas.databinding.FragmentAppearanceBinding
+import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.AppearancePagerAdapter
+import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 

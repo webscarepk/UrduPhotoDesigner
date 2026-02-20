@@ -9,11 +9,11 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.canvas.sealed.FontDownloadState
-import com.example.urduphotodesigner.data.model.FontEntity
-import com.example.urduphotodesigner.databinding.FragmentFontsListBinding
-import com.example.urduphotodesigner.viewmodels.MainViewModel
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
+import com.webscare.urducanvas.data.model.FontEntity
+import com.webscare.urducanvas.databinding.FragmentFontsListBinding
+import com.webscare.urducanvas.viewmodels.MainViewModel
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.combine

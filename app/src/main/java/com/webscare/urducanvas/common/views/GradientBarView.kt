@@ -12,7 +12,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import androidx.annotation.ColorInt
-import com.example.urduphotodesigner.common.canvas.model.GradientItem
+import com.webscare.urducanvas.common.canvas.model.GradientItem
 import kotlin.math.abs
 
 class GradientBarView @JvmOverloads constructor(

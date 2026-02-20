@@ -7,57 +7,14 @@ import android.graphics.Path
 import android.graphics.Typeface
 import android.util.Log
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.scale
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.canvas.enums.BlendType
-import com.example.urduphotodesigner.common.canvas.enums.BrushStyle
-import com.example.urduphotodesigner.common.canvas.enums.ElementType
-import com.example.urduphotodesigner.common.canvas.enums.GradientPickerTarget
-import com.example.urduphotodesigner.common.canvas.enums.GradientType
-import com.example.urduphotodesigner.common.canvas.enums.LabelShape
-import com.example.urduphotodesigner.common.canvas.enums.LetterCasing
-import com.example.urduphotodesigner.common.canvas.enums.ListStyle
-import com.example.urduphotodesigner.common.canvas.enums.PickerTarget
-import com.example.urduphotodesigner.common.canvas.enums.ShapeType
-import com.example.urduphotodesigner.common.canvas.enums.TextAlignment
-import com.example.urduphotodesigner.common.canvas.enums.TextDecoration
-import com.example.urduphotodesigner.common.canvas.enums.UnitType
-import com.example.urduphotodesigner.common.canvas.model.AdjustmentValues
-import com.example.urduphotodesigner.common.canvas.model.CanvasElement
-import com.example.urduphotodesigner.common.canvas.model.CanvasSize
-import com.example.urduphotodesigner.common.canvas.model.ExportFormat
-import com.example.urduphotodesigner.common.canvas.model.ExportOptions
-import com.example.urduphotodesigner.common.canvas.model.ExportQuality
-import com.example.urduphotodesigner.common.canvas.model.ExportResolution
-import com.example.urduphotodesigner.common.canvas.model.GradientItem
-import com.example.urduphotodesigner.common.canvas.sealed.BatchedCanvasAction
-import com.example.urduphotodesigner.common.canvas.sealed.CanvasAction
-import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
-import com.example.urduphotodesigner.common.datastore.PreferenceDataStoreKeysConstants
-import com.example.urduphotodesigner.common.datastore.PreferencesDataStoreHelper
-import com.example.urduphotodesigner.common.utils.ImageProcessor
-import com.example.urduphotodesigner.common.views.CanvasView
-import com.example.urduphotodesigner.data.model.ExportResult
-import com.example.urduphotodesigner.data.model.FontEntity
-import com.example.urduphotodesigner.domain.usecase.GetFontsUseCase
-import com.example.urduphotodesigner.viewmodels.FontGate
 import com.google.gson.Gson
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.util.Stack
-import java.util.UUID
-import javax.inject.Inject
-import androidx.core.graphics.scale
+import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.BlendType
 import com.webscare.urducanvas.common.canvas.enums.BrushStyle
 import com.webscare.urducanvas.common.canvas.enums.ElementType
@@ -90,7 +47,17 @@ import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.domain.usecase.GetFontsUseCase
 import com.webscare.urducanvas.viewmodels.FontGate
-import kotlin.collections.plus
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.util.Stack
+import java.util.UUID
+import javax.inject.Inject
 
 @HiltViewModel
 class CanvasViewModel @Inject constructor(
@@ -479,8 +446,7 @@ class CanvasViewModel @Inject constructor(
             // 🧠 Only apply if it's a shape
             if (element.type == ElementType.SHAPE) {
                 element.copy(
-                    context = context,
-                    bitmap = bitmap
+                    context = context, bitmap = bitmap
                 )
             } else {
                 element
@@ -508,7 +474,11 @@ class CanvasViewModel @Inject constructor(
         val updatedList = currentList.map { element ->
             if (element.id == updatedElement.id) {
                 val oldElement = element.copy()
-                _canvasActions.push(CanvasAction.UpdateElement(element.id, updatedElement, oldElement))
+                _canvasActions.push(
+                    CanvasAction.UpdateElement(
+                        element.id, updatedElement, oldElement
+                    )
+                )
                 updatedElement
             } else {
                 element
@@ -559,8 +529,10 @@ class CanvasViewModel @Inject constructor(
             context = context,
             type = ElementType.SHAPE,  // Change the type to SHAPE
             shapeType = shapeType,  // Apply the selected shape
-            shapeHasStroke = _shapeStrokeEnabled.value ?: true,  // Retain stroke properties from current shape
-            shapeHasFill = _shapeFillEnabled.value ?: true,  // Retain fill properties from current shape
+            shapeHasStroke = _shapeStrokeEnabled.value
+                ?: true,  // Retain stroke properties from current shape
+            shapeHasFill = _shapeFillEnabled.value
+                ?: true,  // Retain fill properties from current shape
             shapeStrokeWidth = _shapeStrokeWidth.value ?: 1f,
             shapeCornerRadius = _shapeCornerRadius.value ?: 0f,
             shapeStrokeColor = _shapeStrokeColor.value ?: Color.BLACK,
@@ -1608,9 +1580,11 @@ class CanvasViewModel @Inject constructor(
                 }
             } else {
                 // Ensure non-text elements or text elements without fontId also have a default typeface if applicable
-                elementToUpdate.paint.typeface =
-                    elementToUpdate.context?.let { ResourcesCompat.getFont(it, R.font.default_canvas) }
-                        ?: Typeface.DEFAULT
+                elementToUpdate.paint.typeface = elementToUpdate.context?.let {
+                    ResourcesCompat.getFont(
+                        it, R.font.default_canvas
+                    )
+                } ?: Typeface.DEFAULT
             }
 
 
@@ -1673,9 +1647,11 @@ class CanvasViewModel @Inject constructor(
                     } ?: Typeface.DEFAULT
                 }
             } else {
-                copiedElement.paint.typeface =
-                    copiedElement.context?.let { ResourcesCompat.getFont(it, R.font.default_canvas) }
-                        ?: Typeface.DEFAULT
+                copiedElement.paint.typeface = copiedElement.context?.let {
+                    ResourcesCompat.getFont(
+                        it, R.font.default_canvas
+                    )
+                } ?: Typeface.DEFAULT
             }
             copiedElement
         }
@@ -1708,7 +1684,8 @@ class CanvasViewModel @Inject constructor(
                 paint.typeface = if (type == ElementType.TEXT && fontId != null) {
                     applyTypefaceFromFontList()
                 } else {
-                    context?.let { ResourcesCompat.getFont(it, R.font.default_canvas) } ?: Typeface.DEFAULT
+                    context?.let { ResourcesCompat.getFont(it, R.font.default_canvas) }
+                        ?: Typeface.DEFAULT
                 }
             }
             copiedElement
@@ -1739,26 +1716,19 @@ class CanvasViewModel @Inject constructor(
     fun applyMaskToSelected(maskedBitmap: Bitmap) {
         val currentList = canvasElements.value ?: return
         val selected = currentList.firstOrNull {
-            it.isSelected &&
-                    (it.type == ElementType.IMAGE ||
-                            it.type == ElementType.STICKER ||
-                            it.type == ElementType.SHAPE ||
-                            it.type == ElementType.BACKGROUND)
+            it.isSelected && (it.type == ElementType.IMAGE || it.type == ElementType.STICKER || it.type == ElementType.SHAPE || it.type == ElementType.BACKGROUND)
         } ?: return
 
         val context = selected.context ?: return
 
         val oldCopy = selected.copy(
-            context = null,
-            bitmap = null
+            context = null, bitmap = null
         )
 
         val newBitmapData = ImageProcessor.bitmapToBase64(maskedBitmap)
 
         val newElement = selected.copy(
-            context = context,
-            bitmap = maskedBitmap,
-            bitmapData = newBitmapData
+            context = context, bitmap = maskedBitmap, bitmapData = newBitmapData
         ).apply {
             updatePaintProperties()
         }
@@ -1787,8 +1757,9 @@ class CanvasViewModel @Inject constructor(
                 try {
                     Typeface.createFromFile(path)
                 } catch (e: Exception) {
-                    ResourcesCompat.getFont(context ?: return Typeface.DEFAULT, R.font.default_canvas)
-                        ?: Typeface.DEFAULT
+                    ResourcesCompat.getFont(
+                        context ?: return Typeface.DEFAULT, R.font.default_canvas
+                    ) ?: Typeface.DEFAULT
                 }
             } ?: ResourcesCompat.getFont(context ?: return Typeface.DEFAULT, R.font.default_canvas)
             ?: Typeface.DEFAULT
@@ -1815,7 +1786,8 @@ class CanvasViewModel @Inject constructor(
         refreshSelectedElements()
 
         val firstText = selectedListFromCanvas.firstOrNull { it.type == ElementType.TEXT }
-        val firstImage = selectedListFromCanvas.firstOrNull { it.type == ElementType.IMAGE || it.type == ElementType.STICKER }
+        val firstImage =
+            selectedListFromCanvas.firstOrNull { it.type == ElementType.IMAGE || it.type == ElementType.STICKER }
         val firstDraw = selectedListFromCanvas.firstOrNull { it.type == ElementType.DRAW }
         val firstShape = selectedListFromCanvas.firstOrNull { it.type == ElementType.SHAPE }
 
@@ -1863,6 +1835,7 @@ class CanvasViewModel @Inject constructor(
                     _imageFitMode.value = firstShape.imageFitMode ?: "cover"
                 }
             }
+
             else -> {
                 // No text, image, or draw → reset brushes
                 _brushColor.value = Color.BLACK
@@ -2040,8 +2013,7 @@ class CanvasViewModel @Inject constructor(
         if (imageW > maxAllowedW || imageH > maxAllowedH) {
 
             val scaleFactor = minOf(
-                maxAllowedW / imageW,
-                maxAllowedH / imageH
+                maxAllowedW / imageW, maxAllowedH / imageH
             )
 
             val scaledWidth = (imageW * scaleFactor).toInt()
@@ -2715,9 +2687,9 @@ class CanvasViewModel @Inject constructor(
                 if (isRedo) {
                     // Reapply context, paint, typeface, then add
                     val restored = action.element.copy(context = context).apply {
-                        CanvasElement.updatePaintProperties()
-                        CanvasElement.paint.typeface = applyTypefaceFromFontList(context)
-                        originalTypeface = CanvasElement.paint.typeface
+                        updatePaintProperties()
+                        paint.typeface = applyTypefaceFromFontList(context)
+                        originalTypeface = paint.typeface
                     }
                     _canvasElements.value = currentList + restored
                 } else {
@@ -2755,9 +2727,11 @@ class CanvasViewModel @Inject constructor(
                                     copied.fontId = null
                                 }
                             } else {
-                                copied.paint.typeface =
-                                    context?.let { ResourcesCompat.getFont(it, R.font.default_canvas) }
-                                        ?: Typeface.DEFAULT
+                                copied.paint.typeface = context?.let {
+                                    ResourcesCompat.getFont(
+                                        it, R.font.default_canvas
+                                    )
+                                } ?: Typeface.DEFAULT
                                 copied.fontId = null
                             }
                         } else {
@@ -2975,10 +2949,9 @@ class CanvasViewModel @Inject constructor(
                 val jsonContent = jsonFile.readText()
                 val elements = gson.fromJson(jsonContent, Array<CanvasElement>::class.java).toList()
 
-                val requiredFontIds = elements
-                    .filter { it.type == ElementType.TEXT }
-                    .mapNotNull { it.fontId }
-                    .distinct()
+                val requiredFontIds =
+                    elements.filter { it.type == ElementType.TEXT }.mapNotNull { it.fontId }
+                        .distinct()
 
                 _loadingStage.postValue("Preparing fonts" to 40)
 

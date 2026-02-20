@@ -4,13 +4,13 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.example.urduphotodesigner.data.model.ExportResult
-import com.example.urduphotodesigner.data.model.FontEntity
-import com.example.urduphotodesigner.data.model.GradientEntity
-import com.example.urduphotodesigner.data.model.ImageEntity
-import com.example.urduphotodesigner.data.model.TemplateEntity
-import com.example.urduphotodesigner.data.model.TrendEntity
-import com.example.urduphotodesigner.data.model.TrendTemplateCrossRef
+import com.webscare.urducanvas.data.model.ExportResult
+import com.webscare.urducanvas.data.model.FontEntity
+import com.webscare.urducanvas.data.model.GradientEntity
+import com.webscare.urducanvas.data.model.ImageEntity
+import com.webscare.urducanvas.data.model.TemplateEntity
+import com.webscare.urducanvas.data.model.TrendEntity
+import com.webscare.urducanvas.data.model.TrendTemplateCrossRef
 
 @androidx.room.Database(
     entities = [_root_ide_package_.com.webscare.urducanvas.data.model.FontEntity::class, _root_ide_package_.com.webscare.urducanvas.data.model.ImageEntity::class, _root_ide_package_.com.webscare.urducanvas.data.model.GradientEntity::class, _root_ide_package_.com.webscare.urducanvas.data.model.ExportResult::class, _root_ide_package_.com.webscare.urducanvas.data.model.TemplateEntity::class, _root_ide_package_.com.webscare.urducanvas.data.model.TrendEntity::class, _root_ide_package_.com.webscare.urducanvas.data.model.TrendTemplateCrossRef::class],

@@ -2,7 +2,6 @@ package com.webscare.urducanvas.common.canvas.model
 
 import android.graphics.Path
 import android.graphics.PathMeasure
-import com.example.urduphotodesigner.common.canvas.enums.BrushStyle
 import com.webscare.urducanvas.common.canvas.enums.BrushStyle
 import java.io.Serializable
 

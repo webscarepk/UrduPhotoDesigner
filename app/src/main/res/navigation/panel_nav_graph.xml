@@ -7,52 +7,52 @@
 
     <fragment
         android:id="@+id/textFragment"
-        android:name="com.example.urduphotodesigner.ui.editor.panels.text.TextFragment"
+        android:name="com.webscare.urducanvas.ui.editor.panels.text.TextFragment"
         android:label="fragment_text"
         tools:layout="@layout/fragment_text" />
     <fragment
         android:id="@+id/backgroundsFragment"
-        android:name="com.example.urduphotodesigner.ui.editor.panels.background.BackgroundsFragment"
+        android:name="com.webscare.urducanvas.ui.editor.panels.background.BackgroundsFragment"
         android:label="fragment_backgrounds"
         tools:layout="@layout/fragment_backgrounds" />
     <fragment
         android:id="@+id/imagesFragment"
-        android:name="com.example.urduphotodesigner.ui.editor.panels.images.ImagesFragment"
+        android:name="com.webscare.urducanvas.ui.editor.panels.images.ImagesFragment"
         android:label="fragment_images"
         tools:layout="@layout/fragment_images" />
     <fragment
         android:id="@+id/objectsFragment"
-        android:name="com.example.urduphotodesigner.ui.editor.panels.objects.ObjectsFragment"
+        android:name="com.webscare.urducanvas.ui.editor.panels.objects.ObjectsFragment"
         android:label="fragment_objects"
         tools:layout="@layout/fragment_objects" />
     <fragment
         android:id="@+id/layersFragment"
-        android:name="com.example.urduphotodesigner.ui.editor.panels.layers.LayersFragment"
+        android:name="com.webscare.urducanvas.ui.editor.panels.layers.LayersFragment"
         android:label="fragment_layers"
         tools:layout="@layout/fragment_layers" />
     <fragment
         android:id="@+id/filtersFragment"
-        android:name="com.example.urduphotodesigner.ui.editor.panels.adjustments.filters.FiltersFragment"
+        android:name="com.webscare.urducanvas.ui.editor.panels.adjustments.filters.FiltersFragment"
         android:label="fragment_filters"
         tools:layout="@layout/fragment_filters" />
     <fragment
         android:id="@+id/colorPickerFragment"
-        android:name="com.example.urduphotodesigner.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment"
+        android:name="com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment"
         android:label="fragment_color_picker"
         tools:layout="@layout/fragment_color_picker" />
     <fragment
         android:id="@+id/adjustmentsFragment"
-        android:name="com.example.urduphotodesigner.ui.editor.panels.adjustments.custom.AdjustmentsFragment"
+        android:name="com.webscare.urducanvas.ui.editor.panels.adjustments.custom.AdjustmentsFragment"
         android:label="fragment_adjustments"
         tools:layout="@layout/fragment_adjustments" />
     <fragment
         android:id="@+id/adjustmentsParentFragment"
-        android:name="com.example.urduphotodesigner.ui.editor.panels.adjustments.AdjustmentsParentFragment"
+        android:name="com.webscare.urducanvas.ui.editor.panels.adjustments.AdjustmentsParentFragment"
         android:label="fragment_adjustments_parent"
         tools:layout="@layout/fragment_adjustments_parent" />
     <fragment
         android:id="@+id/drawFragment"
-        android:name="com.example.urduphotodesigner.ui.editor.panels.draw.DrawFragment"
+        android:name="com.webscare.urducanvas.ui.editor.panels.draw.DrawFragment"
         android:label="fragment_draw"
         tools:layout="@layout/fragment_draw" />
 </navigation>

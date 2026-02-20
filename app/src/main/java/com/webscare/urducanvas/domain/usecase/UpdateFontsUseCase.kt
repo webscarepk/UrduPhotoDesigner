@@ -1,7 +1,7 @@
 package com.webscare.urducanvas.domain.usecase
 
-import com.example.urduphotodesigner.data.model.FontEntity
-import com.example.urduphotodesigner.domain.repo.FontsRepo
+import com.webscare.urducanvas.data.model.FontEntity
+import com.webscare.urducanvas.domain.repo.FontsRepo
 import javax.inject.Inject
 
 class UpdateFontsUseCase @Inject constructor(

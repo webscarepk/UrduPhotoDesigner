@@ -6,7 +6,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.OnConflictStrategy
 import androidx.room.Update
-import com.example.urduphotodesigner.data.model.FontEntity
+import com.webscare.urducanvas.data.model.FontEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao

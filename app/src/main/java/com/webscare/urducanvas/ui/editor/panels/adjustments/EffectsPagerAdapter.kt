@@ -4,9 +4,9 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.Lifecycle
 import androidx.viewpager2.adapter.FragmentStateAdapter
-import com.example.urduphotodesigner.ui.editor.panels.adjustments.custom.AdjustmentsFragment
-import com.example.urduphotodesigner.ui.editor.panels.adjustments.filters.FiltersFragment
-import com.example.urduphotodesigner.ui.editor.panels.adjustments.mask.MaskFragment
+import com.webscare.urducanvas.ui.editor.panels.adjustments.custom.AdjustmentsFragment
+import com.webscare.urducanvas.ui.editor.panels.adjustments.filters.FiltersFragment
+import com.webscare.urducanvas.ui.editor.panels.adjustments.mask.MaskFragment
 
 class EffectsPagerAdapter(
     fragmentManager: FragmentManager,

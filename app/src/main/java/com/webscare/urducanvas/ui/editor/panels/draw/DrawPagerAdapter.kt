@@ -4,9 +4,9 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.Lifecycle
 import androidx.viewpager2.adapter.FragmentStateAdapter
-import com.example.urduphotodesigner.ui.editor.panels.draw.brush.BrushFragment
-import com.example.urduphotodesigner.ui.editor.panels.adjustments.mask.MaskFragment
-import com.example.urduphotodesigner.ui.editor.panels.draw.shape.ShapeFragment
+import com.webscare.urducanvas.ui.editor.panels.draw.brush.BrushFragment
+import com.webscare.urducanvas.ui.editor.panels.adjustments.mask.MaskFragment
+import com.webscare.urducanvas.ui.editor.panels.draw.shape.ShapeFragment
 
 class DrawPagerAdapter(
     fragmentManager: FragmentManager,

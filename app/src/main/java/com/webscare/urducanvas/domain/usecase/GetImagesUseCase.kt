@@ -1,7 +1,7 @@
 package com.webscare.urducanvas.domain.usecase
 
-import com.example.urduphotodesigner.data.model.ImageEntity
-import com.example.urduphotodesigner.domain.repo.ImagesRepo
+import com.webscare.urducanvas.data.model.ImageEntity
+import com.webscare.urducanvas.domain.repo.ImagesRepo
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 

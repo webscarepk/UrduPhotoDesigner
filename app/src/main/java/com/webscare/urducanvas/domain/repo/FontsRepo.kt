@@ -1,6 +1,6 @@
 package com.webscare.urducanvas.domain.repo
 
-import com.example.urduphotodesigner.data.model.FontEntity
+import com.webscare.urducanvas.data.model.FontEntity
 import kotlinx.coroutines.flow.Flow
 
 interface FontsRepo {

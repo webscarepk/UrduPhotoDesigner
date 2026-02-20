@@ -49,30 +49,30 @@ import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.setupWithNavController
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.canvas.CanvasManager
-import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.canvas.enums.BlendType
-import com.example.urduphotodesigner.common.canvas.enums.ElementType
-import com.example.urduphotodesigner.common.canvas.enums.HAlign
-import com.example.urduphotodesigner.common.canvas.enums.MultiAlignMode
-import com.example.urduphotodesigner.common.canvas.enums.PickerTarget
-import com.example.urduphotodesigner.common.canvas.enums.UnitType
-import com.example.urduphotodesigner.common.canvas.enums.VAlign
-import com.example.urduphotodesigner.common.canvas.model.CanvasElement
-import com.example.urduphotodesigner.common.canvas.model.CanvasSize
-import com.example.urduphotodesigner.common.canvas.model.ExportOptions
-import com.example.urduphotodesigner.common.utils.BitmapCache
-import com.example.urduphotodesigner.common.utils.Converter.cmToPx
-import com.example.urduphotodesigner.common.utils.Converter.inchesToPx
-import com.example.urduphotodesigner.common.utils.ImageProcessor
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.common.views.CanvasView
-import com.example.urduphotodesigner.data.model.ExportResult
-import com.example.urduphotodesigner.databinding.DialogAutoSavingLayoutBinding
-import com.example.urduphotodesigner.databinding.FragmentEditorBinding
-import com.example.urduphotodesigner.databinding.LayoutBlendPopupBinding
-import com.example.urduphotodesigner.viewmodels.MainViewModel
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.CanvasManager
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.canvas.enums.BlendType
+import com.webscare.urducanvas.common.canvas.enums.ElementType
+import com.webscare.urducanvas.common.canvas.enums.HAlign
+import com.webscare.urducanvas.common.canvas.enums.MultiAlignMode
+import com.webscare.urducanvas.common.canvas.enums.PickerTarget
+import com.webscare.urducanvas.common.canvas.enums.UnitType
+import com.webscare.urducanvas.common.canvas.enums.VAlign
+import com.webscare.urducanvas.common.canvas.model.CanvasElement
+import com.webscare.urducanvas.common.canvas.model.CanvasSize
+import com.webscare.urducanvas.common.canvas.model.ExportOptions
+import com.webscare.urducanvas.common.utils.BitmapCache
+import com.webscare.urducanvas.common.utils.Converter.cmToPx
+import com.webscare.urducanvas.common.utils.Converter.inchesToPx
+import com.webscare.urducanvas.common.utils.ImageProcessor
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.common.views.CanvasView
+import com.webscare.urducanvas.data.model.ExportResult
+import com.webscare.urducanvas.databinding.DialogAutoSavingLayoutBinding
+import com.webscare.urducanvas.databinding.FragmentEditorBinding
+import com.webscare.urducanvas.databinding.LayoutBlendPopupBinding
+import com.webscare.urducanvas.viewmodels.MainViewModel
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
@@ -1407,7 +1407,7 @@ class EditorFragment : androidx.fragment.app.Fragment() {
     private fun startIconRotation() {
         exportDialogBinding?.view4?.let { icon ->
             rotationAnimator = ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, 360f).apply {
-                _root_ide_package_.android.animation.ObjectAnimator.setDuration = 1000L
+                duration = 1000L
                 repeatCount = ValueAnimator.INFINITE
                 interpolator = LinearInterpolator()
                 start()

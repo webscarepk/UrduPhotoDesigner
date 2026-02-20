@@ -8,10 +8,10 @@ import android.view.animation.AnimationUtils
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.data.model.SubscriptionPlan
-import com.example.urduphotodesigner.databinding.FragmentSubscriptionsBinding
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.data.model.SubscriptionPlan
+import com.webscare.urducanvas.databinding.FragmentSubscriptionsBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
 

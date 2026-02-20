@@ -9,10 +9,10 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.content.res.ResourcesCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.canvas.model.EmojiMeta
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.databinding.ItemEmojiBinding
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.model.EmojiMeta
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.databinding.ItemEmojiBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class EmojiAdapter(
@@ -55,7 +55,7 @@ class EmojiAdapter(
         val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             textSize = sizePx * 0.8f
             textAlign = Paint.Align.CENTER
-            _root_ide_package_.android.graphics.Paint.setTypeface = ResourcesCompat.getFont(context,
+            typeface = ResourcesCompat.getFont(context,
                 R.font.symbols)
                 ?: Typeface.DEFAULT
         }

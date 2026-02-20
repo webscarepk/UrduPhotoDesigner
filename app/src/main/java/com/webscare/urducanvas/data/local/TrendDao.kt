@@ -5,9 +5,9 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
-import com.example.urduphotodesigner.data.model.TrendEntity
-import com.example.urduphotodesigner.data.model.TrendTemplateCrossRef
-import com.example.urduphotodesigner.data.model.TrendWithTemplates
+import com.webscare.urducanvas.data.model.TrendEntity
+import com.webscare.urducanvas.data.model.TrendTemplateCrossRef
+import com.webscare.urducanvas.data.model.TrendWithTemplates
 import kotlinx.coroutines.flow.Flow
 
 @Dao

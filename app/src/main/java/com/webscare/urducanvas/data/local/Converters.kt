@@ -1,8 +1,8 @@
 package com.webscare.urducanvas.data.local
 
 import androidx.room.TypeConverter
-import com.example.urduphotodesigner.common.canvas.enums.GradientType
-import com.example.urduphotodesigner.common.canvas.model.CanvasSize
+import com.webscare.urducanvas.common.canvas.enums.GradientType
+import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 

@@ -15,35 +15,22 @@ import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.animation.LinearInterpolator
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.canvas.model.CanvasSize
-import com.example.urduphotodesigner.common.canvas.sealed.FontDownloadState
-import com.example.urduphotodesigner.common.canvas.sealed.TemplateDownloadState
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.common.utils.showGlobalSuccessSnack
-import com.example.urduphotodesigner.data.model.ProgressUi
-import com.example.urduphotodesigner.data.model.TemplateEntity
-import com.example.urduphotodesigner.data.model.toExportResultFinal
-import com.example.urduphotodesigner.databinding.DialogLoadingProgressBinding
-import com.example.urduphotodesigner.databinding.FragmentHomeBinding
-import com.example.urduphotodesigner.ui.creation.CreateFragment
-import com.example.urduphotodesigner.viewmodels.MainViewModel
 import com.google.android.material.snackbar.Snackbar
+import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.utils.showGlobalSuccessSnack
 import com.webscare.urducanvas.data.model.toExportResultFinal
+import com.webscare.urducanvas.databinding.DialogLoadingProgressBinding
+import com.webscare.urducanvas.databinding.FragmentHomeBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.collections.forEach
 
 @AndroidEntryPoint
 class HomeFragment : androidx.fragment.app.Fragment() {
@@ -75,9 +62,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
                 val canvasSize =
                     _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-                        "From Image",
-                        widthVal,
-                        heightVal
+                        "From Image", widthVal, heightVal
                     )
 
                 viewModel.clearCanvas()
@@ -134,7 +119,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
     private fun startIconRotation() {
         dialogBinding?.view4?.let { icon ->
             rotationAnimator = ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, 360f).apply {
-                _root_ide_package_.android.animation.ObjectAnimator.setDuration = 1000L
+                duration = 1000L
                 repeatCount = ValueAnimator.INFINITE
                 interpolator = LinearInterpolator()
                 start()
@@ -172,9 +157,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
             } else {
                 viewModel.setCanvasSize(
                     _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-                        "",
-                        2000f,
-                        2000f
+                        "", 2000f, 2000f
                     )
                 )
                 viewModel.addTextWithFont(
@@ -224,9 +207,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                     popularTemplatesAdapter.updateProgress(
                         template.id,
                         _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
-                            progress = 0,
-                            isDownloading = true,
-                            isDownloaded = false
+                            progress = 0, isDownloading = true, isDownloaded = false
                         )
                     )
                     mainViewModel.downloadTemplate(template)
@@ -242,11 +223,8 @@ class HomeFragment : androidx.fragment.app.Fragment() {
             } else {
                 downloadingTemplate = template
                 popularTemplatesAdapter.updateProgress(
-                    template.id,
-                    _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
-                        progress = 0,
-                        isDownloading = true,
-                        isDownloaded = false
+                    template.id, _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
+                        progress = 0, isDownloading = true, isDownloaded = false
                     )
                 )
                 mainViewModel.downloadTemplate(template)
@@ -342,9 +320,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                             val t = state.template
                             val ui =
                                 _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
-                                    100,
-                                    isDownloading = false,
-                                    isDownloaded = true
+                                    100, isDownloading = false, isDownloaded = true
                                 )
                             trendsAdapter.updateTemplateProgress(
                                 t.id, 100, isDownloading = false, isDownloaded = true
@@ -371,9 +347,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                         is com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState.Error -> {
                             val ui =
                                 _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
-                                    0,
-                                    isDownloading = false,
-                                    isDownloaded = false
+                                    0, isDownloading = false, isDownloaded = false
                                 )
                             downloadingTemplate?.let { t ->
                                 trendsAdapter.updateTemplateProgress(
@@ -441,9 +415,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                             fontsAdapter.updateProgress(
                                 font.id,
                                 _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
-                                    100,
-                                    isDownloading = false,
-                                    isDownloaded = true
+                                    100, isDownloading = false, isDownloaded = true
                                 )
                             )
 
@@ -455,9 +427,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
                                     viewModel.setCanvasSize(
                                         _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-                                            "",
-                                            2000f,
-                                            2000f
+                                            "", 2000f, 2000f
                                         )
                                     )
                                     viewModel.addTextWithFont(

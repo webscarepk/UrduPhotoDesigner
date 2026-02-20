@@ -14,12 +14,12 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.utils.Constants
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.data.model.ProgressUi
-import com.example.urduphotodesigner.data.model.TemplateEntity
-import com.example.urduphotodesigner.databinding.LayoutTemplateCategoryBinding
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.utils.Constants
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.data.model.ProgressUi
+import com.webscare.urducanvas.data.model.TemplateEntity
+import com.webscare.urducanvas.databinding.LayoutTemplateCategoryBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class TemplatesMiniAdapter(

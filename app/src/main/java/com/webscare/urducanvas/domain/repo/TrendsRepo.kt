@@ -1,7 +1,7 @@
 package com.webscare.urducanvas.domain.repo
 
-import com.example.urduphotodesigner.data.model.TrendResponse
-import com.example.urduphotodesigner.data.model.TrendWithTemplates
+import com.webscare.urducanvas.data.model.TrendResponse
+import com.webscare.urducanvas.data.model.TrendWithTemplates
 import kotlinx.coroutines.flow.Flow
 
 interface TrendsRepo {

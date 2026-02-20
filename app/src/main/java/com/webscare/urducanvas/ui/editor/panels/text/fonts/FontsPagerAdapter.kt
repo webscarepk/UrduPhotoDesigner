@@ -2,7 +2,7 @@ package com.webscare.urducanvas.ui.editor.panels.text.fonts
 
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
-import com.example.urduphotodesigner.data.model.FontLanguages
+import com.webscare.urducanvas.data.model.FontLanguages
 
 class FontsPagerAdapter(
     fragment: Fragment,

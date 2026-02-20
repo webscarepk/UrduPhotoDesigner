@@ -7,14 +7,14 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffectWithLongClick
-import com.example.urduphotodesigner.data.model.ExportResult
-import com.example.urduphotodesigner.data.model.FontEntity
-import com.example.urduphotodesigner.data.model.ImageEntity
-import com.example.urduphotodesigner.databinding.LayoutFilesGridBinding
-import com.example.urduphotodesigner.databinding.LayoutFilesRowBinding
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.common.utils.Utils.addPressEffectWithLongClick
+import com.webscare.urducanvas.data.model.ExportResult
+import com.webscare.urducanvas.data.model.FontEntity
+import com.webscare.urducanvas.data.model.ImageEntity
+import com.webscare.urducanvas.databinding.LayoutFilesGridBinding
+import com.webscare.urducanvas.databinding.LayoutFilesRowBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.utils.Utils.addPressEffectWithLongClick
 

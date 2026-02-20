@@ -1,8 +1,8 @@
 package com.webscare.urducanvas.domain.usecase
 
-import com.example.urduphotodesigner.data.model.TemplateEntity
-import com.example.urduphotodesigner.data.model.TemplatesResponse
-import com.example.urduphotodesigner.domain.repo.TemplatesRepo
+import com.webscare.urducanvas.data.model.TemplateEntity
+import com.webscare.urducanvas.data.model.TemplatesResponse
+import com.webscare.urducanvas.domain.repo.TemplatesRepo
 import javax.inject.Inject
 
 class InsertTemplatesUseCase @Inject constructor(

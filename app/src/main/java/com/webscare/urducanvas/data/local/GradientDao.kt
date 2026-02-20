@@ -5,7 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.example.urduphotodesigner.data.model.GradientEntity
+import com.webscare.urducanvas.data.model.GradientEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao

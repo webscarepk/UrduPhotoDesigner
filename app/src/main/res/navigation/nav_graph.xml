@@ -7,99 +7,99 @@
 
     <fragment
         android:id="@+id/splashFragment"
-        android:name="com.example.urduphotodesigner.ui.splash.SplashFragment"
+        android:name="com.webscare.urducanvas.ui.splash.SplashFragment"
         android:label="fragment_splash"
         tools:layout="@layout/fragment_splash" />
     <fragment
         android:id="@+id/createFragment"
-        android:name="com.example.urduphotodesigner.ui.creation.CreateFragment"
+        android:name="com.webscare.urducanvas.ui.creation.CreateFragment"
         android:label="fragment_create"
         tools:layout="@layout/fragment_create" />
     <fragment
         android:id="@+id/filesFragment"
-        android:name="com.example.urduphotodesigner.ui.navigation.files.FilesFragment"
+        android:name="com.webscare.urducanvas.ui.navigation.files.FilesFragment"
         android:label="fragment_files"
         tools:layout="@layout/fragment_files" />
     <fragment
         android:id="@+id/homeFragment"
-        android:name="com.example.urduphotodesigner.ui.navigation.home.HomeFragment"
+        android:name="com.webscare.urducanvas.ui.navigation.home.HomeFragment"
         android:label="fragment_home"
         tools:layout="@layout/fragment_home" />
     <fragment
         android:id="@+id/loginFragment"
-        android:name="com.example.urduphotodesigner.ui.auth.LoginFragment"
+        android:name="com.webscare.urducanvas.ui.auth.LoginFragment"
         android:label="fragment_login"
         tools:layout="@layout/fragment_login" />
     <fragment
         android:id="@+id/signupFragment"
-        android:name="com.example.urduphotodesigner.ui.auth.SignupFragment"
+        android:name="com.webscare.urducanvas.ui.auth.SignupFragment"
         android:label="fragment_signup"
         tools:layout="@layout/fragment_signup" />
     <fragment
         android:id="@+id/templatesFragment"
-        android:name="com.example.urduphotodesigner.ui.navigation.templates.TemplatesFragment"
+        android:name="com.webscare.urducanvas.ui.navigation.templates.TemplatesFragment"
         android:label="fragment_templates"
         tools:layout="@layout/fragment_templates" />
     <fragment
         android:id="@+id/templatesListFragment"
-        android:name="com.example.urduphotodesigner.ui.navigation.templates.TemplatesListFragment"
+        android:name="com.webscare.urducanvas.ui.navigation.templates.TemplatesListFragment"
         android:label="fragment_templates_list"
         tools:layout="@layout/fragment_templates_list" />
     <fragment
         android:id="@+id/verificationFragment"
-        android:name="com.example.urduphotodesigner.ui.auth.VerificationFragment"
+        android:name="com.webscare.urducanvas.ui.auth.VerificationFragment"
         android:label="fragment_verification"
         tools:layout="@layout/fragment_verification" />
 
     <include app:graph="@navigation/panel_nav_graph" />
     <fragment
         android:id="@+id/editorFragment"
-        android:name="com.example.urduphotodesigner.ui.editor.EditorFragment"
+        android:name="com.webscare.urducanvas.ui.editor.EditorFragment"
         android:label="fragment_editor"
         tools:layout="@layout/fragment_editor" />
     <fragment
         android:id="@+id/exportFragment"
-        android:name="com.example.urduphotodesigner.ui.editor.export.ExportFragment"
+        android:name="com.webscare.urducanvas.ui.editor.export.ExportFragment"
         android:label="fragment_export"
         tools:layout="@layout/fragment_export" />
     <fragment
         android:id="@+id/finishExportFragment"
-        android:name="com.example.urduphotodesigner.ui.editor.export.FinishExportFragment"
+        android:name="com.webscare.urducanvas.ui.editor.export.FinishExportFragment"
         android:label="fragment_finish_export"
         tools:layout="@layout/fragment_finish_export" />
     <fragment
         android:id="@+id/settingsFragment"
-        android:name="com.example.urduphotodesigner.ui.navigation.settings.SettingsFragment"
+        android:name="com.webscare.urducanvas.ui.navigation.settings.SettingsFragment"
         android:label="fragment_settings"
         tools:layout="@layout/fragment_settings" />
     <fragment
         android:id="@+id/subscriptionsFragment"
-        android:name="com.example.urduphotodesigner.ui.navigation.settings.SubscriptionsFragment"
+        android:name="com.webscare.urducanvas.ui.navigation.settings.SubscriptionsFragment"
         android:label="fragment_subscriptions"
         tools:layout="@layout/fragment_subscriptions" />
     <fragment
         android:id="@+id/preferencesFragment"
-        android:name="com.example.urduphotodesigner.ui.navigation.settings.PreferencesFragment"
+        android:name="com.webscare.urducanvas.ui.navigation.settings.PreferencesFragment"
         android:label="fragment_preferences"
         tools:layout="@layout/fragment_preferences" />
     <fragment
         android:id="@+id/popularFontsFragment"
-        android:name="com.example.urduphotodesigner.ui.navigation.fonts.PopularFontsFragment"
+        android:name="com.webscare.urducanvas.ui.navigation.fonts.PopularFontsFragment"
         android:label="fragment_popular_fonts"
         tools:layout="@layout/fragment_popular_fonts" />
     <fragment
         android:id="@+id/previewExportFragment"
-        android:name="com.example.urduphotodesigner.ui.editor.export.PreviewExportFragment"
+        android:name="com.webscare.urducanvas.ui.editor.export.PreviewExportFragment"
         android:label="fragment_preview_export"
         tools:layout="@layout/fragment_preview_export" />
     <fragment
         android:id="@+id/bgRemovalFragment"
-        android:name="com.example.urduphotodesigner.ui.editor.panels.removeBg.BgRemovalFragment"
+        android:name="com.webscare.urducanvas.ui.editor.panels.removeBg.BgRemovalFragment"
         android:label="fragment_bg_removal"
         tools:layout="@layout/fragment_bg_removal" />
     <fragment
         android:id="@+id/searchFragment"
-        android:name="com.example.urduphotodesigner.ui.navigation.home.SearchFragment"
+        android:name="com.webscare.urducanvas.ui.navigation.home.SearchFragment"
         android:label="fragment_search"
         tools:layout="@layout/fragment_search" />
 </navigation>

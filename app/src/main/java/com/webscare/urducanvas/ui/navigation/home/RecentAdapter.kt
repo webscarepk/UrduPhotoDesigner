@@ -9,10 +9,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.signature.ObjectKey
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffectWithLongClick
-import com.example.urduphotodesigner.data.model.ExportResult
-import com.example.urduphotodesigner.databinding.LayoutRecentsItemBinding
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.common.utils.Utils.addPressEffectWithLongClick
+import com.webscare.urducanvas.data.model.ExportResult
+import com.webscare.urducanvas.databinding.LayoutRecentsItemBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import java.io.File
 

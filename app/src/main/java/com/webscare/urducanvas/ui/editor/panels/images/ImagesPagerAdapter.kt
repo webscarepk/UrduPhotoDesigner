@@ -4,8 +4,8 @@ import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.Lifecycle
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
-import com.example.urduphotodesigner.data.model.ImageEntity
-import com.example.urduphotodesigner.ui.editor.panels.objects.ObjectsListFragment
+import com.webscare.urducanvas.data.model.ImageEntity
+import com.webscare.urducanvas.ui.editor.panels.objects.ObjectsListFragment
 
 class ImagesPagerAdapter(
     private val fragmentManager: FragmentManager,

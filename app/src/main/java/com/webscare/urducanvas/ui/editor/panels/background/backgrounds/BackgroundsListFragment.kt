@@ -7,10 +7,10 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.data.model.ImageEntity
-import com.example.urduphotodesigner.databinding.FragmentBackgroundsListBinding
-import com.example.urduphotodesigner.viewmodels.MainViewModel
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.data.model.ImageEntity
+import com.webscare.urducanvas.databinding.FragmentBackgroundsListBinding
+import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 

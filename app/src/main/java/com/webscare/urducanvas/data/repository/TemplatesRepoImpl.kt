@@ -1,8 +1,8 @@
 package com.webscare.urducanvas.data.repository
 
-import com.example.urduphotodesigner.data.local.AppDatabase
-import com.example.urduphotodesigner.data.model.TemplateEntity
-import com.example.urduphotodesigner.domain.repo.TemplatesRepo
+import com.webscare.urducanvas.data.local.AppDatabase
+import com.webscare.urducanvas.data.model.TemplateEntity
+import com.webscare.urducanvas.domain.repo.TemplatesRepo
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 

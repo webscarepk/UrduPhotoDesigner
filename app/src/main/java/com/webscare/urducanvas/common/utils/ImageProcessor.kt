@@ -18,8 +18,6 @@ import android.util.Base64
 import android.webkit.MimeTypeMap
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
-import com.example.urduphotodesigner.common.canvas.model.ExportOptions
-import com.example.urduphotodesigner.common.canvas.sealed.ImageFilter
 import com.webscare.urducanvas.common.canvas.model.ExportOptions
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import java.io.ByteArrayOutputStream
@@ -867,12 +865,12 @@ object ImageProcessor {
         canvas.drawBitmap(src, matrix, paint)
         if (filter == ImageFilter.SoftBlur) {
             val blurPaint = Paint().apply {
-                Paint.setMaskFilter = BlurMaskFilter(8f, BlurMaskFilter.Blur.NORMAL)
+                maskFilter = BlurMaskFilter(8f, BlurMaskFilter.Blur.NORMAL)
             }
             canvas.drawBitmap(output, 0f, 0f, blurPaint)
         } else if (filter == ImageFilter.Glow) {
             val glowPaint = Paint().apply {
-                Paint.setMaskFilter = BlurMaskFilter(15f, BlurMaskFilter.Blur.OUTER)
+                maskFilter = BlurMaskFilter(15f, BlurMaskFilter.Blur.OUTER)
                 color = Color.argb(120, 255, 255, 200)
             }
             canvas.drawBitmap(output, 0f, 0f, glowPaint)

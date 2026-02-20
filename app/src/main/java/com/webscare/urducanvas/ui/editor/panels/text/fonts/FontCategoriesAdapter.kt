@@ -5,10 +5,10 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.data.model.FontCategory
-import com.example.urduphotodesigner.databinding.LayoutFontCategoryBinding
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.data.model.FontCategory
+import com.webscare.urducanvas.databinding.LayoutFontCategoryBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import java.util.Locale
 

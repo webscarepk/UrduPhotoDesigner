@@ -1,12 +1,12 @@
 package com.webscare.urducanvas.data.remote
 
-import com.example.urduphotodesigner.common.utils.Constants
-import com.example.urduphotodesigner.data.model.FontsResponse
-import com.example.urduphotodesigner.data.model.ImageResponse
-import com.example.urduphotodesigner.data.model.LoginResponse
-import com.example.urduphotodesigner.data.model.RegistrationResponse
-import com.example.urduphotodesigner.data.model.TemplatesResponse
-import com.example.urduphotodesigner.data.model.TrendResponse
+import com.webscare.urducanvas.common.utils.Constants
+import com.webscare.urducanvas.data.model.FontsResponse
+import com.webscare.urducanvas.data.model.ImageResponse
+import com.webscare.urducanvas.data.model.LoginResponse
+import com.webscare.urducanvas.data.model.RegistrationResponse
+import com.webscare.urducanvas.data.model.TemplatesResponse
+import com.webscare.urducanvas.data.model.TrendResponse
 import okhttp3.ResponseBody
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded

@@ -1,8 +1,6 @@
 package com.webscare.urducanvas.common.utils
 
 import android.graphics.Color
-import com.example.urduphotodesigner.common.canvas.enums.GradientType
-import com.example.urduphotodesigner.common.canvas.model.GradientItem
 import com.webscare.urducanvas.common.canvas.enums.GradientType
 import com.webscare.urducanvas.common.canvas.model.GradientItem
 

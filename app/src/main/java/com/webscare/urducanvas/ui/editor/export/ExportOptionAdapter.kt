@@ -5,16 +5,16 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.canvas.enums.ExportViewType
-import com.example.urduphotodesigner.common.canvas.model.ExportFormat
-import com.example.urduphotodesigner.common.canvas.model.ExportQuality
-import com.example.urduphotodesigner.common.canvas.model.ExportResolution
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.databinding.LayoutFormatsItemBinding
-import com.example.urduphotodesigner.databinding.LayoutQualityItemBinding
-import com.example.urduphotodesigner.databinding.LayoutResolutionsItemBinding
-import com.example.urduphotodesigner.databinding.LayoutResolutionsItemPrefsBinding
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.enums.ExportViewType
+import com.webscare.urducanvas.common.canvas.model.ExportFormat
+import com.webscare.urducanvas.common.canvas.model.ExportQuality
+import com.webscare.urducanvas.common.canvas.model.ExportResolution
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.databinding.LayoutFormatsItemBinding
+import com.webscare.urducanvas.databinding.LayoutQualityItemBinding
+import com.webscare.urducanvas.databinding.LayoutResolutionsItemBinding
+import com.webscare.urducanvas.databinding.LayoutResolutionsItemPrefsBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class ExportOptionAdapter<T>(

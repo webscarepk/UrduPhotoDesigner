@@ -10,8 +10,8 @@ import android.view.WindowInsets
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.databinding.FragmentSplashBinding
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.databinding.FragmentSplashBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

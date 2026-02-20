@@ -2,7 +2,7 @@ package com.webscare.urducanvas.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.example.urduphotodesigner.common.canvas.enums.GradientType
+import com.webscare.urducanvas.common.canvas.enums.GradientType
 
 @Entity(tableName = "gradient_presets")
 data class GradientEntity(

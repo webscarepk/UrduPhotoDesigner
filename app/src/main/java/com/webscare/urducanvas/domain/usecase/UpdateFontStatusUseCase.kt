@@ -1,6 +1,6 @@
 package com.webscare.urducanvas.domain.usecase
 
-import com.example.urduphotodesigner.domain.repo.FontsRepo
+import com.webscare.urducanvas.domain.repo.FontsRepo
 import javax.inject.Inject
 
 class UpdateFontStatusUseCase @Inject constructor(

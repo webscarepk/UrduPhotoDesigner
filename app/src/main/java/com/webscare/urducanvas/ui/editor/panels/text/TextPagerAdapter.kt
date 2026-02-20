@@ -4,9 +4,9 @@ import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.Lifecycle
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
-import com.example.urduphotodesigner.ui.editor.panels.text.appearance.AppearanceFragment
-import com.example.urduphotodesigner.ui.editor.panels.text.fonts.FontsFragment
-import com.example.urduphotodesigner.ui.editor.panels.text.format.FormatFragment
+import com.webscare.urducanvas.ui.editor.panels.text.appearance.AppearanceFragment
+import com.webscare.urducanvas.ui.editor.panels.text.fonts.FontsFragment
+import com.webscare.urducanvas.ui.editor.panels.text.format.FormatFragment
 
 class TextPagerAdapter(
     fragmentManager: FragmentManager,

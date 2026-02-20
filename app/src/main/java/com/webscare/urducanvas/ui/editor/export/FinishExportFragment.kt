@@ -11,12 +11,12 @@ import androidx.fragment.app.activityViewModels
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import androidx.print.PrintHelper
-import com.example.urduphotodesigner.R
-import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.utils.ImageProcessor
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.common.utils.Utils.copyToClipboard
-import com.example.urduphotodesigner.databinding.FragmentFinishExportBinding
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.utils.ImageProcessor
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.common.utils.Utils.copyToClipboard
+import com.webscare.urducanvas.databinding.FragmentFinishExportBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.utils.Utils.copyToClipboard
 import dagger.hilt.android.AndroidEntryPoint
@@ -111,7 +111,7 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
             )
 
             val intent = Intent(Intent.ACTION_SEND).apply {
-                _root_ide_package_.android.content.Intent.setType = "application/zip"
+                type = "application/zip"
                 putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
@@ -160,8 +160,8 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
                         pdfFile
                     )
                     val intent = Intent(Intent.ACTION_VIEW).apply {
-                        _root_ide_package_.android.content.Intent.setData = uri
-                        _root_ide_package_.android.content.Intent.setType = "application/pdf"
+                        data = uri
+                        type = "application/pdf"
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
                     startActivity(Intent.createChooser(intent, "Print PDF"))

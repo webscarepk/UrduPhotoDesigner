@@ -1,8 +1,8 @@
 package com.webscare.urducanvas.domain.usecase
 
 import android.content.Intent
-import com.example.urduphotodesigner.common.sealed.GoogleSignInResult
-import com.example.urduphotodesigner.domain.repo.AuthRepo
+import com.webscare.urducanvas.common.sealed.GoogleSignInResult
+import com.webscare.urducanvas.domain.repo.AuthRepo
 import com.google.android.gms.auth.api.identity.BeginSignInResult
 import javax.inject.Inject
 

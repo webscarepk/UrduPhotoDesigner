@@ -5,13 +5,13 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.example.urduphotodesigner.common.canvas.sealed.HomeRow
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.data.model.ProgressUi
-import com.example.urduphotodesigner.data.model.TemplateEntity
-import com.example.urduphotodesigner.databinding.LayoutCategoryRowBinding
-import com.example.urduphotodesigner.ui.navigation.templates.TemplateCategoriesAdapter.CategoryVH
-import com.example.urduphotodesigner.ui.navigation.templates.TemplatesMiniAdapter
+import com.webscare.urducanvas.common.canvas.sealed.HomeRow
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.data.model.ProgressUi
+import com.webscare.urducanvas.data.model.TemplateEntity
+import com.webscare.urducanvas.databinding.LayoutCategoryRowBinding
+import com.webscare.urducanvas.ui.navigation.templates.TemplateCategoriesAdapter.CategoryVH
+import com.webscare.urducanvas.ui.navigation.templates.TemplatesMiniAdapter
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class TrendsAdapter(

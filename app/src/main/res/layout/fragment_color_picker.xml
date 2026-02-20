@@ -28,7 +28,7 @@
         android:textColor="@color/black"
         android:paddingHorizontal="6dp"/>
 
-    <com.example.urduphotodesigner.common.views.ColorPickerBar
+    <com.webscare.urducanvas.common.views.ColorPickerBar
         android:id="@+id/seekbarHue"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -38,7 +38,7 @@
         app:layout_constraintTop_toBottomOf="@id/done"
         app:layout_constraintBottom_toTopOf="@id/seekbarAlpha" />
 
-    <com.example.urduphotodesigner.common.views.ColorPickerBar
+    <com.webscare.urducanvas.common.views.ColorPickerBar
         android:id="@+id/seekbarAlpha"
         android:layout_width="0dp"
         android:layout_height="0dp"

@@ -112,24 +112,24 @@ class BgRemovalCanvas @JvmOverloads constructor(
         color = Color.BLACK
         style = Paint.Style.STROKE
         strokeWidth = 3f
-        Paint.setPathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase)
+        pathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase)
         strokeJoin = Paint.Join.ROUND
         strokeCap = Paint.Cap.ROUND
         isAntiAlias = true
         isDither = true
-        Paint.setXfermode = null
+        xfermode = null
     }
 
     private val strokePaintRemove = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.RED
         style = Paint.Style.STROKE
         strokeWidth = 3f
-        Paint.setPathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase)
+        pathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase)
         strokeJoin = Paint.Join.ROUND
         strokeCap = Paint.Cap.ROUND
         isAntiAlias = true
         isDither = true
-        Paint.setXfermode = null
+        xfermode = null
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -138,7 +138,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
     init {
         // ✅ marching ants animator
         ValueAnimator.ofFloat(0f, 12f).apply {
-            ValueAnimator.setDuration = 500
+            duration = 500
             repeatCount = ValueAnimator.INFINITE
             addUpdateListener {
                 dashPhase += 2f
@@ -406,7 +406,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
                     // Draw the selected area from cached selectionPath (cheap in onDraw)
                     val punchPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                        Paint.setXfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
+                        xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
                     }
 
                     selectionPath?.let {
@@ -438,7 +438,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
             transformed.transform(drawMatrix)
             // Draw marching ants stroke (animated dashed lines) with path effect
             val strokePaint = Paint(strokePaintAdd).apply {
-                Paint.setPathEffect =
+                pathEffect =
                     DashPathEffect(floatArrayOf(12f, 12f), dashPhase)  // Marching ants effect
             }
             canvas.drawPath(transformed, strokePaint)  // Draw the marching ants on selected area
@@ -825,7 +825,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
         val end = if (show) 1f else 0f
 
         magnifierAnimator = ValueAnimator.ofFloat(start, end).apply {
-            ValueAnimator.setDuration = 200
+            duration = 200
             addUpdateListener {
                 magnifierAlpha = it.animatedValue as Float
                 if (!show && magnifierAlpha == 0f) {
@@ -953,7 +953,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
     private fun featherMask(mask: Bitmap): Bitmap {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             isFilterBitmap = true
-            Paint.setMaskFilter =
+            maskFilter =
                 BlurMaskFilter(3f, BlurMaskFilter.Blur.NORMAL)
         }
 
@@ -989,7 +989,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
             // Apply mask
             val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                Paint.setXfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+                xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
             }
             canvas.drawBitmap(mask, 0f, 0f, paint)
 
@@ -1022,7 +1022,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
             }
 
             val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                Paint.setXfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+                xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
             }
             val smoothMask = featherMask(mask) // radius tweakable
             fullCanvas.drawBitmap(smoothMask, 0f, 0f, paint)

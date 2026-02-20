@@ -1,6 +1,6 @@
 package com.webscare.urducanvas.domain.repo
 
-import com.example.urduphotodesigner.data.model.ImageEntity
+import com.webscare.urducanvas.data.model.ImageEntity
 import kotlinx.coroutines.flow.Flow
 
 interface ImagesRepo {

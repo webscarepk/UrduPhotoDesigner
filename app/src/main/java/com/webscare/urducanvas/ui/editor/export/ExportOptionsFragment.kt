@@ -5,13 +5,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
-import com.example.urduphotodesigner.common.canvas.CanvasViewModel
-import com.example.urduphotodesigner.common.canvas.enums.ExportViewType
-import com.example.urduphotodesigner.common.canvas.model.ExportFormat
-import com.example.urduphotodesigner.common.canvas.model.ExportQuality
-import com.example.urduphotodesigner.common.canvas.model.ExportResolution
-import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
-import com.example.urduphotodesigner.databinding.FragmentExportOptionsBinding
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.canvas.enums.ExportViewType
+import com.webscare.urducanvas.common.canvas.model.ExportFormat
+import com.webscare.urducanvas.common.canvas.model.ExportQuality
+import com.webscare.urducanvas.common.canvas.model.ExportResolution
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.databinding.FragmentExportOptionsBinding
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
