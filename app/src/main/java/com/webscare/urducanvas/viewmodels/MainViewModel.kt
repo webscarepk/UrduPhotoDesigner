@@ -1,0 +1,493 @@
+package com.webscare.urducanvas.viewmodels
+
+import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.urduphotodesigner.common.canvas.model.GradientItem
+import com.example.urduphotodesigner.common.canvas.sealed.FontDownloadState
+import com.example.urduphotodesigner.common.canvas.sealed.HomeRow
+import com.example.urduphotodesigner.common.canvas.sealed.TemplateDownloadState
+import com.example.urduphotodesigner.common.sealed.Response
+import com.example.urduphotodesigner.common.utils.Constants
+import com.example.urduphotodesigner.common.utils.GradientPresets
+import com.example.urduphotodesigner.data.model.ExportResult
+import com.example.urduphotodesigner.data.model.FontEntity
+import com.example.urduphotodesigner.data.model.ImageEntity
+import com.example.urduphotodesigner.data.model.TemplateEntity
+import com.example.urduphotodesigner.domain.repo.DownloadRepo
+import com.example.urduphotodesigner.domain.usecase.DeleteFontsUseCase
+import com.example.urduphotodesigner.domain.usecase.DeleteGradientUseCase
+import com.example.urduphotodesigner.domain.usecase.DeleteImagesUseCase
+import com.example.urduphotodesigner.domain.usecase.ExportResultsUseCase
+import com.example.urduphotodesigner.domain.usecase.FetchAPIFontsUseCase
+import com.example.urduphotodesigner.domain.usecase.FetchAPIImagesUseCase
+import com.example.urduphotodesigner.domain.usecase.FetchAPITemplatesUseCase
+import com.example.urduphotodesigner.domain.usecase.FetchAPITrendsUseCase
+import com.example.urduphotodesigner.domain.usecase.GetAllGradientsUseCase
+import com.example.urduphotodesigner.domain.usecase.GetFontsUseCase
+import com.example.urduphotodesigner.domain.usecase.GetImagesUseCase
+import com.example.urduphotodesigner.domain.usecase.GetTemplatesUseCase
+import com.example.urduphotodesigner.domain.usecase.GetTrendsUseCase
+import com.example.urduphotodesigner.domain.usecase.InsertFontsUseCase
+import com.example.urduphotodesigner.domain.usecase.InsertGradientUseCase
+import com.example.urduphotodesigner.domain.usecase.InsertImagesUseCase
+import com.example.urduphotodesigner.domain.usecase.InsertTemplatesUseCase
+import com.example.urduphotodesigner.domain.usecase.InsertTrendsUseCase
+import com.example.urduphotodesigner.domain.usecase.SeedGradientsUseCase
+import com.example.urduphotodesigner.domain.usecase.UpdateFontStatusUseCase
+import com.example.urduphotodesigner.domain.usecase.UpdateFontsUseCase
+import com.example.urduphotodesigner.domain.usecase.UpdateGradientUseCase
+import com.example.urduphotodesigner.domain.usecase.UpdateImagesUseCase
+import com.example.urduphotodesigner.domain.usecase.UpdateTemplatesUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    private val fetchAPITemplatesUseCase: com.webscare.urducanvas.domain.usecase.FetchAPITemplatesUseCase,
+    private val getTemplatesUseCase: com.webscare.urducanvas.domain.usecase.GetTemplatesUseCase,
+    private val insertTemplatesUseCase: com.webscare.urducanvas.domain.usecase.InsertTemplatesUseCase,
+    private val updateTemplatesUseCase: com.webscare.urducanvas.domain.usecase.UpdateTemplatesUseCase,
+    private val fetchAPIFontsUseCase: com.webscare.urducanvas.domain.usecase.FetchAPIFontsUseCase,
+    private val deleteImagesUseCase: com.webscare.urducanvas.domain.usecase.DeleteImagesUseCase,
+    private val updateImagesUseCase: com.webscare.urducanvas.domain.usecase.UpdateImagesUseCase,
+    private val deleteFontsUseCase: com.webscare.urducanvas.domain.usecase.DeleteFontsUseCase,
+    private val insertFontsUseCase: com.webscare.urducanvas.domain.usecase.InsertFontsUseCase,
+    private val getFontsUseCase: com.webscare.urducanvas.domain.usecase.GetFontsUseCase,
+    private val fetchAPIImagesUseCase: com.webscare.urducanvas.domain.usecase.FetchAPIImagesUseCase,
+    private val insertImagesUseCase: com.webscare.urducanvas.domain.usecase.InsertImagesUseCase,
+    private val getImagesUseCase: com.webscare.urducanvas.domain.usecase.GetImagesUseCase,
+    private val downloadRepository: com.webscare.urducanvas.domain.repo.DownloadRepo,
+    private val updateFontsUseCase: com.webscare.urducanvas.domain.usecase.UpdateFontsUseCase,
+    private val updateFontStatusUseCase: com.webscare.urducanvas.domain.usecase.UpdateFontStatusUseCase,
+    private val getAll: com.webscare.urducanvas.domain.usecase.GetAllGradientsUseCase,
+    private val seed: com.webscare.urducanvas.domain.usecase.SeedGradientsUseCase,
+    private val delete: com.webscare.urducanvas.domain.usecase.DeleteGradientUseCase,
+    private val insert: com.webscare.urducanvas.domain.usecase.InsertGradientUseCase,
+    private val update: com.webscare.urducanvas.domain.usecase.UpdateGradientUseCase,
+    private val exportResultsUseCase: com.webscare.urducanvas.domain.usecase.ExportResultsUseCase,
+    private val fetchAPITrendsUseCase: com.webscare.urducanvas.domain.usecase.FetchAPITrendsUseCase,
+    private val getTrendsUseCase: com.webscare.urducanvas.domain.usecase.GetTrendsUseCase,
+    private val insertTrendsUseCase: com.webscare.urducanvas.domain.usecase.InsertTrendsUseCase
+) : ViewModel() {
+    private val _trendRows = MutableStateFlow<List<com.webscare.urducanvas.common.canvas.sealed.HomeRow>>(emptyList())
+    val trendRows: StateFlow<List<com.webscare.urducanvas.common.canvas.sealed.HomeRow>> = _trendRows.asStateFlow()
+
+    private val fontJobs = mutableMapOf<String, Job>()
+    private val templateJobs = mutableMapOf<String, Job>()
+
+    private val _fontDownloadStates = MutableStateFlow<Map<String, com.webscare.urducanvas.common.canvas.sealed.FontDownloadState>>(emptyMap())
+
+    val fontDownloadStates: StateFlow<Map<String, com.webscare.urducanvas.common.canvas.sealed.FontDownloadState>> = _fontDownloadStates
+
+    private val _templateDownloadStates =
+        MutableStateFlow<Map<String, com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState>>(emptyMap())
+
+    val templateDownloadStates: StateFlow<Map<String, com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState>> =
+        _templateDownloadStates
+
+    private val _localFonts = MutableStateFlow<List<com.webscare.urducanvas.data.model.FontEntity>>(emptyList())
+    val localFonts: StateFlow<List<com.webscare.urducanvas.data.model.FontEntity>> = _localFonts.asStateFlow()
+
+    private val _localImages = MutableStateFlow<List<com.webscare.urducanvas.data.model.ImageEntity>>(emptyList())
+    val localImages: StateFlow<List<com.webscare.urducanvas.data.model.ImageEntity>> = _localImages.asStateFlow()
+
+    private val _localTemplates = MutableStateFlow<List<com.webscare.urducanvas.data.model.TemplateEntity>>(emptyList())
+    val localTemplates: StateFlow<List<com.webscare.urducanvas.data.model.TemplateEntity>> = _localTemplates.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
+
+    private val _gradients = MutableLiveData<List<com.webscare.urducanvas.common.canvas.model.GradientItem>>()
+    val gradients: LiveData<List<com.webscare.urducanvas.common.canvas.model.GradientItem>> = _gradients
+
+    private val _exportResults = MutableLiveData<List<com.webscare.urducanvas.data.model.ExportResult>>()
+    val exportResults: LiveData<List<com.webscare.urducanvas.data.model.ExportResult>> get() = _exportResults
+
+    private val _rawQuery = MutableStateFlow("")
+    val rawQuery: StateFlow<String> = _rawQuery.asStateFlow()
+
+    // Debounced, distinct stream for UI filtering
+    val queryDebounced = rawQuery.map { it.trim() }.distinctUntilChanged()
+
+    fun setQuery(q: String) {
+        _rawQuery.value = q
+    }
+
+    fun clearQuery() {
+        _rawQuery.value = ""
+    }
+
+    init {
+        fetchAndStoreFontsFromApi()
+        observeLocalFonts()
+        fetchAndStoreImagesFromApi()
+        observeLocalImages()
+        getAllExportResults()
+        fetchAndStoreTemplatesFromApi()
+        observeLocalTemplates()
+        observeLocalTrends()
+        fetchAndStoreTrendsFromApi()
+        viewModelScope.launch {
+            seed(_root_ide_package_.com.webscare.urducanvas.common.utils.GradientPresets.defaultList)
+        }
+
+        viewModelScope.launch {
+            getAll().collect { uiList ->
+                _gradients.value = uiList
+            }
+        }
+    }
+
+    fun deleteGradient(id: Long) = viewModelScope.launch { delete(id) }
+    fun updateGradient(g: com.webscare.urducanvas.common.canvas.model.GradientItem) = viewModelScope.launch { update(g) }
+    fun insertGradient(g: com.webscare.urducanvas.common.canvas.model.GradientItem) = viewModelScope.launch { insert(g) }
+
+    fun fetchAndStoreTemplatesFromApi() {
+        viewModelScope.launch {
+            fetchAPITemplatesUseCase().collect { response ->
+                when (response) {
+                    is com.webscare.urducanvas.common.sealed.Response.Loading -> _isLoading.value = true
+
+                    is com.webscare.urducanvas.common.sealed.Response.Success -> {
+                        _isLoading.value = false
+                        insertTemplatesUseCase.invoke(response.data!!) // list<TemplateEntity>
+                    }
+
+                    is com.webscare.urducanvas.common.sealed.Response.Error -> {
+                        _isLoading.value = false
+                        _error.value = response.message
+                    }
+
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    private fun observeLocalTemplates() {
+        viewModelScope.launch {
+            getTemplatesUseCase().collect { templates ->
+                _localTemplates.value = templates
+            }
+        }
+    }
+
+    fun insertTemplate(template: com.webscare.urducanvas.data.model.TemplateEntity) {
+        viewModelScope.launch {
+            insertTemplatesUseCase.insertSingleTemplate(template)
+        }
+    }
+
+    fun fetchAndStoreFontsFromApi() {
+        viewModelScope.launch {
+            fetchAPIFontsUseCase().collect { response ->
+                when (response) {
+                    is com.webscare.urducanvas.common.sealed.Response.Loading -> _isLoading.value = true
+
+                    is com.webscare.urducanvas.common.sealed.Response.Success -> {
+                        _isLoading.value = false
+                        insertFontsUseCase.invoke(response.data!!)
+                    }
+
+                    is com.webscare.urducanvas.common.sealed.Response.Error -> {
+                        _isLoading.value = false
+                        _error.value = response.message
+                    }
+
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    fun fetchAndStoreTrendsFromApi() {
+        viewModelScope.launch {
+            fetchAPITrendsUseCase().collect { response ->
+                when (response) {
+                    is com.webscare.urducanvas.common.sealed.Response.Loading -> _isLoading.value = true
+                    is com.webscare.urducanvas.common.sealed.Response.Success -> {
+                        _isLoading.value = false
+                        insertTrendsUseCase.invoke(response.data!!) // saves in Room
+                    }
+
+                    is com.webscare.urducanvas.common.sealed.Response.Error -> {
+                        _isLoading.value = false
+                        _error.value = response.message
+                    }
+
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    private fun observeLocalTrends() {
+        viewModelScope.launch {
+            getTrendsUseCase().map { trendsWithTemplates ->
+                trendsWithTemplates.map { twt ->
+                    _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.HomeRow.TrendRow(
+                        title = twt.trend.name, templates = twt.templates
+                    )
+                }
+            }.collect { rows ->
+                _trendRows.value = rows
+            }
+        }
+    }
+
+    private fun fetchAndStoreImagesFromApi() {
+        viewModelScope.launch {
+            fetchAPIImagesUseCase().collect { response ->
+                when (response) {
+                    is com.webscare.urducanvas.common.sealed.Response.Loading -> _isLoading.value = true
+
+                    is com.webscare.urducanvas.common.sealed.Response.Success -> {
+                        _isLoading.value = false
+                        insertImagesUseCase.invoke(response.data!!)
+                    }
+
+                    is com.webscare.urducanvas.common.sealed.Response.Error -> {
+                        _isLoading.value = false
+                        _error.value = response.message
+                    }
+
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    fun insertImage(imageEntity: com.webscare.urducanvas.data.model.ImageEntity) {
+        viewModelScope.launch {
+            insertImagesUseCase.insertSingleImage(imageEntity)
+        }
+    }
+
+    fun insertFont(fontEntity: com.webscare.urducanvas.data.model.FontEntity) {
+        viewModelScope.launch {
+            try {
+                // Call InsertFontsUseCase to insert the font
+                insertFontsUseCase.insertSingleFont(fontEntity)
+                Log.d("MainViewModel", "Font inserted successfully: ${fontEntity.file_name}")
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error inserting font: ${e.message}")
+            }
+        }
+    }
+
+    private fun observeLocalImages() {
+        viewModelScope.launch {
+            getImagesUseCase().collect { images ->
+                _localImages.value = images
+            }
+        }
+    }
+
+    private fun observeLocalFonts() {
+        viewModelScope.launch {
+            getFontsUseCase().collect { fonts ->
+                _localFonts.value = fonts
+            }
+        }
+    }
+
+    fun downloadTemplate(template: com.webscare.urducanvas.data.model.TemplateEntity) {
+
+        val id = template.id.toString()
+        templateJobs[id]?.cancel()
+
+        val job = viewModelScope.launch {
+
+            // DB: start
+            updateTemplatesUseCase.invoke(
+                id, isDownloaded = false, isDownloading = true, progress = 0, filePath = null
+            )
+
+            updateTemplateState(
+                id, _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState.Progress(0, template)
+            )
+
+            try {
+                val file = downloadRepository.downloadTemplateById(
+                    templateId = id,
+                    fileName = "template_${id}.json",
+                    totalSizeFromApi = template.json_size,
+                    onProgress = { progress ->
+                        updateTemplateState(
+                            id,
+                            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState.Progress(
+                                progress,
+                                template.copy(
+                                    is_downloading = true,
+                                    download_progress = progress
+                                )
+                            )
+                        )
+                    }
+                )
+
+
+                updateTemplatesUseCase.invoke(
+                    id,
+                    isDownloaded = true,
+                    isDownloading = false,
+                    progress = 100,
+                    filePath = file.absolutePath
+                )
+
+                updateTemplateState(
+                    id, _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState.SuccessWithTemplate(file, template.copy(
+                        is_downloaded = true, is_downloading = false, download_progress = 100, file_path = file.absolutePath
+                    ))
+                )
+
+            } catch (e: Exception) {
+
+                updateTemplatesUseCase.invoke(
+                    id, isDownloaded = false, isDownloading = false, progress = 0, filePath = null
+                )
+
+                updateTemplateState(
+                    id, _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState.Error(e.message ?: "Failed")
+                )
+            }
+        }
+
+        templateJobs[id] = job
+    }
+
+    fun clearTemplateDownloadState() {
+        _templateDownloadStates.value =
+            _templateDownloadStates.value.filterValues { state ->
+                state is com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState.Progress
+            }
+    }
+
+    fun downloadFont(font: com.webscare.urducanvas.data.model.FontEntity) {
+
+        val fontId = font.id.toString()
+        fontJobs[fontId]?.cancel()
+        val job = viewModelScope.launch {
+            updateFontStatusUseCase.invoke(fontId, true)
+            updateFontState(
+                fontId, _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.FontDownloadState.Progress(0, font.copy(is_downloading = true))
+            )
+
+            try {
+                val downloadedFile = downloadRepository.downloadAssets(
+                    url = _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.BASE_URL_GLIDE + font.file_url,
+                    fileName = font.font_name + ".ttf",
+                    onProgress = { progress ->
+                        updateFontState(
+                            fontId, _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.FontDownloadState.Progress(
+                                progress, font.copy(
+                                    is_downloading = true, download_progress = progress
+                                )
+                            )
+                        )
+                    })
+
+                updateFontsUseCase.invoke(
+                    fontId,
+                    isDownloaded = true,
+                    isDownloading = false,
+                    filePath = downloadedFile.absolutePath
+                )
+
+                val updatedFont = font.copy(
+                    is_downloaded = true,
+                    is_downloading = false,
+                    download_progress = 100,
+                    file_path = downloadedFile.absolutePath
+                )
+
+                updateFontState(
+                    fontId, _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.FontDownloadState.SuccessWithTypeface(downloadedFile, updatedFont)
+                )
+
+            } catch (e: Exception) {
+                updateFontStatusUseCase.invoke(fontId, false)
+                updateFontState(
+                    fontId, _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.FontDownloadState.Error(e.message ?: "Download failed", font)
+                )
+            }
+        }
+
+        fontJobs[fontId] = job
+    }
+
+    private fun updateFontState(id: String, state: com.webscare.urducanvas.common.canvas.sealed.FontDownloadState) {
+        _fontDownloadStates.value = _fontDownloadStates.value.toMutableMap().apply {
+            this[id] = state
+        }
+    }
+
+    private fun updateTemplateState(id: String, state: com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState) {
+        _templateDownloadStates.value = _templateDownloadStates.value.toMutableMap().apply {
+            this[id] = state
+        }
+    }
+
+    suspend fun insertExportResult(exportResult: com.webscare.urducanvas.data.model.ExportResult): Long {
+        return exportResultsUseCase.insertExportResult(exportResult)
+    }
+
+    fun deleteExportResult(exportResult: com.webscare.urducanvas.data.model.ExportResult) {
+        viewModelScope.launch {
+            exportResultsUseCase.deleteExportResult(exportResult)
+        }
+    }
+
+    fun deleteFont(font: com.webscare.urducanvas.data.model.FontEntity) {
+        viewModelScope.launch {
+            deleteFontsUseCase.invoke(font)
+        }
+    }
+
+    fun deleteImage(image: com.webscare.urducanvas.data.model.ImageEntity) {
+        viewModelScope.launch {
+            deleteImagesUseCase.invoke(image)
+        }
+    }
+
+    fun updateImage(image: com.webscare.urducanvas.data.model.ImageEntity) {
+        viewModelScope.launch {
+            updateImagesUseCase.invoke(image)
+        }
+    }
+
+    fun updateFont(font: com.webscare.urducanvas.data.model.FontEntity) {
+        viewModelScope.launch {
+            updateFontsUseCase.invoke(font)
+        }
+    }
+
+    private fun getAllExportResults() {
+        viewModelScope.launch {
+            exportResultsUseCase.getAllExportResults().collect {
+                _exportResults.value = it
+            }
+        }
+    }
+
+    fun clearFontDownloadState() {
+        _fontDownloadStates.value =
+            _fontDownloadStates.value.filterValues { state ->
+                state is com.webscare.urducanvas.common.canvas.sealed.FontDownloadState.Progress
+            }
+    }
+
+}

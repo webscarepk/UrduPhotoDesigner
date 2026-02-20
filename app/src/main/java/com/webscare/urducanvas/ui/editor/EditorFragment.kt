@@ -1,0 +1,1429 @@
+package com.webscare.urducanvas.ui.editor
+
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
+import android.annotation.SuppressLint
+import android.app.Dialog
+import android.content.ContentValues.TAG
+import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.Bitmap
+import android.net.Uri
+import android.os.Build
+import android.os.Build.MANUFACTURER
+import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.util.Log
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
+import android.view.WindowInsets
+import android.view.WindowManager
+import android.view.animation.AnimationUtils
+import android.view.animation.LinearInterpolator
+import android.widget.EditText
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.PopupWindow
+import android.widget.SeekBar
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.AnimRes
+import androidx.annotation.ColorRes
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
+import androidx.core.view.updatePadding
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavController
+import androidx.navigation.NavOptions
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.fragment.findNavController
+import androidx.navigation.ui.setupWithNavController
+import com.example.urduphotodesigner.R
+import com.example.urduphotodesigner.common.canvas.CanvasManager
+import com.example.urduphotodesigner.common.canvas.CanvasViewModel
+import com.example.urduphotodesigner.common.canvas.enums.BlendType
+import com.example.urduphotodesigner.common.canvas.enums.ElementType
+import com.example.urduphotodesigner.common.canvas.enums.HAlign
+import com.example.urduphotodesigner.common.canvas.enums.MultiAlignMode
+import com.example.urduphotodesigner.common.canvas.enums.PickerTarget
+import com.example.urduphotodesigner.common.canvas.enums.UnitType
+import com.example.urduphotodesigner.common.canvas.enums.VAlign
+import com.example.urduphotodesigner.common.canvas.model.CanvasElement
+import com.example.urduphotodesigner.common.canvas.model.CanvasSize
+import com.example.urduphotodesigner.common.canvas.model.ExportOptions
+import com.example.urduphotodesigner.common.utils.BitmapCache
+import com.example.urduphotodesigner.common.utils.Converter.cmToPx
+import com.example.urduphotodesigner.common.utils.Converter.inchesToPx
+import com.example.urduphotodesigner.common.utils.ImageProcessor
+import com.example.urduphotodesigner.common.utils.Utils.addPressEffect
+import com.example.urduphotodesigner.common.views.CanvasView
+import com.example.urduphotodesigner.data.model.ExportResult
+import com.example.urduphotodesigner.databinding.DialogAutoSavingLayoutBinding
+import com.example.urduphotodesigner.databinding.FragmentEditorBinding
+import com.example.urduphotodesigner.databinding.LayoutBlendPopupBinding
+import com.example.urduphotodesigner.viewmodels.MainViewModel
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+fun Int.dpToPx(context: Context): Int {
+    return (this * context.resources.displayMetrics.density + 0.5f).toInt()
+}
+
+@AndroidEntryPoint
+class EditorFragment : androidx.fragment.app.Fragment() {
+    private var _binding: FragmentEditorBinding? = null
+    private val binding get() = _binding!!
+    private lateinit var canvasManager: com.webscare.urducanvas.common.canvas.CanvasManager
+    private var _navController: NavController? = null
+    private val navController get() = _navController!!
+    private var panelsLocked = false
+    private lateinit var canvasSize: com.webscare.urducanvas.common.canvas.model.CanvasSize
+    private var currentUnit = _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.PIXELS
+    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    private var lastSelection: List<com.webscare.urducanvas.common.canvas.model.CanvasElement> = emptyList()
+    private var activePanel: View? = null
+    private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
+    private var currentPanelItemId: Int? = null
+    private lateinit var sizedCanvasView: com.webscare.urducanvas.common.views.CanvasView
+    private var currentMode: com.webscare.urducanvas.common.canvas.enums.MultiAlignMode = _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.CANVAS
+    private var exportModel: com.webscare.urducanvas.data.model.ExportResult? = null
+    private var jsonPath: String = "canvas_data_${System.currentTimeMillis()}.json"
+    private var imagePath: String = "design_data_${System.currentTimeMillis()}.png"
+    private var exportDialog: Dialog? = null
+    private var exportDialogBinding: DialogAutoSavingLayoutBinding? = null
+    private var rotationAnimator: ObjectAnimator? = null
+    private var isSaving = false
+
+    private var saveJsonJob: Job? = null
+    private var savePending = false
+    private var lastJsonSaveTime = 0L
+    private val saveDebounce = 500L
+
+    private var isFabMenuOpen = false
+    private var fabInitialX = 0f
+    private var fabInitialY = 0f
+    private var fabInitialTouchX = 0f
+    private var fabInitialTouchY = 0f
+    private var fabMargin = 0
+
+    private val pickImage =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+            uri?.let { handlePickedUri(it) }
+        }
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentEditorBinding.inflate(layoutInflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+//        activity?.window?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            requireActivity().window.insetsController?.show(
+                WindowInsets.Type.statusBars()
+            )
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavigation) { view, insets ->
+            if (MANUFACTURER.equals("realme", ignoreCase = true)) {
+                val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+                view.updatePadding(bottom = systemBars.bottom)
+            }
+            insets
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val navHostFragment =
+                childFragmentManager.findFragmentById(R.id.panelNavHost) as NavHostFragment
+            _navController = navHostFragment.navController
+
+            binding.bottomNavigation.setupWithNavController(navController)
+
+            _navController?.addOnDestinationChangedListener { _, destination, _ ->
+                binding.bottomNavigation.isVisible =
+                    destination.id != R.id.adjustmentsParentFragment
+            }
+        }
+
+        val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
+
+        val jsonFileName = "canvas_$timestamp.json"
+        val imageFileName = "design_$timestamp.png"
+
+        jsonPath = File(requireContext().filesDir, jsonFileName).absolutePath
+        imagePath = File(requireContext().filesDir, imageFileName).absolutePath
+        fabMargin = 8.dpToPx(requireContext())
+        viewModel.clearLoading()
+        observeViewModel()
+    }
+
+    private fun handlePickedUri(uri: Uri) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val filePath =
+                    _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+
+                withContext(Dispatchers.Main) {
+                    viewModel.addSticker(
+                        _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.filePathToBitmap(filePath!!), requireActivity(), _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.IMAGE
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("ImagesFragment", "Failed to import image", e)
+            }
+        }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun initFab() {
+        val fabMenu = binding.fabMenu
+        val fabAdd = binding.fabAdd
+
+        fabAdd.setOnClickListener {
+            toggleFabMenu(!isFabMenuOpen)
+        }
+
+        binding.addText.addPressEffect {
+            viewModel.addText(requireActivity().getString(R.string.dummyText), requireActivity())
+            navController.navigate(R.id.textFragment)
+            binding.bottomNavigation.selectedItemId = R.id.nav_text
+            toggleFabMenu(false)
+        }
+
+        binding.addObject.setOnClickListener {
+            navController.navigate(R.id.objectsFragment)
+            binding.bottomNavigation.selectedItemId = R.id.nav_objects
+            toggleFabMenu(false)
+        }
+
+        binding.addShapes.setOnClickListener {
+            viewModel.addShapeElement()
+            val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
+            val bundle = Bundle().apply { putInt("startPage", 1) } // Assuming page 1 is index 0
+            navController.navigate(R.id.drawFragment, bundle, navOptions)
+            binding.bottomNavigation.selectedItemId = R.id.drawFragment
+            toggleFabMenu(false)
+        }
+
+        binding.addImage.setOnClickListener {
+            pickImage.launch("image/*")
+            navController.navigate(R.id.imagesFragment)
+            binding.bottomNavigation.selectedItemId = R.id.nav_images
+            toggleFabMenu(false)
+        }
+
+        binding.addDraw.setOnClickListener {
+            viewModel.enterDrawingMode()
+            val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
+            val bundle = Bundle().apply { putInt("startPage", 0) } // Assuming page 2 is index 1
+            navController.navigate(R.id.drawFragment, bundle, navOptions)
+            binding.bottomNavigation.selectedItemId = R.id.nav_draw
+            toggleFabMenu(false)
+        }
+
+        fabAdd.setOnTouchListener { v, event ->
+            val parent = binding.fabContainer
+            val parentWidth = parent.width
+            val parentHeight = parent.height
+
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    fabInitialX = v.x
+                    fabInitialY = v.y
+                    fabInitialTouchX = event.rawX
+                    fabInitialTouchY = event.rawY
+                    v.translationZ = 11f
+                }
+
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = event.rawX - fabInitialTouchX
+                    val dy = event.rawY - fabInitialTouchY
+
+                    var newX = fabInitialX + dx
+                    var newY = fabInitialY + dy
+
+                    newX = newX.coerceIn(fabMargin.toFloat(), (parentWidth - v.width - fabMargin).toFloat())
+                    newY = newY.coerceIn(fabMargin.toFloat(), (parentHeight - v.height - fabMargin).toFloat())
+
+                    v.x = newX
+                    v.y = newY
+
+                    if (isFabMenuOpen) {
+                        updateFabMenuPosition(fabAdd, fabMenu)
+                    }
+                }
+                MotionEvent.ACTION_UP -> {
+                    v.translationZ = 10f
+
+                    if (isFabMenuOpen) {
+                        updateFabMenuPosition(fabAdd, fabMenu)
+                    }
+
+                    val deltaX = event.rawX - fabInitialTouchX
+                    val deltaY = event.rawY - fabInitialTouchY
+                    val distance = kotlin.math.sqrt(deltaX * deltaX + deltaY * deltaY)
+
+                    if (distance < 10) {
+                        v.performClick()
+                    }
+                }
+            }
+            true
+        }
+    }
+
+    private fun updateFabMenuPosition(fab: ImageView, menu: ConstraintLayout) {
+        val menuHeight = menu.height
+
+        val spaceAboveFab = fab.y
+        val isExpandDown = spaceAboveFab < menuHeight + fabMargin
+
+        if (isExpandDown) {
+            menu.x = fab.x + fab.width / 2 - menu.width / 2
+            menu.y = fab.y + fab.height + fabMargin
+        } else {
+            menu.x = fab.x + fab.width / 2 - menu.width / 2
+            menu.y = fab.y - menu.height - fabMargin
+        }
+    }
+
+    private fun toggleFabMenu(show: Boolean) {
+        isFabMenuOpen = show
+        val fabMenu = binding.fabMenu
+        val fabAdd = binding.fabAdd
+
+        if (show) {
+            fabMenu.visibility = View.VISIBLE
+
+            fabMenu.post {
+                updateFabMenuPosition(fabAdd, fabMenu)
+
+                val pivotX = fabAdd.x + fabAdd.width / 2 - fabMenu.x
+                val pivotY = fabAdd.y + fabAdd.height / 2 - fabMenu.y
+
+                fabMenu.pivotX = pivotX
+                fabMenu.pivotY = pivotY
+
+                fabMenu.alpha = 0f
+                fabMenu.scaleX = 0.5f
+                fabMenu.scaleY = 0.5f
+
+                val animatorSet = AnimatorSet()
+                animatorSet.playTogether(
+                    ObjectAnimator.ofFloat(fabMenu, View.ALPHA, 0f, 1f),
+                    ObjectAnimator.ofFloat(fabMenu, View.SCALE_X, 0.5f, 1f),
+                    ObjectAnimator.ofFloat(fabMenu, View.SCALE_Y, 0.5f, 1f)
+                )
+                animatorSet.duration = 200
+                animatorSet.start()
+            }
+
+            // Change FAB icon to 'X' (or rotate the '+')
+            fabAdd.animate().rotation(45f).setDuration(200).start()
+
+        } else {
+            // Collapse/Hide Menu
+            fabAdd.animate().rotation(0f).setDuration(200).start()
+
+            // Recalculate pivots for a smooth collapse animation back to the FAB center
+            val pivotX = fabAdd.x + fabAdd.width / 2 - fabMenu.x
+            val pivotY = fabAdd.y + fabAdd.height / 2 - fabMenu.y
+
+            fabMenu.pivotX = pivotX
+            fabMenu.pivotY = pivotY
+
+            fabMenu.animate()
+                .alpha(0f)
+                .scaleX(0.5f)
+                .scaleY(0.5f)
+                .setDuration(200)
+                .withEndAction {
+                    fabMenu.visibility = View.GONE
+                }.start()
+        }
+    }
+
+    private fun showTextEditDialog(element: com.webscare.urducanvas.common.canvas.model.CanvasElement) {
+        val dialog = Dialog(requireContext())
+        dialog.setContentView(R.layout.dialog_edit_text)
+
+        val editText = dialog.findViewById<EditText>(R.id.edit_text_input)
+        editText.setText(element.text)
+        editText.requestFocus()
+        dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
+
+        editText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val newText = s?.toString() ?: ""
+                element.text = newText
+                viewModel.updateText(element)
+                viewModel.markChanged()
+            }
+
+            override fun afterTextChanged(s: Editable?) {}
+        })
+        // Set dialog window attributes for no dim background
+        dialog.window?.apply {
+            setBackgroundDrawableResource(android.R.color.transparent) // Make background transparent
+            setDimAmount(0f) // No dim
+            setGravity(Gravity.BOTTOM)
+            // You might want to adjust width/height if the layout doesn't fill as expected
+            setLayout(
+                WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT
+            )
+        }
+        // Show the dialog
+        dialog.show()
+    }
+
+    private fun scheduleJsonSave() {
+        savePending = true
+
+        if (saveJsonJob?.isActive != true) {
+            saveJsonJob = lifecycleScope.launch(Dispatchers.Default) {
+                while (savePending) {
+                    delay(saveDebounce)
+                    savePending = false
+
+                    val now = System.currentTimeMillis()
+                    if (now - lastJsonSaveTime < saveDebounce) return@launch
+
+                    val json = sizedCanvasView.exportCanvasJson()
+                    Log.d("saveJson", "Saved JSON as $json")
+
+                    var hasRealElements = false
+                    try {
+                        val arr = org.json.JSONArray(json)
+                        for (i in 0 until arr.length()) {
+                            val obj = arr.getJSONObject(i)
+                            val type = obj.optString("type")
+                            if (type != "Background") {
+                                hasRealElements = true
+                                break
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("saveJson", "JSON parse failed: ${e.message}")
+                    }
+
+                    if (json.isNotBlank() && json != "[]" && json != "{}") {
+                        if (hasRealElements || viewModel.isLoadingTemplate.value == false) {
+                            lifecycleScope.launch(Dispatchers.IO) {
+                                File(jsonPath).writeText(json)
+                                Log.d("saveJson", "Saved JSON at $jsonPath")
+                                lastJsonSaveTime = now
+                            }
+                        } else {
+                            Log.w("saveJson", "Skipped saving background-only JSON during load")
+                        }
+                    } else {
+                        Log.w("saveJson", "Skipped saving empty JSON")
+                    }
+                }
+            }
+        }
+    }
+
+    private fun saveOnExitSafe(
+        options: com.webscare.urducanvas.common.canvas.model.ExportOptions,
+        exportBitmap: Bitmap,
+        exportJson: String,
+        exportImage: Boolean,
+        canvasSize: com.webscare.urducanvas.common.canvas.model.CanvasSize
+    ) {
+        try {
+            lifecycleScope.launch(Dispatchers.IO) {
+                // ---- Save Image ----
+                if (exportImage) {
+                    _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.saveBitmapToFile(exportBitmap, options, imagePath)
+                    withContext(Dispatchers.Main) {
+                        updateExportDialog(96, "Image saved")
+                    }
+                }
+
+                // ---- Save JSON ----
+                File(jsonPath).writeText(exportJson)
+                Log.d(TAG, "saveOnExitSafe: $jsonPath")
+                Log.d("ImagePath", "bind: $imagePath")
+                withContext(Dispatchers.Main) {
+                    updateExportDialog(97, "JSON saved")
+                }
+                val jsonSizeBytes = exportJson.toByteArray(Charsets.UTF_8).size
+                // ---- Calculate file size ----
+                val fileSizeMB = (estimateBitmapSize(
+                    exportBitmap, options.format.format!!, options.quality.quality
+                ) + jsonSizeBytes) / (1024.0 * 1024.0)
+
+                val exportDate =
+                    SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
+                val fileBaseName = "project_${System.currentTimeMillis()}"
+                val fileName = "$fileBaseName.proj"
+                // ---- Prepare model ----
+                if (exportModel == null) {
+                    exportModel =
+                        _root_ide_package_.com.webscare.urducanvas.data.model.ExportResult(
+                            imagePath = imagePath,
+                            jsonPath = jsonPath,
+                            fileName = fileName,
+                            fileSizeMB = fileSizeMB,
+                            resolution = options.resolution.label,
+                            format = options.format.name,
+                            quality = options.quality.label,
+                            canvasSize = canvasSize,
+                            exportDate = exportDate,
+                            updatedDate = exportDate,
+                        )
+                } else {
+                    if (exportModel!!.imagePath.startsWith("/storage")) {
+                        exportModel!!.imagePath = imagePath
+                    }
+
+                    exportModel!!.canvasSize = canvasSize
+                    exportModel!!.fileSizeMB = fileSizeMB
+                    exportModel!!.updatedDate = exportDate
+                }
+
+                // ---- Save to DB ----
+                val id = mainViewModel.insertExportResult(exportModel!!)
+                exportModel!!.id = id
+
+                withContext(Dispatchers.Main) {
+                    viewModel.setExportResult(exportModel!!)
+                    updateExportDialog(99, "Database updated")
+                    updateExportDialog(100, "Saved successfully")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Background save failed: ${e.message}")
+        }
+    }
+
+    private fun estimateBitmapSize(
+        bitmap: Bitmap, format: Bitmap.CompressFormat, quality: Int
+    ): Long {
+        val stream = java.io.ByteArrayOutputStream()
+        bitmap.compress(format, quality, stream)
+        return stream.size().toLong()
+    }
+
+    private fun observeViewModel() {
+
+        viewModel.canvasSize.observe(viewLifecycleOwner) { size ->
+            if (size != null) {
+                canvasSize = size
+
+                val widthPx = when (currentUnit) {
+                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.INCHES -> _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.inchesToPx(
+                        size.width
+                    )
+                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.CENTIMETERS -> _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.cmToPx(
+                        size.width
+                    )
+                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.PIXELS -> size.width.toInt()
+                }
+                val heightPx = when (currentUnit) {
+                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.INCHES -> _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.inchesToPx(
+                        size.height
+                    )
+                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.CENTIMETERS -> _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.cmToPx(
+                        size.height
+                    )
+                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.PIXELS -> size.height.toInt()
+                }
+
+                initBottomNavigation()
+                initCanvas(widthPx, heightPx)
+
+                initUIControls()
+                initBackHandling()
+                observeAfterCanvasReady()
+
+                if (exportModel == null) {
+                    autoSaveSilent()
+                }
+            }
+        }
+
+    }
+
+    private fun observeAfterCanvasReady() {
+        viewModel.inSelectionMode.observe(viewLifecycleOwner) { enabled ->
+            if (::sizedCanvasView.isInitialized) sizedCanvasView.setSelectionMode(enabled)
+        }
+
+        viewModel.exportResult.observe(viewLifecycleOwner) { exportResult ->
+            if (exportResult == null) {
+                // brand new canvas → trigger first silent save
+                Log.d("EditorFragment", "Blank canvas detected → running autoSaveSilent()")
+                viewModel.ensureBackgroundElement(requireActivity())
+                autoSaveSilent()
+            } else {
+                // existing project → use its paths
+                exportModel = exportResult
+                jsonPath = exportResult.jsonPath
+                if (exportResult.imagePath.startsWith("/storage")) {
+                    exportModel!!.imagePath = imagePath
+                } else {
+                    imagePath = exportResult.imagePath
+                }
+            }
+        }
+
+        viewModel.canvasUnit.observe(viewLifecycleOwner) { unit ->
+            if (unit != null) {
+                currentUnit = unit
+                binding.canvasContainer.invalidate()
+            }
+        }
+
+        viewModel.canvasElements.observe(viewLifecycleOwner) { elements ->
+            if (isAdded) {
+                if (!elements.isNullOrEmpty()) {
+                    canvasManager.syncElements(elements)
+                    binding.canvasContainer.invalidate()
+                    scheduleJsonSave()
+                }
+            }
+        }
+
+        viewModel.backgroundColor.observe(viewLifecycleOwner) { color ->
+            if (isAdded) {
+                color?.let {
+                    canvasManager.setCanvasBackgroundColor(it)
+                    scheduleJsonSave()
+                }
+            }
+        }
+
+        viewModel.canUndo.observe(viewLifecycleOwner) { canUndo ->
+            binding.undo.isEnabled = canUndo
+        }
+
+        viewModel.canRedo.observe(viewLifecycleOwner) { canRedo ->
+            binding.redo.isEnabled = canRedo
+        }
+
+        viewModel.backgroundImage.observe(viewLifecycleOwner) { bitmap ->
+            if (isAdded) {
+                bitmap?.let {
+                    canvasManager.setCanvasBackgroundImage(it)
+                    scheduleJsonSave()
+                }
+            }
+        }
+
+        viewModel.backgroundGradient.observe(viewLifecycleOwner) { gradient ->
+            if (isAdded) {
+                gradient?.let {
+                    canvasManager.setCanvasBackgroundGradient(it)
+                    scheduleJsonSave()
+                }
+            }
+        }
+
+        viewModel.currentFont.observe(viewLifecycleOwner) { font ->
+            if (font != null && viewModel.isExplicitChange()) {
+                font.let { canvasManager.setFont(it) }
+            }
+        }
+
+        viewModel.currentImageFilter.observe(viewLifecycleOwner) { filter ->
+            if (filter != null && viewModel.isExplicitChange()) {
+                canvasManager.applyImageFilter(filter)
+            }
+        }
+
+        viewModel.opacity.observe(viewLifecycleOwner) { opacity ->
+            binding.seekBarOpacity.progress = opacity
+            binding.opacityValue.text = "${opacity ?: 255}"
+        }
+
+        viewModel.currentTextSize.observe(viewLifecycleOwner) { size ->
+            binding.fontSize.text = "${size?.toInt() ?: 40}"
+            binding.seekBarFontSize.progress = size?.toInt() ?: 40
+        }
+
+        viewModel.blendingType.observe(viewLifecycleOwner) { type ->
+            binding.blendSpinner.text = type.name
+        }
+
+        viewModel.isDrawingMode.observe(viewLifecycleOwner) { isDrawing ->
+            if (::sizedCanvasView.isInitialized) {
+                sizedCanvasView.setDrawingMode(isDrawing)
+            }
+        }
+
+        viewModel.brushColor.observe(viewLifecycleOwner) {
+            sizedCanvasView.updateBrushSettings(color = it)
+        }
+
+        viewModel.brushThickness.observe(viewLifecycleOwner) {
+            sizedCanvasView.updateBrushSettings(thickness = it)
+        }
+
+        viewModel.brushHardness.observe(viewLifecycleOwner) {
+            sizedCanvasView.updateBrushSettings(hardness = it)
+        }
+
+        viewModel.currentBrushStyle.observe(viewLifecycleOwner) {
+            sizedCanvasView.updateBrushSettings(style = it)
+        }
+
+        viewModel.brushGradient.observe(viewLifecycleOwner) {
+            sizedCanvasView.updateBrushSettings(gradient = it)
+        }
+
+        viewModel.activePicker.observe(viewLifecycleOwner) { slot ->
+            if (::sizedCanvasView.isInitialized) {
+                when (slot) {
+                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_LABEL, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_SHADOW, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_BACKGROUND, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_TEXT_FILL, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_TEXT_STROKE, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_GRADIENT, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_DRAW_STROKE -> {
+                        sizedCanvasView.enableColorPicker()
+                    }
+
+                    else -> {
+                        sizedCanvasView.disableColorPicker()
+                    }
+                }
+            }
+        }
+
+        viewModel.selectedElements.observe(viewLifecycleOwner) { newSelection ->
+            if (!newSelection.sameSelectionAs(lastSelection)) {
+                resetPanelsOnSelectionChange()
+                updateToolbarVisibility(newSelection)
+                lastSelection = newSelection.toList()
+            }
+        }
+    }
+
+    private fun List<com.webscare.urducanvas.common.canvas.model.CanvasElement>.sameSelectionAs(other: List<com.webscare.urducanvas.common.canvas.model.CanvasElement>): Boolean {
+        if (size != other.size) return false
+        return this.map { it.id } == other.map { it.id }
+    }
+
+    // 👇 new helper
+    private fun resetPanelsOnSelectionChange() {
+        binding.seekBarOpacity.isVisible = false
+        binding.opacityValue.isVisible = false
+        binding.opacityIcon.isVisible = true
+        binding.seekBarFontSize.isVisible = false
+        binding.blendSpinner.isVisible = false
+    }
+
+    private fun updateToolbarVisibility(selected: List<com.webscare.urducanvas.common.canvas.model.CanvasElement>) {
+        if (panelsLocked) {
+            // 🔒 force hide everything
+            resetPanelsOnSelectionChange()
+            updateIconVisibility(binding.opacityPane, false)
+            updateIconVisibility(binding.blendPane, false)
+            updateIconVisibility(binding.fontSizePane, false)
+            updateIconVisibility(binding.copyIcon, false)
+            updateIconVisibility(binding.cutOutIcon, false)
+            updateIconVisibility(binding.alignmentKit, false)
+            updateIconVisibility(binding.selection, false)
+            return
+        }
+
+        val hasText = selected.any { it.type == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.TEXT }
+        val hasImage = selected.any { it.type == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.IMAGE || it.type == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.STICKER }
+        val hasBackground = selected.any { it.type == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND }
+        val hasShapeMask = selected.any { it.type == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.SHAPE && it.bitmap != null}
+        val isMulti = selected.size > 1
+        val anySelected = selected.isNotEmpty()
+
+        val showFont = anySelected && hasText && !isMulti && !hasImage && !hasBackground
+        val showCopy = anySelected && !hasBackground && !isMulti
+        val showAlignWithSelection = isMulti
+        val showRemoveBg = hasImage || hasBackground || hasShapeMask && !isMulti
+
+        updateIconVisibility(binding.opacityPane, anySelected)
+        updateIconVisibility(binding.blendPane, anySelected)
+        updateIconVisibility(binding.fontSizePane, showFont)
+        updateIconVisibility(binding.copyIcon, showCopy)
+        updateIconVisibility(binding.cutOutIcon, showRemoveBg)
+        updateIconVisibility(
+            binding.alignmentKit,
+            anySelected,
+            animShow = R.anim.slide_in,
+            animHide = R.anim.slide_out
+        )
+        updateIconVisibility(binding.selection, showAlignWithSelection)
+    }
+
+    private fun updateIconVisibility(
+        view: View,
+        shouldBeVisible: Boolean,
+        @AnimRes animShow: Int = R.anim.slide_up_2,
+        @AnimRes animHide: Int = R.anim.slide_down_2
+    ) {
+        val isVisible = view.isVisible
+
+        if (shouldBeVisible && !isVisible) {
+            view.visibility = View.VISIBLE
+            view.startAnimation(AnimationUtils.loadAnimation(view.context, animShow))
+        } else if (!shouldBeVisible && isVisible) {
+            if (view == binding.fontSizePane) {
+                binding.seekBarFontSize.isVisible = false
+            }
+            val anim = AnimationUtils.loadAnimation(view.context, animHide)
+            view.startAnimation(anim)
+            val duration = anim.duration
+            view.postDelayed({ view.visibility = View.GONE }, duration)
+        }
+    }
+
+    /** Attach/restore CanvasView inside container */
+    private fun initCanvas(widthPx: Int, heightPx: Int) {
+        val existing = viewModel.getCanvasView()
+        if (existing != null) {
+            sizedCanvasView = existing
+            sizedCanvasView.resizeCanvas(widthPx, heightPx)
+            (sizedCanvasView.parent as? ViewGroup)?.removeView(sizedCanvasView)
+            binding.canvasContainer.addView(sizedCanvasView)
+        } else {
+            sizedCanvasView = _root_ide_package_.com.webscare.urducanvas.common.views.CanvasView(
+                requireContext(),
+                canvasWidth = widthPx,
+                canvasHeight = heightPx,
+                onEditTextRequested = { element ->
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        try {
+                            when (element.type) {
+
+                                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.IMAGE, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.STICKER -> {
+                                    val selected =
+                                        viewModel.canvasElements.value?.find { it.id == element.id }
+                                    selected?.let {
+                                        val key = it.id
+                                        _root_ide_package_.com.webscare.urducanvas.common.utils.BitmapCache.put(
+                                            key,
+                                            it.bitmap!!
+                                        )
+                                        val bundle = Bundle().apply { putString("elementId", key) }
+
+                                        val navOptions =
+                                            NavOptions.Builder().setLaunchSingleTop(true)
+                                                .setPopUpTo(
+                                                    R.id.adjustmentsParentFragment, inclusive = true
+                                                ).build()
+
+                                        navController.navigate(
+                                            R.id.adjustmentsParentFragment, bundle, navOptions
+                                        )
+                                    }
+                                }
+
+                                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.DRAW, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.SHAPE -> {
+                                    // ✅ If SHAPE contains a masked image → open Image Adjustments instead
+                                    if (element.type == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.SHAPE && element.bitmap != null) {
+                                        val selected =
+                                            viewModel.canvasElements.value?.find { it.id == element.id }
+                                        selected?.let {
+                                            val key = it.id
+                                            _root_ide_package_.com.webscare.urducanvas.common.utils.BitmapCache.put(
+                                                key,
+                                                it.bitmap!!
+                                            )
+                                            val bundle =
+                                                Bundle().apply { putString("elementId", key) }
+
+                                            val navOptions = NavOptions.Builder()
+                                                .setLaunchSingleTop(true)
+                                                .setPopUpTo(
+                                                    R.id.adjustmentsParentFragment,
+                                                    inclusive = true
+                                                )
+                                                .build()
+
+                                            navController.navigate(
+                                                R.id.adjustmentsParentFragment,
+                                                bundle,
+                                                navOptions
+                                            )
+                                        }
+                                    } else {
+                                        // 🧠 Normal Shape or Draw Mode — open DrawFragment as usual
+                                        val startPage = when (element.type) {
+                                            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.DRAW -> 0
+                                            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.SHAPE -> 1
+                                            else -> 0
+                                        }
+
+                                        val bundle =
+                                            Bundle().apply { putInt("startPage", startPage) }
+                                        val navOptions =
+                                            NavOptions.Builder().setLaunchSingleTop(true).build()
+
+                                        navController.navigate(
+                                            R.id.drawFragment,
+                                            bundle,
+                                            navOptions
+                                        )
+                                    }
+                                }
+
+                                else -> {
+                                    showTextEditDialog(element)
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("EditorFragment", "Navigation failed: ${e.message}")
+                        }
+                    }
+                },
+                onElementChanged = { canvasElement ->
+                    viewModel.canvasElements.value?.find { it.id == canvasElement.id }?.let {
+                        viewModel.updateElement(canvasElement)
+                        viewModel.markChanged()
+                    }
+                },
+                onElementRemoved = { canvasElement ->
+                    viewModel.canvasElements.value?.find { it.id == canvasElement.id }?.let {
+                        viewModel.removeElement(it)
+                        viewModel.markChanged()
+                    }
+                },
+                onElementSelected = { elements ->
+                    viewModel.onCanvasSelectionChanged(elements)
+                },
+                onEndBatchUpdate = { elementId ->
+                    viewModel.endBatchUpdate(elementId)
+                    viewModel.markChanged()
+                },
+                onStartBatchUpdate = { elementId, actionType ->
+                    viewModel.startBatchUpdate(elementId, actionType)
+                    viewModel.markChanged()
+                },
+                onColorPicked = { colorInt ->
+                    val opaque = (colorInt and 0x00FFFFFF) or (0xFF shl 24)
+                    viewModel.finishPicking(opaque)
+                    viewModel.stopPicking()
+                    viewModel.markChanged()
+                },
+                onRequestOpenLayers = {
+                    requireActivity().runOnUiThread {
+                        if (view != null && viewLifecycleOwner.lifecycle.currentState.isAtLeast(
+                                Lifecycle.State.CREATED
+                            )
+                        ) {
+                            viewModel.enterSelectionMode()
+                            binding.bottomNavigation.selectedItemId = R.id.nav_layers
+                            navController.navigate(R.id.layersFragment)
+                            currentPanelItemId = R.id.nav_layers
+                            binding.panelNavHost.visibility = View.VISIBLE
+                        }
+                    }
+                },
+                onExitSelectionMode = {
+                    viewModel.exitSelectionMode()
+                },
+                onDrawStrokeCompleted = { element ->
+                    viewModel.addDrawElement(element)
+                }).apply {
+                binding.canvasContainer.addView(this)
+            }
+            viewModel.setCanvasView(sizedCanvasView)
+        }
+
+        canvasManager =
+            _root_ide_package_.com.webscare.urducanvas.common.canvas.CanvasManager(sizedCanvasView)
+    }
+
+    /** Setup bottom navigation with navHost */
+    private fun initBottomNavigation() {
+        binding.bottomNavigation.setOnItemSelectedListener { menuItem ->
+            if (currentPanelItemId == menuItem.itemId) {
+                binding.panelNavHost.visibility = View.GONE
+                currentPanelItemId = null
+            } else {
+                binding.panelNavHost.visibility = View.VISIBLE
+                currentPanelItemId = menuItem.itemId
+                when (menuItem.itemId) {
+                    R.id.nav_background -> navController.navigate(R.id.backgroundsFragment)
+                    R.id.nav_objects -> navController.navigate(R.id.objectsFragment)
+                    R.id.nav_text -> navController.navigate(R.id.textFragment)
+                    R.id.nav_draw -> navController.navigate(R.id.drawFragment)
+                    R.id.nav_images -> navController.navigate(R.id.imagesFragment)
+                    R.id.nav_layers -> navController.navigate(R.id.layersFragment)
+                }
+            }
+            true
+        }
+    }
+
+    /** Setup UI controls (undo, redo, align, opacity, etc.) */
+    private fun initUIControls() {
+        binding.fabContainer.post {
+            // Set initial position of the FAB to the bottom right of the container
+            val fab = binding.fabAdd
+            val container = binding.fabContainer
+
+            // Ensure width/height are measured (should be by 'post')
+            if (container.width > 0 && container.height > 0) {
+                fab.x = container.width - fab.width - fabMargin.toFloat()
+                fab.y = container.height - fab.height - fabMargin.toFloat()
+            }
+
+            initFab()
+        }
+
+        binding.undo.addPressEffect { viewModel.undo() }
+        binding.redo.addPressEffect { viewModel.redo() }
+        binding.showHide.addPressEffect {
+            panelsLocked = !panelsLocked
+            if (panelsLocked) {
+                resetPanelsOnSelectionChange()
+                binding.showHide.animate().rotation(180f).setDuration(300).start()
+            } else {
+                binding.showHide.animate().rotation(0f).setDuration(300).start()
+            }
+            updateToolbarVisibility(viewModel.selectedElements.value ?: emptyList())
+        }
+
+        binding.opacityIcon.addPressEffect {
+            togglePanel(showOpacityPanel = true)
+            binding.opacityValue.setTextColor(ColorStateList.valueOf(colorOf(R.color.white)))
+            binding.opacityValue.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.appColor))
+            resetFontSizeState()
+            resetBlendState()
+            activePanel = binding.opacityValue
+        }
+
+        binding.opacityValue.addPressEffect {
+            togglePanel(showOpacityPanel = true)
+            binding.opacityValue.setTextColor(ColorStateList.valueOf(colorOf(R.color.black)))
+            binding.opacityValue.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.white))
+            resetFontSizeState()
+            resetBlendState()
+            activePanel = null
+        }
+
+        binding.fontSize.addPressEffect {
+            if (activePanel == binding.fontSize){
+                resetFontSizeState()
+                resetOpacityState()
+                resetBlendState()
+                activePanel = null
+            }else{
+                binding.fontSize.setTextColor(ColorStateList.valueOf(colorOf(R.color.white)))
+                binding.fontSize.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.appColor))
+                resetOpacityState()
+                resetBlendState()
+                activePanel = binding.fontSize
+            }
+            togglePanel(showOpacityPanel = false)
+        }
+
+        binding.blendIcon.addPressEffect {
+            if (activePanel == binding.blendIcon){
+                resetBlendState()
+                resetOpacityState()
+                resetFontSizeState()
+                activePanel = null
+            }else{
+                binding.blendIcon.imageTintList = ColorStateList.valueOf(colorOf(R.color.white))
+                binding.blendIcon.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.appColor))
+                resetOpacityState()
+                resetFontSizeState()
+                activePanel = binding.blendIcon
+            }
+            toggleBlendPanel()
+        }
+
+        binding.artBoard.addPressEffect {
+            if (currentMode != _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.CANVAS) {
+                currentMode = _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.CANVAS
+                updateModeDrawables()
+            }
+        }
+        binding.selection.addPressEffect {
+            if (currentMode != _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.SELECTION) {
+                currentMode = _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.SELECTION
+                updateModeDrawables()
+            }
+        }
+
+        binding.blendSpinner.addPressEffect {
+            showItemPopupMenu(binding.blendSpinner)
+        }
+
+        binding.leftAlign.addPressEffect {
+            sizedCanvasView.alignHorizontal(
+                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.HAlign.LEFT, currentMode
+            )
+        }
+        binding.centerHorizontal.addPressEffect {
+            sizedCanvasView.alignHorizontal(
+                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.HAlign.CENTER, currentMode
+            )
+        }
+        binding.rightAlign.addPressEffect {
+            sizedCanvasView.alignHorizontal(
+                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.HAlign.RIGHT, currentMode
+            )
+        }
+
+        binding.topAlign.addPressEffect { sizedCanvasView.alignVertical(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.VAlign.TOP, currentMode) }
+        binding.centerVertical.addPressEffect {
+            sizedCanvasView.alignVertical(
+                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.VAlign.MIDDLE, currentMode
+            )
+        }
+        binding.bottomAlign.addPressEffect {
+            sizedCanvasView.alignVertical(
+                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.VAlign.BOTTOM, currentMode
+            )
+        }
+
+        binding.seekBarOpacity.apply {
+            max = 255
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
+                    if (fromUser) viewModel.setOpacity(progress)
+                }
+
+                override fun onStartTrackingTouch(sb: SeekBar) {}
+                override fun onStopTrackingTouch(sb: SeekBar) {}
+            })
+        }
+
+        binding.seekBarFontSize.apply {
+            max = 100
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
+                    if (fromUser) {
+                        binding.fontSize.text = "$progress"
+                        viewModel.setTextSizeForAllSelected(progress.toFloat())
+                    }
+                }
+
+                override fun onStartTrackingTouch(sb: SeekBar) {}
+                override fun onStopTrackingTouch(sb: SeekBar) {}
+            })
+        }
+
+        binding.copyIcon.addPressEffect { viewModel.copySelectedElementsGroup() }
+
+        binding.cutOutIcon.addPressEffect {
+            view?.post {
+                findNavController().navigate(R.id.bgRemovalFragment)
+            }
+        }
+
+        binding.done.addPressEffect {
+            viewModel.setCanvasView(sizedCanvasView)
+            sizedCanvasView.clearSelection()
+            view?.post {
+                findNavController().navigate(R.id.exportFragment)
+            }
+        }
+    }
+
+    private fun colorOf(@ColorRes colorRes: Int): Int {
+        return ContextCompat.getColor(requireActivity(), colorRes)
+    }
+
+    private fun resetOpacityState() {
+        binding.opacityValue.setTextColor(ColorStateList.valueOf(colorOf(R.color.black)))
+        binding.opacityValue.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.white))
+    }
+
+    private fun resetFontSizeState() {
+        binding.fontSize.setTextColor(ColorStateList.valueOf(colorOf(R.color.black)))
+        binding.fontSize.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.white))
+    }
+
+    private fun resetBlendState() {
+        binding.blendIcon.imageTintList = ColorStateList.valueOf(colorOf(R.color.black))
+        binding.blendIcon.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.white))
+    }
+
+    private fun showItemPopupMenu(anchorView: View) {
+        val popupBinding = LayoutBlendPopupBinding.inflate(LayoutInflater.from(requireActivity()))
+        val popupWindow = PopupWindow(
+            popupBinding.root,
+            (150 * requireActivity().resources.displayMetrics.density).toInt(), // ~200dp width
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            true
+        )
+
+        popupWindow.elevation = 2f
+        popupWindow.isOutsideTouchable = true
+
+
+        // ---- item logic ----
+
+        popupBinding.source.addPressEffect {
+            viewModel.setBlendingType(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BlendType.SRC)
+            popupWindow.dismiss()
+        }
+
+        popupBinding.normal.addPressEffect {
+            viewModel.setBlendingType(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BlendType.NORMAL)
+            popupWindow.dismiss()
+        }
+
+        popupBinding.darken.addPressEffect {
+            viewModel.setBlendingType(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BlendType.DARKEN)
+            popupWindow.dismiss()
+        }
+
+        popupBinding.lighten.addPressEffect {
+            viewModel.setBlendingType(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BlendType.LIGHTEN)
+            popupWindow.dismiss()
+        }
+
+        popupBinding.multiply.addPressEffect {
+            viewModel.setBlendingType(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BlendType.MULTIPLY)
+            popupWindow.dismiss()
+        }
+
+        popupBinding.screen.addPressEffect {
+            viewModel.setBlendingType(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BlendType.SCREEN)
+            popupWindow.dismiss()
+        }
+
+        anchorView.post {
+            val screenHeight = resources.displayMetrics.heightPixels
+
+            val location = IntArray(2)
+            anchorView.getLocationOnScreen(location)
+            val anchorTop = location[1]
+            val anchorBottom = anchorTop + anchorView.height
+
+            // Measure popup height
+            popupBinding.root.measure(
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
+            val popupHeight = popupBinding.root.measuredHeight
+
+            val spaceBelow = screenHeight - anchorBottom
+            val spaceAbove = anchorTop
+
+            if (spaceBelow >= popupHeight) {
+                // Enough space below → dropdown
+                popupWindow.showAsDropDown(anchorView)
+            } else if (spaceAbove >= popupHeight) {
+                // Enough space above → show on top
+                popupWindow.showAtLocation(
+                    anchorView, Gravity.NO_GRAVITY, location[0], // x
+                    anchorTop - popupHeight // y (above anchor)
+                )
+            } else {
+                // Default fallback → force dropdown
+                popupWindow.showAsDropDown(anchorView)
+            }
+        }
+    }
+
+    /** Setup back button behavior */
+    private fun initBackHandling() {
+        requireActivity().onBackPressedDispatcher.addCallback(
+            viewLifecycleOwner, object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    autoSave()
+                }
+            })
+
+        binding.back.addPressEffect { autoSave() }
+    }
+
+    private fun toggleBlendPanel() {
+        val isCurrentlyVisible = binding.blendSpinner.isVisible
+        if (isCurrentlyVisible) {
+            // hide blend panel
+            binding.blendSpinner.isVisible = false
+        } else {
+            // show blendSpinner, hide other panels
+            activePanel = binding.blendIcon
+            binding.blendSpinner.isVisible = true
+            binding.seekBarOpacity.isVisible = false
+            binding.opacityValue.isVisible = false
+            binding.opacityIcon.isVisible = true
+            binding.seekBarFontSize.isVisible = false
+        }
+    }
+
+    private fun togglePanel(showOpacityPanel: Boolean) {
+        if (showOpacityPanel) {
+            val isCurrentlyVisible = binding.seekBarOpacity.isVisible
+            if (isCurrentlyVisible) {
+                binding.seekBarOpacity.isVisible = false
+                binding.opacityValue.isVisible = false
+                binding.opacityIcon.isVisible = true
+            } else {
+                activePanel = binding.opacityValue
+                binding.seekBarOpacity.isVisible = true
+                binding.opacityIcon.isVisible = false
+                binding.opacityValue.isVisible = true
+                // hide other panels
+                binding.seekBarFontSize.isVisible = false
+                binding.blendSpinner.isVisible = false
+            }
+        } else {
+            val isCurrentlyVisible = binding.seekBarFontSize.isVisible
+            if (isCurrentlyVisible) {
+                binding.seekBarFontSize.isVisible = false
+            } else {
+                activePanel = binding.fontSize
+                binding.seekBarFontSize.isVisible = true
+                binding.seekBarOpacity.isVisible = false
+                binding.opacityValue.isVisible = false
+                binding.opacityIcon.isVisible = true
+                binding.blendSpinner.isVisible = false
+            }
+        }
+    }
+
+    private fun updateModeDrawables() {
+        when (currentMode) {
+            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.CANVAS -> {
+                binding.artBoard.setImageResource(R.drawable.ic_align_art_board_filled)
+                binding.selection.setImageResource(R.drawable.ic_align_selection_stroke)
+            }
+
+            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.SELECTION -> {
+                binding.artBoard.setImageResource(R.drawable.ic_align_art_board_stroke)
+                binding.selection.setImageResource(R.drawable.ic_align_selection_filled)
+            }
+        }
+    }
+
+    private fun showExportProgressDialog() {
+        if (exportDialog?.isShowing == true) return
+
+        exportDialogBinding = DialogAutoSavingLayoutBinding.inflate(layoutInflater)
+
+        exportDialog = Dialog(requireContext()).apply {
+            setContentView(exportDialogBinding!!.root)
+            setCancelable(false)
+            window?.setBackgroundDrawableResource(android.R.color.transparent)
+            val params = window?.attributes
+            params?.width = (resources.displayMetrics.widthPixels * 0.8).toInt() // 80% width
+            params?.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            window?.attributes = params
+
+            window?.setGravity(Gravity.CENTER)
+            show()
+        }
+        startIconRotation()
+    }
+
+    private fun updateExportDialog(percent: Int, stage: String) {
+        exportDialogBinding?.apply {
+            progressBar.progress = percent
+            tvProgressPercent.text = getString(R.string.complete, percent)
+            exportValue.text = stage
+        }
+    }
+
+    private fun dismissExportDialog() {
+        stopIconRotation()
+        exportDialog?.dismiss()
+        exportDialog = null
+        exportDialogBinding = null
+    }
+
+    private fun autoSaveSilent() {
+        if (!::sizedCanvasView.isInitialized) {
+            return
+        }
+        val options = viewModel.exportOptions.value ?: return
+        val canvasSize = viewModel.canvasSize.value ?: return
+
+        lifecycleScope.launch {
+            val (bitmap, json) = withContext(Dispatchers.Default) {
+                sizedCanvasView.exportCanvasThumbnail { _, _ -> }
+            }
+            withContext(Dispatchers.IO) {
+                saveOnExitSafe(options, bitmap, json, false, canvasSize)
+            }
+        }
+    }
+
+    private fun autoSave() {
+        if (!viewModel.hasChanges.value!!) {
+            findNavController().navigateUp()
+            return
+        }
+        if (isSaving) return
+        isSaving = true
+        val options = viewModel.exportOptions.value ?: return
+        val canvasSize = viewModel.canvasSize.value ?: return
+
+        showExportProgressDialog()
+
+        lifecycleScope.launch {
+            val (bitmap, json) = withContext(Dispatchers.Default) {
+                sizedCanvasView.exportCanvasThumbnail { percent, stage ->
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        updateExportDialog(percent, stage)
+                    }
+                }
+            }
+            withContext(Dispatchers.Main) {
+                updateExportDialog(97, "Saving files...")
+            }
+            withContext(Dispatchers.IO) {
+                saveOnExitSafe(options, bitmap, json, true, canvasSize)
+            }
+            withContext(Dispatchers.Main) {
+                updateExportDialog(100, "Saved successfully")
+                delay(1000)
+                dismissExportDialog()
+                findNavController().navigateUp()
+            }
+        }
+    }
+
+    private fun startIconRotation() {
+        exportDialogBinding?.view4?.let { icon ->
+            rotationAnimator = ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, 360f).apply {
+                _root_ide_package_.android.animation.ObjectAnimator.setDuration = 1000L
+                repeatCount = ValueAnimator.INFINITE
+                interpolator = LinearInterpolator()
+                start()
+            }
+        }
+    }
+
+    private fun stopIconRotation() {
+        rotationAnimator?.cancel()
+        rotationAnimator = null
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        saveJsonJob?.cancel()
+        _binding = null
+        _navController = null
+    }
+}
