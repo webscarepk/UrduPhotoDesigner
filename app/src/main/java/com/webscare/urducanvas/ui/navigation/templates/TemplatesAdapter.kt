@@ -101,7 +101,7 @@ class TemplatesAdapter(
                 onClick(currentItem)
             }
 
-            val url = _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.BASE_URL_GLIDE + item.thumbnail_url
+            val url = Constants.BASE_URL_GLIDE + item.thumbnail_url
             if (url.isNotEmpty()) {
                 binding.shimmerLayout.startShimmer()
                 binding.shimmerLayout.isVisible = true

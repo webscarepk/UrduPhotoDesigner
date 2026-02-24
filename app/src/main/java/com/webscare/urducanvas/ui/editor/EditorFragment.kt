@@ -50,8 +50,6 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.setupWithNavController
 import com.webscare.urducanvas.R
-import com.webscare.urducanvas.common.canvas.CanvasManager
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.BlendType
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.canvas.enums.HAlign
@@ -59,22 +57,13 @@ import com.webscare.urducanvas.common.canvas.enums.MultiAlignMode
 import com.webscare.urducanvas.common.canvas.enums.PickerTarget
 import com.webscare.urducanvas.common.canvas.enums.UnitType
 import com.webscare.urducanvas.common.canvas.enums.VAlign
-import com.webscare.urducanvas.common.canvas.model.CanvasElement
-import com.webscare.urducanvas.common.canvas.model.CanvasSize
-import com.webscare.urducanvas.common.canvas.model.ExportOptions
 import com.webscare.urducanvas.common.utils.BitmapCache
-import com.webscare.urducanvas.common.utils.Converter.cmToPx
-import com.webscare.urducanvas.common.utils.Converter.inchesToPx
+import com.webscare.urducanvas.common.utils.Converter
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import com.webscare.urducanvas.common.views.CanvasView
-import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.databinding.DialogAutoSavingLayoutBinding
 import com.webscare.urducanvas.databinding.FragmentEditorBinding
 import com.webscare.urducanvas.databinding.LayoutBlendPopupBinding
-import com.webscare.urducanvas.viewmodels.MainViewModel
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -91,7 +80,7 @@ fun Int.dpToPx(context: Context): Int {
 }
 
 @AndroidEntryPoint
-class EditorFragment : androidx.fragment.app.Fragment() {
+class EditorFragment : Fragment() {
     private var _binding: FragmentEditorBinding? = null
     private val binding get() = _binding!!
     private lateinit var canvasManager: com.webscare.urducanvas.common.canvas.CanvasManager
@@ -99,14 +88,14 @@ class EditorFragment : androidx.fragment.app.Fragment() {
     private val navController get() = _navController!!
     private var panelsLocked = false
     private lateinit var canvasSize: com.webscare.urducanvas.common.canvas.model.CanvasSize
-    private var currentUnit = _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.PIXELS
+    private var currentUnit = UnitType.PIXELS
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
     private var lastSelection: List<com.webscare.urducanvas.common.canvas.model.CanvasElement> = emptyList()
     private var activePanel: View? = null
     private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
     private var currentPanelItemId: Int? = null
     private lateinit var sizedCanvasView: com.webscare.urducanvas.common.views.CanvasView
-    private var currentMode: com.webscare.urducanvas.common.canvas.enums.MultiAlignMode = _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.CANVAS
+    private var currentMode: MultiAlignMode = MultiAlignMode.CANVAS
     private var exportModel: com.webscare.urducanvas.data.model.ExportResult? = null
     private var jsonPath: String = "canvas_data_${System.currentTimeMillis()}.json"
     private var imagePath: String = "design_data_${System.currentTimeMillis()}.png"
@@ -186,11 +175,11 @@ class EditorFragment : androidx.fragment.app.Fragment() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val filePath =
-                    _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                    ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
 
                 withContext(Dispatchers.Main) {
                     viewModel.addSticker(
-                        _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.filePathToBitmap(filePath!!), requireActivity(), _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.IMAGE
+                        ImageProcessor.filePathToBitmap(filePath!!), requireActivity(), ElementType.IMAGE
                     )
                 }
             } catch (e: Exception) {
@@ -462,7 +451,7 @@ class EditorFragment : androidx.fragment.app.Fragment() {
             lifecycleScope.launch(Dispatchers.IO) {
                 // ---- Save Image ----
                 if (exportImage) {
-                    _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.saveBitmapToFile(exportBitmap, options, imagePath)
+                    ImageProcessor.saveBitmapToFile(exportBitmap, options, imagePath)
                     withContext(Dispatchers.Main) {
                         updateExportDialog(96, "Image saved")
                     }
@@ -540,22 +529,22 @@ class EditorFragment : androidx.fragment.app.Fragment() {
                 canvasSize = size
 
                 val widthPx = when (currentUnit) {
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.INCHES -> _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.inchesToPx(
+                    UnitType.INCHES -> Converter.inchesToPx(
                         size.width
                     )
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.CENTIMETERS -> _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.cmToPx(
+                    UnitType.CENTIMETERS -> Converter.cmToPx(
                         size.width
                     )
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.PIXELS -> size.width.toInt()
+                    UnitType.PIXELS -> size.width.toInt()
                 }
                 val heightPx = when (currentUnit) {
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.INCHES -> _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.inchesToPx(
+                    UnitType.INCHES -> Converter.inchesToPx(
                         size.height
                     )
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.CENTIMETERS -> _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.cmToPx(
+                    UnitType.CENTIMETERS -> Converter.cmToPx(
                         size.height
                     )
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.PIXELS -> size.height.toInt()
+                    UnitType.PIXELS -> size.height.toInt()
                 }
 
                 initBottomNavigation()
@@ -703,7 +692,7 @@ class EditorFragment : androidx.fragment.app.Fragment() {
         viewModel.activePicker.observe(viewLifecycleOwner) { slot ->
             if (::sizedCanvasView.isInitialized) {
                 when (slot) {
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_LABEL, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_SHADOW, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_BACKGROUND, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_TEXT_FILL, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_TEXT_STROKE, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_GRADIENT, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_DRAW_STROKE -> {
+                    PickerTarget.EYE_DROPPER_LABEL, PickerTarget.EYE_DROPPER_OVERLAY, PickerTarget.COLOR_PICKER_OVERLAY, PickerTarget.EYE_DROPPER_SHADOW, PickerTarget.EYE_DROPPER_BACKGROUND, PickerTarget.EYE_DROPPER_TEXT_FILL, PickerTarget.EYE_DROPPER_TEXT_STROKE, PickerTarget.EYE_DROPPER_GRADIENT, PickerTarget.EYE_DROPPER_DRAW_STROKE -> {
                         sizedCanvasView.enableColorPicker()
                     }
 
@@ -751,10 +740,10 @@ class EditorFragment : androidx.fragment.app.Fragment() {
             return
         }
 
-        val hasText = selected.any { it.type == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.TEXT }
-        val hasImage = selected.any { it.type == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.IMAGE || it.type == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.STICKER }
-        val hasBackground = selected.any { it.type == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND }
-        val hasShapeMask = selected.any { it.type == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.SHAPE && it.bitmap != null}
+        val hasText = selected.any { it.type == ElementType.TEXT }
+        val hasImage = selected.any { it.type == ElementType.IMAGE || it.type == ElementType.STICKER }
+        val hasBackground = selected.any { it.type == ElementType.BACKGROUND }
+        val hasShapeMask = selected.any { it.type == ElementType.SHAPE && it.bitmap != null}
         val isMulti = selected.size > 1
         val anySelected = selected.isNotEmpty()
 
@@ -817,12 +806,12 @@ class EditorFragment : androidx.fragment.app.Fragment() {
                         try {
                             when (element.type) {
 
-                                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.IMAGE, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.STICKER -> {
+                                ElementType.IMAGE, ElementType.BACKGROUND, ElementType.STICKER -> {
                                     val selected =
                                         viewModel.canvasElements.value?.find { it.id == element.id }
                                     selected?.let {
                                         val key = it.id
-                                        _root_ide_package_.com.webscare.urducanvas.common.utils.BitmapCache.put(
+                                        BitmapCache.put(
                                             key,
                                             it.bitmap!!
                                         )
@@ -840,14 +829,14 @@ class EditorFragment : androidx.fragment.app.Fragment() {
                                     }
                                 }
 
-                                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.DRAW, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.SHAPE -> {
+                                ElementType.DRAW, ElementType.SHAPE -> {
                                     // ✅ If SHAPE contains a masked image → open Image Adjustments instead
-                                    if (element.type == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.SHAPE && element.bitmap != null) {
+                                    if (element.type == ElementType.SHAPE && element.bitmap != null) {
                                         val selected =
                                             viewModel.canvasElements.value?.find { it.id == element.id }
                                         selected?.let {
                                             val key = it.id
-                                            _root_ide_package_.com.webscare.urducanvas.common.utils.BitmapCache.put(
+                                            BitmapCache.put(
                                                 key,
                                                 it.bitmap!!
                                             )
@@ -871,8 +860,8 @@ class EditorFragment : androidx.fragment.app.Fragment() {
                                     } else {
                                         // 🧠 Normal Shape or Draw Mode — open DrawFragment as usual
                                         val startPage = when (element.type) {
-                                            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.DRAW -> 0
-                                            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.SHAPE -> 1
+                                            ElementType.DRAW -> 0
+                                            ElementType.SHAPE -> 1
                                             else -> 0
                                         }
 
@@ -1058,14 +1047,14 @@ class EditorFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.artBoard.addPressEffect {
-            if (currentMode != _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.CANVAS) {
-                currentMode = _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.CANVAS
+            if (currentMode != MultiAlignMode.CANVAS) {
+                currentMode = MultiAlignMode.CANVAS
                 updateModeDrawables()
             }
         }
         binding.selection.addPressEffect {
-            if (currentMode != _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.SELECTION) {
-                currentMode = _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.SELECTION
+            if (currentMode != MultiAlignMode.SELECTION) {
+                currentMode = MultiAlignMode.SELECTION
                 updateModeDrawables()
             }
         }
@@ -1076,29 +1065,29 @@ class EditorFragment : androidx.fragment.app.Fragment() {
 
         binding.leftAlign.addPressEffect {
             sizedCanvasView.alignHorizontal(
-                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.HAlign.LEFT, currentMode
+                HAlign.LEFT, currentMode
             )
         }
         binding.centerHorizontal.addPressEffect {
             sizedCanvasView.alignHorizontal(
-                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.HAlign.CENTER, currentMode
+                HAlign.CENTER, currentMode
             )
         }
         binding.rightAlign.addPressEffect {
             sizedCanvasView.alignHorizontal(
-                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.HAlign.RIGHT, currentMode
+                HAlign.RIGHT, currentMode
             )
         }
 
-        binding.topAlign.addPressEffect { sizedCanvasView.alignVertical(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.VAlign.TOP, currentMode) }
+        binding.topAlign.addPressEffect { sizedCanvasView.alignVertical(VAlign.TOP, currentMode) }
         binding.centerVertical.addPressEffect {
             sizedCanvasView.alignVertical(
-                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.VAlign.MIDDLE, currentMode
+                VAlign.MIDDLE, currentMode
             )
         }
         binding.bottomAlign.addPressEffect {
             sizedCanvasView.alignVertical(
-                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.VAlign.BOTTOM, currentMode
+                VAlign.BOTTOM, currentMode
             )
         }
 
@@ -1181,32 +1170,32 @@ class EditorFragment : androidx.fragment.app.Fragment() {
         // ---- item logic ----
 
         popupBinding.source.addPressEffect {
-            viewModel.setBlendingType(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BlendType.SRC)
+            viewModel.setBlendingType(BlendType.SRC)
             popupWindow.dismiss()
         }
 
         popupBinding.normal.addPressEffect {
-            viewModel.setBlendingType(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BlendType.NORMAL)
+            viewModel.setBlendingType(BlendType.NORMAL)
             popupWindow.dismiss()
         }
 
         popupBinding.darken.addPressEffect {
-            viewModel.setBlendingType(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BlendType.DARKEN)
+            viewModel.setBlendingType(BlendType.DARKEN)
             popupWindow.dismiss()
         }
 
         popupBinding.lighten.addPressEffect {
-            viewModel.setBlendingType(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BlendType.LIGHTEN)
+            viewModel.setBlendingType(BlendType.LIGHTEN)
             popupWindow.dismiss()
         }
 
         popupBinding.multiply.addPressEffect {
-            viewModel.setBlendingType(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BlendType.MULTIPLY)
+            viewModel.setBlendingType(BlendType.MULTIPLY)
             popupWindow.dismiss()
         }
 
         popupBinding.screen.addPressEffect {
-            viewModel.setBlendingType(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BlendType.SCREEN)
+            viewModel.setBlendingType(BlendType.SCREEN)
             popupWindow.dismiss()
         }
 
@@ -1305,12 +1294,12 @@ class EditorFragment : androidx.fragment.app.Fragment() {
 
     private fun updateModeDrawables() {
         when (currentMode) {
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.CANVAS -> {
+            MultiAlignMode.CANVAS -> {
                 binding.artBoard.setImageResource(R.drawable.ic_align_art_board_filled)
                 binding.selection.setImageResource(R.drawable.ic_align_selection_stroke)
             }
 
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.SELECTION -> {
+            MultiAlignMode.SELECTION -> {
                 binding.artBoard.setImageResource(R.drawable.ic_align_art_board_stroke)
                 binding.selection.setImageResource(R.drawable.ic_align_selection_filled)
             }

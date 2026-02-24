@@ -15,6 +15,7 @@ import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
@@ -23,7 +24,6 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
-import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.ImageProcessor.bitmapCompress
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
@@ -31,6 +31,7 @@ import com.webscare.urducanvas.databinding.FragmentObjectsBinding
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
+import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -41,13 +42,13 @@ import kotlin.text.equals
 import kotlin.text.trim
 
 @AndroidEntryPoint
-class ObjectsFragment : androidx.fragment.app.Fragment() {
+class ObjectsFragment : Fragment() {
     private var _binding: FragmentObjectsBinding? = null
     private val binding get() = _binding!!
     private lateinit var adapter: ObjectsPagerAdapter
     private var tabs = mutableListOf<String>()
-    private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    private val mainViewModel: MainViewModel by activityViewModels()
+    private val viewModel: CanvasViewModel by activityViewModels()
     private val pickImage =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             uri?.let { handlePickedUri(it) }
@@ -93,10 +94,18 @@ class ObjectsFragment : androidx.fragment.app.Fragment() {
                             )
                 }
 
-                val newTabs = mutableListOf<String>().apply {
-                    if (hasObjectRecents) add("Recents")
-                    addAll(extraTabs + baseTabs)
+                val newTabs = mutableListOf<String>()
+
+                newTabs.add("Shapes")
+
+                if (hasObjectRecents) {
+                    newTabs.add("Recents")
                 }
+
+                val combinedTabs = (extraTabs + baseTabs)
+                    .filterNot { it.equals("Shapes", true) } // remove duplicate Shapes if exists
+
+                newTabs.addAll(combinedTabs)
 
                 if (binding.viewPager.adapter == null || newTabs != tabs) {
                     // only if structure changed
@@ -246,21 +255,37 @@ class ObjectsFragment : androidx.fragment.app.Fragment() {
     private fun handlePickedUri(uri: Uri) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val filePath =
-                    _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                if (binding.viewPager.currentItem == 0){
+                    val bitmap = requireContext().contentResolver.openInputStream(uri)?.use { stream ->
+                        android.graphics.BitmapFactory.decodeStream(stream)
+                    }
 
-                withContext(Dispatchers.Main) {
-                    viewModel.addSticker(
-                        _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.filePathToBitmap(filePath!!)?.let { image ->
-                            viewModel.canvasSize.value?.height?.roundToInt()?.let {
-                                viewModel.canvasSize.value?.width?.let { it1 ->
-                                    _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.bitmapCompress(
-                                        image, it1.roundToInt(), it
-                                    )
+                    if (bitmap != null) {
+                        withContext(Dispatchers.Main){
+                            viewModel.addImageInsideShape(bitmap, requireActivity())
+                        }
+                    } else {
+                        Toast.makeText(
+                            requireContext(), "Please select a shape first", Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }else{
+                    val filePath =
+                        ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+
+                    withContext(Dispatchers.Main) {
+                        viewModel.addSticker(
+                            ImageProcessor.filePathToBitmap(filePath!!)?.let { image ->
+                                viewModel.canvasSize.value?.height?.roundToInt()?.let {
+                                    viewModel.canvasSize.value?.width?.let { it1 ->
+                                        bitmapCompress(
+                                            image, it1.roundToInt(), it
+                                        )
+                                    }
                                 }
-                            }
-                        }, requireActivity(), _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.STICKER
-                    )
+                            }, requireActivity(), ElementType.STICKER
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("PhotoPicker", "Failed compressing image", e)

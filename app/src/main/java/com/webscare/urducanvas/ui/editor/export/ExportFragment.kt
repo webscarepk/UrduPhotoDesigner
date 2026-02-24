@@ -20,20 +20,16 @@ import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.scale
-import androidx.fragment.app.Fragment
+import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.webscare.urducanvas.R
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.ExportViewType
 import com.webscare.urducanvas.common.canvas.model.ExportOptions
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import com.webscare.urducanvas.common.views.CanvasView
-import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.databinding.FragmentExportBinding
-import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -43,8 +39,6 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.core.view.isVisible
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 @AndroidEntryPoint
 class ExportFragment : androidx.fragment.app.Fragment() {
@@ -89,17 +83,17 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         }
 
         resolutionButton.addPressEffect {
-            ExportOptionsFragment.newInstance(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ExportViewType.RESOLUTION)
+            ExportOptionsFragment.newInstance(ExportViewType.RESOLUTION)
                 .show(parentFragmentManager, "resolution_sheet")
         }
 
         qualityButton.addPressEffect {
-            ExportOptionsFragment.newInstance(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ExportViewType.QUALITY)
+            ExportOptionsFragment.newInstance(ExportViewType.QUALITY)
                 .show(parentFragmentManager, "quality_sheet")
         }
 
         formatButton.addPressEffect {
-            ExportOptionsFragment.newInstance(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ExportViewType.FORMAT)
+            ExportOptionsFragment.newInstance(ExportViewType.FORMAT)
                 .show(parentFragmentManager, "format_sheet")
         }
     }
@@ -146,28 +140,31 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    private fun renderExportResult(result: com.webscare.urducanvas.data.model.ExportResult) = with(binding) {
+    private fun renderExportResult(result: com.webscare.urducanvas.data.model.ExportResult) =
+        with(binding) {
 
-        resolutionValue.text = result.resolution
-        qualityValue.text = result.quality
-        formatValue.text = "${result.format} • .${result.format.lowercase()}"
+            resolutionValue.text = result.resolution
+            qualityValue.text = result.quality
+            formatValue.text = "${result.format} • .${result.format.lowercase()}"
 
-        tvExportSummaryDetails.text = "${result.resolution} • ${result.quality} • ${result.format}"
-        resolution.text = result.resolution
-        format.text = result.format
-    }
+            tvExportSummaryDetails.text =
+                "${result.resolution} • ${result.quality} • ${result.format}"
+            resolution.text = result.resolution
+            format.text = result.format
+        }
 
-    private fun updateExportOptionsUI(options: com.webscare.urducanvas.common.canvas.model.ExportOptions) = with(binding) {
-        resolutionValue.text = "${options.resolution.name} • ${options.resolution.label}"
-        qualityValue.text = "${options.quality.label} • ${options.quality.quality}%"
-        formatValue.text = "${options.format.name} • .${options.format.name.lowercase()}"
+    private fun updateExportOptionsUI(options: com.webscare.urducanvas.common.canvas.model.ExportOptions) =
+        with(binding) {
+            resolutionValue.text = "${options.resolution.name} • ${options.resolution.label}"
+            qualityValue.text = "${options.quality.label} • ${options.quality.quality}%"
+            formatValue.text = "${options.format.name} • .${options.format.name.lowercase()}"
 
-        tvExportSummaryDetails.text =
-            "${options.resolution.name} • ${options.quality.label} • ${options.format.name}"
+            tvExportSummaryDetails.text =
+                "${options.resolution.name} • ${options.quality.label} • ${options.format.name}"
 
-        resolution.text = options.resolution.name
-        format.text = options.format.name
-    }
+            resolution.text = options.resolution.name
+            format.text = options.format.name
+        }
 
     private fun renderPreview() {
         val canvas = viewModel.canvasView.value ?: return
@@ -205,8 +202,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
             val permission = Manifest.permission.WRITE_EXTERNAL_STORAGE
             if (ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    permission
+                    requireContext(), permission
                 ) == PackageManager.PERMISSION_GRANTED
             ) {
                 exportCanvasInternal()
@@ -240,9 +236,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                     (bitmap.width * bitmap.height * 4) / (1024.0 * 1024.0)
                 } else {
                     estimateBitmapSize(
-                        bitmap,
-                        options.format.format,
-                        options.quality.quality
+                        bitmap, options.format.format, options.quality.quality
                     ) / (1024.0 * 1024.0)
                 }
 
@@ -256,22 +250,20 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                 updateProgressSafe(85, "Finalizing…")
                 val pdfPath = if (options.format.name.equals("PDF", true)) {
                     savedUri?.let {
-                        _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.copyPdfUriToTempFile(
-                            requireContext(),
-                            it
+                        ImageProcessor.copyPdfUriToTempFile(
+                            requireContext(), it
                         )?.absolutePath
                     }
-                }else{
+                } else {
                     null
                 }
 
                 val imagePath = if (options.format.name.equals("PDF", true)) {
-                    _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.bitmapToFilePath(requireActivity(), previewBitmap)
+                    ImageProcessor.bitmapToFilePath(requireActivity(), previewBitmap)
                 } else {
                     savedUri?.let {
-                        _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.copyUriToTempFile(
-                            requireContext(),
-                            it
+                        ImageProcessor.copyUriToTempFile(
+                            requireContext(), it
                         )?.absolutePath
                     }
                 } ?: throw IllegalStateException("Failed to save file")
@@ -283,9 +275,11 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                 val imageOrPdfSizeMB = if (options.format.name.equals("PDF", true)) {
                     pdfPath?.let { File(it).length().toDouble() / (1024.0 * 1024.0) } ?: sizeMB
                 } else {
-                    File(imagePath).takeIf { it.exists() }?.length()?.toDouble()?.div(1024.0 * 1024.0) ?: sizeMB
+                    File(imagePath).takeIf { it.exists() }?.length()?.toDouble()
+                        ?.div(1024.0 * 1024.0) ?: sizeMB
                 }
-                val jsonSizeMB = File(jsonPath).takeIf { it.exists() }?.length()?.toDouble()?.div(1024.0 * 1024.0) ?: 0.0
+                val jsonSizeMB = File(jsonPath).takeIf { it.exists() }?.length()?.toDouble()
+                    ?.div(1024.0 * 1024.0) ?: 0.0
                 val fileSizeMB = imageOrPdfSizeMB + jsonSizeMB
 
                 val exportDate =
@@ -374,36 +368,22 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         banner.alpha = 0f
         banner.translationY = -banner.height.toFloat()
 
-        banner.animate()
-            .alpha(1f)
-            .translationY(0f)
-            .setDuration(300)
-            .withEndAction {
+        banner.animate().alpha(1f).translationY(0f).setDuration(300).withEndAction {
                 banner.postDelayed({
-                    banner.animate()
-                        .alpha(0f)
-                        .translationY(-banner.height.toFloat())
-                        .setDuration(300)
-                        .withEndAction { banner.visibility = View.GONE }
-                        .start()
+                    banner.animate().alpha(0f).translationY(-banner.height.toFloat())
+                        .setDuration(300).withEndAction { banner.visibility = View.GONE }.start()
                 }, 2000)
-            }
-            .start()
+            }.start()
     }
 
     private fun startRotationAnimation(view: View) {
-        view.animate()
-            .rotationBy(360f)
-            .setDuration(1000)
-            .setInterpolator(null)
-            .setListener(null)
+        view.animate().rotationBy(360f).setDuration(1000).setInterpolator(null).setListener(null)
             .withEndAction {
                 // Loop the rotation
                 if (view.isVisible) {
                     startRotationAnimation(view)
                 }
-            }
-            .start()
+            }.start()
     }
 
     private fun stopRotationAnimation(view: View) {
@@ -431,8 +411,10 @@ class ExportFragment : androidx.fragment.app.Fragment() {
             options.format.format == Bitmap.CompressFormat.PNG -> {
                 baseRawMB * 0.25
             }
+
             options.format.format == Bitmap.CompressFormat.JPEG || options.format.format == Bitmap.CompressFormat.WEBP -> {
-                val baseCompressionFactor = if (options.format.format == Bitmap.CompressFormat.JPEG) 0.04 else 0.03
+                val baseCompressionFactor =
+                    if (options.format.format == Bitmap.CompressFormat.JPEG) 0.04 else 0.03
                 baseRawMB * baseCompressionFactor * qualityPercentage
             }
 
@@ -441,9 +423,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun estimateBitmapSize(
-        bitmap: Bitmap,
-        format: Bitmap.CompressFormat?,
-        quality: Int
+        bitmap: Bitmap, format: Bitmap.CompressFormat?, quality: Int
     ): Long {
         val stream = ByteArrayOutputStream()
         bitmap.compress(format!!, quality, stream)
@@ -453,24 +433,25 @@ class ExportFragment : androidx.fragment.app.Fragment() {
     // In ExportFragment.kt
 
     private fun getDisplayFileSizeMB(
-        options: com.webscare.urducanvas.common.canvas.model.ExportOptions,
-        bitmap: Bitmap? = null
+        options: com.webscare.urducanvas.common.canvas.model.ExportOptions, bitmap: Bitmap? = null
     ): Double {
         val canvasSize = viewModel.canvasSize.value
 
         if (canvasSize != null) {
             return getExportedImageSizeMBEstimate(
-                options,
-                canvasSize.width,
-                canvasSize.height
+                options, canvasSize.width, canvasSize.height
             )
         }
 
         return when {
             bitmap != null -> {
-                estimateBitmapSize(bitmap, options.format.format, options.quality.quality) /
-                        (1024.0 * 1024.0)
+                estimateBitmapSize(
+                    bitmap,
+                    options.format.format,
+                    options.quality.quality
+                ) / (1024.0 * 1024.0)
             }
+
             else -> 0.0
         }
     }
@@ -481,9 +462,13 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         return file.absolutePath
     }
 
-    private fun saveDirectToDownloads(bitmap: Bitmap, options: com.webscare.urducanvas.common.canvas.model.ExportOptions): Uri {
-        val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-            getString(R.string.app_name))
+    private fun saveDirectToDownloads(
+        bitmap: Bitmap, options: com.webscare.urducanvas.common.canvas.model.ExportOptions
+    ): Uri {
+        val dir = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+            getString(R.string.app_name)
+        )
         if (!dir.exists()) dir.mkdirs()
 
         val ext = when (options.format.format) {
@@ -501,84 +486,128 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         return Uri.fromFile(file)
     }
 
-    private suspend fun saveImageOrPdf(bitmap: Bitmap, options: com.webscare.urducanvas.common.canvas.model.ExportOptions): Uri? =
-        withContext(Dispatchers.IO) {
-            if (isBlueStacks()) {
-                return@withContext saveDirectToDownloads(bitmap, options)
+    private suspend fun saveImageOrPdf(
+        bitmap: Bitmap, options: ExportOptions
+    ): Uri? = withContext(Dispatchers.IO) {
+
+        val resolver = requireContext().contentResolver
+
+        try {
+
+            // =========================
+            // PDF SAVE
+            // =========================
+            if (options.format.name.equals("PDF", ignoreCase = true)) {
+
+                val filename = "design_${System.currentTimeMillis()}.pdf"
+
+                val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                } else {
+                    MediaStore.Files.getContentUri("external")
+                }
+
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.Files.FileColumns.DISPLAY_NAME, filename)
+                    put(MediaStore.Files.FileColumns.MIME_TYPE, "application/pdf")
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        put(
+                            MediaStore.Files.FileColumns.RELATIVE_PATH,
+                            Environment.DIRECTORY_DOCUMENTS + "/UrduCanvas"
+                        )
+                        put(MediaStore.Files.FileColumns.IS_PENDING, 1)
+                    }
+                }
+
+                val uri = resolver.insert(collection, contentValues) ?: return@withContext null
+
+                resolver.openOutputStream(uri)?.use { stream ->
+
+                    val pdfDocument = PdfDocument()
+                    val pageInfo = PdfDocument.PageInfo.Builder(
+                        bitmap.width, bitmap.height, 1
+                    ).create()
+
+                    val page = pdfDocument.startPage(pageInfo)
+                    page.canvas.drawBitmap(bitmap, 0f, 0f, null)
+                    pdfDocument.finishPage(page)
+
+                    pdfDocument.writeTo(stream)
+                    pdfDocument.close()
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    contentValues.clear()
+                    contentValues.put(MediaStore.Files.FileColumns.IS_PENDING, 0)
+                    resolver.update(uri, contentValues, null, null)
+                }
+
+                return@withContext uri
             }
 
+            // =========================
+            // IMAGE SAVE
+            // =========================
+
+            val compressFormat = options.format.format ?: Bitmap.CompressFormat.PNG
+
+            val formatExt = when (compressFormat) {
+                Bitmap.CompressFormat.PNG -> "png"
+                Bitmap.CompressFormat.JPEG -> "jpg"
+                Bitmap.CompressFormat.WEBP -> "webp"
+                else -> "png"
+            }
+
+            val mimeType = when (compressFormat) {
+                Bitmap.CompressFormat.PNG -> "image/png"
+                Bitmap.CompressFormat.JPEG -> "image/jpeg"
+                Bitmap.CompressFormat.WEBP -> "image/webp"
+                else -> "image/png"
+            }
+
+            val filename = "design_${System.currentTimeMillis()}.$formatExt"
+
+            val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+            } else {
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+            }
+
+            val contentValues = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+                put(MediaStore.Images.Media.MIME_TYPE, mimeType)
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(
+                        MediaStore.Images.Media.RELATIVE_PATH,
+                        Environment.DIRECTORY_PICTURES + "/UrduCanvas"
+                    )
+                    put(MediaStore.Images.Media.IS_PENDING, 1)
+                }
+            }
+
+            val uri = resolver.insert(collection, contentValues) ?: return@withContext null
+
+            resolver.openOutputStream(uri)?.use { stream ->
+                bitmap.compress(
+                    compressFormat, options.quality.quality, stream
+                )
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                contentValues.clear()
+                contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
+                resolver.update(uri, contentValues, null, null)
+            }
+
+            return@withContext uri
+
+        } catch (e: Exception) {
+            Log.e("ExportFragment", "Save failed", e)
             return@withContext null
-//            if (options.format.name.equals("PDF", ignoreCase = true)) {
-//                val filename = "design_${System.currentTimeMillis()}.pdf"
-//                val contentValues = ContentValues().apply {
-//                    put(MediaStore.Files.FileColumns.DISPLAY_NAME, filename)
-//                    put(MediaStore.Files.FileColumns.MIME_TYPE, "application/pdf")
-//                    put(
-//                        MediaStore.Files.FileColumns.RELATIVE_PATH,
-//                        Environment.DIRECTORY_DOCUMENTS + "/${getString(R.string.app_name)}"
-//                    )
-//                }
-//
-//                val uri = requireContext().contentResolver.insert(
-//                    MediaStore.Files.getContentUri("external"), contentValues
-//                )
-//
-//                uri?.let {
-//                    requireContext().contentResolver.openOutputStream(it)?.use { stream ->
-//                        val pdfDoc = PdfDocument()
-//
-//                        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
-//                        val page = pdfDoc.startPage(pageInfo)
-//
-//                        val scale = minOf(
-//                            pageInfo.pageWidth.toFloat() / bitmap.width,
-//                            pageInfo.pageHeight.toFloat() / bitmap.height
-//                        )
-//                        val matrix = android.graphics.Matrix().apply { postScale(scale, scale) }
-//                        page.canvas.drawBitmap(bitmap, matrix, null)
-//
-//                        pdfDoc.finishPage(page)
-//                        pdfDoc.writeTo(stream)
-//                        pdfDoc.close()
-//                    }
-//                }
-//                uri
-//            } else {
-//                val formatExt = when (options.format.format) {
-//                    Bitmap.CompressFormat.PNG -> "png"
-//                    Bitmap.CompressFormat.JPEG -> "jpg"
-//                    Bitmap.CompressFormat.WEBP -> "webp"
-//                    else -> "png"
-//                }
-//                val mimeType = when (options.format.format) {
-//                    Bitmap.CompressFormat.PNG -> "image/png"
-//                    Bitmap.CompressFormat.JPEG -> "image/jpeg"
-//                    Bitmap.CompressFormat.WEBP -> "image/webp"
-//                    else -> "image/png"
-//                }
-//                val filename = "design_${System.currentTimeMillis()}.$formatExt"
-//
-//                val contentValues = ContentValues().apply {
-//                    put(MediaStore.Images.Media.DISPLAY_NAME, filename)
-//                    put(MediaStore.Images.Media.MIME_TYPE, mimeType)
-//                    put(
-//                        MediaStore.Images.Media.RELATIVE_PATH,
-//                        Environment.DIRECTORY_PICTURES + "/${getString(R.string.app_name)}"
-//                    )
-//                }
-//
-//                val uri = requireContext().contentResolver.insert(
-//                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues
-//                )
-//
-//                uri?.let {
-//                    requireContext().contentResolver.openOutputStream(it)?.use { stream ->
-//                        bitmap.compress(options.format.format!!, options.quality.quality, stream)
-//                    }
-//                }
-//                uri
-//            }
         }
+    }
 
     private fun startIconRotation() {
         binding.btnExport.setIconResource(R.drawable.ic_rotate_animated)
@@ -605,9 +634,8 @@ class ExportFragment : androidx.fragment.app.Fragment() {
     }
 
     fun isBlueStacks(): Boolean {
-        return (Build.MANUFACTURER.lowercase().contains("bluestacks") ||
-                Build.BRAND.lowercase().contains("bluestacks") ||
-                Build.DEVICE.lowercase().contains("bluestacks"))
+        return (Build.MANUFACTURER.lowercase().contains("bluestacks") || Build.BRAND.lowercase()
+            .contains("bluestacks") || Build.DEVICE.lowercase().contains("bluestacks"))
     }
 
     override fun onDestroy() {

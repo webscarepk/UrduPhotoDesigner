@@ -3,12 +3,11 @@ package com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.BaseAdapter
 import com.webscare.urducanvas.common.canvas.enums.BlendType
 import com.webscare.urducanvas.databinding.SpinnerItemBinding.inflate
 
 class CustomSpinnerAdapter(
-    private val items: List<com.webscare.urducanvas.common.canvas.enums.BlendType>,
+    private val items: List<BlendType>,
 ) : android.widget.BaseAdapter() {
 
     override fun getCount(): Int = items.size

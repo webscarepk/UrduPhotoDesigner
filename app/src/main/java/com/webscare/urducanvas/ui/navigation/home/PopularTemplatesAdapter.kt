@@ -65,7 +65,7 @@ class PopularTemplatesAdapter(
             }
 
             // Thumbnail
-            val url = _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.BASE_URL_GLIDE + item.thumbnail_url
+            val url = Constants.BASE_URL_GLIDE + item.thumbnail_url
 
             Glide.with(binding.root.context).load(url).diskCacheStrategy(DiskCacheStrategy.ALL)
                 .thumbnail(0.1f).listener(object : RequestListener<Drawable> {

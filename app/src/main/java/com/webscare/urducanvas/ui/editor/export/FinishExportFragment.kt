@@ -60,7 +60,7 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
             binding.fileQualityDetail.text = result?.quality
             binding.fileLocationDetail.text = result?.pdfPath ?: result?.imagePath
             result?.imagePath?.let { path ->
-                _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.filePathToBitmap(path)?.let { bitmap ->
+                ImageProcessor.filePathToBitmap(path)?.let { bitmap ->
                     binding.previewImage.setImageBitmap(bitmap)
                 }
             }        }
@@ -169,7 +169,7 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
             } ?: run {
                 // For image, use PrintHelper
                 val imagePath = export.imagePath ?: return@addPressEffect
-                val bitmap = _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.filePathToBitmap(imagePath) ?: return@addPressEffect
+                val bitmap = ImageProcessor.filePathToBitmap(imagePath) ?: return@addPressEffect
                 val printHelper = PrintHelper(requireContext()).apply {
                     scaleMode = PrintHelper.SCALE_MODE_FIT
                 }

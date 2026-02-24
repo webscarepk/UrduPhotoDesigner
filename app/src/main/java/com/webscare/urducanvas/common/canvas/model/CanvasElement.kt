@@ -9,6 +9,8 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.text.TextPaint
+import com.webscare.urducanvas.common.utils.KashidaProcessor
+import com.google.gson.annotations.SerializedName
 import com.webscare.urducanvas.common.canvas.enums.BlendType
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.canvas.enums.LabelShape
@@ -18,8 +20,6 @@ import com.webscare.urducanvas.common.canvas.enums.ShapeType
 import com.webscare.urducanvas.common.canvas.enums.TextAlignment
 import com.webscare.urducanvas.common.canvas.enums.TextDecoration
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
-import com.webscare.urducanvas.common.utils.KashidaProcessor
-import com.google.gson.annotations.SerializedName
 import java.io.Serializable
 import java.util.UUID
 
@@ -60,6 +60,18 @@ data class CanvasElement(
     @SerializedName("rotation")
     var rotation: Float = 0f,
 
+    @SerializedName("hasOverlay")
+    var hasOverlay: Boolean = false,
+
+    @SerializedName("overlayColor")
+    var overlayColor: Int = Color.TRANSPARENT,
+
+    @SerializedName("overlayOpacity")
+    var overlayOpacity: Int = 255, // 0–255
+
+    @SerializedName("overlayGradient")
+    var overlayGradient: GradientItem? = null,
+
     @SerializedName("id")
     val id: String = UUID.randomUUID().toString(),
 
@@ -76,7 +88,6 @@ data class CanvasElement(
     var fontId: String? = null,
 
     @SerializedName("paintColor")
-    // Properties of TextPaint for serialization
     var paintColor: Int = Color.BLACK,
 
     @SerializedName("paintTextSize")
@@ -86,7 +97,6 @@ data class CanvasElement(
     var paintAlpha: Int = 255,
 
     @SerializedName("hasStroke")
-    // Border
     var hasStroke: Boolean = false,
 
     @SerializedName("strokeColor")
@@ -96,7 +106,6 @@ data class CanvasElement(
     var strokeWidth: Float = 1f,
 
     @SerializedName("hasShadow")
-    // Shadow
     var hasShadow: Boolean = false,
 
     @SerializedName("shadowColor")
@@ -115,7 +124,6 @@ data class CanvasElement(
     var shadowOpacity: Int = 1,
 
     @SerializedName("hasLabel")
-    // Label
     var hasLabel: Boolean = false,
 
     @SerializedName("labelColor")

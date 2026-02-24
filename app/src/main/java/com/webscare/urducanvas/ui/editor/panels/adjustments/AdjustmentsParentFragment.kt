@@ -6,22 +6,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayoutMediator
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
-import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.utils.BitmapCache
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentAdjustmentsParentBinding
-import com.webscare.urducanvas.ui.editor.panels.background.BackgroundPagerAdapter
-import com.google.android.material.tabs.TabLayout
-import com.google.android.material.tabs.TabLayoutMediator
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
@@ -32,13 +26,13 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
     private lateinit var adapter: EffectsPagerAdapter
     private var previewBitmap: Bitmap? = null
     private var elementId: String? = null
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    private val viewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let { bundle ->
             elementId = arguments?.getString("elementId")
-            previewBitmap = _root_ide_package_.com.webscare.urducanvas.common.utils.BitmapCache.get(elementId ?: "")
+            previewBitmap = BitmapCache.get(elementId ?: "")
         }
     }
 
@@ -58,7 +52,7 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun setEvents() {
-        tabs = mutableListOf("Adjust", "Filters", "Mask")
+        tabs = mutableListOf("Effects", "Adjust", "Filters", "Mask")
 
         elementId?.let {
             adapter = EffectsPagerAdapter(
@@ -84,7 +78,7 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
         }.attach()
 
         binding.tabLayout.viewTreeObserver.addOnGlobalLayoutListener {
-            if (isAdded){
+            if (isAdded) {
                 for (i in 0 until binding.tabLayout.tabCount) {
                     val tabView = (binding.tabLayout.getChildAt(0) as? ViewGroup)?.getChildAt(i)
                     tabView?.scaleX = 0.9f

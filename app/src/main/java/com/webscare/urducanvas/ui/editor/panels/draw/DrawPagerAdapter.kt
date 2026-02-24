@@ -3,10 +3,8 @@ package com.webscare.urducanvas.ui.editor.panels.draw
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.Lifecycle
-import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.webscare.urducanvas.ui.editor.panels.draw.brush.BrushFragment
-import com.webscare.urducanvas.ui.editor.panels.adjustments.mask.MaskFragment
-import com.webscare.urducanvas.ui.editor.panels.draw.shape.ShapeFragment
+import com.webscare.urducanvas.ui.editor.panels.objects.shape.ShapeFragment
 
 class DrawPagerAdapter(
     fragmentManager: FragmentManager,
@@ -19,9 +17,8 @@ class DrawPagerAdapter(
     /** Create appropriate fragment for each tab position */
     override fun createFragment(position: Int): Fragment {
         return when (position) {
-            0 -> _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.draw.brush.BrushFragment.Companion.newInstance()
-            1 -> _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.draw.shape.ShapeFragment.Companion.newInstance()
-            else -> _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.draw.brush.BrushFragment.Companion.newInstance()
+            0 -> BrushFragment.Companion.newInstance()
+            else -> BrushFragment.Companion.newInstance()
         }
     }
 

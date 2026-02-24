@@ -22,11 +22,7 @@ import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.BrushStyle
 import com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget
 import com.webscare.urducanvas.common.canvas.enums.PickerTarget
-import com.webscare.urducanvas.common.canvas.model.StrokeData
-import com.webscare.urducanvas.common.utils.BrushRenderUtils.drawBrushStroke
-import com.webscare.urducanvas.common.utils.BrushRenderUtils.drawStrokePreview
-import com.webscare.urducanvas.common.utils.BrushRenderUtils.drawTaperedPenStroke
-import com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint
+import com.webscare.urducanvas.common.utils.BrushRenderUtils
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentBrushPanelBinding
@@ -35,19 +31,18 @@ import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientsAdapter
 import com.webscare.urducanvas.viewmodels.MainViewModel
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class BrushPanelFragment : androidx.fragment.app.Fragment() {
+class BrushPanelFragment : Fragment() {
     private var _binding: FragmentBrushPanelBinding? = null
     private val binding get() = _binding!!
     private var tabName: String = ""
-    private lateinit var colorsAdapter: com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter
-    private lateinit var gradientsAdapter: com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientsAdapter
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
-    private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
+    private lateinit var colorsAdapter: ColorsAdapter
+    private lateinit var gradientsAdapter: GradientsAdapter
+    private val viewModel: CanvasViewModel by activityViewModels()
+    private val mainViewModel: MainViewModel by activityViewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -155,21 +150,20 @@ class BrushPanelFragment : androidx.fragment.app.Fragment() {
             color = viewModel.brushColor.value ?: Color.BLACK,
             thickness = viewModel.brushThickness.value ?: 20f,
             hardness = viewModel.brushHardness.value ?: 1f,
-            style = viewModel.currentBrushStyle.value
-                ?: _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BrushStyle.PEN,
+            style = viewModel.currentBrushStyle.value ?: BrushStyle.PEN,
             gradient = viewModel.brushGradient.value
         )
 
         // 🪄 Use the same rendering pipeline as CanvasView
-        _root_ide_package_.com.webscare.urducanvas.common.utils.BrushRenderUtils.drawStrokePreview(
+        BrushRenderUtils.drawStrokePreview(
             canvas = canvas,
             stroke = stroke,
             paintAlpha = 255,
             width = width,
             height = height,
-            makePaint = com.webscare.urducanvas.common.utils.BrushRenderUtils::makeStrokePaint,
-            drawBrush = com.webscare.urducanvas.common.utils.BrushRenderUtils::drawBrushStroke,
-            drawPen = com.webscare.urducanvas.common.utils.BrushRenderUtils::drawTaperedPenStroke
+            makePaint = BrushRenderUtils::makeStrokePaint,
+            drawBrush = BrushRenderUtils::drawBrushStroke,
+            drawPen = BrushRenderUtils::drawTaperedPenStroke
         )
 
         preview.setImageBitmap(bitmap)
@@ -259,24 +253,24 @@ class BrushPanelFragment : androidx.fragment.app.Fragment() {
 
     }
 
-    private fun updateBrushStyleUI(style: com.webscare.urducanvas.common.canvas.enums.BrushStyle) {
+    private fun updateBrushStyleUI(style: BrushStyle) {
         val appColor = ContextCompat.getColor(requireContext(), R.color.appColor)
         val contrastColor = ContextCompat.getColor(requireContext(), R.color.contrast)
         val whiteTint = ContextCompat.getColor(requireContext(), R.color.white)
         val grayTint = ContextCompat.getColor(requireContext(), R.color.gray)
 
         val styleCards = listOf(
-            binding.pen to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BrushStyle.PEN,
-            binding.marker to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BrushStyle.MARKER,
-            binding.brush to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BrushStyle.BRUSH,
-            binding.highlighter to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BrushStyle.HIGHLIGHTER,
-            binding.pencil to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BrushStyle.PENCIL
+            binding.pen to BrushStyle.PEN,
+            binding.marker to BrushStyle.MARKER,
+            binding.brush to BrushStyle.BRUSH,
+            binding.highlighter to BrushStyle.HIGHLIGHTER,
+            binding.pencil to BrushStyle.PENCIL
         )
 
         styleCards.forEach { (card, brushType) ->
             // Apply click logic
             card.addPressEffect {
-                val currentStyle = viewModel.currentBrushStyle.value ?: _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.BrushStyle.PEN
+                val currentStyle = viewModel.currentBrushStyle.value ?: BrushStyle.PEN
                 if (currentStyle != brushType) {
                     viewModel.setBrushStyle(brushType)
                 }
@@ -307,7 +301,7 @@ class BrushPanelFragment : androidx.fragment.app.Fragment() {
     private fun setupRecyclerView() {
         colorsAdapter =
             _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter(
-                _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.colorList,
+                Constants.colorList,
                 onColorSelected = { color ->
                     val selectedColor = color.colorCode.toColorInt()
                     viewModel.setBrushColor(selectedColor)
@@ -318,55 +312,42 @@ class BrushPanelFragment : androidx.fragment.app.Fragment() {
                     viewModel.setBrushGradient(null)
                 },
                 onColorPickerClicked = {
-                    viewModel.startPicking(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.COLOR_PICKER_DRAW_STROKE)
+                    viewModel.startPicking(PickerTarget.COLOR_PICKER_DRAW_STROKE)
                     viewModel.setBrushGradient(null)
                     childFragmentManager.beginTransaction().replace(
-                        R.id.brushPanel,
-                        _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment()
-                    )
-                        .addToBackStack(null).commit()
+                        R.id.brushPanel, ColorPickerFragment()
+                    ).addToBackStack(null).commit()
                 },
                 onEyeDropperClicked = {
                     viewModel.setBrushGradient(null)
-                    viewModel.startPicking(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_DRAW_STROKE)
+                    viewModel.startPicking(PickerTarget.EYE_DROPPER_DRAW_STROKE)
                 })
 
         gradientsAdapter =
-            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientsAdapter(
-                gradientList = emptyList(),
-                onGradientSelected = { _, item ->
-                    viewModel.setBrushGradient(item)
-                },
-                onGradientEditSelected = { _, item ->
-                    viewModel.startPickingGradient(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget.DRAW_STROKE)
-                    viewModel.setGradient(item)
-                    viewModel.setPagingLocked(true)
-                    childFragmentManager.beginTransaction()
-                        .replace(
-                            R.id.brushPanel,
-                            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment()
-                                .apply {
-                                    arguments = Bundle().apply {
-                                        putBoolean("IS_EDIT", true)
-                                    }
-                                }).addToBackStack(null).commit()
-                },
-                onNoneSelected = {
-                    viewModel.setBrushGradient(null)
-                },
-                onGradientPickerClicked = {
-                    viewModel.startPickingGradient(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget.DRAW_STROKE)
-                    viewModel.setPagingLocked(true)
-                    childFragmentManager.beginTransaction()
-                        .replace(
-                            R.id.brushPanel,
-                            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment()
-                                .apply {
-                                    arguments = Bundle().apply {
-                                        putBoolean("IS_EDIT", false)
-                                    }
-                                }).addToBackStack(null).commit()
-                })
+            GradientsAdapter(gradientList = emptyList(), onGradientSelected = { _, item ->
+                viewModel.setBrushGradient(item)
+            }, onGradientEditSelected = { _, item ->
+                viewModel.startPickingGradient(GradientPickerTarget.DRAW_STROKE)
+                viewModel.setGradient(item)
+                viewModel.setPagingLocked(true)
+                childFragmentManager.beginTransaction().replace(
+                        R.id.brushPanel, GradientEditorFragment().apply {
+                                arguments = Bundle().apply {
+                                    putBoolean("IS_EDIT", true)
+                                }
+                            }).addToBackStack(null).commit()
+            }, onNoneSelected = {
+                viewModel.setBrushGradient(null)
+            }, onGradientPickerClicked = {
+                viewModel.startPickingGradient(GradientPickerTarget.DRAW_STROKE)
+                viewModel.setPagingLocked(true)
+                childFragmentManager.beginTransaction().replace(
+                        R.id.brushPanel, GradientEditorFragment().apply {
+                                arguments = Bundle().apply {
+                                    putBoolean("IS_EDIT", false)
+                                }
+                            }).addToBackStack(null).commit()
+            })
 
         binding.colors.apply {
             setHasFixedSize(true)

@@ -15,7 +15,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class AdvancedAdjustmentsFragment : androidx.fragment.app.Fragment() {
     private var _binding: FragmentAdvancedAdjustmentsBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    private val viewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,

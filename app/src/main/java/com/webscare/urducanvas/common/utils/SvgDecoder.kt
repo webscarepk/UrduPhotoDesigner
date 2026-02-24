@@ -15,8 +15,17 @@ class SvgDecoder : ResourceDecoder<InputStream, SVG> {
         width: Int,
         height: Int,
         options: Options
-    ): Resource<SVG> {
-        val svg = SVG.getFromInputStream(source)
-        return SimpleResource(svg)
+    ): Resource<SVG>? {
+        return try {
+            val svg = SVG.getFromInputStream(source)
+            val viewBox = svg.documentViewBox
+            if (viewBox != null && (viewBox.width() <= 0f || viewBox.height() <= 0f)) {
+                return null
+            }
+            SimpleResource(svg)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 }

@@ -1,20 +1,12 @@
 package com.webscare.urducanvas.ui.editor.panels.text.appearance.childs
 
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.PopupMenu
 import android.widget.SeekBar
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
-import com.webscare.urducanvas.common.canvas.enums.BlendType
 import com.webscare.urducanvas.databinding.FragmentBlendBinding
-import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter
-import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.CustomSpinnerAdapter
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint

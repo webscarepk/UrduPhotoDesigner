@@ -1,4 +1,4 @@
-package com.webscare.urducanvas.ui.editor.panels.draw.shape
+package com.webscare.urducanvas.ui.editor.panels.objects.shape
 
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
@@ -6,8 +6,8 @@ import com.webscare.urducanvas.data.model.PanelTabs
 
 class ShapePagerAdapter(
     fragment: Fragment,
-    private var tabs: List<com.webscare.urducanvas.data.model.PanelTabs>
-) : androidx.viewpager2.adapter.FragmentStateAdapter(fragment) {
+    private var tabs: List<PanelTabs>
+) : FragmentStateAdapter(fragment) {
 
     override fun getItemCount() = tabs.size
 

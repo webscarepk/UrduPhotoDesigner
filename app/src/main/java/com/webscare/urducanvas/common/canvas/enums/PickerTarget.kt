@@ -5,6 +5,8 @@ import com.google.gson.annotations.SerializedName
 enum class PickerTarget {
   @SerializedName("EyeDropperBackground")
   EYE_DROPPER_BACKGROUND,
+  @SerializedName("EyeDropperOverlay")
+  EYE_DROPPER_OVERLAY,
 
   @SerializedName("EyeDropperTextFill")
   EYE_DROPPER_TEXT_FILL,
@@ -35,6 +37,8 @@ enum class PickerTarget {
 
   @SerializedName("ColorPickerBackground")
   COLOR_PICKER_BACKGROUND,
+  @SerializedName("ColorPickerOverlay")
+  COLOR_PICKER_OVERLAY,
 
   @SerializedName("ColorPickerTextFill")
   COLOR_PICKER_TEXT_FILL,
@@ -44,6 +48,8 @@ enum class PickerTarget {
 
   @SerializedName("ColorPickerShadow")
   COLOR_PICKER_SHADOW,
+  @SerializedName("ColorPickerImageShadow")
+  COLOR_PICKER_IMAGE_SHADOW,
 
   @SerializedName("ColorPickerLabel")
   COLOR_PICKER_LABEL,

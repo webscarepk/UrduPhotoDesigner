@@ -1,4 +1,4 @@
-package com.webscare.urducanvas.ui.editor.panels.adjustments.custom
+package com.webscare.urducanvas.ui.editor.panels.objects.shape
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -8,24 +8,23 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.webscare.urducanvas.data.model.PanelTabs
-import com.webscare.urducanvas.databinding.FragmentAdjustmentsBinding
+import com.webscare.urducanvas.databinding.FragmentShapeBinding
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class AdjustmentsFragment : Fragment() {
-    private var _binding: FragmentAdjustmentsBinding? = null
+class ShapeFragment : Fragment() {
+    private var _binding: FragmentShapeBinding? = null
     private val binding get() = _binding!!
     private lateinit var tabs: ArrayList<PanelTabs>
     private lateinit var adapter: PanelTabsAdapter
-    private lateinit var pagerAdapter: AdjustmentsPagerAdapter
+    private lateinit var pagerAdapter: ShapePagerAdapter
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentAdjustmentsBinding.inflate(layoutInflater, container, false)
+        _binding = FragmentShapeBinding.inflate(layoutInflater, container, false)
         return binding.root
     }
 
@@ -39,7 +38,7 @@ class AdjustmentsFragment : Fragment() {
     private fun setupRecyclerViews() {
         tabs = ArrayList()
         adapter =
-            PanelTabsAdapter { tab ->
+            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter { tab ->
                 handleSelection(tab)
             }
         binding.categories.adapter = adapter
@@ -47,7 +46,7 @@ class AdjustmentsFragment : Fragment() {
         binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
         binding.viewPager.offscreenPageLimit = 1
 
-        pagerAdapter = AdjustmentsPagerAdapter(this, tabs)
+        pagerAdapter = ShapePagerAdapter(this, tabs)
         binding.viewPager.adapter = pagerAdapter
 
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
@@ -64,31 +63,31 @@ class AdjustmentsFragment : Fragment() {
             tabs.add(
                 PanelTabs(
                     0,
-                    "Lights",
+                    "Shape",
                     true
                 )
             )
             tabs.add(
                 PanelTabs(
                     1,
-                    "Colors",
+                    "Style",
                     false
                 )
             )
             tabs.add(
-               PanelTabs(
+                PanelTabs(
                     2,
-                    "Advanced",
+                    "Color",
                     false
                 )
             )
 
             adapter.submitList(ArrayList(tabs))
-            handleSelection(tabs.firstOrNull()) // Select "All" by default
+            handleSelection(tabs.firstOrNull())
         }
     }
 
-    private fun handleSelection(selectedCategory: com.webscare.urducanvas.data.model.PanelTabs?) {
+    private fun handleSelection(selectedCategory: PanelTabs?) {
         selectedCategory?.let { tab ->
             val selectedIndex = tabs.indexOfFirst { it.tab_name == tab.tab_name }
 
@@ -103,14 +102,14 @@ class AdjustmentsFragment : Fragment() {
         }
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
+    override fun onDestroy() {
+        super.onDestroy()
         _binding = null
     }
 
     companion object {
-        fun newInstance(): AdjustmentsFragment {
-            return AdjustmentsFragment()
+        fun newInstance(): ShapeFragment {
+            return ShapeFragment()
         }
     }
 }

@@ -6,15 +6,14 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
+import com.webscare.urducanvas.common.utils.Utils
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import com.webscare.urducanvas.common.utils.Utils.getIconForSize
 import com.webscare.urducanvas.databinding.LayoutSizesFilterItemBinding
 import com.webscare.urducanvas.databinding.LayoutSizesItemBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class CanvasSizeAdapter(
-    private var items: List<com.webscare.urducanvas.common.canvas.model.CanvasSize>,
-    private val onClick: (com.webscare.urducanvas.common.canvas.model.CanvasSize) -> Unit,
+    private var items: List<CanvasSize>,
+    private val onClick: (CanvasSize) -> Unit,
     private var useNormalLayout: Boolean // true = LayoutSizesItem, false = LayoutSizesFilterItem
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
@@ -47,8 +46,8 @@ class CanvasSizeAdapter(
         RecyclerView.ViewHolder(binding.root) {
         fun bind(item: com.webscare.urducanvas.common.canvas.model.CanvasSize) {
             binding.apply {
-                val icon = ContextCompat.getDrawable(itemView.context,
-                    _root_ide_package_.com.webscare.urducanvas.common.utils.Utils.getIconForSize(
+                val icon = ContextCompat.getDrawable(
+                    itemView.context, Utils.getIconForSize(
                         item.name
                     )
                 )
@@ -67,12 +66,11 @@ class CanvasSizeAdapter(
                 val isSelected = item.name == selectedSizeName
 
                 image.background = ContextCompat.getDrawable(
-                    root.context,
-                    if (isSelected) R.drawable.button_bg_stroke_fill_selected
+                    root.context, if (isSelected) R.drawable.button_bg_stroke_fill_selected
                     else R.drawable.button_bg_stroke_fill
                 )
-                val icon = ContextCompat.getDrawable(itemView.context,
-                    _root_ide_package_.com.webscare.urducanvas.common.utils.Utils.getIconForSize(
+                val icon = ContextCompat.getDrawable(
+                    itemView.context, Utils.getIconForSize(
                         item.name
                     )
                 )

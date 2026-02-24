@@ -1,8 +1,9 @@
 package com.webscare.urducanvas.common.utils
 
 import android.graphics.Color
-import com.webscare.urducanvas.common.canvas.enums.GradientType
 import com.webscare.urducanvas.common.canvas.model.GradientItem
+import androidx.core.graphics.toColorInt
+import com.webscare.urducanvas.common.canvas.enums.GradientType
 
 object GradientPresets {
   /** 30 presets: 10 LINEAR, 10 RADIAL, 10 SWEEP */
@@ -10,7 +11,7 @@ object GradientPresets {
 
     // ───── LINEAR (10) ────────────────────────────────────────────────────────
       GradientItem(
-          colors = listOf(Color.parseColor("#FF5F6D"), Color.parseColor("#FFC371")),
+          colors = listOf("#FF5F6D".toColorInt(), "#FFC371".toColorInt()),
           positions = listOf(0f, 1f),
           angle = 0f,
           type = GradientType.LINEAR
@@ -34,25 +35,25 @@ object GradientPresets {
           type = GradientType.LINEAR
       ),
       GradientItem(
-          colors = listOf(Color.parseColor("#e96443"), Color.parseColor("#904e95")),
+          colors = listOf("#e96443".toColorInt(), "#904e95".toColorInt()),
           positions = listOf(0f, 1f),
           angle = 180f,
           type = GradientType.LINEAR
       ),
       GradientItem(
-          colors = listOf(Color.parseColor("#00d2ff"), Color.parseColor("#3a7bd5")),
+          colors = listOf("#00d2ff".toColorInt(), "#3a7bd5".toColorInt()),
           positions = listOf(0f, 1f),
           angle = 225f,
           type = GradientType.LINEAR
       ),
       GradientItem(
-          colors = listOf(Color.parseColor("#f7971e"), Color.parseColor("#ffd200")),
+          colors = listOf("#f7971e".toColorInt(), "#ffd200".toColorInt()),
           positions = listOf(0f, 1f),
           angle = 270f,
           type = GradientType.LINEAR
       ),
       GradientItem(
-          colors = listOf(Color.parseColor("#11998e"), Color.parseColor("#38ef7d")),
+          colors = listOf("#11998e".toColorInt(), "#38ef7d".toColorInt()),
           positions = listOf(0f, 1f),
           angle = 315f,
           type = GradientType.LINEAR
@@ -80,7 +81,7 @@ object GradientPresets {
           centerY = 0.5f
       ),
       GradientItem(
-          colors = listOf(Color.YELLOW, Color.parseColor("#FFA500"), Color.RED),
+          colors = listOf(Color.YELLOW, "#FFA500".toColorInt(), Color.RED),
           positions = listOf(0f, 0.7f, 1f),
           type = GradientType.RADIAL,
           radialRadiusFactor = 0.8f,
@@ -112,7 +113,7 @@ object GradientPresets {
           centerY = 0.75f
       ),
       GradientItem(
-          colors = listOf(Color.parseColor("#ff9a9e"), Color.parseColor("#fad0c4")),
+          colors = listOf("#ff9a9e".toColorInt(), "#fad0c4".toColorInt()),
           positions = listOf(0f, 1f),
           type = GradientType.RADIAL,
           radialRadiusFactor = 0.4f,
@@ -120,7 +121,7 @@ object GradientPresets {
           centerY = 0.25f
       ),
       GradientItem(
-          colors = listOf(Color.parseColor("#a18cd1"), Color.parseColor("#fbc2eb")),
+          colors = listOf("#a18cd1".toColorInt(), "#fbc2eb".toColorInt()),
           positions = listOf(0f, 1f),
           type = GradientType.RADIAL,
           radialRadiusFactor = 0.9f,
@@ -144,7 +145,7 @@ object GradientPresets {
           centerY = 0.5f
       ),
       GradientItem(
-          colors = listOf(Color.parseColor("#ffecd2"), Color.parseColor("#fcb69f")),
+          colors = listOf("#ffecd2".toColorInt(), "#fcb69f".toColorInt()),
           positions = listOf(0f, 1f),
           type = GradientType.RADIAL,
           radialRadiusFactor = 0.6f,
@@ -178,7 +179,7 @@ object GradientPresets {
           centerY = 0.25f
       ),
       GradientItem(
-          colors = listOf(Color.parseColor("#11998e"), Color.parseColor("#38ef7d")),
+          colors = listOf("#11998e".toColorInt(), "#38ef7d".toColorInt()),
           positions = listOf(0f, 1f),
           type = GradientType.SWEEP,
           sweepStartAngle = 135f,
@@ -186,7 +187,7 @@ object GradientPresets {
           centerY = 0.75f
       ),
       GradientItem(
-          colors = listOf(Color.parseColor("#ee9ca7"), Color.parseColor("#ffdde1")),
+          colors = listOf("#ee9ca7".toColorInt(), "#ffdde1".toColorInt()),
           positions = listOf(0f, 1f),
           type = GradientType.SWEEP,
           sweepStartAngle = 180f,
@@ -226,7 +227,7 @@ object GradientPresets {
           centerY = 0.5f
       ),
       GradientItem(
-          colors = listOf(Color.parseColor("#232526"), Color.parseColor("#414345")),
+          colors = listOf("#232526".toColorInt(), "#414345".toColorInt()),
           positions = listOf(0f, 1f),
           type = GradientType.SWEEP,
           sweepStartAngle = 300f,

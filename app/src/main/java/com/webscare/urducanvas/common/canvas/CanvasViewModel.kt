@@ -1096,6 +1096,7 @@ class CanvasViewModel @Inject constructor(
     fun finishPicking(color: Int) {
         when (_activePicker.value) {
             PickerTarget.EYE_DROPPER_BACKGROUND -> setCanvasBackgroundColor(color)
+            PickerTarget.EYE_DROPPER_OVERLAY -> setElementOverlay(color)
             PickerTarget.EYE_DROPPER_TEXT_FILL -> setTextColor(color)
             PickerTarget.EYE_DROPPER_TEXT_STROKE -> setTextBorder(
                 true, color, _borderWidth.value!!
@@ -1107,12 +1108,17 @@ class CanvasViewModel @Inject constructor(
 
             PickerTarget.EYE_DROPPER_LABEL -> setTextLabel(true, color, _labelShape.value!!)
             PickerTarget.COLOR_PICKER_BACKGROUND -> setCanvasBackgroundColor(color)
+            PickerTarget.COLOR_PICKER_OVERLAY -> setElementOverlay(color)
             PickerTarget.COLOR_PICKER_TEXT_FILL -> setTextColor(color)
             PickerTarget.COLOR_PICKER_TEXT_STROKE -> setTextBorder(
                 true, color, _borderWidth.value!!
             )
 
             PickerTarget.COLOR_PICKER_SHADOW -> setTextShadow(
+                true, color, _shadowDx.value!!, _shadowDy.value!!
+            )
+
+            PickerTarget.COLOR_PICKER_IMAGE_SHADOW -> setTextShadow(
                 true, color, _shadowDx.value!!, _shadowDy.value!!
             )
 
@@ -1185,6 +1191,35 @@ class CanvasViewModel @Inject constructor(
             GradientPickerTarget.SHAPE_FILL -> if (gradientItem != null) setFillGradient(
                 gradientItem
             ) else setFillGradient(null)
+
+            GradientPickerTarget.OVERLAY -> if (gradientItem != null) setFillGradient(
+                gradientItem
+            ) else setFillGradient(null)
+        }
+    }
+
+    fun setElementOverlayGradient(gradient: GradientItem?) {
+
+        val element = _selectedElements.value?.firstOrNull() ?: return
+
+        val oldGradient = element.overlayGradient
+
+        if (oldGradient != gradient) {
+
+            val action = CanvasAction.SetOverlayGradient(
+                element.id,
+                oldGradient,
+                gradient
+            )
+
+            _canvasActions.push(action)
+            _redoStack.clear()
+
+            element.overlayGradient = gradient
+            element.hasOverlay = gradient != null || element.overlayOpacity > 0
+
+            applyAction(action, true)
+            notifyUndoRedoChanged()
         }
     }
 
@@ -1956,6 +1991,126 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
+    fun syncShadowStateFromSelected() {
+        val element = _selectedElements.value?.firstOrNull() ?: return
+
+        _shadowColor.value = element.shadowColor
+        _shadowDx.value = element.shadowDx
+        _shadowDy.value = element.shadowDy
+        _shadowRadius.value = element.shadowRadius
+        _shadowOpacity.value = element.shadowOpacity
+    }
+
+    fun setImageShadow(
+        enabled: Boolean,
+        color: Int,
+        dx: Float,
+        dy: Float,
+        radius: Float,
+        opacity: Int,
+        pushToUndo: Boolean = true
+    ) {
+
+        val element = _selectedElements.value?.firstOrNull() ?: return
+
+        if (pushToUndo) {
+            val action = CanvasAction.SetImageShadow(
+                element.id,
+                element.hasShadow,
+                element.shadowColor,
+                element.shadowDx,
+                element.shadowDy,
+                element.shadowRadius,
+                element.shadowOpacity,
+                enabled,
+                color,
+                dx,
+                dy,
+                radius,
+                opacity
+            )
+
+            _canvasActions.push(action)
+            _redoStack.clear()
+            notifyUndoRedoChanged()
+        }
+
+        element.hasShadow = enabled
+        element.shadowColor = color
+        element.shadowDx = dx
+        element.shadowDy = dy
+        element.shadowRadius = radius.coerceAtLeast(0.1f)
+        element.shadowOpacity = opacity.coerceIn(0, 255)
+
+        syncShadowStateFromSelected()
+        notifyCanvasUpdated()
+    }
+
+    private fun notifyCanvasUpdated() {
+        _canvasElements.value = _canvasElements.value
+    }
+    fun setElementOverlay(color: Int) {
+        val element = _selectedElements.value?.firstOrNull() ?: return
+
+        val prevColor = element.overlayColor
+
+        if (prevColor != color) {
+
+            val action = CanvasAction.SetOverlay(
+                element.id,
+                element.hasOverlay,
+                prevColor,
+                element.overlayOpacity,
+                element.overlayOpacity > 0,
+                color,
+                element.overlayOpacity
+            )
+            _canvasActions.push(
+             action
+            )
+
+            _redoStack.clear()
+
+            element.overlayColor = color
+            element.hasOverlay = element.overlayOpacity > 0
+
+            notifyUndoRedoChanged()
+            applyAction(action, true)
+        }
+    }
+
+    fun setElementOverlayOpacity(opacity: Int) {
+
+        val element = _selectedElements.value?.firstOrNull() ?: return
+
+        val prevOpacity = element.overlayOpacity
+        val prevHasOverlay = element.hasOverlay
+
+        if (prevOpacity != opacity) {
+
+            val action = CanvasAction.SetOverlay(
+                element.id,
+                prevHasOverlay,
+                element.overlayColor,
+                prevOpacity,
+                opacity > 0,
+                element.overlayColor,
+                opacity
+            )
+            _canvasActions.push(
+             action
+            )
+
+            _redoStack.clear()
+
+            element.overlayOpacity = opacity
+            element.hasOverlay = opacity > 0
+
+            notifyUndoRedoChanged()
+            applyAction(action, true)
+        }
+    }
+
     fun setCanvasBackgroundImage(bitmap: Bitmap?) {
         val previousBitmap = _backgroundImage.value
         // Only push action if there's a change
@@ -2615,6 +2770,10 @@ class CanvasViewModel @Inject constructor(
         _canvasElements.value = updatedList
     }
 
+    fun findElementById(id: String): CanvasElement? {
+        return _canvasElements.value?.firstOrNull { it.id == id }
+    }
+
     private fun applyAction(action: CanvasAction, isRedo: Boolean) {
         // Always try to get context from an existing element for re-applying paint properties
         val context = _canvasElements.value?.firstOrNull()?.context
@@ -2655,6 +2814,47 @@ class CanvasViewModel @Inject constructor(
                 } else {
                     // Undo: remove by ID
                     _canvasElements.value = currentList.filter { it.id != action.sticker.id }
+                }
+            }
+
+            is CanvasAction.SetOverlayGradient -> {
+                val el = findElementById(action.elementId)
+                if (isRedo) {
+                    el?.overlayGradient = action.newGradient
+                } else {
+                    el?.overlayGradient = action.oldGradient
+                }
+            }
+
+            is CanvasAction.SetImageShadow -> {
+                val el = findElementById(action.elementId)
+                if (isRedo) {
+                    el?.hasShadow = action.newEnabled
+                    el?.shadowColor = action.newColor
+                    el?.shadowDx = action.newDx
+                    el?.shadowDy = action.newDy
+                    el?.shadowRadius = action.newRadius
+                    el?.shadowOpacity = action.newOpacity
+                } else {
+                    el?.hasShadow = action.oldEnabled
+                    el?.shadowColor = action.oldColor
+                    el?.shadowDx = action.oldDx
+                    el?.shadowDy = action.oldDy
+                    el?.shadowRadius = action.oldRadius
+                    el?.shadowOpacity = action.oldOpacity
+                }
+            }
+
+            is CanvasAction.SetOverlay -> {
+                val el = findElementById(action.elementId)
+                if (isRedo){
+                    el?.hasOverlay = action.newHasOverlay
+                    el?.overlayColor = action.newColor
+                    el?.overlayOpacity = action.newOpacity
+                }else{
+                    el?.hasOverlay = action.oldHasOverlay
+                    el?.overlayColor = action.oldColor
+                    el?.overlayOpacity = action.oldOpacity
                 }
             }
 

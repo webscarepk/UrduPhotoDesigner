@@ -1,4 +1,4 @@
-package com.webscare.urducanvas.ui.editor.panels.background.colors
+package com.webscare.urducanvas.ui.editor.panels.adjustments.effects
 
 import android.content.res.ColorStateList
 import android.os.Bundle
@@ -29,7 +29,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class ColorsListFragment : Fragment() {
+class OverlayColorListFragment : Fragment() {
     private var _binding: FragmentFillStrokeBinding? = null
     private val binding get() = _binding!!
 
@@ -67,19 +67,13 @@ class ColorsListFragment : Fragment() {
             ColorsAdapter(
                 Constants.colorList,
                 { color ->
-                    viewModel.ensureBackgroundElement(
-                        requireActivity()
-                    )
-                    viewModel.setCanvasBackgroundColor(color.colorCode.toColorInt())
+                    viewModel.setElementOverlay(color.colorCode.toColorInt())
                 },
                 {
-                    viewModel.ensureBackgroundElement(
-                        requireActivity()
-                    )
-                    viewModel.setCanvasBackgroundColor(android.R.color.transparent)
+                    viewModel.setElementOverlay(android.R.color.transparent)
                 },
                 {
-                    viewModel.startPicking(PickerTarget.COLOR_PICKER_BACKGROUND)
+                    viewModel.startPicking(PickerTarget.COLOR_PICKER_OVERLAY)
                     childFragmentManager
                         .beginTransaction()
                         .replace(
@@ -90,7 +84,7 @@ class ColorsListFragment : Fragment() {
                         .commit()
                 },
                 {
-                    viewModel.startPicking(PickerTarget.EYE_DROPPER_BACKGROUND)
+                    viewModel.startPicking(PickerTarget.EYE_DROPPER_OVERLAY)
                 })
         binding.colors.apply {
             layoutManager = GridLayoutManager(requireContext(), 3, GridLayoutManager.HORIZONTAL, false)
@@ -101,17 +95,14 @@ class ColorsListFragment : Fragment() {
             GradientsAdapter(
                 gradientList = emptyList(),
                 onGradientSelected = { _, gradient ->
-                    viewModel.ensureBackgroundElement(
-                        requireActivity()
-                    )
-                    viewModel.setCanvasGradient(gradient)
+                    viewModel.setElementOverlayGradient(gradient)
                 },
                 onNoneSelected = {
-                    viewModel.removeCanvasGradient()
+                    viewModel.setElementOverlayGradient(null)
                 },
                 onGradientEditSelected = { _, item ->
                     viewModel.setGradient(item)
-                    viewModel.startPickingGradient(GradientPickerTarget.BACKGROUND)
+                    viewModel.startPickingGradient(GradientPickerTarget.OVERLAY)
                     childFragmentManager
                         .beginTransaction()
                         .replace(
@@ -126,7 +117,7 @@ class ColorsListFragment : Fragment() {
                         .commit()
                 },
                 onGradientPickerClicked = {
-                    viewModel.startPickingGradient(GradientPickerTarget.BACKGROUND)
+                    viewModel.startPickingGradient(GradientPickerTarget.OVERLAY)
                     childFragmentManager
                         .beginTransaction()
                         .replace(
@@ -225,8 +216,8 @@ class ColorsListFragment : Fragment() {
     }
 
     companion object {
-        fun newInstance(): ColorsListFragment {
-            return ColorsListFragment()
+        fun newInstance(): OverlayColorListFragment {
+            return OverlayColorListFragment()
         }
     }
 }

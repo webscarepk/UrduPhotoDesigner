@@ -2,7 +2,6 @@ package com.webscare.urducanvas.di
 
 import android.content.Context
 import com.webscare.urducanvas.R
-import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import com.webscare.urducanvas.common.datastore.PreferenceDataStoreAPI
 import com.webscare.urducanvas.common.datastore.PreferencesDataStoreHelper
 import com.webscare.urducanvas.common.utils.Constants
@@ -45,6 +44,7 @@ import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.auth.api.identity.SignInClient
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

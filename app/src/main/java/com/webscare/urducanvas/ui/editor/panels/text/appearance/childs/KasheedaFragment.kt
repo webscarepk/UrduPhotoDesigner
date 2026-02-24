@@ -5,14 +5,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.KashidaSize
-import com.webscare.urducanvas.common.canvas.enums.LetterCasing
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentKasheedaBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -23,8 +19,7 @@ class KasheedaFragment : androidx.fragment.app.Fragment() {
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentKasheedaBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -40,14 +35,15 @@ class KasheedaFragment : androidx.fragment.app.Fragment() {
     private fun initObserver() {
         viewModel.kasheeda.observe(viewLifecycleOwner) { kasheeda ->
             val kasheedaCards = listOf(
-                binding.defaultKasheeda to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.KashidaSize.NONE,
-                binding.small to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.KashidaSize.SMALL,
-                binding.medium to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.KashidaSize.MEDIUM,
-                binding.large to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.KashidaSize.LARGE
+                binding.defaultKasheeda to KashidaSize.NONE,
+                binding.small to KashidaSize.SMALL,
+                binding.medium to KashidaSize.MEDIUM,
+                binding.large to KashidaSize.LARGE
             )
 
             kasheedaCards.forEach { (card, kasheedaSize) ->
-                card.strokeWidth = if (mapKasheedaSizeToFrequency(kasheedaSize) == mapProgressToFrequency(kasheeda)) 4 else 0
+                card.strokeWidth =
+                    if (mapKasheedaSizeToFrequency(kasheedaSize) == mapProgressToFrequency(kasheeda)) 4 else 0
             }
 
             // Update SeekBar to match frequency range
@@ -58,10 +54,10 @@ class KasheedaFragment : androidx.fragment.app.Fragment() {
 
     private fun setEvents() {
         val kasheedaCards = listOf(
-            binding.defaultKasheeda to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.KashidaSize.NONE,
-            binding.small to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.KashidaSize.SMALL,
-            binding.medium to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.KashidaSize.MEDIUM,
-            binding.large to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.KashidaSize.LARGE
+            binding.defaultKasheeda to KashidaSize.NONE,
+            binding.small to KashidaSize.SMALL,
+            binding.medium to KashidaSize.MEDIUM,
+            binding.large to KashidaSize.LARGE
         )
 
         // Handle clicks on Kashida size cards (predefined sizes)
@@ -80,9 +76,9 @@ class KasheedaFragment : androidx.fragment.app.Fragment() {
         // SeekBar to adjust custom Kashida frequency
         binding.kashidaSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-               if (fromUser){
-                   viewModel.setKasheeda(progress)
-               }
+                if (fromUser) {
+                    viewModel.setKasheeda(progress)
+                }
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -101,12 +97,12 @@ class KasheedaFragment : androidx.fragment.app.Fragment() {
     }
 
     // Map KashidaSize to integer frequency (predefined Kashida sizes mapped to frequency values)
-    private fun mapKasheedaSizeToFrequency(kasheedaSize: com.webscare.urducanvas.common.canvas.enums.KashidaSize): Int {
+    private fun mapKasheedaSizeToFrequency(kasheedaSize: KashidaSize): Int {
         return when (kasheedaSize) {
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.KashidaSize.SMALL -> 1
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.KashidaSize.MEDIUM -> 4
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.KashidaSize.LARGE -> 7
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.KashidaSize.NONE -> 0
+            KashidaSize.SMALL -> 1
+            KashidaSize.MEDIUM -> 4
+            KashidaSize.LARGE -> 7
+            KashidaSize.NONE -> 0
         }
     }
 

@@ -5,13 +5,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.GradientType
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentGradientSettingBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
 import kotlin.math.roundToInt
 
@@ -29,8 +26,7 @@ class GradientSettingFragment : androidx.fragment.app.Fragment() {
     private var pendingRadius: Float = 0f
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentGradientSettingBinding.inflate(inflater, container, false)
         return binding.root
@@ -79,17 +75,12 @@ class GradientSettingFragment : androidx.fragment.app.Fragment() {
             )
 
             val visibleCardsByType = mapOf(
-                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.GradientType.LINEAR to listOf(
+                GradientType.LINEAR to listOf(
                     binding.scaleCard,
                     binding.angleCard,
-                ),
-                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.GradientType.RADIAL to listOf(
-                    binding.scaleCard,
-                    binding.radiusCard,
-                    binding.shadowXCard,
-                    binding.shadowYCard
-                ),
-                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.GradientType.SWEEP to listOf(
+                ), GradientType.RADIAL to listOf(
+                    binding.scaleCard, binding.radiusCard, binding.shadowXCard, binding.shadowYCard
+                ), GradientType.SWEEP to listOf(
                     binding.scaleCard,
                     binding.sweepAngleCard,
                     binding.shadowXCard,
@@ -189,7 +180,7 @@ class GradientSettingFragment : androidx.fragment.app.Fragment() {
 
     }
 
-    private fun updateGradient(){
+    private fun updateGradient() {
         viewModel.updateGradient(
             pendingScale,
             pendingAngle,

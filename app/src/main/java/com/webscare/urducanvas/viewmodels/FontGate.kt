@@ -43,7 +43,7 @@ class FontGate @Inject constructor(
 
     private suspend fun downloadSingleFont(font: com.webscare.urducanvas.data.model.FontEntity) {
         val downloadedFile = downloadRepo.downloadAssets(
-            url = _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.BASE_URL_GLIDE + font.file_url,
+            url = Constants.BASE_URL_GLIDE + font.file_url,
             fileName = font.font_name + ".ttf",
             onProgress = {}
         )

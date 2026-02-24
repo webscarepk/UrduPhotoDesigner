@@ -16,6 +16,37 @@ sealed class CanvasAction {
 
     data class SetBackgroundColor(val color: Int, val previousColor: Int) : CanvasAction()
     data class SetBackgroundImage(val bitmap: Bitmap?, val previousBitmap: Bitmap?) : CanvasAction()
+    data class SetImageShadow(
+        val elementId: String,
+
+        val oldEnabled: Boolean,
+        val oldColor: Int,
+        val oldDx: Float,
+        val oldDy: Float,
+        val oldRadius: Float,
+        val oldOpacity: Int,
+
+        val newEnabled: Boolean,
+        val newColor: Int,
+        val newDx: Float,
+        val newDy: Float,
+        val newRadius: Float,
+        val newOpacity: Int
+    ) : CanvasAction()
+    data class SetOverlayGradient(
+        val elementId: String,
+        val oldGradient: GradientItem?,
+        val newGradient: GradientItem?
+    ) : CanvasAction()
+    data class SetOverlay(
+        val elementId: String,
+        val oldHasOverlay: Boolean,
+        val oldColor: Int,
+        val oldOpacity: Int,
+        val newHasOverlay: Boolean,
+        val newColor: Int,
+        val newOpacity: Int
+    ) : CanvasAction()
     data class SetBackgroundGradient(
         val gradientItem: GradientItem, val prevGradientItem: GradientItem?
     ) : CanvasAction()

@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import androidx.core.view.doOnPreDraw
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -16,30 +15,20 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
+import com.google.android.material.chip.Chip
 import com.webscare.urducanvas.R
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.common.canvas.sealed.HomeRow
 import com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.utils.showGlobalSuccessSnack
-import com.webscare.urducanvas.data.model.ProgressUi
-import com.webscare.urducanvas.data.model.TemplateEntity
 import com.webscare.urducanvas.data.model.toExportResultFinal
 import com.webscare.urducanvas.databinding.DialogLoadingProgressBinding
 import com.webscare.urducanvas.databinding.FragmentTemplatesBinding
-import com.webscare.urducanvas.ui.creation.CanvasSizeAdapter
-import com.webscare.urducanvas.viewmodels.FiltersViewModel
-import com.webscare.urducanvas.viewmodels.MainViewModel
-import com.google.android.material.chip.Chip
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import com.webscare.urducanvas.common.utils.showGlobalSuccessSnack
-import com.webscare.urducanvas.data.model.toExportResultFinal
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.collections.forEach
 import kotlin.math.roundToInt
 
 @AndroidEntryPoint
@@ -71,80 +60,36 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
     private fun isGridMode(): Boolean = binding.categoriesRV.adapter === templatesAdapter
 
     private val sizeList = listOf(
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-            "Instagram Story",
-            1080f,
-            1920f
-        ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-            "Instagram Post",
-            1080f,
-            1080f
-        ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-            "YouTube Thumbnail",
-            1280f,
-            720f
-        ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-            "Facebook Cover",
-            820f,
-            312f
-        ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-            "YouTube Channel Art",
-            2560f,
-            1440f
-        ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-            "A4",
-            2480f,
-            3508f
-        ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-            "Letter",
-            2550f,
-            3300f
-        ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-            "Poster",
-            3600f,
-            5400f
-        ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-            "Business Card",
-            1050f,
-            600f
-        ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-            "Billboard",
-            1920f,
-            1080f
-        ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-            "Vertical Banner",
-            1080f,
-            1920f
-        ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-            "Horizontal Banner",
-            1920f,
-            600f
-        ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-            "Flyer",
-            2550f,
-            3300f
-        ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-            "Resume",
-            2480f,
-            3508f
-        ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-            "Invitation",
-            1500f,
-            2100f
+        CanvasSize(
+            "Instagram Story", 1080f, 1920f
+        ), CanvasSize(
+            "Instagram Post", 1080f, 1080f
+        ), CanvasSize(
+            "YouTube Thumbnail", 1280f, 720f
+        ), CanvasSize(
+            "Facebook Cover", 820f, 312f
+        ), CanvasSize(
+            "YouTube Channel Art", 2560f, 1440f
+        ), CanvasSize(
+            "A4", 2480f, 3508f
+        ), CanvasSize(
+            "Letter", 2550f, 3300f
+        ), CanvasSize(
+            "Poster", 3600f, 5400f
+        ), CanvasSize(
+            "Business Card", 1050f, 600f
+        ), CanvasSize(
+            "Billboard", 1920f, 1080f
+        ), CanvasSize(
+            "Vertical Banner", 1080f, 1920f
+        ), CanvasSize(
+            "Horizontal Banner", 1920f, 600f
+        ), CanvasSize(
+            "Flyer", 2550f, 3300f
+        ), CanvasSize(
+            "Resume", 2480f, 3508f
+        ), CanvasSize(
+            "Invitation", 1500f, 2100f
         )
     )
 
@@ -193,15 +138,13 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
 
         canvasSizeAdapter =
             _root_ide_package_.com.webscare.urducanvas.ui.creation.CanvasSizeAdapter(
-                sizeList,
-                onClick = { selected ->
+                sizeList, onClick = { selected ->
                     val newSize =
                         if (filtersVM.filters.value.size?.name == selected.name) null else selected
                     filtersVM.setSize(newSize)
                     canvasSizeAdapter.selectedSizeName = newSize?.name ?: ""
 
-                },
-                false
+                }, false
             )
         binding.sizesRV.adapter = canvasSizeAdapter
 
@@ -270,11 +213,9 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
         if (rv.layoutManager !is StaggeredGridLayoutManager) {
 
             val newManager = StaggeredGridLayoutManager(
-                2,
-                RecyclerView.VERTICAL
+                2, RecyclerView.VERTICAL
             ).apply {
-                gapStrategy =
-                    StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS
+                gapStrategy = StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS
             }
 
             rv.layoutManager = newManager
@@ -421,7 +362,10 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun filterTemplates(
-        source: List<com.webscare.urducanvas.data.model.TemplateEntity>, category: String, query: String, size: com.webscare.urducanvas.common.canvas.model.CanvasSize?
+        source: List<com.webscare.urducanvas.data.model.TemplateEntity>,
+        category: String,
+        query: String,
+        size: com.webscare.urducanvas.common.canvas.model.CanvasSize?
     ): List<com.webscare.urducanvas.data.model.TemplateEntity> {
         val byCat = if (category.equals("All", true)) {
             source
@@ -468,11 +412,12 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
             val filtered = filterTemplates(allTemplates, "All", activeQuery, activeSize)
 
             // Safely group by category
-            val rows = filtered.groupBy { it.category?.trim() ?: "Others" }
-                .map { entry ->
-                    val title = entry.key.ifEmpty { "Others" }
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.HomeRow.CategoryRow(title, entry.value.distinctBy { it.id }.take(10))
-                }
+            val rows = filtered.groupBy { it.category?.trim() ?: "Others" }.map { entry ->
+                val title = entry.key.ifEmpty { "Others" }
+                HomeRow.CategoryRow(
+                    title, entry.value.distinctBy { it.id }.take(10)
+                )
+            }
 
             categoryAdapter.submitList(rows)
         } else {
@@ -542,33 +487,30 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
             mainViewModel.templateDownloadStates.collect { downloadState ->
                 downloadState.values.forEach { state ->
                     when (state) {
-                        is com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState.Progress -> {
+                        is TemplateDownloadState.Progress -> {
                             if (isGridMode()) {
                                 templatesAdapter.updateProgress(
                                     state.template.id,
                                     _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
-                                        state.progress,
-                                        isDownloading = true,
-                                        isDownloaded = false
+                                        state.progress, isDownloading = true, isDownloaded = false
                                     )
                                 )
                             } else {
                                 categoryAdapter.updateTemplateProgress(
-                                    state.template.id, state.progress,
+                                    state.template.id,
+                                    state.progress,
                                     isDownloading = true,
                                     isDownloaded = false
                                 )
                             }
                         }
 
-                        is com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState.SuccessWithTemplate -> {
+                        is TemplateDownloadState.SuccessWithTemplate -> {
                             val t = state.template
                             mainViewModel.clearTemplateDownloadState()
                             val finalState =
                                 _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
-                                    100,
-                                    isDownloading = false,
-                                    isDownloaded = true
+                                    100, isDownloading = false, isDownloaded = true
                                 )
                             val finalTemplate = t.copy(is_downloading = false, is_downloaded = true)
 
@@ -581,7 +523,9 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
 //                                }
 
                             } else {
-                                categoryAdapter.updateTemplateProgress(t.id, 100, isDownloading = false, isDownloaded = true)
+                                categoryAdapter.updateTemplateProgress(
+                                    t.id, 100, isDownloading = false, isDownloaded = true
+                                )
 
                                 categoryAdapter.notifyTemplateStateChanged(finalTemplate)
                             }
@@ -599,24 +543,29 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
                             downloadingTemplate = null
                         }
 
-                        is com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState.Error -> {
+                        is TemplateDownloadState.Error -> {
                             downloadingTemplate?.let { t ->
                                 val finalState =
                                     _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
-                                        0,
-                                        isDownloading = false,
-                                        isDownloaded = false
+                                        0, isDownloading = false, isDownloaded = false
                                     )
 
-                                categoryAdapter.updateTemplateProgress(downloadingTemplate!!.id, 0, isDownloading = false, isDownloaded = false)
-                                templatesAdapter.updateProgress(downloadingTemplate!!.id, finalState)
+                                categoryAdapter.updateTemplateProgress(
+                                    downloadingTemplate!!.id,
+                                    0,
+                                    isDownloading = false,
+                                    isDownloaded = false
+                                )
+                                templatesAdapter.updateProgress(
+                                    downloadingTemplate!!.id, finalState
+                                )
 
                                 downloadingTemplate = null
                             }
 
                         }
 
-                        is com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState.Success -> {
+                        is TemplateDownloadState.Success -> {
                             mainViewModel.clearTemplateDownloadState()
                         }
 

@@ -4,22 +4,17 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
-import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
-import com.webscare.urducanvas.data.model.FontEntity
-import com.webscare.urducanvas.databinding.FragmentFontsListBinding
-import com.webscare.urducanvas.viewmodels.MainViewModel
 import com.google.android.material.snackbar.Snackbar
+import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
+import com.webscare.urducanvas.databinding.FragmentFontsListBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
-import kotlin.collections.forEach
 
 @AndroidEntryPoint
 class FontsListFragment : androidx.fragment.app.Fragment() {
@@ -41,8 +36,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentFontsListBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -93,32 +87,29 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
                 }
             }
 
-            val finalList =
-                if (currentCategory == null && currentLanguage == "All") {
+            val finalList = if (currentCategory == null && currentLanguage == "All") {
 
-                    // 1) Separate Urdu & English
-                    val urdu = filtered
-                        .filter { it.font_language.equals("Urdu", true) }
-                        .sortedBy { it.font_name.lowercase() }
+                // 1) Separate Urdu & English
+                val urdu = filtered.filter { it.font_language.equals("Urdu", true) }
+                    .sortedBy { it.font_name.lowercase() }
 
-                    val english = filtered
-                        .filter { it.font_language.equals("English", true) }
-                        .sortedBy { it.font_name.lowercase() }
+                val english = filtered.filter { it.font_language.equals("English", true) }
+                    .sortedBy { it.font_name.lowercase() }
 
-                    // 2) Interleave for horizontal grid
-                    val merged = mutableListOf<com.webscare.urducanvas.data.model.FontEntity>()
-                    val maxSize = maxOf(urdu.size, english.size)
+                // 2) Interleave for horizontal grid
+                val merged = mutableListOf<com.webscare.urducanvas.data.model.FontEntity>()
+                val maxSize = maxOf(urdu.size, english.size)
 
-                    for (i in 0 until maxSize) {
-                        if (i < urdu.size) merged.add(urdu[i])      // TOP ROW
-                        if (i < english.size) merged.add(english[i]) // BOTTOM ROW
-                    }
-
-                    merged
-                } else {
-                    // Normal case → sort all fonts alphabetically
-                    filtered.sortedBy { it.font_name.lowercase() }
+                for (i in 0 until maxSize) {
+                    if (i < urdu.size) merged.add(urdu[i])      // TOP ROW
+                    if (i < english.size) merged.add(english[i]) // BOTTOM ROW
                 }
+
+                merged
+            } else {
+                // Normal case → sort all fonts alphabetically
+                filtered.sortedBy { it.font_name.lowercase() }
+            }
 
             fontsAdapter.submitList(finalList)
 
@@ -132,7 +123,9 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         binding.englishRV.adapter = fontsAdapter
     }
 
-    private fun handleFontSelection(font: com.webscare.urducanvas.data.model.FontEntity, isDownloaded: Boolean) {
+    private fun handleFontSelection(
+        font: com.webscare.urducanvas.data.model.FontEntity, isDownloaded: Boolean
+    ) {
         if (isDownloaded) {
             viewModel.setFont(font)
         } else {
@@ -150,17 +143,19 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
             viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 combine(
                     mainViewModel.localFonts,
-                    mainViewModel.queryDebounced.onStart { emit("") }
-                ) { fonts, queryRaw ->
+                    mainViewModel.queryDebounced.onStart { emit("") }) { fonts, queryRaw ->
                     val query = queryRaw.trim().lowercase()
 
                     // 0) Language filter
                     val byLanguage = when (val lang = currentLanguage ?: "All") {
                         "All" -> fonts
                         "Imported" -> fonts.filter {
-                            it.font_language.equals("Imported", true) &&
-                                    it.font_category.equals("Imported", true)
+                            it.font_language.equals(
+                                "Imported",
+                                true
+                            ) && it.font_category.equals("Imported", true)
                         }
+
                         else -> fonts.filter { it.font_language.equals(lang, ignoreCase = true) }
                     }
 
@@ -185,32 +180,29 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
                         tokens.all { it in haystack }
                     }
                 }.collect { filtered ->
-                    val finalList =
-                        if (currentCategory == null && currentLanguage == "All") {
+                    val finalList = if (currentCategory == null && currentLanguage == "All") {
 
-                            // 1) Separate Urdu & English
-                            val urdu = filtered
-                                .filter { it.font_language.equals("Urdu", true) }
-                                .sortedBy { it.font_name.lowercase() }
+                        // 1) Separate Urdu & English
+                        val urdu = filtered.filter { it.font_language.equals("Urdu", true) }
+                            .sortedBy { it.font_name.lowercase() }
 
-                            val english = filtered
-                                .filter { it.font_language.equals("English", true) }
-                                .sortedBy { it.font_name.lowercase() }
+                        val english = filtered.filter { it.font_language.equals("English", true) }
+                            .sortedBy { it.font_name.lowercase() }
 
-                            // 2) Interleave for horizontal grid
-                            val merged = mutableListOf<com.webscare.urducanvas.data.model.FontEntity>()
-                            val maxSize = maxOf(urdu.size, english.size)
+                        // 2) Interleave for horizontal grid
+                        val merged = mutableListOf<com.webscare.urducanvas.data.model.FontEntity>()
+                        val maxSize = maxOf(urdu.size, english.size)
 
-                            for (i in 0 until maxSize) {
-                                if (i < urdu.size) merged.add(urdu[i])      // TOP ROW
-                                if (i < english.size) merged.add(english[i]) // BOTTOM ROW
-                            }
-
-                            merged
-                        } else {
-                            // Normal case → sort all fonts alphabetically
-                            filtered.sortedBy { it.font_name.lowercase() }
+                        for (i in 0 until maxSize) {
+                            if (i < urdu.size) merged.add(urdu[i])      // TOP ROW
+                            if (i < english.size) merged.add(english[i]) // BOTTOM ROW
                         }
+
+                        merged
+                    } else {
+                        // Normal case → sort all fonts alphabetically
+                        filtered.sortedBy { it.font_name.lowercase() }
+                    }
 
                     fontsAdapter.submitList(finalList)
                 }
@@ -221,14 +213,14 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
             mainViewModel.fontDownloadStates.collect { downloadState ->
                 downloadState.values.forEach { state ->
                     when (state) {
-                        is com.webscare.urducanvas.common.canvas.sealed.FontDownloadState.Progress -> {
+                        is FontDownloadState.Progress -> {
                             fontEntity = state.fontEntity
                             fontEntity?.let { font ->
                                 fontsAdapter.selectedFontId = font.id.toString()
                             }
                         }
 
-                        is com.webscare.urducanvas.common.canvas.sealed.FontDownloadState.SuccessWithTypeface -> {
+                        is FontDownloadState.SuccessWithTypeface -> {
                             fontEntity = state.fontEntity
                             viewModel.setFont(fontEntity!!)
                             fontEntity?.let { font ->
@@ -237,7 +229,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
                             mainViewModel.clearFontDownloadState()
                         }
 
-                        is com.webscare.urducanvas.common.canvas.sealed.FontDownloadState.Success -> {
+                        is FontDownloadState.Success -> {
                             fontEntity?.let { font ->
                                 if (font.is_downloaded) {
                                     viewModel.setFont(font)
@@ -245,7 +237,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
                             }
                         }
 
-                        is com.webscare.urducanvas.common.canvas.sealed.FontDownloadState.Error -> {
+                        is FontDownloadState.Error -> {
                             view?.let {
                                 Snackbar.make(it, "Download failed!", Snackbar.LENGTH_SHORT).show()
                             }

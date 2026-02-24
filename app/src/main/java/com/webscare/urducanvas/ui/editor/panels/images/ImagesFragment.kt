@@ -12,30 +12,19 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayoutMediator
 import com.webscare.urducanvas.R
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.databinding.FragmentImagesBinding
-import com.webscare.urducanvas.viewmodels.MainViewModel
-import com.google.android.material.tabs.TabLayout
-import com.google.android.material.tabs.TabLayoutMediator
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import kotlin.text.equals
-import kotlin.text.trim
 
 @AndroidEntryPoint
 class ImagesFragment : androidx.fragment.app.Fragment() {
@@ -109,11 +98,13 @@ class ImagesFragment : androidx.fragment.app.Fragment() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val filePath =
-                    _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                    ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
 
                 withContext(Dispatchers.Main) {
                     viewModel.addSticker(
-                        _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.filePathToBitmap(filePath!!), requireActivity(), _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.IMAGE
+                        ImageProcessor.filePathToBitmap(filePath!!),
+                        requireActivity(),
+                        ElementType.IMAGE
                     )
                 }
             } catch (e: Exception) {
@@ -131,8 +122,9 @@ class ImagesFragment : androidx.fragment.app.Fragment() {
                     .distinct()
 
                 val hasImageRecents = images.any {
-                    it.is_recent &&
-                            (it.category.equals("Images", true) || it.category.equals("Images Imported", true))
+                    it.is_recent && (it.category.equals(
+                        "Images", true
+                    ) || it.category.equals("Images Imported", true))
                 }
 
                 val newTabs = mutableListOf<String>().apply {
@@ -161,7 +153,7 @@ class ImagesFragment : androidx.fragment.app.Fragment() {
         }.attach()
 
         binding.tabLayout.viewTreeObserver.addOnGlobalLayoutListener {
-            if (isAdded){
+            if (isAdded) {
                 for (i in 0 until binding.tabLayout.tabCount) {
                     val tabView = (binding.tabLayout.getChildAt(0) as? ViewGroup)?.getChildAt(i)
                     tabView?.scaleX = 0.9f
@@ -178,20 +170,12 @@ class ImagesFragment : androidx.fragment.app.Fragment() {
 
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
-                tab?.view?.animate()
-                    ?.scaleX(1.0f)
-                    ?.scaleY(1.0f)
-                    ?.setDuration(150)
-                    ?.setInterpolator(android.view.animation.OvershootInterpolator())
-                    ?.start()
+                tab?.view?.animate()?.scaleX(1.0f)?.scaleY(1.0f)?.setDuration(150)
+                    ?.setInterpolator(android.view.animation.OvershootInterpolator())?.start()
             }
 
             override fun onTabUnselected(tab: TabLayout.Tab?) {
-                tab?.view?.animate()
-                    ?.scaleX(0.9f)
-                    ?.scaleY(0.9f)
-                    ?.setDuration(150)
-                    ?.start()
+                tab?.view?.animate()?.scaleX(0.9f)?.scaleY(0.9f)?.setDuration(150)?.start()
             }
 
             override fun onTabReselected(tab: TabLayout.Tab?) {}

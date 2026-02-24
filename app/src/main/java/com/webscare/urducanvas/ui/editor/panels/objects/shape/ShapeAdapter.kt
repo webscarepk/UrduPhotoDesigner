@@ -1,9 +1,8 @@
-package com.webscare.urducanvas.ui.editor.panels.draw.shape
+package com.webscare.urducanvas.ui.editor.panels.objects.shape
 
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.Path
 import android.graphics.RectF
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -15,22 +14,19 @@ import com.webscare.urducanvas.common.canvas.enums.ShapeType
 import com.webscare.urducanvas.common.utils.ShapeRenderUtils.drawShape
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.LayoutColorItemBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import kotlin.math.cos
-import kotlin.math.sin
 
 class ShapeAdapter(
     private val context: Context,
-    private val shapes: List<com.webscare.urducanvas.common.canvas.enums.ShapeType>,
-    private val onShapeSelected: (com.webscare.urducanvas.common.canvas.enums.ShapeType) -> Unit
+    private val shapes: List<ShapeType>,
+    private val onShapeSelected: (ShapeType) -> Unit
 ) : RecyclerView.Adapter<ShapeAdapter.ShapeViewHolder>() {
 
-    var selectedShape: com.webscare.urducanvas.common.canvas.enums.ShapeType? = null
+    var selectedShape: ShapeType? = null
 
     inner class ShapeViewHolder(val binding: LayoutColorItemBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(shape: com.webscare.urducanvas.common.canvas.enums.ShapeType, isSelected: Boolean) {
+        fun bind(shape: ShapeType, isSelected: Boolean) {
             // 🎨 Draw shape into bitmap
             val size = 220
             val bitmap = createBitmap(size, size)
@@ -44,16 +40,16 @@ class ShapeAdapter(
             val radius = size * 0.15f
             val rect = RectF(size * 0.2f, size * 0.2f, size * 0.8f, size * 0.8f)
 
-            if (shape== _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ShapeType.RECTANGLE){
-                _root_ide_package_.com.webscare.urducanvas.common.utils.ShapeRenderUtils.drawShape(
+            if (shape == ShapeType.RECTANGLE) {
+                drawShape(
                     canvas,
                     paint,
                     shape,
                     rect,
                     0f
                 )
-            }else{
-                _root_ide_package_.com.webscare.urducanvas.common.utils.ShapeRenderUtils.drawShape(
+            } else {
+                drawShape(
                     canvas,
                     paint,
                     shape,

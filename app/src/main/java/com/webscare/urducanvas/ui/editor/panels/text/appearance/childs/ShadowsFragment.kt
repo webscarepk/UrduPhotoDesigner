@@ -19,12 +19,12 @@ import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class ShadowsFragment : androidx.fragment.app.Fragment() {
+class ShadowsFragment : Fragment() {
     private var _binding: FragmentShadowsBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var colorsAdapter: com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    private lateinit var colorsAdapter: ColorsAdapter
+    private val viewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -44,8 +44,8 @@ class ShadowsFragment : androidx.fragment.app.Fragment() {
 
     private fun setupRecyclerView() {
         colorsAdapter =
-            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter(
-                _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.shadowColorList,
+            ColorsAdapter(
+                Constants.shadowColorList,
                 { color ->
                     val selectedColor = color.colorCode.toColorInt()
                     val dx = viewModel.shadowDx.value ?: 0f
@@ -58,18 +58,18 @@ class ShadowsFragment : androidx.fragment.app.Fragment() {
                     viewModel.setTextShadow(false, android.R.color.transparent, dx, dy)
                 },
                 {
-                    viewModel.startPicking(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.COLOR_PICKER_SHADOW)
+                    viewModel.startPicking(PickerTarget.COLOR_PICKER_SHADOW)
                     childFragmentManager
                         .beginTransaction()
                         .replace(
                             R.id.shadowsFragment,
-                            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment()
+                            ColorPickerFragment()
                         )
                         .addToBackStack(null)
                         .commit()
                 },
                 {
-                    viewModel.startPicking(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_SHADOW)
+                    viewModel.startPicking(PickerTarget.EYE_DROPPER_SHADOW)
                 })
 
         binding.colors.apply {

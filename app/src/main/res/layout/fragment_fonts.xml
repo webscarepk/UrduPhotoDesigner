@@ -24,7 +24,7 @@
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         android:orientation="vertical"
         android:id="@+id/languages"
-        android:layout_marginEnd="12dp"
+        android:layout_marginEnd="4dp"
         tools:listitem="@layout/layout_tabs_item"
         tools:itemCount="3"/>
 

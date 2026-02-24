@@ -1,21 +1,16 @@
 package com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient
 
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.graphics.toColorInt
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.webscare.urducanvas.R
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.PickerTarget
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentGradientColorListBinding
-import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -45,7 +40,7 @@ class GradientColorListFragment : androidx.fragment.app.Fragment() {
     private fun setupRecyclerView() {
         colorsAdapter =
             _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter(
-                _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.colorList,
+                Constants.colorList,
                 { color ->
                     selectedColor = color.colorCode.toColorInt()
                     colorsAdapter.selectedColor = selectedColor
@@ -55,7 +50,7 @@ class GradientColorListFragment : androidx.fragment.app.Fragment() {
                     selectedColor = android.R.color.transparent
                 },
                 {
-                    viewModel.startPicking(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.COLOR_PICKER_GRADIENT)
+                    viewModel.startPicking(PickerTarget.COLOR_PICKER_GRADIENT)
                     childFragmentManager
                         .beginTransaction()
                         .replace(R.id.gradientColorFragment, ColorPickerFragment())
@@ -63,7 +58,7 @@ class GradientColorListFragment : androidx.fragment.app.Fragment() {
                         .commit()
                 },
                 {
-                    viewModel.startPicking(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_GRADIENT)
+                    viewModel.startPicking(PickerTarget.EYE_DROPPER_GRADIENT)
                 })
 
         binding.colors.apply {

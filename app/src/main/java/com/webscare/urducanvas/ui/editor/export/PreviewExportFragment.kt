@@ -36,7 +36,7 @@ class PreviewExportFragment : androidx.fragment.app.Fragment() {
 
         Log.d("PreviewExportFragment", "Loading image from $imagePath")
 
-        val bitmap = _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.filePathToBitmap(imagePath)
+        val bitmap = ImageProcessor.filePathToBitmap(imagePath)
         Log.d("PreviewExportFragment", "Bitmap = $bitmap, size = ${bitmap?.width}x${bitmap?.height}")
         if (bitmap != null) {
             binding.zoomableImage.setImageBitmap(bitmap)

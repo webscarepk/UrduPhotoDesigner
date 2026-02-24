@@ -143,7 +143,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
         binding.deleteAll.addPressEffect {
             val selectedItems = adapter.getSelectedItems() // we’ll add this helper in adapter
             if (selectedItems.isNotEmpty()) {
-                _root_ide_package_.com.webscare.urducanvas.common.utils.DialogUtils.showDeleteDialog(
+                DialogUtils.showDeleteDialog(
                     requireActivity(),
                     getString(R.string.delete_permanently),
                     getString(R.string.your_asset_will_be_permanently_deleted)
@@ -220,7 +220,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                 lifecycleScope.launch(Dispatchers.IO) {
                     try {
                         val filePath =
-                            _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                            ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
                         val exportDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(
                             Date()
                         )
@@ -249,7 +249,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                 lifecycleScope.launch(Dispatchers.IO) {
                     try {
                         val filePath =
-                            _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                            ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
                         val exportDate =
                             SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
@@ -507,12 +507,12 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
 
                         // use same hierarchy as ImageProcessor
                         val newImageFile =
-                            _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.newExportImageFile(requireActivity(), srcImage.name)
+                            ImageProcessor.newExportImageFile(requireActivity(), srcImage.name)
                         val newJsonFile =
-                            _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.newExportJsonFile(requireActivity(), srcJson.name)
+                            ImageProcessor.newExportJsonFile(requireActivity(), srcJson.name)
 
-                        _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.copyFile(srcImage, newImageFile)
-                        _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.copyFile(srcJson, newJsonFile)
+                        ImageProcessor.copyFile(srcImage, newImageFile)
+                        ImageProcessor.copyFile(srcJson, newJsonFile)
 
                         val newExport = item.copy(
                             id = 0,
@@ -527,9 +527,9 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                     is com.webscare.urducanvas.data.model.ImageEntity -> {
                         val srcImage = File(item.bitmapData ?: item.file_url)
                         val newImageFile =
-                            _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.newImageFile(requireContext(), srcImage.name)
+                            ImageProcessor.newImageFile(requireContext(), srcImage.name)
 
-                        if (srcImage.exists()) _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.copyFile(srcImage, newImageFile)
+                        if (srcImage.exists()) ImageProcessor.copyFile(srcImage, newImageFile)
 
                         val newEntity = item.copy(
                             id = 0,
@@ -542,15 +542,15 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
 
                     is com.webscare.urducanvas.data.model.FontEntity -> {
                         val srcFont = File(item.file_path ?: item.file_url)
-                        val newFontFile = _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.newFontFile(requireContext(), srcFont.name)
+                        val newFontFile = ImageProcessor.newFontFile(requireContext(), srcFont.name)
 
-                        if (srcFont.exists()) _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.copyFile(srcFont, newFontFile)
+                        if (srcFont.exists()) ImageProcessor.copyFile(srcFont, newFontFile)
 
                         val srcPreview = File(item.font_image)
                         val newPreviewFile =
-                            _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.newFontPreviewFile(requireContext(), srcPreview.name)
+                            ImageProcessor.newFontPreviewFile(requireContext(), srcPreview.name)
 
-                        if (srcPreview.exists()) _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.copyFile(srcPreview, newPreviewFile)
+                        if (srcPreview.exists()) ImageProcessor.copyFile(srcPreview, newPreviewFile)
 
                         val newEntity = item.copy(
                             id = 0,
@@ -587,7 +587,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                 else -> getString(R.string.delete) to getString(R.string.your_asset_will_be_permanently_deleted)
             }
 
-            _root_ide_package_.com.webscare.urducanvas.common.utils.DialogUtils.showDeleteDialog(requireActivity(), title, subtitle) {
+            DialogUtils.showDeleteDialog(requireActivity(), title, subtitle) {
                 when (item) {
                     is com.webscare.urducanvas.data.model.ExportResult -> viewModel.deleteExportResult(item)
                     is com.webscare.urducanvas.data.model.ImageEntity -> viewModel.deleteImage(item)

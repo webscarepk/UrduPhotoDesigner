@@ -5,6 +5,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.webscare.urducanvas.data.model.ImageEntity
+import com.webscare.urducanvas.ui.editor.panels.objects.shape.ShapeFragment
 
 class ObjectsPagerAdapter(
     private val fm: FragmentManager,
@@ -39,6 +40,9 @@ class ObjectsPagerAdapter(
 
     override fun createFragment(position: Int): Fragment {
         // pass the initial filter into the fragment’s arguments
-        return ObjectsListFragment.newInstance(tabs[position], currentQuery)
+        return when (position) {
+            0 -> ShapeFragment.newInstance()
+            else -> ObjectsListFragment.newInstance(tabs[position], currentQuery)
+        }
     }
 }

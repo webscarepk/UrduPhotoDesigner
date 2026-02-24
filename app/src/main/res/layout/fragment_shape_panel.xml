@@ -6,7 +6,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@color/white"
     android:id="@+id/shapePanel"
-    tools:context=".ui.editor.panels.draw.shape.ShapePanelFragment">
+    tools:context=".ui.editor.panels.objects.shape.ShapePanelFragment">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/shapePane"

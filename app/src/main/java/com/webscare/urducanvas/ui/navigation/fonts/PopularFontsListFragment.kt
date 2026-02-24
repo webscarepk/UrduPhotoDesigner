@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavOptions
@@ -14,25 +13,17 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
+import com.google.android.material.snackbar.Snackbar
 import com.webscare.urducanvas.R
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
-import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
 import com.webscare.urducanvas.common.utils.showGlobalSuccessSnack
-import com.webscare.urducanvas.data.model.FontEntity
-import com.webscare.urducanvas.data.model.ProgressUi
 import com.webscare.urducanvas.databinding.FragmentPopularFontsListBinding
-import com.webscare.urducanvas.viewmodels.FiltersViewModel
-import com.webscare.urducanvas.viewmodels.MainViewModel
-import com.google.android.material.snackbar.Snackbar
-import com.webscare.urducanvas.common.utils.showGlobalSuccessSnack
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.collections.forEach
 
 @AndroidEntryPoint
 class PopularFontsListFragment : androidx.fragment.app.Fragment() {
@@ -90,9 +81,7 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
             } else {
                 viewModel.setCanvasSize(
                     _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-                        "",
-                        2000f,
-                        2000f
+                        "", 2000f, 2000f
                     )
                 )
                 viewModel.addTextWithFont(
@@ -201,7 +190,7 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
             mainViewModel.fontDownloadStates.collect { downloadState ->
                 downloadState.values.forEach { state ->
                     when (state) {
-                        is com.webscare.urducanvas.common.canvas.sealed.FontDownloadState.Progress -> {
+                        is FontDownloadState.Progress -> {
                             val font = state.fontEntity
                             adapter.updateProgress(
                                 font.id,
@@ -213,15 +202,13 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
                             )
                         }
 
-                        is com.webscare.urducanvas.common.canvas.sealed.FontDownloadState.SuccessWithTypeface -> {
+                        is FontDownloadState.SuccessWithTypeface -> {
                             val font = state.fontEntity
 
                             adapter.updateProgress(
                                 font.id,
                                 _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
-                                    100,
-                                    isDownloading = false,
-                                    isDownloaded = true
+                                    100, isDownloading = false, isDownloaded = true
                                 )
                             )
 
@@ -229,9 +216,7 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
                                 lifecycleScope.launch {
                                     viewModel.setCanvasSize(
                                         _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-                                            "",
-                                            2000f,
-                                            2000f
+                                            "", 2000f, 2000f
                                         )
                                     )
                                     viewModel.addTextWithFont(
@@ -252,7 +237,7 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
                             mainViewModel.clearFontDownloadState()
                         }
 
-                        is com.webscare.urducanvas.common.canvas.sealed.FontDownloadState.Error -> {
+                        is FontDownloadState.Error -> {
                             val font = state.fontEntity
                             adapter.updateProgress(
                                 font.id,

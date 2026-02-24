@@ -146,10 +146,10 @@ class BackgroundsFragment : androidx.fragment.app.Fragment() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val filePath =
-                    _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                    ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
                 withContext(Dispatchers.Main) {
                     viewModel.setCanvasBackgroundImage(
-                        _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.filePathToBitmap(filePath!!)
+                        ImageProcessor.filePathToBitmap(filePath!!)
                     )
                 }
             } catch (e: Exception) {

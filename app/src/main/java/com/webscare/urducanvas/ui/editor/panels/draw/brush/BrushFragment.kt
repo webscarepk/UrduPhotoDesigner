@@ -41,6 +41,7 @@ class BrushFragment : androidx.fragment.app.Fragment() {
 
     private fun setupRecyclerViews() {
         tabs = ArrayList()
+        viewModel.enterDrawingMode()
         adapter =
             _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter { tab ->
                 handleSelection(tab)
@@ -118,11 +119,17 @@ class BrushFragment : androidx.fragment.app.Fragment() {
 
     override fun onPause() {
         super.onPause()
-        viewModel.stopPicking()
+        viewModel.exitDrawingMode()
     }
 
     override fun onStop() {
         super.onStop()
+        viewModel.exitDrawingMode()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
         viewModel.exitDrawingMode()
     }
 

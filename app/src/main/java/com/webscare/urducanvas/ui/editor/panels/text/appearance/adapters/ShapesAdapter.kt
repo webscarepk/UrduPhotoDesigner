@@ -14,10 +14,10 @@ import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class ShapesAdapter(
     private val shapesList: List<com.webscare.urducanvas.data.model.ShapeItem>,
-    private val onShapeSelected: (com.webscare.urducanvas.common.canvas.enums.LabelShape) -> Unit
+    private val onShapeSelected: (LabelShape) -> Unit
 ) : RecyclerView.Adapter<ShapesAdapter.ShapeViewHolder>() {
 
-    var selectedShape: com.webscare.urducanvas.common.canvas.enums.LabelShape = _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.LabelShape.RECTANGLE_FILL // Default selected shape
+    var selectedShape: LabelShape = LabelShape.RECTANGLE_FILL // Default selected shape
 
     inner class ShapeViewHolder(val binding: LayoutShapeItemBinding) :
         RecyclerView.ViewHolder(binding.root) {

@@ -5,20 +5,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.os.bundleOf
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.ElementType
-import com.webscare.urducanvas.common.canvas.model.EmojiMeta
 import com.webscare.urducanvas.common.utils.Constants
-import com.webscare.urducanvas.common.utils.ImageProcessor.bitmapCompress
+import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
-import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.databinding.FragmentObjectsListBinding
-import com.webscare.urducanvas.ui.editor.panels.background.backgrounds.ImagesAdapter
-import com.webscare.urducanvas.viewmodels.MainViewModel
-import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -83,44 +76,41 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
 
                 val resized = viewModel.canvasSize.value?.height?.roundToInt()?.let { h ->
                     viewModel.canvasSize.value?.width?.let { w ->
-                        _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.bitmapCompress(
-                            image,
-                            w.roundToInt(),
-                            h
+                        ImageProcessor.bitmapCompress(
+                            image, w.roundToInt(), h
                         )
                     }
                 }
                 if (isAdded) {
                     viewModel.addSticker(
-                        resized?.trimTransparentEdges(),
-                        requireActivity(),
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.STICKER
+                        resized?.trimTransparentEdges(), requireActivity(), ElementType.STICKER
                     )
                 }
             }
 
         if (isBaseTab(category)) {
-            val data: List<com.webscare.urducanvas.common.canvas.model.EmojiMeta> = when (category) {
-                "Emoticons" -> _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.META_EMOTICONS
-                "Animals" -> _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.META_ANIMALS
-                "Nature" -> _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.META_NATURE
-                "Food" -> _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.META_FOOD
-                "Sports" -> _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.META_SPORTS
-                "Transport" -> _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.META_TRANSPORT
-                "Objects" -> _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.META_OBJECTS
-                "Alchemy" -> _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.META_ALCHEMY
-                "Shapes" -> _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.META_SHAPES
-                "Arrows" -> _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.META_ARROWS
-                "Letters" -> _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.META_LETTERS
-                "Flags" -> _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.META_FLAGS
-                else -> emptyList()
-            }
+            val data: List<com.webscare.urducanvas.common.canvas.model.EmojiMeta> =
+                when (category) {
+                    "Emoticons" -> Constants.META_EMOTICONS
+                    "Animals" -> Constants.META_ANIMALS
+                    "Nature" -> Constants.META_NATURE
+                    "Food" -> Constants.META_FOOD
+                    "Sports" -> Constants.META_SPORTS
+                    "Transport" -> Constants.META_TRANSPORT
+                    "Objects" -> Constants.META_OBJECTS
+                    "Alchemy" -> Constants.META_ALCHEMY
+                    "Shapes" -> Constants.META_SHAPES
+                    "Arrows" -> Constants.META_ARROWS
+                    "Letters" -> Constants.META_LETTERS
+                    "Flags" -> Constants.META_FLAGS
+                    else -> emptyList()
+                }
 
             val filtered = data.filter { it.name.contains(filterText, true) }
             binding.noEmojis.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
 
             val emojiAdapter = EmojiAdapter(requireActivity(), filtered) { bmp ->
-                viewModel.addSticker(bmp, requireActivity(), _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.STICKER)
+                viewModel.addSticker(bmp, requireActivity(), ElementType.STICKER)
             }
             binding.objects.adapter = emojiAdapter
         } else {
@@ -150,17 +140,25 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
     private fun refreshImages(tabName: String) {
         val filtered = when {
             tabName.equals("Recents", true) -> allLocalImages.filter { img ->
-                img.is_recent && !(
-                        img.category.equals("Backgrounds", true) ||
-                                img.category.equals("Backgrounds Imported", true) ||
-                                img.category.equals("Images", true) ||
-                                img.category.equals("Images Imported", true)
-                        ) && (filterText.isBlank() || img.alt_text?.contains(filterText, true) == true)
+                img.is_recent && !(img.category.equals(
+                    "Backgrounds",
+                    true
+                ) || img.category.equals(
+                    "Backgrounds Imported",
+                    true
+                ) || img.category.equals("Images", true) || img.category.equals(
+                    "Images Imported",
+                    true
+                )) && (filterText.isBlank() || img.alt_text?.contains(
+                    filterText, true
+                ) == true)
             }
 
             else -> allLocalImages.filter { img ->
-                img.category.equals(tabName, true) &&
-                        (filterText.isBlank() || img.alt_text?.contains(filterText, true) == true)
+                img.category.equals(
+                    tabName,
+                    true
+                ) && (filterText.isBlank() || img.alt_text?.contains(filterText, true) == true)
             }
         }
 

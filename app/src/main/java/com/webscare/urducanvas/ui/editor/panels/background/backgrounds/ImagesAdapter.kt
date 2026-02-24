@@ -1,17 +1,14 @@
 package com.webscare.urducanvas.ui.editor.panels.background.backgrounds
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
-import android.util.Base64
-import android.util.Log
+import android.graphics.drawable.PictureDrawable
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
@@ -19,17 +16,12 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
+import com.bumptech.glide.request.transition.Transition
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.utils.Constants
-import com.webscare.urducanvas.data.model.ImageEntity
-import com.webscare.urducanvas.databinding.LayoutImagesItemBinding
-import androidx.core.graphics.createBitmap
-import androidx.core.view.isVisible
-import com.bumptech.glide.request.target.CustomTarget
-import com.bumptech.glide.request.transition.Transition
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.databinding.LayoutImagesItemBinding
 
 class ImagesAdapter(
     private val onImageSelected: (Bitmap, com.webscare.urducanvas.data.model.ImageEntity) -> Unit
@@ -58,8 +50,6 @@ class ImagesAdapter(
     inner class ImageViewHolder(private val binding: LayoutImagesItemBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
-        private var currentDrawable: Drawable? = null
-
         fun bind(image: com.webscare.urducanvas.data.model.ImageEntity) {
             binding.shimmerLayout.startShimmer()
 
@@ -74,78 +64,126 @@ class ImagesAdapter(
             }
 
             binding.isPremium.isVisible = image.is_premium
+
+            val url = Constants.BASE_URL_GLIDE + image.file_url
+
             binding.root.addPressEffect {
                 if (image.bitmapData != null) {
-                    val bitmap = _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.filePathToBitmap(image.bitmapData!!)
+                    val bitmap = ImageProcessor.filePathToBitmap(
+                        image.bitmapData!!
+                    )
                     onImageSelected(bitmap!!, image)
                 } else {
-                    // If bitmapData is empty, load image from URL
-                    val url = _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.BASE_URL_GLIDE + image.file_url
-                    Glide.with(binding.root.context)
-                        .asBitmap()
-                        .load(url)
-                        .diskCacheStrategy(DiskCacheStrategy.ALL)
-                        .into(object : com.bumptech.glide.request.target.CustomTarget<Bitmap>() {
-                            override fun onResourceReady(
-                                bitmap: Bitmap,
-                                transition: Transition<in Bitmap>?
-                            ) {
-                                // this is guaranteed to be the full-size image
-                                onImageSelected(bitmap, image)
-                            }
+                    if (url.endsWith(".svg", true)) {
 
-                            override fun onLoadCleared(placeholder: Drawable?) { /* no-op */
-                            }
-                        })
+                        Glide.with(binding.root.context).`as`(PictureDrawable::class.java).load(url)
+                            .into(object :
+                                com.bumptech.glide.request.target.CustomTarget<PictureDrawable>() {
+
+                                override fun onResourceReady(
+                                    resource: PictureDrawable,
+                                    transition: Transition<in PictureDrawable>?
+                                ) {
+                                    val drawable = resource
+                                    val bitmap = createBitmap(
+                                        drawable.intrinsicWidth, drawable.intrinsicHeight
+                                    )
+
+                                    val canvas = android.graphics.Canvas(bitmap)
+                                    drawable.setBounds(0, 0, canvas.width, canvas.height)
+                                    drawable.draw(canvas)
+
+                                    onImageSelected(bitmap, image)
+                                }
+
+                                override fun onLoadCleared(placeholder: Drawable?) {}
+                            })
+
+                    } else {
+
+                        Glide.with(binding.root.context).asBitmap().load(url)
+                            .diskCacheStrategy(DiskCacheStrategy.ALL).into(object :
+                                com.bumptech.glide.request.target.CustomTarget<Bitmap>() {
+
+                                override fun onResourceReady(
+                                    bitmap: Bitmap, transition: Transition<in Bitmap>?
+                                ) {
+                                    onImageSelected(bitmap, image)
+                                }
+
+                                override fun onLoadCleared(placeholder: Drawable?) {}
+                            })
+                    }
                 }
             }
 
-            // Glide image loading logic: If bitmapData is empty, load from the URL
-            val url = _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.BASE_URL_GLIDE + image.file_url
             if (image.bitmapData != null) {
-                // Decode Base64 string to Bitmap for loading directly if bitmapData exists
-                // Decode Base64 string to Bitmap
-                Glide.with(itemView.context)
-                    .load(image.bitmapData)
-                    .into(binding.image)
+                Glide.with(itemView.context).load(image.bitmapData).into(binding.image)
 
                 binding.shimmerLayout.stopShimmer()
                 binding.shimmerLayout.setShimmer(null)
             } else {
-                // Glide to load the image from the URL if no bitmapData
-                Glide.with(binding.root.context)
-                    .load(url)
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .thumbnail(0.1f)
-                    .listener(object : RequestListener<Drawable> {
-                        override fun onLoadFailed(
-                            e: GlideException?,
-                            model: Any?,
-                            target: Target<Drawable>,
-                            isFirstResource: Boolean
-                        ): Boolean {
-                            Log.e("GlideDebug", "Image load failed: ${e?.message}")
-                            binding.shimmerLayout.stopShimmer()
-                            binding.shimmerLayout.setShimmer(null)
-                            currentDrawable = null
-                            return false
-                        }
+                if (url.endsWith(".svg", true)) {
 
-                        override fun onResourceReady(
-                            resource: Drawable,
-                            model: Any,
-                            target: Target<Drawable>?,
-                            dataSource: DataSource,
-                            isFirstResource: Boolean
-                        ): Boolean {
-                            Log.d("GlideDebug", "Image loaded successfully from: $url")
-                            binding.shimmerLayout.stopShimmer()
-                            binding.shimmerLayout.setShimmer(null)
-                            currentDrawable = resource
-                            return false
-                        }
-                    })
-                    .into(binding.image)
+                    Glide.with(binding.root.context).`as`(PictureDrawable::class.java).load(url)
+                        .diskCacheStrategy(DiskCacheStrategy.DATA)
+                        .listener(object : RequestListener<PictureDrawable> {
+
+                            override fun onLoadFailed(
+                                e: GlideException?,
+                                model: Any?,
+                                target: Target<PictureDrawable>,
+                                isFirstResource: Boolean
+                            ): Boolean {
+
+                                binding.shimmerLayout.stopShimmer()
+                                binding.shimmerLayout.setShimmer(null)
+
+                                return true
+                            }
+
+                            override fun onResourceReady(
+                                resource: PictureDrawable,
+                                model: Any,
+                                target: Target<PictureDrawable>?,
+                                dataSource: DataSource,
+                                isFirstResource: Boolean
+                            ): Boolean {
+                                binding.shimmerLayout.stopShimmer()
+                                binding.shimmerLayout.setShimmer(null)
+                                return false
+                            }
+                        }).into(binding.image)
+
+                } else {
+
+                    Glide.with(binding.root.context).load(url)
+                        .diskCacheStrategy(DiskCacheStrategy.ALL).thumbnail(0.1f)
+                        .listener(object : RequestListener<Drawable> {
+                            override fun onLoadFailed(
+                                e: GlideException?,
+                                model: Any?,
+                                target: Target<Drawable>,
+                                isFirstResource: Boolean
+                            ): Boolean {
+                                binding.shimmerLayout.stopShimmer()
+                                binding.shimmerLayout.setShimmer(null)
+                                return false
+                            }
+
+                            override fun onResourceReady(
+                                resource: Drawable,
+                                model: Any,
+                                target: Target<Drawable>?,
+                                dataSource: DataSource,
+                                isFirstResource: Boolean
+                            ): Boolean {
+                                binding.shimmerLayout.stopShimmer()
+                                binding.shimmerLayout.setShimmer(null)
+                                return false
+                            }
+                        }).into(binding.image)
+                }
             }
         }
     }

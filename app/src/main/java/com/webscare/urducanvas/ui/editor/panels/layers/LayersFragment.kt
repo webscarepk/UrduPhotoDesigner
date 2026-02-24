@@ -94,7 +94,7 @@ class LayersFragment : androidx.fragment.app.Fragment() {
         }
 
         selectionToolbar.delete.addPressEffect {
-            _root_ide_package_.com.webscare.urducanvas.common.utils.DialogUtils.showDeleteDialog(
+            DialogUtils.showDeleteDialog(
                 context = requireContext(),
                 titleText = getString(R.string.confirm_delete),
                 subtitleText = getString(R.string.delete_n_layers, count)
@@ -321,7 +321,7 @@ class LayersFragment : androidx.fragment.app.Fragment() {
         }
 
         popupBinding.actionDelete.addPressEffect {
-            _root_ide_package_.com.webscare.urducanvas.common.utils.DialogUtils.showDeleteDialog(
+            DialogUtils.showDeleteDialog(
                 context = requireContext(),
                 titleText = getString(R.string.confirm_delete),
                 subtitleText = getString(R.string.delete_layer)

@@ -2,6 +2,7 @@ package com.webscare.urducanvas.common.views
 
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
+import android.content.ContentValues.TAG
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapShader
@@ -44,7 +45,24 @@ import androidx.core.graphics.withSave
 import androidx.core.graphics.withTranslation
 import com.google.gson.Gson
 import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.enums.BlendType
 import com.webscare.urducanvas.common.canvas.enums.BrushStyle
+import com.webscare.urducanvas.common.canvas.enums.ElementType
+import com.webscare.urducanvas.common.canvas.enums.GradientType
+import com.webscare.urducanvas.common.canvas.enums.HAlign
+import com.webscare.urducanvas.common.canvas.enums.LabelShape
+import com.webscare.urducanvas.common.canvas.enums.LetterCasing
+import com.webscare.urducanvas.common.canvas.enums.ListStyle
+import com.webscare.urducanvas.common.canvas.enums.Mode
+import com.webscare.urducanvas.common.canvas.enums.MultiAlignMode
+import com.webscare.urducanvas.common.canvas.enums.ShapeType
+import com.webscare.urducanvas.common.canvas.enums.TextAlignment
+import com.webscare.urducanvas.common.canvas.enums.TextDecoration
+import com.webscare.urducanvas.common.canvas.enums.VAlign
+import com.webscare.urducanvas.common.canvas.model.CanvasElement
+import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
+import com.webscare.urducanvas.common.utils.ImageAdjustmentHelper
+import com.webscare.urducanvas.common.utils.ShapeRenderUtils
 import com.webscare.urducanvas.common.utils.Utils.vibrateSoft
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
@@ -98,8 +116,8 @@ class CanvasView @JvmOverloads constructor(
     private var currentBrushColor: Int = Color.BLACK
     private var currentBrushThickness: Float = 20f
     private var currentBrushHardness: Float = 1f
-    private var currentBrushStyle: com.webscare.urducanvas.common.canvas.enums.BrushStyle =
-        com.webscare.urducanvas.common.canvas.enums.BrushStyle.PEN
+    private var currentBrushStyle: BrushStyle =
+        BrushStyle.PEN
     private var currentBrushGradient: com.webscare.urducanvas.common.canvas.model.GradientItem? =
         null
 
@@ -158,8 +176,8 @@ class CanvasView @JvmOverloads constructor(
 
     private var touchStartX = 0f
     private var touchStartY = 0f
-    private var currentMode: com.webscare.urducanvas.common.canvas.enums.Mode =
-        com.webscare.urducanvas.common.canvas.enums.Mode.NONE
+    private var currentMode: Mode =
+        Mode.NONE
 
     private var initialElementRotations = mutableMapOf<String, Float>()
 
@@ -266,7 +284,7 @@ class CanvasView @JvmOverloads constructor(
         color: Int? = null,
         thickness: Float? = null,
         hardness: Float? = null,
-        style: com.webscare.urducanvas.common.canvas.enums.BrushStyle? = null,
+        style: BrushStyle? = null,
         gradient: com.webscare.urducanvas.common.canvas.model.GradientItem? = null
     ) {
         color?.let { currentBrushColor = it }
@@ -318,7 +336,7 @@ class CanvasView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
 
-        canvasElements.firstOrNull { it.type == com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND }
+        canvasElements.firstOrNull { it.type == ElementType.BACKGROUND }
             ?.apply {
                 logicalContentWidth = canvasWidth.toFloat()
                 logicalContentHeight = canvasHeight.toFloat()
@@ -335,7 +353,7 @@ class CanvasView @JvmOverloads constructor(
      */
     private fun ensureBackgroundElement() {
         // ✅ If user already has a background, do nothing
-        if (canvasElements.any { it.type == com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND }) return
+        if (canvasElements.any { it.type == ElementType.BACKGROUND }) return
 
         // ✅ If backgroundElement not initialized → skip creating anything
         if (!::backgroundElement.isInitialized) {
@@ -344,7 +362,7 @@ class CanvasView @JvmOverloads constructor(
         }
 
         val newBg = backgroundElement.copy().apply {
-            type = com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND
+            type = ElementType.BACKGROUND
             isLocked = true
             isVisible = true
             backgroundColor = Color.WHITE
@@ -367,8 +385,8 @@ class CanvasView @JvmOverloads constructor(
      *     • SELECTION: snap each element’s own LEFT/CENTER/RIGHT to the first element
      */
     fun alignHorizontal(
-        align: com.webscare.urducanvas.common.canvas.enums.HAlign,
-        mode: com.webscare.urducanvas.common.canvas.enums.MultiAlignMode = com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.CANVAS
+        align: HAlign,
+        mode: MultiAlignMode = MultiAlignMode.CANVAS
     ) {
         when {
             selectedElements.isEmpty() -> return
@@ -376,12 +394,12 @@ class CanvasView @JvmOverloads constructor(
             selectedElements.size == 1 -> {
                 val elem = selectedElements.first()
 
-                if (elem.type == com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND && elem.bitmap != null) {
+                if (elem.type == ElementType.BACKGROUND && elem.bitmap != null) {
                     val (xRange, _) = computeBackgroundPanBounds(elem)
                     val targetX = when (align) {
-                        com.webscare.urducanvas.common.canvas.enums.HAlign.LEFT -> xRange.start
-                        com.webscare.urducanvas.common.canvas.enums.HAlign.CENTER -> canvasWidth / 2f
-                        com.webscare.urducanvas.common.canvas.enums.HAlign.RIGHT -> xRange.endInclusive
+                        HAlign.LEFT -> xRange.start
+                        HAlign.CENTER -> canvasWidth / 2f
+                        HAlign.RIGHT -> xRange.endInclusive
                     }
                     // If range is invalid (start > end), fall back to center
                     val x = if (xRange.start <= xRange.endInclusive) {
@@ -402,9 +420,9 @@ class CanvasView @JvmOverloads constructor(
                 ) return
 
                 val rawX = when (align) {
-                    com.webscare.urducanvas.common.canvas.enums.HAlign.LEFT -> halfW
-                    com.webscare.urducanvas.common.canvas.enums.HAlign.CENTER -> canvasWidth / 2f
-                    com.webscare.urducanvas.common.canvas.enums.HAlign.RIGHT -> canvasWidth - halfW
+                    HAlign.LEFT -> halfW
+                    HAlign.CENTER -> canvasWidth / 2f
+                    HAlign.RIGHT -> canvasWidth - halfW
                 }
 
                 val minX = halfW
@@ -422,7 +440,7 @@ class CanvasView @JvmOverloads constructor(
                 return
             }
 
-            mode == com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.CANVAS -> {
+            mode == MultiAlignMode.CANVAS -> {
                 val edges = selectedElements.map { e ->
                     val half = e.getLocalContentWidth() * e.scale / 2f
                     e.x - half to e.x + half
@@ -431,9 +449,9 @@ class CanvasView @JvmOverloads constructor(
                 val groupRight = edges.maxOf { it.second }
                 val groupW = groupRight - groupLeft
                 val targetLeft = when (align) {
-                    com.webscare.urducanvas.common.canvas.enums.HAlign.LEFT -> 0f
-                    com.webscare.urducanvas.common.canvas.enums.HAlign.CENTER -> (canvasWidth - groupW) / 2f
-                    com.webscare.urducanvas.common.canvas.enums.HAlign.RIGHT -> canvasWidth - groupW
+                    HAlign.LEFT -> 0f
+                    HAlign.CENTER -> (canvasWidth - groupW) / 2f
+                    HAlign.RIGHT -> canvasWidth - groupW
                 }
                 val dx = targetLeft - groupLeft
                 selectedElements.forEach { e ->
@@ -452,9 +470,9 @@ class CanvasView @JvmOverloads constructor(
                 selectedElements.drop(1).forEach { e ->
                     val half = e.getLocalContentWidth() * e.scale / 2f
                     e.x = when (align) {
-                        com.webscare.urducanvas.common.canvas.enums.HAlign.LEFT -> firstLeft + half
-                        com.webscare.urducanvas.common.canvas.enums.HAlign.CENTER -> firstCenter
-                        com.webscare.urducanvas.common.canvas.enums.HAlign.RIGHT -> firstRight - half
+                        HAlign.LEFT -> firstLeft + half
+                        HAlign.CENTER -> firstCenter
+                        HAlign.RIGHT -> firstRight - half
                     }
                     onElementChanged?.invoke(e)
                 }
@@ -464,8 +482,8 @@ class CanvasView @JvmOverloads constructor(
     }
 
     fun alignVertical(
-        align: com.webscare.urducanvas.common.canvas.enums.VAlign,
-        mode: com.webscare.urducanvas.common.canvas.enums.MultiAlignMode = com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.CANVAS
+        align: VAlign,
+        mode: MultiAlignMode = MultiAlignMode.CANVAS
     ) {
         when {
             selectedElements.isEmpty() -> return
@@ -473,13 +491,13 @@ class CanvasView @JvmOverloads constructor(
             selectedElements.size == 1 -> {
                 val elem = selectedElements.first()
 
-                if (elem.type == com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND && elem.bitmap != null) {
+                if (elem.type == ElementType.BACKGROUND && elem.bitmap != null) {
                     // special case background
                     val (_, yRange) = computeBackgroundPanBounds(elem)
                     val targetY = when (align) {
-                        com.webscare.urducanvas.common.canvas.enums.VAlign.TOP -> yRange.start
-                        com.webscare.urducanvas.common.canvas.enums.VAlign.MIDDLE -> canvasHeight / 2f
-                        com.webscare.urducanvas.common.canvas.enums.VAlign.BOTTOM -> yRange.endInclusive
+                        VAlign.TOP -> yRange.start
+                        VAlign.MIDDLE -> canvasHeight / 2f
+                        VAlign.BOTTOM -> yRange.endInclusive
                     }
                     // make sure we stay within those pan bounds
                     elem.y = targetY.coerceIn(yRange.start, yRange.endInclusive)
@@ -490,9 +508,9 @@ class CanvasView @JvmOverloads constructor(
 
                 val halfH = elem.getLocalContentHeight() * elem.scale / 2f
                 val rawY = when (align) {
-                    com.webscare.urducanvas.common.canvas.enums.VAlign.TOP -> halfH
-                    com.webscare.urducanvas.common.canvas.enums.VAlign.MIDDLE -> canvasHeight / 2f
-                    com.webscare.urducanvas.common.canvas.enums.VAlign.BOTTOM -> canvasHeight - halfH
+                    VAlign.TOP -> halfH
+                    VAlign.MIDDLE -> canvasHeight / 2f
+                    VAlign.BOTTOM -> canvasHeight - halfH
                 }
                 elem.y = rawY.coerceIn(halfH, canvasHeight - halfH)
                 onElementChanged?.invoke(elem)
@@ -500,7 +518,7 @@ class CanvasView @JvmOverloads constructor(
                 return
             }
 
-            mode == com.webscare.urducanvas.common.canvas.enums.MultiAlignMode.CANVAS -> {
+            mode == MultiAlignMode.CANVAS -> {
                 val edges = selectedElements.map { e ->
                     val half = e.getLocalContentHeight() * e.scale / 2f
                     e.y - half to e.y + half
@@ -509,9 +527,9 @@ class CanvasView @JvmOverloads constructor(
                 val groupBottom = edges.maxOf { it.second }
                 val groupH = groupBottom - groupTop
                 val targetTop = when (align) {
-                    com.webscare.urducanvas.common.canvas.enums.VAlign.TOP -> 0f
-                    com.webscare.urducanvas.common.canvas.enums.VAlign.MIDDLE -> (canvasHeight - groupH) / 2f
-                    com.webscare.urducanvas.common.canvas.enums.VAlign.BOTTOM -> canvasHeight - groupH
+                    VAlign.TOP -> 0f
+                    VAlign.MIDDLE -> (canvasHeight - groupH) / 2f
+                    VAlign.BOTTOM -> canvasHeight - groupH
                 }
                 val dy = targetTop - groupTop
                 selectedElements.forEach { e ->
@@ -530,9 +548,9 @@ class CanvasView @JvmOverloads constructor(
                 selectedElements.drop(1).forEach { e ->
                     val half = e.getLocalContentHeight() * e.scale / 2f
                     e.y = when (align) {
-                        com.webscare.urducanvas.common.canvas.enums.VAlign.TOP -> firstTop + half
-                        com.webscare.urducanvas.common.canvas.enums.VAlign.MIDDLE -> firstCenter
-                        com.webscare.urducanvas.common.canvas.enums.VAlign.BOTTOM -> firstBottom - half
+                        VAlign.TOP -> firstTop + half
+                        VAlign.MIDDLE -> firstCenter
+                        VAlign.BOTTOM -> firstBottom - half
                     }
                     onElementChanged?.invoke(e)
                 }
@@ -553,10 +571,10 @@ class CanvasView @JvmOverloads constructor(
         if (newElements.size > oldSize) {
             val newcomer = canvasElements.last()
 
-            if (newcomer.type != com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND) {
+            if (newcomer.type != ElementType.BACKGROUND) {
                 canvasElements.forEach { it.isSelected = false }
                 newcomer.isSelected =
-                    (newcomer.type != com.webscare.urducanvas.common.canvas.enums.ElementType.DRAW)
+                    (newcomer.type != ElementType.DRAW)
                 selectedElements.add(newcomer)
             } else {
                 selectedElements.addAll(canvasElements.filter { it.isSelected })
@@ -665,11 +683,11 @@ class CanvasView @JvmOverloads constructor(
         invalidate()
     }
 
-    fun applyImageFilter(filter: com.webscare.urducanvas.common.canvas.sealed.ImageFilter?) {
+    fun applyImageFilter(filter: ImageFilter?) {
         val elementsToFilter =
             selectedElements.toList() // Create a copy to avoid concurrent modification
         elementsToFilter.forEach { element ->
-            if (element != null && (element.type == com.webscare.urducanvas.common.canvas.enums.ElementType.IMAGE || element.type == com.webscare.urducanvas.common.canvas.enums.ElementType.STICKER)) {
+            if (element != null && (element.type == ElementType.IMAGE || element.type == ElementType.STICKER)) {
                 element.imageFilter = filter!!
                 onElementChanged?.invoke(element) // Notify ViewModel of change
                 invalidate()
@@ -678,7 +696,7 @@ class CanvasView @JvmOverloads constructor(
     }
 
     fun setFont(fontEntity: com.webscare.urducanvas.data.model.FontEntity) {
-        selectedElements.filter { it.type == com.webscare.urducanvas.common.canvas.enums.ElementType.TEXT }
+        selectedElements.filter { it.type == ElementType.TEXT }
             .forEach { element ->
                 element.fontId = fontEntity.id.toString()
 
@@ -717,7 +735,7 @@ class CanvasView @JvmOverloads constructor(
     fun setCanvasBackgroundColor(color: Int) {
         ensureBackgroundElement()
         canvasElements.forEach { element ->
-            if (element.type == com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND) {
+            if (element.type == ElementType.BACKGROUND) {
                 element.backgroundColor = color
                 element.fillGradient = null
                 element.bitmap = null
@@ -730,7 +748,7 @@ class CanvasView @JvmOverloads constructor(
     fun setCanvasBackgroundGradient(gradientItem: com.webscare.urducanvas.common.canvas.model.GradientItem) {
         ensureBackgroundElement()
         canvasElements.forEach { element ->
-            if (element.type == com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND) {
+            if (element.type == ElementType.BACKGROUND) {
                 element.backgroundColor = Color.WHITE
                 element.fillGradient = gradientItem
                 element.bitmap = null
@@ -742,7 +760,7 @@ class CanvasView @JvmOverloads constructor(
 
     fun setCanvasBackgroundImage(src: Bitmap) {
         ensureBackgroundElement()
-        canvasElements.first { it.type == com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND }
+        canvasElements.first { it.type == ElementType.BACKGROUND }
             .apply {
                 fillGradient = null
                 backgroundColor = Color.WHITE
@@ -1122,15 +1140,15 @@ class CanvasView @JvmOverloads constructor(
         )
 
         when (currentBrushStyle) {
-            com.webscare.urducanvas.common.canvas.enums.BrushStyle.BRUSH -> com.webscare.urducanvas.common.utils.BrushRenderUtils.drawBrushStroke(
+            BrushStyle.BRUSH -> com.webscare.urducanvas.common.utils.BrushRenderUtils.drawBrushStroke(
                 canvas, tempStroke, 255
             )
 
-            com.webscare.urducanvas.common.canvas.enums.BrushStyle.PEN -> com.webscare.urducanvas.common.utils.BrushRenderUtils.drawTaperedPenStroke(
+            BrushStyle.PEN -> com.webscare.urducanvas.common.utils.BrushRenderUtils.drawTaperedPenStroke(
                 canvas, tempStroke, 255
             )
 
-            com.webscare.urducanvas.common.canvas.enums.BrushStyle.PENCIL -> {
+            BrushStyle.PENCIL -> {
                 val paint = com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
                     tempStroke, width, height
                 ).apply {
@@ -1150,7 +1168,7 @@ class CanvasView @JvmOverloads constructor(
                 canvas.drawPath(tempStroke.path!!, paint)
             }
 
-            com.webscare.urducanvas.common.canvas.enums.BrushStyle.MARKER -> {
+            BrushStyle.MARKER -> {
                 val paint = com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
                     tempStroke, width, height
                 ).apply {
@@ -1241,16 +1259,16 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
-    fun colorFilterFor(filter: com.webscare.urducanvas.common.canvas.sealed.ImageFilter?): ColorFilter? {
+    fun colorFilterFor(filter: ImageFilter?): ColorFilter? {
         return when (filter) {
-            null, com.webscare.urducanvas.common.canvas.sealed.ImageFilter.None -> null
+            null, ImageFilter.None -> null
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Grayscale -> ColorMatrixColorFilter(
+            ImageFilter.Grayscale -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     setSaturation(0f)
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Sepia -> ColorMatrixColorFilter(
+            ImageFilter.Sepia -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     set(
                         floatArrayOf(
@@ -1278,7 +1296,7 @@ class CanvasView @JvmOverloads constructor(
                     )
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Invert -> ColorMatrixColorFilter(
+            ImageFilter.Invert -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     set(
                         floatArrayOf(
@@ -1306,7 +1324,7 @@ class CanvasView @JvmOverloads constructor(
                     )
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.CoolTint -> ColorMatrixColorFilter(
+            ImageFilter.CoolTint -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     set(
                         floatArrayOf(
@@ -1334,7 +1352,7 @@ class CanvasView @JvmOverloads constructor(
                     )
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.WarmTint -> ColorMatrixColorFilter(
+            ImageFilter.WarmTint -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     set(
                         floatArrayOf(
@@ -1362,7 +1380,7 @@ class CanvasView @JvmOverloads constructor(
                     )
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Vintage -> ColorMatrixColorFilter(
+            ImageFilter.Vintage -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     set(
                         floatArrayOf(
@@ -1390,7 +1408,7 @@ class CanvasView @JvmOverloads constructor(
                     )
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Film -> ColorMatrixColorFilter(
+            ImageFilter.Film -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     set(
                         floatArrayOf(
@@ -1418,7 +1436,7 @@ class CanvasView @JvmOverloads constructor(
                     )
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.TealOrange -> ColorMatrixColorFilter(
+            ImageFilter.TealOrange -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     set(
                         floatArrayOf(
@@ -1446,7 +1464,7 @@ class CanvasView @JvmOverloads constructor(
                     )
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.HighContrast -> ColorMatrixColorFilter(
+            ImageFilter.HighContrast -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     set(
                         floatArrayOf(
@@ -1474,7 +1492,7 @@ class CanvasView @JvmOverloads constructor(
                     )
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.BlackWhite -> {
+            ImageFilter.BlackWhite -> {
                 val cm = ColorMatrix().apply { setSaturation(0f) }
                 val contrast = ColorMatrix().apply {
                     set(
@@ -1506,7 +1524,7 @@ class CanvasView @JvmOverloads constructor(
                 ColorMatrixColorFilter(cm)
             }
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.BrightnessBoost -> ColorMatrixColorFilter(
+            ImageFilter.BrightnessBoost -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     set(
                         floatArrayOf(
@@ -1534,7 +1552,7 @@ class CanvasView @JvmOverloads constructor(
                     )
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Sharpen -> ColorMatrixColorFilter(
+            ImageFilter.Sharpen -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     set(
                         floatArrayOf(
@@ -1562,12 +1580,12 @@ class CanvasView @JvmOverloads constructor(
                     )
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Sketch -> ColorMatrixColorFilter(
+            ImageFilter.Sketch -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     setSaturation(0f)
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Cartoon -> ColorMatrixColorFilter(
+            ImageFilter.Cartoon -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     set(
                         floatArrayOf(
@@ -1595,7 +1613,7 @@ class CanvasView @JvmOverloads constructor(
                     )
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.HDR -> ColorMatrixColorFilter(
+            ImageFilter.HDR -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     set(
                         floatArrayOf(
@@ -1623,7 +1641,7 @@ class CanvasView @JvmOverloads constructor(
                     )
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Lomo -> ColorMatrixColorFilter(
+            ImageFilter.Lomo -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     set(
                         floatArrayOf(
@@ -1651,7 +1669,7 @@ class CanvasView @JvmOverloads constructor(
                     )
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Pastel -> ColorMatrixColorFilter(
+            ImageFilter.Pastel -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     set(
                         floatArrayOf(
@@ -1679,7 +1697,7 @@ class CanvasView @JvmOverloads constructor(
                     )
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Dramatic -> ColorMatrixColorFilter(
+            ImageFilter.Dramatic -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     set(
                         floatArrayOf(
@@ -1707,7 +1725,7 @@ class CanvasView @JvmOverloads constructor(
                     )
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.GoldenHour -> ColorMatrixColorFilter(
+            ImageFilter.GoldenHour -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     set(
                         floatArrayOf(
@@ -1735,7 +1753,7 @@ class CanvasView @JvmOverloads constructor(
                     )
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Cyberpunk -> ColorMatrixColorFilter(
+            ImageFilter.Cyberpunk -> ColorMatrixColorFilter(
                 ColorMatrix().apply {
                     set(
                         floatArrayOf(
@@ -1763,11 +1781,11 @@ class CanvasView @JvmOverloads constructor(
                     )
                 })
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Glow -> {
+            ImageFilter.Glow -> {
                 null
             }
 
-            com.webscare.urducanvas.common.canvas.sealed.ImageFilter.SoftBlur -> {
+            ImageFilter.SoftBlur -> {
                 null
             }
 
@@ -1815,7 +1833,7 @@ class CanvasView @JvmOverloads constructor(
         canvasElements.sortedBy { it.zIndex }.forEach { element ->
             if (!element.isVisible) return@forEach
 
-            if (element.type == com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND) {
+            if (element.type == ElementType.BACKGROUND) {
                 drawBackgroundElement(canvas, element)
             } else {
                 canvas.withTranslation(element.x, element.y) {
@@ -1825,15 +1843,15 @@ class CanvasView @JvmOverloads constructor(
                     canvas.scale(element.scale * fx, element.scale * fy)
 
                     when (element.type) {
-                        com.webscare.urducanvas.common.canvas.enums.ElementType.DRAW -> drawDrawElement(
+                        ElementType.DRAW -> drawDrawElement(
                             canvas, element
                         )
 
-                        com.webscare.urducanvas.common.canvas.enums.ElementType.SHAPE -> drawShapeElement(
+                        ElementType.SHAPE -> drawShapeElement(
                             canvas, element
                         )
 
-                        com.webscare.urducanvas.common.canvas.enums.ElementType.TEXT -> drawTextElement(
+                        ElementType.TEXT -> drawTextElement(
                             canvas, element
                         )
 
@@ -1844,26 +1862,64 @@ class CanvasView @JvmOverloads constructor(
                                 if (finalBitmap.isRecycled) return@let
 
                                 finalBitmap =
-                                    com.webscare.urducanvas.common.utils.ImageAdjustmentHelper.applyAllAdjustments(
+                                    ImageAdjustmentHelper.applyAllAdjustments(
                                         element.context!!, bmp, element.adjustments
                                     )
 
-                                element.paint.colorFilter = colorFilterFor(element.imageFilter)
-                                element.paint.maskFilter = null
+                                val w = finalBitmap.width.toFloat()
+                                val h = finalBitmap.height.toFloat()
+                                val left = -w / 2f
+                                val top = -h / 2f
+
+                                if (element.hasShadow && element.shadowOpacity > 0) {
+
+                                    val shadowColor = Color.argb(
+                                        element.shadowOpacity,
+                                        Color.red(element.shadowColor),
+                                        Color.green(element.shadowColor),
+                                        Color.blue(element.shadowColor)
+                                    )
+
+                                    val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                                        color = shadowColor
+                                        maskFilter = BlurMaskFilter(
+                                            element.shadowRadius.coerceAtLeast(0.1f),
+                                            BlurMaskFilter.Blur.NORMAL
+                                        )
+                                    }
+
+                                    // Extract alpha mask of bitmap
+                                    val alphaBitmap = finalBitmap.extractAlpha()
+
+                                    canvas.save()
+                                    canvas.translate(element.shadowDx, element.shadowDy)
+
+                                    canvas.drawBitmap(alphaBitmap, left, top, shadowPaint)
+
+                                    canvas.restore()
+
+                                    alphaBitmap.recycle()
+                                }
+
+                                canvas.saveLayer(left, top, left + w, top + h, null)
+
+                                val mainPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                                    colorFilter = colorFilterFor(element.imageFilter)
+                                }
 
                                 when (element.imageFilter) {
-                                    com.webscare.urducanvas.common.canvas.sealed.ImageFilter.SoftBlur -> {
-                                        element.paint.maskFilter =
+                                    ImageFilter.SoftBlur -> {
+                                        mainPaint.maskFilter =
                                             BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
                                         canvas.drawBitmap(
                                             finalBitmap,
                                             -finalBitmap.width / 2f,
                                             -finalBitmap.height / 2f,
-                                            element.paint
+                                            mainPaint
                                         )
                                     }
 
-                                    com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Glow -> {
+                                    ImageFilter.Glow -> {
                                         canvas.drawBitmap(
                                             finalBitmap,
                                             -finalBitmap.width / 2f,
@@ -1889,10 +1945,31 @@ class CanvasView @JvmOverloads constructor(
                                             finalBitmap,
                                             -finalBitmap.width / 2f,
                                             -finalBitmap.height / 2f,
-                                            element.paint
+                                            mainPaint
                                         )
                                     }
                                 }
+
+                                canvas.drawBitmap(finalBitmap, left, top, mainPaint)
+
+                                if (element.hasOverlay && element.overlayOpacity > 0) {
+
+                                    val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                                        alpha = element.overlayOpacity.coerceIn(0,255)
+                                        xfermode = drawWithBlend(element)
+                                    }
+
+                                    if (element.overlayGradient != null) {
+                                        overlayPaint.shader =
+                                            createGradientShader(element.overlayGradient!!, w, h)
+                                    } else {
+                                        overlayPaint.color = element.overlayColor
+                                    }
+
+                                    canvas.drawRect(left, top, left + w, top + h, overlayPaint)
+                                }
+
+                                canvas.restore()
                             }
                         }
                     }
@@ -1960,7 +2037,7 @@ class CanvasView @JvmOverloads constructor(
             if (rotatedPath != null) {
                 canvas.drawPath(rotatedPath, boxPaint)
             }
-            if (showOverlays && selectedElements.isNotEmpty() && currentMode == com.webscare.urducanvas.common.canvas.enums.Mode.ROTATE) {
+            if (showOverlays && selectedElements.isNotEmpty() && currentMode == Mode.ROTATE) {
                 val rotationValue: String
                 val cx: Float
                 val cy: Float
@@ -2051,7 +2128,7 @@ class CanvasView @JvmOverloads constructor(
                     iconMap["resize"] = Pair(
                         corners[4], corners[5]
                     )
-                    if (element.type == com.webscare.urducanvas.common.canvas.enums.ElementType.SHAPE) {
+                    if (element.type == ElementType.SHAPE) {
                         iconMap["transform"] = Pair(corners[6], corners[7])
 
                     }
@@ -2165,21 +2242,20 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private fun drawShapeElement(
-        canvas: Canvas, element: com.webscare.urducanvas.common.canvas.model.CanvasElement
+        canvas: Canvas, element: CanvasElement
     ) {
         val localHalfW = element.logicalContentWidth / 2f
         val localHalfH = element.logicalContentHeight / 2f
         val localRect = RectF(-localHalfW, -localHalfH, localHalfW, localHalfH)
 
-        // --- 2️⃣ Bitmap Layer (masked inside shape path) ---
         element.bitmap?.let { bmp ->
             if (bmp.isRecycled) return@let
 
             canvas.withSave {
 
-                val path = com.webscare.urducanvas.common.utils.ShapeRenderUtils.buildShapePath(
+                val path = ShapeRenderUtils.buildShapePath(
                     element.shapeType
-                        ?: com.webscare.urducanvas.common.canvas.enums.ShapeType.RECTANGLE,
+                        ?: ShapeType.RECTANGLE,
                     localRect,
                     element.shapeCornerRadius
                 )
@@ -2187,7 +2263,7 @@ class CanvasView @JvmOverloads constructor(
 
                 // --- 🧠 Apply Adjustments ---
                 val finalBitmap =
-                    com.webscare.urducanvas.common.utils.ImageAdjustmentHelper.applyAllAdjustments(
+                    ImageAdjustmentHelper.applyAllAdjustments(
                         element.context!!, bmp, element.adjustments
                     )
 
@@ -2222,12 +2298,12 @@ class CanvasView @JvmOverloads constructor(
 
                 // --- ✨ Apply Filter Types ---
                 when (element.imageFilter) {
-                    com.webscare.urducanvas.common.canvas.sealed.ImageFilter.SoftBlur -> {
+                    ImageFilter.SoftBlur -> {
                         paint.maskFilter = BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
                         canvas.drawBitmap(finalBitmap, matrix, paint)
                     }
 
-                    com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Glow -> {
+                    ImageFilter.Glow -> {
                         // Base layer
                         canvas.drawBitmap(finalBitmap, matrix, paint)
 
@@ -2264,11 +2340,11 @@ class CanvasView @JvmOverloads constructor(
                 strokeCap = Paint.Cap.ROUND
             }
 
-            com.webscare.urducanvas.common.utils.ShapeRenderUtils.drawShape(
+            ShapeRenderUtils.drawShape(
                 canvas,
                 strokePaint,
                 element.shapeType
-                    ?: com.webscare.urducanvas.common.canvas.enums.ShapeType.RECTANGLE,
+                    ?: ShapeType.RECTANGLE,
                 localRect,
                 element.shapeCornerRadius
             )
@@ -2291,7 +2367,7 @@ class CanvasView @JvmOverloads constructor(
                 canvas,
                 fillPaint,
                 element.shapeType
-                    ?: com.webscare.urducanvas.common.canvas.enums.ShapeType.RECTANGLE,
+                    ?: ShapeType.RECTANGLE,
                 localRect,
                 element.shapeCornerRadius
             )
@@ -2304,19 +2380,19 @@ class CanvasView @JvmOverloads constructor(
         element.drawStrokes?.forEach { stroke ->
 
             when (stroke.style) {
-                com.webscare.urducanvas.common.canvas.enums.BrushStyle.BRUSH -> {
+                BrushStyle.BRUSH -> {
                     com.webscare.urducanvas.common.utils.BrushRenderUtils.drawBrushStroke(
                         canvas, stroke, element.paintAlpha
                     )
                 }
 
-                com.webscare.urducanvas.common.canvas.enums.BrushStyle.PEN -> {
+                BrushStyle.PEN -> {
                     com.webscare.urducanvas.common.utils.BrushRenderUtils.drawTaperedPenStroke(
                         canvas, stroke, element.paintAlpha
                     )
                 }
 
-                com.webscare.urducanvas.common.canvas.enums.BrushStyle.HIGHLIGHTER -> {
+                BrushStyle.HIGHLIGHTER -> {
                     val paint =
                         com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
                             stroke, width, height
@@ -2405,12 +2481,12 @@ class CanvasView @JvmOverloads constructor(
                 backgroundPaint.maskFilter = null
 
                 when (e.imageFilter) {
-                    com.webscare.urducanvas.common.canvas.sealed.ImageFilter.SoftBlur -> {
+                    ImageFilter.SoftBlur -> {
                         backgroundPaint.maskFilter = BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
                         drawBitmap(adjustedBackground, 0f, 0f, backgroundPaint)
                     }
 
-                    com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Glow -> {
+                    ImageFilter.Glow -> {
                         drawBitmap(adjustedBackground, 0f, 0f, backgroundPaint)
                         val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                             color = Color.argb(180, 255, 255, 200)
@@ -2477,12 +2553,12 @@ class CanvasView @JvmOverloads constructor(
         val cyRel = height * gradientItem.centerY
 
         // build the core shader centered at (0,0)
-        val rawShader: Shader
+        var rawShader: Shader? = null
         // any rotation matrix (for sweep) that we'll need to merge later
         var localMatrix: Matrix? = null
 
         when (gradientItem.type) {
-            com.webscare.urducanvas.common.canvas.enums.GradientType.LINEAR -> {
+            GradientType.LINEAR -> {
                 val theta = Math.toRadians(gradientItem.angle.toDouble())
                 val halfLen = (hypot(width, height) * gradientItem.scale / 2f)
                 val dx = (cos(theta) * halfLen).toFloat()
@@ -2493,7 +2569,7 @@ class CanvasView @JvmOverloads constructor(
                 )
             }
 
-            com.webscare.urducanvas.common.canvas.enums.GradientType.RADIAL -> {
+            GradientType.RADIAL -> {
                 val radius =
                     min(width, height) / 2f * gradientItem.radialRadiusFactor * gradientItem.scale
 
@@ -2502,7 +2578,7 @@ class CanvasView @JvmOverloads constructor(
                 )
             }
 
-            com.webscare.urducanvas.common.canvas.enums.GradientType.SWEEP -> {
+            GradientType.SWEEP -> {
                 rawShader = SweepGradient(0f, 0f, colors, positions)
                 // pre-rotate the sweep start angle around the origin
                 localMatrix = Matrix().apply {
@@ -2521,8 +2597,8 @@ class CanvasView @JvmOverloads constructor(
             postTranslate(cxRel + translateX, cyRel + translateY)
         }
 
-        rawShader.setLocalMatrix(finalMatrix)
-        return rawShader
+        rawShader?.setLocalMatrix(finalMatrix)
+        return rawShader!!
     }
 
     private fun drawTextElement(
@@ -2565,43 +2641,43 @@ class CanvasView @JvmOverloads constructor(
             labelPaint.alpha = element.paintAlpha
 
             when (element.labelShape) {
-                com.webscare.urducanvas.common.canvas.enums.LabelShape.RECTANGLE_FILL -> canvas.drawRect(
+                LabelShape.RECTANGLE_FILL -> canvas.drawRect(
                     labelRect, labelPaint
                 )
 
-                com.webscare.urducanvas.common.canvas.enums.LabelShape.RECTANGLE_STROKE -> {
+                LabelShape.RECTANGLE_STROKE -> {
                     labelPaint.style = Paint.Style.STROKE
                     labelPaint.strokeWidth = 4f
                     canvas.drawRect(labelRect, labelPaint)
                 }
 
-                com.webscare.urducanvas.common.canvas.enums.LabelShape.OVAL_FILL -> canvas.drawOval(
+                LabelShape.OVAL_FILL -> canvas.drawOval(
                     labelRect, labelPaint
                 )
 
-                com.webscare.urducanvas.common.canvas.enums.LabelShape.OVAL_STROKE -> {
+                LabelShape.OVAL_STROKE -> {
                     labelPaint.style = Paint.Style.STROKE
                     labelPaint.strokeWidth = 4f
                     canvas.drawOval(labelRect, labelPaint)
                 }
 
-                com.webscare.urducanvas.common.canvas.enums.LabelShape.CIRCLE_FILL -> {
+                LabelShape.CIRCLE_FILL -> {
                     val r = min(labelRect.width(), labelRect.height()) / 2f
                     canvas.drawCircle(labelRect.centerX(), labelRect.centerY(), r, labelPaint)
                 }
 
-                com.webscare.urducanvas.common.canvas.enums.LabelShape.CIRCLE_STROKE -> {
+                LabelShape.CIRCLE_STROKE -> {
                     labelPaint.style = Paint.Style.STROKE
                     labelPaint.strokeWidth = 4f
                     val r = min(labelRect.width(), labelRect.height()) / 2f
                     canvas.drawCircle(labelRect.centerX(), labelRect.centerY(), r, labelPaint)
                 }
 
-                com.webscare.urducanvas.common.canvas.enums.LabelShape.ROUNDED_RECTANGLE_FILL -> {
+                LabelShape.ROUNDED_RECTANGLE_FILL -> {
                     canvas.drawRoundRect(labelRect, 20f, 20f, labelPaint)
                 }
 
-                com.webscare.urducanvas.common.canvas.enums.LabelShape.ROUNDED_RECTANGLE_STROKE -> {
+                LabelShape.ROUNDED_RECTANGLE_STROKE -> {
                     labelPaint.style = Paint.Style.STROKE
                     labelPaint.strokeWidth = 4f
                     canvas.drawRoundRect(labelRect, 20f, 20f, labelPaint)
@@ -2627,12 +2703,12 @@ class CanvasView @JvmOverloads constructor(
 
                 // Bold / Italic / Underline
                 isUnderlineText =
-                    com.webscare.urducanvas.common.canvas.enums.TextDecoration.UNDERLINE in element.textDecoration
+                    TextDecoration.UNDERLINE in element.textDecoration
                 val baseTf = element.paint.typeface ?: Typeface.DEFAULT
                 val bold =
-                    com.webscare.urducanvas.common.canvas.enums.TextDecoration.BOLD in element.textDecoration
+                    TextDecoration.BOLD in element.textDecoration
                 val italic =
-                    com.webscare.urducanvas.common.canvas.enums.TextDecoration.ITALIC in element.textDecoration
+                    TextDecoration.ITALIC in element.textDecoration
                 val style = when {
                     bold && italic -> Typeface.BOLD_ITALIC
                     bold -> Typeface.BOLD
@@ -2643,25 +2719,26 @@ class CanvasView @JvmOverloads constructor(
             }
             // Apply text formatting
             val text = when (element.listStyle) {
-                com.webscare.urducanvas.common.canvas.enums.ListStyle.BULLETED -> "• $rawLine"
-                com.webscare.urducanvas.common.canvas.enums.ListStyle.NUMBERED -> "${i + 1}. $rawLine"
+                ListStyle.BULLETED -> "• $rawLine"
+                ListStyle.NUMBERED -> "${i + 1}. $rawLine"
                 else -> rawLine
             }
 
             val displayText = when (element.letterCasing) {
-                com.webscare.urducanvas.common.canvas.enums.LetterCasing.ALL_CAPS -> text.uppercase()
-                com.webscare.urducanvas.common.canvas.enums.LetterCasing.LOWER_CASE -> text.lowercase()
-                com.webscare.urducanvas.common.canvas.enums.LetterCasing.TITLE_CASE -> text.split(" ")
+                LetterCasing.ALL_CAPS -> text.uppercase()
+                LetterCasing.LOWER_CASE -> text.lowercase()
+                LetterCasing.TITLE_CASE -> text.split(" ")
                     .joinToString(" ") { it.replaceFirstChar(Char::uppercase) }
 
                 else -> text
             }
 
             val alignment = when (element.alignment) {
-                com.webscare.urducanvas.common.canvas.enums.TextAlignment.LEFT -> Paint.Align.LEFT
-                com.webscare.urducanvas.common.canvas.enums.TextAlignment.CENTER -> Paint.Align.CENTER
-                com.webscare.urducanvas.common.canvas.enums.TextAlignment.RIGHT -> Paint.Align.RIGHT
-                com.webscare.urducanvas.common.canvas.enums.TextAlignment.JUSTIFY -> Paint.Align.LEFT
+                TextAlignment.LEFT -> Paint.Align.LEFT
+                TextAlignment.CENTER -> Paint.Align.CENTER
+                TextAlignment.RIGHT -> Paint.Align.RIGHT
+                TextAlignment.JUSTIFY -> Paint.Align.LEFT
+                else -> {Paint.Align.LEFT}
             }
             fillPaint.textAlign = alignment
 
@@ -2701,7 +2778,7 @@ class CanvasView @JvmOverloads constructor(
             }
 
             // Handle justified text separately
-            if (element.alignment == com.webscare.urducanvas.common.canvas.enums.TextAlignment.JUSTIFY) {
+            if (element.alignment == TextAlignment.JUSTIFY) {
                 element.paint = fillPaint
                 justifyText(canvas, displayText, yOffset, element)
             } else {
@@ -2735,27 +2812,29 @@ class CanvasView @JvmOverloads constructor(
 
     private fun drawWithBlend(element: com.webscare.urducanvas.common.canvas.model.CanvasElement): Xfermode? {
         return when (element.blendType) {
-            com.webscare.urducanvas.common.canvas.enums.BlendType.SRC -> PorterDuffXfermode(
+            BlendType.SRC -> PorterDuffXfermode(
                 PorterDuff.Mode.SRC
             )
 
-            com.webscare.urducanvas.common.canvas.enums.BlendType.NORMAL -> null
-            com.webscare.urducanvas.common.canvas.enums.BlendType.DARKEN -> PorterDuffXfermode(
+            BlendType.NORMAL -> null
+            BlendType.DARKEN -> PorterDuffXfermode(
                 PorterDuff.Mode.DARKEN
             )
 
-            com.webscare.urducanvas.common.canvas.enums.BlendType.LIGHTEN -> PorterDuffXfermode(
+            BlendType.LIGHTEN -> PorterDuffXfermode(
                 PorterDuff.Mode.LIGHTEN
             )
 
-            com.webscare.urducanvas.common.canvas.enums.BlendType.MULTIPLY -> PorterDuffXfermode(
+            BlendType.MULTIPLY -> PorterDuffXfermode(
                 PorterDuff.Mode.MULTIPLY
             )
 
-            com.webscare.urducanvas.common.canvas.enums.BlendType.SCREEN -> PorterDuffXfermode(
+            BlendType.SCREEN -> PorterDuffXfermode(
                 PorterDuff.Mode.SCREEN
             )
-        }
+
+            else -> {}
+        } as Xfermode?
     }
 
     private fun isRTL(text: String): Boolean {
@@ -2908,7 +2987,7 @@ class CanvasView @JvmOverloads constructor(
                         tightBounds.contains(touchPoint[0], touchPoint[1])
                     }
 
-            if (touchedElement != null && currentMode == com.webscare.urducanvas.common.canvas.enums.Mode.GROUP_EDIT && touchedElement.groupId == activeGroupId && touchedElement.type != com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND) {
+            if (touchedElement != null && currentMode == Mode.GROUP_EDIT && touchedElement.groupId == activeGroupId && touchedElement.type != ElementType.BACKGROUND) {
 
                 canvasElements.forEach { it.isSelected = false }
                 selectedElements.clear()
@@ -2928,7 +3007,7 @@ class CanvasView @JvmOverloads constructor(
                 selectedElements.clear()
                 selectedElements.addAll(canvasElements.filter { it.isSelected })
 
-                currentMode = com.webscare.urducanvas.common.canvas.enums.Mode.GROUP_EDIT
+                currentMode = Mode.GROUP_EDIT
                 onElementSelected?.invoke(selectedElements)
                 invalidate()
                 return true
@@ -2953,7 +3032,7 @@ class CanvasView @JvmOverloads constructor(
             val touchedElement = canvasElements.filter { !it.isLocked } // ignore locked
                 .sortedByDescending { it.zIndex }.firstOrNull { it.containsPoint(x, y) }
 
-            if (touchedElement != null && touchedElement.type != com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND) {
+            if (touchedElement != null && touchedElement.type != ElementType.BACKGROUND) {
                 if (!inSelectionMode) {
                     // 🔹 First long-press → enter selection mode
                     inSelectionMode = true
@@ -3051,7 +3130,7 @@ class CanvasView @JvmOverloads constructor(
                         strokeJoin = Paint.Join.ROUND
                         alpha = (currentBrushHardness * 255).toInt()
 
-                        if (currentBrushStyle == com.webscare.urducanvas.common.canvas.enums.BrushStyle.BRUSH) {
+                        if (currentBrushStyle == BrushStyle.BRUSH) {
                             val blurRadius = max(0.1f, (1f - currentBrushHardness) * 25f)
                             maskFilter = try {
                                 BlurMaskFilter(blurRadius, BlurMaskFilter.Blur.NORMAL)
@@ -3113,7 +3192,7 @@ class CanvasView @JvmOverloads constructor(
                     // --- 5️⃣ Create a centered CanvasElement positioned at the stroke center
                     val drawElement =
                         _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasElement(
-                            type = com.webscare.urducanvas.common.canvas.enums.ElementType.DRAW,
+                            type = ElementType.DRAW,
                             x = centerX,
                             y = centerY,
                             drawStrokes = mutableListOf(strokeData),
@@ -3174,14 +3253,14 @@ class CanvasView @JvmOverloads constructor(
 
             MotionEvent.ACTION_POINTER_DOWN -> {
                 if (event.pointerCount == 2) {
-                    currentMode = com.webscare.urducanvas.common.canvas.enums.Mode.MULTI_TOUCH
+                    currentMode = Mode.MULTI_TOUCH
                     initialPinchDistance = getPinchDistance(event)
                     initialPinchAngle = getPinchAngle(event)
                     initialScale = selectedElements.firstOrNull()?.scale ?: 1f
                     initialRotation = selectedElements.firstOrNull()?.rotation ?: 0f
                 }
                 if (event.pointerCount == 2 && selectedElements.isEmpty()) {
-                    currentMode = com.webscare.urducanvas.common.canvas.enums.Mode.CANVAS_PAN
+                    currentMode = Mode.CANVAS_PAN
                     initialPinchDistance = getPinchDistance(event)
                     initialOverallScale = overallScale
                 }
@@ -3195,7 +3274,7 @@ class CanvasView @JvmOverloads constructor(
                 showRotationVerticalGuide = false
                 showRotationHorizontalGuide = false
 
-                if (currentMode == com.webscare.urducanvas.common.canvas.enums.Mode.GROUP_EDIT && activeGroupId != null) {
+                if (currentMode == Mode.GROUP_EDIT && activeGroupId != null) {
                     val hitChild =
                         canvasElements.filter { it.groupId == activeGroupId && !it.isLocked }
                             .sortedByDescending { it.zIndex }.firstOrNull { element ->
@@ -3215,7 +3294,7 @@ class CanvasView @JvmOverloads constructor(
 
                     if (hitChild != null) {
                         activeGroupId = null
-                        currentMode = com.webscare.urducanvas.common.canvas.enums.Mode.DRAG
+                        currentMode = Mode.DRAG
 
                         canvasElements.forEach { it.isSelected = false }
                         selectedElements.clear()
@@ -3228,7 +3307,7 @@ class CanvasView @JvmOverloads constructor(
                         invalidate()
                         return true
                     } else {
-                        currentMode = com.webscare.urducanvas.common.canvas.enums.Mode.NONE
+                        currentMode = Mode.NONE
                         activeGroupId = null
                         canvasElements.forEach { it.isSelected = false }
                         selectedElements.clear()
@@ -3259,7 +3338,7 @@ class CanvasView @JvmOverloads constructor(
 
                             "rotate" -> {
                                 currentMode =
-                                    com.webscare.urducanvas.common.canvas.enums.Mode.ROTATE
+                                    Mode.ROTATE
                                 touchStartX = x
                                 touchStartY = y
 
@@ -3290,7 +3369,7 @@ class CanvasView @JvmOverloads constructor(
 
                             "resize" -> {
                                 currentMode =
-                                    com.webscare.urducanvas.common.canvas.enums.Mode.RESIZE
+                                    Mode.RESIZE
                                 touchStartX = x
                                 touchStartY = y
                                 val combined = getCombinedSelectedBounds()
@@ -3313,7 +3392,7 @@ class CanvasView @JvmOverloads constructor(
 
                             "transform" -> {
                                 currentMode =
-                                    com.webscare.urducanvas.common.canvas.enums.Mode.TRANSFORM
+                                    Mode.TRANSFORM
                                 touchStartX = x
                                 touchStartY = y
 
@@ -3364,7 +3443,7 @@ class CanvasView @JvmOverloads constructor(
                         touchStartX = x
                         touchStartY = y
                         currentMode =
-                            com.webscare.urducanvas.common.canvas.enums.Mode.DRAG // Set to drag mode after selecting the group
+                            Mode.DRAG // Set to drag mode after selecting the group
                         vibrateSoft()
                     } else {
                         if (inSelectionMode) {
@@ -3374,7 +3453,7 @@ class CanvasView @JvmOverloads constructor(
                                 isDragCandidate = true
                                 touchStartX = x
                                 touchStartY = y
-                                currentMode = com.webscare.urducanvas.common.canvas.enums.Mode.NONE
+                                currentMode = Mode.NONE
                             } else {
                                 // select
                                 touchedElement.isSelected = true
@@ -3387,7 +3466,7 @@ class CanvasView @JvmOverloads constructor(
                             if (touchedElement.isSelected) {
                                 // already selected → start drag
                                 lastTouchedElement = touchedElement
-                                currentMode = com.webscare.urducanvas.common.canvas.enums.Mode.DRAG
+                                currentMode = Mode.DRAG
                                 touchStartX = x
                                 touchStartY = y
                             } else {
@@ -3398,7 +3477,7 @@ class CanvasView @JvmOverloads constructor(
                                 selectedElements.add(touchedElement)
 
                                 lastTouchedElement = touchedElement
-                                currentMode = com.webscare.urducanvas.common.canvas.enums.Mode.DRAG
+                                currentMode = Mode.DRAG
                                 touchStartX = x
                                 touchStartY = y
                             }
@@ -3411,7 +3490,7 @@ class CanvasView @JvmOverloads constructor(
                     return true
                 } else {
                     val bg =
-                        canvasElements.firstOrNull { it.type == com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND && !it.isLocked }
+                        canvasElements.firstOrNull { it.type == ElementType.BACKGROUND && !it.isLocked }
                     if (bg?.bitmap != null) {
                         // select the background so ACTION_MOVE will pan it
                         canvasElements.forEach { it.isSelected = false }
@@ -3420,7 +3499,7 @@ class CanvasView @JvmOverloads constructor(
                         selectedElements.add(bg)
                         onElementSelected?.invoke(selectedElements)
 
-                        currentMode = com.webscare.urducanvas.common.canvas.enums.Mode.DRAG
+                        currentMode = Mode.DRAG
                         touchStartX = x
                         touchStartY = y
                         invalidate()
@@ -3437,13 +3516,13 @@ class CanvasView @JvmOverloads constructor(
                     } else {
                         if (overallScale > 1f) {
                             currentMode =
-                                com.webscare.urducanvas.common.canvas.enums.Mode.CANVAS_PAN
+                                Mode.CANVAS_PAN
                             touchStartX = event.x
                             touchStartY = event.y
                             return true
                         }
                     }
-                    currentMode = com.webscare.urducanvas.common.canvas.enums.Mode.NONE
+                    currentMode = Mode.NONE
                     return true
                 }
             }
@@ -3456,7 +3535,7 @@ class CanvasView @JvmOverloads constructor(
                 if (elementsToModify.isEmpty()) {
                     // allow overall canvas pan/zoom
                     when (currentMode) {
-                        com.webscare.urducanvas.common.canvas.enums.Mode.CANVAS_PAN -> {
+                        Mode.CANVAS_PAN -> {
                             if (event.pointerCount == 2) {
                                 val newDist = getPinchDistance(event)
                                 val factor = newDist / initialPinchDistance
@@ -3486,19 +3565,19 @@ class CanvasView @JvmOverloads constructor(
                     if (dx > touchSlop || dy > touchSlop) {
                         // start drag instead of deselect
                         lastTouchedElement = touchedDownElement
-                        currentMode = com.webscare.urducanvas.common.canvas.enums.Mode.DRAG
+                        currentMode = Mode.DRAG
                         isDragCandidate = false
                         touchedDownElement = null
                     }
                 }
 
                 when (currentMode) {
-                    com.webscare.urducanvas.common.canvas.enums.Mode.DRAG -> {
+                    Mode.DRAG -> {
                         val dx = x - touchStartX
                         val dy = y - touchStartY
 
                         elementsToModify.forEach { element ->
-                            if (element.type == com.webscare.urducanvas.common.canvas.enums.ElementType.BACKGROUND && element.bitmap != null) {
+                            if (element.type == ElementType.BACKGROUND && element.bitmap != null) {
                                 val (xRange, yRange) = computeBackgroundPanBounds(element)
                                 val newX = element.x + dx
                                 val newY = element.y + dy
@@ -3540,7 +3619,7 @@ class CanvasView @JvmOverloads constructor(
                         invalidate()
                     }
 
-                    com.webscare.urducanvas.common.canvas.enums.Mode.MULTI_TOUCH -> {
+                    Mode.MULTI_TOUCH -> {
                         if (event.pointerCount >= 2) {
                             val newPinchDistance = getPinchDistance(event)
                             val newPinchAngle = getPinchAngle(event)
@@ -3575,7 +3654,7 @@ class CanvasView @JvmOverloads constructor(
                         }
                     }
 
-                    com.webscare.urducanvas.common.canvas.enums.Mode.ROTATE -> {
+                    Mode.ROTATE -> {
                         if (selectedElements.isEmpty()) return true
 
                         val currentAngle = atan2(
@@ -3654,7 +3733,7 @@ class CanvasView @JvmOverloads constructor(
                     }
 
 
-                    com.webscare.urducanvas.common.canvas.enums.Mode.RESIZE -> {
+                    Mode.RESIZE -> {
                         if (selectedElements.isEmpty()) return true
 
                         val combined = getCombinedSelectedBounds()
@@ -3695,15 +3774,15 @@ class CanvasView @JvmOverloads constructor(
                         invalidate()
                     }
 
-                    com.webscare.urducanvas.common.canvas.enums.Mode.NONE -> {
+                    Mode.NONE -> {
                         // This block handles potential tap-and-hold to drag if not immediately picking up an icon/element
                     }
 
-                    com.webscare.urducanvas.common.canvas.enums.Mode.GROUP_EDIT -> {
+                    Mode.GROUP_EDIT -> {
                         // This block handles potential tap-and-hold to drag if not immediately picking up an icon/element
                     }
 
-                    com.webscare.urducanvas.common.canvas.enums.Mode.CANVAS_PAN -> {
+                    Mode.CANVAS_PAN -> {
                         if (selectedElements.isEmpty()) {
                             if (event.pointerCount == 2) {
                                 val newDist = getPinchDistance(event)
@@ -3724,7 +3803,7 @@ class CanvasView @JvmOverloads constructor(
                         }
                     }
 
-                    com.webscare.urducanvas.common.canvas.enums.Mode.TRANSFORM -> {
+                    Mode.TRANSFORM -> {
                         if (selectedElements.isEmpty()) return true
 
                         val dx = x - touchStartX
@@ -3755,18 +3834,18 @@ class CanvasView @JvmOverloads constructor(
                 showHorizontalGuide = false
                 showRotationVerticalGuide = false // Reset rotation guides on ACTION_UP
                 showRotationHorizontalGuide = false // Reset rotation guides on ACTION_UP
-                if (currentMode == com.webscare.urducanvas.common.canvas.enums.Mode.CANVAS_PAN) {
-                    currentMode = com.webscare.urducanvas.common.canvas.enums.Mode.NONE
+                if (currentMode == Mode.CANVAS_PAN) {
+                    currentMode = Mode.NONE
                 }
 
-                if (currentMode == com.webscare.urducanvas.common.canvas.enums.Mode.TRANSFORM) {
+                if (currentMode == Mode.TRANSFORM) {
                     selectedElements.forEach {
                         onElementChanged?.invoke(it)
                         onEndBatchUpdate?.invoke(it.id)
                     }
                 }
 
-                if (currentMode == com.webscare.urducanvas.common.canvas.enums.Mode.DRAG || currentMode == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.Mode.ROTATE || currentMode == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.Mode.RESIZE) {
+                if (currentMode == Mode.DRAG || currentMode == Mode.ROTATE || currentMode == Mode.RESIZE) {
                     selectedElements.filter { !it.isLocked }.forEach {
                         onElementChanged?.invoke(it)
                         onEndBatchUpdate?.invoke(it.id)
@@ -3796,10 +3875,10 @@ class CanvasView @JvmOverloads constructor(
                 initialAngle = 0f
                 initialGroupPivotX = 0f
                 initialGroupPivotY = 0f
-                if (currentMode != _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.Mode.GROUP_EDIT) {
+                if (currentMode != Mode.GROUP_EDIT) {
                     lastTouchedElement = null
                     currentMode =
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.Mode.NONE
+                        Mode.NONE
                 }
                 clampOverallPan()
                 invalidate()

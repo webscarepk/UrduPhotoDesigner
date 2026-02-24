@@ -8,13 +8,10 @@ import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.webscare.urducanvas.R
-import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.utils.Utils.addPressEffectWithLongClick
 import com.webscare.urducanvas.databinding.LayoutLayersItemBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import com.webscare.urducanvas.common.utils.Utils.addPressEffectWithLongClick
 
 /**
  * Adapter for the layers list. Shows each CanvasElement with icon, title, lock badge, selection highlight,
@@ -34,7 +31,8 @@ class LayersAdapter(
     private val onStartDrag: (RecyclerView.ViewHolder) -> Unit
 ) : RecyclerView.Adapter<LayersAdapter.CanvasElementViewHolder>() {
 
-    private val elements = mutableListOf<com.webscare.urducanvas.common.canvas.model.CanvasElement>()
+    private val elements =
+        mutableListOf<com.webscare.urducanvas.common.canvas.model.CanvasElement>()
     private var inSelectionMode = false
 
     fun setSelectionMode(enabled: Boolean) {
@@ -50,7 +48,7 @@ class LayersAdapter(
         notifyDataSetChanged()
     }
 
-    fun currentList() : List<com.webscare.urducanvas.common.canvas.model.CanvasElement> {
+    fun currentList(): List<com.webscare.urducanvas.common.canvas.model.CanvasElement> {
         return elements
     }
 
@@ -65,9 +63,7 @@ class LayersAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CanvasElementViewHolder {
         val binding = LayoutLayersItemBinding.inflate(
-            LayoutInflater.from(parent.context),
-            parent,
-            false
+            LayoutInflater.from(parent.context), parent, false
         )
         return CanvasElementViewHolder(binding)
     }
@@ -87,22 +83,22 @@ class LayersAdapter(
             binding.apply {
                 // Title: for TEXT use element.text, for IMAGE show "Sticker" or another label
                 title.text = when (element.type) {
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.TEXT -> element.text ?: "Text"
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.IMAGE -> "Image"
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.STICKER -> "Sticker"
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.DRAW -> element.brushSettings?.style?.displayName
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.SHAPE -> element.shapeType?.displayName
+                    ElementType.TEXT -> element.text ?: "Text"
+                    ElementType.IMAGE -> "Image"
+                    ElementType.STICKER -> "Sticker"
+                    ElementType.DRAW -> element.brushSettings?.style?.displayName
+                    ElementType.SHAPE -> element.shapeType?.displayName
                     else -> "Background"
                 }
 
                 // Icon based on type
                 image.setImageResource(
                     when (element.type) {
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.TEXT -> R.drawable.ic_text_layer
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.IMAGE -> R.drawable.ic_image_layer
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.STICKER -> R.drawable.ic_sticker
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.DRAW -> R.drawable.ic_pen
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.SHAPE -> R.drawable.ic_objects
+                        ElementType.TEXT -> R.drawable.ic_text_layer
+                        ElementType.IMAGE -> R.drawable.ic_image_layer
+                        ElementType.STICKER -> R.drawable.ic_sticker
+                        ElementType.DRAW -> R.drawable.ic_pen
+                        ElementType.SHAPE -> R.drawable.ic_objects
                         else -> R.drawable.ic_background
                     }
                 )
@@ -115,7 +111,11 @@ class LayersAdapter(
                         binding.root.strokeWidth = 0
                     } else {
                         // Single selection → stroke highlight
-                        binding.root.setCardBackgroundColor(ContextCompat.getColor(binding.root.context, R.color.white))
+                        binding.root.setCardBackgroundColor(
+                            ContextCompat.getColor(
+                                binding.root.context, R.color.white
+                            )
+                        )
                         binding.root.strokeWidth = 2
                         binding.root.strokeColor =
                             ContextCompat.getColor(binding.root.context, R.color.appColor)
@@ -146,7 +146,7 @@ class LayersAdapter(
 
                 val hideDragOrOptions = element.isLocked
 
-                binding.drag.visibility    = if (hideDragOrOptions) View.GONE else View.VISIBLE
+                binding.drag.visibility = if (hideDragOrOptions) View.GONE else View.VISIBLE
                 binding.options.visibility = if (hideDragOrOptions) View.GONE else View.VISIBLE
 
                 // Click listeners:
@@ -161,13 +161,11 @@ class LayersAdapter(
                     onStartDrag(this@CanvasElementViewHolder)
                     false
                 }
-                root.addPressEffectWithLongClick(
-                    onClick = {
-                        onItemClick(element)
-                    }, onLongClick = {
-                        onItemLongClick(element)
-                    }
-                )
+                root.addPressEffectWithLongClick(onClick = {
+                    onItemClick(element)
+                }, onLongClick = {
+                    onItemLongClick(element)
+                })
             }
         }
     }

@@ -14,6 +14,7 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
+import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.data.model.ProgressUi
@@ -82,7 +83,7 @@ class FontsAdapter(
             } else {
                 // Load font preview using Glide (from image_url)
                 val url =
-                    _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.BASE_URL_GLIDE + item.image_url
+                    Constants.BASE_URL_GLIDE + item.image_url
                 if (isSvgUrl(url)) {
                     Glide.with(binding.root.context).`as`(PictureDrawable::class.java).load(url)
                         .diskCacheStrategy(DiskCacheStrategy.DATA)

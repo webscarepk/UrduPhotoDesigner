@@ -21,6 +21,8 @@ import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.snackbar.Snackbar
 import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
+import com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.utils.showGlobalSuccessSnack
 import com.webscare.urducanvas.data.model.toExportResultFinal
@@ -305,7 +307,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
             mainViewModel.templateDownloadStates.collect { downloadState ->
                 downloadState.values.forEach { state ->
                     when (state) {
-                        is com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState.Progress -> {
+                        is TemplateDownloadState.Progress -> {
                             val ui =
                                 _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
                                     state.progress, isDownloading = true, isDownloaded = false
@@ -316,7 +318,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                             popularTemplatesAdapter.updateProgress(state.template.id, ui)
                         }
 
-                        is com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState.SuccessWithTemplate -> {
+                        is TemplateDownloadState.SuccessWithTemplate -> {
                             val t = state.template
                             val ui =
                                 _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
@@ -344,7 +346,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                             }
                         }
 
-                        is com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState.Error -> {
+                        is TemplateDownloadState.Error -> {
                             val ui =
                                 _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
                                     0, isDownloading = false, isDownloaded = false
@@ -359,7 +361,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                             }
                         }
 
-                        is com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState.Success -> {
+                        is TemplateDownloadState.Success -> {
                             mainViewModel.clearTemplateDownloadState()
                         }
                     }
@@ -397,7 +399,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
             mainViewModel.fontDownloadStates.collect { downloadState ->
                 downloadState.values.forEach { state ->
                     when (state) {
-                        is com.webscare.urducanvas.common.canvas.sealed.FontDownloadState.Progress -> {
+                        is FontDownloadState.Progress -> {
                             val font = state.fontEntity
                             fontsAdapter.updateProgress(
                                 font.id,
@@ -409,7 +411,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                             )
                         }
 
-                        is com.webscare.urducanvas.common.canvas.sealed.FontDownloadState.SuccessWithTypeface -> {
+                        is FontDownloadState.SuccessWithTypeface -> {
                             val font = state.fontEntity
 
                             fontsAdapter.updateProgress(
@@ -448,7 +450,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                             mainViewModel.clearFontDownloadState()
                         }
 
-                        is com.webscare.urducanvas.common.canvas.sealed.FontDownloadState.Error -> {
+                        is FontDownloadState.Error -> {
                             val font = state.fontEntity
                             fontsAdapter.updateProgress(
                                 font.id,

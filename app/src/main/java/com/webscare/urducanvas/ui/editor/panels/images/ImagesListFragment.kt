@@ -4,18 +4,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.ElementType
+import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.ImageProcessor.bitmapCompress
 import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
-import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.databinding.FragmentBackgroundsListBinding
-import com.webscare.urducanvas.ui.editor.panels.background.backgrounds.ImagesAdapter
-import com.webscare.urducanvas.viewmodels.MainViewModel
-import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -55,7 +50,7 @@ class ImagesListFragment : androidx.fragment.app.Fragment() {
 
                 val resized = viewModel.canvasSize.value?.height?.roundToInt()?.let {
                     viewModel.canvasSize.value?.width?.let { it1 ->
-                        _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.bitmapCompress(
+                        ImageProcessor.bitmapCompress(
                             image,
                             it1.roundToInt(),
                             it
@@ -65,7 +60,7 @@ class ImagesListFragment : androidx.fragment.app.Fragment() {
                 viewModel.addSticker(
                     resized?.trimTransparentEdges(),
                     requireActivity(),
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.IMAGE
+                    ElementType.IMAGE
                 )
             }
         binding.backgrounds.adapter = imagesAdapter
@@ -88,8 +83,12 @@ class ImagesListFragment : androidx.fragment.app.Fragment() {
         val imageList = when {
             categoryName.equals("Recents", true) -> images.filter {
                 it.is_recent &&
-                        (it.category.equals("Images", true) || it.category.equals("Images Imported", true))
+                        (it.category.equals("Images", true) || it.category.equals(
+                            "Images Imported",
+                            true
+                        ))
             }
+
             else -> images.filter {
                 it.category.equals(categoryName, ignoreCase = true)
             }

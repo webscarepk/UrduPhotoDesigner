@@ -7,19 +7,15 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.ExportViewType
-import com.webscare.urducanvas.common.canvas.model.ExportFormat
-import com.webscare.urducanvas.common.canvas.model.ExportQuality
-import com.webscare.urducanvas.common.canvas.model.ExportResolution
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.LayoutFormatsItemBinding
 import com.webscare.urducanvas.databinding.LayoutQualityItemBinding
 import com.webscare.urducanvas.databinding.LayoutResolutionsItemBinding
 import com.webscare.urducanvas.databinding.LayoutResolutionsItemPrefsBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class ExportOptionAdapter<T>(
     private var items: List<T>,
-    private val viewType: com.webscare.urducanvas.common.canvas.enums.ExportViewType,
+    private val viewType: ExportViewType,
     private val displayMode: Boolean,
     private val onItemSelected: (T) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -36,14 +32,16 @@ class ExportOptionAdapter<T>(
         val inflater = LayoutInflater.from(parent.context)
 
         return when (displayMode) {
-            true -> when (_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ExportViewType.entries[this.viewType.ordinal]) {
-                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ExportViewType.RESOLUTION -> ResolutionViewHolder(
+            true -> when (ExportViewType.entries[this.viewType.ordinal]) {
+                ExportViewType.RESOLUTION -> ResolutionViewHolder(
                     LayoutResolutionsItemBinding.inflate(inflater, parent, false)
                 )
-                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ExportViewType.QUALITY -> QualityViewHolder(
+
+                ExportViewType.QUALITY -> QualityViewHolder(
                     LayoutQualityItemBinding.inflate(inflater, parent, false)
                 )
-                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ExportViewType.FORMAT -> FormatViewHolder(
+
+                ExportViewType.FORMAT -> FormatViewHolder(
                     LayoutFormatsItemBinding.inflate(inflater, parent, false)
                 )
             }
@@ -65,10 +63,12 @@ class ExportOptionAdapter<T>(
                     binding.title.text = item.name
                     isSelected = item.isSelected
                 }
+
                 is com.webscare.urducanvas.common.canvas.model.ExportQuality -> {
                     binding.title.text = item.label
                     isSelected = item.isSelected
                 }
+
                 is com.webscare.urducanvas.common.canvas.model.ExportFormat -> {
                     binding.title.text = item.name
                     isSelected = item.isSelected
@@ -76,8 +76,10 @@ class ExportOptionAdapter<T>(
             }
 
             // ✅ show drawableEnd checkmark if selected, else remove
-            val checkDrawable = if (isSelected)
-                ContextCompat.getDrawable(binding.root.context, R.drawable.ic_done) else null
+            val checkDrawable = if (isSelected) ContextCompat.getDrawable(
+                binding.root.context,
+                R.drawable.ic_done
+            ) else null
             binding.title.setCompoundDrawablesWithIntrinsicBounds(null, null, checkDrawable, null)
 
             binding.root.addPressEffect {
@@ -138,20 +140,21 @@ class ExportOptionAdapter<T>(
             binding.resolutionTitle.text = item.label
             binding.resolutionValue.text = item.description
             binding.resolutionDesc.text = "${item.quality}%"
-            binding.resolutionDiff.text =
-                when {
-                    item.extraSizePercent > 0 -> "+${item.extraSizePercent}%"
-                    item.extraSizePercent < 0 -> "${item.extraSizePercent}%"
-                    else -> "Base"
-                }
+            binding.resolutionDiff.text = when {
+                item.extraSizePercent > 0 -> "+${item.extraSizePercent}%"
+                item.extraSizePercent < 0 -> "${item.extraSizePercent}%"
+                else -> "Base"
+            }
 
-            when(adapterPosition){
+            when (adapterPosition) {
                 0 -> binding.view1.setColorFilter(
                     ContextCompat.getColor(binding.root.context, R.color.quality_high_light)
                 )
+
                 1 -> binding.view1.setColorFilter(
-                    ContextCompat.getColor(binding.root.context, R.color.quality_medium_light )
+                    ContextCompat.getColor(binding.root.context, R.color.quality_medium_light)
                 )
+
                 2 -> binding.view1.setColorFilter(
                     ContextCompat.getColor(binding.root.context, R.color.quality_low_light)
                 )

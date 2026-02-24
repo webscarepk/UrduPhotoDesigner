@@ -66,7 +66,7 @@ class TemplatesMiniAdapter(
 //            }
 
             // IMAGE
-            val url = _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.BASE_URL_GLIDE + item.thumbnail_url
+            val url = Constants.BASE_URL_GLIDE + item.thumbnail_url
 
             Glide.with(binding.root.context)
                 .load(url)

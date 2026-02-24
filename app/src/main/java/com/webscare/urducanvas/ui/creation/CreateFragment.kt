@@ -17,7 +17,6 @@ import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
-import com.webscare.urducanvas.common.canvas.enums.UnitType
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.common.utils.Converter.cmToPx
 import com.webscare.urducanvas.common.utils.Converter.inchesToPx
@@ -31,6 +30,8 @@ import com.google.android.material.shape.CornerFamily
 import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.shape.ShapeAppearanceModel
 import com.google.android.material.snackbar.Snackbar
+import com.webscare.urducanvas.common.canvas.enums.UnitType
+import com.webscare.urducanvas.common.utils.Converter
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -42,84 +43,84 @@ class CreateFragment : com.google.android.material.bottomsheet.BottomSheetDialog
     private val unitList = listOf("Pixels", "Inches", "Centimeters")
 
     private val sizeList = listOf(
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+        CanvasSize(
             "Instagram Story",
             1080f,
             1920f
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+       CanvasSize(
             "Instagram Post",
             1080f,
             1080f
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+        CanvasSize(
             "YouTube Thumbnail",
             1280f,
             720f
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+        CanvasSize(
             "Facebook Cover",
             820f,
             312f
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+        CanvasSize(
             "YouTube Channel Art",
             2560f,
             1440f
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+       CanvasSize(
             "A4",
             2480f,
             3508f
         ),               // 210mm × 297mm
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+        CanvasSize(
             "Letter",
             2550f,
             3300f
         ),          // 8.5in × 11in
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+        CanvasSize(
             "Poster",
             3600f,
             5400f
         ),          // 12in × 18in
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+        CanvasSize(
             "Business Card",
             1050f,
             600f
         ), // 3.5in × 2in
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+        CanvasSize(
             "Billboard",
             1920f,
             1080f
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+        CanvasSize(
             "Vertical Banner",
             1080f,
             1920f
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+        CanvasSize(
             "Horizontal Banner",
             1920f,
             600f
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+        CanvasSize(
             "Flyer (US Letter)",
             2550f,
             3300f
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+        CanvasSize(
             "Resume",
             2480f,
             3508f
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+        CanvasSize(
             "Invitation",
             1500f,
             2100f
         )   // 5in × 7in
     )
 
-    private var currentUnit = _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.PIXELS
+    private var currentUnit = UnitType.PIXELS
     private var isLinked = false
     private var aspectRatio: Float? = null
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
@@ -155,59 +156,59 @@ class CreateFragment : com.google.android.material.bottomsheet.BottomSheetDialog
 
                     // Convert old width/height to px first
                     val oldWidthPx = when (currentUnit) {
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.PIXELS -> getSafeIntValue(width)
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.INCHES -> _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.inchesToPx(
+                        UnitType.PIXELS -> getSafeIntValue(width)
+                        UnitType.INCHES -> Converter.inchesToPx(
                             getSafeIntValue(width)
                         )
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.CENTIMETERS -> _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.cmToPx(
+                        UnitType.CENTIMETERS -> Converter.cmToPx(
                             getSafeIntValue(width)
                         )
                     }
                     val oldHeightPx = when (currentUnit) {
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.PIXELS -> getSafeIntValue(height)
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.INCHES -> _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.inchesToPx(
+                        UnitType.PIXELS -> getSafeIntValue(height)
+                        UnitType.INCHES -> Converter.inchesToPx(
                             getSafeIntValue(height)
                         )
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.CENTIMETERS -> _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.cmToPx(
+                        UnitType.CENTIMETERS -> Converter.cmToPx(
                             getSafeIntValue(height)
                         )
                     }
 
                     currentUnit = when (selectedUnitStr) {
-                        "Pixels" -> _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.PIXELS
-                        "Inches" -> _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.INCHES
-                        "Centimeters" -> _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.CENTIMETERS
-                        else -> _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.PIXELS
+                        "Pixels" -> UnitType.PIXELS
+                        "Inches" -> UnitType.INCHES
+                        "Centimeters" -> UnitType.CENTIMETERS
+                        else -> UnitType.PIXELS
                     }
 
                     // Convert back for display
                     when (currentUnit) {
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.PIXELS -> {
+                        UnitType.PIXELS -> {
                             width.setText(oldWidthPx.toFloat().toString())
                             height.setText(oldHeightPx.toFloat().toString())
                         }
 
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.INCHES -> {
+                        UnitType.INCHES -> {
                             width.setText(String.format("%.1f",
-                                _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.pxToInches(
+                                Converter.pxToInches(
                                     oldWidthPx.toFloat()
                                 )
                             ))
                             height.setText(String.format("%.1f",
-                                _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.pxToInches(
+                                Converter.pxToInches(
                                     oldHeightPx.toFloat()
                                 )
                             ))
                         }
 
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.CENTIMETERS -> {
+                        UnitType.CENTIMETERS -> {
                             width.setText(String.format("%.1f",
-                                _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.pxToCm(
+                                Converter.pxToCm(
                                     oldWidthPx.toFloat()
                                 )
                             ))
                             height.setText(String.format("%.1f",
-                                _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.pxToCm(
+                                Converter.pxToCm(
                                     oldHeightPx.toFloat()
                                 )
                             ))
@@ -333,11 +334,11 @@ class CreateFragment : com.google.android.material.bottomsheet.BottomSheetDialog
         }
     }
 
-    private fun clampCanvasSize(value: Float, unit: com.webscare.urducanvas.common.canvas.enums.UnitType): Float {
+    private fun clampCanvasSize(value: Float, unit: UnitType): Float {
         val (min, max, unitLabel) = when (unit) {
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.PIXELS -> Triple(256f, 8000f, "px")
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.INCHES -> Triple(1f, 80f, "inches")
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.CENTIMETERS -> Triple(2.5f, 200f, "cm")
+            UnitType.PIXELS -> Triple(256f, 8000f, "px")
+            UnitType.INCHES -> Triple(1f, 80f, "inches")
+            UnitType.CENTIMETERS -> Triple(2.5f, 200f, "cm")
         }
 
         val clamped = value.coerceIn(min, max)
@@ -356,31 +357,31 @@ class CreateFragment : com.google.android.material.bottomsheet.BottomSheetDialog
         return clamped
     }
 
-    private fun updateListForUnit(unitType: com.webscare.urducanvas.common.canvas.enums.UnitType) {
+    private fun updateListForUnit(unitType: UnitType) {
         val convertedList = sizeList.map { size ->
             when (unitType) {
-                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.PIXELS -> size.copy()
-                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.INCHES -> size.copy(
+                UnitType.PIXELS -> size.copy()
+                UnitType.INCHES -> size.copy(
                     width = String.format("%.1f",
-                        _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.pxToInches(
+                        Converter.pxToInches(
                             size.width
                         )
                     ).toFloat(),
                     height = String.format("%.1f",
-                        _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.pxToInches(
+                        Converter.pxToInches(
                             size.height
                         )
                     ).toFloat()
                 )
 
-                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.CENTIMETERS -> size.copy(
+                UnitType.CENTIMETERS -> size.copy(
                     width = String.format("%.1f",
-                        _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.pxToCm(
+                        Converter.pxToCm(
                             size.width
                         )
                     ).toFloat(),
                     height = String.format("%.1f",
-                        _root_ide_package_.com.webscare.urducanvas.common.utils.Converter.pxToCm(
+                        Converter.pxToCm(
                             size.height
                         )
                     ).toFloat()
@@ -398,9 +399,9 @@ class CreateFragment : com.google.android.material.bottomsheet.BottomSheetDialog
         super.onResume()
         // Assuming you have a TextView in your layout called unitTextView
         binding.unit.text = when (currentUnit) {
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.INCHES -> "Inches"
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.CENTIMETERS -> "Centimeters"
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.UnitType.PIXELS -> "Pixels"
+            UnitType.INCHES -> "Inches"
+            UnitType.CENTIMETERS -> "Centimeters"
+            UnitType.PIXELS -> "Pixels"
         }
         binding.link.setImageResource(
             if (isLinked) R.drawable.ic_linked else R.drawable.ic_unlinked

@@ -13,7 +13,8 @@ import com.webscare.urducanvas.data.model.TrendEntity
 import com.webscare.urducanvas.data.model.TrendTemplateCrossRef
 
 @androidx.room.Database(
-    entities = [_root_ide_package_.com.webscare.urducanvas.data.model.FontEntity::class, _root_ide_package_.com.webscare.urducanvas.data.model.ImageEntity::class, _root_ide_package_.com.webscare.urducanvas.data.model.GradientEntity::class, _root_ide_package_.com.webscare.urducanvas.data.model.ExportResult::class, _root_ide_package_.com.webscare.urducanvas.data.model.TemplateEntity::class, _root_ide_package_.com.webscare.urducanvas.data.model.TrendEntity::class, _root_ide_package_.com.webscare.urducanvas.data.model.TrendTemplateCrossRef::class],
+    entities = [FontEntity::class, ImageEntity::class, GradientEntity::class, ExportResult::class, TemplateEntity::class, TrendEntity::class,
+        TrendTemplateCrossRef::class],
     version = 1
 )
 @TypeConverters(Converters::class)

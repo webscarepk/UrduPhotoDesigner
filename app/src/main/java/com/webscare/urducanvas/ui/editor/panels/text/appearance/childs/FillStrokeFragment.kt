@@ -10,7 +10,6 @@ import android.widget.SeekBar
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColorInt
 import androidx.core.view.isVisible
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
@@ -27,7 +26,6 @@ import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientsAdapter
 import com.webscare.urducanvas.viewmodels.MainViewModel
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -36,10 +34,10 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
     private var _binding: FragmentFillStrokeBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var colorsAdapter: com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter
-    private lateinit var gradientsAdapter: com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientsAdapter
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
-    private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
+    private lateinit var colorsAdapter: ColorsAdapter
+    private lateinit var gradientsAdapter: GradientsAdapter
+    private val viewModel: CanvasViewModel by activityViewModels()
+    private val mainViewModel: MainViewModel by activityViewModels()
     private var currentTab: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,8 +46,7 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentFillStrokeBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -67,7 +64,7 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
     private fun setupRecyclerView() {
         colorsAdapter =
             _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter(
-                _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.colorList,
+                Constants.colorList,
                 onColorSelected = { color ->
                     val selectedColor = color.colorCode.toColorInt()
                     when (currentTab?.lowercase()) {
@@ -95,30 +92,26 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
                 onColorPickerClicked = {
                     viewModel.clearLabelGradients()
                     if (currentTab?.lowercase() == "stroke") {
-                        viewModel.startPicking(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.COLOR_PICKER_TEXT_STROKE)
+                        viewModel.startPicking(PickerTarget.COLOR_PICKER_TEXT_STROKE)
                     } else {
-                        viewModel.startPicking(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.COLOR_PICKER_TEXT_FILL)
+                        viewModel.startPicking(PickerTarget.COLOR_PICKER_TEXT_FILL)
                     }
-                    childFragmentManager
-                        .beginTransaction()
-                        .replace(
+                    childFragmentManager.beginTransaction().replace(
                             R.id.fillStroke,
-                            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment()
-                        )
-                        .addToBackStack(null)
-                        .commit()
+                        ColorPickerFragment()
+                        ).addToBackStack(null).commit()
                 },
                 onEyeDropperClicked = {
                     viewModel.clearLabelGradients()
                     if (currentTab?.lowercase() == "stroke") {
-                        viewModel.startPicking(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_TEXT_STROKE)
+                        viewModel.startPicking(PickerTarget.EYE_DROPPER_TEXT_STROKE)
                     } else {
-                        viewModel.startPicking(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_TEXT_FILL)
+                        viewModel.startPicking(PickerTarget.EYE_DROPPER_TEXT_FILL)
                     }
                 })
 
         gradientsAdapter =
-            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientsAdapter(
+            GradientsAdapter(
                 gradientList = emptyList(),
                 onGradientSelected = { _, item ->
                     when (currentTab?.lowercase()) {
@@ -135,25 +128,21 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
                 onGradientEditSelected = { _, item ->
                     when (currentTab?.lowercase()) {
                         "stroke" -> {
-                            viewModel.startPickingGradient(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget.TEXT_STROKE)
+                            viewModel.startPickingGradient(GradientPickerTarget.TEXT_STROKE)
                         }
 
-                        else -> viewModel.startPickingGradient(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget.TEXT_FILL)
+                        else -> viewModel.startPickingGradient(GradientPickerTarget.TEXT_FILL)
                     }
                     viewModel.setGradient(item)
                     viewModel.setPagingLocked(true)
-                    childFragmentManager
-                        .beginTransaction()
-                        .replace(
+                    childFragmentManager.beginTransaction().replace(
                             R.id.fillStroke,
                             _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment()
                                 .apply {
                                     arguments = Bundle().apply {
                                         putBoolean("IS_EDIT", true)
                                     }
-                                })
-                        .addToBackStack(null)
-                        .commit()
+                                }).addToBackStack(null).commit()
                 },
                 onNoneSelected = {
                     when (currentTab?.lowercase()) {
@@ -167,26 +156,21 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
                 onGradientPickerClicked = {
                     when (currentTab?.lowercase()) {
                         "stroke" -> {
-                            viewModel.startPickingGradient(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget.TEXT_STROKE)
+                            viewModel.startPickingGradient(GradientPickerTarget.TEXT_STROKE)
                         }
 
-                        else -> viewModel.startPickingGradient(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget.TEXT_FILL)
+                        else -> viewModel.startPickingGradient(GradientPickerTarget.TEXT_FILL)
                     }
                     viewModel.setPagingLocked(true)
-                    childFragmentManager
-                        .beginTransaction()
-                        .replace(
+                    childFragmentManager.beginTransaction().replace(
                             R.id.fillStroke,
-                            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment()
+                            GradientEditorFragment()
                                 .apply {
                                     arguments = Bundle().apply {
                                         putBoolean("IS_EDIT", false)
                                     }
-                                })
-                        .addToBackStack(null)
-                        .commit()
-                }
-            )
+                                }).addToBackStack(null).commit()
+                })
 
         binding.colors.apply {
             setHasFixedSize(true)
@@ -275,20 +259,13 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
         // If gradient is visible, hide it and show solid; otherwise, do the opposite
         if (showGradients) {
             // Fade out gradient and hide it
-            binding.gradients.animate()
-                .alpha(0f)
-                .setDuration(fadeDuration)
-                .withEndAction {
+            binding.gradients.animate().alpha(0f).setDuration(fadeDuration).withEndAction {
                     binding.gradients.visibility = View.GONE
                     // Now fade in solid after gradient is hidden
                     binding.colors.alpha = 0f
                     binding.colors.visibility = View.VISIBLE
-                    binding.colors.animate()
-                        .alpha(1f)
-                        .setDuration(fadeDuration)
-                        .start()
-                }
-                .start()
+                    binding.colors.animate().alpha(1f).setDuration(fadeDuration).start()
+                }.start()
 
             binding.gradient.backgroundTintList =
                 ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.contrast))
@@ -296,20 +273,13 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
                 ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white))
         } else {
             // Fade out solid and hide it
-            binding.colors.animate()
-                .alpha(0f)
-                .setDuration(fadeDuration)
-                .withEndAction {
+            binding.colors.animate().alpha(0f).setDuration(fadeDuration).withEndAction {
                     binding.colors.visibility = View.GONE
                     // Now fade in gradient after solid is hidden
                     binding.gradients.alpha = 0f
                     binding.gradients.visibility = View.VISIBLE
-                    binding.gradients.animate()
-                        .alpha(1f)
-                        .setDuration(fadeDuration)
-                        .start()
-                }
-                .start()
+                    binding.gradients.animate().alpha(1f).setDuration(fadeDuration).start()
+                }.start()
             binding.gradient.backgroundTintList =
                 ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white))
             binding.solid.backgroundTintList =

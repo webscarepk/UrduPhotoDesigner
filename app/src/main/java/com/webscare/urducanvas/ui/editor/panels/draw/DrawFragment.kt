@@ -22,29 +22,12 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class DrawFragment : androidx.fragment.app.Fragment() {
+class DrawFragment : Fragment() {
     private var _binding: FragmentDrawBinding? = null
     private val binding get() = _binding!!
     private var tabs = mutableListOf<String>()
     private lateinit var adapter: DrawPagerAdapter
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
-
-    private val imagePickerLauncher =
-        registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri ->
-            uri?.let {
-                val bitmap = requireContext().contentResolver.openInputStream(uri)?.use { stream ->
-                    android.graphics.BitmapFactory.decodeStream(stream)
-                }
-
-                if (bitmap != null) {
-                    viewModel.addImageInsideShape(bitmap, requireActivity())
-                } else {
-                    Toast.makeText(
-                        requireContext(), "Please select a shape first", Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-        }
+    private val viewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -57,7 +40,7 @@ class DrawFragment : androidx.fragment.app.Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // ✅ Setup adapter once
-        tabs = mutableListOf("Brush", "Shape")
+        tabs = mutableListOf("Brush")
 
         adapter = DrawPagerAdapter(
             requireActivity().supportFragmentManager, lifecycle, tabs
@@ -68,44 +51,25 @@ class DrawFragment : androidx.fragment.app.Fragment() {
         binding.done.addPressEffect {
             viewModel.exitDrawingMode()
         }
-        binding.startDraw.addPressEffect {
-            if (binding.viewPager.currentItem == 0) {
-                viewModel.enterDrawingMode()
-            } else {
-                imagePickerLauncher.launch("image/*")
-            }
-        }
 
         binding.reset.addPressEffect { viewModel.resetBrushSettings() }
         initObservers()
         setupTabLayout()
 
         val startPage = arguments?.getInt("startPage", 0) ?: 0
-        updateStartDrawIcon(startPage)
 
         if (startPage in 0 until tabs.size) {
             binding.viewPager.setCurrentItem(startPage, false)
-            updateStartDrawIcon(startPage)
         }
 
-        binding.viewPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+        binding.viewPager.registerOnPageChangeCallback(object : OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
-                updateStartDrawIcon(position)
                 if (position == 1) {
                     viewModel.exitDrawingMode()
                 }
             }
         })
-    }
-
-    fun updateStartDrawIcon(position: Int) {
-        val iconRes = when (tabs[position]) {
-            "Brush" -> R.drawable.ic_start_draw
-            "Shape" -> R.drawable.ic_import
-            else -> R.drawable.ic_start_draw
-        }
-        binding.startDraw.setImageResource(iconRes)
     }
 
     private fun initObservers() {

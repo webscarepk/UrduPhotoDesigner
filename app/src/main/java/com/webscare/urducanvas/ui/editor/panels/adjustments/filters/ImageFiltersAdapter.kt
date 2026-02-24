@@ -1,19 +1,14 @@
 package com.webscare.urducanvas.ui.editor.panels.adjustments.filters
 
 import android.graphics.Bitmap
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.core.content.ContextCompat
+import androidx.core.graphics.scale
 import androidx.recyclerview.widget.RecyclerView
-import com.webscare.urducanvas.R
-import com.webscare.urducanvas.common.canvas.model.FilterItem
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import com.webscare.urducanvas.databinding.LayoutFilterItemBinding // You'll need to create this layout
-import androidx.core.graphics.scale
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.databinding.LayoutFilterItemBinding
 
 class ImageFiltersAdapter(
     private val filterList: List<com.webscare.urducanvas.common.canvas.model.FilterItem>,
@@ -22,7 +17,7 @@ class ImageFiltersAdapter(
 ) : RecyclerView.Adapter<ImageFiltersAdapter.FilterViewHolder>() {
 
     // Keep track of the currently selected filter
-    var selectedFilter: com.webscare.urducanvas.common.canvas.sealed.ImageFilter? = null
+    var selectedFilter: ImageFilter? = null
         set(value) {
             // Only update if the filter actually changed
             if (field != value) {
@@ -55,7 +50,7 @@ class ImageFiltersAdapter(
                     (maxSize * aspectRatio).toInt() to maxSize
                 }
                 val thumb = bmp.scale(targetWidth, targetHeight)
-                val filteredThumb = _root_ide_package_.com.webscare.urducanvas.common.utils.ImageProcessor.applyFilter(thumb, filterItem.filter)
+                val filteredThumb = ImageProcessor.applyFilter(thumb, filterItem.filter)
                 binding.filterPreview.setImageBitmap(filteredThumb)
             }
 

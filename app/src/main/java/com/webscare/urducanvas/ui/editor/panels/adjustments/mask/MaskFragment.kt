@@ -7,16 +7,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
 import com.webscare.urducanvas.R
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentMaskBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -111,7 +108,7 @@ class MaskFragment : androidx.fragment.app.Fragment() {
 
     private fun updateAddMaskButtonText() {
         val selectedElement = viewModel.canvasElements.value?.find { it.isSelected }
-        if (selectedElement != null && (selectedElement.type == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.IMAGE || selectedElement.type == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.STICKER)) {
+        if (selectedElement != null && (selectedElement.type == ElementType.IMAGE || selectedElement.type == ElementType.STICKER)) {
             binding.editShape.text = getString(R.string.mask_image_as_shape)
         } else {
             binding.editShape.text = getString(R.string.edit_shape)

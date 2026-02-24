@@ -1,6 +1,7 @@
-package com.webscare.urducanvas.ui.editor.panels.draw.shape
+package com.webscare.urducanvas.ui.editor.panels.objects.shape
 
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -27,21 +28,20 @@ import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientsAdapter
 import com.webscare.urducanvas.viewmodels.MainViewModel
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @AndroidEntryPoint
-class ShapePanelFragment : androidx.fragment.app.Fragment() {
+class ShapePanelFragment : Fragment() {
     private var _binding: FragmentShapePanelBinding? = null
     private val binding get() = _binding!!
     private var tabName: String = ""
-    private lateinit var colorsAdapter: com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter
-    private lateinit var gradientsAdapter: com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientsAdapter
+    private lateinit var colorsAdapter: ColorsAdapter
+    private lateinit var gradientsAdapter: GradientsAdapter
     private lateinit var shapesAdapter: ShapeAdapter
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
-    private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
+    private val viewModel: CanvasViewModel by activityViewModels()
+    private val mainViewModel: MainViewModel by activityViewModels()
     private var isStrokeEnabled = false
     private var isFillEnabled = true
     private var selectColorFor = false
@@ -86,7 +86,7 @@ class ShapePanelFragment : androidx.fragment.app.Fragment() {
             selectColorFor = true
             togglePanelStrokeFill(true)
 
-            colorsAdapter.selectedColor = viewModel.shapeStrokeColor.value ?: android.graphics.Color.TRANSPARENT
+            colorsAdapter.selectedColor = viewModel.shapeStrokeColor.value ?: Color.TRANSPARENT
             colorsAdapter.notifyDataSetChanged()
             gradientsAdapter.selectedItem = viewModel.shapeStrokeGradient.value
             gradientsAdapter.notifyDataSetChanged()
@@ -95,7 +95,7 @@ class ShapePanelFragment : androidx.fragment.app.Fragment() {
         binding.fill.addPressEffect {
             selectColorFor = false
             togglePanelStrokeFill(false)
-            colorsAdapter.selectedColor = viewModel.shapeFillColor.value ?: android.graphics.Color.TRANSPARENT
+            colorsAdapter.selectedColor = viewModel.shapeFillColor.value ?: Color.TRANSPARENT
             colorsAdapter.notifyDataSetChanged()
             gradientsAdapter.selectedItem = viewModel.shapeFillGradient.value
             gradientsAdapter.notifyDataSetChanged()
@@ -226,7 +226,7 @@ class ShapePanelFragment : androidx.fragment.app.Fragment() {
     private fun setupRecyclerView() {
         colorsAdapter =
             _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter(
-                _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.colorList,
+                Constants.colorList,
                 onColorSelected = { color ->
                     val selectedColor = color.colorCode.toColorInt()
                     if (selectColorFor) {
@@ -249,29 +249,29 @@ class ShapePanelFragment : androidx.fragment.app.Fragment() {
                 onColorPickerClicked = {
                     if (selectColorFor) {
                         viewModel.setStrokeGradient(null)
-                        viewModel.startPicking(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.COLOR_PICKER_SHAPE_STROKE)
+                        viewModel.startPicking(PickerTarget.COLOR_PICKER_SHAPE_STROKE)
                     } else {
                         viewModel.setFillGradient(null)
-                        viewModel.startPicking(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.COLOR_PICKER_SHAPE_FILL)
+                        viewModel.startPicking(PickerTarget.COLOR_PICKER_SHAPE_FILL)
                     }
                     childFragmentManager.beginTransaction().replace(
                         R.id.shapePanel,
-                        _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment()
+                        ColorPickerFragment()
                     )
                         .addToBackStack(null).commit()
                 },
                 onEyeDropperClicked = {
                     if (selectColorFor) {
                         viewModel.setStrokeGradient(null)
-                        viewModel.startPicking(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_SHAPE_STROKE)
+                        viewModel.startPicking(PickerTarget.EYE_DROPPER_SHAPE_STROKE)
                     } else {
                         viewModel.setFillGradient(null)
-                        viewModel.startPicking(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.PickerTarget.EYE_DROPPER_SHAPE_FILL)
+                        viewModel.startPicking(PickerTarget.EYE_DROPPER_SHAPE_FILL)
                     }
                 })
 
         gradientsAdapter =
-            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientsAdapter(
+            GradientsAdapter(
                 gradientList = emptyList(),
                 onGradientSelected = { _, item ->
                     if (selectColorFor) {
@@ -282,16 +282,16 @@ class ShapePanelFragment : androidx.fragment.app.Fragment() {
                 },
                 onGradientEditSelected = { _, item ->
                     if (selectColorFor) {
-                        viewModel.startPickingGradient(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget.SHAPE_STROKE)
+                        viewModel.startPickingGradient(GradientPickerTarget.SHAPE_STROKE)
                     } else {
-                        viewModel.startPickingGradient(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget.SHAPE_FILL)
+                        viewModel.startPickingGradient(GradientPickerTarget.SHAPE_FILL)
                     }
                     viewModel.setGradient(item)
                     viewModel.setPagingLocked(true)
                     childFragmentManager.beginTransaction()
                         .replace(
                             R.id.shapePanel,
-                            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment()
+                            GradientEditorFragment()
                                 .apply {
                                     arguments = Bundle().apply {
                                         putBoolean("IS_EDIT", true)
@@ -307,15 +307,15 @@ class ShapePanelFragment : androidx.fragment.app.Fragment() {
                 },
                 onGradientPickerClicked = {
                     if (selectColorFor) {
-                        viewModel.startPickingGradient(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget.SHAPE_STROKE)
+                        viewModel.startPickingGradient(GradientPickerTarget.SHAPE_STROKE)
                     } else {
-                        viewModel.startPickingGradient(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget.SHAPE_FILL)
+                        viewModel.startPickingGradient(GradientPickerTarget.SHAPE_FILL)
                     }
                     viewModel.setPagingLocked(true)
                     childFragmentManager.beginTransaction()
                         .replace(
                             R.id.shapePanel,
-                            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment()
+                            GradientEditorFragment()
                                 .apply {
                                     arguments = Bundle().apply {
                                         putBoolean("IS_EDIT", false)
@@ -323,12 +323,12 @@ class ShapePanelFragment : androidx.fragment.app.Fragment() {
                                 }).addToBackStack(null).commit()
                 })
 
-        shapesAdapter = ShapeAdapter(requireContext(), _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ShapeType.entries) { shape ->
+        shapesAdapter = ShapeAdapter(requireContext(), ShapeType.entries) { shape ->
             val elements = viewModel.canvasElements.value
             val isMask = viewModel.isMaskingMode.value
-            val isShapeSelected = elements?.any { it.isSelected && it.type == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.SHAPE } == true
+            val isShapeSelected = elements?.any { it.isSelected && it.type == ElementType.SHAPE } == true
             if (isMask == true) {
-                val selectedElement = elements?.find { it.isSelected && it.type == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ElementType.IMAGE }
+                val selectedElement = elements?.find { it.isSelected && it.type == ElementType.IMAGE }
                 selectedElement?.let {
                     viewModel.mergeImageToShape(it, shape, requireActivity())
                 }

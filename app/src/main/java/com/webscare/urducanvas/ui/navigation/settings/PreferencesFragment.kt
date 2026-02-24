@@ -1,25 +1,17 @@
 package com.webscare.urducanvas.ui.navigation.settings
 
-import android.R.id.toggle
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
+import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.ExportViewType
-import com.webscare.urducanvas.common.canvas.model.ExportFormat
-import com.webscare.urducanvas.common.canvas.model.ExportQuality
-import com.webscare.urducanvas.common.canvas.model.ExportResolution
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentPreferencesBinding
-import com.webscare.urducanvas.ui.editor.export.ExportOptionAdapter
 import dagger.hilt.android.AndroidEntryPoint
-import androidx.core.view.isVisible
-import androidx.navigation.fragment.findNavController
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 @AndroidEntryPoint
 class PreferencesFragment : androidx.fragment.app.Fragment() {
@@ -58,11 +50,11 @@ class PreferencesFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    private fun setupRecycler(rv: RecyclerView, type: com.webscare.urducanvas.common.canvas.enums.ExportViewType) {
+    private fun setupRecycler(rv: RecyclerView, type: ExportViewType) {
         val items = when (type) {
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ExportViewType.RESOLUTION -> viewModel.availableResolutions
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ExportViewType.QUALITY -> viewModel.qualityOptions
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ExportViewType.FORMAT -> viewModel.formatOptions
+            ExportViewType.RESOLUTION -> viewModel.availableResolutions
+            ExportViewType.QUALITY -> viewModel.qualityOptions
+            ExportViewType.FORMAT -> viewModel.formatOptions
         }
 
         rv.adapter =
@@ -93,9 +85,9 @@ class PreferencesFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun setEvents() {
-        setupRecycler(binding.resolutionList, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ExportViewType.RESOLUTION)
-        setupRecycler(binding.qualityList, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ExportViewType.QUALITY)
-        setupRecycler(binding.formatList, _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ExportViewType.FORMAT)
+        setupRecycler(binding.resolutionList, ExportViewType.RESOLUTION)
+        setupRecycler(binding.qualityList, ExportViewType.QUALITY)
+        setupRecycler(binding.formatList, ExportViewType.FORMAT)
 
         // expand/collapse on click
         binding.resolution.addPressEffect { toggle(binding.resolutionList) }

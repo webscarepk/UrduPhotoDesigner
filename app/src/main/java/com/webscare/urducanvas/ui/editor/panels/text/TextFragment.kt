@@ -76,7 +76,7 @@ class TextFragment : androidx.fragment.app.Fragment() {
 
     @SuppressLint("ClickableViewAccessibility")
     private fun setEvents() {
-        tabs = listOf("Font", "Appearance", "Format", "Style")
+        tabs = listOf("Font", "Appearance", "Format")
 
         val adapter = TextPagerAdapter(
             requireActivity().supportFragmentManager,

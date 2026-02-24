@@ -16,6 +16,7 @@ import com.webscare.urducanvas.common.canvas.enums.GradientType
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
+import androidx.core.graphics.createBitmap
 
 data class GradientItem(
     var id: Long = 0,
@@ -67,7 +68,7 @@ data class GradientItem(
         width: Int,
         height: Int
     ): Drawable {
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(width, height)
         val canvas = Canvas(bitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 

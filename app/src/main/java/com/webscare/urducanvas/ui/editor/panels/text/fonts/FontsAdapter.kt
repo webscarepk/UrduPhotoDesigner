@@ -95,7 +95,7 @@ class FontsAdapter(
                 }
             } else {
                 // Load font preview using Glide (from image_url)
-                val url = _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.BASE_URL_GLIDE + font.image_url
+                val url = Constants.BASE_URL_GLIDE + font.image_url
                 if (isSvgUrl(url)) {
                     Glide.with(binding.root.context)
                         .`as`(PictureDrawable::class.java)

@@ -115,7 +115,7 @@ class PopularFontsAdapter(
                 Glide.with(itemView.context).load(item.font_image).into(binding.image)
                 binding.shimmerLayout.hideShimmer()
             } else {
-                val url = _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.BASE_URL_GLIDE + item.image_url
+                val url = Constants.BASE_URL_GLIDE + item.image_url
                 if (url.endsWith(".svg", true)) {
                     Glide.with(itemView.context)
                         .`as`(PictureDrawable::class.java)
@@ -215,7 +215,7 @@ class PopularFontsAdapter(
                 Glide.with(itemView.context).load(item.font_image).into(binding.image)
                 binding.shimmerLayout.hideShimmer()
             } else {
-                val url = _root_ide_package_.com.webscare.urducanvas.common.utils.Constants.BASE_URL_GLIDE + item.image_url
+                val url = Constants.BASE_URL_GLIDE + item.image_url
                 if (url.endsWith(".svg", true)) {
                     Glide.with(itemView.context)
                         .`as`(PictureDrawable::class.java)

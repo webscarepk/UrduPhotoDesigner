@@ -5,15 +5,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.navigation.fragment.findNavController
-import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.model.FilterItem
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import com.webscare.urducanvas.common.utils.BitmapCache
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentFiltersBinding
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -22,103 +18,103 @@ class FiltersFragment : androidx.fragment.app.Fragment() {
     private var _binding: FragmentFiltersBinding? = null
     private val binding get() = _binding!!
     private lateinit var filtersAdapter: ImageFiltersAdapter
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    private val viewModel: CanvasViewModel by activityViewModels()
     private var previewBitmap: Bitmap? = null
     private var elementId: String? = null
 
     // Define your list of available filters
     private val availableFilters = listOf(
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "None",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.None
+            ImageFilter.None
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Grayscale",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Grayscale
+            ImageFilter.Grayscale
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Sepia",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Sepia
+            ImageFilter.Sepia
         ),             // Example: rotate hue by 90 degrees
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Invert",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Invert
+            ImageFilter.Invert
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Cool Tint",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.CoolTint
+            ImageFilter.CoolTint
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Warm Tint",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.WarmTint
+            ImageFilter.WarmTint
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Film",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Film
+            ImageFilter.Film
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Teal Orange",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.TealOrange
+            ImageFilter.TealOrange
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Black White",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.BlackWhite
+            ImageFilter.BlackWhite
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "High Contrast",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.HighContrast
+            ImageFilter.HighContrast
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Vintage",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Vintage
+            ImageFilter.Vintage
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Brightness",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.BrightnessBoost
+            ImageFilter.BrightnessBoost
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Soft Blur",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.SoftBlur
+            ImageFilter.SoftBlur
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Sharpen",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Sharpen
+            ImageFilter.Sharpen
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Glow",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Glow
+            ImageFilter.Glow
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Sketch",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Sketch
+            ImageFilter.Sketch
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Cartoon",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Cartoon
+            ImageFilter.Cartoon
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "HDR",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.HDR
+            ImageFilter.HDR
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Lomo",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Lomo
+            ImageFilter.Lomo
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Pastel",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Pastel
+            ImageFilter.Pastel
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Dramatic",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Dramatic
+            ImageFilter.Dramatic
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Golden Hour",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.GoldenHour
+            ImageFilter.GoldenHour
         ),
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.FilterItem(
+        FilterItem(
             "Cyberpunk",
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.sealed.ImageFilter.Cyberpunk
+            ImageFilter.Cyberpunk
         )
     )
 
@@ -126,7 +122,7 @@ class FiltersFragment : androidx.fragment.app.Fragment() {
         super.onCreate(savedInstanceState)
         arguments?.let { bundle ->
             elementId = arguments?.getString("elementId")
-            previewBitmap = _root_ide_package_.com.webscare.urducanvas.common.utils.BitmapCache.get(elementId ?: "")
+            previewBitmap = BitmapCache.get(elementId ?: "")
         }
     }
 

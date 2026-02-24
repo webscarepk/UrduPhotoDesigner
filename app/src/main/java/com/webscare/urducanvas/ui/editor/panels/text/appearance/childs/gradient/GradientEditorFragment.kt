@@ -7,15 +7,11 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.core.view.doOnLayout
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.webscare.urducanvas.R
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.GradientType
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentGradientEditorBinding
-import com.webscare.urducanvas.viewmodels.MainViewModel
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -68,11 +64,11 @@ class GradientEditorFragment : androidx.fragment.app.Fragment() {
             }
             // redraw your gradientBar as well
             when (gradient.type) {
-                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.GradientType.LINEAR -> {
+                GradientType.LINEAR -> {
                     updateButtonTints(binding.linear)
                 }
 
-                _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.GradientType.RADIAL -> {
+                GradientType.RADIAL -> {
                     updateButtonTints(binding.radial)
                 }
 
@@ -120,16 +116,16 @@ class GradientEditorFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.linear.addPressEffect {
-            viewModel.setType(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.GradientType.LINEAR)
+            viewModel.setType(GradientType.LINEAR)
             updateButtonTints(binding.linear)
         }
         binding.radial.addPressEffect {
-            viewModel.setType(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.GradientType.RADIAL)
+            viewModel.setType(GradientType.RADIAL)
             updateButtonTints(binding.radial)
         }
 
         binding.sweep.addPressEffect {
-            viewModel.setType(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.GradientType.SWEEP)
+            viewModel.setType(GradientType.SWEEP)
             updateButtonTints(binding.sweep)
         }
 

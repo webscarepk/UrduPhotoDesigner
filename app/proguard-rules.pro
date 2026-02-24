@@ -58,7 +58,7 @@
 }
 
 -keep class com.webscare.urducanvas.common.canvas.model.** { *; }
--keep class com.webscare.urducanvas.common.canvas.enums.** { *; }
+-keep class ** { *; }
 # Keep annotations and generic info
 -keepattributes Signature
 -keepattributes *Annotation*

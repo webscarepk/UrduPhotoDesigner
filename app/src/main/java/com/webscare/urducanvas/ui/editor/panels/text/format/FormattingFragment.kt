@@ -1,13 +1,11 @@
 package com.webscare.urducanvas.ui.editor.panels.text.format
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
 import androidx.fragment.app.activityViewModels
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.LetterCasing
 import com.webscare.urducanvas.common.canvas.enums.ListStyle
 import com.webscare.urducanvas.common.canvas.enums.ParagraphIndentation
@@ -15,9 +13,7 @@ import com.webscare.urducanvas.common.canvas.enums.TextAlignment
 import com.webscare.urducanvas.common.canvas.enums.TextDecoration
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentFormattingBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
-import kotlin.collections.minus
 
 @AndroidEntryPoint
 class FormattingFragment : androidx.fragment.app.Fragment() {
@@ -33,8 +29,7 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentFormattingBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -51,15 +46,15 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
     private fun setEvents() {
 
         val caseCards = listOf(
-            binding.defaultCase to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.LetterCasing.NONE,
-            binding.allCaps to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.LetterCasing.ALL_CAPS,
-            binding.lowerCase to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.LetterCasing.LOWER_CASE,
-            binding.titleCase to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.LetterCasing.TITLE_CASE
+            binding.defaultCase to LetterCasing.NONE,
+            binding.allCaps to LetterCasing.ALL_CAPS,
+            binding.lowerCase to LetterCasing.LOWER_CASE,
+            binding.titleCase to LetterCasing.TITLE_CASE
         )
 
         caseCards.forEach { (card, caseType) ->
             card.addPressEffect {
-                val currentCase = viewModel.letterCasing.value ?: _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.LetterCasing.NONE
+                val currentCase = viewModel.letterCasing.value ?: LetterCasing.NONE
                 // Set letter casing only if the card is different
                 if (currentCase != caseType) {
                     viewModel.setLetterCasing(caseType)
@@ -72,25 +67,25 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
         }
 
         val decorationCards = listOf(
-            binding.bold to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextDecoration.BOLD,
-            binding.italic to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextDecoration.ITALIC,
-            binding.underLine to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextDecoration.UNDERLINE,
-            binding.defaultStyle to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextDecoration.NONE
+            binding.bold to TextDecoration.BOLD,
+            binding.italic to TextDecoration.ITALIC,
+            binding.underLine to TextDecoration.UNDERLINE,
+            binding.defaultStyle to TextDecoration.NONE
         )
 
         decorationCards.forEach { (card, decorationType) ->
             card.addPressEffect {
                 val currentDecorations = viewModel.textDecoration.value ?: emptySet()
 
-                if (decorationType == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextDecoration.NONE) {
+                if (decorationType == TextDecoration.NONE) {
                     if (currentDecorations.isEmpty()) return@addPressEffect
                     viewModel.setTextDecoration(emptySet())
                     decorationCards.forEach { (otherCard, _) ->
                         otherCard.strokeWidth = if (otherCard == card) 4 else 0
                     }
                 } else {
-                    if (currentDecorations.contains(_root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextDecoration.NONE)) {
-                        viewModel.setTextDecoration(currentDecorations - _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextDecoration.NONE)
+                    if (currentDecorations.contains(TextDecoration.NONE)) {
+                        viewModel.setTextDecoration(currentDecorations - TextDecoration.NONE)
                     }
                     val updatedDecorations = if (currentDecorations.contains(decorationType)) {
                         currentDecorations - decorationType
@@ -99,22 +94,23 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
                     }
                     viewModel.setTextDecoration(updatedDecorations)
                     decorationCards.forEach { (otherCard, otherDecorationType) ->
-                        otherCard.strokeWidth = if (updatedDecorations.contains(otherDecorationType)) 4 else 0
+                        otherCard.strokeWidth =
+                            if (updatedDecorations.contains(otherDecorationType)) 4 else 0
                     }
                 }
             }
         }
 
         val alignCards = listOf(
-            binding.leftAlign to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextAlignment.LEFT,
-            binding.centerAlignment to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextAlignment.CENTER,
-            binding.rightAlign to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextAlignment.RIGHT,
-            binding.justify to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextAlignment.JUSTIFY
+            binding.leftAlign to TextAlignment.LEFT,
+            binding.centerAlignment to TextAlignment.CENTER,
+            binding.rightAlign to TextAlignment.RIGHT,
+            binding.justify to TextAlignment.JUSTIFY
         )
 
         alignCards.forEach { (card, alignType) ->
             card.addPressEffect {
-                val currentAlign = viewModel.textAlignment.value ?: _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextAlignment.LEFT
+                val currentAlign = viewModel.textAlignment.value ?: TextAlignment.LEFT
                 if (currentAlign != alignType) {
                     viewModel.setTextAlignment(alignType)
                 }
@@ -125,41 +121,44 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
         }
 
         val paraCards = listOf(
-            binding.defaultIndent to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ParagraphIndentation.NONE,
-            binding.decreaseIndent to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ParagraphIndentation.DECREASE_INDENT,
-            binding.increaseIndent to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ParagraphIndentation.INCREASE_INDENT
+            binding.defaultIndent to ParagraphIndentation.NONE,
+            binding.decreaseIndent to ParagraphIndentation.DECREASE_INDENT,
+            binding.increaseIndent to ParagraphIndentation.INCREASE_INDENT
         )
 
         paraCards.forEach { (card, indent) ->
             card.addPressEffect {
                 when (indent) {
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ParagraphIndentation.NONE -> {
+                    ParagraphIndentation.NONE -> {
                         viewModel.setIndentNone()
                     }
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ParagraphIndentation.INCREASE_INDENT -> {
+
+                    ParagraphIndentation.INCREASE_INDENT -> {
                         viewModel.increaseIndent()
                     }
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ParagraphIndentation.DECREASE_INDENT -> {
+
+                    ParagraphIndentation.DECREASE_INDENT -> {
                         viewModel.decreaseIndent()
                     }
                 }
                 val paraValue = viewModel.paragraphIndentation.value
 
                 paraCards.forEach { (otherCard, otherIndent) ->
-                    otherCard.strokeWidth = if (paraValue?.toInt() == 0 && otherIndent == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ParagraphIndentation.NONE) 4 else 0
+                    otherCard.strokeWidth =
+                        if (paraValue?.toInt() == 0 && otherIndent == ParagraphIndentation.NONE) 4 else 0
                 }
             }
         }
 
         val listCards = listOf(
-            binding.defaultList to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ListStyle.NONE,
-            binding.numberedList to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ListStyle.NUMBERED,
-            binding.bulletedList to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ListStyle.BULLETED
+            binding.defaultList to ListStyle.NONE,
+            binding.numberedList to ListStyle.NUMBERED,
+            binding.bulletedList to ListStyle.BULLETED
         )
 
         listCards.forEach { (card, listType) ->
             card.addPressEffect {
-                val currentList = viewModel.listStyle.value ?: _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ListStyle.NONE
+                val currentList = viewModel.listStyle.value ?: ListStyle.NONE
                 // Set list style only if it's a different selection
                 if (currentList != listType) {
                     viewModel.setListStyle(listType)
@@ -174,15 +173,16 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
         binding.lineSpace.apply {
             min = 0
             max = 100
-            setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                    if (fromUser){
+                    if (fromUser) {
                         val mappedLineSpacing = -0.5f + (progress / 100.0f) * (3.0f + 0.5f)
                         binding.lineSpacing.text = "%.2f".format(mappedLineSpacing)
 
                         viewModel.setLineSpacing(mappedLineSpacing)
                     }
                 }
+
                 override fun onStartTrackingTouch(sb: SeekBar) {}
                 override fun onStopTrackingTouch(sb: SeekBar) {}
             })
@@ -191,22 +191,25 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
         binding.letterSpace.apply {
             min = 0
             max = 100
-            setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                    if (fromUser){
-                        val mappedLetterSpacing = -0.5f + (progress / 100.0f) * 2.0f // Letter spacing range from -0.5 to 1.5
-                        binding.letterSpacing.text = "%.2f".format(mappedLetterSpacing) // Display with 2 decimal places
+                    if (fromUser) {
+                        val mappedLetterSpacing =
+                            -0.5f + (progress / 100.0f) * 2.0f // Letter spacing range from -0.5 to 1.5
+                        binding.letterSpacing.text =
+                            "%.2f".format(mappedLetterSpacing) // Display with 2 decimal places
 
                         viewModel.setLetterSpacing(mappedLetterSpacing)
                     }
                 }
+
                 override fun onStartTrackingTouch(sb: SeekBar) {}
                 override fun onStopTrackingTouch(sb: SeekBar) {}
             })
         }
     }
 
-    private fun initObservers(){
+    private fun initObservers() {
         viewModel.lineSpacing.observe(viewLifecycleOwner) { lineSpace ->
             val mappedLineProgress = (((lineSpace + 0.5f) / 3.5f) * 100).toInt().coerceIn(0, 100)
             binding.lineSpace.progress = mappedLineProgress
@@ -214,17 +217,18 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
         }
 
         viewModel.letterSpacing.observe(viewLifecycleOwner) { letterSpace ->
-            val mappedLetterProgress = (((letterSpace + 0.5f) / 2.0f) * 100).toInt().coerceIn(0, 100)
+            val mappedLetterProgress =
+                (((letterSpace + 0.5f) / 2.0f) * 100).toInt().coerceIn(0, 100)
             binding.letterSpace.progress = mappedLetterProgress
             binding.letterSpacing.text = "$mappedLetterProgress"
         }
 
         viewModel.currentTextAlignment.observe(viewLifecycleOwner) { alignment ->
             val alignCards = listOf(
-                binding.leftAlign to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextAlignment.LEFT,
-                binding.centerAlignment to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextAlignment.CENTER,
-                binding.rightAlign to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextAlignment.RIGHT,
-                binding.justify to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextAlignment.JUSTIFY,
+                binding.leftAlign to TextAlignment.LEFT,
+                binding.centerAlignment to TextAlignment.CENTER,
+                binding.rightAlign to TextAlignment.RIGHT,
+                binding.justify to TextAlignment.JUSTIFY,
             )
 
             alignCards.forEach { (card, alignType) ->
@@ -234,9 +238,9 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
 
         viewModel.listStyle.observe(viewLifecycleOwner) { listStyle ->
             val listCards = listOf(
-                binding.defaultList to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ListStyle.NONE,
-                binding.numberedList to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ListStyle.NUMBERED,
-                binding.bulletedList to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ListStyle.BULLETED
+                binding.defaultList to ListStyle.NONE,
+                binding.numberedList to ListStyle.NUMBERED,
+                binding.bulletedList to ListStyle.BULLETED
             )
 
             listCards.forEach { (card, list) ->
@@ -246,10 +250,10 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
 
         viewModel.letterCasing.observe(viewLifecycleOwner) { case ->
             val caseCards = listOf(
-                binding.defaultCase to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.LetterCasing.NONE,
-                binding.allCaps to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.LetterCasing.ALL_CAPS,
-                binding.lowerCase to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.LetterCasing.LOWER_CASE,
-                binding.titleCase to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.LetterCasing.TITLE_CASE
+                binding.defaultCase to LetterCasing.NONE,
+                binding.allCaps to LetterCasing.ALL_CAPS,
+                binding.lowerCase to LetterCasing.LOWER_CASE,
+                binding.titleCase to LetterCasing.TITLE_CASE
             )
 
             caseCards.forEach { (card, letterCase) ->
@@ -260,10 +264,10 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
 
         viewModel.textDecoration.observe(viewLifecycleOwner) { currentDecorations ->
             val decorationCards = listOf(
-                binding.bold to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextDecoration.BOLD,
-                binding.italic to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextDecoration.ITALIC,
-                binding.underLine to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextDecoration.UNDERLINE,
-                binding.defaultStyle to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.TextDecoration.NONE
+                binding.bold to TextDecoration.BOLD,
+                binding.italic to TextDecoration.ITALIC,
+                binding.underLine to TextDecoration.UNDERLINE,
+                binding.defaultStyle to TextDecoration.NONE
             )
 
             decorationCards.forEach { (card, decorationType) ->
@@ -273,13 +277,14 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
 
         viewModel.paragraphIndentation.observe(viewLifecycleOwner) { para ->
             val paraCards = listOf(
-                binding.defaultIndent to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ParagraphIndentation.NONE,
-                binding.decreaseIndent to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ParagraphIndentation.DECREASE_INDENT,
-                binding.increaseIndent to _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ParagraphIndentation.INCREASE_INDENT
+                binding.defaultIndent to ParagraphIndentation.NONE,
+                binding.decreaseIndent to ParagraphIndentation.DECREASE_INDENT,
+                binding.increaseIndent to ParagraphIndentation.INCREASE_INDENT
             )
 
             paraCards.forEach { (card, indent) ->
-                card.strokeWidth = if (para?.toInt() == 0 && indent == _root_ide_package_.com.webscare.urducanvas.common.canvas.enums.ParagraphIndentation.NONE) 4 else 0
+                card.strokeWidth =
+                    if (para?.toInt() == 0 && indent == ParagraphIndentation.NONE) 4 else 0
             }
         }
     }
@@ -292,12 +297,15 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
                 binding.lineSpacingCard.visibility = View.VISIBLE
                 binding.letterSpacingCard.visibility = View.VISIBLE
             }
+
             "casing" -> {
                 binding.casingCard.visibility = View.VISIBLE
             }
+
             "decoration" -> {
                 binding.decorationCard.visibility = View.VISIBLE
             }
+
             else -> {
                 binding.alignmentKit.visibility = View.VISIBLE
             }
