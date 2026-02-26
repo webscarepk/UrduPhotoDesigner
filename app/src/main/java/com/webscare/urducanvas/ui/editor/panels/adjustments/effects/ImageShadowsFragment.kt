@@ -13,6 +13,7 @@ import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.PickerTarget
 import com.webscare.urducanvas.common.utils.Constants
+import com.webscare.urducanvas.databinding.FragmentImagesShadowBinding
 import com.webscare.urducanvas.databinding.FragmentShadowsBinding
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment
@@ -20,7 +21,7 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class ImageShadowsFragment : Fragment() {
-    private var _binding: FragmentShadowsBinding? = null
+    private var _binding: FragmentImagesShadowBinding? = null
     private val binding get() = _binding!!
 
     private lateinit var colorsAdapter: ColorsAdapter
@@ -30,7 +31,7 @@ class ImageShadowsFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentShadowsBinding.inflate(layoutInflater, container, false)
+        _binding = FragmentImagesShadowBinding.inflate(layoutInflater, container, false)
         return binding.root
     }
 

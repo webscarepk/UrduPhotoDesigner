@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import com.webscare.urducanvas.R
@@ -22,6 +23,7 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
     private var _binding: FragmentAdjustmentsParentBinding? = null
     private val binding get() = _binding!!
 
+    private var mediator: TabLayoutMediator? = null
     private var tabs = mutableListOf<String>()
     private lateinit var adapter: EffectsPagerAdapter
     private var previewBitmap: Bitmap? = null
@@ -37,8 +39,7 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentAdjustmentsParentBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -56,26 +57,25 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
 
         elementId?.let {
             adapter = EffectsPagerAdapter(
-                requireActivity().supportFragmentManager,
-                lifecycle,
-                tabs,
-                it
+                this, tabs, it
             )
+            viewModel.populateAdjustmentsFromElement(it)
+            binding.viewPager.adapter = adapter
         }
 
-        elementId?.let { viewModel.populateAdjustmentsFromElement(it) }
-        binding.viewPager.adapter = adapter
+        binding.viewPager.isSaveEnabled = true
         binding.viewPager.isUserInputEnabled = false
         binding.done.addPressEffect { findNavController().navigateUp() }
         binding.reset.addPressEffect { viewModel.resetAdjustments() }
     }
 
     private fun setupTabLayout() {
-        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
+        mediator = TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
             val tabView = LayoutInflater.from(context).inflate(R.layout.custom_tab, null)
             tabView.findViewById<TextView>(R.id.tabTitle).text = tabs[position]
             tab.customView = tabView
-        }.attach()
+        }
+        mediator?.attach()
 
         binding.tabLayout.viewTreeObserver.addOnGlobalLayoutListener {
             if (isAdded) {
@@ -95,28 +95,28 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
 
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
-                tab?.view?.animate()
-                    ?.scaleX(1.0f)
-                    ?.scaleY(1.0f)
-                    ?.setDuration(150)
-                    ?.setInterpolator(android.view.animation.OvershootInterpolator())
-                    ?.start()
+                tab?.view?.animate()?.scaleX(1.0f)?.scaleY(1.0f)?.setDuration(150)
+                    ?.setInterpolator(android.view.animation.OvershootInterpolator())?.start()
             }
 
             override fun onTabUnselected(tab: TabLayout.Tab?) {
-                tab?.view?.animate()
-                    ?.scaleX(0.9f)
-                    ?.scaleY(0.9f)
-                    ?.setDuration(150)
-                    ?.start()
+                tab?.view?.animate()?.scaleX(0.9f)?.scaleY(0.9f)?.setDuration(150)?.start()
             }
 
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    fun clearPager() {
+        binding.viewPager.adapter = null
+    }
+
+    override fun onDestroyView() {
+        binding.viewPager.adapter = null
+        mediator?.detach()
+        mediator = null
+
+        super.onDestroyView()
         _binding = null
     }
 }

@@ -81,6 +81,8 @@ class CanvasViewModel @Inject constructor(
     private val _exportOptions = MutableLiveData<ExportOptions>()
     val exportOptions: LiveData<ExportOptions> = _exportOptions
 
+    val openAdjustments = MutableSharedFlow<String?>()
+
     private val _activePicker = MutableLiveData<PickerTarget?>(null)
     val activePicker: LiveData<PickerTarget?> = _activePicker
 

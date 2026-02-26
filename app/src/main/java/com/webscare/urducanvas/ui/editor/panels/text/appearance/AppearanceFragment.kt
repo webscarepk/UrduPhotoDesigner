@@ -54,7 +54,7 @@ class AppearanceFragment : androidx.fragment.app.Fragment() {
         binding.viewPager.offscreenPageLimit = 1
 
         pagerAdapter =
-            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.AppearancePagerAdapter(
+            AppearancePagerAdapter(
                 this,
                 tabs
             )

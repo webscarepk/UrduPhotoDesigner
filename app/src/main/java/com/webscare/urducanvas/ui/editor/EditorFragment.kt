@@ -36,6 +36,7 @@ import androidx.annotation.AnimRes
 import androidx.annotation.ColorRes
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
+import androidx.core.os.bundleOf
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
@@ -57,6 +58,7 @@ import com.webscare.urducanvas.common.canvas.enums.MultiAlignMode
 import com.webscare.urducanvas.common.canvas.enums.PickerTarget
 import com.webscare.urducanvas.common.canvas.enums.UnitType
 import com.webscare.urducanvas.common.canvas.enums.VAlign
+import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import com.webscare.urducanvas.common.utils.BitmapCache
 import com.webscare.urducanvas.common.utils.Converter
 import com.webscare.urducanvas.common.utils.ImageProcessor
@@ -90,7 +92,7 @@ class EditorFragment : Fragment() {
     private lateinit var canvasSize: com.webscare.urducanvas.common.canvas.model.CanvasSize
     private var currentUnit = UnitType.PIXELS
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
-    private var lastSelection: List<com.webscare.urducanvas.common.canvas.model.CanvasElement> = emptyList()
+    private var lastSelection: List<CanvasElement> = emptyList()
     private var activePanel: View? = null
     private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
     private var currentPanelItemId: Int? = null
@@ -179,7 +181,9 @@ class EditorFragment : Fragment() {
 
                 withContext(Dispatchers.Main) {
                     viewModel.addSticker(
-                        ImageProcessor.filePathToBitmap(filePath!!), requireActivity(), ElementType.IMAGE
+                        ImageProcessor.filePathToBitmap(filePath!!),
+                        requireActivity(),
+                        ElementType.IMAGE
                     )
                 }
             } catch (e: Exception) {
@@ -256,8 +260,12 @@ class EditorFragment : Fragment() {
                     var newX = fabInitialX + dx
                     var newY = fabInitialY + dy
 
-                    newX = newX.coerceIn(fabMargin.toFloat(), (parentWidth - v.width - fabMargin).toFloat())
-                    newY = newY.coerceIn(fabMargin.toFloat(), (parentHeight - v.height - fabMargin).toFloat())
+                    newX = newX.coerceIn(
+                        fabMargin.toFloat(), (parentWidth - v.width - fabMargin).toFloat()
+                    )
+                    newY = newY.coerceIn(
+                        fabMargin.toFloat(), (parentHeight - v.height - fabMargin).toFloat()
+                    )
 
                     v.x = newX
                     v.y = newY
@@ -266,6 +274,7 @@ class EditorFragment : Fragment() {
                         updateFabMenuPosition(fabAdd, fabMenu)
                     }
                 }
+
                 MotionEvent.ACTION_UP -> {
                     v.translationZ = 10f
 
@@ -346,14 +355,9 @@ class EditorFragment : Fragment() {
             fabMenu.pivotX = pivotX
             fabMenu.pivotY = pivotY
 
-            fabMenu.animate()
-                .alpha(0f)
-                .scaleX(0.5f)
-                .scaleY(0.5f)
-                .setDuration(200)
-                .withEndAction {
-                    fabMenu.visibility = View.GONE
-                }.start()
+            fabMenu.animate().alpha(0f).scaleX(0.5f).scaleY(0.5f).setDuration(200).withEndAction {
+                fabMenu.visibility = View.GONE
+            }.start()
         }
     }
 
@@ -532,18 +536,22 @@ class EditorFragment : Fragment() {
                     UnitType.INCHES -> Converter.inchesToPx(
                         size.width
                     )
+
                     UnitType.CENTIMETERS -> Converter.cmToPx(
                         size.width
                     )
+
                     UnitType.PIXELS -> size.width.toInt()
                 }
                 val heightPx = when (currentUnit) {
                     UnitType.INCHES -> Converter.inchesToPx(
                         size.height
                     )
+
                     UnitType.CENTIMETERS -> Converter.cmToPx(
                         size.height
                     )
+
                     UnitType.PIXELS -> size.height.toInt()
                 }
 
@@ -703,16 +711,72 @@ class EditorFragment : Fragment() {
             }
         }
 
+        viewLifecycleOwner.lifecycleScope.launchWhenResumed {
+            viewModel.openAdjustments.collect { elementId ->
+
+                if (elementId != null) {
+                    navController.navigate(
+                        R.id.adjustmentsParentFragment,
+                        bundleOf("elementId" to elementId)
+                    )
+                } else {
+                    navController.popBackStack(
+                        R.id.adjustmentsParentFragment,
+                        true
+                    )
+                }
+            }
+        }
+
         viewModel.selectedElements.observe(viewLifecycleOwner) { newSelection ->
-            if (!newSelection.sameSelectionAs(lastSelection)) {
-                resetPanelsOnSelectionChange()
-                updateToolbarVisibility(newSelection)
-                lastSelection = newSelection.toList()
+
+            if (!isAdded) return@observe
+
+            val selectionChanged = !newSelection.sameSelectionAs(lastSelection)
+            if (!selectionChanged) return@observe
+
+            lastSelection = newSelection.toList()
+
+            resetPanelsOnSelectionChange()
+            updateToolbarVisibility(newSelection)
+
+            val first = newSelection.firstOrNull()
+
+            val shouldOpenAdjustments =
+                newSelection.size == 1 && first != null && (first.type == ElementType.IMAGE || first.type == ElementType.STICKER || first.type == ElementType.BACKGROUND)
+
+            val isAdjustmentOpen =
+                navController.currentDestination?.id == R.id.adjustmentsParentFragment
+
+            if (shouldOpenAdjustments && !isAdjustmentOpen) {
+
+                first?.let { element ->
+
+                    element.bitmap?.let { bmp ->
+                        BitmapCache.put(element.id, bmp)
+                    }
+
+                    val bundle = Bundle().apply {
+                        putString("elementId", element.id)
+                    }
+
+                    val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
+
+                    navController.navigate(
+                        R.id.adjustmentsParentFragment, bundle, navOptions
+                    )
+                }
+            } else if (!shouldOpenAdjustments && isAdjustmentOpen) {
+                if (isAdded && navController.currentDestination?.id == R.id.adjustmentsParentFragment) {
+                    navController.popBackStack(
+                        R.id.adjustmentsParentFragment, true
+                    )
+                }
             }
         }
     }
 
-    private fun List<com.webscare.urducanvas.common.canvas.model.CanvasElement>.sameSelectionAs(other: List<com.webscare.urducanvas.common.canvas.model.CanvasElement>): Boolean {
+    private fun List<CanvasElement>.sameSelectionAs(other: List<CanvasElement>): Boolean {
         if (size != other.size) return false
         return this.map { it.id } == other.map { it.id }
     }
@@ -726,7 +790,7 @@ class EditorFragment : Fragment() {
         binding.blendSpinner.isVisible = false
     }
 
-    private fun updateToolbarVisibility(selected: List<com.webscare.urducanvas.common.canvas.model.CanvasElement>) {
+    private fun updateToolbarVisibility(selected: List<CanvasElement>) {
         if (panelsLocked) {
             // 🔒 force hide everything
             resetPanelsOnSelectionChange()
@@ -741,9 +805,10 @@ class EditorFragment : Fragment() {
         }
 
         val hasText = selected.any { it.type == ElementType.TEXT }
-        val hasImage = selected.any { it.type == ElementType.IMAGE || it.type == ElementType.STICKER }
+        val hasImage =
+            selected.any { it.type == ElementType.IMAGE || it.type == ElementType.STICKER }
         val hasBackground = selected.any { it.type == ElementType.BACKGROUND }
-        val hasShapeMask = selected.any { it.type == ElementType.SHAPE && it.bitmap != null}
+        val hasShapeMask = selected.any { it.type == ElementType.SHAPE && it.bitmap != null }
         val isMulti = selected.size > 1
         val anySelected = selected.isNotEmpty()
 
@@ -812,8 +877,7 @@ class EditorFragment : Fragment() {
                                     selected?.let {
                                         val key = it.id
                                         BitmapCache.put(
-                                            key,
-                                            it.bitmap!!
+                                            key, it.bitmap!!
                                         )
                                         val bundle = Bundle().apply { putString("elementId", key) }
 
@@ -837,24 +901,20 @@ class EditorFragment : Fragment() {
                                         selected?.let {
                                             val key = it.id
                                             BitmapCache.put(
-                                                key,
-                                                it.bitmap!!
+                                                key, it.bitmap!!
                                             )
                                             val bundle =
                                                 Bundle().apply { putString("elementId", key) }
 
-                                            val navOptions = NavOptions.Builder()
-                                                .setLaunchSingleTop(true)
-                                                .setPopUpTo(
-                                                    R.id.adjustmentsParentFragment,
-                                                    inclusive = true
-                                                )
-                                                .build()
+                                            val navOptions =
+                                                NavOptions.Builder().setLaunchSingleTop(true)
+                                                    .setPopUpTo(
+                                                        R.id.adjustmentsParentFragment,
+                                                        inclusive = true
+                                                    ).build()
 
                                             navController.navigate(
-                                                R.id.adjustmentsParentFragment,
-                                                bundle,
-                                                navOptions
+                                                R.id.adjustmentsParentFragment, bundle, navOptions
                                             )
                                         }
                                     } else {
@@ -871,9 +931,7 @@ class EditorFragment : Fragment() {
                                             NavOptions.Builder().setLaunchSingleTop(true).build()
 
                                         navController.navigate(
-                                            R.id.drawFragment,
-                                            bundle,
-                                            navOptions
+                                            R.id.drawFragment, bundle, navOptions
                                         )
                                     }
                                 }
@@ -999,7 +1057,8 @@ class EditorFragment : Fragment() {
         binding.opacityIcon.addPressEffect {
             togglePanel(showOpacityPanel = true)
             binding.opacityValue.setTextColor(ColorStateList.valueOf(colorOf(R.color.white)))
-            binding.opacityValue.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.appColor))
+            binding.opacityValue.backgroundTintList =
+                ColorStateList.valueOf(colorOf(R.color.appColor))
             resetFontSizeState()
             resetBlendState()
             activePanel = binding.opacityValue
@@ -1015,14 +1074,15 @@ class EditorFragment : Fragment() {
         }
 
         binding.fontSize.addPressEffect {
-            if (activePanel == binding.fontSize){
+            if (activePanel == binding.fontSize) {
                 resetFontSizeState()
                 resetOpacityState()
                 resetBlendState()
                 activePanel = null
-            }else{
+            } else {
                 binding.fontSize.setTextColor(ColorStateList.valueOf(colorOf(R.color.white)))
-                binding.fontSize.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.appColor))
+                binding.fontSize.backgroundTintList =
+                    ColorStateList.valueOf(colorOf(R.color.appColor))
                 resetOpacityState()
                 resetBlendState()
                 activePanel = binding.fontSize
@@ -1031,14 +1091,15 @@ class EditorFragment : Fragment() {
         }
 
         binding.blendIcon.addPressEffect {
-            if (activePanel == binding.blendIcon){
+            if (activePanel == binding.blendIcon) {
                 resetBlendState()
                 resetOpacityState()
                 resetFontSizeState()
                 activePanel = null
-            }else{
+            } else {
                 binding.blendIcon.imageTintList = ColorStateList.valueOf(colorOf(R.color.white))
-                binding.blendIcon.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.appColor))
+                binding.blendIcon.backgroundTintList =
+                    ColorStateList.valueOf(colorOf(R.color.appColor))
                 resetOpacityState()
                 resetFontSizeState()
                 activePanel = binding.blendIcon

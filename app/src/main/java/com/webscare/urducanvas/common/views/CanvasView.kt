@@ -1874,12 +1874,16 @@ class CanvasView @JvmOverloads constructor(
                                 if (element.hasShadow && element.shadowOpacity > 0) {
 
                                     val shadowColor = Color.argb(
-                                        element.shadowOpacity,
+                                        element.shadowOpacity.coerceIn(0, 255),
                                         Color.red(element.shadowColor),
                                         Color.green(element.shadowColor),
                                         Color.blue(element.shadowColor)
                                     )
 
+                                    // 1️⃣ Extract alpha mask of bitmap
+                                    val alphaBitmap = finalBitmap.extractAlpha()
+
+                                    // 2️⃣ Create shadow paint
                                     val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                                         color = shadowColor
                                         maskFilter = BlurMaskFilter(
@@ -1888,14 +1892,10 @@ class CanvasView @JvmOverloads constructor(
                                         )
                                     }
 
-                                    // Extract alpha mask of bitmap
-                                    val alphaBitmap = finalBitmap.extractAlpha()
-
+                                    // 3️⃣ Draw blurred alpha with offset
                                     canvas.save()
                                     canvas.translate(element.shadowDx, element.shadowDy)
-
                                     canvas.drawBitmap(alphaBitmap, left, top, shadowPaint)
-
                                     canvas.restore()
 
                                     alphaBitmap.recycle()
@@ -1954,9 +1954,15 @@ class CanvasView @JvmOverloads constructor(
 
                                 if (element.hasOverlay && element.overlayOpacity > 0) {
 
+                                    canvas.saveLayer(left, top, left + w, top + h, null)
+
+                                    // 1️⃣ Draw original bitmap first
+                                    canvas.drawBitmap(finalBitmap, left, top, null)
+
+                                    // 2️⃣ Overlay paint
                                     val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                                        alpha = element.overlayOpacity.coerceIn(0,255)
-                                        xfermode = drawWithBlend(element)
+                                        alpha = element.overlayOpacity.coerceIn(0, 255)
+                                        xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
                                     }
 
                                     if (element.overlayGradient != null) {
@@ -1966,10 +1972,11 @@ class CanvasView @JvmOverloads constructor(
                                         overlayPaint.color = element.overlayColor
                                     }
 
+                                    // 3️⃣ Draw overlay rectangle
                                     canvas.drawRect(left, top, left + w, top + h, overlayPaint)
-                                }
 
-                                canvas.restore()
+                                    canvas.restore()
+                                }
                             }
                         }
                     }

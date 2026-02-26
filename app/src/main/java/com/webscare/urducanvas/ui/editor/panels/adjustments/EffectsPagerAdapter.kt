@@ -1,8 +1,6 @@
 package com.webscare.urducanvas.ui.editor.panels.adjustments
 
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentManager
-import androidx.lifecycle.Lifecycle
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.webscare.urducanvas.ui.editor.panels.adjustments.custom.AdjustmentsFragment
 import com.webscare.urducanvas.ui.editor.panels.adjustments.effects.EffectsFragment
@@ -10,11 +8,10 @@ import com.webscare.urducanvas.ui.editor.panels.adjustments.filters.FiltersFragm
 import com.webscare.urducanvas.ui.editor.panels.adjustments.mask.MaskFragment
 
 class EffectsPagerAdapter(
-    fragmentManager: FragmentManager,
-    lifecycle: Lifecycle,
+    fragment: Fragment,
     private var tabs: List<String> = listOf("Adjust", "Filters"),
     private val elementId: String
-) : androidx.viewpager2.adapter.FragmentStateAdapter(fragmentManager, lifecycle) {
+) : FragmentStateAdapter(fragment) {
 
     override fun getItemCount(): Int = tabs.size
 
@@ -29,12 +26,11 @@ class EffectsPagerAdapter(
         }
     }
 
-    /** ✅ Force recreation when tab list changes */
     override fun getItemId(position: Int): Long {
-        return tabs[position].hashCode().toLong()
+        return (tabs[position] + elementId).hashCode().toLong()
     }
 
     override fun containsItem(itemId: Long): Boolean {
-        return tabs.any { it.hashCode().toLong() == itemId }
+        return tabs.any { (it + elementId).hashCode().toLong() == itemId }
     }
 }

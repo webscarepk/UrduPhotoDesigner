@@ -11,19 +11,19 @@ import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.ShadowsFr
 
 class AppearancePagerAdapter(
     fragment: Fragment,
-    private var tabs: List<com.webscare.urducanvas.data.model.PanelTabs>
-) : androidx.viewpager2.adapter.FragmentStateAdapter(fragment) {
+    private var tabs: List<PanelTabs>
+) : FragmentStateAdapter(fragment) {
 
     override fun getItemCount() = tabs.size
 
     override fun createFragment(position: Int): Fragment {
         return when (position) {
-            0 -> _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.KasheedaFragment.Companion.newInstance()
-            1, 2 -> _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.FillStrokeFragment.Companion.newInstance(tabs[position].tab_name)
-            3 -> _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.ShadowsFragment.Companion.newInstance()
-            4 -> _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.LabelsFragment.Companion.newInstance()
-            5 -> _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.BlendFragment.Companion.newInstance()
-            else -> _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.BlendFragment.Companion.newInstance()
+            0 -> KasheedaFragment.Companion.newInstance()
+            1, 2 -> FillStrokeFragment.Companion.newInstance(tabs[position].tab_name)
+            3 -> ShadowsFragment.Companion.newInstance()
+            4 -> LabelsFragment.Companion.newInstance()
+            5 -> BlendFragment.Companion.newInstance()
+            else -> BlendFragment.Companion.newInstance()
         }
     }
 
