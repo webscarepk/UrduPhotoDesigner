@@ -63,7 +63,7 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
 
     private fun setupRecyclerView() {
         colorsAdapter =
-            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter(
+            ColorsAdapter(
                 Constants.colorList,
                 onColorSelected = { color ->
                     val selectedColor = color.colorCode.toColorInt()

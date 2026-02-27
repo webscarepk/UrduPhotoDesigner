@@ -66,9 +66,9 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
 
     private var tabName: String? = null
     private lateinit var adapter: FilesAdapter
-    private val viewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
-    private val canvasViewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
-    private val filtersViewModel: com.webscare.urducanvas.viewmodels.FiltersViewModel by activityViewModels()
+    private val viewModel: MainViewModel by activityViewModels()
+    private val canvasViewModel: CanvasViewModel by activityViewModels()
+    private val filtersViewModel: FiltersViewModel by activityViewModels()
     private var bundle: Bundle = Bundle()
     private var loadingDialog: Dialog? = null
     private var dialogBinding: DialogLoadingProgressBinding? = null
@@ -805,7 +805,10 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
 
         loadingDialog = Dialog(requireContext()).apply {
             setContentView(dialogBinding!!.root)
-            setCancelable(false)
+            setCancelable(true)
+            setOnCancelListener { dialog ->
+                canvasViewModel.clearLoading()
+            }
             window?.setBackgroundDrawableResource(android.R.color.transparent)
             val params = window?.attributes
             params?.width = (resources.displayMetrics.widthPixels * 0.8).toInt() // 80% width

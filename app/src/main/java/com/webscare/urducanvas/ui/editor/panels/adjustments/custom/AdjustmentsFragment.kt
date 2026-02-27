@@ -64,21 +64,21 @@ class AdjustmentsFragment : Fragment() {
             tabs.add(
                 PanelTabs(
                     0,
-                    "Lights",
+                    "Light",
                     true
                 )
             )
             tabs.add(
                 PanelTabs(
                     1,
-                    "Colors",
+                    "Color",
                     false
                 )
             )
             tabs.add(
                PanelTabs(
                     2,
-                    "Advanced",
+                    "Detail",
                     false
                 )
             )

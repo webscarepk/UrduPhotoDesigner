@@ -20,6 +20,8 @@ class EffectsPagerAdapter(
         return when (position) {
             0 -> ImageShadowsFragment.newInstance()
             1 -> OverlayColorListFragment.newInstance()
+            2 -> BlurFragment.newInstance()
+            3 -> ImageStrokeFragment.newInstance()
             else -> ShadowsFragment()
         }
     }

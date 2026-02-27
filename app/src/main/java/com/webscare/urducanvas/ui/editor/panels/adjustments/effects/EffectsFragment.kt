@@ -71,6 +71,18 @@ class EffectsFragment : Fragment() {
                 )
             )
 
+            tabs.add(
+                PanelTabs(
+                    2, "Blur", false
+                )
+            )
+
+            tabs.add(
+                PanelTabs(
+                    3, "Stroke", false
+                )
+            )
+
             adapter.submitList(ArrayList(tabs))
             handleSelection(tabs.firstOrNull()) // Select "All" by default
         }

@@ -18,11 +18,11 @@ class TextPagerAdapter(
 
     override fun createFragment(position: Int): Fragment {
         return when (tabs[position]) {
-            "Font" -> _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.fonts.FontsFragment.Companion.newInstance()
-            "Appearance" -> _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.AppearanceFragment.Companion.newInstance()
-            "Format" -> _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.format.FormatFragment.Companion.newInstance()
-            "Style" -> _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.format.FormatFragment.Companion.newInstance()
-            else -> _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.fonts.FontsFragment.Companion.newInstance()
+            "Font" -> FontsFragment.Companion.newInstance()
+            "Appearance" -> AppearanceFragment.Companion.newInstance()
+            "Format" -> FormatFragment.Companion.newInstance()
+            "Style" -> FormatFragment.Companion.newInstance()
+            else -> FontsFragment.Companion.newInstance()
         }
     }
 

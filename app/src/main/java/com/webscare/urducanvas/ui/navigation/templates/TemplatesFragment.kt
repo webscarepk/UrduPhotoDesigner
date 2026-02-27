@@ -111,7 +111,11 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
         dialogBinding = DialogLoadingProgressBinding.inflate(LayoutInflater.from(requireActivity()))
 
         loadingDialog = AlertDialog.Builder(requireActivity()).setView(dialogBinding!!.root)
-            .setCancelable(false).create()
+            .setCancelable(true)
+            .setOnCancelListener { dialog ->
+                viewModel.clearLoading()
+            }
+            .create()
 
         loadingDialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
         loadingDialog?.show()

@@ -17,6 +17,9 @@ enum class PickerTarget {
   @SerializedName("EyeDropperShadow")
   EYE_DROPPER_SHADOW,
 
+  @SerializedName("EyeDropperImageStroke")
+  EYE_DROPPER_IMAGE_STROKE,
+
   @SerializedName("EyeDropperLabel")
   EYE_DROPPER_LABEL,
 
@@ -45,6 +48,9 @@ enum class PickerTarget {
 
   @SerializedName("ColorPickerTextStroke")
   COLOR_PICKER_TEXT_STROKE,
+
+  @SerializedName("ColorPickerImageStroke")
+  COLOR_PICKER_IMAGE_STROKE,
 
   @SerializedName("ColorPickerShadow")
   COLOR_PICKER_SHADOW,

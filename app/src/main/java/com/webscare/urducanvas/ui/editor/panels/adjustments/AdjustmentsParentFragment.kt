@@ -7,12 +7,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.activityViewModels
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.canvas.enums.ElementType
+import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import com.webscare.urducanvas.common.utils.BitmapCache
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentAdjustmentsParentBinding
@@ -48,6 +51,9 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        binding.viewPager.isSaveEnabled = false
+        binding.viewPager.adapter = null
+
         setEvents()
         setupTabLayout()
     }
@@ -57,13 +63,16 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
 
         elementId?.let {
             adapter = EffectsPagerAdapter(
-                this, tabs, it
+                requireActivity().supportFragmentManager,
+                lifecycle,
+                tabs, it
             )
             viewModel.populateAdjustmentsFromElement(it)
             binding.viewPager.adapter = adapter
+            adapter.stateRestorationPolicy =
+                RecyclerView.Adapter.StateRestorationPolicy.PREVENT
         }
 
-        binding.viewPager.isSaveEnabled = true
         binding.viewPager.isUserInputEnabled = false
         binding.done.addPressEffect { findNavController().navigateUp() }
         binding.reset.addPressEffect { viewModel.resetAdjustments() }
@@ -107,15 +116,10 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
         })
     }
 
-    fun clearPager() {
-        binding.viewPager.adapter = null
-    }
-
     override fun onDestroyView() {
-        binding.viewPager.adapter = null
         mediator?.detach()
         mediator = null
-
+        binding.viewPager.adapter = null
         super.onDestroyView()
         _binding = null
     }

@@ -103,7 +103,10 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
         loadingDialog = Dialog(requireContext()).apply {
             setContentView(dialogBinding!!.root)
-            setCancelable(false)
+            setCancelable(true)
+            setOnCancelListener { dialog ->
+                viewModel.clearLoading()
+            }
             window?.setBackgroundDrawableResource(android.R.color.transparent)
             val params = window?.attributes
             params?.width = (resources.displayMetrics.widthPixels * 0.8).toInt() // 80% width

@@ -36,7 +36,6 @@ import androidx.annotation.AnimRes
 import androidx.annotation.ColorRes
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
-import androidx.core.os.bundleOf
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
@@ -49,6 +48,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
+import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupWithNavController
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.BlendType
@@ -63,6 +63,7 @@ import com.webscare.urducanvas.common.utils.BitmapCache
 import com.webscare.urducanvas.common.utils.Converter
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.common.views.CanvasView
 import com.webscare.urducanvas.databinding.DialogAutoSavingLayoutBinding
 import com.webscare.urducanvas.databinding.FragmentEditorBinding
 import com.webscare.urducanvas.databinding.LayoutBlendPopupBinding
@@ -711,23 +712,6 @@ class EditorFragment : Fragment() {
             }
         }
 
-        viewLifecycleOwner.lifecycleScope.launchWhenResumed {
-            viewModel.openAdjustments.collect { elementId ->
-
-                if (elementId != null) {
-                    navController.navigate(
-                        R.id.adjustmentsParentFragment,
-                        bundleOf("elementId" to elementId)
-                    )
-                } else {
-                    navController.popBackStack(
-                        R.id.adjustmentsParentFragment,
-                        true
-                    )
-                }
-            }
-        }
-
         viewModel.selectedElements.observe(viewLifecycleOwner) { newSelection ->
 
             if (!isAdded) return@observe
@@ -764,12 +748,6 @@ class EditorFragment : Fragment() {
 
                     navController.navigate(
                         R.id.adjustmentsParentFragment, bundle, navOptions
-                    )
-                }
-            } else if (!shouldOpenAdjustments && isAdjustmentOpen) {
-                if (isAdded && navController.currentDestination?.id == R.id.adjustmentsParentFragment) {
-                    navController.popBackStack(
-                        R.id.adjustmentsParentFragment, true
                     )
                 }
             }
@@ -862,7 +840,7 @@ class EditorFragment : Fragment() {
             (sizedCanvasView.parent as? ViewGroup)?.removeView(sizedCanvasView)
             binding.canvasContainer.addView(sizedCanvasView)
         } else {
-            sizedCanvasView = _root_ide_package_.com.webscare.urducanvas.common.views.CanvasView(
+            sizedCanvasView = CanvasView(
                 requireContext(),
                 canvasWidth = widthPx,
                 canvasHeight = heightPx,

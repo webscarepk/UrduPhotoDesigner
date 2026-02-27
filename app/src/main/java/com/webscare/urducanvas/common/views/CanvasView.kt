@@ -83,16 +83,16 @@ class CanvasView @JvmOverloads constructor(
     private var canvasWidth: Int = 300,
     private var canvasHeight: Int = 300,
     attrs: AttributeSet? = null,
-    var onEditTextRequested: ((com.webscare.urducanvas.common.canvas.model.CanvasElement) -> Unit)? = null,
-    var onElementChanged: ((com.webscare.urducanvas.common.canvas.model.CanvasElement) -> Unit)? = null,
-    var onElementRemoved: ((com.webscare.urducanvas.common.canvas.model.CanvasElement) -> Unit)? = null,
-    var onElementSelected: ((List<com.webscare.urducanvas.common.canvas.model.CanvasElement>) -> Unit)? = null,
+    var onEditTextRequested: ((CanvasElement) -> Unit)? = null,
+    var onElementChanged: ((CanvasElement) -> Unit)? = null,
+    var onElementRemoved: ((CanvasElement) -> Unit)? = null,
+    var onElementSelected: ((List<CanvasElement>) -> Unit)? = null,
     var onStartBatchUpdate: ((String, String) -> Unit)? = null,
     var onEndBatchUpdate: ((String) -> Unit)? = null,
     var onColorPicked: ((Int) -> Unit)? = null,
     var onRequestOpenLayers: (() -> Unit)? = null,
     var onExitSelectionMode: (() -> Unit)? = null,
-    var onDrawStrokeCompleted: ((com.webscare.urducanvas.common.canvas.model.CanvasElement) -> Unit)? = null
+    var onDrawStrokeCompleted: ((CanvasElement) -> Unit)? = null
 ) : View(context, attrs) {
 
     private val gson: Gson by lazy {
@@ -101,13 +101,13 @@ class CanvasView @JvmOverloads constructor(
         ).gson()
     }
     private var gestureDetector: GestureDetector
-
+    private var isRotating = false
     private var colorPickerBitmap: Bitmap? = null
     private var isColorPickerMode = false
 
     private var currentPath: Path? = null
     private var currentPaint: Paint? = null
-    private var activeDrawElement: com.webscare.urducanvas.common.canvas.model.CanvasElement? = null
+    private var activeDrawElement: CanvasElement? = null
 
     private var currentStrokePath: Path? = null
     private var currentStrokePaint: Paint? = null
@@ -1871,6 +1871,37 @@ class CanvasView @JvmOverloads constructor(
                                 val left = -w / 2f
                                 val top = -h / 2f
 
+                                if (element.hasStroke && element.strokeWidth > 0f) {
+
+                                    val strokeWidth = element.strokeWidth.toInt().coerceAtLeast(1)
+                                    val alphaBitmap = finalBitmap.extractAlpha()
+
+                                    val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                                        style = Paint.Style.FILL
+                                        isFilterBitmap = true
+
+                                        if (element.strokeGradient != null) {
+                                            shader = createGradientShader(element.strokeGradient!!, w, h)
+                                        } else {
+                                            color = element.strokeColor
+                                        }
+                                    }
+
+                                    canvas.save()
+
+                                    // Draw expanded alpha in 360 directions
+                                    for (angle in 0 until 360 step 10) {
+                                        val rad = Math.toRadians(angle.toDouble())
+                                        val dx = (strokeWidth * cos(rad)).toFloat()
+                                        val dy = (strokeWidth * sin(rad)).toFloat()
+
+                                        canvas.drawBitmap(alphaBitmap, left + dx, top + dy, strokePaint)
+                                    }
+
+                                    canvas.restore()
+                                    alphaBitmap.recycle()
+                                }
+
                                 if (element.hasShadow && element.shadowOpacity > 0) {
 
                                     val shadowColor = Color.argb(
@@ -1950,16 +1981,8 @@ class CanvasView @JvmOverloads constructor(
                                     }
                                 }
 
-                                canvas.drawBitmap(finalBitmap, left, top, mainPaint)
-
                                 if (element.hasOverlay && element.overlayOpacity > 0) {
 
-                                    canvas.saveLayer(left, top, left + w, top + h, null)
-
-                                    // 1️⃣ Draw original bitmap first
-                                    canvas.drawBitmap(finalBitmap, left, top, null)
-
-                                    // 2️⃣ Overlay paint
                                     val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                                         alpha = element.overlayOpacity.coerceIn(0, 255)
                                         xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
@@ -1972,10 +1995,7 @@ class CanvasView @JvmOverloads constructor(
                                         overlayPaint.color = element.overlayColor
                                     }
 
-                                    // 3️⃣ Draw overlay rectangle
                                     canvas.drawRect(left, top, left + w, top + h, overlayPaint)
-
-                                    canvas.restore()
                                 }
                             }
                         }
@@ -2166,27 +2186,59 @@ class CanvasView @JvmOverloads constructor(
                             val (localTopCenter, localRotateIcon) = if (selectedElements.size == 1) {
                                 // === SINGLE ELEMENT ===
                                 val element = selectedElements.first()
-                                val bounds = element.getTightTextBounds()
 
-                                val matrix = Matrix().apply {
-                                    postScale(
-                                        element.scale * if (element.isFlippedX) -1f else 1f,
-                                        element.scale * if (element.isFlippedY) -1f else 1f
+                                if (isRotating) {
+
+                                    val bounds = element.getTightTextBounds()
+
+                                    val matrix = Matrix().apply {
+                                        postScale(
+                                            element.scale * if (element.isFlippedX) -1f else 1f,
+                                            element.scale * if (element.isFlippedY) -1f else 1f
+                                        )
+                                        postRotate(element.rotation)
+                                        postTranslate(element.x, element.y)
+                                    }
+
+                                    val topCenter = floatArrayOf(bounds.centerX(), bounds.top)
+                                    val fixedHandleLengthPx = 80f
+                                    val rotateIcon = floatArrayOf(
+                                        bounds.centerX(),
+                                        bounds.top - (fixedHandleLengthPx / scale)
                                     )
-                                    postRotate(element.rotation)
-                                    postTranslate(element.x, element.y)
+
+                                    matrix.mapPoints(topCenter)
+                                    matrix.mapPoints(rotateIcon)
+
+                                    topCenter to rotateIcon
+
+                                } else {
+
+                                    // ===== SNAP CLEANLY TO SCREEN TOP =====
+                                    val corners = element.getRotatedCorners()
+
+                                    val yValues = listOf(
+                                        corners[1], corners[3], corners[5], corners[7]
+                                    )
+                                    val topY = yValues.minOrNull() ?: 0f
+
+                                    val xValues = listOf(
+                                        corners[0], corners[2], corners[4], corners[6]
+                                    )
+                                    val leftX = xValues.minOrNull() ?: 0f
+                                    val rightX = xValues.maxOrNull() ?: 0f
+                                    val centerX = (leftX + rightX) / 2f
+
+                                    val topCenter = floatArrayOf(centerX, topY)
+
+                                    val fixedHandleLengthPx = 80f
+                                    val rotateIcon = floatArrayOf(
+                                        centerX,
+                                        topY - (fixedHandleLengthPx / scale)
+                                    )
+
+                                    topCenter to rotateIcon
                                 }
-
-                                val topCenter = floatArrayOf(bounds.centerX(), bounds.top)
-                                val fixedHandleLengthPx = 80f  // visible fixed size on screen
-                                val rotateIcon = floatArrayOf(
-                                    bounds.centerX(),
-                                    bounds.top - (fixedHandleLengthPx / scale) // convert screen px → canvas units
-                                )
-
-                                matrix.mapPoints(topCenter)
-                                matrix.mapPoints(rotateIcon)
-                                topCenter to rotateIcon
                             } else {
                                 // === MULTI-SELECTION ===
                                 val groupBounds = getGroupTrueBounds()
@@ -3349,6 +3401,7 @@ class CanvasView @JvmOverloads constructor(
                                 touchStartX = x
                                 touchStartY = y
 
+                                isRotating = true
                                 initialElementRotations.clear()
                                 initialElementPositionsRelativeToGroupPivot.clear() // Clear previous initial positions
                                 val combinedBoundsAtStart =
@@ -3367,7 +3420,7 @@ class CanvasView @JvmOverloads constructor(
                                 initialAngle = atan2(
                                     touchStartY - initialGroupPivotY,
                                     touchStartX - initialGroupPivotX
-                                ) // Initial angle for rotation calculation
+                                )
                                 selectedElements.firstOrNull()?.let { element ->
                                     onStartBatchUpdate?.invoke(element.id, "rotate")
                                 }
@@ -3664,6 +3717,7 @@ class CanvasView @JvmOverloads constructor(
                     Mode.ROTATE -> {
                         if (selectedElements.isEmpty()) return true
 
+                        isRotating = true
                         val currentAngle = atan2(
                             y - initialGroupPivotY, x - initialGroupPivotX
                         ) // Calculate angle relative to initial group pivot
@@ -3888,6 +3942,7 @@ class CanvasView @JvmOverloads constructor(
                         Mode.NONE
                 }
                 clampOverallPan()
+                isRotating = false
                 invalidate()
                 return true
             }

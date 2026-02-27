@@ -81,8 +81,6 @@ class CanvasViewModel @Inject constructor(
     private val _exportOptions = MutableLiveData<ExportOptions>()
     val exportOptions: LiveData<ExportOptions> = _exportOptions
 
-    val openAdjustments = MutableSharedFlow<String?>()
-
     private val _activePicker = MutableLiveData<PickerTarget?>(null)
     val activePicker: LiveData<PickerTarget?> = _activePicker
 
@@ -1154,6 +1152,12 @@ class CanvasViewModel @Inject constructor(
             PickerTarget.COLOR_PICKER_SHAPE_STROKE -> setStrokeColor(color)
             PickerTarget.COLOR_PICKER_SHAPE_FILL -> setFillColor(color)
 
+            PickerTarget.EYE_DROPPER_IMAGE_STROKE -> setImageBorder(
+                true, color, _borderWidth.value ?: 1f
+            )
+            PickerTarget.COLOR_PICKER_IMAGE_STROKE -> setImageBorder(
+                true, color, _borderWidth.value ?: 1f
+            )
             null -> { /* nothing to do */
             }
         }
@@ -1197,6 +1201,9 @@ class CanvasViewModel @Inject constructor(
             GradientPickerTarget.OVERLAY -> if (gradientItem != null) setFillGradient(
                 gradientItem
             ) else setFillGradient(null)
+
+            GradientPickerTarget.IMAGE_STROKE -> if (gradientItem != null) setImageStrokeGradient(gradientItem, _borderWidth.value ?: 1f
+            ) else clearImageStrokeGradients()
         }
     }
 
@@ -1386,9 +1393,58 @@ class CanvasViewModel @Inject constructor(
         notifyUndoRedoChanged()
     }
 
+    fun setImageBorder(enabled: Boolean, color: Int, width: Float) {
+        _borderColor.value = color
+        _borderWidth.value = width
+        _hasBorder.value = enabled
+        applyChangesToSelectedImageElements()
+    }
+
+    fun setImageStrokeGradient(gradient: GradientItem, width: Float) {
+        _strokeGradient.value = gradient
+        _borderWidth.value = width
+        _hasBorder.value = true
+        applyChangesToSelectedImageElements()
+    }
+
+    fun clearImageStrokeGradients() {
+        _strokeGradient.value = null
+        applyChangesToSelectedImageElements()
+    }
+
+    private fun applyChangesToSelectedImageElements() {
+        val currentList = _canvasElements.value?.toMutableList() ?: return
+        var oldElement: CanvasElement? = null
+        var newElement: CanvasElement? = null
+        var targetId: String? = null
+
+        val updatedList = currentList.map { element ->
+            if (element.isSelected && (element.type == ElementType.IMAGE || element.type == ElementType.STICKER || element.type == ElementType.SHAPE)) {
+                oldElement = element.copy(context = null, bitmap = null)
+                targetId = element.id
+
+                val updated = element.copy(
+                    hasStroke = _hasBorder.value ?: element.hasStroke,
+                    strokeColor = _borderColor.value ?: element.strokeColor,
+                    strokeWidth = _borderWidth.value ?: element.strokeWidth,
+                    strokeGradient = _strokeGradient.value ?: element.strokeGradient
+                )
+
+                updated
+            } else element
+        }
+
+        if (oldElement != null && newElement != null && targetId != null) {
+            _canvasActions.push(CanvasAction.UpdateElement(targetId!!, newElement!!, oldElement!!))
+            _redoStack.clear()
+            notifyUndoRedoChanged()
+            markChanged()
+        }
+        _canvasElements.value = updatedList
+    }
+
     private fun applyChangesToSelectedTextElements() {
         val currentList = _canvasElements.value?.toMutableList() ?: return
-
         var oldElement: CanvasElement? = null
         var newElement: CanvasElement? = null
         var targetId: String? = null
