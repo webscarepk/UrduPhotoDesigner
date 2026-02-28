@@ -1,6 +1,7 @@
 package com.webscare.urducanvas.ui.navigation.home
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.os.Bundle
 import android.text.Editable
@@ -22,11 +23,16 @@ import com.webscare.urducanvas.ui.navigation.files.FilesAdapter
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.lifecycle.asFlow
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
+import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.data.model.ProgressUi
 import com.webscare.urducanvas.data.model.toExportResultFinal
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.data.model.ExportResult
+import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.data.model.toExportResultFinal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
@@ -37,14 +43,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @AndroidEntryPoint
-class SearchFragment : androidx.fragment.app.Fragment() {
+class SearchFragment : Fragment() {
     private var _binding: FragmentSearchBinding? = null
     private val binding get() = _binding!!
-    private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
-    private val canvasViewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    private val mainViewModel: MainViewModel by activityViewModels()
+    private val canvasViewModel: CanvasViewModel by activityViewModels()
     private lateinit var templatesAdapter: PopularTemplatesAdapter
     private lateinit var fontsAdapter: FontsAdapter
-    private lateinit var filesAdapter: com.webscare.urducanvas.ui.navigation.files.FilesAdapter
+    private lateinit var filesAdapter: FilesAdapter
+    val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -56,11 +63,7 @@ class SearchFragment : androidx.fragment.app.Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Get initial text from HomeFragment
-        val initialQuery = arguments?.getString("initialQuery").orEmpty()
         binding.searchBar.requestFocus()
-        binding.searchBar.setText(initialQuery)
-        binding.searchBar.setSelection(initialQuery.length)
 
         // Force keyboard to remain open
         val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
@@ -82,10 +85,8 @@ class SearchFragment : androidx.fragment.app.Fragment() {
                 if (template.file_path.isNullOrEmpty()) {
                     templatesAdapter.updateProgress(
                         template.id,
-                        _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
-                            progress = 0,
-                            isDownloading = true,
-                            isDownloaded = false
+                        ProgressUi(
+                            progress = 0, isDownloading = true, isDownloaded = false
                         )
                     )
                     mainViewModel.downloadTemplate(template)
@@ -100,16 +101,14 @@ class SearchFragment : androidx.fragment.app.Fragment() {
                 }
             } else {
                 templatesAdapter.updateProgress(
-                    template.id,
-                    _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
-                        progress = 0,
-                        isDownloading = true,
-                        isDownloaded = false
+                    template.id, ProgressUi(
+                        progress = 0, isDownloading = true, isDownloaded = false
                     )
                 )
                 mainViewModel.downloadTemplate(template)
             }
         })
+
         binding.popularTemplateRV.apply {
             adapter = templatesAdapter
             layoutManager =
@@ -117,19 +116,35 @@ class SearchFragment : androidx.fragment.app.Fragment() {
         }
 
         // Fonts
-        fontsAdapter = FontsAdapter(onFontClick = { font, _ ->
-            // navigate to editor or font preview
-        }, onDownload = { mainViewModel.downloadFont(it) })
+        fontsAdapter = FontsAdapter(onFontClick = { font, isDownloaded ->
+            if (!isDownloaded) {
+                mainViewModel.downloadFont(font)
+            } else {
+                canvasViewModel.setCanvasSize(
+                    CanvasSize(
+                        "", 2000f, 2000f
+                    )
+                )
+                canvasViewModel.addTextWithFont(
+                    requireActivity().getString(R.string.dummyText), font, requireActivity()
+                )
+
+                view?.post { findNavController().navigate(R.id.editorFragment, null, navOptions) }
+            }
+        }, onDownload = {
+            mainViewModel.downloadFont(it)
+        })
+
         binding.fontsRV.apply {
             adapter = fontsAdapter
             layoutManager =
                 LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         }
 
-        filesAdapter = _root_ide_package_.com.webscare.urducanvas.ui.navigation.files.FilesAdapter(
+        filesAdapter = FilesAdapter(
             emptyList(),
             isGrid = false,
-            onItemClick = { /* open item */ },
+            onItemClick = { openItem(it) },
             onItemLongClick = {},
             onOptionsClick = { _, _ -> },
             onRename = { _, _ -> },
@@ -137,6 +152,59 @@ class SearchFragment : androidx.fragment.app.Fragment() {
         binding.filesRV.apply {
             adapter = filesAdapter
             layoutManager = LinearLayoutManager(requireContext())
+        }
+    }
+
+    private fun openItem(item: Any) {
+        when (item) {
+            is ExportResult -> {
+                lifecycleScope.launch {
+                    withContext(Dispatchers.Default) {
+                        canvasViewModel.loadTemplateFromJsonFile(item, requireContext())
+                    }
+                }
+            }
+
+            is FontEntity -> {
+                canvasViewModel.setCanvasSize(
+                    CanvasSize(
+                        "",
+                        2000f,
+                        2000f
+                    )
+                )
+                canvasViewModel.addTextWithFont(
+                    requireActivity().getString(R.string.dummyText),
+                    item,
+                    requireActivity()
+                )
+                view?.post {
+                    findNavController().navigate(R.id.editorFragment, null, navOptions)
+                }
+            }
+
+            is ImageEntity -> {
+                val bitmap = BitmapFactory.decodeFile(item.bitmapData)
+
+                bitmap?.let {
+                    val widthVal = it.width.toFloat()
+                    val heightVal = it.height.toFloat()
+
+                    val canvasSize =
+                        CanvasSize(
+                            "From Image",
+                            widthVal,
+                            heightVal
+                        )
+
+                    canvasViewModel.clearCanvas()
+                    canvasViewModel.setCanvasSize(canvasSize)
+                    canvasViewModel.setCanvasBackgroundImage(it)
+                    view?.post {
+                        findNavController().navigate(R.id.editorFragment, null, navOptions)
+                    }
+                }
+            }
         }
     }
 
@@ -214,11 +282,11 @@ class SearchFragment : androidx.fragment.app.Fragment() {
         // If all empty → show “No Results”
         val noResults =
             result.templates.isEmpty() && result.fonts.isEmpty() && result.files.isEmpty()
-//        binding.noResultsLayout.isVisible = noResults
+        binding.noEmojis.isVisible = noResults
     }
 
     data class SearchResults(
-        val templates: List<com.webscare.urducanvas.data.model.TemplateEntity>, val fonts: List<com.webscare.urducanvas.data.model.FontEntity>, val files: List<Any>
+        val templates: List<TemplateEntity>, val fonts: List<FontEntity>, val files: List<Any>
     )
 
     override fun onDestroy() {

@@ -769,6 +769,7 @@ class EditorFragment : Fragment() {
     }
 
     private fun updateToolbarVisibility(selected: List<CanvasElement>) {
+        updateIconVisibility(binding.showHideContainer, selected.isNotEmpty())
         if (panelsLocked) {
             // 🔒 force hide everything
             resetPanelsOnSelectionChange()

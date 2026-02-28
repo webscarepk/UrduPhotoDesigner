@@ -2,6 +2,7 @@ package com.webscare.urducanvas.ui.navigation.home
 
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
+import android.annotation.SuppressLint
 import android.app.Dialog
 import android.graphics.BitmapFactory
 import android.os.Build
@@ -10,6 +11,7 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
@@ -50,7 +52,6 @@ class HomeFragment : androidx.fragment.app.Fragment() {
     private var downloadingTemplate: com.webscare.urducanvas.data.model.TemplateEntity? = null
     private var rotationAnimator: ObjectAnimator? = null
 
-    private var isNavigatingToSearch = false
     val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -144,7 +145,23 @@ class HomeFragment : androidx.fragment.app.Fragment() {
         dialogBinding = null
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private fun setEvents() {
+
+        binding.searchBar.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_UP) {
+                val options = NavOptions.Builder()
+                    .setEnterAnim(R.anim.slide_in_up)
+                    .setExitAnim(0)
+                    .setPopEnterAnim(0)
+                    .setPopExitAnim(R.anim.slide_out_down)
+                    .build()
+                findNavController().navigate(R.id.searchFragment, null, options)
+                true
+            } else {
+                false
+            }
+        }
 
         recentAdapter = RecentAdapter(onClick = { exportResult ->
             lifecycleScope.launch {
@@ -275,34 +292,6 @@ class HomeFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.subscriptions.addPressEffect { view?.post { findNavController().navigate(R.id.subscriptionsFragment) } }
-
-        binding.searchBar.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(s: Editable?) {
-                val query = s.toString()
-
-                if (!isNavigatingToSearch && query.isNotEmpty()) {
-                    isNavigatingToSearch = true
-
-                    mainViewModel.setQuery(query)
-                    val bundle = Bundle().apply {
-                        putString("initialQuery", query)
-                    }
-
-                    val options =
-                        NavOptions.Builder().setEnterAnim(R.anim.slide_in_up).setExitAnim(0)
-                            .setPopEnterAnim(0).setPopExitAnim(R.anim.slide_out_down).build()
-
-                    findNavController().navigate(R.id.searchFragment, bundle, options)
-                } else if (query.isEmpty()) {
-                    // Reset when user clears text
-                    isNavigatingToSearch = false
-                }
-            }
-
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-        })
-
     }
 
     private fun initObservers() {
@@ -449,8 +438,8 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                                         }
                                     }
                                 }
+                                mainViewModel.clearFontDownloadState()
                             }
-                            mainViewModel.clearFontDownloadState()
                         }
 
                         is FontDownloadState.Error -> {
@@ -511,8 +500,6 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
     override fun onResume() {
         super.onResume()
-        isNavigatingToSearch = false
-        binding.searchBar.text?.clear()
         if (findNavController().currentDestination?.id!! != R.id.editorFragment) {
             viewModel.clearCanvas()
         }

@@ -1,5 +1,6 @@
 package com.webscare.urducanvas.ui.creation
 
+import android.annotation.SuppressLint
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Build
@@ -9,34 +10,31 @@ import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
+import android.view.WindowInsetsController
 import android.widget.EditText
 import android.widget.PopupMenu
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
-import com.webscare.urducanvas.R
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
-import com.webscare.urducanvas.common.canvas.model.CanvasSize
-import com.webscare.urducanvas.common.utils.Converter.cmToPx
-import com.webscare.urducanvas.common.utils.Converter.inchesToPx
-import com.webscare.urducanvas.common.utils.Converter.pxToCm
-import com.webscare.urducanvas.common.utils.Converter.pxToInches
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import com.webscare.urducanvas.databinding.FragmentCreateBinding
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.shape.CornerFamily
 import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.shape.ShapeAppearanceModel
 import com.google.android.material.snackbar.Snackbar
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.UnitType
+import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.common.utils.Converter
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.databinding.FragmentCreateBinding
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class CreateFragment : com.google.android.material.bottomsheet.BottomSheetDialogFragment() {
+class CreateFragment : BottomSheetDialogFragment() {
     private var _binding: FragmentCreateBinding? = null
     private val binding get() = _binding!!
 
@@ -44,86 +42,46 @@ class CreateFragment : com.google.android.material.bottomsheet.BottomSheetDialog
 
     private val sizeList = listOf(
         CanvasSize(
-            "Instagram Story",
-            1080f,
-            1920f
-        ),
-       CanvasSize(
-            "Instagram Post",
-            1080f,
-            1080f
-        ),
-        CanvasSize(
-            "YouTube Thumbnail",
-            1280f,
-            720f
-        ),
-        CanvasSize(
-            "Facebook Cover",
-            820f,
-            312f
-        ),
-        CanvasSize(
-            "YouTube Channel Art",
-            2560f,
-            1440f
-        ),
-       CanvasSize(
-            "A4",
-            2480f,
-            3508f
+            "Instagram Story", 1080f, 1920f
+        ), CanvasSize(
+            "Instagram Post", 1080f, 1080f
+        ), CanvasSize(
+            "YouTube Thumbnail", 1280f, 720f
+        ), CanvasSize(
+            "Facebook Cover", 820f, 312f
+        ), CanvasSize(
+            "YouTube Channel Art", 2560f, 1440f
+        ), CanvasSize(
+            "A4", 2480f, 3508f
         ),               // 210mm × 297mm
         CanvasSize(
-            "Letter",
-            2550f,
-            3300f
+            "Letter", 2550f, 3300f
         ),          // 8.5in × 11in
         CanvasSize(
-            "Poster",
-            3600f,
-            5400f
+            "Poster", 3600f, 5400f
         ),          // 12in × 18in
         CanvasSize(
-            "Business Card",
-            1050f,
-            600f
+            "Business Card", 1050f, 600f
         ), // 3.5in × 2in
         CanvasSize(
-            "Billboard",
-            1920f,
-            1080f
-        ),
-        CanvasSize(
-            "Vertical Banner",
-            1080f,
-            1920f
-        ),
-        CanvasSize(
-            "Horizontal Banner",
-            1920f,
-            600f
-        ),
-        CanvasSize(
-            "Flyer (US Letter)",
-            2550f,
-            3300f
-        ),
-        CanvasSize(
-            "Resume",
-            2480f,
-            3508f
-        ),
-        CanvasSize(
-            "Invitation",
-            1500f,
-            2100f
+            "Billboard", 1920f, 1080f
+        ), CanvasSize(
+            "Vertical Banner", 1080f, 1920f
+        ), CanvasSize(
+            "Horizontal Banner", 1920f, 600f
+        ), CanvasSize(
+            "Flyer (US Letter)", 2550f, 3300f
+        ), CanvasSize(
+            "Resume", 2480f, 3508f
+        ), CanvasSize(
+            "Invitation", 1500f, 2100f
         )   // 5in × 7in
     )
 
     private var currentUnit = UnitType.PIXELS
     private var isLinked = false
     private var aspectRatio: Float? = null
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    private val viewModel: CanvasViewModel by activityViewModels()
 
     private lateinit var adapter: CanvasSizeAdapter
 
@@ -140,6 +98,7 @@ class CreateFragment : com.google.android.material.bottomsheet.BottomSheetDialog
         setEvents()
     }
 
+    @SuppressLint("DefaultLocale")
     private fun setEvents() {
         binding.apply {
 
@@ -160,6 +119,7 @@ class CreateFragment : com.google.android.material.bottomsheet.BottomSheetDialog
                         UnitType.INCHES -> Converter.inchesToPx(
                             getSafeIntValue(width)
                         )
+
                         UnitType.CENTIMETERS -> Converter.cmToPx(
                             getSafeIntValue(width)
                         )
@@ -169,6 +129,7 @@ class CreateFragment : com.google.android.material.bottomsheet.BottomSheetDialog
                         UnitType.INCHES -> Converter.inchesToPx(
                             getSafeIntValue(height)
                         )
+
                         UnitType.CENTIMETERS -> Converter.cmToPx(
                             getSafeIntValue(height)
                         )
@@ -189,29 +150,37 @@ class CreateFragment : com.google.android.material.bottomsheet.BottomSheetDialog
                         }
 
                         UnitType.INCHES -> {
-                            width.setText(String.format("%.1f",
-                                Converter.pxToInches(
-                                    oldWidthPx.toFloat()
+                            width.setText(
+                                String.format(
+                                    "%.1f", Converter.pxToInches(
+                                        oldWidthPx.toFloat()
+                                    )
                                 )
-                            ))
-                            height.setText(String.format("%.1f",
-                                Converter.pxToInches(
-                                    oldHeightPx.toFloat()
+                            )
+                            height.setText(
+                                String.format(
+                                    "%.1f", Converter.pxToInches(
+                                        oldHeightPx.toFloat()
+                                    )
                                 )
-                            ))
+                            )
                         }
 
                         UnitType.CENTIMETERS -> {
-                            width.setText(String.format("%.1f",
-                                Converter.pxToCm(
-                                    oldWidthPx.toFloat()
+                            width.setText(
+                                String.format(
+                                    "%.1f", Converter.pxToCm(
+                                        oldWidthPx.toFloat()
+                                    )
                                 )
-                            ))
-                            height.setText(String.format("%.1f",
-                                Converter.pxToCm(
-                                    oldHeightPx.toFloat()
+                            )
+                            height.setText(
+                                String.format(
+                                    "%.1f", Converter.pxToCm(
+                                        oldHeightPx.toFloat()
+                                    )
                                 )
-                            ))
+                            )
                         }
                     }
 
@@ -320,9 +289,7 @@ class CreateFragment : com.google.android.material.bottomsheet.BottomSheetDialog
                 val hVal = clampCanvasSize(getSafeIntValue(height), currentUnit)
                 val canvasSize =
                     _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-                        "Custom",
-                        wVal,
-                        hVal
+                        "Custom", wVal, hVal
                     )
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(canvasSize)
@@ -357,31 +324,30 @@ class CreateFragment : com.google.android.material.bottomsheet.BottomSheetDialog
         return clamped
     }
 
+    @SuppressLint("DefaultLocale")
     private fun updateListForUnit(unitType: UnitType) {
         val convertedList = sizeList.map { size ->
             when (unitType) {
                 UnitType.PIXELS -> size.copy()
                 UnitType.INCHES -> size.copy(
-                    width = String.format("%.1f",
-                        Converter.pxToInches(
+                    width = String.format(
+                        "%.1f", Converter.pxToInches(
                             size.width
                         )
-                    ).toFloat(),
-                    height = String.format("%.1f",
-                        Converter.pxToInches(
+                    ).toFloat(), height = String.format(
+                        "%.1f", Converter.pxToInches(
                             size.height
                         )
                     ).toFloat()
                 )
 
                 UnitType.CENTIMETERS -> size.copy(
-                    width = String.format("%.1f",
-                        Converter.pxToCm(
+                    width = String.format(
+                        "%.1f", Converter.pxToCm(
                             size.width
                         )
-                    ).toFloat(),
-                    height = String.format("%.1f",
-                        Converter.pxToCm(
+                    ).toFloat(), height = String.format(
+                        "%.1f", Converter.pxToCm(
                             size.height
                         )
                     ).toFloat()
@@ -397,6 +363,7 @@ class CreateFragment : com.google.android.material.bottomsheet.BottomSheetDialog
 
     override fun onResume() {
         super.onResume()
+        forceImmersiveMode()
         // Assuming you have a TextView in your layout called unitTextView
         binding.unit.text = when (currentUnit) {
             UnitType.INCHES -> "Inches"
@@ -408,41 +375,94 @@ class CreateFragment : com.google.android.material.bottomsheet.BottomSheetDialog
         )
     }
 
+    private fun forceImmersiveMode() {
+        dialog?.window?.let { window ->
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window.insetsController?.apply {
+                    hide(
+                        WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars()
+                    )
+                    systemBarsBehavior =
+                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                window.decorView.systemUiVisibility =
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                            View.SYSTEM_UI_FLAG_FULLSCREEN or
+                            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            }
+        }
+    }
+//
+//    override fun onStart() {
+//        super.onStart()
+//        val bottomSheet = dialog?.findViewById<View>(
+//            com.google.android.material.R.id.design_bottom_sheet
+//        ) ?: return
+//
+//        val shapeAppearanceModel =
+//            ShapeAppearanceModel.builder().setTopLeftCorner(CornerFamily.ROUNDED, 32f)
+//                .setTopRightCorner(CornerFamily.ROUNDED, 32f).build()
+//
+//        val materialShapeDrawable = MaterialShapeDrawable(shapeAppearanceModel).apply {
+//            fillColor = ColorStateList.valueOf(Color.WHITE)
+//        }
+//
+//        ViewCompat.setBackground(bottomSheet, materialShapeDrawable)
+//        bottomSheet.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
+//        val behavior = BottomSheetBehavior.from(bottomSheet)
+//        behavior.isFitToContents = false
+//        behavior.halfExpandedRatio = 0.85f
+//        behavior.state = BottomSheetBehavior.STATE_HALF_EXPANDED
+//
+//        dialog?.window?.let { window ->
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+//                window.setDecorFitsSystemWindows(false)
+//                window.insetsController?.hide(WindowInsets.Type.navigationBars())
+//            } else {
+//                window.decorView.systemUiVisibility =
+//                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+//            }
+//        }
+//    }
+
     override fun onStart() {
         super.onStart()
+
+        dialog?.window?.apply {
+            setDimAmount(0.45f)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                setDecorFitsSystemWindows(false)
+            }
+
+            decorView.setOnSystemUiVisibilityChangeListener {
+                forceImmersiveMode()
+            }
+        }
+
         val bottomSheet = dialog?.findViewById<View>(
             com.google.android.material.R.id.design_bottom_sheet
         ) ?: return
 
-        val shapeAppearanceModel =
-            ShapeAppearanceModel.builder().setTopLeftCorner(CornerFamily.ROUNDED, 32f)
-                .setTopRightCorner(CornerFamily.ROUNDED, 32f).build()
-
-        val materialShapeDrawable = MaterialShapeDrawable(shapeAppearanceModel).apply {
-            fillColor = ColorStateList.valueOf(Color.WHITE)
+        ViewCompat.setOnApplyWindowInsetsListener(bottomSheet) { _, _ ->
+            WindowInsetsCompat.CONSUMED
         }
 
-        ViewCompat.setBackground(bottomSheet, materialShapeDrawable)
         bottomSheet.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
         val behavior = BottomSheetBehavior.from(bottomSheet)
         behavior.isFitToContents = false
-        behavior.halfExpandedRatio = 0.85f
+        behavior.halfExpandedRatio = 0.65f
         behavior.state = BottomSheetBehavior.STATE_HALF_EXPANDED
+        bottomSheet.setPadding(0, 0, 0, 0)
 
-        dialog?.window?.let { window ->
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                window.setDecorFitsSystemWindows(false)
-                window.insetsController?.hide(WindowInsets.Type.navigationBars())
-            } else {
-                window.decorView.systemUiVisibility =
-                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-            }
-        }
+        forceImmersiveMode()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onDestroyView() {
+        super.onDestroyView()
         _binding = null
     }
-
 }

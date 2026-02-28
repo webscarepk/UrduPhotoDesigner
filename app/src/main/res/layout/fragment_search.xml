@@ -58,10 +58,38 @@
         android:textColor="@color/black"
         android:id="@+id/title"/>
 
+    <LinearLayout
+        android:id="@+id/noEmojis"
+        android:visibility="gone"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:orientation="vertical"
+        android:gravity="center">
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_search"
+            app:tint="@color/black"/>
+
+        <TextView
+            android:id="@+id/noImagesText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/no_search_available_here"
+            android:layout_marginTop="6dp"
+            android:fontFamily="@font/regular"
+            android:textColor="@color/black"
+            android:textSize="15sp"/>
+    </LinearLayout>
+
     <EditText
         android:id="@+id/searchBar"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="40dp"
         android:background="@drawable/button_bg_stroke_fill"
         android:fontFamily="@font/regular"
         android:drawableEnd="@drawable/ic_search"

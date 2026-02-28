@@ -7,38 +7,29 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.tabs.TabLayoutMediator
 import com.webscare.urducanvas.R
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentPopularFontsBinding
-import com.webscare.urducanvas.viewmodels.FiltersViewModel
-import com.webscare.urducanvas.viewmodels.MainViewModel
-import com.google.android.material.tabs.TabLayoutMediator
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import kotlin.text.equals
-import kotlin.text.isNotEmpty
 
 @AndroidEntryPoint
 class PopularFontsFragment : androidx.fragment.app.Fragment() {
     private var _binding: FragmentPopularFontsBinding? = null
     private val binding get() = _binding!!
-    private val handledFontIds = mutableSetOf<Int>()
     private var tabs = emptyList<String>()
     private val viewModel: com.webscare.urducanvas.viewmodels.FiltersViewModel by activityViewModels()
     private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
     private val canvasViewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
-    private lateinit var pagerAdapter: PopularFontsPagerAdapter
+    private var pagerAdapter: PopularFontsPagerAdapter? = null
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentPopularFontsBinding.inflate(inflater, container, false)
         return binding.root
@@ -66,19 +57,16 @@ class PopularFontsFragment : androidx.fragment.app.Fragment() {
             mainViewModel.localFonts.collect { allFonts ->
                 val categories = buildList {
                     add("All")
-                    addAll(
-                        allFonts.map { it.font_category.trim() }
-                            .filter { it.isNotEmpty() && !it.equals("Imported", true) }
-                            .distinct()
-                            .sorted()
-                    )
+                    addAll(allFonts.map { it.font_category.trim() }
+                        .filter { it.isNotEmpty() && !it.equals("Imported", true) }.distinct()
+                        .sorted())
                 }
 
                 tabs = categories
-                if (!::pagerAdapter.isInitialized) {
+                if (pagerAdapter == null) {
                     setupTabsAndPager()
                 } else {
-                    pagerAdapter.updateTabs(categories)
+                    pagerAdapter?.updateTabs(categories)
                 }
             }
         }
@@ -86,15 +74,12 @@ class PopularFontsFragment : androidx.fragment.app.Fragment() {
 
     private fun setupTabsAndPager() {
         pagerAdapter = PopularFontsPagerAdapter(
-            requireActivity().supportFragmentManager,
-            lifecycle,
-            tabs
+            requireActivity().supportFragmentManager, lifecycle, tabs
         )
         binding.viewPager.adapter = pagerAdapter
 
         TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
-            val tabView = LayoutInflater.from(context)
-                .inflate(R.layout.layout_custom_tab, null)
+            val tabView = LayoutInflater.from(context).inflate(R.layout.layout_custom_tab, null)
             tabView.findViewById<TextView>(R.id.tabTitle).text = tabs[position]
             tab.customView = tabView
         }.attach()
@@ -126,16 +111,14 @@ class PopularFontsFragment : androidx.fragment.app.Fragment() {
             if (i == selectedPosition) {
                 root?.setCardBackgroundColor(
                     ContextCompat.getColor(
-                        requireContext(),
-                        R.color.appColor
+                        requireContext(), R.color.appColor
                     )
                 )
                 text?.setTextColor(ContextCompat.getColor(requireContext(), R.color.whiteText))
             } else {
                 root?.setCardBackgroundColor(
                     ContextCompat.getColor(
-                        requireContext(),
-                        R.color.contrast
+                        requireContext(), R.color.contrast
                     )
                 )
                 text?.setTextColor(ContextCompat.getColor(requireContext(), R.color.gray))
@@ -150,9 +133,10 @@ class PopularFontsFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onDestroyView() {
+        super.onDestroyView()
         viewModel.clearFilters()
         _binding = null
+        pagerAdapter = null
     }
 }

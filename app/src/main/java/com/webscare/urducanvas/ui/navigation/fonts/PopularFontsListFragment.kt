@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.SimpleItemAnimator
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.google.android.material.snackbar.Snackbar
 import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
 import com.webscare.urducanvas.common.utils.showGlobalSuccessSnack
 import com.webscare.urducanvas.databinding.FragmentPopularFontsListBinding
@@ -80,7 +81,7 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
                 mainViewModel.downloadFont(font)
             } else {
                 viewModel.setCanvasSize(
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+                    CanvasSize(
                         "", 2000f, 2000f
                     )
                 )
@@ -233,8 +234,8 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
                                         }
                                     }
                                 }
+                                mainViewModel.clearFontDownloadState()
                             }
-                            mainViewModel.clearFontDownloadState()
                         }
 
                         is FontDownloadState.Error -> {

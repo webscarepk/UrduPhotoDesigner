@@ -93,6 +93,7 @@
         app:tabGravity="fill"
         app:tabPaddingStart="4dp"
         app:tabPaddingEnd="4dp"
+        android:paddingHorizontal="@dimen/_10sdp"
         app:tabSelectedTextColor="@color/appColor"
         app:tabTextColor="@color/black"
         app:tabRippleColor="@color/contrast"

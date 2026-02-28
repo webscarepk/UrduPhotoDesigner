@@ -1,6 +1,7 @@
 package com.webscare.urducanvas.ui.editor.panels.text.fonts
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,10 +9,14 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
 import com.google.android.material.snackbar.Snackbar
+import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
+import com.webscare.urducanvas.common.utils.showGlobalSuccessSnack
 import com.webscare.urducanvas.databinding.FragmentFontsListBinding
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
@@ -214,37 +219,40 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
                 downloadState.values.forEach { state ->
                     when (state) {
                         is FontDownloadState.Progress -> {
-                            fontEntity = state.fontEntity
                             fontEntity?.let { font ->
                                 fontsAdapter.selectedFontId = font.id.toString()
                             }
+                            Log.d("FONT_DEBUG", "Progress observed")
                         }
 
                         is FontDownloadState.SuccessWithTypeface -> {
+                            Log.d("FONT_DEBUG", "SUCCESS observed")
+
                             fontEntity = state.fontEntity
-                            viewModel.setFont(fontEntity!!)
                             fontEntity?.let { font ->
                                 fontsAdapter.selectedFontId = font.id.toString()
+                                viewModel.setFont(fontEntity!!)
+
+                                mainViewModel.clearFontDownloadState()
                             }
+                        }
+
+                        is FontDownloadState.Error -> {
+                            Log.d("FONT_DEBUG", "ERROR observed")
+                            view?.let {
+                                Snackbar.make(it, "Download failed!", Snackbar.LENGTH_SHORT).show()
+                            }
+                            fontEntity = null
                             mainViewModel.clearFontDownloadState()
                         }
 
-                        is FontDownloadState.Success -> {
+                        else -> {
                             fontEntity?.let { font ->
                                 if (font.is_downloaded) {
                                     viewModel.setFont(font)
                                 }
                             }
                         }
-
-                        is FontDownloadState.Error -> {
-                            view?.let {
-                                Snackbar.make(it, "Download failed!", Snackbar.LENGTH_SHORT).show()
-                            }
-                            fontEntity = null
-                        }
-
-                        else -> {}
                     }
                 }
             }

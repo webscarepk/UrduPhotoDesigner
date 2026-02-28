@@ -2,6 +2,7 @@ package com.webscare.urducanvas.ui.navigation.files
 
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
+import android.annotation.SuppressLint
 import android.app.Dialog
 import android.content.ContentValues
 import android.graphics.Bitmap
@@ -23,6 +24,7 @@ import android.widget.LinearLayout
 import android.widget.PopupWindow
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.asFlow
@@ -107,6 +109,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private fun setEvents() {
         adapter = FilesAdapter(
             emptyList(), isGrid = false,
@@ -120,9 +123,9 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                 if (newName.isNotEmpty()) {
                     lifecycleScope.launch {
                         when (item) {
-                            is com.webscare.urducanvas.data.model.ExportResult -> viewModel.insertExportResult(item.copy(fileName = newName))
-                            is com.webscare.urducanvas.data.model.ImageEntity -> viewModel.updateImage(item.copy(file_name = newName))
-                            is com.webscare.urducanvas.data.model.FontEntity -> viewModel.updateFont(item.copy(font_name = newName))
+                            is ExportResult -> viewModel.insertExportResult(item.copy(fileName = newName))
+                            is ImageEntity -> viewModel.updateImage(item.copy(file_name = newName))
+                            is FontEntity -> viewModel.updateFont(item.copy(font_name = newName))
                         }
                     }
                 }
@@ -135,6 +138,21 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
             })
         binding.filesRV.adapter = adapter
         binding.filesRV.layoutManager = LinearLayoutManager(requireContext())
+
+        binding.filesRV.setOnTouchListener { v, event ->
+            if (event.action == android.view.MotionEvent.ACTION_DOWN) {
+                if (adapter.isEditing()) {
+                    val imm = requireContext()
+                        .getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
+                            as android.view.inputmethod.InputMethodManager
+                    imm.hideSoftInputFromWindow(v.windowToken, 0)
+                    requireActivity().currentFocus?.clearFocus()
+                    adapter.stopEditing()
+                }
+            }
+
+            false
+        }
 
         binding.addMore.addPressEffect {
             pickFiles.launch(arrayOf("*/*"))  // allow all file types
@@ -151,9 +169,9 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                     lifecycleScope.launch {
                         selectedItems.forEach { item ->
                             when (item) {
-                                is com.webscare.urducanvas.data.model.ExportResult -> viewModel.deleteExportResult(item)
-                                is com.webscare.urducanvas.data.model.ImageEntity -> viewModel.deleteImage(item)
-                                is com.webscare.urducanvas.data.model.FontEntity -> viewModel.deleteFont(item)
+                                is ExportResult -> viewModel.deleteExportResult(item)
+                                is ImageEntity -> viewModel.deleteImage(item)
+                                is FontEntity -> viewModel.deleteFont(item)
                             }
                         }
                         adapter.clearSelection()
@@ -322,7 +340,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
 
     private fun openItem(item: Any) {
         when (item) {
-            is com.webscare.urducanvas.data.model.ExportResult -> {
+            is ExportResult -> {
                 lifecycleScope.launch {
                     withContext(Dispatchers.Default) {
                         canvasViewModel.loadTemplateFromJsonFile(item, requireContext())
@@ -330,9 +348,9 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                 }
             }
 
-            is com.webscare.urducanvas.data.model.FontEntity -> {
+            is FontEntity -> {
                 canvasViewModel.setCanvasSize(
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+                    CanvasSize(
                         "",
                         2000f,
                         2000f
@@ -348,7 +366,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                 }
             }
 
-            is com.webscare.urducanvas.data.model.ImageEntity -> {
+            is ImageEntity -> {
                 val bitmap = BitmapFactory.decodeFile(item.bitmapData)
 
                 bitmap?.let {
@@ -356,7 +374,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                     val heightVal = it.height.toFloat()
 
                     val canvasSize =
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+                        CanvasSize(
                             "From Image",
                             widthVal,
                             heightVal
@@ -425,7 +443,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
             popupWindow.dismiss()
 
             when (item) {
-                is com.webscare.urducanvas.data.model.ExportResult -> {
+                is ExportResult -> {
                     // Export the project file as JSON/Zip or shareable format
                     lifecycleScope.launch {
                         // Example: save to external storage
@@ -443,7 +461,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                     }
                 }
 
-                is com.webscare.urducanvas.data.model.ImageEntity -> {
+                is ImageEntity -> {
                     // Save/Share image file
                     lifecycleScope.launch {
                         val bitmap = BitmapFactory.decodeFile(item.bitmapData)
@@ -460,7 +478,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                     }
                 }
 
-                is com.webscare.urducanvas.data.model.FontEntity -> {
+                is FontEntity -> {
                     // Save font file (.ttf)
                     lifecycleScope.launch {
                         val bitmap = BitmapFactory.decodeFile(item.font_image)
@@ -483,15 +501,15 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
             popupWindow.dismiss()
 
             when (item) {
-                is com.webscare.urducanvas.data.model.ExportResult -> {
+                is ExportResult -> {
                     adapter.toggleMultiSelectMode(true)
                 }
 
-                is com.webscare.urducanvas.data.model.ImageEntity -> {
+                is ImageEntity -> {
                     adapter.toggleMultiSelectMode(true)
                 }
 
-                is com.webscare.urducanvas.data.model.FontEntity -> {
+                is FontEntity -> {
                     adapter.toggleMultiSelectMode(true)
                 }
             }
@@ -501,7 +519,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
             popupWindow.dismiss()
             lifecycleScope.launch(Dispatchers.IO) {
                 when (item) {
-                    is com.webscare.urducanvas.data.model.ExportResult -> {
+                    is ExportResult -> {
                         val srcImage = File(item.imagePath)
                         val srcJson = File(item.jsonPath)
 
@@ -524,7 +542,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                         viewModel.insertExportResult(newExport)
                     }
 
-                    is com.webscare.urducanvas.data.model.ImageEntity -> {
+                    is ImageEntity -> {
                         val srcImage = File(item.bitmapData ?: item.file_url)
                         val newImageFile =
                             ImageProcessor.newImageFile(requireContext(), srcImage.name)
@@ -540,7 +558,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                         viewModel.insertImage(newEntity)
                     }
 
-                    is com.webscare.urducanvas.data.model.FontEntity -> {
+                    is FontEntity -> {
                         val srcFont = File(item.file_path ?: item.file_url)
                         val newFontFile = ImageProcessor.newFontFile(requireContext(), srcFont.name)
 
@@ -570,9 +588,9 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
             popupWindow.dismiss()
 
             val itemId = when (item) {
-                is com.webscare.urducanvas.data.model.ImageEntity -> item.id.toLong()
-                is com.webscare.urducanvas.data.model.FontEntity -> item.id.toLong()
-                is com.webscare.urducanvas.data.model.ExportResult -> item.id
+                is ImageEntity -> item.id.toLong()
+                is FontEntity -> item.id.toLong()
+                is ExportResult -> item.id
                 else -> 0
             }
             adapter.startEditing(itemId)
@@ -581,17 +599,17 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
         popupBinding.actionDelete.addPressEffect {
             popupWindow.dismiss()
             val (title, subtitle) = when (item) {
-                is com.webscare.urducanvas.data.model.ExportResult -> getString(R.string.delete_project) to getString(R.string.your_asset_will_be_permanently_deleted)
-                is com.webscare.urducanvas.data.model.ImageEntity -> getString(R.string.delete_image) to getString(R.string.your_asset_will_be_permanently_deleted)
-                is com.webscare.urducanvas.data.model.FontEntity -> getString(R.string.delete_font) to getString(R.string.your_asset_will_be_permanently_deleted)
+                is ExportResult -> getString(R.string.delete_project) to getString(R.string.your_asset_will_be_permanently_deleted)
+                is ImageEntity -> getString(R.string.delete_image) to getString(R.string.your_asset_will_be_permanently_deleted)
+                is FontEntity -> getString(R.string.delete_font) to getString(R.string.your_asset_will_be_permanently_deleted)
                 else -> getString(R.string.delete) to getString(R.string.your_asset_will_be_permanently_deleted)
             }
 
             DialogUtils.showDeleteDialog(requireActivity(), title, subtitle) {
                 when (item) {
-                    is com.webscare.urducanvas.data.model.ExportResult -> viewModel.deleteExportResult(item)
-                    is com.webscare.urducanvas.data.model.ImageEntity -> viewModel.deleteImage(item)
-                    is com.webscare.urducanvas.data.model.FontEntity -> viewModel.deleteFont(item)
+                    is ExportResult -> viewModel.deleteExportResult(item)
+                    is ImageEntity -> viewModel.deleteImage(item)
+                    is FontEntity -> viewModel.deleteFont(item)
                 }
             }
         }
@@ -746,10 +764,55 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                                     (q.isEmpty() || it.font_name.lowercase().contains(q))
                         }
                     }.collect { list ->
-                        adapter.updateList(list)
-                        binding.noImagesText.text = requireActivity().getString(R.string.no_fonts_available)
-                        binding.noEmojis.visibility =
-                            if (list.isEmpty()) View.VISIBLE else View.GONE
+                        if (list.isEmpty()) {
+
+                            binding.noEmojis.visibility = View.VISIBLE
+
+                            val fullText = "No imported fonts.\nBrowse in-app fonts."
+                            val clickablePart = "in-app fonts"
+
+                            val spannable = android.text.SpannableString(fullText)
+
+                            val start = fullText.indexOf(clickablePart)
+                            val end = start + clickablePart.length
+
+                            val clickableSpan = object : android.text.style.ClickableSpan() {
+                                override fun onClick(widget: View) {
+                                    // Navigate to In-App Fonts screen
+                                    findNavController().navigate(
+                                        R.id.popularFontsFragment   // 👈 change to your actual in-app fonts destination
+                                    )
+                                }
+
+                                override fun updateDrawState(ds: android.text.TextPaint) {
+                                    super.updateDrawState(ds)
+                                    ds.isUnderlineText = true
+                                    val typeface = ResourcesCompat.getFont(
+                                        requireContext(),
+                                        R.font.medium
+                                    )
+
+                                    ds.typeface = typeface
+                                    ds.color = requireContext().getColor(R.color.appColor)
+                                }
+                            }
+
+                            spannable.setSpan(
+                                clickableSpan,
+                                start,
+                                end,
+                                android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                            )
+
+                            binding.noImagesText.text = spannable
+                            binding.noImagesText.movementMethod =
+                                android.text.method.LinkMovementMethod.getInstance()
+
+                        } else {
+                            adapter.updateList(list)
+                            binding.noEmojis.visibility = View.GONE
+                        }
+
                     }
                 }
             }

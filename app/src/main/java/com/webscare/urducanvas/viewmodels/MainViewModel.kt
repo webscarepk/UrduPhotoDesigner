@@ -85,10 +85,11 @@ class MainViewModel @Inject constructor(
     private val fontJobs = mutableMapOf<String, Job>()
     private val templateJobs = mutableMapOf<String, Job>()
 
-    private val _fontDownloadStates: MutableStateFlow<Map<String, FontDownloadState>>
-        get() = MutableStateFlow<Map<String, FontDownloadState>>(emptyMap())
+    private val _fontDownloadStates =
+        MutableStateFlow<Map<String, FontDownloadState>>(emptyMap())
 
-    val fontDownloadStates: StateFlow<Map<String, FontDownloadState>> = _fontDownloadStates
+    val fontDownloadStates: StateFlow<Map<String, FontDownloadState>> =
+        _fontDownloadStates
 
     private val _templateDownloadStates =
         MutableStateFlow<Map<String, TemplateDownloadState>>(emptyMap())
@@ -410,6 +411,13 @@ class MainViewModel @Inject constructor(
                     url = Constants.BASE_URL_GLIDE + font.file_url,
                     fileName = font.font_name + ".ttf",
                     onProgress = { progress ->
+
+                        val currentState = _fontDownloadStates.value[fontId]
+
+                        if (currentState is FontDownloadState.SuccessWithTypeface) {
+                            return@downloadAssets
+                        }
+
                         updateFontState(
                             fontId, FontDownloadState.Progress(
                                 progress, font.copy(
@@ -433,11 +441,13 @@ class MainViewModel @Inject constructor(
                     file_path = downloadedFile.absolutePath
                 )
 
+                Log.d("FONT_DEBUG", "Before emitting SUCCESS for $fontId")
+
                 updateFontState(
-                    fontId, FontDownloadState.SuccessWithTypeface(
-                        downloadedFile, updatedFont
-                    )
+                    fontId,
+                    FontDownloadState.SuccessWithTypeface(downloadedFile, updatedFont)
                 )
+                Log.d("FONT_DEBUG", "After emitting SUCCESS for $fontId")
 
             } catch (e: Exception) {
                 updateFontStatusUseCase.invoke(fontId, false)
@@ -452,9 +462,9 @@ class MainViewModel @Inject constructor(
     }
 
     private fun updateFontState(id: String, state: FontDownloadState) {
-        _fontDownloadStates.value = _fontDownloadStates.value.toMutableMap().apply {
-            this[id] = state
-        }
+        val currentMap = _fontDownloadStates.value.toMutableMap()
+        currentMap[id] = state
+        _fontDownloadStates.value = currentMap
     }
 
     private fun updateTemplateState(id: String, state: TemplateDownloadState) {

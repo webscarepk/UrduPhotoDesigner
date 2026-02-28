@@ -2222,7 +2222,6 @@ class CanvasViewModel @Inject constructor(
 
         var finalBitmap = bitmap
 
-        // 🔥 Only scale if larger than 80% of canvas
         if (imageW > maxAllowedW || imageH > maxAllowedH) {
 
             val scaleFactor = minOf(
@@ -2319,19 +2318,20 @@ class CanvasViewModel @Inject constructor(
     fun addTextWithFont(text: String, fontEntity: FontEntity?, context: Context) {
         val currentList = _canvasElements.value ?: emptyList()
         val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
-
+        val canvasW = _canvasSize.value?.width ?: 0f
+        val canvasH = _canvasSize.value?.height ?: 0f
         // Create base element
         val element = CanvasElement(
             context = context,
             type = ElementType.TEXT,
             text = text,
-            x = 1000f,
-            y = 1000f,
+            x = canvasW / 2f,
+            y = canvasH / 2f,
             paintColor = Color.BLACK,
-            paintTextSize = 150f,
+            paintTextSize = 50f,
             alignment = TextAlignment.CENTER,
             paintAlpha = 255,
-            fontId = null,
+            fontId = fontEntity?.id.toString(),
             zIndex = newZIndex
         )
 
@@ -2373,6 +2373,22 @@ class CanvasViewModel @Inject constructor(
         _isExplicitChange = isExplicit
         val currentList = _canvasElements.value?.toMutableList() ?: mutableListOf()
         val context = currentList.firstOrNull()?.context
+
+        val hasSelectedText = currentList.any {
+            it.isSelected && it.type == ElementType.TEXT
+        }
+
+        if (!hasSelectedText) {
+            context?.let {
+                addTextWithFont(
+                    text = context.getString(R.string.dummyText),
+                    fontEntity = fontEntity,
+                    context = it
+                )
+            }
+            return
+        }
+
         val affectedElementsData = mutableListOf<Pair<String, String?>>()
 
         val updatedList = currentList.map { element ->

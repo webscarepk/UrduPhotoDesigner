@@ -116,6 +116,8 @@ class ImagesAdapter(
                     }
                 }
             }
+            val isPng = image.file_name.endsWith(".png", ignoreCase = true) || image.file_name.endsWith(".svg", ignoreCase = true)
+            binding.image.scaleType = if (isPng) android.widget.ImageView.ScaleType.FIT_CENTER else android.widget.ImageView.ScaleType.CENTER_CROP
 
             if (image.bitmapData != null) {
                 Glide.with(itemView.context).load(image.bitmapData).into(binding.image)

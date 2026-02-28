@@ -232,6 +232,7 @@
     <string name="fonts">Fonts</string>
     <string name="search_fonts">Search fonts ...</string>
     <string name="no_images_available_here">No images available here</string>
+    <string name="no_search_available_here">No results found. Try another keyword.</string>
     <string name="no_assets_available">No Assets Available</string>
     <string name="no_projects_available">No Projects Available</string>
     <string name="no_fonts_available">No Fonts Available</string>

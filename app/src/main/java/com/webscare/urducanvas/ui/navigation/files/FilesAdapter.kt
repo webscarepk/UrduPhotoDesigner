@@ -2,12 +2,15 @@ package com.webscare.urducanvas.ui.navigation.files
 
 import android.annotation.SuppressLint
 import android.graphics.Color
+import android.graphics.drawable.PictureDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.utils.Utils.addPressEffectWithLongClick
 import com.webscare.urducanvas.data.model.ExportResult
@@ -15,8 +18,6 @@ import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.databinding.LayoutFilesGridBinding
 import com.webscare.urducanvas.databinding.LayoutFilesRowBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import com.webscare.urducanvas.common.utils.Utils.addPressEffectWithLongClick
 
 class FilesAdapter(
     private var items: List<Any>,
@@ -48,6 +49,7 @@ class FilesAdapter(
         editingItemId = null
         notifyDataSetChanged()
     }
+
     fun toggleMultiSelectMode(enabled: Boolean) {
         multiSelectMode = enabled
         if (!enabled) {
@@ -63,6 +65,7 @@ class FilesAdapter(
         notifyDataSetChanged()
         onSelectionChanged?.invoke(false)
     }
+
     fun getSelectedItems() = selectedItems.toList()
 
     override fun getItemViewType(position: Int): Int {
@@ -126,22 +129,27 @@ class FilesAdapter(
 
             bindItem(binding, item)
 
-            binding.root.addPressEffectWithLongClick(
-                onClick = {
+            binding.root.addPressEffectWithLongClick(onClick = {
+                val itemId = when (item) {
+                    is ImageEntity -> item.id
+                    is FontEntity -> item.id
+                    is ExportResult -> item.id
+                    else -> null
+                }
+                if (editingItemId != itemId) {
                     if (multiSelectMode) {
                         handleSelection(item)
                     } else {
                         onItemClick(item)
                     }
-                },
-                onLongClick = {
-                    if (!multiSelectMode) {
-                        toggleMultiSelectMode(true)
-                    }
-                    onItemLongClick(item)
-                    handleSelection(item)
                 }
-            )
+            }, onLongClick = {
+                if (!multiSelectMode) {
+                    toggleMultiSelectMode(true)
+                }
+                onItemLongClick(item)
+                handleSelection(item)
+            })
 
             binding.moreOptions.addPressEffect { onOptionsClick(item, binding.moreOptions) }
         }
@@ -152,22 +160,27 @@ class FilesAdapter(
         fun bind(item: Any) {
             bindItem(binding, item)
 
-            binding.root.addPressEffectWithLongClick(
-                onClick = {
+            binding.root.addPressEffectWithLongClick(onClick = {
+                val itemId = when (item) {
+                    is ImageEntity -> item.id
+                    is FontEntity -> item.id
+                    is ExportResult -> item.id
+                    else -> null
+                }
+                if (editingItemId != itemId) {
                     if (multiSelectMode) {
                         handleSelection(item)
                     } else {
                         onItemClick(item)
                     }
-                },
-                onLongClick = {
-                    if (!multiSelectMode) {
-                        toggleMultiSelectMode(true)
-                    }
-                    onItemLongClick(item)
-                    handleSelection(item)
                 }
-            )
+            }, onLongClick = {
+                if (!multiSelectMode) {
+                    toggleMultiSelectMode(true)
+                }
+                onItemLongClick(item)
+                handleSelection(item)
+            })
 
             binding.moreOptions.addPressEffect { onOptionsClick(item, binding.moreOptions) }
         }
@@ -176,9 +189,9 @@ class FilesAdapter(
     @SuppressLint("ClickableViewAccessibility")
     private fun bindItem(binding: Any, item: Any) {
         val itemId = when (item) {
-            is com.webscare.urducanvas.data.model.ImageEntity -> item.id
-            is com.webscare.urducanvas.data.model.FontEntity -> item.id
-            is com.webscare.urducanvas.data.model.ExportResult -> item.id
+            is ImageEntity -> item.id
+            is FontEntity -> item.id
+            is ExportResult -> item.id
             else -> null
         }
 
@@ -194,17 +207,19 @@ class FilesAdapter(
 
                     editText.setText(
                         when (item) {
-                            is com.webscare.urducanvas.data.model.ImageEntity -> item.file_name
-                            is com.webscare.urducanvas.data.model.FontEntity -> item.font_name
-                            is com.webscare.urducanvas.data.model.ExportResult -> item.fileName
+                            is ImageEntity -> item.file_name
+                            is FontEntity -> item.font_name
+                            is ExportResult -> item.fileName
                             else -> ""
                         }
                     )
 
                     editText.requestFocus()
-                    val imm = editText.context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
-                            as android.view.inputmethod.InputMethodManager
-                    imm.showSoftInput(editText, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+                    val imm =
+                        editText.context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                    imm.showSoftInput(
+                        editText, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT
+                    )
 
                     // IME Done
                     editText.setOnEditorActionListener { v, actionId, _ ->
@@ -221,10 +236,9 @@ class FilesAdapter(
                     editText.setOnTouchListener { v, event ->
                         if (event.action == android.view.MotionEvent.ACTION_UP) {
                             val drawableEnd = editText.compoundDrawablesRelative[2]
-                            if (drawableEnd != null &&
-                                event.rawX >= (editText.right - drawableEnd.bounds.width())) {
-                                val imm = v.context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
-                                        as android.view.inputmethod.InputMethodManager
+                            if (drawableEnd != null && event.rawX >= (editText.right - drawableEnd.bounds.width())) {
+                                val imm =
+                                    v.context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
                                 imm.hideSoftInputFromWindow(v.windowToken, 0)
 
                                 editText.clearFocus()
@@ -244,38 +258,68 @@ class FilesAdapter(
 
         when (binding) {
             is LayoutFilesGridBinding -> {
-                setupEditMode(binding.editName, binding.assetName, binding.metaData, binding.moreOptions)
-                if (!isEditing) bindFileData(binding.assetName, binding.metaData, binding.image, item)
+                setupEditMode(
+                    binding.editName, binding.assetName, binding.metaData, binding.moreOptions
+                )
+                if (!isEditing) bindFileData(
+                    binding.assetName, binding.metaData, binding.image, item
+                )
                 updateSelectionUI(binding, item, isEditing)
             }
+
             is LayoutFilesRowBinding -> {
-                setupEditMode(binding.editName, binding.assetName, binding.metaData, binding.moreOptions)
-                if (!isEditing) bindFileData(binding.assetName, binding.metaData, binding.image, item, binding.imageCard)
+                setupEditMode(
+                    binding.editName, binding.assetName, binding.metaData, binding.moreOptions
+                )
+                if (!isEditing) bindFileData(
+                    binding.assetName, binding.metaData, binding.image, item, binding.imageCard
+                )
                 updateSelectionUI(binding, item, isEditing)
             }
         }
     }
 
     private fun closeKeyboard(view: View) {
-        val imm = view.context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
-                as android.view.inputmethod.InputMethodManager
+        val imm =
+            view.context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
         imm.hideSoftInputFromWindow(view.windowToken, 0)
         view.clearFocus()
     }
 
-    private fun bindFileData(nameView: android.widget.TextView, metaView: android.widget.TextView, imageView: android.widget.ImageView, item: Any, card: com.google.android.material.card.MaterialCardView? = null) {
+    private fun bindFileData(
+        nameView: android.widget.TextView,
+        metaView: android.widget.TextView,
+        imageView: android.widget.ImageView,
+        item: Any,
+        card: com.google.android.material.card.MaterialCardView? = null
+    ) {
         when (item) {
-            is com.webscare.urducanvas.data.model.ImageEntity -> {
+            is ImageEntity -> {
                 nameView.text = item.file_name
                 metaView.text = "Image - ${formatSize(item.file_size)}"
 
-                val isPng = item.file_name.endsWith(".png", ignoreCase = true)
-                imageView.scaleType = if (isPng) android.widget.ImageView.ScaleType.FIT_CENTER else android.widget.ImageView.ScaleType.CENTER_CROP
-                Glide.with(imageView).load(item.bitmapData).thumbnail(0.1f).into(imageView)
+                val isPng = item.file_name.endsWith(".png", ignoreCase = true) || item.file_name.endsWith(".svg", ignoreCase = true)
+                imageView.scaleType =
+                    if (isPng) android.widget.ImageView.ScaleType.FIT_CENTER else android.widget.ImageView.ScaleType.CENTER_CROP
+                val url = Constants.BASE_URL_GLIDE + item.file_url
+                if (item.bitmapData != null) {
+                    Glide.with(imageView).load(item.bitmapData).into(imageView)
+                } else {
+                    if (url.endsWith(".svg", true)) {
 
+                        Glide.with(imageView).`as`(PictureDrawable::class.java).load(url)
+                            .diskCacheStrategy(DiskCacheStrategy.DATA).into(imageView)
+
+                    } else {
+
+                        Glide.with(imageView).load(url).diskCacheStrategy(DiskCacheStrategy.ALL)
+                            .thumbnail(0.1f).into(imageView)
+                    }
+                }
                 if (card != null) setCardStyle(card, isTransparent = isPng)
             }
-            is com.webscare.urducanvas.data.model.FontEntity -> {
+
+            is FontEntity -> {
                 nameView.text = item.font_name
                 metaView.text = "Font - ${formatSize(item.file_size)}"
                 imageView.scaleType = android.widget.ImageView.ScaleType.CENTER
@@ -283,7 +327,8 @@ class FilesAdapter(
 
                 if (card != null) setCardStyle(card, isTransparent = true)
             }
-            is com.webscare.urducanvas.data.model.ExportResult -> {
+
+            is ExportResult -> {
                 nameView.text = item.fileName
                 metaView.text = "Project - ${formatSize(item.fileSizeMB)}"
                 imageView.scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
@@ -294,7 +339,9 @@ class FilesAdapter(
         }
     }
 
-    private fun setCardStyle(card: com.google.android.material.card.MaterialCardView, isTransparent: Boolean) {
+    private fun setCardStyle(
+        card: com.google.android.material.card.MaterialCardView, isTransparent: Boolean
+    ) {
         if (isTransparent) {
             card.cardElevation = 0f
             card.setCardBackgroundColor(Color.TRANSPARENT)
@@ -322,21 +369,28 @@ class FilesAdapter(
                 binding.imageCard.strokeWidth = if (isSelected) 2 else 0
                 binding.imageCard.strokeColor = context.getColor(R.color.appColor)
 
-                binding.moreOptions.visibility = if (multiSelectMode || isEditing) View.GONE else View.VISIBLE
+                binding.moreOptions.visibility =
+                    if (multiSelectMode || isEditing) View.GONE else View.VISIBLE
 
                 binding.shimmerLayout.hideShimmer()
             }
+
             is LayoutFilesRowBinding -> {
                 binding.selection.visibility = if (multiSelectMode) View.VISIBLE else View.GONE
                 binding.selection.setImageResource(if (isSelected) R.drawable.ic_selected_radio else R.drawable.ic_unselected_radio)
                 binding.itemCard.strokeWidth = if (isSelected) 2 else 0
                 binding.itemCard.strokeColor = context.getColor(R.color.appColor)
 
-                binding.moreOptions.visibility = if (multiSelectMode || isEditing) View.GONE else View.VISIBLE
+                binding.moreOptions.visibility =
+                    if (multiSelectMode || isEditing) View.GONE else View.VISIBLE
 
                 binding.shimmerLayout.hideShimmer()
             }
         }
+    }
+
+    fun isEditing(): Boolean {
+        return editingItemId != null
     }
 
     private fun formatSize(size: Any?): String {
