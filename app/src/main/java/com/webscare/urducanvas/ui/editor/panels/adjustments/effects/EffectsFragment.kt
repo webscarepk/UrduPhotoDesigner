@@ -62,24 +62,22 @@ class EffectsFragment : Fragment() {
         lifecycleScope.launch {
             tabs.add(
                 PanelTabs(
-                    0, "Shadow", true
+                    0, "Overlay", true
                 )
             )
             tabs.add(
                 PanelTabs(
-                    1, "Overlay", false
+                    1, "Shadow", false
                 )
             )
-
             tabs.add(
                 PanelTabs(
-                    2, "Blur", false
+                    2, "Stroke", false
                 )
             )
-
             tabs.add(
                 PanelTabs(
-                    3, "Stroke", false
+                    3, "Blur", false
                 )
             )
 

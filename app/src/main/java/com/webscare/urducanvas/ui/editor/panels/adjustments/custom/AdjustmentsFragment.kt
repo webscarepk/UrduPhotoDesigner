@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.webscare.urducanvas.data.model.PanelTabs
 import com.webscare.urducanvas.databinding.FragmentAdjustmentsBinding
@@ -33,16 +34,23 @@ class AdjustmentsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupRecyclerViews()
-        initObservers()
     }
 
     private fun setupRecyclerViews() {
-        tabs = ArrayList()
-        adapter =
-            PanelTabsAdapter { tab ->
-                handleSelection(tab)
-            }
+
+        tabs = arrayListOf(
+            PanelTabs(0, "Light", true),
+            PanelTabs(1, "Color", false),
+            PanelTabs(2, "Detail", false)
+        )
+
+        adapter = PanelTabsAdapter { tab ->
+            handleSelection(tab)
+        }
+
         binding.categories.adapter = adapter
+        adapter.submitList(ArrayList(tabs))
+        handleSelection(tabs.firstOrNull())
 
         binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
         binding.viewPager.offscreenPageLimit = 1
@@ -50,42 +58,11 @@ class AdjustmentsFragment : Fragment() {
         pagerAdapter = AdjustmentsPagerAdapter(this, tabs)
         binding.viewPager.adapter = pagerAdapter
 
-        binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                val selectedCategory = tabs[position]
-                handleSelection(selectedCategory)
-                binding.categories.smoothScrollToPosition(position)
-            }
-        })
-    }
+        binding.viewPager.isSaveEnabled = false
+        binding.viewPager.adapter?.stateRestorationPolicy =
+            RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
 
-    private fun initObservers() {
-        lifecycleScope.launch {
-            tabs.add(
-                PanelTabs(
-                    0,
-                    "Light",
-                    true
-                )
-            )
-            tabs.add(
-                PanelTabs(
-                    1,
-                    "Color",
-                    false
-                )
-            )
-            tabs.add(
-               PanelTabs(
-                    2,
-                    "Detail",
-                    false
-                )
-            )
-
-            adapter.submitList(ArrayList(tabs))
-            handleSelection(tabs.firstOrNull()) // Select "All" by default
-        }
+        handleSelection(tabs.first())
     }
 
     private fun handleSelection(selectedCategory: com.webscare.urducanvas.data.model.PanelTabs?) {
@@ -105,6 +82,7 @@ class AdjustmentsFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        binding.viewPager.adapter = null
         _binding = null
     }
 

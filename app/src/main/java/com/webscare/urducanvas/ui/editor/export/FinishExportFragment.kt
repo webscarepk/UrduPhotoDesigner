@@ -29,7 +29,7 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
     private var _binding: FragmentFinishExportBinding? = null
     private val binding get() = _binding!!
 
-    val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    val viewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?

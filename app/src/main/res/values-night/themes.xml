@@ -40,4 +40,16 @@
         <item name="android:windowEnterAnimation">@anim/popup_fade_in</item>
         <item name="android:windowExitAnimation">@anim/popup_fade_out</item>
     </style>
+
+    <style name="CustomBottomSheetDialog" parent="Theme.Material3.Light.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/CustomBottomSheetStyle</item>
+    </style>
+
+    <style name="CustomBottomSheetStyle" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="backgroundTint">@android:color/transparent</item>
+        <item name="shapeAppearance">@null</item>
+        <item name="enableEdgeToEdge">true</item>
+        <item name="paddingBottomSystemWindowInsets">false</item>
+    </style>
 </resources>

@@ -30,6 +30,7 @@ import com.webscare.urducanvas.common.utils.showGlobalSuccessSnack
 import com.webscare.urducanvas.data.model.toExportResultFinal
 import com.webscare.urducanvas.databinding.DialogLoadingProgressBinding
 import com.webscare.urducanvas.databinding.FragmentHomeBinding
+import com.webscare.urducanvas.ui.creation.CreateFragment
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -87,12 +88,6 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            requireActivity().window.insetsController?.show(
-                WindowInsets.Type.statusBars()
-            )
-        }
 
         setEvents()
         initObservers()
@@ -264,7 +259,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
         binding.blankCanvas.addPressEffect {
             val bottomSheet =
-                _root_ide_package_.com.webscare.urducanvas.ui.creation.CreateFragment()
+                CreateFragment()
             bottomSheet.show(parentFragmentManager, "CreateBottomSheet")
         }
 

@@ -10,7 +10,6 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.net.Uri
-import android.os.Build
 import android.os.Build.MANUFACTURER
 import android.os.Bundle
 import android.text.Editable
@@ -21,7 +20,6 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.animation.AnimationUtils
 import android.view.animation.LinearInterpolator
@@ -48,9 +46,10 @@ import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
-import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupWithNavController
 import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.CanvasManager
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.BlendType
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.canvas.enums.HAlign
@@ -59,14 +58,18 @@ import com.webscare.urducanvas.common.canvas.enums.PickerTarget
 import com.webscare.urducanvas.common.canvas.enums.UnitType
 import com.webscare.urducanvas.common.canvas.enums.VAlign
 import com.webscare.urducanvas.common.canvas.model.CanvasElement
+import com.webscare.urducanvas.common.canvas.model.CanvasSize
+import com.webscare.urducanvas.common.canvas.model.ExportOptions
 import com.webscare.urducanvas.common.utils.BitmapCache
 import com.webscare.urducanvas.common.utils.Converter
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.views.CanvasView
+import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.databinding.DialogAutoSavingLayoutBinding
 import com.webscare.urducanvas.databinding.FragmentEditorBinding
 import com.webscare.urducanvas.databinding.LayoutBlendPopupBinding
+import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -86,20 +89,20 @@ fun Int.dpToPx(context: Context): Int {
 class EditorFragment : Fragment() {
     private var _binding: FragmentEditorBinding? = null
     private val binding get() = _binding!!
-    private lateinit var canvasManager: com.webscare.urducanvas.common.canvas.CanvasManager
+    private lateinit var canvasManager: CanvasManager
     private var _navController: NavController? = null
     private val navController get() = _navController!!
     private var panelsLocked = false
-    private lateinit var canvasSize: com.webscare.urducanvas.common.canvas.model.CanvasSize
+    private lateinit var canvasSize: CanvasSize
     private var currentUnit = UnitType.PIXELS
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    private val viewModel: CanvasViewModel by activityViewModels()
     private var lastSelection: List<CanvasElement> = emptyList()
     private var activePanel: View? = null
-    private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
+    private val mainViewModel: MainViewModel by activityViewModels()
     private var currentPanelItemId: Int? = null
-    private lateinit var sizedCanvasView: com.webscare.urducanvas.common.views.CanvasView
+    private lateinit var sizedCanvasView: CanvasView
     private var currentMode: MultiAlignMode = MultiAlignMode.CANVAS
-    private var exportModel: com.webscare.urducanvas.data.model.ExportResult? = null
+    private var exportModel: ExportResult? = null
     private var jsonPath: String = "canvas_data_${System.currentTimeMillis()}.json"
     private var imagePath: String = "design_data_${System.currentTimeMillis()}.png"
     private var exportDialog: Dialog? = null
@@ -136,11 +139,6 @@ class EditorFragment : Fragment() {
 
 //        activity?.window?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            requireActivity().window.insetsController?.show(
-                WindowInsets.Type.statusBars()
-            )
-        }
         ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavigation) { view, insets ->
             if (MANUFACTURER.equals("realme", ignoreCase = true)) {
                 val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -157,8 +155,63 @@ class EditorFragment : Fragment() {
             binding.bottomNavigation.setupWithNavController(navController)
 
             _navController?.addOnDestinationChangedListener { _, destination, _ ->
+
+                // Hide bottom nav for adjustments
                 binding.bottomNavigation.isVisible =
                     destination.id != R.id.adjustmentsParentFragment
+
+                when (destination.id) {
+
+                    R.id.textFragment -> {
+                        binding.bottomNavigation.selectedItemId = R.id.nav_text
+                        currentPanelItemId = R.id.nav_text
+                        binding.panelNavHost.visibility = View.VISIBLE
+                    }
+
+                    R.id.objectsFragment -> {
+                        binding.bottomNavigation.selectedItemId = R.id.nav_objects
+                        currentPanelItemId = R.id.nav_objects
+                        binding.panelNavHost.visibility = View.VISIBLE
+                    }
+
+                    R.id.drawFragment -> {
+                        binding.bottomNavigation.selectedItemId = R.id.nav_draw
+                        currentPanelItemId = R.id.nav_draw
+                        binding.panelNavHost.visibility = View.VISIBLE
+                    }
+
+                    R.id.imagesFragment -> {
+                        binding.bottomNavigation.selectedItemId = R.id.nav_images
+                        currentPanelItemId = R.id.nav_images
+                        binding.panelNavHost.visibility = View.VISIBLE
+                    }
+
+                    R.id.layersFragment -> {
+                        binding.bottomNavigation.selectedItemId = R.id.nav_layers
+                        currentPanelItemId = R.id.nav_layers
+                        binding.panelNavHost.visibility = View.VISIBLE
+                    }
+
+                    R.id.backgroundsFragment -> {
+                        binding.bottomNavigation.selectedItemId = R.id.nav_background
+                        currentPanelItemId = R.id.nav_background
+                        binding.panelNavHost.visibility = View.VISIBLE
+                    }
+
+                    R.id.adjustmentsParentFragment -> {
+                        // Adjustments has no bottom nav tab
+                        binding.bottomNavigation.menu.findItem(
+                            binding.bottomNavigation.selectedItemId
+                        )?.isChecked = false
+
+                        currentPanelItemId = null
+                        binding.panelNavHost.visibility = View.VISIBLE
+                    }
+
+                    else -> {
+                        currentPanelItemId = null
+                    }
+                }
             }
         }
 
@@ -205,38 +258,34 @@ class EditorFragment : Fragment() {
         binding.addText.addPressEffect {
             viewModel.addText(requireActivity().getString(R.string.dummyText), requireActivity())
             navController.navigate(R.id.textFragment)
-            binding.bottomNavigation.selectedItemId = R.id.nav_text
             toggleFabMenu(false)
         }
 
         binding.addObject.setOnClickListener {
-            navController.navigate(R.id.objectsFragment)
-            binding.bottomNavigation.selectedItemId = R.id.nav_objects
+            val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
+            val bundle = Bundle().apply { putInt("startPage", 1) } // Assuming page 1 is index 0
+            navController.navigate(R.id.objectsFragment, bundle, navOptions)
             toggleFabMenu(false)
         }
 
         binding.addShapes.setOnClickListener {
             viewModel.addShapeElement()
             val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
-            val bundle = Bundle().apply { putInt("startPage", 1) } // Assuming page 1 is index 0
-            navController.navigate(R.id.drawFragment, bundle, navOptions)
-            binding.bottomNavigation.selectedItemId = R.id.drawFragment
+            val bundle = Bundle().apply { putInt("startPage", 0) } // Assuming page 1 is index 0
+            navController.navigate(R.id.objectsFragment, bundle, navOptions)
             toggleFabMenu(false)
         }
 
         binding.addImage.setOnClickListener {
             pickImage.launch("image/*")
             navController.navigate(R.id.imagesFragment)
-            binding.bottomNavigation.selectedItemId = R.id.nav_images
             toggleFabMenu(false)
         }
 
         binding.addDraw.setOnClickListener {
             viewModel.enterDrawingMode()
             val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
-            val bundle = Bundle().apply { putInt("startPage", 0) } // Assuming page 2 is index 1
-            navController.navigate(R.id.drawFragment, bundle, navOptions)
-            binding.bottomNavigation.selectedItemId = R.id.nav_draw
+            navController.navigate(R.id.drawFragment, null, navOptions)
             toggleFabMenu(false)
         }
 
@@ -362,7 +411,7 @@ class EditorFragment : Fragment() {
         }
     }
 
-    private fun showTextEditDialog(element: com.webscare.urducanvas.common.canvas.model.CanvasElement) {
+    private fun showTextEditDialog(element: CanvasElement) {
         val dialog = Dialog(requireContext())
         dialog.setContentView(R.layout.dialog_edit_text)
 
@@ -446,11 +495,11 @@ class EditorFragment : Fragment() {
     }
 
     private fun saveOnExitSafe(
-        options: com.webscare.urducanvas.common.canvas.model.ExportOptions,
+        options: ExportOptions,
         exportBitmap: Bitmap,
         exportJson: String,
         exportImage: Boolean,
-        canvasSize: com.webscare.urducanvas.common.canvas.model.CanvasSize
+        canvasSize: CanvasSize
     ) {
         try {
             lifecycleScope.launch(Dispatchers.IO) {
@@ -482,7 +531,7 @@ class EditorFragment : Fragment() {
                 // ---- Prepare model ----
                 if (exportModel == null) {
                     exportModel =
-                        _root_ide_package_.com.webscare.urducanvas.data.model.ExportResult(
+                        ExportResult(
                             imagePath = imagePath,
                             jsonPath = jsonPath,
                             fileName = fileName,
@@ -725,31 +774,74 @@ class EditorFragment : Fragment() {
             updateToolbarVisibility(newSelection)
 
             val first = newSelection.firstOrNull()
+            val currentDest = navController.currentDestination?.id
 
-            val shouldOpenAdjustments =
-                newSelection.size == 1 && first != null && (first.type == ElementType.IMAGE || first.type == ElementType.STICKER || first.type == ElementType.BACKGROUND)
+            // Determine which panel should open
+            val targetDestination = when {
+                newSelection.size == 1 && first != null -> {
+                    when (first.type) {
 
-            val isAdjustmentOpen =
-                navController.currentDestination?.id == R.id.adjustmentsParentFragment
+                        ElementType.TEXT ->
+                            R.id.textFragment
 
-            if (shouldOpenAdjustments && !isAdjustmentOpen) {
+                        ElementType.IMAGE,
+                        ElementType.STICKER,
+                        ElementType.BACKGROUND ->
+                            R.id.adjustmentsParentFragment
 
-                first?.let { element ->
+                        ElementType.SHAPE ->
+                            R.id.objectsFragment
 
+                        else -> null
+                    }
+                }
+
+                else -> null
+            }
+
+            val panelDestinations = listOf(
+                R.id.textFragment,
+                R.id.adjustmentsParentFragment,
+                R.id.objectsFragment
+            )
+
+            // If nothing should be open → close panels
+            if (targetDestination == null) {
+
+                if (
+                    currentDest == R.id.textFragment ||
+                    currentDest == R.id.adjustmentsParentFragment ||
+                    currentDest == R.id.objectsFragment
+                ) {
+                    if (currentDest in panelDestinations) {
+                        navController.popBackStack(currentDest, true)
+                    }
+                }
+
+                return@observe
+            }
+
+            // If already on correct fragment → do nothing
+            if (currentDest == targetDestination) return@observe
+
+            // Navigate to correct panel
+            first?.let { element ->
+
+                val bundle = Bundle().apply {
+                    putString("elementId", element.id)
+                }
+
+                if (targetDestination == R.id.adjustmentsParentFragment) {
                     element.bitmap?.let { bmp ->
                         BitmapCache.put(element.id, bmp)
                     }
-
-                    val bundle = Bundle().apply {
-                        putString("elementId", element.id)
-                    }
-
-                    val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
-
-                    navController.navigate(
-                        R.id.adjustmentsParentFragment, bundle, navOptions
-                    )
                 }
+
+                val navOptions = NavOptions.Builder()
+                    .setLaunchSingleTop(true)
+                    .build()
+
+                navController.navigate(targetDestination, bundle, navOptions)
             }
         }
     }
@@ -979,7 +1071,7 @@ class EditorFragment : Fragment() {
         }
 
         canvasManager =
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.CanvasManager(sizedCanvasView)
+            CanvasManager(sizedCanvasView)
     }
 
     /** Setup bottom navigation with navHost */

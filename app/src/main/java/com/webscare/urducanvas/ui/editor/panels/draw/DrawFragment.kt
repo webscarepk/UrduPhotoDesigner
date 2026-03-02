@@ -56,12 +56,6 @@ class DrawFragment : Fragment() {
         initObservers()
         setupTabLayout()
 
-        val startPage = arguments?.getInt("startPage", 0) ?: 0
-
-        if (startPage in 0 until tabs.size) {
-            binding.viewPager.setCurrentItem(startPage, false)
-        }
-
         binding.viewPager.registerOnPageChangeCallback(object : OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)

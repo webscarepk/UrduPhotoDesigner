@@ -1,7 +1,6 @@
 package com.webscare.urducanvas.ui.creation
 
 import android.annotation.SuppressLint
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
@@ -11,8 +10,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowInsetsController
+import android.view.WindowManager
 import android.widget.EditText
 import android.widget.PopupMenu
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.addTextChangedListener
@@ -20,9 +21,6 @@ import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import com.google.android.material.shape.CornerFamily
-import com.google.android.material.shape.MaterialShapeDrawable
-import com.google.android.material.shape.ShapeAppearanceModel
 import com.google.android.material.snackbar.Snackbar
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
@@ -288,7 +286,7 @@ class CreateFragment : BottomSheetDialogFragment() {
                 val wVal = clampCanvasSize(getSafeIntValue(width), currentUnit)
                 val hVal = clampCanvasSize(getSafeIntValue(height), currentUnit)
                 val canvasSize =
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+                    CanvasSize(
                         "Custom", wVal, hVal
                     )
                 viewModel.clearCanvas()
@@ -364,7 +362,7 @@ class CreateFragment : BottomSheetDialogFragment() {
     override fun onResume() {
         super.onResume()
         forceImmersiveMode()
-        // Assuming you have a TextView in your layout called unitTextView
+
         binding.unit.text = when (currentUnit) {
             UnitType.INCHES -> "Inches"
             UnitType.CENTIMETERS -> "Centimeters"
@@ -380,7 +378,8 @@ class CreateFragment : BottomSheetDialogFragment() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 window.insetsController?.apply {
                     hide(
-                        WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars()
+                        WindowInsets.Type.statusBars() or
+                                WindowInsets.Type.navigationBars()
                     )
                     systemBarsBehavior =
                         WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -396,44 +395,18 @@ class CreateFragment : BottomSheetDialogFragment() {
             }
         }
     }
-//
-//    override fun onStart() {
-//        super.onStart()
-//        val bottomSheet = dialog?.findViewById<View>(
-//            com.google.android.material.R.id.design_bottom_sheet
-//        ) ?: return
-//
-//        val shapeAppearanceModel =
-//            ShapeAppearanceModel.builder().setTopLeftCorner(CornerFamily.ROUNDED, 32f)
-//                .setTopRightCorner(CornerFamily.ROUNDED, 32f).build()
-//
-//        val materialShapeDrawable = MaterialShapeDrawable(shapeAppearanceModel).apply {
-//            fillColor = ColorStateList.valueOf(Color.WHITE)
-//        }
-//
-//        ViewCompat.setBackground(bottomSheet, materialShapeDrawable)
-//        bottomSheet.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
-//        val behavior = BottomSheetBehavior.from(bottomSheet)
-//        behavior.isFitToContents = false
-//        behavior.halfExpandedRatio = 0.85f
-//        behavior.state = BottomSheetBehavior.STATE_HALF_EXPANDED
-//
-//        dialog?.window?.let { window ->
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-//                window.setDecorFitsSystemWindows(false)
-//                window.insetsController?.hide(WindowInsets.Type.navigationBars())
-//            } else {
-//                window.decorView.systemUiVisibility =
-//                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-//            }
-//        }
-//    }
 
     override fun onStart() {
         super.onStart()
 
+        // 1. Clear the Window background (The very back layer)
         dialog?.window?.apply {
+            setBackgroundDrawableResource(android.R.color.transparent)
             setDimAmount(0.45f)
+            setFlags(
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+            )
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 setDecorFitsSystemWindows(false)
             }
@@ -447,18 +420,29 @@ class CreateFragment : BottomSheetDialogFragment() {
             com.google.android.material.R.id.design_bottom_sheet
         ) ?: return
 
-        ViewCompat.setOnApplyWindowInsetsListener(bottomSheet) { _, _ ->
+        bottomSheet.background = ContextCompat.getDrawable(requireContext(), R.drawable.bottom_sheet_bg)
+        bottomSheet.setBackgroundResource(android.R.color.transparent)
+
+        ViewCompat.setOnApplyWindowInsetsListener(bottomSheet) { v, insets ->
             WindowInsetsCompat.CONSUMED
         }
 
         bottomSheet.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
+
         val behavior = BottomSheetBehavior.from(bottomSheet)
-        behavior.isFitToContents = false
-        behavior.halfExpandedRatio = 0.65f
-        behavior.state = BottomSheetBehavior.STATE_HALF_EXPANDED
-        bottomSheet.setPadding(0, 0, 0, 0)
+        behavior.apply {
+            isFitToContents = false
+            expandedOffset = 0
+            state = BottomSheetBehavior.STATE_HALF_EXPANDED
+            halfExpandedRatio = 0.75f
+            skipCollapsed = true
+        }
 
         forceImmersiveMode()
+    }
+
+    override fun getTheme(): Int {
+        return R.style.CustomBottomSheetDialog
     }
 
     override fun onDestroyView() {

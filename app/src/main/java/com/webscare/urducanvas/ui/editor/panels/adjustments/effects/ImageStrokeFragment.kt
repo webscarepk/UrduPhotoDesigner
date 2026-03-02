@@ -208,10 +208,8 @@ class ImageStrokeFragment : Fragment() {
             binding.solid.backgroundTintList =
                 ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white))
         } else {
-            // Fade out solid and hide it
             binding.colors.animate().alpha(0f).setDuration(fadeDuration).withEndAction {
                 binding.colors.visibility = View.GONE
-                // Now fade in gradient after solid is hidden
                 binding.gradients.alpha = 0f
                 binding.gradients.visibility = View.VISIBLE
                 binding.gradients.animate().alpha(1f).setDuration(fadeDuration).start()
