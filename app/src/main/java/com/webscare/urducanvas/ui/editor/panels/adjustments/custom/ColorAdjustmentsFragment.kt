@@ -5,9 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.databinding.FragmentColorAdjustmentsBinding
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -18,8 +16,7 @@ class ColorAdjustmentsFragment : androidx.fragment.app.Fragment() {
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentColorAdjustmentsBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -48,7 +45,10 @@ class ColorAdjustmentsFragment : androidx.fragment.app.Fragment() {
                     }
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar?) {}
+                override fun onStartTrackingTouch(sb: SeekBar?) {
+                    viewModel.enableFeature("Color")
+                }
+
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
             })
         }
@@ -67,7 +67,10 @@ class ColorAdjustmentsFragment : androidx.fragment.app.Fragment() {
                     }
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar?) {}
+                override fun onStartTrackingTouch(sb: SeekBar?) {
+                    viewModel.enableFeature("Color")
+                }
+
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
             })
         }
@@ -85,7 +88,10 @@ class ColorAdjustmentsFragment : androidx.fragment.app.Fragment() {
                     }
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar?) {}
+                override fun onStartTrackingTouch(sb: SeekBar?) {
+                    viewModel.enableFeature("Color")
+                }
+
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
             })
         }
@@ -103,7 +109,10 @@ class ColorAdjustmentsFragment : androidx.fragment.app.Fragment() {
                     }
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar?) {}
+                override fun onStartTrackingTouch(sb: SeekBar?) {
+                    viewModel.enableFeature("Color")
+                }
+
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
             })
         }

@@ -40,9 +40,6 @@ class ObjectsPagerAdapter(
 
     override fun createFragment(position: Int): Fragment {
         // pass the initial filter into the fragment’s arguments
-        return when (position) {
-            0 -> ShapeFragment.newInstance()
-            else -> ObjectsListFragment.newInstance(tabs[position], currentQuery)
-        }
+        return ObjectsListFragment.newInstance(tabs[position], currentQuery)
     }
 }

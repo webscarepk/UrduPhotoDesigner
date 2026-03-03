@@ -12,7 +12,7 @@ import com.webscare.urducanvas.databinding.LayoutFilterItemBinding
 
 class ImageFiltersAdapter(
     private val filterList: List<com.webscare.urducanvas.common.canvas.model.FilterItem>,
-    private val baseBitmap: Bitmap?,
+    private var baseBitmap: Bitmap?,
     private val onFilterSelected: (com.webscare.urducanvas.common.canvas.model.FilterItem) -> Unit
 ) : RecyclerView.Adapter<ImageFiltersAdapter.FilterViewHolder>() {
 
@@ -74,5 +74,10 @@ class ImageFiltersAdapter(
 
     override fun onBindViewHolder(holder: FilterViewHolder, position: Int) {
         holder.bind(filterList[position])
+    }
+
+    fun updatePreviewBitmap(newBitmap: Bitmap?) {
+        this.baseBitmap = newBitmap
+        notifyDataSetChanged()
     }
 }

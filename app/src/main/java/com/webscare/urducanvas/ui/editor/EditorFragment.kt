@@ -169,8 +169,8 @@ class EditorFragment : Fragment() {
                     }
 
                     R.id.objectsFragment -> {
-                        binding.bottomNavigation.selectedItemId = R.id.nav_objects
-                        currentPanelItemId = R.id.nav_objects
+                        binding.bottomNavigation.selectedItemId = R.id.nav_stickers
+                        currentPanelItemId = R.id.nav_stickers
                         binding.panelNavHost.visibility = View.VISIBLE
                     }
 
@@ -192,9 +192,9 @@ class EditorFragment : Fragment() {
                         binding.panelNavHost.visibility = View.VISIBLE
                     }
 
-                    R.id.backgroundsFragment -> {
-                        binding.bottomNavigation.selectedItemId = R.id.nav_background
-                        currentPanelItemId = R.id.nav_background
+                    R.id.shapeFragment -> {
+                        binding.bottomNavigation.selectedItemId = R.id.nav_shapes
+                        currentPanelItemId = R.id.nav_shapes
                         binding.panelNavHost.visibility = View.VISIBLE
                     }
 
@@ -1084,8 +1084,8 @@ class EditorFragment : Fragment() {
                 binding.panelNavHost.visibility = View.VISIBLE
                 currentPanelItemId = menuItem.itemId
                 when (menuItem.itemId) {
-                    R.id.nav_background -> navController.navigate(R.id.backgroundsFragment)
-                    R.id.nav_objects -> navController.navigate(R.id.objectsFragment)
+                    R.id.nav_shapes -> navController.navigate(R.id.shapeFragment)
+                    R.id.nav_stickers -> navController.navigate(R.id.objectsFragment)
                     R.id.nav_text -> navController.navigate(R.id.textFragment)
                     R.id.nav_draw -> navController.navigate(R.id.drawFragment)
                     R.id.nav_images -> navController.navigate(R.id.imagesFragment)

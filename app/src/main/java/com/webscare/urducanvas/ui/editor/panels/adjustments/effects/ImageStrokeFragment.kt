@@ -153,8 +153,8 @@ class ImageStrokeFragment : Fragment() {
     private fun setEvents() {
 
         binding.border.apply {
-            min = 0
-            max = 10
+            min = 1
+            max = 50
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                     viewModel.setImageBorder(
@@ -165,7 +165,9 @@ class ImageStrokeFragment : Fragment() {
                     binding.borderSize.text = progress.toString()
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar) {}
+                override fun onStartTrackingTouch(sb: SeekBar?) {
+                    viewModel.enableFeature("Stroke")
+                }
                 override fun onStopTrackingTouch(sb: SeekBar) {}
             })
         }

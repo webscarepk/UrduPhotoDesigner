@@ -8,6 +8,7 @@ import android.graphics.Typeface
 import android.util.Log
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.scale
+import androidx.core.graphics.toColorInt
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
@@ -41,6 +42,7 @@ import com.webscare.urducanvas.common.canvas.sealed.CanvasAction
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants
 import com.webscare.urducanvas.common.datastore.PreferencesDataStoreHelper
+import com.webscare.urducanvas.common.utils.BitmapCache
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.views.CanvasView
 import com.webscare.urducanvas.data.model.ExportResult
@@ -672,7 +674,20 @@ class CanvasViewModel @Inject constructor(
 
     fun setBlur(value: Float) {
         _blur.value = value
-        updateSelectedElementAdjustments { it.copy(blur = value) }
+        updateSelectedElementValue { element ->
+            element.blurValue = value
+        }
+    }
+
+    private fun updateSelectedElementValue(updateBlock: (CanvasElement) -> Unit) {
+        val currentList = _canvasElements.value ?: return
+        val updatedList = currentList.map {
+            if (it.isSelected) {
+                it.apply(updateBlock)
+                it
+            } else it
+        }
+        _canvasElements.value = updatedList
     }
 
     fun setShadows(value: Float) {
@@ -1056,10 +1071,6 @@ class CanvasViewModel @Inject constructor(
         _isMaskingMode.value = true
     }
 
-    fun exitMaskMode() {
-        _isMaskingMode.value = false
-    }
-
     fun enterDrawingMode() {
         _isDrawingMode.value = true
     }
@@ -1155,9 +1166,11 @@ class CanvasViewModel @Inject constructor(
             PickerTarget.EYE_DROPPER_IMAGE_STROKE -> setImageBorder(
                 true, color, _borderWidth.value ?: 1f
             )
+
             PickerTarget.COLOR_PICKER_IMAGE_STROKE -> setImageBorder(
                 true, color, _borderWidth.value ?: 1f
             )
+
             null -> { /* nothing to do */
             }
         }
@@ -1202,7 +1215,8 @@ class CanvasViewModel @Inject constructor(
                 gradientItem
             ) else setFillGradient(null)
 
-            GradientPickerTarget.IMAGE_STROKE -> if (gradientItem != null) setImageStrokeGradient(gradientItem, _borderWidth.value ?: 1f
+            GradientPickerTarget.IMAGE_STROKE -> if (gradientItem != null) setImageStrokeGradient(
+                gradientItem, _borderWidth.value ?: 1f
             ) else clearImageStrokeGradients()
         }
     }
@@ -1216,9 +1230,7 @@ class CanvasViewModel @Inject constructor(
         if (oldGradient != gradient) {
 
             val action = CanvasAction.SetOverlayGradient(
-                element.id,
-                oldGradient,
-                gradient
+                element.id, oldGradient, gradient
             )
 
             _canvasActions.push(action)
@@ -1898,7 +1910,6 @@ class CanvasViewModel @Inject constructor(
                     _brightness.value = adj.brightness
                     _contrast.value = adj.contrast
                     _saturation.value = adj.saturation
-                    _blur.value = adj.blur
                     _shadows.value = adj.shadows
                     _temperature.value = adj.temperature
                     _tint.value = adj.tint
@@ -2059,6 +2070,125 @@ class CanvasViewModel @Inject constructor(
         _shadowOpacity.value = element.shadowOpacity
     }
 
+    fun toggleFeature(type: String) {
+        val element = _selectedElements.value?.firstOrNull() ?: return
+        val updatedElement = element.copy().apply {
+            when (type) {
+                "Shadow" -> {
+                    hasShadow = !hasShadow
+                    if (hasShadow) applyShadowPresets(this)
+                }
+
+                "Stroke" -> {
+                    hasStroke = !hasStroke
+                    if (hasStroke) applyStrokePresets(this)
+                }
+
+                "Blur" -> {
+                    hasBlur = !hasBlur
+                    if (hasBlur) applyBlurPresets(this)
+                }
+
+                "Overlay" -> {
+                    hasOverlay = !hasOverlay
+                    if (hasOverlay) applyOverlayPresets(this)
+                }
+
+                "Light" -> hasLight = !hasLight
+                "Color" -> hasColor = !hasColor
+                "Detail" -> hasDetail = !hasDetail
+            }
+        }
+        updateCanvasElement(updatedElement)
+    }
+
+    fun enableFeature(type: String) {
+        val element = _selectedElements.value?.firstOrNull() ?: return
+
+        val alreadyEnabled = when (type) {
+            "Shadow" -> element.hasShadow
+            "Stroke" -> element.hasStroke
+            "Blur" -> element.hasBlur
+            "Overlay" -> element.hasOverlay
+            "Light" -> element.hasLight
+            "Color" -> element.hasColor
+            "Detail" -> element.hasDetail
+            else -> true
+        }
+
+        if (!alreadyEnabled) {
+            val updatedElement = element.copy().apply {
+                when (type) {
+                    "Shadow" -> {
+                        hasShadow = true; applyShadowPresets(this)
+                    }
+
+                    "Stroke" -> {
+                        hasStroke = true; applyStrokePresets(this)
+                    }
+
+                    "Blur" -> {
+                        hasBlur = true; applyBlurPresets(this)
+                    }
+
+                    "Overlay" -> {
+                        hasOverlay = true; applyOverlayPresets(this)
+                    }
+
+                    "Light" -> hasLight = true
+                    "Color" -> hasColor = true
+                    "Detail" -> hasDetail = true
+                }
+            }
+            updateCanvasElement(updatedElement)
+        }
+    }
+
+    private fun applyShadowPresets(element: CanvasElement) {
+        if (element.shadowRadius <= 1f && element.shadowDx <= 1f && element.shadowDy <= 1f && element.shadowOpacity <= 1) {
+            element.shadowRadius = 10f
+            element.shadowDx = 5f
+            element.shadowDy = 5f
+            element.shadowOpacity = 155
+            element.shadowColor = Color.BLACK
+
+            _shadowRadius.value = element.shadowRadius
+            _shadowDx.value = element.shadowDx
+            _shadowDy.value = element.shadowDy
+            _shadowOpacity.value = element.shadowOpacity
+            _shadowColor.value = element.shadowColor
+        }
+    }
+
+    private fun applyStrokePresets(element: CanvasElement) {
+        if (element.strokeWidth <= 1.1f) {
+            element.strokeWidth = 5f
+            element.strokeColor = Color.RED
+
+            _borderWidth.value = element.strokeWidth
+            _borderColor.value = element.strokeColor
+        }
+    }
+
+    private fun applyBlurPresets(element: CanvasElement) {
+        // Check if it's a valid type for blur
+        val isValidType = element.type == ElementType.IMAGE ||
+                element.type == ElementType.STICKER ||
+                element.type == ElementType.SHAPE ||
+                (element.type == ElementType.BACKGROUND && element.bitmap != null)
+
+        if (isValidType && element.blurValue == 0f) {
+            element.blurValue = 15f // Default preset
+            _blur.value = element.blurValue // SeekBar sync
+        }
+    }
+
+    private fun applyOverlayPresets(element: CanvasElement) {
+        if (element.overlayColor == Color.TRANSPARENT) {
+            element.overlayColor = "#FF746C".toColorInt()
+        }
+    }
+
     fun setImageShadow(
         enabled: Boolean,
         color: Int,
@@ -2107,6 +2237,7 @@ class CanvasViewModel @Inject constructor(
     private fun notifyCanvasUpdated() {
         _canvasElements.value = _canvasElements.value
     }
+
     fun setElementOverlay(color: Int) {
         val element = _selectedElements.value?.firstOrNull() ?: return
 
@@ -2124,7 +2255,7 @@ class CanvasViewModel @Inject constructor(
                 element.overlayOpacity
             )
             _canvasActions.push(
-             action
+                action
             )
 
             _redoStack.clear()
@@ -2156,7 +2287,7 @@ class CanvasViewModel @Inject constructor(
                 opacity
             )
             _canvasActions.push(
-             action
+                action
             )
 
             _redoStack.clear()
@@ -2205,59 +2336,80 @@ class CanvasViewModel @Inject constructor(
 
 
     fun addSticker(bitmap: Bitmap?, context: Context, elementType: ElementType) {
-
         if (bitmap == null) return
 
         val currentList = _canvasElements.value ?: emptyList()
-        val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
+
+        val selectedElement = currentList.find { it.isSelected && (it.type == ElementType.IMAGE || it.type == ElementType.STICKER) }
 
         val canvasW = _canvasSize.value?.width ?: return
         val canvasH = _canvasSize.value?.height ?: return
 
         val imageW = bitmap.width.toFloat()
         val imageH = bitmap.height.toFloat()
-
         val maxAllowedW = canvasW * 0.8f
         val maxAllowedH = canvasH * 0.8f
 
         var finalBitmap = bitmap
-
         if (imageW > maxAllowedW || imageH > maxAllowedH) {
-
-            val scaleFactor = minOf(
-                maxAllowedW / imageW, maxAllowedH / imageH
-            )
-
-            val scaledWidth = (imageW * scaleFactor).toInt()
-            val scaledHeight = (imageH * scaleFactor).toInt()
-
-            finalBitmap = bitmap.scale(scaledWidth, scaledHeight)
+            val scaleFactor = minOf(maxAllowedW / imageW, maxAllowedH / imageH)
+            finalBitmap = bitmap.scale((imageW * scaleFactor).toInt(), (imageH * scaleFactor).toInt())
         }
 
-        val element = CanvasElement(
-            context = context,
-            type = elementType,
-            bitmap = finalBitmap,
-            bitmapData = ImageProcessor.bitmapToBase64(finalBitmap),
-            x = canvasW / 2f,
-            y = canvasH / 2f,
-            paintAlpha = 255,
-            zIndex = newZIndex
-        )
+        if (selectedElement != null) {
+            val oldElementSnapshot = selectedElement.copy(context = null, bitmap = null)
 
-        element.updatePaintProperties()
-
-        _canvasActions.push(
-            CanvasAction.AddSticker(
-                element.copy(context = null, bitmap = null)
+            val updatedElement = selectedElement.copy(
+                bitmap = finalBitmap,
+                bitmapData = ImageProcessor.bitmapToBase64(finalBitmap)
             )
-        )
+            updatedElement.updatePaintProperties()
+
+            _canvasActions.push(
+                CanvasAction.UpdateElement(
+                    elementId = selectedElement.id,
+                    newElement = updatedElement.copy(context = null, bitmap = null),
+                    oldElement = oldElementSnapshot
+                )
+            )
+
+            val updatedList = currentList.map {
+                if (it.id == selectedElement.id) updatedElement else it
+            }
+            _canvasElements.value = updatedList
+
+            BitmapCache.put(selectedElement.id, finalBitmap)
+
+        } else {
+            val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
+
+            val newElement = CanvasElement(
+                context = context,
+                type = elementType,
+                bitmap = finalBitmap,
+                bitmapData = ImageProcessor.bitmapToBase64(finalBitmap),
+                x = canvasW / 2f,
+                y = canvasH / 2f,
+                paintAlpha = 255,
+                zIndex = newZIndex
+            )
+
+            newElement.updatePaintProperties()
+
+            _canvasActions.push(
+                CanvasAction.AddSticker(
+                    newElement.copy(context = null, bitmap = null)
+                )
+            )
+
+            _canvasElements.value = currentList + newElement
+
+            BitmapCache.put(newElement.id, finalBitmap)
+        }
 
         _redoStack.clear()
-        _canvasElements.value = currentList + element
         notifyUndoRedoChanged()
     }
-
     fun ensureBackgroundElement(context: Context) {
         // if we already have a background, do nothing
         if ((_canvasElements.value ?: emptyList()).any { it.type == ElementType.BACKGROUND }) return
@@ -2921,11 +3073,11 @@ class CanvasViewModel @Inject constructor(
 
             is CanvasAction.SetOverlay -> {
                 val el = findElementById(action.elementId)
-                if (isRedo){
+                if (isRedo) {
                     el?.hasOverlay = action.newHasOverlay
                     el?.overlayColor = action.newColor
                     el?.overlayOpacity = action.newOpacity
-                }else{
+                } else {
                     el?.hasOverlay = action.oldHasOverlay
                     el?.overlayColor = action.oldColor
                     el?.overlayOpacity = action.oldOpacity
@@ -3163,7 +3315,6 @@ class CanvasViewModel @Inject constructor(
         _clarity.value = adj.clarity
         _fade.value = adj.fade
         _sharpness.value = adj.sharpness
-        _blur.value = adj.blur
     }
 
     fun clearCanvas() {
@@ -3284,7 +3435,6 @@ class CanvasViewModel @Inject constructor(
                         _brightness.postValue(it.adjustments.brightness)
                         _contrast.postValue(it.adjustments.contrast)
                         _saturation.postValue(it.adjustments.saturation)
-                        _blur.postValue(it.adjustments.blur)
                         _shadows.postValue(it.adjustments.shadows)
                         _temperature.postValue(it.adjustments.temperature)
                         _tint.postValue(it.adjustments.tint)

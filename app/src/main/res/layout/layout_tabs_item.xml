@@ -13,7 +13,7 @@
         android:textSize="12sp"
         android:fontFamily="@font/regular"
         android:paddingVertical="6dp"
-        android:paddingHorizontal="12dp"
+        android:paddingHorizontal="6dp"
         android:maxLines="1"
         android:ellipsize="end"
         android:drawablePadding="5dp"

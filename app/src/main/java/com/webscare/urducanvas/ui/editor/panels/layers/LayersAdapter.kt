@@ -98,8 +98,8 @@ class LayersAdapter(
                         ElementType.IMAGE -> R.drawable.ic_image_layer
                         ElementType.STICKER -> R.drawable.ic_sticker
                         ElementType.DRAW -> R.drawable.ic_pen
-                        ElementType.SHAPE -> R.drawable.ic_objects
-                        else -> R.drawable.ic_background
+                        ElementType.SHAPE -> R.drawable.ic_shapes
+                        else -> R.drawable.ic_stickers
                     }
                 )
 

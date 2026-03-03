@@ -57,7 +57,9 @@ class BlurFragment : Fragment() {
                     }
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar?) {}
+                override fun onStartTrackingTouch(sb: SeekBar?) {
+                    viewModel.enableFeature("Blur")
+                }
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
             })
         }

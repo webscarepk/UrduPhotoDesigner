@@ -14,5 +14,4 @@ data class AdjustmentValues(
     var sharpness: Float = 0f,        // 0 to 5
     var clarity: Float = 0f,          // -100 to +100
     var fade: Float = 0f,              // 0 to 100
-    var blur: Float = 0f                // 0 → 25
 ) : Serializable

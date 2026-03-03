@@ -2,6 +2,7 @@ package com.webscare.urducanvas.ui.editor.panels.adjustments.effects
 
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
+import com.webscare.urducanvas.data.model.AdjustmentPanelTabs
 import com.webscare.urducanvas.data.model.PanelTabs
 import com.webscare.urducanvas.ui.editor.panels.adjustments.custom.AdvancedAdjustmentsFragment
 import com.webscare.urducanvas.ui.editor.panels.adjustments.custom.ColorAdjustmentsFragment
@@ -11,7 +12,7 @@ import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.ShadowsFr
 
 class EffectsPagerAdapter(
     fragment: Fragment,
-    private var tabs: List<PanelTabs>
+    private var tabs: List<AdjustmentPanelTabs>
 ) : FragmentStateAdapter(fragment) {
 
     override fun getItemCount() = tabs.size

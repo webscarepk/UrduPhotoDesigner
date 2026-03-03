@@ -67,12 +67,15 @@ class OverlayColorListFragment : Fragment() {
             ColorsAdapter(
                 Constants.colorList,
                 { color ->
+                    viewModel.enableFeature("Overlay")
                     viewModel.setElementOverlay(color.colorCode.toColorInt())
                 },
                 {
+                    viewModel.toggleFeature("Overlay")
                     viewModel.setElementOverlay(android.R.color.transparent)
                 },
                 {
+                    viewModel.enableFeature("Overlay")
                     viewModel.startPicking(PickerTarget.COLOR_PICKER_OVERLAY)
                     childFragmentManager
                         .beginTransaction()
@@ -84,6 +87,7 @@ class OverlayColorListFragment : Fragment() {
                         .commit()
                 },
                 {
+                    viewModel.enableFeature("Overlay")
                     viewModel.startPicking(PickerTarget.EYE_DROPPER_OVERLAY)
                 })
         binding.colors.apply {
@@ -95,13 +99,16 @@ class OverlayColorListFragment : Fragment() {
             GradientsAdapter(
                 gradientList = emptyList(),
                 onGradientSelected = { _, gradient ->
+                    viewModel.enableFeature("Overlay")
                     viewModel.setElementOverlayGradient(gradient)
                 },
                 onNoneSelected = {
+                    viewModel.toggleFeature("Overlay")
                     viewModel.setElementOverlayGradient(null)
                 },
                 onGradientEditSelected = { _, item ->
                     viewModel.setGradient(item)
+                    viewModel.enableFeature("Overlay")
                     viewModel.startPickingGradient(GradientPickerTarget.OVERLAY)
                     childFragmentManager
                         .beginTransaction()
@@ -117,6 +124,7 @@ class OverlayColorListFragment : Fragment() {
                         .commit()
                 },
                 onGradientPickerClicked = {
+                    viewModel.enableFeature("Overlay")
                     viewModel.startPickingGradient(GradientPickerTarget.OVERLAY)
                     childFragmentManager
                         .beginTransaction()

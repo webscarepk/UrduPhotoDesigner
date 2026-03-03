@@ -96,14 +96,11 @@ class ObjectsFragment : Fragment() {
 
                 val newTabs = mutableListOf<String>()
 
-                newTabs.add("Shapes")
-
                 if (hasObjectRecents) {
                     newTabs.add("Recents")
                 }
 
                 val combinedTabs = (extraTabs + baseTabs)
-                    .filterNot { it.equals("Shapes", true) } // remove duplicate Shapes if exists
 
                 newTabs.addAll(combinedTabs)
 
@@ -114,11 +111,6 @@ class ObjectsFragment : Fragment() {
                     adapter = ObjectsPagerAdapter(
                         requireActivity().supportFragmentManager, lifecycle, tabs
                     )
-                    val startPage = arguments?.getInt("startPage", 0) ?: 0
-
-                    if (startPage in 0 until tabs.size) {
-                        binding.viewPager.setCurrentItem(startPage, false)
-                    }
 
                     binding.viewPager.adapter = adapter
                     binding.viewPager.isUserInputEnabled = false

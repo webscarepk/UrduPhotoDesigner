@@ -84,7 +84,9 @@ class ToneAdjustmentsFragment : androidx.fragment.app.Fragment() {
                     }
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar?) {}
+                override fun onStartTrackingTouch(sb: SeekBar?) {
+                    viewModel.enableFeature("Light")
+                }
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
             })
         }
@@ -105,7 +107,9 @@ class ToneAdjustmentsFragment : androidx.fragment.app.Fragment() {
                     }
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar?) {}
+                override fun onStartTrackingTouch(sb: SeekBar?) {
+                    viewModel.enableFeature("Light")
+                }
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
             })
         }
@@ -128,7 +132,9 @@ class ToneAdjustmentsFragment : androidx.fragment.app.Fragment() {
                     }
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar?) {}
+                override fun onStartTrackingTouch(sb: SeekBar?) {
+                    viewModel.enableFeature("Light")
+                }
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
             })
         }
@@ -150,7 +156,9 @@ class ToneAdjustmentsFragment : androidx.fragment.app.Fragment() {
                     }
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar?) {}
+                override fun onStartTrackingTouch(sb: SeekBar?) {
+                    viewModel.enableFeature("Light")
+                }
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
             })
         }

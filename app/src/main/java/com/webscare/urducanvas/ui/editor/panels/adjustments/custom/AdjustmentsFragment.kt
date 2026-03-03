@@ -5,12 +5,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
-import com.webscare.urducanvas.data.model.PanelTabs
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.data.model.AdjustmentPanelTabs
 import com.webscare.urducanvas.databinding.FragmentAdjustmentsBinding
-import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter
+import com.webscare.urducanvas.ui.editor.panels.adjustments.AdjustmentPanelTabsAdapter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -18,9 +20,11 @@ import kotlinx.coroutines.launch
 class AdjustmentsFragment : Fragment() {
     private var _binding: FragmentAdjustmentsBinding? = null
     private val binding get() = _binding!!
-    private lateinit var tabs: ArrayList<PanelTabs>
-    private lateinit var adapter: PanelTabsAdapter
+    private lateinit var tabs: ArrayList<AdjustmentPanelTabs>
+    private lateinit var adapter: AdjustmentPanelTabsAdapter
     private lateinit var pagerAdapter: AdjustmentsPagerAdapter
+
+    private val viewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -34,23 +38,65 @@ class AdjustmentsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupRecyclerViews()
+        setupObservers()
+    }
+
+    private fun setupObservers() {
+        viewModel.selectedElements.observe(viewLifecycleOwner) { elements ->
+            val element = elements.firstOrNull() ?: return@observe
+
+            val updatedTabs = tabs.map { tab ->
+                val isActive = when (tab.tab_name) {
+                    "Light" -> element.hasLight
+                    "Color" -> element.hasColor
+                    "Detail" -> element.hasDetail
+                    else -> false
+                }
+                tab.copy(is_enabled = isActive)
+            }
+
+            tabs.clear()
+            tabs.addAll(updatedTabs)
+            adapter.submitList(ArrayList(tabs))
+        }
+    }
+
+    private fun handleTabSelection(clickedTab: AdjustmentPanelTabs) {
+        val currentSelectedTab = tabs.find { it.is_selected }
+
+        if (currentSelectedTab?.tab_name == clickedTab.tab_name) {
+            // Requirement 3(B): Same tab click -> ViewModel.toggleFeature()
+            viewModel.toggleFeature(clickedTab.tab_name)
+        } else {
+            // Requirement 3(B): Different tab -> Switch page only
+            val selectedIndex = tabs.indexOfFirst { it.tab_name == clickedTab.tab_name }
+
+            val updatedTabs = tabs.map {
+                it.copy(is_selected = it.tab_name == clickedTab.tab_name)
+            }
+            tabs.clear()
+            tabs.addAll(updatedTabs)
+            adapter.submitList(ArrayList(tabs))
+
+            binding.viewPager.setCurrentItem(selectedIndex, true)
+        }
     }
 
     private fun setupRecyclerViews() {
 
         tabs = arrayListOf(
-            PanelTabs(0, "Light", true),
-            PanelTabs(1, "Color", false),
-            PanelTabs(2, "Detail", false)
+            AdjustmentPanelTabs(0, "Light", true),
+            AdjustmentPanelTabs(1, "Color", false),
+            AdjustmentPanelTabs(2, "Detail", false)
         )
 
-        adapter = PanelTabsAdapter { tab ->
-            handleSelection(tab)
+        adapter = AdjustmentPanelTabsAdapter { tab ->
+            handleTabSelection(tab)
         }
 
         binding.categories.adapter = adapter
         adapter.submitList(ArrayList(tabs))
-        handleSelection(tabs.firstOrNull())
+        handleTabSelection(tabs.first())
 
         binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
         binding.viewPager.offscreenPageLimit = 1
@@ -62,22 +108,7 @@ class AdjustmentsFragment : Fragment() {
         binding.viewPager.adapter?.stateRestorationPolicy =
             RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
 
-        handleSelection(tabs.first())
-    }
-
-    private fun handleSelection(selectedCategory: com.webscare.urducanvas.data.model.PanelTabs?) {
-        selectedCategory?.let { tab ->
-            val selectedIndex = tabs.indexOfFirst { it.tab_name == tab.tab_name }
-
-            // Update selected item visuals
-            val updatedCategories = tabs.map {
-                it.copy(is_selected = it.tab_name == tab.tab_name)
-            }
-            adapter.submitList(updatedCategories)
-
-            // Switch ViewPager page
-            binding.viewPager.setCurrentItem(selectedIndex, true)
-        }
+        handleTabSelection(tabs.first())
     }
 
     override fun onDestroyView() {

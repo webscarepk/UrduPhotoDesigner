@@ -1,4 +1,4 @@
-package com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters
+package com.webscare.urducanvas.ui.editor.panels.adjustments
 
 import android.content.res.ColorStateList
 import android.view.LayoutInflater
@@ -10,14 +10,15 @@ import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.PanelTabs
 import com.webscare.urducanvas.databinding.LayoutTabsItemBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.data.model.AdjustmentPanelTabs
 
-class PanelTabsAdapter(
-    private val onFontSelected: (PanelTabs) -> Unit
-) : RecyclerView.Adapter<PanelTabsAdapter.FontViewHolder>() {
+class AdjustmentPanelTabsAdapter(
+    private val onFontSelected: (AdjustmentPanelTabs) -> Unit
+) : RecyclerView.Adapter<AdjustmentPanelTabsAdapter.FontViewHolder>() {
 
-    private val fonts = mutableListOf<PanelTabs>()
+    private val fonts = mutableListOf<AdjustmentPanelTabs>()
 
-    fun submitList(newList: List<PanelTabs>) {
+    fun submitList(newList: List<AdjustmentPanelTabs>) {
         fonts.clear()
         fonts.addAll(newList)
         notifyDataSetChanged()
@@ -37,7 +38,7 @@ class PanelTabsAdapter(
 
     inner class FontViewHolder(private val binding: LayoutTabsItemBinding) :
         RecyclerView.ViewHolder(binding.root) {
-        fun bind(font: com.webscare.urducanvas.data.model.PanelTabs) {
+        fun bind(font: AdjustmentPanelTabs) {
 
             if (font.is_selected) {
                 binding.tabTitle.backgroundTintList = ColorStateList.valueOf(
@@ -52,6 +53,22 @@ class PanelTabsAdapter(
                         binding.root.context,
                         android.R.color.transparent
                     )
+                )
+            }
+
+            if (font.is_enabled) {
+                binding.tabTitle.setCompoundDrawablesWithIntrinsicBounds(
+                    R.drawable.ic_done_small_filled,
+                    0,
+                    0,
+                    0
+                )
+            } else {
+                binding.tabTitle.setCompoundDrawablesWithIntrinsicBounds(
+                    R.drawable.ic_done_small_stroke,
+                    0,
+                    0,
+                    0
                 )
             }
 

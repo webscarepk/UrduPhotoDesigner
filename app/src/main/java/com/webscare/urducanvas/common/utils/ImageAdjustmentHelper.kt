@@ -13,6 +13,7 @@ import android.renderscript.RenderScript
 import android.renderscript.ScriptIntrinsicBlur
 import androidx.core.graphics.createBitmap
 import com.webscare.urducanvas.common.canvas.model.AdjustmentValues
+import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import kotlin.math.exp
 import kotlin.math.roundToInt
 
@@ -23,9 +24,11 @@ object ImageAdjustmentHelper {
      * Compatible with Android 8 → 15 (uses RenderScript Toolkit).
      */
     fun applyAllAdjustments(context: Context,
-        source: Bitmap, values: AdjustmentValues
+        source: Bitmap, element: CanvasElement
     ): Bitmap {
         if (source.isRecycled) return source
+
+        val values = element.adjustments
 
         val base = source.copy(Bitmap.Config.ARGB_8888, true)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -35,95 +38,25 @@ object ImageAdjustmentHelper {
         // 1️⃣ Brightness (-100 → +100)
         // -------------------------------------------------
         val brightnessShift = values.brightness * 2.55f
-        cm.postConcat(
-            ColorMatrix(
-                floatArrayOf(
-                    1f,
-                    0f,
-                    0f,
-                    0f,
-                    brightnessShift,
-                    0f,
-                    1f,
-                    0f,
-                    0f,
-                    brightnessShift,
-                    0f,
-                    0f,
-                    1f,
-                    0f,
-                    brightnessShift,
-                    0f,
-                    0f,
-                    0f,
-                    1f,
-                    0f
-                )
-            )
-        )
-
-        // -------------------------------------------------
-        // 2️⃣ Contrast (0.5 → 1.5)
-        // -------------------------------------------------
-        val contrast = values.contrast.coerceIn(0.5f, 1.5f)
-        val translate = (1f - contrast) * 128f
-        cm.postConcat(
-            ColorMatrix(
-                floatArrayOf(
-                    contrast,
-                    0f,
-                    0f,
-                    0f,
-                    translate,
-                    0f,
-                    contrast,
-                    0f,
-                    0f,
-                    translate,
-                    0f,
-                    0f,
-                    contrast,
-                    0f,
-                    translate,
-                    0f,
-                    0f,
-                    0f,
-                    1f,
-                    0f
-                )
-            )
-        )
-
-        // -------------------------------------------------
-        // 4️⃣ Saturation (0 → 2)
-        // -------------------------------------------------
-        val satMatrix = ColorMatrix()
-        satMatrix.setSaturation(values.saturation.coerceIn(0f, 2f))
-        cm.postConcat(satMatrix)
-
-        // -------------------------------------------------
-        // 5️⃣ Vibrance (0 → 2)
-        // -------------------------------------------------
-        if (values.vibrance != 1f) {
-            val vibrance = values.vibrance.coerceIn(0f, 2f)
+        if (element.hasLight){
             cm.postConcat(
                 ColorMatrix(
                     floatArrayOf(
-                        vibrance,
+                        1f,
                         0f,
                         0f,
                         0f,
+                        brightnessShift,
+                        0f,
+                        1f,
                         0f,
                         0f,
-                        vibrance,
+                        brightnessShift,
                         0f,
                         0f,
+                        1f,
                         0f,
-                        0f,
-                        0f,
-                        vibrance,
-                        0f,
-                        0f,
+                        brightnessShift,
                         0f,
                         0f,
                         0f,
@@ -132,6 +65,84 @@ object ImageAdjustmentHelper {
                     )
                 )
             )
+        }
+
+        // -------------------------------------------------
+        // 2️⃣ Contrast (0.5 → 1.5)
+        // -------------------------------------------------
+        val contrast = values.contrast.coerceIn(0.5f, 1.5f)
+        val translate = (1f - contrast) * 128f
+        if (element.hasLight){
+            cm.postConcat(
+                ColorMatrix(
+                    floatArrayOf(
+                        contrast,
+                        0f,
+                        0f,
+                        0f,
+                        translate,
+                        0f,
+                        contrast,
+                        0f,
+                        0f,
+                        translate,
+                        0f,
+                        0f,
+                        contrast,
+                        0f,
+                        translate,
+                        0f,
+                        0f,
+                        0f,
+                        1f,
+                        0f
+                    )
+                )
+            )
+        }
+
+        // -------------------------------------------------
+        // 4️⃣ Saturation (0 → 2)
+        // -------------------------------------------------
+        val satMatrix = ColorMatrix()
+        satMatrix.setSaturation(values.saturation.coerceIn(0f, 2f))
+        if (element.hasColor){
+            cm.postConcat(satMatrix)
+        }
+
+        // -------------------------------------------------
+        // 5️⃣ Vibrance (0 → 2)
+        // -------------------------------------------------
+        if (values.vibrance != 1f) {
+            val vibrance = values.vibrance.coerceIn(0f, 2f)
+            if (element.hasColor){
+                cm.postConcat(
+                    ColorMatrix(
+                        floatArrayOf(
+                            vibrance,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            vibrance,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            vibrance,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
+                    )
+                )
+            }
         }
 
         // -------------------------------------------------
@@ -139,55 +150,23 @@ object ImageAdjustmentHelper {
         // -------------------------------------------------
         val temp = values.temperature / 100f
         val tint = values.tint / 100f
-        cm.postConcat(
-            ColorMatrix(
-                floatArrayOf(
-                    1f + temp,
-                    0f,
-                    0f,
-                    0f,
-                    0f,
-                    0f,
-                    1f + tint,
-                    0f,
-                    0f,
-                    0f,
-                    0f,
-                    0f,
-                    1f - temp,
-                    0f,
-                    0f,
-                    0f,
-                    0f,
-                    0f,
-                    1f,
-                    0f
-                )
-            )
-        )
-
-        // -------------------------------------------------
-        // 7️⃣ Shadows / Highlights (-100 → +100)
-        // -------------------------------------------------
-        if (values.shadows != 0f || values.highlights != 0f) {
-            val shadowScale = 1f + (values.shadows / 200f)
-            val highlightScale = 1f - (values.highlights / 200f)
+        if (element.hasColor){
             cm.postConcat(
                 ColorMatrix(
                     floatArrayOf(
-                        shadowScale,
+                        1f + temp,
                         0f,
                         0f,
                         0f,
                         0f,
                         0f,
-                        highlightScale,
+                        1f + tint,
                         0f,
                         0f,
                         0f,
                         0f,
                         0f,
-                        (shadowScale + highlightScale) / 2f,
+                        1f - temp,
                         0f,
                         0f,
                         0f,
@@ -198,72 +177,112 @@ object ImageAdjustmentHelper {
                     )
                 )
             )
+        }
+
+        // -------------------------------------------------
+        // 7️⃣ Shadows / Highlights (-100 → +100)
+        // -------------------------------------------------
+        if (element.hasLight){
+            if (values.shadows != 0f || values.highlights != 0f) {
+                val shadowScale = 1f + (values.shadows / 200f)
+                val highlightScale = 1f - (values.highlights / 200f)
+                cm.postConcat(
+                    ColorMatrix(
+                        floatArrayOf(
+                            shadowScale,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            highlightScale,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            (shadowScale + highlightScale) / 2f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
+                    )
+                )
+            }
         }
 
         // -------------------------------------------------
         // 8️⃣ Clarity (-100 → +100)
         // -------------------------------------------------
-        if (values.clarity != 0f) {
-            val clarityScale = 1f + (values.clarity / 200f)
-            cm.postConcat(
-                ColorMatrix(
-                    floatArrayOf(
-                        clarityScale,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        clarityScale,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        clarityScale,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+        if (element.hasDetail){
+            if (values.clarity != 0f) {
+                val clarityScale = 1f + (values.clarity / 200f)
+                cm.postConcat(
+                    ColorMatrix(
+                        floatArrayOf(
+                            clarityScale,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            clarityScale,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            clarityScale,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
                 )
-            )
+            }
         }
 
         // -------------------------------------------------
         // 9️⃣ Fade (0 → 100)
         // -------------------------------------------------
-        if (values.fade != 0f) {
-            val fadeScale = 1f - (values.fade / 100f)
-            cm.postConcat(
-                ColorMatrix(
-                    floatArrayOf(
-                        fadeScale,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        fadeScale,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        fadeScale,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        1f,
-                        0f
+        if (element.hasDetail){
+            if (values.fade != 0f) {
+                val fadeScale = 1f - (values.fade / 100f)
+                cm.postConcat(
+                    ColorMatrix(
+                        floatArrayOf(
+                            fadeScale,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            fadeScale,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            fadeScale,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            0f,
+                            1f,
+                            0f
+                        )
                     )
                 )
-            )
+            }
         }
 
         // -------------------------------------------------
@@ -278,15 +297,15 @@ object ImageAdjustmentHelper {
         // -------------------------------------------------
         // 9️⃣ Sharpness (0 → 5)
         // -------------------------------------------------
-        if (values.sharpness > 0f) {
+        if (element.hasDetail && values.sharpness > 0f) {
             result = applySharpnessFallback(result, values.sharpness)
         }
 
         // -------------------------------------------------
         // 🔟 Blur (0 → 25)
         // -------------------------------------------------
-        if (values.blur > 0f) {
-            result = applyGaussianBlurWithPadding(context, result, values.blur.coerceIn(0f, 25f))
+        if (element.hasBlur && element.blurValue > 0f) {
+            result = applyGaussianBlurWithPadding(context, result, element.blurValue.coerceIn(0f, 25f))
         }
         return result
     }

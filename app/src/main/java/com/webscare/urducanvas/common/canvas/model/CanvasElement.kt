@@ -78,6 +78,18 @@ data class CanvasElement(
     @SerializedName("isLocked")
     var isLocked: Boolean = false,
 
+    @SerializedName("hasMask")
+    var hasMask: Boolean = false,
+
+    @SerializedName("hasLight")
+    var hasLight: Boolean = false,
+
+    @SerializedName("hasColor")
+    var hasColor: Boolean = false,
+
+    @SerializedName("hasDetail")
+    var hasDetail: Boolean = false,
+
     @SerializedName("zIndex")
     var zIndex: Int = 0,
 

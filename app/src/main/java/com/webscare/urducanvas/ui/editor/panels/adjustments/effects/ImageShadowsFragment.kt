@@ -178,7 +178,9 @@ class ImageShadowsFragment : Fragment() {
                 onChange(seekBar.progress, true)
             }
 
-            override fun onStartTrackingTouch(seekBar: SeekBar) {}
+            override fun onStartTrackingTouch(sb: SeekBar?) {
+                viewModel.enableFeature("Shadow")
+            }
         }
     }
 

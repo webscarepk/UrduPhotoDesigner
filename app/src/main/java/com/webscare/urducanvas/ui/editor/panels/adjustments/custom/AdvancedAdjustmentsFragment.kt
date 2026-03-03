@@ -47,7 +47,9 @@ class AdvancedAdjustmentsFragment : androidx.fragment.app.Fragment() {
                     }
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar?) {}
+                override fun onStartTrackingTouch(sb: SeekBar?) {
+                    viewModel.enableFeature("Detail")
+                }
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
             })
         }
@@ -65,7 +67,9 @@ class AdvancedAdjustmentsFragment : androidx.fragment.app.Fragment() {
                     }
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar?) {}
+                override fun onStartTrackingTouch(sb: SeekBar?) {
+                    viewModel.enableFeature("Detail")
+                }
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
             })
         }
@@ -83,7 +87,9 @@ class AdvancedAdjustmentsFragment : androidx.fragment.app.Fragment() {
                     }
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar?) {}
+                override fun onStartTrackingTouch(sb: SeekBar?) {
+                    viewModel.enableFeature("Detail")
+                }
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
             })
         }

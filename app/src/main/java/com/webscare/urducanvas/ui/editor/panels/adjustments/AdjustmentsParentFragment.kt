@@ -74,8 +74,7 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.viewPager.isUserInputEnabled = false
-        binding.done.addPressEffect { findNavController().navigateUp() }
-        binding.reset.addPressEffect { viewModel.resetAdjustments() }
+        binding.replaceImage.addPressEffect { findNavController().navigate(R.id.objectsFragment) }
     }
 
     private fun setupTabLayout() {

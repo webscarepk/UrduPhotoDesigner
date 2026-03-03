@@ -11,9 +11,9 @@
         android:title="@string/draw" />
 
     <item
-        android:id="@+id/nav_background"
-        android:icon="@drawable/ic_background_selector"
-        android:title="@string/backgrounds" />
+        android:id="@+id/nav_shapes"
+        android:icon="@drawable/ic_shapes_selector"
+        android:title="@string/shapes" />
 
     <item
         android:id="@+id/nav_images"
@@ -21,9 +21,9 @@
         android:title="@string/images" />
 
     <item
-        android:id="@+id/nav_objects"
-        android:icon="@drawable/ic_objects_selector"
-        android:title="@string/objects" />
+        android:id="@+id/nav_stickers"
+        android:icon="@drawable/ic_stickers_selector"
+        android:title="@string/stickers" />
 
     <item
         android:id="@+id/nav_layers"

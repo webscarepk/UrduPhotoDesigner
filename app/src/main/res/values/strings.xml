@@ -311,6 +311,8 @@
     <string name="premium_stickers_amp_design_library"><![CDATA[Premium Stickers & Design Library]]></string>
     <string name="request_custom_urdu_designs">Request Custom Urdu Designs</string>
     <string name="no_ads_ever">No Ads – Ever</string>
+    <string name="stickers">Stickers</string>
+    <string name="shapes">Shapes</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

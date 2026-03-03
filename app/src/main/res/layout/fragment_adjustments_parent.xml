@@ -36,24 +36,18 @@
         android:id="@+id/endGuide"/>
 
     <ImageView
+        android:id="@+id/replaceImage"
+        android:visibility="visible"
         android:layout_width="30dp"
         android:layout_height="30dp"
-        android:src="@drawable/ic_refresh"
-        android:padding="6dp"
-        android:id="@+id/reset"
+        android:padding="8dp"
+        android:background="@drawable/button_bg_small"
+        android:backgroundTint="@color/contrast"
         app:tint="@color/black"
-        app:layout_constraintEnd_toStartOf="@id/done"
-        app:layout_constraintTop_toTopOf="@id/tabLayout"
-        app:layout_constraintBottom_toBottomOf="@id/tabLayout"/>
-
-    <ImageView
-        android:layout_width="30dp"
-        android:layout_height="30dp"
-        android:src="@drawable/ic_done"
-        android:padding="6dp"
-        android:id="@+id/done"
-        app:tint="@color/black"
-        app:layout_constraintEnd_toStartOf="@id/endGuide"
+        android:src="@drawable/ic_import"
+        android:layout_gravity="center_vertical"
+        app:layout_constraintStart_toStartOf="@id/startGuide"
+        app:layout_constraintEnd_toStartOf="@id/tabLayout"
         app:layout_constraintTop_toTopOf="@id/tabLayout"
         app:layout_constraintBottom_toBottomOf="@id/tabLayout"/>
 
@@ -72,8 +66,8 @@
         app:tabSelectedTextColor="@color/appColor"
         app:tabTextColor="@color/black"
         app:tabRippleColor="@color/contrast"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
-        app:layout_constraintEnd_toStartOf="@id/reset"
+        app:layout_constraintStart_toEndOf="@id/replaceImage"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/topGuide"/>
 
     <androidx.viewpager2.widget.ViewPager2

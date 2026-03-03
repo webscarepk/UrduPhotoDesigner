@@ -1863,7 +1863,7 @@ class CanvasView @JvmOverloads constructor(
 
                                 finalBitmap =
                                     ImageAdjustmentHelper.applyAllAdjustments(
-                                        element.context!!, bmp, element.adjustments
+                                        element.context!!, bmp, element
                                     )
 
                                 val w = finalBitmap.width.toFloat()
@@ -2323,7 +2323,7 @@ class CanvasView @JvmOverloads constructor(
                 // --- 🧠 Apply Adjustments ---
                 val finalBitmap =
                     ImageAdjustmentHelper.applyAllAdjustments(
-                        element.context!!, bmp, element.adjustments
+                        element.context!!, bmp, element
                     )
 
                 // --- 🧩 Setup Paint and Filters ---
@@ -2532,8 +2532,8 @@ class CanvasView @JvmOverloads constructor(
                 var adjustedBackground = bmp
                 if (adjustedBackground.isRecycled) return@withTranslation
                 adjustedBackground =
-                    com.webscare.urducanvas.common.utils.ImageAdjustmentHelper.applyAllAdjustments(
-                        e.context!!, adjustedBackground, e.adjustments
+                    ImageAdjustmentHelper.applyAllAdjustments(
+                        e.context!!, adjustedBackground, e
                     )
 
                 backgroundPaint.colorFilter = colorFilterFor(e.imageFilter)

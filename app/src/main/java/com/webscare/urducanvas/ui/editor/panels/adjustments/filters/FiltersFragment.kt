@@ -153,6 +153,21 @@ class FiltersFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun initObservers() {
+
+        viewModel.selectedElements.observe(viewLifecycleOwner) { elements ->
+            val element = elements.firstOrNull() ?: return@observe
+
+            if (elementId != element.id) {
+                elementId = element.id
+
+                element.bitmap?.let { bmp ->
+                    BitmapCache.put(element.id, bmp)
+                }
+                previewBitmap = BitmapCache.get(element.id)
+                filtersAdapter.updatePreviewBitmap(previewBitmap)
+            }
+        }
+
         viewModel.currentImageFilter.observe(viewLifecycleOwner) { currentFilter ->
             filtersAdapter.selectedFilter = currentFilter
         }
