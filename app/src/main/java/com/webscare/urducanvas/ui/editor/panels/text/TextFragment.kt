@@ -2,10 +2,6 @@ package com.webscare.urducanvas.ui.editor.panels.text
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
@@ -16,28 +12,23 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.animation.AnimationUtils
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.AnimRes
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
-import com.webscare.urducanvas.R
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
-import com.webscare.urducanvas.common.utils.ImageProcessor
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import com.webscare.urducanvas.data.model.FontEntity
-import com.webscare.urducanvas.databinding.FragmentTextBinding
-import com.webscare.urducanvas.viewmodels.MainViewModel
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayoutMediator
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.databinding.FragmentTextBinding
+import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -48,12 +39,12 @@ import java.util.Date
 import java.util.Locale
 
 @AndroidEntryPoint
-class TextFragment : androidx.fragment.app.Fragment() {
+class TextFragment : Fragment() {
     private var _binding: FragmentTextBinding? = null
     private val binding get() = _binding!!
     private var tabs = emptyList<String>()
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
-    private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
+    private val viewModel: CanvasViewModel by activityViewModels()
+    private val mainViewModel: MainViewModel by activityViewModels()
 
     private val pickFont =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -61,8 +52,7 @@ class TextFragment : androidx.fragment.app.Fragment() {
         }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentTextBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -72,6 +62,17 @@ class TextFragment : androidx.fragment.app.Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setEvents()
+        initObservers()
+    }
+
+    private fun initObservers() {
+        viewModel.openAppearanceTab.observe(viewLifecycleOwner) {
+
+            binding.viewPager.post {
+                binding.viewPager.currentItem = 1
+            }
+
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -79,9 +80,7 @@ class TextFragment : androidx.fragment.app.Fragment() {
         tabs = listOf("Font", "Appearance", "Format")
 
         val adapter = TextPagerAdapter(
-            requireActivity().supportFragmentManager,
-            lifecycle,
-            tabs
+            requireActivity().supportFragmentManager, lifecycle, tabs
         )
         binding.viewPager.adapter = adapter
         binding.viewPager.isUserInputEnabled = false
@@ -101,7 +100,7 @@ class TextFragment : androidx.fragment.app.Fragment() {
                     binding.searchBar.isVisible = false
                     binding.searchBar.text?.clear()
                     mainViewModel.setQuery("")
-                }else{
+                } else {
                     binding.searchIcon.isVisible = true
                     binding.searchBar.isVisible = false
                     binding.searchBar.text?.clear()
@@ -110,7 +109,11 @@ class TextFragment : androidx.fragment.app.Fragment() {
             }
         })
 
-        binding.addText.addPressEffect { viewModel.addText(requireActivity().getString(R.string.dummyText), requireActivity()) }
+        binding.addText.addPressEffect {
+            viewModel.addText(
+                requireActivity().getString(R.string.dummyText), requireActivity()
+            )
+        }
         binding.addFont.addPressEffect {
             pickFont.launch("*/*")
         }
@@ -119,7 +122,8 @@ class TextFragment : androidx.fragment.app.Fragment() {
             binding.searchIcon.isVisible = false
             binding.searchBar.isVisible = true
             binding.searchBar.requestFocus()
-            val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            val imm =
+                requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showSoftInput(binding.searchBar, InputMethodManager.SHOW_IMPLICIT)
         }
 
@@ -148,29 +152,20 @@ class TextFragment : androidx.fragment.app.Fragment() {
 
         binding.searchBar.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(
-                charSequence: CharSequence?,
-                start: Int,
-                count: Int,
-                after: Int
+                charSequence: CharSequence?, start: Int, count: Int, after: Int
             ) {
             }
 
             override fun onTextChanged(
-                charSequence: CharSequence?,
-                start: Int,
-                before: Int,
-                count: Int
+                charSequence: CharSequence?, start: Int, before: Int, count: Int
             ) {
                 val hasText = charSequence?.isNotEmpty() == true
                 binding.searchBar.setCompoundDrawablesWithIntrinsicBounds(
-                    null,
-                    null,
-                    if (hasText) {
+                    null, null, if (hasText) {
                         ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close)
                     } else {
                         null
-                    },
-                    null
+                    }, null
                 )
             }
 
@@ -199,8 +194,7 @@ class TextFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun hideKeyboard() {
-        val imm = requireContext()
-            .getSystemService(InputMethodManager::class.java)
+        val imm = requireContext().getSystemService(InputMethodManager::class.java)
         imm.hideSoftInputFromWindow(binding.searchBar.windowToken, 0)
         binding.searchBar.clearFocus()
     }
@@ -272,8 +266,7 @@ class TextFragment : androidx.fragment.app.Fragment() {
 
                 val fontFile = copyToTempWithExtension(uri, ".$ext")
 
-                val exportDate =
-                    SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                val exportDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
                 val fontEntity = _root_ide_package_.com.webscare.urducanvas.data.model.FontEntity(
                     id = System.currentTimeMillis().toInt(),
                     file_name = fontFile.name,
@@ -305,27 +298,6 @@ class TextFragment : androidx.fragment.app.Fragment() {
                 }
             }
         }
-    }
-
-    private fun createFontSampleBitmap(typeface: Typeface): Bitmap {
-        val paint = Paint()
-        paint.typeface = typeface
-        paint.textSize = 100f
-        paint.color = ContextCompat.getColor(requireContext(), R.color.appColor)
-        paint.textAlign = Paint.Align.LEFT
-
-        val width = paint.measureText("Ab").toInt()
-        val height = (paint.descent() - paint.ascent()).toInt()
-
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-
-        val x = (bitmap.width - width) / 2f
-        val y = (bitmap.height - height) / 2f - paint.ascent()
-
-        canvas.drawText("Ab", x, y, paint)
-
-        return bitmap
     }
 
     override fun onDestroy() {

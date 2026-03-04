@@ -17,10 +17,12 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentImagesBinding
+import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -32,8 +34,8 @@ class ImagesFragment : androidx.fragment.app.Fragment() {
     private val binding get() = _binding!!
     private var tabs = mutableListOf<String>()
     private lateinit var adapter: ImagesPagerAdapter
-    private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    private val mainViewModel: MainViewModel by activityViewModels()
+    private val viewModel: CanvasViewModel by activityViewModels()
 
     private val pickImage =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->

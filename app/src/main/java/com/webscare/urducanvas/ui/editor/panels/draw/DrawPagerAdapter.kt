@@ -4,7 +4,6 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.Lifecycle
 import com.webscare.urducanvas.ui.editor.panels.draw.brush.BrushFragment
-import com.webscare.urducanvas.ui.editor.panels.objects.shape.ShapeFragment
 
 class DrawPagerAdapter(
     fragmentManager: FragmentManager,

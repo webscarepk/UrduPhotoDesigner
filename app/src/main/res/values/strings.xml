@@ -173,7 +173,7 @@
     <string name="exportTip_pdf">Your file has been saved in your Documents/Urdu Canvas folder. You can also access it using the path shown above.</string>
     <string name="export_another">Re-edit</string>
     <string name="go_home">Go Home</string>
-    <string name="kashida_frequency">Kashida Frequency</string>
+    <string name="kashida_frequency">Kashida Length</string>
     <string name="import_font">Import Font</string>
     <string name="group_all">Group All</string>
     <string name="un_group_all">Ungroup All</string>

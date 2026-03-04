@@ -56,8 +56,8 @@
         android:label="fragment_draw"
         tools:layout="@layout/fragment_draw" />
     <fragment
-        android:id="@+id/shapeFragment"
-        android:name="com.webscare.urducanvas.ui.editor.panels.objects.shape.ShapeFragment"
-        android:label="fragment_shape"
-        tools:layout="@layout/fragment_shape" />
+        android:id="@+id/shapesParentFragment"
+        android:name="com.webscare.urducanvas.ui.editor.panels.shape.ShapesParentFragment"
+        android:label="fragment_shapes_parent"
+        tools:layout="@layout/fragment_shapes_parent" />
 </navigation>

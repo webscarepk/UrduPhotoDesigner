@@ -1,4 +1,4 @@
-package com.webscare.urducanvas.ui.editor.panels.objects.shape
+package com.webscare.urducanvas.ui.editor.panels.shape
 
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -82,43 +82,6 @@ class ShapePanelFragment : Fragment() {
             }
         }
 
-        binding.stroke.addPressEffect {
-            selectColorFor = true
-            togglePanelStrokeFill(true)
-
-            colorsAdapter.selectedColor = viewModel.shapeStrokeColor.value ?: Color.TRANSPARENT
-            colorsAdapter.notifyDataSetChanged()
-            gradientsAdapter.selectedItem = viewModel.shapeStrokeGradient.value
-            gradientsAdapter.notifyDataSetChanged()
-        }
-
-        binding.fill.addPressEffect {
-            selectColorFor = false
-            togglePanelStrokeFill(false)
-            colorsAdapter.selectedColor = viewModel.shapeFillColor.value ?: Color.TRANSPARENT
-            colorsAdapter.notifyDataSetChanged()
-            gradientsAdapter.selectedItem = viewModel.shapeFillGradient.value
-            gradientsAdapter.notifyDataSetChanged()
-        }
-
-        binding.strokeSwitch.addPressEffect {
-            isStrokeEnabled = !isStrokeEnabled
-            if (!isStrokeEnabled && !isFillEnabled) {
-                isStrokeEnabled = true
-            }
-            viewModel.toggleStrokeEnabled(isStrokeEnabled)
-            updateSelectionUI()
-        }
-
-        binding.fillSwitch.addPressEffect {
-            isFillEnabled = !isFillEnabled
-            if (!isStrokeEnabled && !isFillEnabled) {
-                isFillEnabled = true
-            }
-            viewModel.toggleFillEnabled(isFillEnabled)
-            updateSelectionUI()
-        }
-
         binding.strokeWidthBar.apply {
             min = 1
             max = 100
@@ -153,8 +116,22 @@ class ShapePanelFragment : Fragment() {
             })
         }
 
+        selectColorFor = (tabName == "Stroke")
+
+        // 2. Visibility Logic: Decide which pane to show
+        // We now check if the tabName belongs to a Style or Color category
+        binding.shapePane.isVisible = (tabName == "Basic" || tabName == "Geometry")
+        binding.stylePane.isVisible = (tabName == "Fill" || tabName == "Stroke") && !isColorTab()
+        binding.colorsPane.isVisible = (tabName == "Fill" || tabName == "Stroke") && isColorTab()
+
         setupRecyclerView()
         initObserver()
+    }
+
+    // Helper to check if the grandparent is the "Color" tab
+    private fun isColorTab(): Boolean {
+        return parentFragment is ShapeFragment &&
+                (parentFragment as ShapeFragment).arguments?.getString("tabName") == "Color"
     }
 
     private fun initObserver() {
@@ -185,18 +162,6 @@ class ShapePanelFragment : Fragment() {
                 binding.cornerRadius.text = "$progress"
             }
 
-            // ⚫ Fill enabled
-            viewModel.shapeFillEnabled.observe(viewLifecycleOwner) { enabled ->
-                isFillEnabled = enabled ?: true
-                updateSelectionUI()
-            }
-
-            // ⚪ Stroke enabled
-            viewModel.shapeStrokeEnabled.observe(viewLifecycleOwner) { enabled ->
-                isStrokeEnabled = enabled ?: false
-                updateSelectionUI()
-            }
-
             // 🎨 Fill color
             viewModel.shapeFillColor.observe(viewLifecycleOwner) { color ->
                 color?.let {
@@ -225,7 +190,7 @@ class ShapePanelFragment : Fragment() {
 
     private fun setupRecyclerView() {
         colorsAdapter =
-            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter(
+            ColorsAdapter(
                 Constants.colorList,
                 onColorSelected = { color ->
                     val selectedColor = color.colorCode.toColorInt()
@@ -358,38 +323,6 @@ class ShapePanelFragment : Fragment() {
         }
     }
 
-    private fun updateSelectionUI() {
-        // Stroke UI
-        if (isStrokeEnabled) {
-            binding.strokeSwitch.backgroundTintList =
-                ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.appColor))
-            binding.strokeSwitch.setTextColor(
-                ContextCompat.getColor(
-                    requireContext(), R.color.white
-                )
-            )
-        } else {
-            binding.strokeSwitch.backgroundTintList =
-                ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.contrast))
-            binding.strokeSwitch.setTextColor(
-                ContextCompat.getColor(
-                    requireContext(), R.color.black
-                )
-            )
-        }
-
-        // Fill UI
-        if (isFillEnabled) {
-            binding.fillSwitch.backgroundTintList =
-                ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.appColor))
-            binding.fillSwitch.setTextColor(ContextCompat.getColor(requireContext(), R.color.white))
-        } else {
-            binding.fillSwitch.backgroundTintList =
-                ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.contrast))
-            binding.fillSwitch.setTextColor(ContextCompat.getColor(requireContext(), R.color.black))
-        }
-    }
-
     private fun togglePanels() {
         val fadeDuration = 300L
 
@@ -424,20 +357,6 @@ class ShapePanelFragment : Fragment() {
                 ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white))
             binding.solid.backgroundTintList =
                 ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.contrast))
-        }
-    }
-
-    private fun togglePanelStrokeFill(showStroke: Boolean) {
-        if (showStroke) {
-            binding.stroke.backgroundTintList =
-                ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white))
-            binding.fill.backgroundTintList =
-                ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.contrast))
-        } else {
-            binding.stroke.backgroundTintList =
-                ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.contrast))
-            binding.fill.backgroundTintList =
-                ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white))
         }
     }
 

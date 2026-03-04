@@ -1,4 +1,4 @@
-package com.webscare.urducanvas.ui.editor.panels.objects.shape
+package com.webscare.urducanvas.ui.editor.panels.shape
 
 import android.content.Context
 import android.graphics.Canvas

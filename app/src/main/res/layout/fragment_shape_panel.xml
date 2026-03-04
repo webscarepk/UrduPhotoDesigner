@@ -6,7 +6,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@color/white"
     android:id="@+id/shapePanel"
-    tools:context=".ui.editor.panels.objects.shape.ShapePanelFragment">
+    tools:context=".ui.editor.panels.shape.ShapePanelFragment">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/shapePane"
@@ -45,53 +45,6 @@
         android:layout_marginHorizontal="10dp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/toolbarStyle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:padding="1dp"
-            android:background="@drawable/button_bg_small"
-            android:backgroundTint="@color/contrast"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
-
-            <TextView
-                android:id="@+id/fill"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:background="@drawable/button_bg_small"
-                android:backgroundTint="@color/white"
-                android:fontFamily="@font/medium"
-                android:gravity="center"
-                android:paddingVertical="3dp"
-                android:text="@string/fill"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/stroke"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/stroke"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:background="@drawable/button_bg_small"
-                android:backgroundTint="@color/contrast"
-                android:fontFamily="@font/medium"
-                android:gravity="center"
-                android:paddingVertical="3dp"
-                android:text="@string/stroke"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@id/fill"
-                app:layout_constraintTop_toTopOf="parent" />
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/toolbarColor"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -101,7 +54,7 @@
             android:backgroundTint="@color/contrast"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/toolbarStyle">
+            app:layout_constraintTop_toTopOf="parent">
 
             <TextView
                 android:id="@+id/solid"
@@ -189,49 +142,13 @@
         app:layout_constraintBottom_toBottomOf="parent"
         android:layout_marginHorizontal="10dp">
 
-        <TextView
-            android:id="@+id/fillSwitch"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:background="@drawable/button_bg_small"
-            android:backgroundTint="@color/appColor"
-            android:fontFamily="@font/medium"
-            android:gravity="center"
-            android:paddingVertical="10dp"
-            android:text="@string/fill"
-            android:layout_marginEnd="5dp"
-            android:textColor="@color/white"
-            android:textSize="12sp"
-            app:layout_constraintBottom_toTopOf="@id/strokeWidthCard"
-            app:layout_constraintEnd_toStartOf="@id/strokeSwitch"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <TextView
-            android:id="@+id/strokeSwitch"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:background="@drawable/button_bg_small"
-            android:backgroundTint="@color/contrast"
-            android:fontFamily="@font/medium"
-            android:gravity="center"
-            android:paddingVertical="10dp"
-            android:layout_marginStart="5dp"
-            android:text="@string/stroke"
-            android:textColor="@color/black"
-            android:textSize="12sp"
-            app:layout_constraintBottom_toTopOf="@id/strokeWidthCard"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/fillSwitch"
-            app:layout_constraintTop_toTopOf="parent" />
-
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/strokeWidthCard"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginBottom="3dp"
             android:visibility="visible"
-            app:layout_constraintTop_toBottomOf="@id/strokeSwitch"
+            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/cornerRadiusCard"
             app:layout_constraintStart_toStartOf="parent">
@@ -286,7 +203,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="3dp"
             android:visibility="visible"
-            app:layout_constraintTop_toBottomOf="@id/strokeSwitch"
+            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@id/strokeWidthCard"
             app:layout_constraintEnd_toEndOf="parent">

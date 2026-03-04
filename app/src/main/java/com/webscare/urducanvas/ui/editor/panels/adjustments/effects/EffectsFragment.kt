@@ -48,7 +48,7 @@ class EffectsFragment : Fragment() {
     private fun setupData() {
         tabs.clear()
         tabs.add(AdjustmentPanelTabs(0, "Shadow", is_selected = true))
-        tabs.add(AdjustmentPanelTabs(1, "Overlay", is_selected = false))
+        tabs.add(AdjustmentPanelTabs(1, "Color", is_selected = false))
         tabs.add(AdjustmentPanelTabs(2, "Blur", is_selected = false))
         tabs.add(AdjustmentPanelTabs(3, "Stroke", is_selected = false))
     }
@@ -81,7 +81,7 @@ class EffectsFragment : Fragment() {
             var isAnyChange = false
             tabs.forEachIndexed { index, tab ->
                 val currentState = when (tab.tab_name) {
-                    "Overlay" -> element.hasOverlay
+                    "Color" -> element.hasOverlay
                     "Shadow" -> element.hasShadow
                     "Stroke" -> element.hasStroke
                     "Blur" -> element.hasBlur
@@ -103,7 +103,7 @@ class EffectsFragment : Fragment() {
     private fun setupInitialTabs(element: CanvasElement) {
         tabs.clear()
         tabs.add(AdjustmentPanelTabs(0, "Shadow", is_selected = true, is_enabled = element.hasShadow))
-        tabs.add(AdjustmentPanelTabs(1, "Overlay", is_selected = false, is_enabled = element.hasOverlay))
+        tabs.add(AdjustmentPanelTabs(1, "Color", is_selected = false, is_enabled = element.hasOverlay))
         tabs.add(AdjustmentPanelTabs(2, "Blur", is_selected = false, is_enabled = element.hasBlur))
         tabs.add(AdjustmentPanelTabs(3, "Stroke", is_selected = false, is_enabled = element.hasStroke))
         adapter.submitList(ArrayList(tabs))
@@ -113,7 +113,7 @@ class EffectsFragment : Fragment() {
         val currentSelectedTab = tabs.find { it.is_selected }
 
         if (currentSelectedTab?.tab_name == clickedTab.tab_name) {
-            viewModel.toggleFeature(clickedTab.tab_name)
+            viewModel.toggleFeature(if (clickedTab.tab_name == "Color") "Overlay" else clickedTab.tab_name)
         } else {
             val selectedIndex = tabs.indexOfFirst { it.tab_name == clickedTab.tab_name }
 

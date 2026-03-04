@@ -16,7 +16,7 @@
         android:translationZ="1dp"
         android:textSize="10sp"
         android:paddingVertical="3dp"
-        android:layout_marginEnd="10dp"
+        android:layout_marginEnd="5dp"
         android:fontFamily="@font/medium"
         android:paddingHorizontal="10dp"
         app:layout_constraintTop_toTopOf="@id/mainCard"

@@ -2,7 +2,6 @@ package com.webscare.urducanvas.common.views
 
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
-import android.content.ContentValues.TAG
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapShader
@@ -61,6 +60,7 @@ import com.webscare.urducanvas.common.canvas.enums.TextDecoration
 import com.webscare.urducanvas.common.canvas.enums.VAlign
 import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
+import com.webscare.urducanvas.common.utils.BrushRenderUtils.createBackgroundGradientShader
 import com.webscare.urducanvas.common.utils.ImageAdjustmentHelper
 import com.webscare.urducanvas.common.utils.ShapeRenderUtils
 import com.webscare.urducanvas.common.utils.Utils.vibrateSoft
@@ -116,8 +116,7 @@ class CanvasView @JvmOverloads constructor(
     private var currentBrushColor: Int = Color.BLACK
     private var currentBrushThickness: Float = 20f
     private var currentBrushHardness: Float = 1f
-    private var currentBrushStyle: BrushStyle =
-        BrushStyle.PEN
+    private var currentBrushStyle: BrushStyle = BrushStyle.PEN
     private var currentBrushGradient: com.webscare.urducanvas.common.canvas.model.GradientItem? =
         null
 
@@ -176,8 +175,7 @@ class CanvasView @JvmOverloads constructor(
 
     private var touchStartX = 0f
     private var touchStartY = 0f
-    private var currentMode: Mode =
-        Mode.NONE
+    private var currentMode: Mode = Mode.NONE
 
     private var initialElementRotations = mutableMapOf<String, Float>()
 
@@ -336,8 +334,7 @@ class CanvasView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
 
-        canvasElements.firstOrNull { it.type == ElementType.BACKGROUND }
-            ?.apply {
+        canvasElements.firstOrNull { it.type == ElementType.BACKGROUND }?.apply {
                 logicalContentWidth = canvasWidth.toFloat()
                 logicalContentHeight = canvasHeight.toFloat()
             }
@@ -385,8 +382,7 @@ class CanvasView @JvmOverloads constructor(
      *     • SELECTION: snap each element’s own LEFT/CENTER/RIGHT to the first element
      */
     fun alignHorizontal(
-        align: HAlign,
-        mode: MultiAlignMode = MultiAlignMode.CANVAS
+        align: HAlign, mode: MultiAlignMode = MultiAlignMode.CANVAS
     ) {
         when {
             selectedElements.isEmpty() -> return
@@ -482,8 +478,7 @@ class CanvasView @JvmOverloads constructor(
     }
 
     fun alignVertical(
-        align: VAlign,
-        mode: MultiAlignMode = MultiAlignMode.CANVAS
+        align: VAlign, mode: MultiAlignMode = MultiAlignMode.CANVAS
     ) {
         when {
             selectedElements.isEmpty() -> return
@@ -573,8 +568,7 @@ class CanvasView @JvmOverloads constructor(
 
             if (newcomer.type != ElementType.BACKGROUND) {
                 canvasElements.forEach { it.isSelected = false }
-                newcomer.isSelected =
-                    (newcomer.type != ElementType.DRAW)
+                newcomer.isSelected = (newcomer.type != ElementType.DRAW)
                 selectedElements.add(newcomer)
             } else {
                 selectedElements.addAll(canvasElements.filter { it.isSelected })
@@ -696,8 +690,7 @@ class CanvasView @JvmOverloads constructor(
     }
 
     fun setFont(fontEntity: com.webscare.urducanvas.data.model.FontEntity) {
-        selectedElements.filter { it.type == ElementType.TEXT }
-            .forEach { element ->
+        selectedElements.filter { it.type == ElementType.TEXT }.forEach { element ->
                 element.fontId = fontEntity.id.toString()
 
                 // Check if the file_path is not blank before attempting to create a typeface
@@ -760,8 +753,7 @@ class CanvasView @JvmOverloads constructor(
 
     fun setCanvasBackgroundImage(src: Bitmap) {
         ensureBackgroundElement()
-        canvasElements.first { it.type == ElementType.BACKGROUND }
-            .apply {
+        canvasElements.first { it.type == ElementType.BACKGROUND }.apply {
                 fillGradient = null
                 backgroundColor = Color.WHITE
                 bitmap = src        // ← keep the full-size image
@@ -1861,10 +1853,9 @@ class CanvasView @JvmOverloads constructor(
 
                                 if (finalBitmap.isRecycled) return@let
 
-                                finalBitmap =
-                                    ImageAdjustmentHelper.applyAllAdjustments(
-                                        element.context!!, bmp, element
-                                    )
+                                finalBitmap = ImageAdjustmentHelper.applyAllAdjustments(
+                                    element.context!!, bmp, element
+                                )
 
                                 val w = finalBitmap.width.toFloat()
                                 val h = finalBitmap.height.toFloat()
@@ -1881,7 +1872,8 @@ class CanvasView @JvmOverloads constructor(
                                         isFilterBitmap = true
 
                                         if (element.strokeGradient != null) {
-                                            shader = createGradientShader(element.strokeGradient!!, w, h)
+                                            shader =
+                                                createGradientShader(element.strokeGradient!!, w, h)
                                         } else {
                                             color = element.strokeColor
                                         }
@@ -1895,7 +1887,9 @@ class CanvasView @JvmOverloads constructor(
                                         val dx = (strokeWidth * cos(rad)).toFloat()
                                         val dy = (strokeWidth * sin(rad)).toFloat()
 
-                                        canvas.drawBitmap(alphaBitmap, left + dx, top + dy, strokePaint)
+                                        canvas.drawBitmap(
+                                            alphaBitmap, left + dx, top + dy, strokePaint
+                                        )
                                     }
 
                                     canvas.restore()
@@ -2203,8 +2197,7 @@ class CanvasView @JvmOverloads constructor(
                                     val topCenter = floatArrayOf(bounds.centerX(), bounds.top)
                                     val fixedHandleLengthPx = 80f
                                     val rotateIcon = floatArrayOf(
-                                        bounds.centerX(),
-                                        bounds.top - (fixedHandleLengthPx / scale)
+                                        bounds.centerX(), bounds.top - (fixedHandleLengthPx / scale)
                                     )
 
                                     matrix.mapPoints(topCenter)
@@ -2233,8 +2226,7 @@ class CanvasView @JvmOverloads constructor(
 
                                     val fixedHandleLengthPx = 80f
                                     val rotateIcon = floatArrayOf(
-                                        centerX,
-                                        topY - (fixedHandleLengthPx / scale)
+                                        centerX, topY - (fixedHandleLengthPx / scale)
                                     )
 
                                     topCenter to rotateIcon
@@ -2313,18 +2305,14 @@ class CanvasView @JvmOverloads constructor(
             canvas.withSave {
 
                 val path = ShapeRenderUtils.buildShapePath(
-                    element.shapeType
-                        ?: ShapeType.RECTANGLE,
-                    localRect,
-                    element.shapeCornerRadius
+                    element.shapeType ?: ShapeType.RECTANGLE, localRect, element.shapeCornerRadius
                 )
                 canvas.clipPath(path) // ✅ Mask bitmap inside shape
 
                 // --- 🧠 Apply Adjustments ---
-                val finalBitmap =
-                    ImageAdjustmentHelper.applyAllAdjustments(
-                        element.context!!, bmp, element
-                    )
+                val finalBitmap = ImageAdjustmentHelper.applyAllAdjustments(
+                    element.context!!, bmp, element
+                )
 
                 // --- 🧩 Setup Paint and Filters ---
                 val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -2402,8 +2390,7 @@ class CanvasView @JvmOverloads constructor(
             ShapeRenderUtils.drawShape(
                 canvas,
                 strokePaint,
-                element.shapeType
-                    ?: ShapeType.RECTANGLE,
+                element.shapeType ?: ShapeType.RECTANGLE,
                 localRect,
                 element.shapeCornerRadius
             )
@@ -2425,8 +2412,7 @@ class CanvasView @JvmOverloads constructor(
             com.webscare.urducanvas.common.utils.ShapeRenderUtils.drawShape(
                 canvas,
                 fillPaint,
-                element.shapeType
-                    ?: ShapeType.RECTANGLE,
+                element.shapeType ?: ShapeType.RECTANGLE,
                 localRect,
                 element.shapeCornerRadius
             )
@@ -2531,10 +2517,12 @@ class CanvasView @JvmOverloads constructor(
 
                 var adjustedBackground = bmp
                 if (adjustedBackground.isRecycled) return@withTranslation
-                adjustedBackground =
-                    ImageAdjustmentHelper.applyAllAdjustments(
-                        e.context!!, adjustedBackground, e
-                    )
+                adjustedBackground = ImageAdjustmentHelper.applyAllAdjustments(
+                    e.context!!, adjustedBackground, e
+                )
+
+                val bw = adjustedBackground.width.toFloat()
+                val bh = adjustedBackground.height.toFloat()
 
                 backgroundPaint.colorFilter = colorFilterFor(e.imageFilter)
                 backgroundPaint.maskFilter = null
@@ -2558,6 +2546,19 @@ class CanvasView @JvmOverloads constructor(
                         drawBitmap(adjustedBackground, 0f, 0f, backgroundPaint)
                     }
                 }
+                if (e.hasOverlay && e.overlayOpacity > 0) {
+                    val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        alpha = e.overlayOpacity.coerceIn(0, 255)
+                        xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
+                    }
+
+                    if (e.overlayGradient != null) {
+                        overlayPaint.shader = createGradientShader(e.overlayGradient!!, bw, bh)
+                    } else {
+                        overlayPaint.color = e.overlayColor
+                    }
+                    drawRect(0f, 0f, bw, bh, overlayPaint)
+                }
             }
             backgroundPaint.xfermode = drawWithBlend(e)
             return
@@ -2569,31 +2570,40 @@ class CanvasView @JvmOverloads constructor(
         val pivotY = h / 2f
 
         // 2) else if there's a gradient -> stretch it across the full canvas
-        e.fillGradient?.let { grad ->
+        if (e.hasOverlay) {
+                canvas.withTranslation(left, top) {
+                    scale(e.scale, e.scale, pivotX, pivotY)
+                    rotate(e.rotation, pivotX, pivotY)
+
+                    val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        alpha = e.overlayOpacity.coerceIn(0, 255)
+                    }
+                    if (e.overlayGradient != null) {
+                        overlayPaint.shader = createGradientShader(e.overlayGradient!!, w, h)
+                    } else {
+                        overlayPaint.color = e.overlayColor
+                    }
+                    backgroundPaint.alpha = e.paintAlpha
+                    drawRect(0f, 0f, w, h, overlayPaint)
+                    backgroundPaint.shader = null
+                }
+                return
+        } else {
             canvas.withTranslation(left, top) {
                 scale(e.scale, e.scale, pivotX, pivotY)
                 rotate(e.rotation, pivotX, pivotY)
 
-                backgroundPaint.shader =
-                    com.webscare.urducanvas.common.utils.BrushRenderUtils.createBackgroundGradientShader(
-                        grad, w, h
+                if (e.fillGradient != null) {
+                    backgroundPaint.shader = createBackgroundGradientShader(
+                        e.fillGradient!!, w, h
                     )
+                } else {
+                    backgroundPaint.color = e.backgroundColor
+                }
+
                 backgroundPaint.alpha = e.paintAlpha
                 drawRect(0f, 0f, w, h, backgroundPaint)
-                backgroundPaint.shader = null
             }
-            return
-        }
-
-        // 3) else -> solid color
-        canvas.withTranslation(left, top) {
-            scale(e.scale, e.scale, pivotX, pivotY)
-            rotate(e.rotation, pivotX, pivotY)
-
-            backgroundPaint.shader = null
-            backgroundPaint.color = e.backgroundColor
-            backgroundPaint.alpha = e.paintAlpha
-            drawRect(0f, 0f, w, h, backgroundPaint)
         }
     }
 
@@ -2761,13 +2771,10 @@ class CanvasView @JvmOverloads constructor(
                 isAntiAlias = true
 
                 // Bold / Italic / Underline
-                isUnderlineText =
-                    TextDecoration.UNDERLINE in element.textDecoration
+                isUnderlineText = TextDecoration.UNDERLINE in element.textDecoration
                 val baseTf = element.paint.typeface ?: Typeface.DEFAULT
-                val bold =
-                    TextDecoration.BOLD in element.textDecoration
-                val italic =
-                    TextDecoration.ITALIC in element.textDecoration
+                val bold = TextDecoration.BOLD in element.textDecoration
+                val italic = TextDecoration.ITALIC in element.textDecoration
                 val style = when {
                     bold && italic -> Typeface.BOLD_ITALIC
                     bold -> Typeface.BOLD
@@ -2797,7 +2804,9 @@ class CanvasView @JvmOverloads constructor(
                 TextAlignment.CENTER -> Paint.Align.CENTER
                 TextAlignment.RIGHT -> Paint.Align.RIGHT
                 TextAlignment.JUSTIFY -> Paint.Align.LEFT
-                else -> {Paint.Align.LEFT}
+                else -> {
+                    Paint.Align.LEFT
+                }
             }
             fillPaint.textAlign = alignment
 
@@ -3396,8 +3405,7 @@ class CanvasView @JvmOverloads constructor(
                             }
 
                             "rotate" -> {
-                                currentMode =
-                                    Mode.ROTATE
+                                currentMode = Mode.ROTATE
                                 touchStartX = x
                                 touchStartY = y
 
@@ -3428,8 +3436,7 @@ class CanvasView @JvmOverloads constructor(
                             }
 
                             "resize" -> {
-                                currentMode =
-                                    Mode.RESIZE
+                                currentMode = Mode.RESIZE
                                 touchStartX = x
                                 touchStartY = y
                                 val combined = getCombinedSelectedBounds()
@@ -3451,8 +3458,7 @@ class CanvasView @JvmOverloads constructor(
                             }
 
                             "transform" -> {
-                                currentMode =
-                                    Mode.TRANSFORM
+                                currentMode = Mode.TRANSFORM
                                 touchStartX = x
                                 touchStartY = y
 
@@ -3502,8 +3508,7 @@ class CanvasView @JvmOverloads constructor(
                         }
                         touchStartX = x
                         touchStartY = y
-                        currentMode =
-                            Mode.DRAG // Set to drag mode after selecting the group
+                        currentMode = Mode.DRAG // Set to drag mode after selecting the group
                         vibrateSoft()
                     } else {
                         if (inSelectionMode) {
@@ -3575,8 +3580,7 @@ class CanvasView @JvmOverloads constructor(
                         invalidate()
                     } else {
                         if (overallScale > 1f) {
-                            currentMode =
-                                Mode.CANVAS_PAN
+                            currentMode = Mode.CANVAS_PAN
                             touchStartX = event.x
                             touchStartY = event.y
                             return true
@@ -3938,8 +3942,7 @@ class CanvasView @JvmOverloads constructor(
                 initialGroupPivotY = 0f
                 if (currentMode != Mode.GROUP_EDIT) {
                     lastTouchedElement = null
-                    currentMode =
-                        Mode.NONE
+                    currentMode = Mode.NONE
                 }
                 clampOverallPan()
                 isRotating = false

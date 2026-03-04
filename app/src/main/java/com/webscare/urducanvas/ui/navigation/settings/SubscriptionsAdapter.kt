@@ -5,6 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
@@ -13,12 +14,12 @@ import com.webscare.urducanvas.databinding.LayoutSubscriptionsItemBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class SubscriptionsAdapter(
-    private val onSelect: (com.webscare.urducanvas.data.model.SubscriptionPlan) -> Unit
+    private val onSelect: (SubscriptionPlan) -> Unit
 ) : RecyclerView.Adapter<SubscriptionsAdapter.VH>() {
 
-    private val items = mutableListOf<com.webscare.urducanvas.data.model.SubscriptionPlan>()
+    private val items = mutableListOf<SubscriptionPlan>()
 
-    fun submitList(list: List<com.webscare.urducanvas.data.model.SubscriptionPlan>) {
+    fun submitList(list: List<SubscriptionPlan>) {
         items.clear()
         items.addAll(list)
         notifyDataSetChanged()
@@ -27,7 +28,7 @@ class SubscriptionsAdapter(
     inner class VH(val binding: LayoutSubscriptionsItemBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(item: com.webscare.urducanvas.data.model.SubscriptionPlan) = with(binding) {
+        fun bind(item: SubscriptionPlan) = with(binding) {
 
             title.text = item.title
             price.text = item.price
@@ -35,8 +36,8 @@ class SubscriptionsAdapter(
 
             // Badge
             if (item.badge != null) {
-                root.findViewById<TextView>(R.id.saveBadge)?.apply {
-                    visibility = View.VISIBLE
+                saveBadge.apply {
+                    isVisible = item.badge != null
                     text = item.badge
                 }
             }

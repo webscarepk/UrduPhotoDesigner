@@ -192,7 +192,7 @@ class EditorFragment : Fragment() {
                         binding.panelNavHost.visibility = View.VISIBLE
                     }
 
-                    R.id.shapeFragment -> {
+                    R.id.shapesParentFragment -> {
                         binding.bottomNavigation.selectedItemId = R.id.nav_shapes
                         currentPanelItemId = R.id.nav_shapes
                         binding.panelNavHost.visibility = View.VISIBLE
@@ -790,7 +790,7 @@ class EditorFragment : Fragment() {
                             R.id.adjustmentsParentFragment
 
                         ElementType.SHAPE ->
-                            R.id.objectsFragment
+                            R.id.shapesParentFragment
 
                         else -> null
                     }
@@ -835,6 +835,8 @@ class EditorFragment : Fragment() {
                     element.bitmap?.let { bmp ->
                         BitmapCache.put(element.id, bmp)
                     }
+                }else if (targetDestination == R.id.textFragment) {
+                    viewModel.openAppearanceTab()
                 }
 
                 val navOptions = NavOptions.Builder()
@@ -886,7 +888,7 @@ class EditorFragment : Fragment() {
         val showFont = anySelected && hasText && !isMulti && !hasImage && !hasBackground
         val showCopy = anySelected && !hasBackground && !isMulti
         val showAlignWithSelection = isMulti
-        val showRemoveBg = hasImage || hasBackground || hasShapeMask && !isMulti
+        val showRemoveBg = (hasImage || hasBackground || hasShapeMask) && !isMulti
 
         updateIconVisibility(binding.opacityPane, anySelected)
         updateIconVisibility(binding.blendPane, anySelected)
@@ -1084,7 +1086,7 @@ class EditorFragment : Fragment() {
                 binding.panelNavHost.visibility = View.VISIBLE
                 currentPanelItemId = menuItem.itemId
                 when (menuItem.itemId) {
-                    R.id.nav_shapes -> navController.navigate(R.id.shapeFragment)
+                    R.id.nav_shapes -> navController.navigate(R.id.shapesParentFragment)
                     R.id.nav_stickers -> navController.navigate(R.id.objectsFragment)
                     R.id.nav_text -> navController.navigate(R.id.textFragment)
                     R.id.nav_draw -> navController.navigate(R.id.drawFragment)

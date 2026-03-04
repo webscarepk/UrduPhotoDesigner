@@ -109,26 +109,26 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
 
     private fun loadDummyPlans() {
         val plans = listOf(
-            _root_ide_package_.com.webscare.urducanvas.data.model.SubscriptionPlan(
+            SubscriptionPlan(
                 id = 1,
                 title = "Monthly",
                 price = "Rs 399",
-                duration = "Per Month",
-                badge = "SAVE 25%"
-            ),
-            _root_ide_package_.com.webscare.urducanvas.data.model.SubscriptionPlan(
-                id = 2,
-                title = "Yearly",
-                price = "Rs 2499",
-                duration = "Per Year",
-                badge = "BEST VALUE"
-            ),
-            _root_ide_package_.com.webscare.urducanvas.data.model.SubscriptionPlan(
-                id = 3,
-                title = "Lifetime",
-                price = "Rs 4999",
-                duration = "One Time",
+                duration = "/Month",
                 badge = null
+            ),
+            SubscriptionPlan(
+                id = 2,
+                title = "6 Months",
+                price = "Rs 899",
+                duration = "/6 Months",
+                badge = "Save 25%"
+            ),
+            SubscriptionPlan(
+                id = 3,
+                title = "1 Year",
+                price = "Rs 2999",
+                duration = "/ Year",
+                badge = "Save 35%"
             )
         )
 

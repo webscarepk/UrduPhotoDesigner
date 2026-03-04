@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@color/white"
-    tools:context=".ui.editor.panels.objects.shape.ShapeFragment">
+    tools:context=".ui.editor.panels.shape.ShapeFragment">
 
     <androidx.constraintlayout.widget.Guideline
         android:layout_width="wrap_content"

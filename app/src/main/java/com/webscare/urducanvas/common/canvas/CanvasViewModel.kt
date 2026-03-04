@@ -2147,9 +2147,9 @@ class CanvasViewModel @Inject constructor(
     private fun applyShadowPresets(element: CanvasElement) {
         if (element.shadowRadius <= 1f && element.shadowDx <= 1f && element.shadowDy <= 1f && element.shadowOpacity <= 1) {
             element.shadowRadius = 10f
-            element.shadowDx = 5f
-            element.shadowDy = 5f
-            element.shadowOpacity = 155
+            element.shadowDx = 15f
+            element.shadowDy = 15f
+            element.shadowOpacity = 50
             element.shadowColor = Color.BLACK
 
             _shadowRadius.value = element.shadowRadius
@@ -2178,7 +2178,7 @@ class CanvasViewModel @Inject constructor(
                 (element.type == ElementType.BACKGROUND && element.bitmap != null)
 
         if (isValidType && element.blurValue == 0f) {
-            element.blurValue = 15f // Default preset
+            element.blurValue = 10f // Default preset
             _blur.value = element.blurValue // SeekBar sync
         }
     }
@@ -2334,6 +2334,41 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
+    fun replaceSticker(bitmap: Bitmap?, context: Context) {
+        if (bitmap == null) return
+
+        val currentList = _canvasElements.value ?: emptyList()
+
+        val selectedElement = currentList.find { it.isSelected && (it.type == ElementType.IMAGE || it.type == ElementType.STICKER) }
+
+        val canvasW = _canvasSize.value?.width ?: return
+        val canvasH = _canvasSize.value?.height ?: return
+
+        val imageW = bitmap.width.toFloat()
+        val imageH = bitmap.height.toFloat()
+        val maxAllowedW = canvasW * 0.8f
+        val maxAllowedH = canvasH * 0.8f
+
+        var finalBitmap = bitmap
+        if (imageW > maxAllowedW || imageH > maxAllowedH) {
+            val scaleFactor = minOf(maxAllowedW / imageW, maxAllowedH / imageH)
+            finalBitmap = bitmap.scale((imageW * scaleFactor).toInt(), (imageH * scaleFactor).toInt())
+        }
+
+        val updatedElement = selectedElement?.copy(
+            bitmap = finalBitmap,
+            bitmapData = ImageProcessor.bitmapToBase64(finalBitmap)
+        )
+
+        updatedElement?.let { updateCanvasElement(it) }
+
+        _canvasElements.value = currentList.map {
+            if (it.id == selectedElement?.id) updatedElement!! else it
+        }
+
+        _redoStack.clear()
+        notifyUndoRedoChanged()
+    }
 
     fun addSticker(bitmap: Bitmap?, context: Context, elementType: ElementType) {
         if (bitmap == null) return
@@ -2410,6 +2445,7 @@ class CanvasViewModel @Inject constructor(
         _redoStack.clear()
         notifyUndoRedoChanged()
     }
+
     fun ensureBackgroundElement(context: Context) {
         // if we already have a background, do nothing
         if ((_canvasElements.value ?: emptyList()).any { it.type == ElementType.BACKGROUND }) return
@@ -3464,5 +3500,12 @@ class CanvasViewModel @Inject constructor(
 
     fun isExplicitChange(): Boolean {
         return _isExplicitChange
+    }
+
+    private val _openAppearanceTab = MutableLiveData<Unit>()
+    val openAppearanceTab: LiveData<Unit> = _openAppearanceTab
+
+    fun openAppearanceTab() {
+        _openAppearanceTab.value = Unit
     }
 }

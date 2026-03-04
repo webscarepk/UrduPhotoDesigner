@@ -3,9 +3,6 @@ package com.webscare.urducanvas.ui.editor.panels.objects
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.Lifecycle
 import androidx.fragment.app.Fragment
-import androidx.viewpager2.adapter.FragmentStateAdapter
-import com.webscare.urducanvas.data.model.ImageEntity
-import com.webscare.urducanvas.ui.editor.panels.objects.shape.ShapeFragment
 
 class ObjectsPagerAdapter(
     private val fm: FragmentManager,
