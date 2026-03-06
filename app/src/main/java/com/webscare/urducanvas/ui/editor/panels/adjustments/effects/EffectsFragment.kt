@@ -54,9 +54,9 @@ class EffectsFragment : Fragment() {
     }
 
     private fun setupRecyclerViews() {
-        adapter = AdjustmentPanelTabsAdapter { tab ->
+        adapter = AdjustmentPanelTabsAdapter( { tab ->
             handleTabClick(tab)
-        }
+        })
         binding.categories.adapter = adapter
         adapter.submitList(tabs)
 

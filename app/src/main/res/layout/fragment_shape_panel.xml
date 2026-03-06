@@ -95,9 +95,8 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/views"
             android:layout_width="0dp"
-            android:layout_height="0dp"
+            android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/toolbarColor">
@@ -105,7 +104,7 @@
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/colors"
                 android:layout_width="0dp"
-                android:layout_height="0dp"
+                android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -118,7 +117,7 @@
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/gradients"
                 android:layout_width="0dp"
-                android:layout_height="0dp"
+                android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:visibility="gone"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
@@ -129,28 +128,15 @@
                 tools:itemCount="100"
                 tools:listitem="@layout/layout_color_item" />
         </androidx.constraintlayout.widget.ConstraintLayout>
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:visibility="gone"
-        android:id="@+id/stylePane"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_marginHorizontal="10dp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/strokeWidthCard"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="3dp"
-            android:visibility="visible"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/cornerRadiusCard"
+            android:layout_marginTop="10dp"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/views"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent">
 
             <TextView
@@ -197,6 +183,20 @@
                 app:layout_constraintTop_toBottomOf="@id/strokeWidth" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:visibility="gone"
+        android:id="@+id/cornerPane"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginHorizontal="10dp">
+
+
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/cornerRadiusCard"
             android:layout_width="0dp"
@@ -205,7 +205,7 @@
             android:visibility="visible"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toEndOf="@id/strokeWidthCard"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
             <TextView

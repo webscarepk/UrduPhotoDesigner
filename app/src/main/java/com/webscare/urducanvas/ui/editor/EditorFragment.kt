@@ -137,7 +137,7 @@ class EditorFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-//        activity?.window?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        activity?.window?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavigation) { view, insets ->
             if (MANUFACTURER.equals("realme", ignoreCase = true)) {
@@ -526,7 +526,7 @@ class EditorFragment : Fragment() {
 
                 val exportDate =
                     SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
-                val fileBaseName = "project_${System.currentTimeMillis()}"
+                val fileBaseName = viewModel.buildProjectFileName()
                 val fileName = "$fileBaseName.proj"
                 // ---- Prepare model ----
                 if (exportModel == null) {
@@ -765,85 +765,87 @@ class EditorFragment : Fragment() {
 
             if (!isAdded) return@observe
 
-            val selectionChanged = !newSelection.sameSelectionAs(lastSelection)
-            if (!selectionChanged) return@observe
+            if (viewModel.inSelectionMode.value == false){
+                val selectionChanged = !newSelection.sameSelectionAs(lastSelection)
+                if (!selectionChanged) return@observe
 
-            lastSelection = newSelection.toList()
+                lastSelection = newSelection.toList()
 
-            resetPanelsOnSelectionChange()
-            updateToolbarVisibility(newSelection)
+                resetPanelsOnSelectionChange()
+                updateToolbarVisibility(newSelection)
 
-            val first = newSelection.firstOrNull()
-            val currentDest = navController.currentDestination?.id
+                val first = newSelection.firstOrNull()
+                val currentDest = navController.currentDestination?.id
 
-            // Determine which panel should open
-            val targetDestination = when {
-                newSelection.size == 1 && first != null -> {
-                    when (first.type) {
+                // Determine which panel should open
+                val targetDestination = when {
+                    newSelection.size == 1 && first != null -> {
+                        when (first.type) {
 
-                        ElementType.TEXT ->
-                            R.id.textFragment
+                            ElementType.TEXT ->
+                                R.id.textFragment
 
-                        ElementType.IMAGE,
-                        ElementType.STICKER,
-                        ElementType.BACKGROUND ->
-                            R.id.adjustmentsParentFragment
+                            ElementType.IMAGE,
+                            ElementType.STICKER,
+                            ElementType.BACKGROUND ->
+                                R.id.adjustmentsParentFragment
 
-                        ElementType.SHAPE ->
-                            R.id.shapesParentFragment
+                            ElementType.SHAPE ->
+                                R.id.shapesParentFragment
 
-                        else -> null
+                            else -> null
+                        }
                     }
+
+                    else -> null
                 }
 
-                else -> null
-            }
+                val panelDestinations = listOf(
+                    R.id.textFragment,
+                    R.id.adjustmentsParentFragment,
+                    R.id.objectsFragment
+                )
 
-            val panelDestinations = listOf(
-                R.id.textFragment,
-                R.id.adjustmentsParentFragment,
-                R.id.objectsFragment
-            )
+                // If nothing should be open → close panels
+                if (targetDestination == null) {
 
-            // If nothing should be open → close panels
-            if (targetDestination == null) {
-
-                if (
-                    currentDest == R.id.textFragment ||
-                    currentDest == R.id.adjustmentsParentFragment ||
-                    currentDest == R.id.objectsFragment
-                ) {
-                    if (currentDest in panelDestinations) {
-                        navController.popBackStack(currentDest, true)
+                    if (
+                        currentDest == R.id.textFragment ||
+                        currentDest == R.id.adjustmentsParentFragment ||
+                        currentDest == R.id.objectsFragment
+                    ) {
+                        if (currentDest in panelDestinations) {
+                            navController.popBackStack(currentDest, true)
+                        }
                     }
+
+                    return@observe
                 }
 
-                return@observe
-            }
+                // If already on correct fragment → do nothing
+                if (currentDest == targetDestination) return@observe
 
-            // If already on correct fragment → do nothing
-            if (currentDest == targetDestination) return@observe
+                // Navigate to correct panel
+                first?.let { element ->
 
-            // Navigate to correct panel
-            first?.let { element ->
-
-                val bundle = Bundle().apply {
-                    putString("elementId", element.id)
-                }
-
-                if (targetDestination == R.id.adjustmentsParentFragment) {
-                    element.bitmap?.let { bmp ->
-                        BitmapCache.put(element.id, bmp)
+                    val bundle = Bundle().apply {
+                        putString("elementId", element.id)
                     }
-                }else if (targetDestination == R.id.textFragment) {
-                    viewModel.openAppearanceTab()
+
+                    if (targetDestination == R.id.adjustmentsParentFragment) {
+                        element.bitmap?.let { bmp ->
+                            BitmapCache.put(element.id, bmp)
+                        }
+                    }else if (targetDestination == R.id.textFragment) {
+                        viewModel.openAppearanceTab()
+                    }
+
+                    val navOptions = NavOptions.Builder()
+                        .setLaunchSingleTop(true)
+                        .build()
+
+                    navController.navigate(targetDestination, bundle, navOptions)
                 }
-
-                val navOptions = NavOptions.Builder()
-                    .setLaunchSingleTop(true)
-                    .build()
-
-                navController.navigate(targetDestination, bundle, navOptions)
             }
         }
     }

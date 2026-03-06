@@ -47,6 +47,7 @@ import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.views.CanvasView
 import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.data.model.FontEntity
+import com.webscare.urducanvas.data.model.FontPanelState
 import com.webscare.urducanvas.domain.usecase.GetFontsUseCase
 import com.webscare.urducanvas.viewmodels.FontGate
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -68,6 +69,9 @@ class CanvasViewModel @Inject constructor(
     private val dataStore: PreferencesDataStoreHelper,
     private val fontGate: FontGate
 ) : ViewModel() {
+
+    private val _fontPanelState = MutableLiveData(FontPanelState())
+    val fontPanelState: LiveData<FontPanelState> = _fontPanelState
     private val _pagingLocked = MutableLiveData(false)
     val pagingLocked: LiveData<Boolean> = _pagingLocked
     private val _isLoadingTemplate = MutableLiveData<Boolean?>()
@@ -275,6 +279,9 @@ class CanvasViewModel @Inject constructor(
     private val _shapeStrokeEnabled = MutableLiveData(true)
     val shapeStrokeEnabled: LiveData<Boolean> = _shapeStrokeEnabled
 
+    private val _shapeCornerEnabled = MutableLiveData(true)
+    val shapeCornerEnabled: LiveData<Boolean> = _shapeCornerEnabled
+
     private val _shapeStrokeWidth = MutableLiveData(1f)
     val shapeStrokeWidth: LiveData<Float> = _shapeStrokeWidth
 
@@ -385,12 +392,14 @@ class CanvasViewModel @Inject constructor(
 
     fun updateCornerRadius(value: Float) {
         _shapeCornerRadius.value = value
-        updateSelectedShape { it.copy(shapeCornerRadius = value) }
+        _shapeCornerEnabled.value = true
+        updateSelectedShape { it.copy(shapeCornerRadius = value, shapeHasStroke = true) }
     }
 
     fun updateStrokeWidth(value: Float) {
         _shapeStrokeWidth.value = value
-        updateSelectedShape { it.copy(shapeStrokeWidth = value) }
+        _shapeStrokeEnabled.value = true
+        updateSelectedShape { it.copy(shapeStrokeWidth = value, shapeHasStroke = true) }
     }
 
     fun toggleFillEnabled(enabled: Boolean) {
@@ -403,24 +412,32 @@ class CanvasViewModel @Inject constructor(
         updateSelectedShape { it.copy(shapeHasStroke = enabled) }
     }
 
+    fun toggleCornerEnabled(enabled: Boolean) {
+        _shapeCornerEnabled.value = enabled
+        updateSelectedShape { it.copy(shapeHasCorner = enabled) }
+    }
     fun setFillColor(color: Int) {
         _shapeFillColor.value = color
-        updateSelectedShape { it.copy(shapeFillColor = color) }
+        _shapeFillEnabled.value = true
+        updateSelectedShape { it.copy(shapeFillColor = color, shapeHasFill = true) }
     }
 
     fun setStrokeColor(color: Int) {
         _shapeStrokeColor.value = color
-        updateSelectedShape { it.copy(shapeStrokeColor = color) }
+        _shapeStrokeEnabled.value = true
+        updateSelectedShape { it.copy(shapeStrokeColor = color,  shapeHasStroke = true) }
     }
 
     fun setFillGradient(grad: GradientItem?) {
         _shapeFillGradient.value = grad
-        updateSelectedShape { it.copy(shapeFillGradient = grad) }
+        _shapeFillEnabled.value = true
+        updateSelectedShape { it.copy(shapeFillGradient = grad, shapeHasFill = true) }
     }
 
     fun setStrokeGradient(grad: GradientItem?) {
         _shapeStrokeGradient.value = grad
-        updateSelectedShape { it.copy(shapeStrokeGradient = grad) }
+        _shapeStrokeEnabled.value = true
+        updateSelectedShape { it.copy(shapeStrokeGradient = grad, shapeHasStroke = true) }
     }
 
     fun setImagePanX(value: Float) {
@@ -1455,6 +1472,16 @@ class CanvasViewModel @Inject constructor(
         _canvasElements.value = updatedList
     }
 
+    fun saveFontPanelState(
+        language: String,
+        category: String?,
+        scrollIndex: Int = 0,
+        scrollOffset: Int = 0
+    ) {
+        _fontPanelState.value = FontPanelState(language, category, scrollIndex, scrollOffset)
+    }
+
+    fun getFontPanelState(): FontPanelState = _fontPanelState.value ?: FontPanelState()
     private fun applyChangesToSelectedTextElements() {
         val currentList = _canvasElements.value?.toMutableList() ?: return
         var oldElement: CanvasElement? = null
@@ -3385,6 +3412,8 @@ class CanvasViewModel @Inject constructor(
         selectedElement = null
         currentBatchAction = null
         hasChanges.value = false
+
+        projectSourceName = null
     }
 
     fun loadTemplateFromJsonFile(exportResult: ExportResult, context: Context) {
@@ -3507,5 +3536,34 @@ class CanvasViewModel @Inject constructor(
 
     fun openAppearanceTab() {
         _openAppearanceTab.value = Unit
+    }
+
+    private var projectSourceName: String? = null
+
+    /**
+     * Call this before [loadTemplateFromJsonFile] with the template's category/subcategory.
+     * The raw string is sanitized here: lowercased, spaces → underscores, non-alphanumeric stripped.
+     * e.g. "Eid Mubarak" → "eid_mubarak"
+     */
+    fun setProjectSourceName(rawName: String?) {
+        projectSourceName = rawName
+            ?.trim()
+            ?.lowercase()
+            ?.replace(Regex("\\s+"), "_")
+            ?.replace(Regex("[^a-z0-9_]"), "")
+            ?.trimEnd('_')
+            ?.ifBlank { null }
+    }
+
+    /**
+     * Returns a filename base for the current project, e.g.:
+     *  - "eid_mubarak_1712345678901"  (template-sourced)
+     *  - "project_1712345678901"      (blank / image canvas)
+     * The caller should append the file extension.
+     */
+    fun buildProjectFileName(): String {
+        val timestamp = System.currentTimeMillis()
+        val prefix = projectSourceName ?: "project"
+        return "${prefix}_${timestamp}"
     }
 }

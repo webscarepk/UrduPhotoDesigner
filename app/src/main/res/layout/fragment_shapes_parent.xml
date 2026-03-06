@@ -36,7 +36,7 @@
         android:id="@+id/endGuide"/>
 
     <ImageView
-        android:id="@+id/editImage"
+        android:id="@+id/addImage"
         android:visibility="visible"
         android:layout_width="30dp"
         android:layout_height="30dp"
@@ -44,9 +44,26 @@
         android:background="@drawable/button_bg_small"
         android:backgroundTint="@color/contrast"
         app:tint="@color/black"
-        android:src="@drawable/ic_edit"
+        android:src="@drawable/ic_import"
         android:layout_gravity="center_vertical"
         app:layout_constraintStart_toStartOf="@id/startGuide"
+        app:layout_constraintEnd_toStartOf="@id/editImage"
+        app:layout_constraintTop_toTopOf="@id/tabLayout"
+        app:layout_constraintBottom_toBottomOf="@id/tabLayout"/>
+
+    <ImageView
+        android:id="@+id/editImage"
+        android:visibility="visible"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:padding="8dp"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/button_bg_small"
+        android:backgroundTint="@color/contrast"
+        app:tint="@color/black"
+        android:src="@drawable/ic_edit"
+        android:layout_gravity="center_vertical"
+        app:layout_constraintStart_toEndOf="@id/addImage"
         app:layout_constraintEnd_toStartOf="@id/tabLayout"
         app:layout_constraintTop_toTopOf="@id/tabLayout"
         app:layout_constraintBottom_toBottomOf="@id/tabLayout"/>

@@ -68,7 +68,6 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
         binding.viewPager.adapter = null
 
         setEvents()
-        setupTabLayout()
     }
 
     private fun setEvents() {
@@ -84,6 +83,8 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
             binding.viewPager.adapter = adapter
             adapter.stateRestorationPolicy =
                 RecyclerView.Adapter.StateRestorationPolicy.PREVENT
+
+            setupTabLayout()
         }
 
         binding.viewPager.isUserInputEnabled = false

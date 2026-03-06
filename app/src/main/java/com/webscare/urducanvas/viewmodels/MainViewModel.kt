@@ -79,6 +79,7 @@ class MainViewModel @Inject constructor(
     private val getTrendsUseCase: GetTrendsUseCase,
     private val insertTrendsUseCase: InsertTrendsUseCase
 ) : ViewModel() {
+
     private val _trendRows = MutableStateFlow<List<HomeRow>>(emptyList())
     val trendRows: StateFlow<List<HomeRow>> = _trendRows.asStateFlow()
 

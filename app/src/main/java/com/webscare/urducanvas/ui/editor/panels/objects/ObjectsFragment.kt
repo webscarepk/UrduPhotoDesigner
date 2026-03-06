@@ -52,7 +52,6 @@ class ObjectsFragment : Fragment() {
     private val pickImage =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             uri?.let { handlePickedUri(it) }
-
         }
 
     override fun onCreateView(
@@ -253,37 +252,21 @@ class ObjectsFragment : Fragment() {
     private fun handlePickedUri(uri: Uri) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                if (binding.viewPager.currentItem == 0){
-                    val bitmap = requireContext().contentResolver.openInputStream(uri)?.use { stream ->
-                        android.graphics.BitmapFactory.decodeStream(stream)
-                    }
+                val filePath =
+                    ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
 
-                    if (bitmap != null) {
-                        withContext(Dispatchers.Main){
-                            viewModel.addImageInsideShape(bitmap, requireActivity())
-                        }
-                    } else {
-                        Toast.makeText(
-                            requireContext(), "Please select a shape first", Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }else{
-                    val filePath =
-                        ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
-
-                    withContext(Dispatchers.Main) {
-                        viewModel.addSticker(
-                            ImageProcessor.filePathToBitmap(filePath!!)?.let { image ->
-                                viewModel.canvasSize.value?.height?.roundToInt()?.let {
-                                    viewModel.canvasSize.value?.width?.let { it1 ->
-                                        bitmapCompress(
-                                            image, it1.roundToInt(), it
-                                        )
-                                    }
+                withContext(Dispatchers.Main) {
+                    viewModel.addSticker(
+                        ImageProcessor.filePathToBitmap(filePath!!)?.let { image ->
+                            viewModel.canvasSize.value?.height?.roundToInt()?.let {
+                                viewModel.canvasSize.value?.width?.let { it1 ->
+                                    bitmapCompress(
+                                        image, it1.roundToInt(), it
+                                    )
                                 }
-                            }, requireActivity(), ElementType.STICKER
-                        )
-                    }
+                            }
+                        }, requireActivity(), ElementType.STICKER
+                    )
                 }
             } catch (e: Exception) {
                 Log.e("PhotoPicker", "Failed compressing image", e)

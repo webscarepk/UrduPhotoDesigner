@@ -240,6 +240,9 @@ data class CanvasElement(
     @SerializedName("shapeHasStroke")
     var shapeHasStroke: Boolean = true,
 
+    @SerializedName("shapeHasCorner")
+    var shapeHasCorner: Boolean = false,
+
     @SerializedName("shapeFillGradient")
     var shapeFillGradient: GradientItem? = null,
 

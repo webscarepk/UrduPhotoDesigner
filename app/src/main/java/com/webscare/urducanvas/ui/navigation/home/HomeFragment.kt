@@ -5,16 +5,12 @@ import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.app.Dialog
 import android.graphics.BitmapFactory
-import android.os.Build
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowInsets
 import android.view.animation.LinearInterpolator
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.activityViewModels
@@ -27,6 +23,7 @@ import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
 import com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.utils.showGlobalSuccessSnack
+import com.webscare.urducanvas.data.model.ProgressUi
 import com.webscare.urducanvas.data.model.toExportResultFinal
 import com.webscare.urducanvas.databinding.DialogLoadingProgressBinding
 import com.webscare.urducanvas.databinding.FragmentHomeBinding
@@ -145,12 +142,8 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
         binding.searchBar.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_UP) {
-                val options = NavOptions.Builder()
-                    .setEnterAnim(R.anim.slide_in_up)
-                    .setExitAnim(0)
-                    .setPopEnterAnim(0)
-                    .setPopExitAnim(R.anim.slide_out_down)
-                    .build()
+                val options = NavOptions.Builder().setEnterAnim(R.anim.slide_in_up).setExitAnim(0)
+                    .setPopEnterAnim(0).setPopExitAnim(R.anim.slide_out_down).build()
                 findNavController().navigate(R.id.searchFragment, null, options)
                 true
             } else {
@@ -202,7 +195,8 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                 mainViewModel.downloadTemplate(template)
                 return@TrendsAdapter
             } else {
-                val exportResult = template.toExportResultFinal()
+                viewModel.setProjectSourceName(template.category ?: template.subcategory)
+                val exportResult = template.toExportResultFinal().copy(fileName = viewModel.buildProjectFileName())
                 lifecycleScope.launch {
                     withContext(Dispatchers.Default) {
                         viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
@@ -223,14 +217,15 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                 if (template.file_path.isNullOrEmpty()) {
                     popularTemplatesAdapter.updateProgress(
                         template.id,
-                        _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
+                        ProgressUi(
                             progress = 0, isDownloading = true, isDownloaded = false
                         )
                     )
                     mainViewModel.downloadTemplate(template)
                     return@PopularTemplatesAdapter
                 } else {
-                    val exportResult = template.toExportResultFinal()
+                    viewModel.setProjectSourceName(template.category ?: template.subcategory)
+                    val exportResult = template.toExportResultFinal().copy(fileName = viewModel.buildProjectFileName())
                     lifecycleScope.launch {
                         withContext(Dispatchers.Default) {
                             viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
@@ -240,7 +235,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
             } else {
                 downloadingTemplate = template
                 popularTemplatesAdapter.updateProgress(
-                    template.id, _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
+                    template.id, ProgressUi(
                         progress = 0, isDownloading = true, isDownloaded = false
                     )
                 )
@@ -258,8 +253,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.blankCanvas.addPressEffect {
-            val bottomSheet =
-                CreateFragment()
+            val bottomSheet = CreateFragment()
             bottomSheet.show(parentFragmentManager, "CreateBottomSheet")
         }
 
@@ -308,7 +302,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                         is TemplateDownloadState.SuccessWithTemplate -> {
                             val t = state.template
                             val ui =
-                                _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
+                                ProgressUi(
                                     100, isDownloading = false, isDownloaded = true
                                 )
                             trendsAdapter.updateTemplateProgress(
@@ -324,7 +318,8 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                             findNavController().popBackStack(R.id.editorFragment, true)
 
                             showGlobalSuccessSnack("Template ready") {
-                                val exportResult = t.toExportResultFinal()
+                                viewModel.setProjectSourceName(t.category ?: t.subcategory)
+                                val exportResult = t.toExportResultFinal().copy(fileName = viewModel.buildProjectFileName())
                                 lifecycleScope.launch {
                                     viewModel.loadTemplateFromJsonFile(
                                         exportResult, requireContext()
@@ -335,7 +330,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
                         is TemplateDownloadState.Error -> {
                             val ui =
-                                _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
+                                ProgressUi(
                                     0, isDownloading = false, isDownloaded = false
                                 )
                             downloadingTemplate?.let { t ->

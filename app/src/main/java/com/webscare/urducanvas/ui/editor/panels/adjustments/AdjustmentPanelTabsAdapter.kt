@@ -13,7 +13,8 @@ import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.AdjustmentPanelTabs
 
 class AdjustmentPanelTabsAdapter(
-    private val onFontSelected: (AdjustmentPanelTabs) -> Unit
+    private val onFontSelected: (AdjustmentPanelTabs) -> Unit,
+    private val isEnabled: Boolean = true
 ) : RecyclerView.Adapter<AdjustmentPanelTabsAdapter.FontViewHolder>() {
 
     private val fonts = mutableListOf<AdjustmentPanelTabs>()
@@ -56,16 +57,25 @@ class AdjustmentPanelTabsAdapter(
                 )
             }
 
-            if (font.is_enabled) {
+            if (isEnabled){
+                if (font.is_enabled) {
+                    binding.tabTitle.setCompoundDrawablesWithIntrinsicBounds(
+                        R.drawable.ic_done_small_filled,
+                        0,
+                        0,
+                        0
+                    )
+                } else {
+                    binding.tabTitle.setCompoundDrawablesWithIntrinsicBounds(
+                        R.drawable.ic_done_small_stroke,
+                        0,
+                        0,
+                        0
+                    )
+                }
+            }else{
                 binding.tabTitle.setCompoundDrawablesWithIntrinsicBounds(
-                    R.drawable.ic_done_small_filled,
                     0,
-                    0,
-                    0
-                )
-            } else {
-                binding.tabTitle.setCompoundDrawablesWithIntrinsicBounds(
-                    R.drawable.ic_done_small_stroke,
                     0,
                     0,
                     0

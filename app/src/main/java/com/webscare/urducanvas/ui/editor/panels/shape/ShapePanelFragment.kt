@@ -14,6 +14,9 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.ElementType
@@ -42,8 +45,6 @@ class ShapePanelFragment : Fragment() {
     private lateinit var shapesAdapter: ShapeAdapter
     private val viewModel: CanvasViewModel by activityViewModels()
     private val mainViewModel: MainViewModel by activityViewModels()
-    private var isStrokeEnabled = false
-    private var isFillEnabled = true
     private var selectColorFor = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,10 +67,6 @@ class ShapePanelFragment : Fragment() {
     }
 
     private fun setEvents() {
-        binding.shapePane.isVisible = tabName == "Shape"
-        binding.stylePane.isVisible = tabName == "Style"
-        binding.colorsPane.isVisible = tabName == "Color"
-
         binding.solid.addPressEffect {
             if (!binding.colors.isVisible) {
                 togglePanels()
@@ -118,20 +115,13 @@ class ShapePanelFragment : Fragment() {
 
         selectColorFor = (tabName == "Stroke")
 
-        // 2. Visibility Logic: Decide which pane to show
-        // We now check if the tabName belongs to a Style or Color category
-        binding.shapePane.isVisible = (tabName == "Basic" || tabName == "Geometry")
-        binding.stylePane.isVisible = (tabName == "Fill" || tabName == "Stroke") && !isColorTab()
-        binding.colorsPane.isVisible = (tabName == "Fill" || tabName == "Stroke") && isColorTab()
+        binding.shapePane.isVisible = tabName == "Shape"
+        binding.cornerPane.isVisible = tabName == "Corner"
+        binding.colorsPane.isVisible = (tabName == "Fill" || tabName == "Stroke")
+        binding.strokeWidthCard.isVisible = tabName == "Stroke"
 
         setupRecyclerView()
         initObserver()
-    }
-
-    // Helper to check if the grandparent is the "Color" tab
-    private fun isColorTab(): Boolean {
-        return parentFragment is ShapeFragment &&
-                (parentFragment as ShapeFragment).arguments?.getString("tabName") == "Color"
     }
 
     private fun initObserver() {
@@ -313,11 +303,19 @@ class ShapePanelFragment : Fragment() {
         }
 
         binding.colors.apply {
+            layoutManager = if (tabName == "Stroke") LinearLayoutManager(requireActivity(),
+                LinearLayoutManager.HORIZONTAL, false) else GridLayoutManager(requireActivity(), 3,
+                GridLayoutManager.HORIZONTAL, false)
+
             setHasFixedSize(true)
             adapter = colorsAdapter
         }
 
         binding.gradients.apply {
+            layoutManager = if (tabName == "Stroke") LinearLayoutManager(requireActivity(),
+                LinearLayoutManager.HORIZONTAL, false) else GridLayoutManager(requireActivity(), 3,
+                GridLayoutManager.HORIZONTAL, false)
+
             setHasFixedSize(true)
             adapter = gradientsAdapter
         }

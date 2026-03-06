@@ -35,11 +35,9 @@ class SubscriptionsAdapter(
             duration.text = item.duration
 
             // Badge
-            if (item.badge != null) {
-                saveBadge.apply {
-                    isVisible = item.badge != null
-                    text = item.badge
-                }
+            saveBadge.apply {
+                isVisible = item.badge == null
+                text = item.badge
             }
 
             // Selection UI

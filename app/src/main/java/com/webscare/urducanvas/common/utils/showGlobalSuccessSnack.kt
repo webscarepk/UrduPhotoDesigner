@@ -8,7 +8,7 @@ import com.webscare.urducanvas.R
 fun Fragment.showGlobalSuccessSnack(
     message: String,
     actionText: String = "Open",
-    duration: Int = 8000,
+    duration: Int = 2000,
     anchor: View? = null,
     onAction: () -> Unit
 ) {

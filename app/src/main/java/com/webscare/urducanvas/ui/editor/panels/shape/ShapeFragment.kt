@@ -26,6 +26,7 @@ class ShapeFragment : Fragment() {
 
     private var isFillEnabled = true
     private var isStrokeEnabled = false
+    private var isCornerEnabled = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -42,10 +43,18 @@ class ShapeFragment : Fragment() {
     }
 
     private fun setupRecyclerViews() {
+
+        val parentTab = arguments?.getString("tabName") ?: ""
+
+        val isEnabledForAdapter = parentTab != "Shape"
+
         tabs = ArrayList()
-        adapter = AdjustmentPanelTabsAdapter { tab ->
-            handleSelection(tab)
-        }
+
+        adapter = AdjustmentPanelTabsAdapter(
+            { tab -> handleSelection(tab) },
+            isEnabledForAdapter
+        )
+
         binding.categories.adapter = adapter
 
         binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
@@ -70,13 +79,13 @@ class ShapeFragment : Fragment() {
 
             when (parentTab) {
                 "Shape" -> {
-                    tabs.add(AdjustmentPanelTabs(0, "Basic", true, is_enabled = false))
-                    tabs.add(AdjustmentPanelTabs(1, "Geometry", false, is_enabled = false))
+                    tabs.add(AdjustmentPanelTabs(0, "Shape", true, is_enabled = false))
                 }
 
-                "Style", "Color" -> {
+                "Style" -> {
                     tabs.add(AdjustmentPanelTabs(0, "Fill", true, is_enabled = false))
                     tabs.add(AdjustmentPanelTabs(1, "Stroke", false, is_enabled = false))
+                    tabs.add(AdjustmentPanelTabs(2, "Corner", false, is_enabled = false))
                 }
             }
 
@@ -99,6 +108,11 @@ class ShapeFragment : Fragment() {
             isStrokeEnabled = enabled
             updateTabsFromState(parentTab)
         }
+
+        viewModel.shapeCornerEnabled.observe(viewLifecycleOwner) { enabled ->
+            isCornerEnabled = enabled
+            updateTabsFromState(parentTab)
+        }
     }
 
     private fun updateTabsFromState(parentTab: String) {
@@ -106,9 +120,7 @@ class ShapeFragment : Fragment() {
             // For "Shape" tab, we don't show eye/enabled states, just selection
             tabs = arrayListOf(
                 AdjustmentPanelTabs(
-                    0, "Basic", tabs.getOrNull(0)?.is_selected ?: true, is_enabled = false
-                ), AdjustmentPanelTabs(
-                    1, "Geometry", tabs.getOrNull(1)?.is_selected ?: false, is_enabled = false
+                    0, "Shape", tabs.getOrNull(0)?.is_selected ?: true, is_enabled = false
                 )
             )
         } else {
@@ -121,6 +133,11 @@ class ShapeFragment : Fragment() {
                     "Stroke",
                     tabs.getOrNull(1)?.is_selected ?: false,
                     is_enabled = isStrokeEnabled
+                ), AdjustmentPanelTabs(
+                    2,
+                    "Corner",
+                    tabs.getOrNull(1)?.is_selected ?: false,
+                    is_enabled = isCornerEnabled
                 )
             )
         }
@@ -147,6 +164,9 @@ class ShapeFragment : Fragment() {
                 } else {
                     viewModel.toggleStrokeEnabled(newState)
                 }
+            } else if (selectedCategory.tab_name == "Corner") {
+                val newState = !isCornerEnabled
+                viewModel.toggleCornerEnabled(newState)
             }
         }
 

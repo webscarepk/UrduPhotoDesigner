@@ -121,7 +121,9 @@
         app:layout_constraintTop_toBottomOf="@id/sizesRV"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintEnd_toEndOf="parent"
+        android:paddingBottom="80dp"
+        android:clipToPadding="false"/>
 
     <View
         android:id="@+id/topFadeOverlay"

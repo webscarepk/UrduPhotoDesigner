@@ -313,6 +313,8 @@
     <string name="no_ads_ever">No Ads – Ever</string>
     <string name="stickers">Stickers</string>
     <string name="shapes">Shapes</string>
+    <string name="request_for_a_feature">Request a feature</string>
+    <string name="report_a_bug">Report a bug</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

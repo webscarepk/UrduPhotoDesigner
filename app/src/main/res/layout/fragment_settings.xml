@@ -34,6 +34,17 @@
         android:orientation="vertical"
         android:id="@+id/endGuide"/>
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/topGuide"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        android:text="@string/settings"
+        android:fontFamily="@font/bold"
+        android:textSize="19sp"
+        android:textColor="@color/black"
+        android:id="@+id/title"/>
+
     <com.google.android.material.card.MaterialCardView
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -112,19 +123,9 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"/>
+
         </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.card.MaterialCardView>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/topGuide"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
-        android:text="@string/settings"
-        android:fontFamily="@font/bold"
-        android:textSize="19sp"
-        android:textColor="@color/black"
-        android:id="@+id/title"/>
 
     <ScrollView
         android:layout_width="0dp"
@@ -134,12 +135,13 @@
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/subscriptionCard"
         app:layout_constraintBottom_toBottomOf="parent"
-        android:paddingBottom="10dp"
+        android:paddingBottom="80dp"
         android:clipToPadding="false">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
+
             <TextView
                 android:id="@+id/preferences"
                 android:layout_width="0dp"
@@ -175,38 +177,6 @@
                 android:layout_marginTop="10dp"/>
 
             <TextView
-                android:id="@+id/help"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="@string/help_centre"
-                android:textColor="@color/black"
-                android:fontFamily="@font/medium"
-                android:textSize="14sp"
-                android:background="@drawable/button_bg"
-                android:backgroundTint="@color/selection"
-                android:padding="15dp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/support"
-                android:layout_marginTop="10dp"/>
-
-            <TextView
-                android:id="@+id/terms"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="@string/terms_of_use"
-                android:textColor="@color/black"
-                android:fontFamily="@font/medium"
-                android:textSize="14sp"
-                android:background="@drawable/button_bg"
-                android:backgroundTint="@color/selection"
-                android:padding="15dp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/help"
-                android:layout_marginTop="10dp"/>
-
-            <TextView
                 android:id="@+id/privacy"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -217,9 +187,10 @@
                 android:background="@drawable/button_bg"
                 android:backgroundTint="@color/selection"
                 android:padding="15dp"
+                app:drawableEndCompat="@drawable/ic_next"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/terms"
+                app:layout_constraintTop_toBottomOf="@id/support"
                 android:layout_marginTop="10dp"/>
 
             <TextView
@@ -233,6 +204,7 @@
                 android:background="@drawable/button_bg"
                 android:backgroundTint="@color/selection"
                 android:padding="15dp"
+                app:drawableEndCompat="@drawable/ic_next"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/privacy"
@@ -249,10 +221,46 @@
                 android:background="@drawable/button_bg"
                 android:backgroundTint="@color/selection"
                 android:padding="15dp"
+                app:drawableEndCompat="@drawable/ic_next"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/rate"
                 android:layout_marginTop="10dp"/>
+
+            <TextView
+                android:id="@+id/requestFeature"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/request_for_a_feature"
+                android:textColor="@color/black"
+                android:fontFamily="@font/medium"
+                android:textSize="14sp"
+                android:background="@drawable/button_bg"
+                android:backgroundTint="@color/selection"
+                android:padding="15dp"
+                app:drawableEndCompat="@drawable/ic_next"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/improve"
+                android:layout_marginTop="10dp"/>
+
+            <TextView
+                android:id="@+id/reportBug"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/report_a_bug"
+                android:textColor="@color/black"
+                android:fontFamily="@font/medium"
+                android:textSize="14sp"
+                android:background="@drawable/button_bg"
+                android:backgroundTint="@color/selection"
+                android:padding="15dp"
+                app:drawableEndCompat="@drawable/ic_next"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/requestFeature"
+                android:layout_marginTop="10dp"/>
+
         </androidx.constraintlayout.widget.ConstraintLayout>
     </ScrollView>
 

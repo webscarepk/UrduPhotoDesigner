@@ -12,6 +12,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.tabs.TabLayout
@@ -29,13 +30,17 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @AndroidEntryPoint
-class ImagesFragment : androidx.fragment.app.Fragment() {
+class ImagesFragment : Fragment() {
+
     private var _binding: FragmentImagesBinding? = null
     private val binding get() = _binding!!
-    private var tabs = mutableListOf<String>()
-    private lateinit var adapter: ImagesPagerAdapter
+
     private val mainViewModel: MainViewModel by activityViewModels()
     private val viewModel: CanvasViewModel by activityViewModels()
+
+    private lateinit var adapter: ImagesPagerAdapter
+
+    private var tabs = mutableListOf<String>()
 
     private val pickImage =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -43,127 +48,224 @@ class ImagesFragment : androidx.fragment.app.Fragment() {
         }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentImagesBinding.inflate(layoutInflater, container, false)
+
+        _binding = FragmentImagesBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+
         super.onViewCreated(view, savedInstanceState)
 
+        setupTabs()
         setEvents()
         observeCategories()
     }
 
-    private fun setEvents() {
-        tabs.addAll(listOf("Image", "Color", "Gradient")) // base tabs once
+    // --------------------------------------------------
+    // TAB SETUP
+    // --------------------------------------------------
+
+    private fun setupTabs() {
+
+        tabs.addAll(listOf("Images", "Colors", "Gradient"))
 
         adapter = ImagesPagerAdapter(
-            requireActivity().supportFragmentManager, lifecycle, tabs
+            requireActivity().supportFragmentManager,
+            lifecycle,
+            tabs
         )
+
         binding.viewPager.adapter = adapter
         binding.viewPager.isUserInputEnabled = false
 
         setupTabLayout()
+    }
+
+    // --------------------------------------------------
+    // EVENTS
+    // --------------------------------------------------
+
+    private fun setEvents() {
 
         binding.addImage.addPressEffect {
             pickImage.launch("image/*")
         }
 
         binding.searchIcon.addPressEffect {
+
             binding.searchIcon.isVisible = false
             binding.searchBar.isVisible = true
             binding.searchBar.requestFocus()
+
             val imm =
                 requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+
             imm.showSoftInput(binding.searchBar, InputMethodManager.SHOW_IMPLICIT)
         }
 
         binding.searchBar.setOnEditorActionListener { _, actionId, _ ->
+
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+
                 val query = binding.searchBar.text.toString()
+
                 adapter.filter(query)
+
                 hideKeyboard()
+
                 true
+
             } else false
         }
     }
 
+    // --------------------------------------------------
+    // KEYBOARD
+    // --------------------------------------------------
+
     private fun hideKeyboard() {
+
         val imm = requireContext().getSystemService(InputMethodManager::class.java)
+
         imm.hideSoftInputFromWindow(binding.searchBar.windowToken, 0)
+
         binding.searchBar.clearFocus()
     }
 
+    // --------------------------------------------------
+    // IMAGE PICKER
+    // --------------------------------------------------
+
     private fun handlePickedUri(uri: Uri) {
+
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+
             try {
+
                 val filePath =
                     ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
 
+                val bitmap = ImageProcessor.filePathToBitmap(filePath!!)
+
                 withContext(Dispatchers.Main) {
-                    viewModel.addSticker(
-                        ImageProcessor.filePathToBitmap(filePath!!),
-                        requireActivity(),
-                        ElementType.IMAGE
-                    )
+
+                    val selectedTab =
+                        binding.tabLayout.getTabAt(binding.tabLayout.selectedTabPosition)?.text
+
+                    // Decide behaviour based on tab
+                    if (selectedTab?.equals("Backgrounds") == true) {
+
+                        viewModel.setCanvasBackgroundImage(bitmap)
+
+                    } else {
+
+                        viewModel.addSticker(
+                            bitmap,
+                            requireActivity(),
+                            ElementType.IMAGE
+                        )
+                    }
                 }
+
             } catch (e: Exception) {
+
                 Log.e("ImagesFragment", "Failed to import image", e)
             }
         }
     }
 
+    // --------------------------------------------------
+    // OBSERVE CATEGORIES
+    // --------------------------------------------------
+
     private fun observeCategories() {
+
         lifecycleScope.launch {
+
             mainViewModel.localImages.collect { images ->
 
-                val additionalTabs = images.map { it.category.trim() }
-                    .filter { it.equals("Images", true) || it.equals("Images Imported", true) }
+                val imageTabs = images.map { it.category.trim() }
+                    .filter {
+                        it.equals("Images", true) ||
+                                it.equals("Images Imported", true) ||
+                                it.equals("Backgrounds", true) ||
+                                it.equals("Backgrounds Imported", true)
+                    }
                     .distinct()
 
-                val hasImageRecents = images.any {
-                    it.is_recent && (it.category.equals(
-                        "Images", true
-                    ) || it.category.equals("Images Imported", true))
+                val hasRecents = images.any {
+
+                    it.is_recent && (
+                            it.category.equals("Images", true) ||
+                                    it.category.equals("Images Imported", true) ||
+                                    it.category.equals("Backgrounds", true) ||
+                                    it.category.equals("Backgrounds Imported", true)
+                            )
                 }
 
                 val newTabs = mutableListOf<String>().apply {
-                    if (hasImageRecents) add("Recents")
-                    addAll(additionalTabs)
+
+                    if (hasRecents) add("Recents")
+
+                    addAll(imageTabs)
                 }
 
                 if (newTabs != tabs) {
+
                     tabs.clear()
                     tabs.addAll(newTabs)
+
                     adapter.setTabs(tabs)
+
                     binding.noEmojis.isVisible = tabs.isEmpty()
+
                 } else {
+
                     binding.noEmojis.isVisible = images.isEmpty()
+
                     adapter.refreshData(images)
                 }
             }
         }
     }
 
+    // --------------------------------------------------
+    // TAB LAYOUT UI
+    // --------------------------------------------------
+
     private fun setupTabLayout() {
+
         TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
-            val tabView = LayoutInflater.from(context).inflate(R.layout.custom_tab, null)
+
+            val tabView = LayoutInflater.from(context)
+                .inflate(R.layout.custom_tab, null)
+
             tabView.findViewById<TextView>(R.id.tabTitle).text = tabs[position]
+
             tab.customView = tabView
+
         }.attach()
 
         binding.tabLayout.viewTreeObserver.addOnGlobalLayoutListener {
+
             if (isAdded) {
+
                 for (i in 0 until binding.tabLayout.tabCount) {
-                    val tabView = (binding.tabLayout.getChildAt(0) as? ViewGroup)?.getChildAt(i)
+
+                    val tabView =
+                        (binding.tabLayout.getChildAt(0) as? ViewGroup)?.getChildAt(i)
+
                     tabView?.scaleX = 0.9f
                     tabView?.scaleY = 0.9f
                 }
 
-                // Make the first tab look selected initially
                 binding.tabLayout.getTabAt(binding.tabLayout.selectedTabPosition)?.view?.apply {
+
                     scaleX = 1.0f
                     scaleY = 1.0f
                 }
@@ -171,13 +273,24 @@ class ImagesFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+
             override fun onTabSelected(tab: TabLayout.Tab?) {
-                tab?.view?.animate()?.scaleX(1.0f)?.scaleY(1.0f)?.setDuration(150)
-                    ?.setInterpolator(android.view.animation.OvershootInterpolator())?.start()
+
+                tab?.view?.animate()
+                    ?.scaleX(1.0f)
+                    ?.scaleY(1.0f)
+                    ?.setDuration(150)
+                    ?.setInterpolator(android.view.animation.OvershootInterpolator())
+                    ?.start()
             }
 
             override fun onTabUnselected(tab: TabLayout.Tab?) {
-                tab?.view?.animate()?.scaleX(0.9f)?.scaleY(0.9f)?.setDuration(150)?.start()
+
+                tab?.view?.animate()
+                    ?.scaleX(0.9f)
+                    ?.scaleY(0.9f)
+                    ?.setDuration(150)
+                    ?.start()
             }
 
             override fun onTabReselected(tab: TabLayout.Tab?) {}

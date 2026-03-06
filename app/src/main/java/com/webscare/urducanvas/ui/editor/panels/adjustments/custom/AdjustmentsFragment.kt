@@ -90,9 +90,9 @@ class AdjustmentsFragment : Fragment() {
             AdjustmentPanelTabs(2, "Detail", false)
         )
 
-        adapter = AdjustmentPanelTabsAdapter { tab ->
+        adapter = AdjustmentPanelTabsAdapter ({ tab ->
             handleTabSelection(tab)
-        }
+        })
 
         binding.categories.adapter = adapter
         adapter.submitList(ArrayList(tabs))

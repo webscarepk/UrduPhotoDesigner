@@ -34,7 +34,7 @@ data class TemplateEntity(
     ): ExportResult {
         val jsonFile = File(file_path!!)
         val fileName = jsonFile.name.ifBlank {
-            json_url.toUri().lastPathSegment ?: "template_${id}.json"
+            json_url.toUri().lastPathSegment ?: "${category}_${id}.json"
         }
         val sizeMb = if (jsonFile.exists()) {
             (jsonFile.length() / (1024.0 * 1024.0)).formatTwoDecimals()
@@ -48,7 +48,7 @@ data class TemplateEntity(
             resolution  = "${canvas_width}x${canvas_height}",
             format      = "JSON",
             quality     = "-",                              // JSON has no quality
-            canvasSize  = _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+            canvasSize  = CanvasSize(
                 name = "",
                 width = canvas_width.toFloat(),
                 height = canvas_height.toFloat()
