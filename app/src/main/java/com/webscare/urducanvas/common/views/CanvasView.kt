@@ -59,14 +59,21 @@ import com.webscare.urducanvas.common.canvas.enums.TextAlignment
 import com.webscare.urducanvas.common.canvas.enums.TextDecoration
 import com.webscare.urducanvas.common.canvas.enums.VAlign
 import com.webscare.urducanvas.common.canvas.model.CanvasElement
+import com.webscare.urducanvas.common.canvas.model.ExportFormat
+import com.webscare.urducanvas.common.canvas.model.ExportOptions
+import com.webscare.urducanvas.common.canvas.model.ExportQuality
+import com.webscare.urducanvas.common.canvas.model.ExportResolution
+import com.webscare.urducanvas.common.canvas.model.GradientItem
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import com.webscare.urducanvas.common.utils.BrushRenderUtils.createBackgroundGradientShader
 import com.webscare.urducanvas.common.utils.ImageAdjustmentHelper
+import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.ShapeRenderUtils
 import com.webscare.urducanvas.common.utils.Utils.vibrateSoft
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -283,7 +290,7 @@ class CanvasView @JvmOverloads constructor(
         thickness: Float? = null,
         hardness: Float? = null,
         style: BrushStyle? = null,
-        gradient: com.webscare.urducanvas.common.canvas.model.GradientItem? = null
+        gradient: GradientItem? = null
     ) {
         color?.let { currentBrushColor = it }
         thickness?.let { currentBrushThickness = it }
@@ -294,23 +301,14 @@ class CanvasView @JvmOverloads constructor(
 
     fun enableColorPicker() {
         isColorPickerMode = true
-
         pickerX = canvasWidth / 2f
         pickerY = canvasHeight / 2f
-        val (bmp, _) = exportCanvas(
-            _root_ide_package_.com.webscare.urducanvas.common.canvas.model.ExportOptions(
-                resolution = _root_ide_package_.com.webscare.urducanvas.common.canvas.model.ExportResolution(
-                    "picker", canvasWidth, canvasHeight, 1f
-                ),
-                quality = _root_ide_package_.com.webscare.urducanvas.common.canvas.model.ExportQuality(
-                    "", 100, "", 0
-                ),
-                format = _root_ide_package_.com.webscare.urducanvas.common.canvas.model.ExportFormat(
-                    "", Bitmap.CompressFormat.PNG, "", emptyList()
-                )
-            )
-        )
+
+        // ✅ Render only — no serialization, no Base64, no JSON
+        val bmp = createBitmap(canvasWidth, canvasHeight)
+        renderCanvasTo(Canvas(bmp), 1f)
         colorPickerBitmap = bmp
+
         invalidate()
     }
 
@@ -812,9 +810,10 @@ class CanvasView @JvmOverloads constructor(
     }
 
     fun exportCanvas(
-        options: com.webscare.urducanvas.common.canvas.model.ExportOptions,
+        options: ExportOptions,
+        jsonOutputPath: String,
         onProgress: ((percent: Int, stage: String) -> Unit)? = null
-    ): Pair<Bitmap, String> {
+    ): Pair<Bitmap, File> {                          // ← File, not String
         val contentWidth = this.canvasWidth
         val contentHeight = this.canvasHeight
 
@@ -840,13 +839,10 @@ class CanvasView @JvmOverloads constructor(
             onProgress?.invoke(70, "Encoding image data")
             elementsWithBitmap.forEachIndexed { index, element ->
                 element.bitmap?.let {
-//                    element.bitmapData = ImageProcessor.bitmapToFilePath(context, it)
-                    element.bitmapData =
-                        com.webscare.urducanvas.common.utils.ImageProcessor.bitmapToBase64(it)
+                    // Keep using file path — avoids Base64 OOM (Crash 3)
+                    element.bitmapData = ImageProcessor.bitmapToBase64(it)
                 }
-                element.drawStrokes?.forEach { stroke ->
-                    stroke.serializePath()
-                }
+                element.drawStrokes?.forEach { stroke -> stroke.serializePath() }
                 val progress = 70 + ((index + 1) * 20 / total)
                 onProgress?.invoke(progress, "Saving ${index + 1} of $total")
             }
@@ -854,9 +850,14 @@ class CanvasView @JvmOverloads constructor(
             onProgress?.invoke(90, "No bitmaps to encode")
         }
 
-        val json = gson.toJson(canvasElements)
+        // ✅ Stream JSON directly to a file — never builds a giant String in RAM
+        val jsonFile = File(jsonOutputPath)
+        jsonFile.bufferedWriter().use { writer ->
+            gson.toJson(canvasElements, writer)   // streaming overload — no StringBuffer
+        }
 
-        return Pair(bitmap, json)
+        onProgress?.invoke(100, "Done")
+        return Pair(bitmap, jsonFile)             // ← return File, not String
     }
 
     fun exportCanvasThumbnail(
@@ -923,8 +924,7 @@ class CanvasView @JvmOverloads constructor(
         return Pair(bitmap, json)
     }
 
-    suspend fun exportCanvasJson(): String = withContext(Dispatchers.IO) {
-        // ✅ Step 1: Create a deep snapshot
+    suspend fun exportCanvasJson(jsonOutputPath: String): Unit = withContext(Dispatchers.IO) {
         val safeElements = canvasElements.toList().map { element ->
             element.copy(
                 drawStrokes = element.drawStrokes?.toList()?.map { s ->
@@ -935,15 +935,15 @@ class CanvasView @JvmOverloads constructor(
 
         safeElements.forEach { element ->
             element.bitmap?.let {
-                element.bitmapData =
-                    com.webscare.urducanvas.common.utils.ImageProcessor.bitmapToBase64(it)
+                element.bitmapData = ImageProcessor.bitmapToBase64(it)
             }
-            element.drawStrokes?.forEach { stroke ->
-                stroke.serializePath()
-            }
+            element.drawStrokes?.forEach { stroke -> stroke.serializePath() }
         }
 
-        return@withContext gson.toJson(safeElements)
+        // ✅ Stream to file — no String in RAM
+        File(jsonOutputPath).bufferedWriter().use { writer ->
+            gson.toJson(safeElements, writer)
+        }
     }
 
     /**
@@ -1999,7 +1999,6 @@ class CanvasView @JvmOverloads constructor(
         }
 
         canvas.restore()
-        // --- Draw combined bounding box and icons based on selection state ---
         drawElementOverlays(canvas, showOverlays)
 
         if (showOverlays && isColorPickerMode) {

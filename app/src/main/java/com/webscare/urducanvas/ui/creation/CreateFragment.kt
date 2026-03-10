@@ -378,8 +378,7 @@ class CreateFragment : BottomSheetDialogFragment() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 window.insetsController?.apply {
                     hide(
-                        WindowInsets.Type.statusBars() or
-                                WindowInsets.Type.navigationBars()
+                        WindowInsets.Type.navigationBars()
                     )
                     systemBarsBehavior =
                         WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE

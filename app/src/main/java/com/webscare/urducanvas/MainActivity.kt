@@ -2,6 +2,7 @@ package com.webscare.urducanvas
 
 import android.content.Intent
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -13,6 +14,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.toColorInt
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -70,7 +72,12 @@ class MainActivity : AppCompatActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(binding.root)
 
-        window.statusBarColor = getColor(android.R.color.transparent)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
+            val statusBarHeight = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+            view.setPadding(0, statusBarHeight, 0, 0)
+            insets
+        }
+
         forceImmersiveMode()
 
         initObservers()
@@ -90,8 +97,8 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 R.id.nav_templates -> {
-                    if (navController.currentDestination?.id != R.id.templatesFragment) {
-                        navController.navigate(R.id.templatesFragment, null, navOptions)
+                    if (navController.currentDestination?.id != R.id.templateCategoriesFragment) {
+                        navController.navigate(R.id.templateCategoriesFragment, null, navOptions)
                     }
                 }
 
@@ -118,7 +125,7 @@ class MainActivity : AppCompatActivity() {
 
         navController.addOnDestinationChangedListener { _, destination, _ ->
             val visibleDestinations = setOf(
-                R.id.homeFragment, R.id.templatesFragment, R.id.filesFragment, R.id.settingsFragment
+                R.id.homeFragment, R.id.templateCategoriesFragment, R.id.filesFragment, R.id.settingsFragment
             )
             if (destination.id in visibleDestinations) {
                 if (!binding.bottomNavigation.isVisible) {
@@ -132,12 +139,14 @@ class MainActivity : AppCompatActivity() {
                 binding.bottomNavigation.visibility = View.GONE
             }
 
+            setStatusBarTextColor(darkIcons = true)
+
             // ✅ Selection only, NO navigation here
             when (destination.id) {
                 R.id.homeFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_home).isChecked =
                     true
 
-                R.id.templatesFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_templates).isChecked =
+                R.id.templateCategoriesFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_templates).isChecked =
                     true
 
                 R.id.filesFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_fav).isChecked =
@@ -158,7 +167,7 @@ class MainActivity : AppCompatActivity() {
                     finish()
                 }
 
-                R.id.templatesFragment, R.id.filesFragment, R.id.settingsFragment -> {
+                R.id.templateCategoriesFragment, R.id.filesFragment, R.id.settingsFragment -> {
                     navController.navigate(R.id.homeFragment, null, navOptions)
                 }
 
@@ -167,6 +176,23 @@ class MainActivity : AppCompatActivity() {
         }
 
         handleIncomingIntent(intent)
+    }
+
+    private fun setStatusBarTextColor(darkIcons: Boolean) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.insetsController?.setSystemBarsAppearance(
+                if (darkIcons) WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS else 0,
+                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            val flags = window.decorView.systemUiVisibility
+            window.decorView.systemUiVisibility = if (darkIcons) {
+                flags or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+            } else {
+                flags and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
+            }
+        }
     }
 
     private fun forceImmersiveMode() {

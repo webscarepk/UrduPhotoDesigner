@@ -71,7 +71,7 @@ class OverlayColorListFragment : Fragment() {
                     viewModel.setElementOverlay(color.colorCode.toColorInt())
                 },
                 {
-                    viewModel.toggleFeature("Overlay")
+                    viewModel.disableFeature("Overlay")
                     viewModel.setElementOverlay(android.R.color.transparent)
                 },
                 {
@@ -103,7 +103,7 @@ class OverlayColorListFragment : Fragment() {
                     viewModel.setElementOverlayGradient(gradient)
                 },
                 onNoneSelected = {
-                    viewModel.toggleFeature("Overlay")
+                    viewModel.disableFeature("Overlay")
                     viewModel.setElementOverlayGradient(null)
                 },
                 onGradientEditSelected = { _, item ->

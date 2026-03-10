@@ -1,5 +1,7 @@
 package com.webscare.urducanvas.ui.navigation.settings
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -14,6 +16,7 @@ import com.webscare.urducanvas.data.model.SubscriptionPlan
 import com.webscare.urducanvas.databinding.FragmentSubscriptionsBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.core.net.toUri
 
 @AndroidEntryPoint
 class SubscriptionsFragment : androidx.fragment.app.Fragment() {
@@ -144,7 +147,23 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.subscriptionsRV.adapter = adapter
+
+        binding.termsOfUse.addPressEffect {
+            openUrl("https://play.google.com/store/apps/details?id=${requireContext().packageName}")
+        }
+
+        binding.privacyPolicy.addPressEffect {
+            openUrl("https://urducanvas.com/privacy-policy")
+        }
         binding.back.addPressEffect { findNavController().navigateUp() }
+    }
+
+    private fun openUrl(url: String) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+        } catch (e: Exception) {
+            // no browser installed — silently ignore
+        }
     }
 
     override fun onDestroyView() {

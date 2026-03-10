@@ -34,7 +34,7 @@ class SplashFragment : androidx.fragment.app.Fragment() {
         super.onViewCreated(view, savedInstanceState)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             requireActivity().window.insetsController?.hide(
-                WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars()
+                WindowInsets.Type.navigationBars()
             )
         }
     }

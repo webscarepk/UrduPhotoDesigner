@@ -88,7 +88,8 @@ class ImagesListFragment : Fragment() {
             viewModel.addSticker(
                 resized?.trimTransparentEdges(),
                 requireActivity(),
-                ElementType.IMAGE
+                ElementType.IMAGE,
+                imageEntity.is_premium
             )
         }
 

@@ -1,14 +1,19 @@
 package com.webscare.urducanvas.ui.navigation.home
 
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
+import android.app.Dialog
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.LinearInterpolator
 import android.view.inputmethod.InputMethodManager
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -34,7 +39,9 @@ import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.data.model.toExportResultFinal
+import com.webscare.urducanvas.databinding.DialogLoadingProgressBinding
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
@@ -51,7 +58,12 @@ class SearchFragment : Fragment() {
     private lateinit var templatesAdapter: PopularTemplatesAdapter
     private lateinit var fontsAdapter: FontsAdapter
     private lateinit var filesAdapter: FilesAdapter
+    private var loadingDialog: Dialog? = null
+    private var dialogBinding: DialogLoadingProgressBinding? = null
+    private var rotationAnimator: ObjectAnimator? = null
+
     val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
+    private var bundle: Bundle = Bundle()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -92,7 +104,8 @@ class SearchFragment : Fragment() {
                     mainViewModel.downloadTemplate(template)
                     return@PopularTemplatesAdapter
                 } else {
-                    val exportResult = template.toExportResultFinal()
+                    canvasViewModel.setProjectSourceName(template.category ?: template.subcategory)
+                    val exportResult = template.toExportResultFinal().copy(fileName = canvasViewModel.buildProjectFileName())
                     lifecycleScope.launch {
                         withContext(Dispatchers.Default) {
                             canvasViewModel.loadTemplateFromJsonFile(exportResult, requireContext())
@@ -261,6 +274,79 @@ class SearchFragment : Fragment() {
                 updateUI(result)
             }
         }
+
+        canvasViewModel.isLoadingTemplate.observe(viewLifecycleOwner) { isLoading ->
+            if (isLoading == true) {
+                showLoadingDialog()
+            } else if (isLoading == false) {
+                dismissLoadingDialog()
+                lifecycleScope.launch {
+                    delay(500)
+                    if (findNavController().currentDestination?.id != R.id.editorFragment) {
+                        view?.post {
+                            findNavController().navigate(
+                                R.id.editorFragment, bundle, navOptions
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        canvasViewModel.loadingStage.observe(viewLifecycleOwner) { (message, percent) ->
+            dialogBinding?.apply {
+                progressBar.progress = percent
+                subtitle.text = "$message... $percent%"
+                tvProgressPercent.text = "$percent% complete"
+            }
+        }
+    }
+
+    private fun showLoadingDialog() {
+        if (loadingDialog?.isShowing == true) return
+        dialogBinding = DialogLoadingProgressBinding.inflate(LayoutInflater.from(requireActivity()))
+
+        loadingDialog = Dialog(requireContext()).apply {
+            setContentView(dialogBinding!!.root)
+            setCancelable(true)
+            setOnCancelListener { dialog ->
+                canvasViewModel.clearLoading()
+            }
+            window?.setBackgroundDrawableResource(android.R.color.transparent)
+            val params = window?.attributes
+            params?.width = (resources.displayMetrics.widthPixels * 0.8).toInt() // 80% width
+            params?.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            window?.attributes = params
+            window?.setGravity(Gravity.CENTER)
+            show()
+        }
+
+        dialogBinding?.title?.text = "Loading Project"
+
+        startIconRotation()
+    }
+
+    private fun startIconRotation() {
+        dialogBinding?.view4?.let { icon ->
+            rotationAnimator = ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, 360f).apply {
+                duration = 1000L
+                repeatCount = ValueAnimator.INFINITE
+                interpolator = LinearInterpolator()
+                start()
+            }
+        }
+    }
+
+    private fun stopIconRotation() {
+        rotationAnimator?.cancel()
+        rotationAnimator = null
+    }
+
+    private fun dismissLoadingDialog() {
+        stopIconRotation()
+        loadingDialog?.dismiss()
+        loadingDialog = null
+        dialogBinding = null
     }
 
     private fun updateUI(result: SearchResults) {

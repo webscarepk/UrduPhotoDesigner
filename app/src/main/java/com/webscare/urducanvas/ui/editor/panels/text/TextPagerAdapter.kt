@@ -12,7 +12,7 @@ class TextPagerAdapter(
     fragmentManager: FragmentManager,
     lifecycle: Lifecycle,
     private val tabs: List<String>
-) : androidx.viewpager2.adapter.FragmentStateAdapter(fragmentManager, lifecycle) {
+) : FragmentStateAdapter(fragmentManager, lifecycle) {
 
     override fun getItemCount(): Int = tabs.size
 

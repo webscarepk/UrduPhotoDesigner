@@ -102,4 +102,9 @@
         android:name="com.webscare.urducanvas.ui.navigation.home.SearchFragment"
         android:label="fragment_search"
         tools:layout="@layout/fragment_search" />
+    <fragment
+        android:id="@+id/templateCategoriesFragment"
+        android:name="com.webscare.urducanvas.ui.navigation.templates.TemplateCategoriesFragment"
+        android:label="TemplateCategoriesFragment"
+        tools:layout="@layout/fragment_templates" />
 </navigation>

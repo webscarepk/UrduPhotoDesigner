@@ -57,6 +57,17 @@ class ShapesParentFragment : Fragment() {
 
         setEvents()
         setupTabLayout()
+        initObservers()
+    }
+
+    private fun initObservers() {
+        viewModel.openAppearanceTab.observe(viewLifecycleOwner) {
+
+            binding.viewPager.post {
+                binding.viewPager.currentItem = 1
+            }
+
+        }
     }
 
     private fun setEvents() {
@@ -161,6 +172,7 @@ class ShapesParentFragment : Fragment() {
         mediator = null
         binding.viewPager.adapter = null
         super.onDestroyView()
+        viewModel.closeAppearanceTab()
         _binding = null
     }
 }

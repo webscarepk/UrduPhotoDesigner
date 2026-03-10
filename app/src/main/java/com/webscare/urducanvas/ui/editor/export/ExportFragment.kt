@@ -5,6 +5,7 @@ import android.content.ContentValues
 import android.content.ContentValues.TAG
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Paint
 import android.graphics.drawable.AnimatedVectorDrawable
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
@@ -138,8 +139,34 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                 )
             }
         }
+
+        viewModel.hasPremiumAsset.observe(viewLifecycleOwner) { hasPremium ->
+            updatePremiumBannerVisibility(hasPremium)
+        }
     }
 
+    private fun updatePremiumBannerVisibility(hasPremium: Boolean) = with(binding) {
+        premiumAssets.isVisible = hasPremium
+
+        if (hasPremium) {
+            btnExport.text = getString(R.string.buy_now)
+            btnExport.setIconResource(R.drawable.ic_premium_stroke)
+            seeMore.paintFlags = seeMore.paintFlags or Paint.UNDERLINE_TEXT_FLAG
+
+            seeMore.addPressEffect {
+                openPremiumAssetDetailSheet()
+            }
+
+        } else {
+            btnExport.text = getString(R.string.export)
+            btnExport.setIconResource(R.drawable.ic_export)
+        }
+    }
+
+    private fun openPremiumAssetDetailSheet() {
+        PremiumAssetsSheet.newInstance()
+            .show(parentFragmentManager, "premium_assets_sheet")
+    }
     private fun renderExportResult(result: com.webscare.urducanvas.data.model.ExportResult) =
         with(binding) {
 
@@ -153,7 +180,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
             format.text = result.format
         }
 
-    private fun updateExportOptionsUI(options: com.webscare.urducanvas.common.canvas.model.ExportOptions) =
+    private fun updateExportOptionsUI(options: ExportOptions) =
         with(binding) {
             resolutionValue.text = "${options.resolution.name} • ${options.resolution.label}"
             qualityValue.text = "${options.quality.label} • ${options.quality.quality}%"
@@ -184,6 +211,11 @@ class ExportFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun startExport() = with(binding) {
+        val hasPremium = viewModel.hasPremiumAsset.value == true
+        if (hasPremium) {
+            findNavController().navigate(R.id.subscriptionsFragment)
+            return@with
+        }
         binding.btnExport.isEnabled = false
         binding.btnExport.alpha = 0.7f
 
@@ -220,7 +252,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 // 1. Render full canvas
-                val (bitmap, json) = canvasView.exportCanvas(options) { percent, stage ->
+                val (bitmap, json) = canvasView.exportCanvas(options, jsonOutputPath = exportResult?.jsonPath!!) { percent, stage ->
                     viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
                         val mapped = (percent * 0.7).toInt()
                         updateProgress(mapped, stage)
@@ -269,7 +301,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                 } ?: throw IllegalStateException("Failed to save file")
 
                 updateProgressSafe(95, "Just a moment…")
-                val jsonPath = saveJson(json)
+                val jsonPath = json.absolutePath
 
                 // 4. Final file size (real saved file)
                 val imageOrPdfSizeMB = if (options.format.name.equals("PDF", true)) {
@@ -288,7 +320,6 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                 Log.d(TAG, "exportCanvasInternal: ${exportResult?.fileName} ")
                 val fileBaseName = "project_${System.currentTimeMillis()}"
                 val fileName = "$fileBaseName.proj"
-                // 5. Build or update ExportResult
                 val result = exportResult?.apply {
                     this.imagePath = imagePath
                     this.jsonPath = jsonPath
@@ -352,7 +383,6 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    // Helper to update progress from IO thread
     private suspend fun updateProgressSafe(percent: Int, stage: String) {
         withContext(Dispatchers.Main) {
             updateProgress(percent, stage)
@@ -392,7 +422,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun getExportedImageSizeMBEstimate(
-        options: com.webscare.urducanvas.common.canvas.model.ExportOptions,
+        options: ExportOptions,
         originalCanvasWidth: Float,
         originalCanvasHeight: Float
     ): Double {
@@ -430,10 +460,8 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         return stream.size().toLong()
     }
 
-    // In ExportFragment.kt
-
     private fun getDisplayFileSizeMB(
-        options: com.webscare.urducanvas.common.canvas.model.ExportOptions, bitmap: Bitmap? = null
+        options: ExportOptions, bitmap: Bitmap? = null
     ): Double {
         val canvasSize = viewModel.canvasSize.value
 
@@ -456,14 +484,8 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    private fun saveJson(json: String): String {
-        val file = File(exportResult?.jsonPath!!)
-        file.writeText(json)
-        return file.absolutePath
-    }
-
     private fun saveDirectToDownloads(
-        bitmap: Bitmap, options: com.webscare.urducanvas.common.canvas.model.ExportOptions
+        bitmap: Bitmap, options: ExportOptions
     ): Uri {
         val dir = File(
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),

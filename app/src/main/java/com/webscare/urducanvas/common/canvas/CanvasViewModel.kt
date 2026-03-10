@@ -13,6 +13,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.webscare.urducanvas.R
@@ -48,6 +49,7 @@ import com.webscare.urducanvas.common.views.CanvasView
 import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.data.model.FontPanelState
+import com.webscare.urducanvas.data.model.PremiumAssetItem
 import com.webscare.urducanvas.domain.usecase.GetFontsUseCase
 import com.webscare.urducanvas.viewmodels.FontGate
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -416,6 +418,7 @@ class CanvasViewModel @Inject constructor(
         _shapeCornerEnabled.value = enabled
         updateSelectedShape { it.copy(shapeHasCorner = enabled) }
     }
+
     fun setFillColor(color: Int) {
         _shapeFillColor.value = color
         _shapeFillEnabled.value = true
@@ -425,7 +428,7 @@ class CanvasViewModel @Inject constructor(
     fun setStrokeColor(color: Int) {
         _shapeStrokeColor.value = color
         _shapeStrokeEnabled.value = true
-        updateSelectedShape { it.copy(shapeStrokeColor = color,  shapeHasStroke = true) }
+        updateSelectedShape { it.copy(shapeStrokeColor = color, shapeHasStroke = true) }
     }
 
     fun setFillGradient(grad: GradientItem?) {
@@ -460,12 +463,11 @@ class CanvasViewModel @Inject constructor(
         updateSelectedShape { it.copy(imageFitMode = mode) }
     }
 
-    fun addImageInsideShape(bitmap: Bitmap, context: Context) {
+    fun addImageInsideShape(bitmap: Bitmap, context: Context, isPremium: Boolean = false) {
         updateSelectedShape { element ->
-            // 🧠 Only apply if it's a shape
             if (element.type == ElementType.SHAPE) {
                 element.copy(
-                    context = context, bitmap = bitmap
+                    context = context, bitmap = bitmap, isPremium = isPremium  // ✅ ADD
                 )
             } else {
                 element
@@ -541,7 +543,12 @@ class CanvasViewModel @Inject constructor(
         notifyUndoRedoChanged()
     }
 
-    fun mergeImageToShape(imageElement: CanvasElement, shapeType: ShapeType, context: Context) {
+    fun mergeImageToShape(
+        imageElement: CanvasElement,
+        shapeType: ShapeType,
+        context: Context,
+        isPremium: Boolean = false
+    ) {
         // Get the properties from the shape and apply them to the image element
         val updatedElement = imageElement.copy(
             id = imageElement.id,
@@ -565,7 +572,8 @@ class CanvasViewModel @Inject constructor(
             zIndex = imageElement.zIndex,  // Retain zIndex
             isSelected = true,  // Make sure the new shape is selected
             logicalContentWidth = 300f,
-            logicalContentHeight = 300f
+            logicalContentHeight = 300f,
+            isPremium = isPremium
         )
 
         updateCanvasElement(updatedElement)
@@ -1239,7 +1247,6 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun setElementOverlayGradient(gradient: GradientItem?) {
-
         val element = _selectedElements.value?.firstOrNull() ?: return
 
         val oldGradient = element.overlayGradient
@@ -1254,7 +1261,19 @@ class CanvasViewModel @Inject constructor(
             _redoStack.clear()
 
             element.overlayGradient = gradient
-            element.hasOverlay = gradient != null || element.overlayOpacity > 0
+
+            if (gradient != null) {
+                element.overlayColor =
+                    Color.TRANSPARENT  // ✅ clear solid color when gradient applied
+                // ✅ ensure opacity is non-zero so CanvasView actually draws it
+                if (element.overlayOpacity == 0) {
+                    element.overlayOpacity = 255
+                }
+                element.hasOverlay = true
+            } else {
+                element.hasOverlay =
+                    element.overlayOpacity > 0 && element.overlayColor != Color.TRANSPARENT
+            }
 
             applyAction(action, true)
             notifyUndoRedoChanged()
@@ -1473,10 +1492,7 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun saveFontPanelState(
-        language: String,
-        category: String?,
-        scrollIndex: Int = 0,
-        scrollOffset: Int = 0
+        language: String, category: String?, scrollIndex: Int = 0, scrollOffset: Int = 0
     ) {
         _fontPanelState.value = FontPanelState(language, category, scrollIndex, scrollOffset)
     }
@@ -2097,6 +2113,36 @@ class CanvasViewModel @Inject constructor(
         _shadowOpacity.value = element.shadowOpacity
     }
 
+    fun disableFeature(type: String) {
+        val element = _selectedElements.value?.firstOrNull() ?: return
+
+        val alreadyDisabled = when (type) {
+            "Shadow" -> !element.hasShadow
+            "Stroke" -> !element.hasStroke
+            "Blur" -> !element.hasBlur
+            "Overlay" -> !element.hasOverlay
+            "Light" -> !element.hasLight
+            "Color" -> !element.hasColor
+            "Detail" -> !element.hasDetail
+            else -> false
+        }
+
+        if (!alreadyDisabled) {
+            val updatedElement = element.copy().apply {
+                when (type) {
+                    "Shadow" -> hasShadow = false
+                    "Stroke" -> hasStroke = false
+                    "Blur" -> hasBlur = false
+                    "Overlay" -> hasOverlay = false
+                    "Light" -> hasLight = false
+                    "Color" -> hasColor = false
+                    "Detail" -> hasDetail = false
+                }
+            }
+            updateCanvasElement(updatedElement)
+        }
+    }
+
     fun toggleFeature(type: String) {
         val element = _selectedElements.value?.firstOrNull() ?: return
         val updatedElement = element.copy().apply {
@@ -2199,10 +2245,8 @@ class CanvasViewModel @Inject constructor(
 
     private fun applyBlurPresets(element: CanvasElement) {
         // Check if it's a valid type for blur
-        val isValidType = element.type == ElementType.IMAGE ||
-                element.type == ElementType.STICKER ||
-                element.type == ElementType.SHAPE ||
-                (element.type == ElementType.BACKGROUND && element.bitmap != null)
+        val isValidType =
+            element.type == ElementType.IMAGE || element.type == ElementType.STICKER || element.type == ElementType.SHAPE || (element.type == ElementType.BACKGROUND && element.bitmap != null)
 
         if (isValidType && element.blurValue == 0f) {
             element.blurValue = 10f // Default preset
@@ -2213,6 +2257,10 @@ class CanvasViewModel @Inject constructor(
     private fun applyOverlayPresets(element: CanvasElement) {
         if (element.overlayColor == Color.TRANSPARENT) {
             element.overlayColor = "#FF746C".toColorInt()
+        }
+
+        if (element.overlayOpacity == 0) {
+            element.overlayOpacity = 255
         }
     }
 
@@ -2281,14 +2329,20 @@ class CanvasViewModel @Inject constructor(
                 color,
                 element.overlayOpacity
             )
-            _canvasActions.push(
-                action
-            )
-
+            _canvasActions.push(action)
             _redoStack.clear()
 
             element.overlayColor = color
-            element.hasOverlay = element.overlayOpacity > 0
+            element.overlayGradient = null  // ✅ clear gradient when solid color applied
+
+            if (color == Color.TRANSPARENT) {
+                element.hasOverlay = false
+            } else {
+                // ✅ ensure opacity is non-zero so CanvasView actually draws it
+                if (element.overlayOpacity == 0) {
+                    element.overlayOpacity = 255
+                }
+            }
 
             notifyUndoRedoChanged()
             applyAction(action, true)
@@ -2361,12 +2415,13 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
-    fun replaceSticker(bitmap: Bitmap?, context: Context) {
+    fun replaceSticker(bitmap: Bitmap?, context: Context, isPremium: Boolean = false) {
         if (bitmap == null) return
 
         val currentList = _canvasElements.value ?: emptyList()
 
-        val selectedElement = currentList.find { it.isSelected && (it.type == ElementType.IMAGE || it.type == ElementType.STICKER) }
+        val selectedElement =
+            currentList.find { it.isSelected && (it.type == ElementType.IMAGE || it.type == ElementType.STICKER) }
 
         val canvasW = _canvasSize.value?.width ?: return
         val canvasH = _canvasSize.value?.height ?: return
@@ -2379,12 +2434,14 @@ class CanvasViewModel @Inject constructor(
         var finalBitmap = bitmap
         if (imageW > maxAllowedW || imageH > maxAllowedH) {
             val scaleFactor = minOf(maxAllowedW / imageW, maxAllowedH / imageH)
-            finalBitmap = bitmap.scale((imageW * scaleFactor).toInt(), (imageH * scaleFactor).toInt())
+            finalBitmap =
+                bitmap.scale((imageW * scaleFactor).toInt(), (imageH * scaleFactor).toInt())
         }
 
         val updatedElement = selectedElement?.copy(
             bitmap = finalBitmap,
-            bitmapData = ImageProcessor.bitmapToBase64(finalBitmap)
+            bitmapData = ImageProcessor.bitmapToBase64(finalBitmap),
+            isPremium = isPremium
         )
 
         updatedElement?.let { updateCanvasElement(it) }
@@ -2397,79 +2454,60 @@ class CanvasViewModel @Inject constructor(
         notifyUndoRedoChanged()
     }
 
-    fun addSticker(bitmap: Bitmap?, context: Context, elementType: ElementType) {
+    fun addSticker(
+        bitmap: Bitmap?, context: Context, elementType: ElementType, isPremium: Boolean = false
+    ) {
+
         if (bitmap == null) return
 
         val currentList = _canvasElements.value ?: emptyList()
-
-        val selectedElement = currentList.find { it.isSelected && (it.type == ElementType.IMAGE || it.type == ElementType.STICKER) }
+        val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
 
         val canvasW = _canvasSize.value?.width ?: return
         val canvasH = _canvasSize.value?.height ?: return
 
         val imageW = bitmap.width.toFloat()
         val imageH = bitmap.height.toFloat()
+
         val maxAllowedW = canvasW * 0.8f
         val maxAllowedH = canvasH * 0.8f
 
         var finalBitmap = bitmap
+
         if (imageW > maxAllowedW || imageH > maxAllowedH) {
-            val scaleFactor = minOf(maxAllowedW / imageW, maxAllowedH / imageH)
-            finalBitmap = bitmap.scale((imageW * scaleFactor).toInt(), (imageH * scaleFactor).toInt())
+
+            val scaleFactor = minOf(
+                maxAllowedW / imageW, maxAllowedH / imageH
+            )
+
+            val scaledWidth = (imageW * scaleFactor).toInt()
+            val scaledHeight = (imageH * scaleFactor).toInt()
+
+            finalBitmap = bitmap.scale(scaledWidth, scaledHeight)
         }
 
-        if (selectedElement != null) {
-            val oldElementSnapshot = selectedElement.copy(context = null, bitmap = null)
+        val element = CanvasElement(
+            context = context,
+            type = elementType,
+            bitmap = finalBitmap,
+            bitmapData = ImageProcessor.bitmapToBase64(finalBitmap),
+            x = canvasW / 2f,
+            y = canvasH / 2f,
+            paintAlpha = 255,
+            zIndex = newZIndex,
+            isPremium = isPremium
+        )
 
-            val updatedElement = selectedElement.copy(
-                bitmap = finalBitmap,
-                bitmapData = ImageProcessor.bitmapToBase64(finalBitmap)
+        element.updatePaintProperties()
+
+        _canvasActions.push(
+            CanvasAction.AddSticker(
+                element.copy(context = null, bitmap = null)
             )
-            updatedElement.updatePaintProperties()
-
-            _canvasActions.push(
-                CanvasAction.UpdateElement(
-                    elementId = selectedElement.id,
-                    newElement = updatedElement.copy(context = null, bitmap = null),
-                    oldElement = oldElementSnapshot
-                )
-            )
-
-            val updatedList = currentList.map {
-                if (it.id == selectedElement.id) updatedElement else it
-            }
-            _canvasElements.value = updatedList
-
-            BitmapCache.put(selectedElement.id, finalBitmap)
-
-        } else {
-            val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
-
-            val newElement = CanvasElement(
-                context = context,
-                type = elementType,
-                bitmap = finalBitmap,
-                bitmapData = ImageProcessor.bitmapToBase64(finalBitmap),
-                x = canvasW / 2f,
-                y = canvasH / 2f,
-                paintAlpha = 255,
-                zIndex = newZIndex
-            )
-
-            newElement.updatePaintProperties()
-
-            _canvasActions.push(
-                CanvasAction.AddSticker(
-                    newElement.copy(context = null, bitmap = null)
-                )
-            )
-
-            _canvasElements.value = currentList + newElement
-
-            BitmapCache.put(newElement.id, finalBitmap)
-        }
+        )
 
         _redoStack.clear()
+        _canvasElements.value = currentList + element
         notifyUndoRedoChanged()
     }
 
@@ -2547,7 +2585,8 @@ class CanvasViewModel @Inject constructor(
             alignment = TextAlignment.CENTER,
             paintAlpha = 255,
             fontId = fontEntity?.id.toString(),
-            zIndex = newZIndex
+            zIndex = newZIndex,
+            isPremium = fontEntity?.is_premium ?: false
         )
 
         // If a fontEntity was provided, try to apply it
@@ -2611,6 +2650,7 @@ class CanvasViewModel @Inject constructor(
                 affectedElementsData.add(element.id to element.fontId)
                 element.copy(context = context).apply {
                     fontId = fontEntity.id.toString()
+                    isPremium = fontEntity.is_premium
                     paint.typeface = try {
                         Typeface.createFromFile(fontEntity.file_path)
                     } catch (e: Exception) {
@@ -3514,6 +3554,7 @@ class CanvasViewModel @Inject constructor(
 
             } catch (e: Exception) {
                 Log.e("CanvasViewModel", "Error loading template: ${e.message}")
+                Log.e("CanvasViewModel", "Error: ${e.cause}")
             } finally {
                 withContext(Dispatchers.Main) {
                     _loadingStage.value = "Done" to 100
@@ -3531,11 +3572,15 @@ class CanvasViewModel @Inject constructor(
         return _isExplicitChange
     }
 
-    private val _openAppearanceTab = MutableLiveData<Unit>()
-    val openAppearanceTab: LiveData<Unit> = _openAppearanceTab
+    private val _openAppearanceTab = MutableLiveData<Boolean>()
+    val openAppearanceTab: LiveData<Boolean> = _openAppearanceTab
 
     fun openAppearanceTab() {
-        _openAppearanceTab.value = Unit
+        _openAppearanceTab.value = true
+    }
+
+    fun closeAppearanceTab() {
+        _openAppearanceTab.value = false
     }
 
     private var projectSourceName: String? = null
@@ -3546,13 +3591,8 @@ class CanvasViewModel @Inject constructor(
      * e.g. "Eid Mubarak" → "eid_mubarak"
      */
     fun setProjectSourceName(rawName: String?) {
-        projectSourceName = rawName
-            ?.trim()
-            ?.lowercase()
-            ?.replace(Regex("\\s+"), "_")
-            ?.replace(Regex("[^a-z0-9_]"), "")
-            ?.trimEnd('_')
-            ?.ifBlank { null }
+        projectSourceName = rawName?.trim()?.lowercase()?.replace(Regex("\\s+"), "_")
+            ?.replace(Regex("[^a-z0-9_]"), "")?.trimEnd('_')?.ifBlank { null }
     }
 
     /**
@@ -3565,5 +3605,29 @@ class CanvasViewModel @Inject constructor(
         val timestamp = System.currentTimeMillis()
         val prefix = projectSourceName ?: "project"
         return "${prefix}_${timestamp}"
+    }
+
+
+    val hasPremiumAsset: LiveData<Boolean> = canvasElements.map { list ->
+        list?.any { it.isPremium } ?: false
+    }
+
+    fun getPremiumAssets(): List<PremiumAssetItem> {
+        return canvasElements.value
+            ?.filter { it.isPremium }
+            ?.map { element ->
+                PremiumAssetItem(
+                    elementId = element.id,
+                    type = element.type!!,
+                    fontId = element.fontId,
+                    bitmapData = element.bitmapData,
+                )
+            } ?: emptyList()
+    }
+
+    fun removeAllPremiumAssets() {
+        val current = canvasElements.value?.toMutableList() ?: return
+        current.removeAll { it.isPremium }
+//        setCanvasElements(current)
     }
 }

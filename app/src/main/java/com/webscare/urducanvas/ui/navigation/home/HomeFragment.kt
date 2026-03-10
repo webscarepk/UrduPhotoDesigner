@@ -19,11 +19,13 @@ import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.snackbar.Snackbar
 import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
 import com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.utils.showGlobalSuccessSnack
 import com.webscare.urducanvas.data.model.ProgressUi
+import com.webscare.urducanvas.data.model.TemplateEntity
 import com.webscare.urducanvas.data.model.toExportResultFinal
 import com.webscare.urducanvas.databinding.DialogLoadingProgressBinding
 import com.webscare.urducanvas.databinding.FragmentHomeBinding
@@ -47,7 +49,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
     private lateinit var fontsAdapter: FontsAdapter
     private lateinit var trendsAdapter: TrendsAdapter
     private lateinit var popularTemplatesAdapter: PopularTemplatesAdapter
-    private var downloadingTemplate: com.webscare.urducanvas.data.model.TemplateEntity? = null
+    private var downloadingTemplate: TemplateEntity? = null
     private var rotationAnimator: ObjectAnimator? = null
 
     val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
@@ -62,7 +64,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                 val heightVal = bitmap.height.toFloat()
 
                 val canvasSize =
-                    _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+                    CanvasSize(
                         "From Image", widthVal, heightVal
                     )
 
@@ -258,7 +260,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.templates.addPressEffect {
-            view?.post { findNavController().navigate(R.id.templatesFragment) }
+            view?.post { findNavController().navigate(R.id.templateCategoriesFragment) }
         }
 
         binding.popularFonts.addPressEffect {
@@ -290,11 +292,13 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                     when (state) {
                         is TemplateDownloadState.Progress -> {
                             val ui =
-                                _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
+                                ProgressUi(
                                     state.progress, isDownloading = true, isDownloaded = false
                                 )
                             trendsAdapter.updateTemplateProgress(
-                                state.template.id, state.progress, true, false
+                                state.template.id, state.progress,
+                                isDownloading = true,
+                                isDownloaded = false
                             )
                             popularTemplatesAdapter.updateProgress(state.template.id, ui)
                         }
@@ -385,7 +389,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                             val font = state.fontEntity
                             fontsAdapter.updateProgress(
                                 font.id,
-                                _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
+                                ProgressUi(
                                     progress = state.progress,
                                     isDownloading = true,
                                     isDownloaded = false
@@ -398,7 +402,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
                             fontsAdapter.updateProgress(
                                 font.id,
-                                _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
+                                ProgressUi(
                                     100, isDownloading = false, isDownloaded = true
                                 )
                             )
@@ -410,7 +414,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                                     findNavController().popBackStack(R.id.editorFragment, true)
 
                                     viewModel.setCanvasSize(
-                                        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
+                                        CanvasSize(
                                             "", 2000f, 2000f
                                         )
                                     )
@@ -436,7 +440,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                             val font = state.fontEntity
                             fontsAdapter.updateProgress(
                                 font.id,
-                                _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
+                                ProgressUi(
                                     progress = 0, isDownloading = false, isDownloaded = false
                                 )
                             )

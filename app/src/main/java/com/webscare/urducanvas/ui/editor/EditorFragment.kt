@@ -137,7 +137,7 @@ class EditorFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        activity?.window?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+//        activity?.window?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavigation) { view, insets ->
             if (MANUFACTURER.equals("realme", ignoreCase = true)) {
@@ -458,37 +458,29 @@ class EditorFragment : Fragment() {
                     val now = System.currentTimeMillis()
                     if (now - lastJsonSaveTime < saveDebounce) return@launch
 
-                    val json = sizedCanvasView.exportCanvasJson()
-                    Log.d("saveJson", "Saved JSON as $json")
+                    // ✅ Check on live list BEFORE serializing — free, no RAM cost
+                    val hasRealElements = viewModel.canvasElements.value
+                        ?.any { it.type?.name != "Background" }
 
-                    var hasRealElements = false
-                    try {
-                        val arr = org.json.JSONArray(json)
-                        for (i in 0 until arr.length()) {
-                            val obj = arr.getJSONObject(i)
-                            val type = obj.optString("type")
-                            if (type != "Background") {
-                                hasRealElements = true
-                                break
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Log.e("saveJson", "JSON parse failed: ${e.message}")
-                    }
+                    val isEmpty = viewModel.canvasElements.value?.isEmpty()
 
-                    if (json.isNotBlank() && json != "[]" && json != "{}") {
-                        if (hasRealElements || viewModel.isLoadingTemplate.value == false) {
-                            lifecycleScope.launch(Dispatchers.IO) {
-                                File(jsonPath).writeText(json)
-                                Log.d("saveJson", "Saved JSON at $jsonPath")
-                                lastJsonSaveTime = now
-                            }
-                        } else {
-                            Log.w("saveJson", "Skipped saving background-only JSON during load")
-                        }
-                    } else {
+                    if (isEmpty == true) {
                         Log.w("saveJson", "Skipped saving empty JSON")
+                        return@launch
                     }
+
+                    if (!hasRealElements!! && viewModel.isLoadingTemplate.value == true) {
+                        Log.w("saveJson", "Skipped saving background-only JSON during load")
+                        return@launch
+                    }
+
+                    // ✅ Stream directly to file — no String in RAM at all
+                    withContext(Dispatchers.IO) {
+                        sizedCanvasView.exportCanvasJson(jsonPath)
+                    }
+
+                    Log.d("saveJson", "Saved JSON at $jsonPath")
+                    lastJsonSaveTime = now
                 }
             }
         }
@@ -777,7 +769,8 @@ class EditorFragment : Fragment() {
                 val first = newSelection.firstOrNull()
                 val currentDest = navController.currentDestination?.id
 
-                // Determine which panel should open
+                if (currentDest == R.id.layersFragment) return@observe
+
                 val targetDestination = when {
                     newSelection.size == 1 && first != null -> {
                         when (first.type) {
@@ -803,7 +796,7 @@ class EditorFragment : Fragment() {
                 val panelDestinations = listOf(
                     R.id.textFragment,
                     R.id.adjustmentsParentFragment,
-                    R.id.objectsFragment
+                    R.id.shapesParentFragment
                 )
 
                 // If nothing should be open → close panels
@@ -812,7 +805,7 @@ class EditorFragment : Fragment() {
                     if (
                         currentDest == R.id.textFragment ||
                         currentDest == R.id.adjustmentsParentFragment ||
-                        currentDest == R.id.objectsFragment
+                        currentDest == R.id.shapesParentFragment
                     ) {
                         if (currentDest in panelDestinations) {
                             navController.popBackStack(currentDest, true)
@@ -822,10 +815,8 @@ class EditorFragment : Fragment() {
                     return@observe
                 }
 
-                // If already on correct fragment → do nothing
                 if (currentDest == targetDestination) return@observe
 
-                // Navigate to correct panel
                 first?.let { element ->
 
                     val bundle = Bundle().apply {
@@ -836,7 +827,7 @@ class EditorFragment : Fragment() {
                         element.bitmap?.let { bmp ->
                             BitmapCache.put(element.id, bmp)
                         }
-                    }else if (targetDestination == R.id.textFragment) {
+                    }else if (targetDestination == R.id.textFragment || targetDestination == R.id.shapesParentFragment) {
                         viewModel.openAppearanceTab()
                     }
 

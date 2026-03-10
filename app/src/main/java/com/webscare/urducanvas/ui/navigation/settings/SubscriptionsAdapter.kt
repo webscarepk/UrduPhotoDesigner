@@ -36,7 +36,7 @@ class SubscriptionsAdapter(
 
             // Badge
             saveBadge.apply {
-                isVisible = item.badge == null
+                isVisible = item.badge != null
                 text = item.badge
             }
 

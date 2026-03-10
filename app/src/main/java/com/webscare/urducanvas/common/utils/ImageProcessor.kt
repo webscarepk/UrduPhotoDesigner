@@ -26,6 +26,7 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 object ImageProcessor {
 
@@ -320,15 +321,31 @@ object ImageProcessor {
      * Convert Bitmap -> Base64 (PNG encoding by default).
      */
     fun bitmapToBase64(bitmap: Bitmap): String {
-        return try {
-            val outputStream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-            val byteArray = outputStream.toByteArray()
-            Base64.encodeToString(byteArray, Base64.NO_WRAP)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            ""
+        val maxDimension = 1920
+        val scaled = if (bitmap.width > maxDimension || bitmap.height > maxDimension) {
+            val scale = maxDimension.toFloat() / maxOf(bitmap.width, bitmap.height)
+            bitmap.scale((bitmap.width * scale).roundToInt(), (bitmap.height * scale).roundToInt())
+        } else bitmap
+
+        val stream = ByteArrayOutputStream()
+
+        if (bitmap.hasAlpha()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                scaled.compress(Bitmap.CompressFormat.WEBP_LOSSY, 80, stream)
+            } else {
+                @Suppress("DEPRECATION")
+                scaled.compress(Bitmap.CompressFormat.WEBP, 80, stream)
+            }
+        } else {
+            scaled.compress(Bitmap.CompressFormat.JPEG, 80, stream)
         }
+
+        val result = Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
+
+        stream.reset()
+        if (scaled !== bitmap) scaled.recycle()
+
+        return result
     }
 
     /**

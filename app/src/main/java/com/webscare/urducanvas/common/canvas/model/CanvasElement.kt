@@ -28,7 +28,7 @@ data class CanvasElement(
     @field:Transient var context: Context? = null, // Made nullable for deserialization
 
     @SerializedName("type")
-    var type: ElementType,
+    var type: ElementType?,
 
     @SerializedName("text")
     var text: String = "",
@@ -64,10 +64,10 @@ data class CanvasElement(
     var hasOverlay: Boolean = false,
 
     @SerializedName("overlayColor")
-    var overlayColor: Int = Color.TRANSPARENT,
+    var overlayColor: Int = Color.YELLOW,
 
     @SerializedName("overlayOpacity")
-    var overlayOpacity: Int = 255, // 0–255
+    var overlayOpacity: Int = 255,
 
     @SerializedName("overlayGradient")
     var overlayGradient: GradientItem? = null,
@@ -259,7 +259,10 @@ data class CanvasElement(
     var imageScale: Float = 1f,
 
     @SerializedName("imageFitMode")
-    var imageFitMode: String? = "cover"
+    var imageFitMode: String? = "cover",
+
+    @SerializedName("isPremium")
+    var isPremium: Boolean = false,
 
 ) : Serializable {
 

@@ -40,7 +40,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:fontFamily="@font/bold"
-        android:text="@string/export_settings"
+        android:text="@string/premium_assets_used"
         android:textColor="@color/black"
         android:textSize="20sp"
         android:layout_marginTop="20dp"
@@ -58,17 +58,18 @@
         app:layout_constraintTop_toTopOf="@id/title"/>
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/options"
+        android:id="@+id/assets"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/title"
         app:layout_constraintBottom_toTopOf="@id/bottomGuide"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+        app:spanCount="4"
         android:orientation="vertical"
-        tools:itemCount="4"
-        tools:listitem="@layout/layout_formats_item"
+        tools:itemCount="5"
+        tools:listitem="@layout/item_premium_asset"
         android:layout_marginTop="12dp"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

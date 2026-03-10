@@ -65,7 +65,6 @@ class AdjustmentsFragment : Fragment() {
         val currentSelectedTab = tabs.find { it.is_selected }
 
         if (currentSelectedTab?.tab_name == clickedTab.tab_name) {
-            // Requirement 3(B): Same tab click -> ViewModel.toggleFeature()
             viewModel.toggleFeature(clickedTab.tab_name)
         } else {
             // Requirement 3(B): Different tab -> Switch page only

@@ -315,6 +315,12 @@
     <string name="shapes">Shapes</string>
     <string name="request_for_a_feature">Request a feature</string>
     <string name="report_a_bug">Report a bug</string>
+    <string name="premium_assets_detected">Premium Assets Detected</string>
+    <string name="this_project_uses_premium_assets_please_remove_them_or_subscribe_to_export">This project uses premium assets. Please remove them or subscribe to export</string>
+    <string name="see_more">See more</string>
+    <string name="buy_now">Buy Now</string>
+    <string name="premium_assets_used">Premium Assets Used</string>
+    <string name="price">Price</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>  <!-- Red -->

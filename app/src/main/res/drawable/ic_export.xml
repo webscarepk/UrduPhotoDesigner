@@ -6,7 +6,7 @@
   <group>
     <path
         android:strokeColor="#FF000000"
-        android:strokeWidth="1.3"
+        android:strokeWidth="1"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:pathData="M6 11.33h4M8 4v5.33m0 0L10.33 7M8 9.33L5.67 7M8 14.67c3.68 0 6.67-2.99 6.67-6.67 0-3.68-2.99-6.67-6.67-6.67-3.68 0-6.67 2.99-6.67 6.67 0 3.68 2.99 6.67 6.67 6.67Z"/>

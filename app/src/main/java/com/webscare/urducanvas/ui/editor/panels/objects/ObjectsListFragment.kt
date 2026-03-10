@@ -12,6 +12,7 @@ import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
 import com.webscare.urducanvas.databinding.FragmentObjectsListBinding
+import com.webscare.urducanvas.ui.editor.panels.background.backgrounds.ImagesAdapter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -70,7 +71,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
 
     private fun setEvents() {
         imagesAdapter =
-            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.background.backgrounds.ImagesAdapter { image, imageEntity ->
+            ImagesAdapter { image, imageEntity ->
 
                 mainViewModel.updateImage(imageEntity.copy(is_recent = true))
 
@@ -83,7 +84,10 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                 }
                 if (isAdded) {
                     viewModel.addSticker(
-                        resized?.trimTransparentEdges(), requireActivity(), ElementType.STICKER
+                        resized?.trimTransparentEdges(),
+                        requireActivity(),
+                        ElementType.STICKER,
+                        imageEntity.is_premium
                     )
                 }
             }
