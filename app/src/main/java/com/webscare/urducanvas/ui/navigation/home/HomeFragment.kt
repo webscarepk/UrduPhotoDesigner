@@ -186,7 +186,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
         trendsAdapter = TrendsAdapter(onSeeAll = { trendTitle ->
             val args = Bundle().apply { putString("TREND_NAME", trendTitle) }
-            view?.post { findNavController().navigate(R.id.templatesListFragment, args) }
+            view?.post { findNavController().navigate(R.id.templatesFragment, args) }
         }, onTemplateClick = { template, isDownloaded ->
             if (template.is_downloading) return@TrendsAdapter
             if (!isDownloaded) {
@@ -268,7 +268,8 @@ class HomeFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.popularTemplate.addPressEffect {
-            view?.post { findNavController().navigate(R.id.templatesListFragment) }
+            val args = Bundle().apply { putString("FILTER_TYPE", "popular") }
+            view?.post { findNavController().navigate(R.id.templatesListFragment, args) }
         }
 
         binding.recentProjects.addPressEffect {

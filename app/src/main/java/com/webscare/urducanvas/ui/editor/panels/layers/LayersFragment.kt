@@ -260,12 +260,12 @@ class LayersFragment : androidx.fragment.app.Fragment() {
             if (anyGrouped) getString(R.string.un_group_all) else getString(R.string.group_all)
     }
 
-    private fun handleItemLongClick(element: com.webscare.urducanvas.common.canvas.model.CanvasElement) {
+    private fun handleItemLongClick(element: CanvasElement) {
         if (!element.isSelected) toggleSelection(element)
         viewModel.enterSelectionMode()
     }
 
-    private fun handleItemClick(element: com.webscare.urducanvas.common.canvas.model.CanvasElement) {
+    private fun handleItemClick(element: CanvasElement) {
         if (viewModel.inSelectionMode.value == true) {
             toggleSelection(element)
             if ((viewModel.selectedElements.value?.size ?: 0) == 0) {
@@ -280,11 +280,11 @@ class LayersFragment : androidx.fragment.app.Fragment() {
         viewModel.exitSelectionMode()
     }
 
-    private fun selectElement(element: com.webscare.urducanvas.common.canvas.model.CanvasElement) {
+    private fun selectElement(element: CanvasElement) {
         viewModel.setSelectedElements(listOf(element))
     }
 
-    private fun toggleSelection(element: com.webscare.urducanvas.common.canvas.model.CanvasElement) {
+    private fun toggleSelection(element: CanvasElement) {
         val currentElements = viewModel.canvasElements.value?.toMutableList() ?: return
         val target = currentElements.find { it.id == element.id } ?: return
         target.isSelected = !target.isSelected
@@ -297,7 +297,7 @@ class LayersFragment : androidx.fragment.app.Fragment() {
     }
 
     // Show per-item popup menu anchored at the overflow icon
-    private fun showItemPopupMenu(element: com.webscare.urducanvas.common.canvas.model.CanvasElement, anchorView: View) {
+    private fun showItemPopupMenu(element: CanvasElement, anchorView: View) {
         val popupBinding =
             LayoutLayerItemPopupBinding.inflate(LayoutInflater.from(requireActivity()))
         val popupWindow = PopupWindow(

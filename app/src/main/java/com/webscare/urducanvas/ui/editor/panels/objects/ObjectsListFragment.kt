@@ -75,16 +75,9 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
 
                 mainViewModel.updateImage(imageEntity.copy(is_recent = true))
 
-                val resized = viewModel.canvasSize.value?.height?.roundToInt()?.let { h ->
-                    viewModel.canvasSize.value?.width?.let { w ->
-                        ImageProcessor.bitmapCompress(
-                            image, w.roundToInt(), h
-                        )
-                    }
-                }
                 if (isAdded) {
                     viewModel.addSticker(
-                        resized?.trimTransparentEdges(),
+                        image.trimTransparentEdges(),
                         requireActivity(),
                         ElementType.STICKER,
                         imageEntity.is_premium

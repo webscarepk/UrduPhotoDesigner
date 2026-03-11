@@ -55,7 +55,7 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
     private var activeQuery: String = ""
     private var activeSize: CanvasSize? = null
     private var activePrice: String = "All"
-
+    private var trendName: String? = null
     private var filterPanelVisible = false
     private var suppressChipClicks = false
     private var suppressPriceChipClicks = false
@@ -77,6 +77,7 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        trendName = arguments?.getString("TREND_NAME")
         currentCategory = arguments?.getString("CATEGORY_NAME")
     }
 
@@ -152,6 +153,12 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun setupHeaderUi() {
+        binding.title.text = when {
+            !currentCategory.isNullOrBlank() -> currentCategory
+            !trendName.isNullOrBlank()       -> trendName
+            else                                -> currentCategory ?: "Templates"
+        }
+
         binding.back.addPressEffect { findNavController().navigateUp() }
         binding.filters.addPressEffect { toggleFilterPanel() }
         binding.searchBar.setOnEditorActionListener { _, actionId, _ ->
@@ -182,6 +189,7 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
                 val args = Bundle().apply {
                     putString("TAB_NAME", currentCategory)
                     putString("SUBCATEGORY_NAME", subcategory)
+                    putString("TREND_NAME", trendName)
                 }
                 view?.post { findNavController().navigate(R.id.templatesListFragment, args) }
             },
@@ -363,9 +371,20 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
     private fun observeData() {
         viewLifecycleOwner.lifecycleScope.launch {
             mainViewModel.localTemplates.collect { allTemplates ->
-                categoryTemplates = if (!currentCategory.isNullOrBlank())
-                    allTemplates.filter { it.category?.trim().equals(currentCategory!!.trim(), true) }
-                else allTemplates
+                categoryTemplates = when {
+                    !trendName.isNullOrBlank() -> {
+                        val ids = mainViewModel.trendRows.value
+                            .filterIsInstance<HomeRow.TrendRow>()
+                            .firstOrNull { it.title.equals(trendName, true) }
+                            ?.templates?.map { it.id }?.toSet() ?: emptySet()
+                        allTemplates.filter { it.id in ids }
+                    }
+                    !currentCategory.isNullOrBlank() ->
+                        allTemplates.filter {
+                            it.category?.trim().equals(currentCategory!!.trim(), true)
+                        }
+                    else -> allTemplates
+                }
                 buildSubcategoryChips(categoryTemplates)
                 applyFilters()
             }

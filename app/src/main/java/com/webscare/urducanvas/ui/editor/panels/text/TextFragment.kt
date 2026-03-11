@@ -67,11 +67,11 @@ class TextFragment : Fragment() {
 
     private fun initObservers() {
         viewModel.openAppearanceTab.observe(viewLifecycleOwner) {
-
-            binding.viewPager.post {
-                binding.viewPager.currentItem = 1
+            if (isAdded){
+                binding.viewPager.post {
+                    binding.viewPager.currentItem = 1
+                }
             }
-
         }
     }
 

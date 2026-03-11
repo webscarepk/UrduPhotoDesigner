@@ -2457,7 +2457,6 @@ class CanvasViewModel @Inject constructor(
     fun addSticker(
         bitmap: Bitmap?, context: Context, elementType: ElementType, isPremium: Boolean = false
     ) {
-
         if (bitmap == null) return
 
         val currentList = _canvasElements.value ?: emptyList()
@@ -2466,24 +2465,32 @@ class CanvasViewModel @Inject constructor(
         val canvasW = _canvasSize.value?.width ?: return
         val canvasH = _canvasSize.value?.height ?: return
 
+        if (canvasW <= 0f || canvasH <= 0f) return  // ← GUARD: canvas not ready
+
         val imageW = bitmap.width.toFloat()
         val imageH = bitmap.height.toFloat()
 
-        val maxAllowedW = canvasW * 0.8f
-        val maxAllowedH = canvasH * 0.8f
+        if (imageW <= 0f || imageH <= 0f) return  // ← GUARD: bad bitmap
 
-        var finalBitmap = bitmap
+        // Target: sticker should be at most 60% of canvas in either dimension
+        val targetW = canvasW * 0.6f
+        val targetH = canvasH * 0.6f
 
-        if (imageW > maxAllowedW || imageH > maxAllowedH) {
-
-            val scaleFactor = minOf(
-                maxAllowedW / imageW, maxAllowedH / imageH
-            )
-
-            val scaledWidth = (imageW * scaleFactor).toInt()
-            val scaledHeight = (imageH * scaleFactor).toInt()
-
-            finalBitmap = bitmap.scale(scaledWidth, scaledHeight)
+        val finalBitmap = if (imageW > targetW || imageH > targetH) {
+            // Image is LARGER than canvas budget → scale DOWN
+            val scaleFactor = minOf(targetW / imageW, targetH / imageH)
+            val scaledWidth = (imageW * scaleFactor).toInt().coerceAtLeast(1)
+            val scaledHeight = (imageH * scaleFactor).toInt().coerceAtLeast(1)
+            bitmap.scale(scaledWidth, scaledHeight)
+        } else if (imageW < targetW * 0.2f || imageH < targetH * 0.2f) {
+            // Image is VERY SMALL relative to canvas → scale UP so it's visible
+            val scaleFactor = minOf(targetW / imageW, targetH / imageH) * 0.5f
+            val scaledWidth = (imageW * scaleFactor).toInt().coerceAtLeast(1)
+            val scaledHeight = (imageH * scaleFactor).toInt().coerceAtLeast(1)
+            bitmap.scale(scaledWidth, scaledHeight)
+        } else {
+            // Image is already in a good range relative to canvas → use as-is
+            bitmap
         }
 
         val element = CanvasElement(
@@ -2540,6 +2547,9 @@ class CanvasViewModel @Inject constructor(
         val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
         val canvasW = _canvasSize.value?.width ?: 0f
         val canvasH = _canvasSize.value?.height ?: 0f
+
+        val scaledTextSize = (minOf(canvasW, canvasH) * 0.05f).coerceIn(20f, 200f)
+
         val element = CanvasElement(
             context = context,
             type = ElementType.TEXT,
@@ -2547,7 +2557,7 @@ class CanvasViewModel @Inject constructor(
             x = canvasW / 2f,
             y = canvasH / 2f,
             paintColor = Color.BLACK,
-            paintTextSize = 50f,
+            paintTextSize = scaledTextSize,
             alignment = TextAlignment.CENTER,
             paintAlpha = 255,
             fontId = null,

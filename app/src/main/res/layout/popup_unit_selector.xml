@@ -1,0 +1,46 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:background="@drawable/button_bg"
+    android:backgroundTint="@color/white"
+    android:layout_width="140dp"
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:id="@+id/unitPixels"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="@style/PopupItemStyle"
+        android:text="@string/pixels"
+        android:paddingHorizontal="15dp"
+        android:paddingVertical="10dp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/contrast" />
+
+    <TextView
+        android:id="@+id/unitInches"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="@style/PopupItemStyle"
+        android:text="@string/inches"
+        android:paddingHorizontal="15dp"
+        android:paddingVertical="10dp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/contrast" />
+
+    <TextView
+        android:id="@+id/unitCentimeters"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="@style/PopupItemStyle"
+        android:text="@string/centimeters"
+        android:paddingHorizontal="15dp"
+        android:paddingVertical="10dp" />
+
+</LinearLayout>

@@ -893,18 +893,23 @@ class CanvasView @JvmOverloads constructor(
         onProgress?.invoke(30, "Rendering thumbnail")
         renderCanvasTo(canvas, scaleFactor)
 
-        // Make an immutable copy of the canvas elements
-        val elementsWithBitmap = canvasElements.toList()  // Safe copy
+        // Deep-copy elements so we never mutate live canvas state
+        val elementsSnapshot = canvasElements.map { it.copy() }
 
         // Encode element bitmaps (if any)
-        val total = elementsWithBitmap.size
+        val total = elementsSnapshot.size
         if (total > 0) {
             onProgress?.invoke(70, "Encoding image data")
-            elementsWithBitmap.forEachIndexed { index, element ->
-                element.bitmap?.let {
+            elementsSnapshot.forEachIndexed { index, element ->
+                element.bitmap?.let { bmp ->
+                    // Scale bitmap down to thumbnail dimensions before Base64 — avoids OOM
+                    val scaledW = (bmp.width * scaleFactor).toInt().coerceAtLeast(1)
+                    val scaledH = (bmp.height * scaleFactor).toInt().coerceAtLeast(1)
+                    val scaledBmp = Bitmap.createScaledBitmap(bmp, scaledW, scaledH, true)
                     element.bitmapData =
-                        com.webscare.urducanvas.common.utils.ImageProcessor.bitmapToBase64(it)
-//                    element.bitmapData = ImageProcessor.bitmapToFilePath(context, it)
+                        ImageProcessor.bitmapToBase64(scaledBmp)
+                    if (scaledBmp !== bmp) scaledBmp.recycle()
+                    element.bitmap = null  // release raw bitmap from this copy immediately
                 }
                 element.drawStrokes?.forEach { stroke ->
                     stroke.serializePath()
@@ -916,8 +921,13 @@ class CanvasView @JvmOverloads constructor(
             onProgress?.invoke(90, "No bitmaps to encode")
         }
 
-        val snapshot = elementsWithBitmap  // Use the safe copy
-        val json = gson.toJson(snapshot)
+        // Stream JSON to a temp file — never builds a giant String in RAM
+        val jsonFile = File(context.cacheDir, "thumb_meta_${System.currentTimeMillis()}.json")
+        jsonFile.bufferedWriter().use { writer ->
+            gson.toJson(elementsSnapshot, writer)
+        }
+        val json = jsonFile.readText()
+        jsonFile.delete()
 
         onProgress?.invoke(95, "Thumbnail ready")
 
@@ -934,8 +944,9 @@ class CanvasView @JvmOverloads constructor(
         }
 
         safeElements.forEach { element ->
-            element.bitmap?.let {
-                element.bitmapData = ImageProcessor.bitmapToBase64(it)
+            element.bitmap?.let { bmp ->
+                element.bitmapData = ImageProcessor.bitmapToBase64(bmp)
+                element.bitmap = null  // release raw Bitmap immediately — prevents raw + Base64 coexisting in RAM
             }
             element.drawStrokes?.forEach { stroke -> stroke.serializePath() }
         }
@@ -950,7 +961,7 @@ class CanvasView @JvmOverloads constructor(
      * Checks if the element's rotation is close to 0, 90, 180, or 270 degrees
      * and sets the rotation alignment guide flags accordingly.
      */
-    private fun checkRotationAlignment(element: com.webscare.urducanvas.common.canvas.model.CanvasElement) {
+    private fun checkRotationAlignment(element: CanvasElement) {
         val rotationThreshold = 5f
         val normalizedRotation = (element.rotation % 360 + 360) % 360
 

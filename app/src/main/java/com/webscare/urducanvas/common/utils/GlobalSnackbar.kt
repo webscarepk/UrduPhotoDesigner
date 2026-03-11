@@ -29,7 +29,7 @@ object GlobalSnackbar {
         duration: Int = 8000,
         anchor: View? = null,
         onAction: (() -> Unit)? = null,
-        @ColorInt successColor: Int = ContextCompat.getColor(activity, R.color.appColor)
+        @ColorInt successColor: Int = ContextCompat.getColor(activity, R.color.white)
     ) {
         main.post {
             current?.dismiss()
@@ -38,10 +38,10 @@ object GlobalSnackbar {
             val snack = Snackbar.make(root, message, duration)
 
             snack.view.backgroundTintList = ColorStateList.valueOf(successColor)
-            snack.setActionTextColor(ContextCompat.getColor(activity, android.R.color.white))
+            snack.setActionTextColor(ContextCompat.getColor(activity, R.color.appColor))
             snack.view.findViewById<TextView>(
                 com.google.android.material.R.id.snackbar_text
-            )?.setTextColor(ContextCompat.getColor(activity, android.R.color.white))
+            )?.setTextColor(ContextCompat.getColor(activity, android.R.color.black))
 
             if (anchor != null) snack.anchorView = anchor
 

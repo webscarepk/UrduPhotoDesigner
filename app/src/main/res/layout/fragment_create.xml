@@ -130,6 +130,9 @@
                     android:textColor="@color/black"
                     android:inputType="numberDecimal"
                     android:digits="0123456789."
+                    android:singleLine="true"
+                    android:maxLines="1"
+                    android:ellipsize="none"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
@@ -211,6 +214,9 @@
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     android:id="@+id/height"
+                    android:singleLine="true"
+                    android:maxLines="1"
+                    android:ellipsize="none"
                     android:fontFamily="@font/regular"
                     android:textSize="12sp"/>
 

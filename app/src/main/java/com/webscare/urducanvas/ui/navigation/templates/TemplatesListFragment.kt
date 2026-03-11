@@ -37,7 +37,7 @@ import kotlin.math.roundToInt
 class TemplatesListFragment : androidx.fragment.app.Fragment() {
     private var _binding: FragmentTemplatesListBinding? = null
     private val binding get() = _binding!!
-
+    private var filterType: String? = null
     private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
     private lateinit var adapter: TemplatesAdapter
@@ -78,6 +78,7 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        filterType = arguments?.getString("FILTER_TYPE")
         currentCategory    = arguments?.getString("TAB_NAME")
         currentTrend       = arguments?.getString("TREND_NAME")
         currentSubcategory = arguments?.getString("SUBCATEGORY_NAME")
@@ -339,6 +340,16 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
             mainViewModel.localTemplates.collect { all ->
                 binding.swipeRefresh.isRefreshing = false
                 baseTemplates = when {
+                    filterType == "popular" -> all.filter { it.is_popular }
+
+                    !currentTrend.isNullOrBlank() && !currentSubcategory.isNullOrBlank() -> {
+                        val ids = mainViewModel.trendRows.value
+                            .filterIsInstance<HomeRow.TrendRow>()
+                            .firstOrNull { it.title.equals(currentTrend, true) }
+                            ?.templates?.map { it.id }?.toSet() ?: emptySet()
+                        all.filter { it.id in ids && it.subcategory.trim().equals(currentSubcategory!!.trim(), true) }
+                    }
+
                     !currentTrend.isNullOrBlank() -> {
                         val ids = mainViewModel.trendRows.value
                             .filterIsInstance<HomeRow.TrendRow>()
@@ -346,19 +357,27 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
                             ?.templates?.map { it.id }?.toSet() ?: emptySet()
                         all.filter { it.id in ids }
                     }
+
                     !currentCategory.isNullOrBlank() && !currentCategory.equals("All", true) ->
                         all.filter { it.category.equals(currentCategory, true) }
+
                     else -> all
                 }
 
-                // Build subcategory chips using the inner ChipGroup
                 val subcats = buildList {
                     add("All")
-                    addAll(baseTemplates.map { it.subcategory.trim() }.filter { it.isNotEmpty() }.distinct().sorted())
+                    addAll(baseTemplates.map { it.subcategory.trim() }
+                        .filter { it.isNotEmpty() }.distinct().sorted())
                 }
-                val cg = binding.categoryChipGroup
-                val current = (0 until cg.childCount).mapNotNull { (cg.getChildAt(it) as? Chip)?.text?.toString() }
-                if (current != subcats) renderSubcategoryChips(subcats)
+
+                if (!currentSubcategory.isNullOrBlank()) {
+                    binding.filters.isVisible = false  // filter button bhi hide
+                } else {
+                    val cg = binding.categoryChipGroup
+                    val current = (0 until cg.childCount)
+                        .mapNotNull { (cg.getChildAt(it) as? Chip)?.text?.toString() }
+                    if (current != subcats) renderSubcategoryChips(subcats)
+                }
 
                 applyFiltersList()
             }

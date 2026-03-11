@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.View
@@ -12,7 +13,9 @@ import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.PopupMenu
+import android.widget.PopupWindow
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -29,6 +32,7 @@ import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.common.utils.Converter
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentCreateBinding
+import com.webscare.urducanvas.databinding.PopupUnitSelectorBinding
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -102,91 +106,7 @@ class CreateFragment : BottomSheetDialogFragment() {
 
             // 🔹 Unit selection (same as before)
             unitBox.addPressEffect {
-                spinner.rotation = 180f
-                val popup = PopupMenu(requireContext(), unit)
-                unitList.forEachIndexed { index, unit ->
-                    popup.menu.add(Menu.NONE, index, index, unit)
-                }
-                popup.setOnMenuItemClickListener { menuItem ->
-                    val selectedUnitStr = unitList[menuItem.itemId]
-                    unit.text = selectedUnitStr
-
-                    // Convert old width/height to px first
-                    val oldWidthPx = when (currentUnit) {
-                        UnitType.PIXELS -> getSafeIntValue(width)
-                        UnitType.INCHES -> Converter.inchesToPx(
-                            getSafeIntValue(width)
-                        )
-
-                        UnitType.CENTIMETERS -> Converter.cmToPx(
-                            getSafeIntValue(width)
-                        )
-                    }
-                    val oldHeightPx = when (currentUnit) {
-                        UnitType.PIXELS -> getSafeIntValue(height)
-                        UnitType.INCHES -> Converter.inchesToPx(
-                            getSafeIntValue(height)
-                        )
-
-                        UnitType.CENTIMETERS -> Converter.cmToPx(
-                            getSafeIntValue(height)
-                        )
-                    }
-
-                    currentUnit = when (selectedUnitStr) {
-                        "Pixels" -> UnitType.PIXELS
-                        "Inches" -> UnitType.INCHES
-                        "Centimeters" -> UnitType.CENTIMETERS
-                        else -> UnitType.PIXELS
-                    }
-
-                    // Convert back for display
-                    when (currentUnit) {
-                        UnitType.PIXELS -> {
-                            width.setText(oldWidthPx.toFloat().toString())
-                            height.setText(oldHeightPx.toFloat().toString())
-                        }
-
-                        UnitType.INCHES -> {
-                            width.setText(
-                                String.format(
-                                    "%.1f", Converter.pxToInches(
-                                        oldWidthPx.toFloat()
-                                    )
-                                )
-                            )
-                            height.setText(
-                                String.format(
-                                    "%.1f", Converter.pxToInches(
-                                        oldHeightPx.toFloat()
-                                    )
-                                )
-                            )
-                        }
-
-                        UnitType.CENTIMETERS -> {
-                            width.setText(
-                                String.format(
-                                    "%.1f", Converter.pxToCm(
-                                        oldWidthPx.toFloat()
-                                    )
-                                )
-                            )
-                            height.setText(
-                                String.format(
-                                    "%.1f", Converter.pxToCm(
-                                        oldHeightPx.toFloat()
-                                    )
-                                )
-                            )
-                        }
-                    }
-
-                    updateListForUnit(currentUnit)
-                    true
-                }
-                popup.setOnDismissListener { spinner.rotation = 0f }
-                popup.show()
+                showUnitPopup(unitBox)
             }
 
             // 🔹 Adapter setup
@@ -283,12 +203,22 @@ class CreateFragment : BottomSheetDialogFragment() {
             // ------------------------------
 
             create.addPressEffect {
-                val wVal = clampCanvasSize(getSafeIntValue(width), currentUnit)
-                val hVal = clampCanvasSize(getSafeIntValue(height), currentUnit)
-                val canvasSize =
-                    CanvasSize(
-                        "Custom", wVal, hVal
-                    )
+                val wInput = clampCanvasSize(getSafeIntValue(width), currentUnit)
+                val hInput = clampCanvasSize(getSafeIntValue(height), currentUnit)
+
+                // ✅ Always convert to pixels before storing in ViewModel
+                val wPx = when (currentUnit) {
+                    UnitType.PIXELS -> wInput
+                    UnitType.INCHES -> Converter.inchesToPx(wInput).toFloat()
+                    UnitType.CENTIMETERS -> Converter.cmToPx(wInput).toFloat()
+                }
+                val hPx = when (currentUnit) {
+                    UnitType.PIXELS -> hInput
+                    UnitType.INCHES -> Converter.inchesToPx(hInput).toFloat()
+                    UnitType.CENTIMETERS -> Converter.cmToPx(hInput).toFloat()
+                }
+
+                val canvasSize = CanvasSize("Custom", wPx, hPx)
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(canvasSize)
                 view?.post { findNavController().navigate(R.id.editorFragment, null) }
@@ -296,6 +226,98 @@ class CreateFragment : BottomSheetDialogFragment() {
             }
 
             back.addPressEffect { dismiss() }
+        }
+    }
+
+    @SuppressLint("DefaultLocale")
+    private fun showUnitPopup(anchorView: View) {
+        val popupBinding = PopupUnitSelectorBinding.inflate(LayoutInflater.from(requireContext()))
+
+        val popupWindow = PopupWindow(
+            popupBinding.root,
+            (140 * requireContext().resources.displayMetrics.density).toInt(),
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            true
+        ).apply {
+            elevation = 8f
+            isOutsideTouchable = true
+        }
+
+        binding.spinner.rotation = 180f
+        popupWindow.setOnDismissListener { binding.spinner.rotation = 0f }
+
+        fun onUnitSelected(selectedUnitStr: String) {
+            binding.unit.text = selectedUnitStr
+
+            // Convert current displayed values → px first
+            val oldWidthPx = when (currentUnit) {
+                UnitType.PIXELS -> getSafeIntValue(binding.width)
+                UnitType.INCHES -> Converter.inchesToPx(getSafeIntValue(binding.width))
+                UnitType.CENTIMETERS -> Converter.cmToPx(getSafeIntValue(binding.width))
+            }
+            val oldHeightPx = when (currentUnit) {
+                UnitType.PIXELS -> getSafeIntValue(binding.height)
+                UnitType.INCHES -> Converter.inchesToPx(getSafeIntValue(binding.height))
+                UnitType.CENTIMETERS -> Converter.cmToPx(getSafeIntValue(binding.height))
+            }
+
+            currentUnit = when (selectedUnitStr) {
+                "Pixels" -> UnitType.PIXELS
+                "Inches" -> UnitType.INCHES
+                "Centimeters" -> UnitType.CENTIMETERS
+                else -> UnitType.PIXELS
+            }
+
+            // Convert px → new unit for display
+            when (currentUnit) {
+                UnitType.PIXELS -> {
+                    binding.width.setText(oldWidthPx.toFloat().toString())
+                    binding.height.setText(oldHeightPx.toFloat().toString())
+                }
+                UnitType.INCHES -> {
+                    binding.width.setText(String.format("%.1f", Converter.pxToInches(oldWidthPx.toFloat())))
+                    binding.height.setText(String.format("%.1f", Converter.pxToInches(oldHeightPx.toFloat())))
+                }
+                UnitType.CENTIMETERS -> {
+                    binding.width.setText(String.format("%.1f", Converter.pxToCm(oldWidthPx.toFloat())))
+                    binding.height.setText(String.format("%.1f", Converter.pxToCm(oldHeightPx.toFloat())))
+                }
+            }
+
+            updateListForUnit(currentUnit)
+            popupWindow.dismiss()
+        }
+
+        popupBinding.unitPixels.addPressEffect { onUnitSelected("Pixels") }
+        popupBinding.unitInches.addPressEffect { onUnitSelected("Inches") }
+        popupBinding.unitCentimeters.addPressEffect { onUnitSelected("Centimeters") }
+
+        // Smart positioning — same pattern as showItemPopupMenu
+        anchorView.post {
+            val screenHeight = resources.displayMetrics.heightPixels
+            val location = IntArray(2)
+            anchorView.getLocationOnScreen(location)
+            val anchorTop = location[1]
+            val anchorBottom = anchorTop + anchorView.height
+
+            popupBinding.root.measure(
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
+            val popupHeight = popupBinding.root.measuredHeight
+            val spaceBelow = screenHeight - anchorBottom
+
+            if (spaceBelow >= popupHeight) {
+                popupWindow.showAsDropDown(anchorView)
+            } else if (anchorTop >= popupHeight) {
+                popupWindow.showAtLocation(
+                    anchorView, Gravity.NO_GRAVITY,
+                    location[0],
+                    anchorTop - popupHeight
+                )
+            } else {
+                popupWindow.showAsDropDown(anchorView)
+            }
         }
     }
 
@@ -398,7 +420,6 @@ class CreateFragment : BottomSheetDialogFragment() {
     override fun onStart() {
         super.onStart()
 
-        // 1. Clear the Window background (The very back layer)
         dialog?.window?.apply {
             setBackgroundDrawableResource(android.R.color.transparent)
             setDimAmount(0.45f)
