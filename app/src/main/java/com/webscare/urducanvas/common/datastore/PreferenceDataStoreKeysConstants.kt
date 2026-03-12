@@ -14,4 +14,8 @@ object PreferenceDataStoreKeysConstants {
     val KEY_RESOLUTION = stringPreferencesKey("key_resolution")
     val KEY_QUALITY = stringPreferencesKey("key_quality")
     val KEY_FORMAT = stringPreferencesKey("key_format")
+
+    val PREF_IS_SUBSCRIBED = booleanPreferencesKey("is_subscribed")
+
+    var isSubscribedValue: Boolean = false
 }

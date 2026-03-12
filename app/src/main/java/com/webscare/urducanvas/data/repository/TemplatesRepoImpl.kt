@@ -43,5 +43,9 @@ class TemplatesRepoImpl @Inject constructor(
     override suspend fun updateStatusTemplates(id: String, isDownloading: Boolean) {
         appDatabase.allTemplatesDao().updateTemplateStatus(id, isDownloading)
     }
+
+    override suspend fun updateTemplatePremiumStatus(id: Int, isPremium: Boolean) {
+        appDatabase.allTemplatesDao().updateTemplatePremiumStatus(id, isPremium)
+    }
 }
 

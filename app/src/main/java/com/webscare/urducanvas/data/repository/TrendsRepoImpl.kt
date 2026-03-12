@@ -48,4 +48,6 @@ class TrendsRepoImpl @Inject constructor(
         }
         appDatabase.trendDao().insertCrossRefs(crossRefs)
     }
+
+
 }

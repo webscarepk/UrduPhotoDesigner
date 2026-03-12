@@ -29,9 +29,11 @@ import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.databinding.ActivityMainBinding
+import com.webscare.urducanvas.di.BillingManager
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -63,6 +65,9 @@ class MainActivity : AppCompatActivity() {
                 navController.navigate(R.id.editorFragment, null, editorNavOptions)
             }
         }
+
+    @Inject
+    lateinit var billingManager: BillingManager
     private val mainViewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,6 +85,7 @@ class MainActivity : AppCompatActivity() {
 
         forceImmersiveMode()
 
+        billingManager.checkSubscriptionOnLaunch()
         initObservers()
 
         val navHostFragment =
@@ -277,6 +283,16 @@ class MainActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             mainViewModel.localImages.collect { images ->
+            }
+        }
+
+        lifecycleScope.launch {
+            billingManager.isSubscribed.collect { subscribed ->
+                if (subscribed) {
+                    // Premium content dikhao / paywall hide karo
+                } else {
+                    // Paywall dikhao
+                }
             }
         }
     }

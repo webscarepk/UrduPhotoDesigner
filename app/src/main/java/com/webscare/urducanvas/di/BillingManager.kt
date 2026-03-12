@@ -3,15 +3,22 @@ package com.webscare.urducanvas.di
 import android.app.Activity
 import android.content.Context
 import com.android.billingclient.api.*
+import com.webscare.urducanvas.common.datastore.PreferenceDataStoreAPI
+import com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.PREF_IS_SUBSCRIBED
+import com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.isSubscribedValue
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class BillingManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val dataStore: PreferenceDataStoreAPI
 ) : PurchasesUpdatedListener {
 
     companion object {
@@ -28,6 +35,23 @@ class BillingManager @Inject constructor(
         data class ProductsLoaded(val products: List<ProductDetails>) : BillingState()
         data class PurchaseSuccess(val purchase: Purchase) : BillingState()
         data class Error(val message: String) : BillingState()
+    }
+
+    private val _isSubscribed = MutableStateFlow(false)
+    val isSubscribed: StateFlow<Boolean> = _isSubscribed
+
+    fun checkSubscriptionOnLaunch() {
+        startConnection {
+            billingClient.queryPurchasesAsync(
+                QueryPurchasesParams.newBuilder()
+                    .setProductType(BillingClient.ProductType.SUBS)
+                    .build()
+            ) { result, purchases ->
+                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                    saveSubscriptionStatus(purchases.any { it.purchaseState == Purchase.PurchaseState.PURCHASED })
+                }
+            }
+        }
     }
 
     private val _billingState = MutableStateFlow<BillingState>(BillingState.Idle)
@@ -155,6 +179,7 @@ class BillingManager @Inject constructor(
     private fun acknowledgePurchase(purchase: Purchase) {
         if (purchase.isAcknowledged) {
             _billingState.value = BillingState.PurchaseSuccess(purchase)
+            saveSubscriptionStatus(true)
             return
         }
 
@@ -165,6 +190,7 @@ class BillingManager @Inject constructor(
         billingClient.acknowledgePurchase(params) { result ->
             if (result.responseCode == BillingClient.BillingResponseCode.OK) {
                 _billingState.value = BillingState.PurchaseSuccess(purchase)
+                saveSubscriptionStatus(true)
             } else {
                 _billingState.value =
                     BillingState.Error("Acknowledgement failed: ${result.debugMessage}")
@@ -189,6 +215,7 @@ class BillingManager @Inject constructor(
                     }
                     if (activePurchase != null) {
                         _billingState.value = BillingState.PurchaseSuccess(activePurchase)
+                        saveSubscriptionStatus(true)
                     } else {
                         _billingState.value = BillingState.Error("No active subscription found.")
                     }
@@ -201,5 +228,19 @@ class BillingManager @Inject constructor(
 
     fun resetState() {
         _billingState.value = BillingState.Idle
+    }
+
+    private fun saveSubscriptionStatus(value: Boolean) {
+        isSubscribedValue = value
+        _isSubscribed.value = value
+        CoroutineScope(Dispatchers.IO).launch {
+            dataStore.putPreference(PREF_IS_SUBSCRIBED, value)  // persistent save
+        }
+    }
+
+    suspend fun loadSavedSubscriptionStatus() {
+        val saved = dataStore.getFirstPreference(PREF_IS_SUBSCRIBED, false)
+        isSubscribedValue = saved
+        _isSubscribed.value = saved
     }
 }

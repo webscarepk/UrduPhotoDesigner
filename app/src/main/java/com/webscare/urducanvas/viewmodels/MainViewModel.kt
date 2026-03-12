@@ -14,8 +14,13 @@ import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.GradientPresets
 import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.data.model.FontEntity
+import com.webscare.urducanvas.data.model.FontsResponse
 import com.webscare.urducanvas.data.model.ImageEntity
+import com.webscare.urducanvas.data.model.ImageResponse
 import com.webscare.urducanvas.data.model.TemplateEntity
+import com.webscare.urducanvas.data.model.TemplatesResponse
+import com.webscare.urducanvas.data.model.TrendResponse
+import com.webscare.urducanvas.di.BillingManager
 import com.webscare.urducanvas.domain.repo.DownloadRepo
 import com.webscare.urducanvas.domain.usecase.DeleteFontsUseCase
 import com.webscare.urducanvas.domain.usecase.DeleteGradientUseCase
@@ -77,7 +82,8 @@ class MainViewModel @Inject constructor(
     private val exportResultsUseCase: ExportResultsUseCase,
     private val fetchAPITrendsUseCase: FetchAPITrendsUseCase,
     private val getTrendsUseCase: GetTrendsUseCase,
-    private val insertTrendsUseCase: InsertTrendsUseCase
+    private val insertTrendsUseCase: InsertTrendsUseCase,
+    private val billingManager: BillingManager
 ) : ViewModel() {
 
     private val _trendRows = MutableStateFlow<List<HomeRow>>(emptyList())
@@ -142,23 +148,52 @@ class MainViewModel @Inject constructor(
         _rawQuery.value = ""
     }
 
+    val isSubscribed = billingManager.isSubscribed
+
     init {
-        fetchAndStoreFontsFromApi()
+        viewModelScope.launch {
+            billingManager.loadSavedSubscriptionStatus()
+            billingManager.checkSubscriptionOnLaunch()
+            fetchAndStoreFontsFromApi()
+            fetchAndStoreImagesFromApi()
+            fetchAndStoreTemplatesFromApi()
+            fetchAndStoreTrendsFromApi()
+        }
         observeLocalFonts()
-        fetchAndStoreImagesFromApi()
         observeLocalImages()
         getAllExportResults()
-        fetchAndStoreTemplatesFromApi()
         observeLocalTemplates()
         observeLocalTrends()
-        fetchAndStoreTrendsFromApi()
+
         viewModelScope.launch {
             seed(GradientPresets.defaultList)
         }
-
         viewModelScope.launch {
             getAll().collect { uiList ->
                 _gradients.value = uiList
+            }
+        }
+
+        viewModelScope.launch {
+            billingManager.isSubscribed.collect { subscribed ->
+                _localFonts.value.forEach { font ->
+                    if (subscribed && font.is_premium) {
+                        updateFontsUseCase.invoke(font.copy(is_premium = false))
+                    }
+                }
+                _localImages.value.forEach { image ->
+                    if (subscribed && image.is_premium) {
+                        updateImagesUseCase.invoke(image.copy(is_premium = false))
+                    }
+                }
+
+                _localTemplates.value.forEach { template ->
+                    if (subscribed && template.is_premium) {
+                        updateTemplatesUseCase.updatePremiumStatus(
+                            template.id, false
+                        )
+                    }
+                }
             }
         }
     }
@@ -179,7 +214,16 @@ class MainViewModel @Inject constructor(
 
                     is Response.Success -> {
                         _isLoading.value = false
-                        insertTemplatesUseCase.invoke(response.data!!) // list<TemplateEntity>
+                        val subscribed = billingManager.isSubscribed.value
+
+                        val templatesToSave = response.data!!.templates.map { template ->
+                            if (subscribed) template.copy(is_premium = false)
+                            else template
+                        }
+
+                        insertTemplatesUseCase.invoke(
+                            TemplatesResponse(templates = templatesToSave)
+                        )
                     }
 
                     is Response.Error -> {
@@ -216,7 +260,21 @@ class MainViewModel @Inject constructor(
 
                     is Response.Success -> {
                         _isLoading.value = false
-                        insertFontsUseCase.invoke(response.data!!)
+                        val subscribed = billingManager.isSubscribed.value  // ← current status
+
+                        val fontsToSave = response.data!!.fonts.map { font ->
+                            if (subscribed) {
+                                font.copy(is_premium = false)  // subscribed → sab unlock
+                            } else {
+                                font  // API ki value as-is
+                            }
+                        }
+                        insertFontsUseCase.invoke(
+                            FontsResponse(
+                                message = response.data.message,
+                                fonts = fontsToSave
+                            )
+                        )
                     }
 
                     is Response.Error -> {
@@ -239,7 +297,20 @@ class MainViewModel @Inject constructor(
 
                     is Response.Success -> {
                         _isLoading.value = false
-                        insertTrendsUseCase.invoke(response.data!!) // saves in Room
+                        val subscribed = billingManager.isSubscribed.value
+
+                        val trendsToSave = response.data!!.trends.map { trend ->
+                            trend.copy(
+                                templates = trend.templates.map { template ->
+                                    if (subscribed) template.copy(is_premium = false)
+                                    else template
+                                }
+                            )
+                        }
+
+                        insertTrendsUseCase.invoke(
+                            TrendResponse(trends = trendsToSave)
+                        )
                     }
 
                     is Response.Error -> {
@@ -276,7 +347,22 @@ class MainViewModel @Inject constructor(
 
                     is Response.Success -> {
                         _isLoading.value = false
-                        insertImagesUseCase.invoke(response.data!!)
+                        val subscribed = billingManager.isSubscribed.value
+
+                        val imagesToSave = response.data!!.image.map { image ->
+                            if (subscribed) {
+                                image.copy(is_premium = false)
+                            } else {
+                                image
+                            }
+                        }
+
+                        insertImagesUseCase.invoke(
+                            ImageResponse(
+                                message = response.data.message,
+                                image = imagesToSave
+                            )
+                        )
                     }
 
                     is Response.Error -> {

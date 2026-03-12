@@ -8,4 +8,6 @@ interface TemplatesRepo {
     suspend fun insertTemplates(templateEntity: TemplateEntity)
     suspend fun updateTemplates(id: String, isDownloaded: Boolean, isDownloading: Boolean, progress: Int,filePath: String?)
     suspend fun updateStatusTemplates(id: String, isDownloading: Boolean)
+
+    suspend fun updateTemplatePremiumStatus(id: Int, isPremium: Boolean)
 }
