@@ -1226,7 +1226,10 @@ class EditorFragment : Fragment() {
 
         binding.cutOutIcon.addPressEffect {
             view?.post {
-                findNavController().navigate(R.id.bgRemovalFragment)
+                val selected = viewModel.selectedElements.value?.firstOrNull()
+                if (selected?.bitmap != null && selected.bitmapData != null){
+                    findNavController().navigate(R.id.bgRemovalFragment)
+                }
             }
         }
 
