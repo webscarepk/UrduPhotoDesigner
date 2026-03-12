@@ -117,7 +117,7 @@ class ToneAdjustmentsFragment : androidx.fragment.app.Fragment() {
         // 🟢 Contrast
         binding.contrast.apply {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                min = 0
+                
             } else {
                 progress = 100
             }

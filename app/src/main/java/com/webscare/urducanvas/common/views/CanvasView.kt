@@ -903,13 +903,8 @@ class CanvasView @JvmOverloads constructor(
             elementsSnapshot.forEachIndexed { index, element ->
                 element.bitmap?.let { bmp ->
                     // Scale bitmap down to thumbnail dimensions before Base64 — avoids OOM
-                    val scaledW = (bmp.width * scaleFactor).toInt().coerceAtLeast(1)
-                    val scaledH = (bmp.height * scaleFactor).toInt().coerceAtLeast(1)
-                    val scaledBmp = Bitmap.createScaledBitmap(bmp, scaledW, scaledH, true)
-                    element.bitmapData =
-                        ImageProcessor.bitmapToBase64(scaledBmp)
-                    if (scaledBmp !== bmp) scaledBmp.recycle()
-                    element.bitmap = null  // release raw bitmap from this copy immediately
+                    element.bitmapData = ImageProcessor.bitmapToBase64(bmp)
+                    element.bitmap = null
                 }
                 element.drawStrokes?.forEach { stroke ->
                     stroke.serializePath()

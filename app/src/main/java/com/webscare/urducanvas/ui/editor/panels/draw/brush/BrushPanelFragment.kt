@@ -103,7 +103,7 @@ class BrushPanelFragment : Fragment() {
         }
 
         binding.hardnessBar.apply {
-            min = 0
+            
             max = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {

@@ -171,7 +171,7 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.lineSpace.apply {
-            min = 0
+            
             max = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
@@ -189,7 +189,7 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.letterSpace.apply {
-            min = 0
+            
             max = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {

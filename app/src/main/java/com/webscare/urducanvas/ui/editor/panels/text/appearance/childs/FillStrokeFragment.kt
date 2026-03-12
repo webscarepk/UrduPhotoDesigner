@@ -218,7 +218,6 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
     private fun setEvents() {
 
         binding.border.apply {
-            min = 0
             max = 10
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {

@@ -80,7 +80,7 @@ class ShadowsFragment : Fragment() {
     private fun initSeekBars() {
         // Shadow DX SeekBar
         binding.shadowX.apply {
-            min = 0
+            
             max = 50
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
@@ -99,7 +99,7 @@ class ShadowsFragment : Fragment() {
 
         // Shadow DY SeekBar
         binding.shadowY.apply {
-            min = 0
+            
             max = 50
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {

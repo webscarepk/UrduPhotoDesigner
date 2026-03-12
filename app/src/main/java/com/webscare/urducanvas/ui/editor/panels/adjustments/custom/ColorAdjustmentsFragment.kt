@@ -33,7 +33,7 @@ class ColorAdjustmentsFragment : androidx.fragment.app.Fragment() {
 
         // 🎨 Saturation (0 → 2)
         binding.saturation.apply {
-            min = 0
+            
             max = 200
             progress = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -55,7 +55,7 @@ class ColorAdjustmentsFragment : androidx.fragment.app.Fragment() {
 
         // 💧 Vibrance (0 → 2)
         binding.vibrance.apply {
-            min = 0
+            
             max = 200
             progress = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {

@@ -49,7 +49,7 @@ class BlendFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.radius.apply {
-            min = 0
+            
             max = 20
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {

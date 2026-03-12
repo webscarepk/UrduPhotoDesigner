@@ -46,7 +46,7 @@ class BlurFragment : Fragment() {
     private fun initSeekbars() {
         // 🟡 Blur (0 → 25)
         binding.blur.apply {
-            min = 0
+            
             max = 25
             progress = 0
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {

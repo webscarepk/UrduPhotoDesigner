@@ -52,7 +52,7 @@ class MaskFragment : androidx.fragment.app.Fragment() {
         binding.stretch.addPressEffect { viewModel.setImageFitMode("stretch") }
 
         binding.zoomBar.apply {
-            min = 0
+            
             max = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
@@ -69,7 +69,7 @@ class MaskFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.panXBar.apply {
-            min = 0
+            
             max = 200
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
@@ -86,7 +86,7 @@ class MaskFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.panYBar.apply {
-            min = 0
+            
             max = 200
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {

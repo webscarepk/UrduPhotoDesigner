@@ -97,7 +97,7 @@ class ShapePanelFragment : Fragment() {
         }
 
         binding.cornerRadiusBar.apply {
-            min = 0
+            
             max = 300
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {

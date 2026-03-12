@@ -35,7 +35,7 @@ class AdvancedAdjustmentsFragment : androidx.fragment.app.Fragment() {
 
         // 🟢 Sharpness (0 → 5)
         binding.sharpness.apply {
-            min = 0
+            
             max = 500
             progress = 0
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -76,7 +76,7 @@ class AdvancedAdjustmentsFragment : androidx.fragment.app.Fragment() {
 
         // 🟣 Fade / Vignette (0 → 100)
         binding.fade.apply {
-            min = 0
+            
             max = 100
             progress = 0
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
