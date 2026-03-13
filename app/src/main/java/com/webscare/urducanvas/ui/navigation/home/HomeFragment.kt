@@ -250,8 +250,14 @@ class HomeFragment : androidx.fragment.app.Fragment() {
             setHasFixedSize(true)
         }
 
+        binding.subscriptions.addPressEffect {
+            mainViewModel.enableSubscription()
+//            view?.post { findNavController().navigate(R.id.subscriptionsFragment) }
+        }
+
         binding.create.addPressEffect {
-            pickImageLauncher.launch("image/*")
+            mainViewModel.disableSubscription()
+//            pickImageLauncher.launch("image/*")
         }
 
         binding.blankCanvas.addPressEffect {
@@ -282,8 +288,6 @@ class HomeFragment : androidx.fragment.app.Fragment() {
         binding.fileTab.addPressEffect {
             view?.post { findNavController().navigate(R.id.filesFragment) }
         }
-
-        binding.subscriptions.addPressEffect { view?.post { findNavController().navigate(R.id.subscriptionsFragment) } }
     }
 
     private fun initObservers() {
