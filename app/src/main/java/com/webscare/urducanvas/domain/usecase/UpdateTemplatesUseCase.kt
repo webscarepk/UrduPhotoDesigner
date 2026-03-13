@@ -10,7 +10,7 @@ class UpdateTemplatesUseCase @Inject constructor(
         templatesRepo.updateTemplates(id, isDownloaded, isDownloading, progress, filePath)
     }
 
-    suspend fun updatePremiumStatus(id: Int, isPremium: Boolean) {
-        templatesRepo.updateTemplatePremiumStatus(id, isPremium)
+    suspend fun updatePremiumStatus(id: Int, isSubscribed: Boolean) {
+        templatesRepo.updateTemplatePremiumStatus(id, isSubscribed)
     }
 }

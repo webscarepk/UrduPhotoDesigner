@@ -102,7 +102,7 @@ class PopularFontsAdapter(
         fun bind(item: com.webscare.urducanvas.data.model.FontEntity, progress: com.webscare.urducanvas.data.model.ProgressUi) {
             loadImage(item)
 
-            binding.isPremium.isVisible = item.is_premium
+            binding.isPremium.isVisible = item.is_premium && !item.is_subscribed
             binding.assetName.text = item.font_name
             binding.metaData.text = "${formatSize(item.file_size)}"
             binding.root.addPressEffect { onFontClick(item, item.is_downloaded) }
@@ -182,7 +182,7 @@ class PopularFontsAdapter(
         fun bind(item: com.webscare.urducanvas.data.model.FontEntity, progress: com.webscare.urducanvas.data.model.ProgressUi) {
             loadImage(item)
 
-            binding.isPremium.isVisible = item.is_premium
+            binding.isPremium.isVisible = item.is_premium && !item.is_subscribed
             binding.assetName.text = item.font_name
             binding.metaData.text = "${formatSize(item.file_size)}"
             binding.root.addPressEffect { onFontClick(item, item.is_downloaded) }

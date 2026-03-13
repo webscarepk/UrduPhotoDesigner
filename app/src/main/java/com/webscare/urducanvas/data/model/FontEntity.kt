@@ -17,6 +17,7 @@ data class FontEntity(
     val alt_text: String? = null,
     val user_id: Int,
     val is_premium: Boolean = false,
+    val is_subscribed: Boolean = false,
     val created_at: String? = null,
     val updated_at: String? = null,
     var is_selected:Boolean = false,

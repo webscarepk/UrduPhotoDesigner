@@ -29,6 +29,6 @@ interface AllTemplatesDao {
     @Query("SELECT * FROM templates ORDER BY id DESC")
     fun getAllTemplates(): Flow<List<TemplateEntity>>
 
-    @Query("UPDATE templates SET is_premium = :isPremium WHERE id = :id")
-    suspend fun updateTemplatePremiumStatus(id: Int, isPremium: Boolean)
+    @Query("UPDATE templates SET is_subscribed = :isSubscribed WHERE id = :id")
+    suspend fun updateTemplatePremiumStatus(id: Int, isSubscribed: Boolean)
 }

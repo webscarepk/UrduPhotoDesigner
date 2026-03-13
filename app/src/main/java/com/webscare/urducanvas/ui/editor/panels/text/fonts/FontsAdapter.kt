@@ -65,7 +65,7 @@ class FontsAdapter(
                 R.color.appColor
             )
 
-            binding.isPremium.isVisible = font.is_premium
+            binding.isPremium.isVisible = font.is_premium && !font.is_subscribed
             // Download UI
             binding.download.visibility =
                 if (font.is_downloaded || font.is_downloading) View.GONE else View.VISIBLE

@@ -87,7 +87,7 @@ class TemplatesAdapter(
                 binding.imageContainer.layoutParams = params
             }
 
-            binding.isPremium.isVisible = item.is_premium
+            binding.isPremium.isVisible = item.is_premium && !item.is_subscribed
 
             binding.download.addPressEffect {
                 val currentItem = (bindingAdapter as TemplatesAdapter)

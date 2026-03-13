@@ -39,7 +39,7 @@ class TemplatesMiniAdapter(
         fun bind(item: com.webscare.urducanvas.data.model.TemplateEntity) {
 
 
-            binding.isPremium.isVisible = item.is_premium
+            binding.isPremium.isVisible = item.is_premium && !item.is_subscribed
             // CLICK
             binding.root.addPressEffect {
                 val pos = bindingAdapterPosition

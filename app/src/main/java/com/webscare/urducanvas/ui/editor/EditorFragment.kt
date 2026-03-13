@@ -137,7 +137,7 @@ class EditorFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        activity?.window?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+//        activity?.window?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavigation) { view, insets ->
             if (MANUFACTURER.equals("realme", ignoreCase = true)) {
@@ -270,15 +270,11 @@ class EditorFragment : Fragment() {
 
         binding.addShapes.setOnClickListener {
             viewModel.addShapeElement()
-            val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
-            val bundle = Bundle().apply { putInt("startPage", 0) } // Assuming page 1 is index 0
-            navController.navigate(R.id.objectsFragment, bundle, navOptions)
             toggleFabMenu(false)
         }
 
         binding.addImage.setOnClickListener {
             pickImage.launch("image/*")
-            navController.navigate(R.id.imagesFragment)
             toggleFabMenu(false)
         }
 

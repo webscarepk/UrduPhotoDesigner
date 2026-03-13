@@ -21,6 +21,7 @@ data class TemplateEntity(
     val subcategory: String,
     val tags: List<String>,
     val is_premium: Boolean = false,
+    val is_subscribed: Boolean = false,
     val is_popular: Boolean = false,
     val created_at: String? = null,
     val updated_at: String? = null,

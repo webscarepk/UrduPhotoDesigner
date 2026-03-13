@@ -138,7 +138,7 @@ class FontsAdapter(
             // Download button → trigger font download
             binding.download.addPressEffect { onDownload(item) }
 
-            binding.isPremium.isVisible = item.is_premium
+            binding.isPremium.isVisible = item.is_premium && !item.is_subscribed
             applyProgress(progress)
         }
 

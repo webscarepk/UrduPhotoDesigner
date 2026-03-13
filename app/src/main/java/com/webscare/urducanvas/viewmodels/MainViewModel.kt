@@ -178,17 +178,25 @@ class MainViewModel @Inject constructor(
             billingManager.isSubscribed.collect { subscribed ->
                 _localFonts.value.forEach { font ->
                     if (subscribed && font.is_premium) {
-                        updateFontsUseCase.invoke(font.copy(is_premium = false))
+                        updateFontsUseCase.invoke(font.copy(is_subscribed = true))
+                    }else if (!subscribed && font.is_premium){
+                        updateFontsUseCase.invoke(font.copy(is_subscribed = false))
                     }
                 }
                 _localImages.value.forEach { image ->
                     if (subscribed && image.is_premium) {
-                        updateImagesUseCase.invoke(image.copy(is_premium = false))
+                        updateImagesUseCase.invoke(image.copy(is_subscribed = true))
+                    }else if (!subscribed && image.is_premium){
+                        updateImagesUseCase.invoke(image.copy(is_subscribed = false))
                     }
                 }
 
                 _localTemplates.value.forEach { template ->
                     if (subscribed && template.is_premium) {
+                        updateTemplatesUseCase.updatePremiumStatus(
+                            template.id, true
+                        )
+                    }else if (!subscribed && template.is_premium){
                         updateTemplatesUseCase.updatePremiumStatus(
                             template.id, false
                         )
@@ -196,6 +204,14 @@ class MainViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun enableSubscription(){
+        billingManager.debugSetSubscription(true, planId = 1)
+    }
+
+    fun disableSubscription(){
+        billingManager.debugSetSubscription(false)
     }
 
     fun deleteGradient(id: Long) = viewModelScope.launch { delete(id) }
@@ -217,7 +233,7 @@ class MainViewModel @Inject constructor(
                         val subscribed = billingManager.isSubscribed.value
 
                         val templatesToSave = response.data!!.templates.map { template ->
-                            if (subscribed) template.copy(is_premium = false)
+                            if (subscribed) template.copy(is_subscribed = true)
                             else template
                         }
 
@@ -264,9 +280,9 @@ class MainViewModel @Inject constructor(
 
                         val fontsToSave = response.data!!.fonts.map { font ->
                             if (subscribed) {
-                                font.copy(is_premium = false)  // subscribed → sab unlock
+                                font.copy(is_subscribed = true)  // subscribed → sab unlock
                             } else {
-                                font  // API ki value as-is
+                                font
                             }
                         }
                         insertFontsUseCase.invoke(
@@ -302,7 +318,7 @@ class MainViewModel @Inject constructor(
                         val trendsToSave = response.data!!.trends.map { trend ->
                             trend.copy(
                                 templates = trend.templates.map { template ->
-                                    if (subscribed) template.copy(is_premium = false)
+                                    if (subscribed) template.copy(is_subscribed = true)
                                     else template
                                 }
                             )
@@ -351,7 +367,7 @@ class MainViewModel @Inject constructor(
 
                         val imagesToSave = response.data!!.image.map { image ->
                             if (subscribed) {
-                                image.copy(is_premium = false)
+                                image.copy(is_subscribed = true)
                             } else {
                                 image
                             }

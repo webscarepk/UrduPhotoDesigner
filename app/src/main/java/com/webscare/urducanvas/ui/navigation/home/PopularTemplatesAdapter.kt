@@ -40,7 +40,7 @@ class PopularTemplatesAdapter(
         fun bind(item: com.webscare.urducanvas.data.model.TemplateEntity) {
             binding.shimmerLayout.startShimmer()
 
-            binding.isPremium.isVisible = item.is_premium
+            binding.isPremium.isVisible = item.is_premium && !item.is_subscribed
             binding.root.strokeColor =
                 ContextCompat.getColor(binding.root.context, R.color.appColor)
 

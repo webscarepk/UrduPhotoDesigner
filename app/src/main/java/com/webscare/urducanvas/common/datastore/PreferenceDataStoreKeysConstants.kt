@@ -16,6 +16,6 @@ object PreferenceDataStoreKeysConstants {
     val KEY_FORMAT = stringPreferencesKey("key_format")
 
     val PREF_IS_SUBSCRIBED = booleanPreferencesKey("is_subscribed")
-
+    val PREF_ACTIVE_PLAN = stringPreferencesKey("active_plan")
     var isSubscribedValue: Boolean = false
 }

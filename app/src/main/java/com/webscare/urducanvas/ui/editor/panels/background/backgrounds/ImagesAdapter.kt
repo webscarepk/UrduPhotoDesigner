@@ -63,7 +63,7 @@ class ImagesAdapter(
                 binding.root.setCardBackgroundColor(Color.WHITE)
             }
 
-            binding.isPremium.isVisible = image.is_premium
+            binding.isPremium.isVisible = image.is_premium && !image.is_subscribed
 
             val url = Constants.BASE_URL_GLIDE + image.file_url
 
