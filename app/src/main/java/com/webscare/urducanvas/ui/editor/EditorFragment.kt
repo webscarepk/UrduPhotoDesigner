@@ -257,22 +257,18 @@ class EditorFragment : Fragment() {
 
         binding.addText.addPressEffect {
             viewModel.addText(requireActivity().getString(R.string.dummyText), requireActivity())
-            navController.navigate(R.id.textFragment)
             toggleFabMenu(false)
         }
 
         binding.addObject.setOnClickListener {
             val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
-            val bundle = Bundle().apply { putInt("startPage", 1) } // Assuming page 1 is index 0
+            val bundle = Bundle().apply { putInt("startPage", 0) } // Assuming page 1 is index 0
             navController.navigate(R.id.objectsFragment, bundle, navOptions)
             toggleFabMenu(false)
         }
 
         binding.addShapes.setOnClickListener {
             viewModel.addShapeElement()
-            val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
-            val bundle = Bundle().apply { putInt("startPage", 0) } // Assuming page 1 is index 0
-            navController.navigate(R.id.objectsFragment, bundle, navOptions)
             toggleFabMenu(false)
         }
 
