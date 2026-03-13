@@ -50,7 +50,6 @@ import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.data.model.FontPanelState
 import com.webscare.urducanvas.data.model.PremiumAssetItem
-import com.webscare.urducanvas.di.BillingManager
 import com.webscare.urducanvas.domain.usecase.GetFontsUseCase
 import com.webscare.urducanvas.viewmodels.FontGate
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -70,8 +69,7 @@ class CanvasViewModel @Inject constructor(
     private val getFontsUseCase: GetFontsUseCase,
     private val gson: Gson,
     private val dataStore: PreferencesDataStoreHelper,
-    private val fontGate: FontGate,
-    private val billingManager: BillingManager
+    private val fontGate: FontGate
 ) : ViewModel() {
 
     private val _fontPanelState = MutableLiveData(FontPanelState())
@@ -469,9 +467,7 @@ class CanvasViewModel @Inject constructor(
         updateSelectedShape { element ->
             if (element.type == ElementType.SHAPE) {
                 element.copy(
-                    context = context, bitmap = bitmap,
-                    isPremium = if (billingManager.isSubscribed.value) false else isPremium,
-                    originallyPremium = isPremium
+                    context = context, bitmap = bitmap, isPremium = isPremium  // ✅ ADD
                 )
             } else {
                 element
@@ -577,8 +573,7 @@ class CanvasViewModel @Inject constructor(
             isSelected = true,  // Make sure the new shape is selected
             logicalContentWidth = 300f,
             logicalContentHeight = 300f,
-            isPremium = if (billingManager.isSubscribed.value) false else isPremium,
-            originallyPremium = isPremium
+            isPremium = isPremium
         )
 
         updateCanvasElement(updatedElement)
@@ -809,21 +804,9 @@ class CanvasViewModel @Inject constructor(
     }
 
     init {
-
-        viewModelScope.launch {
-            billingManager.isSubscribed.collect { subscribed ->
-                val current = _canvasElements.value ?: return@collect
-                val updated = current.map { element ->
-                    element.copy(
-                        isPremium = if (subscribed) false else element.originallyPremium
-                    )
-                }
-                _canvasElements.postValue(updated)
-            }
-        }
-
         observeLocalFonts()
 
+        // Gradient color observation (unchanged)
         _gradientStopColor.addSource(_gradient) { gradient ->
             _selectedStopIndex.value?.let { idx ->
                 if (idx in gradient.colors.indices) {
@@ -2458,8 +2441,7 @@ class CanvasViewModel @Inject constructor(
         val updatedElement = selectedElement?.copy(
             bitmap = finalBitmap,
             bitmapData = ImageProcessor.bitmapToBase64(finalBitmap),
-            isPremium = if (billingManager.isSubscribed.value) false else isPremium,
-            originallyPremium = isPremium
+            isPremium = isPremium
         )
 
         updatedElement?.let { updateCanvasElement(it) }
@@ -2520,8 +2502,7 @@ class CanvasViewModel @Inject constructor(
             y = canvasH / 2f,
             paintAlpha = 255,
             zIndex = newZIndex,
-            isPremium = if (billingManager.isSubscribed.value) false else isPremium,
-            originallyPremium = isPremium
+            isPremium = isPremium
         )
 
         element.updatePaintProperties()
@@ -2602,7 +2583,6 @@ class CanvasViewModel @Inject constructor(
         val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
         val canvasW = _canvasSize.value?.width ?: 0f
         val canvasH = _canvasSize.value?.height ?: 0f
-        val subscribed = billingManager.isSubscribed.value
         // Create base element
         val element = CanvasElement(
             context = context,
@@ -2616,8 +2596,7 @@ class CanvasViewModel @Inject constructor(
             paintAlpha = 255,
             fontId = fontEntity?.id.toString(),
             zIndex = newZIndex,
-            isPremium = if (subscribed) false else (fontEntity?.is_premium ?: false),
-            originallyPremium = fontEntity?.is_premium ?: false
+            isPremium = fontEntity?.is_premium ?: false
         )
 
         // If a fontEntity was provided, try to apply it
@@ -2675,14 +2654,13 @@ class CanvasViewModel @Inject constructor(
         }
 
         val affectedElementsData = mutableListOf<Pair<String, String?>>()
-        val subscribed = billingManager.isSubscribed.value
+
         val updatedList = currentList.map { element ->
             if (element.isSelected && element.type == ElementType.TEXT && element.fontId != fontEntity.id.toString()) {
                 affectedElementsData.add(element.id to element.fontId)
                 element.copy(context = context).apply {
                     fontId = fontEntity.id.toString()
-                    isPremium = if (subscribed) false else fontEntity.is_premium
-                    originallyPremium = fontEntity.is_premium
+                    isPremium = fontEntity.is_premium
                     paint.typeface = try {
                         Typeface.createFromFile(fontEntity.file_path)
                     } catch (e: Exception) {
@@ -3521,20 +3499,15 @@ class CanvasViewModel @Inject constructor(
 
                 _loadingStage.postValue("Fonts ready" to 55)
 
+
                 _loadingStage.postValue("Hydrating elements" to 60)
-                val subscribed = billingManager.isSubscribed.value
-
                 val hydratedElements = elements.map { raw ->
-                    val fixed = if (raw.adjustments == null) raw.copy(adjustments = AdjustmentValues()) else raw
-
-                    // originallyPremium → JSON mein jo tha, woh preserve karo
-                    val withPremium = fixed.copy(
-                        originallyPremium = if (fixed.originallyPremium) fixed.originallyPremium else fixed.isPremium,
-                        isPremium = if (subscribed) false else fixed.isPremium  // subscribed → sab unlock
-                    )
-
-                    withPremium.copy(context = context).apply {
-                        drawStrokes?.forEach { stroke -> stroke.restorePath() }
+                    val fixed =
+                        if (raw.adjustments == null) raw.copy(adjustments = AdjustmentValues()) else raw
+                    fixed.copy(context = context).apply {
+                        drawStrokes?.forEach { stroke ->
+                            stroke.restorePath()
+                        }
                     }.restoreWithContext(context)
                 }
 

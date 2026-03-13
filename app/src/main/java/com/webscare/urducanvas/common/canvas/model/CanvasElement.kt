@@ -264,8 +264,6 @@ data class CanvasElement(
     @SerializedName("isPremium")
     var isPremium: Boolean = false,
 
-    @SerializedName("originallyPremium")
-    var originallyPremium: Boolean = false
 ) : Serializable {
 
     @field:Transient
