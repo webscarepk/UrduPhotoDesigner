@@ -251,13 +251,11 @@ class HomeFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.subscriptions.addPressEffect {
-            mainViewModel.enableSubscription()
-//            view?.post { findNavController().navigate(R.id.subscriptionsFragment) }
+            view?.post { findNavController().navigate(R.id.subscriptionsFragment) }
         }
 
         binding.create.addPressEffect {
-            mainViewModel.disableSubscription()
-//            pickImageLauncher.launch("image/*")
+            pickImageLauncher.launch("image/*")
         }
 
         binding.blankCanvas.addPressEffect {

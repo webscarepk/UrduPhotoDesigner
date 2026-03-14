@@ -45,87 +45,199 @@
         android:textColor="@color/black"
         android:id="@+id/title"/>
 
-    <com.google.android.material.card.MaterialCardView
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:cardCornerRadius="10dp"
-        app:cardElevation="3dp"
-        android:outlineSpotShadowColor="@color/shadowColor"
-        app:cardBackgroundColor="@color/white"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/title"
-        android:id="@+id/subscriptionCard"
-        android:layout_marginTop="24dp">
-
-        <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:src="@drawable/ic_subscription_card_bg"
-            android:scaleType="centerCrop"/>
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:padding="15dp">
+        android:id="@+id/subscriptionLayout">
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="10dp"
+            app:cardElevation="3dp"
+            android:visibility="visible"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:outlineSpotShadowColor="@color/shadowColor"
+            app:cardBackgroundColor="@color/white"
+            android:id="@+id/subscriptionCard"
+            android:layout_marginTop="24dp">
 
             <ImageView
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:background="@drawable/button_bg_round"
-                android:src="@drawable/ic_crown"
-                android:padding="7dp"
-                android:id="@+id/titleImage"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                android:backgroundTint="@color/white"/>
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/ic_subscription_card_bg"
+                android:scaleType="centerCrop"/>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/urdu_canvas_pro"
-                android:textSize="14sp"
-                android:fontFamily="@font/bold"
-                app:layout_constraintStart_toEndOf="@id/titleImage"
-                android:textColor="@color/white"
-                android:layout_marginStart="10dp"
-                android:id="@+id/subscriptionCardTitle"
-                app:layout_constraintBottom_toTopOf="@+id/subscriptionCardSubTitle"
-                app:layout_constraintTop_toTopOf="@id/titleImage"/>
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="15dp">
 
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="@string/unlock_all_features_and_assets"
-                android:textSize="12sp"
-                android:layout_marginEnd="5dp"
-                android:fontFamily="@font/regular"
-                app:layout_constraintStart_toEndOf="@id/titleImage"
-                android:textColor="@color/light_gray"
-                android:layout_marginStart="10dp"
-                android:id="@+id/subscriptionCardSubTitle"
-                app:layout_constraintEnd_toStartOf="@id/upgradeNow"
-                app:layout_constraintTop_toBottomOf="@id/subscriptionCardTitle"
-                app:layout_constraintBottom_toBottomOf="@id/titleImage"/>
+                <ImageView
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:background="@drawable/button_bg_round"
+                    android:src="@drawable/ic_crown"
+                    android:padding="7dp"
+                    android:id="@+id/titleImage"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    android:backgroundTint="@color/white"/>
 
-            <TextView
-                android:id="@+id/upgradeNow"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/button_gradient_contrast"
-                android:text="@string/upgrade_now"
-                android:textColor="@color/white"
-                android:paddingVertical="5dp"
-                android:fontFamily="@font/regular"
-                android:paddingHorizontal="10dp"
-                android:textSize="12sp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/urdu_canvas_pro"
+                    android:textSize="14sp"
+                    android:fontFamily="@font/bold"
+                    app:layout_constraintStart_toEndOf="@id/titleImage"
+                    android:textColor="@color/white"
+                    android:layout_marginStart="10dp"
+                    android:id="@+id/subscriptionCardTitle"
+                    app:layout_constraintBottom_toTopOf="@+id/subscriptionCardSubTitle"
+                    app:layout_constraintTop_toTopOf="@id/titleImage"/>
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
-    </com.google.android.material.card.MaterialCardView>
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/unlock_all_features_and_assets"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="5dp"
+                    android:fontFamily="@font/regular"
+                    app:layout_constraintStart_toEndOf="@id/titleImage"
+                    android:textColor="@color/light_gray"
+                    android:layout_marginStart="10dp"
+                    android:id="@+id/subscriptionCardSubTitle"
+                    app:layout_constraintEnd_toStartOf="@id/upgradeNow"
+                    app:layout_constraintTop_toBottomOf="@id/subscriptionCardTitle"
+                    app:layout_constraintBottom_toBottomOf="@id/titleImage"/>
+
+                <TextView
+                    android:id="@+id/upgradeNow"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/button_gradient_contrast"
+                    android:text="@string/upgrade_now"
+                    android:textColor="@color/white"
+                    android:paddingVertical="5dp"
+                    android:fontFamily="@font/regular"
+                    android:paddingHorizontal="10dp"
+                    android:textSize="12sp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"/>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="10dp"
+            app:cardElevation="3dp"
+            android:outlineSpotShadowColor="@color/shadowColor"
+            app:cardBackgroundColor="@color/white"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:id="@+id/currentPlanCard"
+            android:visibility="gone"
+            android:layout_marginTop="24dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/ic_subscription_card_bg"
+                android:scaleType="centerCrop"/>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="15dp">
+
+                <ImageView
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:background="@drawable/button_bg_round"
+                    android:src="@drawable/ic_crown"
+                    android:padding="7dp"
+                    android:id="@+id/currentTitleImage"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    android:backgroundTint="@color/white"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Current Plan"
+                    android:textSize="12sp"
+                    android:fontFamily="@font/regular"
+                    app:layout_constraintStart_toEndOf="@id/currentTitleImage"
+                    android:textColor="@color/white"
+                    android:layout_marginStart="10dp"
+                    android:id="@+id/currentPlanTitle"
+                    android:includeFontPadding="false"
+                    app:layout_constraintBottom_toTopOf="@+id/manageCardTitle"
+                    app:layout_constraintTop_toTopOf="@id/currentTitleImage"
+                    tools:ignore="DuplicateIds" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/monthly"
+                    android:textSize="16sp"
+                    android:fontFamily="@font/bold"
+                    android:includeFontPadding="false"
+                    app:layout_constraintStart_toEndOf="@id/currentTitleImage"
+                    android:textColor="@color/white"
+                    android:layout_marginStart="10dp"
+                    android:id="@+id/manageCardTitle"
+                    app:layout_constraintBottom_toTopOf="@+id/manageCardSubTitle"
+                    app:layout_constraintTop_toBottomOf="@id/currentPlanTitle"/>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/subscribed_amp_unstoppable_new_features_unlocked"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="5dp"
+                    android:fontFamily="@font/regular"
+                    app:layout_constraintStart_toEndOf="@id/currentTitleImage"
+                    android:textColor="@color/light_gray"
+                    android:lineHeight="12dp"
+                    android:layout_marginStart="10dp"
+                    android:includeFontPadding="false"
+                    android:id="@+id/manageCardSubTitle"
+                    app:layout_constraintEnd_toStartOf="@id/manage"
+                    app:layout_constraintTop_toBottomOf="@id/manageCardTitle"
+                    app:layout_constraintBottom_toBottomOf="@id/currentTitleImage"/>
+
+                <TextView
+                    android:id="@+id/manage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/button_gradient_contrast"
+                    android:text="@string/manage"
+                    android:textColor="@color/white"
+                    android:paddingVertical="5dp"
+                    android:fontFamily="@font/regular"
+                    android:paddingHorizontal="10dp"
+                    android:textSize="12sp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"/>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <ScrollView
         android:layout_width="0dp"
@@ -133,7 +245,7 @@
         android:scrollbars="none"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
-        app:layout_constraintTop_toBottomOf="@id/subscriptionCard"
+        app:layout_constraintTop_toBottomOf="@id/subscriptionLayout"
         app:layout_constraintBottom_toBottomOf="parent"
         android:paddingBottom="80dp"
         android:clipToPadding="false">

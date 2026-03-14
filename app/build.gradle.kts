@@ -17,12 +17,13 @@ android {
         applicationId = "com.webscare.urducanvas"
         minSdk = 24
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.0.5"
+        versionCode = 6
+        versionName = "1.0.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         setProperty("archivesBaseName", "UrduCanvas - V$versionCode($versionName)")
     }
+
     bundle{
         language{
             enableSplit = false
@@ -38,6 +39,7 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

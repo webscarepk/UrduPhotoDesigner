@@ -74,6 +74,7 @@ import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -918,15 +919,19 @@ class CanvasView @JvmOverloads constructor(
 
         // Stream JSON to a temp file — never builds a giant String in RAM
         val jsonFile = File(context.cacheDir, "thumb_meta_${System.currentTimeMillis()}.json")
-        jsonFile.bufferedWriter().use { writer ->
-            gson.toJson(elementsSnapshot, writer)
+        try {
+            jsonFile.bufferedWriter().use { writer ->
+                gson.toJson(elementsSnapshot, writer)
+            }
+            if (!jsonFile.exists() || jsonFile.length() == 0L) {
+                throw IOException("Thumbnail metadata file was not written correctly")
+            }
+            val json = jsonFile.readText()
+            onProgress?.invoke(95, "Thumbnail ready")
+            return Pair(bitmap, json)
+        } finally {
+            jsonFile.delete() // Always clean up, even on exception
         }
-        val json = jsonFile.readText()
-        jsonFile.delete()
-
-        onProgress?.invoke(95, "Thumbnail ready")
-
-        return Pair(bitmap, json)
     }
 
     suspend fun exportCanvasJson(jsonOutputPath: String): Unit = withContext(Dispatchers.IO) {

@@ -4,7 +4,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="24dp"
-    android:background="@drawable/button_bg"
+    android:background="@drawable/dialog_bg"
     android:backgroundTint="@color/white"
     android:gravity="center">
 

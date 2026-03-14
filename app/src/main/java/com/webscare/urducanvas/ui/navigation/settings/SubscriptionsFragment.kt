@@ -1,9 +1,10 @@
 package com.webscare.urducanvas.ui.navigation.settings
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.*
 import android.view.animation.AnimationUtils
-import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -13,14 +14,14 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import com.webscare.urducanvas.data.model.SubscriptionPlan
 import com.webscare.urducanvas.databinding.FragmentSubscriptionsBinding
+import com.webscare.urducanvas.di.BillingManager
+import com.webscare.urducanvas.viewmodels.SubscriptionsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
-import android.content.Intent
-import com.webscare.urducanvas.di.BillingManager
-import com.webscare.urducanvas.viewmodels.SubscriptionsViewModel
+import com.webscare.urducanvas.common.utils.SubscriptionDialogHelper
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class SubscriptionsFragment : androidx.fragment.app.Fragment() {
@@ -31,7 +32,10 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
     private lateinit var adapter: SubscriptionsAdapter
     private val viewModel: SubscriptionsViewModel by viewModels()
 
-    private var selectedPlanId: Int = 2  // Default: 6-month plan
+    @Inject
+    lateinit var billingManager: BillingManager
+
+    private var selectedPlanId: Int = 2
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -43,16 +47,59 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        setupRecyclerView()
         setEvents()
-        loadDummyPlans()
         observeBillingState()
-        viewModel.loadProducts()          // Connect + query Play Console
-
+        observeSubscriptionState()
+        observePlans()
+        viewModel.loadProducts()
         binding.root.post { startEntranceAnimation() }
     }
 
-    // ─── Observe Billing ───────────────────────────────────────────────────────
+    // ─── Observe Plans ─────────────────────────────────────────────────────────
 
+    private fun observePlans() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.plans.collect { plans ->
+                if (plans.isEmpty()) return@collect
+                adapter.submitList(plans)
+                selectedPlanId = plans.firstOrNull { it.isSelected }?.id ?: plans.first().id
+                // 2 plans hain toh span 2, 3 hain toh span 3
+                (binding.subscriptionsRV.layoutManager as GridLayoutManager).spanCount = plans.size
+            }
+        }
+    }
+
+    // ─── Observe Subscription State ───────────────────────────────────────────
+
+    private fun observeSubscriptionState() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.isSubscribed.collect { subscribed ->
+                if (subscribed) {
+                    binding.continueBtn.text = getString(R.string.upgrade_now)
+                    binding.activePlanCard.visibility = View.VISIBLE
+                    binding.activePlanCard.alpha = 0f
+                } else {
+                    binding.continueBtn.text = getString(R.string.continue_)
+                    binding.activePlanCard.visibility = View.GONE
+                    binding.activePlanCard.alpha = 0f
+                }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.activePlan.collect { productId ->
+                binding.subscriptionCardTitle.text = when (productId) {
+                    "urducanvas_monthly" -> "Monthly"
+                    "urducanvas_6months" -> "6 Months"
+                    "urducanvas_yearly" -> "Yearly"
+                    else -> "Pro"
+                }
+            }
+        }
+    }
+
+    // ─── Observe Billing State ─────────────────────────────────────────────────
     private fun observeBillingState() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -66,15 +113,24 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
                         }
                         is BillingManager.BillingState.ProductsLoaded -> {
                             binding.continueBtn.isEnabled = true
-                            // Optionally update prices from real Play Console data here
+                            viewModel.buildPlans(state.products)
                         }
                         is BillingManager.BillingState.PurchaseSuccess -> {
-                            showSuccessDialog()
+                            binding.continueBtn.isEnabled = true
+                            if (viewModel.isRestoring()) {
+                                showRestoreSuccessDialog()
+                            } else {
+                                showPurchaseSuccessDialog()
+                            }
                             viewModel.resetState()
                         }
                         is BillingManager.BillingState.Error -> {
                             binding.continueBtn.isEnabled = true
-                            Toast.makeText(requireContext(), state.message, Toast.LENGTH_LONG).show()
+                            if (viewModel.isRestoring()) {
+                                showRestoreFailedDialog()
+                            } else {
+                                showErrorDialog(state.message)
+                            }
                             viewModel.resetState()
                         }
                     }
@@ -83,37 +139,97 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    // ─── Success Dialog ────────────────────────────────────────────────────────
-
-    private fun showSuccessDialog() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("🎉 Subscription Activated!")
-            .setMessage("You now have full access to Urdu Canvas Premium. Enjoy!")
-            .setPositiveButton("Let's Go!") { dialog, _ ->
-                dialog.dismiss()
-                findNavController().navigateUp()
-            }
-            .setCancelable(false)
-            .show()
+    private fun showPurchaseSuccessDialog() {
+        val isUpgrade = billingManager.isSubscribed.value
+        SubscriptionDialogHelper.show(
+            context = requireContext(),
+            iconRes = R.drawable.ic_crown,
+            iconTint = ContextCompat.getColor(requireContext(), R.color.appColor),
+            title = if (isUpgrade) "Plan Updated!" else "Welcome to Premium!",
+            message = if (isUpgrade)
+                "Your plan has been updated successfully. New plan is active now."
+            else
+                "You now have full access to Urdu Canvas Premium. All templates, fonts and assets are unlocked.",
+            confirmText = if (isUpgrade) "Let's Go" else "Explore Now",
+            cancelable = false,
+            onConfirm = { findNavController().navigateUp() }
+        )
     }
 
-    // ─── Events ────────────────────────────────────────────────────────────────
+    private fun showErrorDialog(message: String) {
+        if (message.contains("cancel", ignoreCase = true)) return
+        SubscriptionDialogHelper.show(
+            context = requireContext(),
+            iconRes = R.drawable.ic_urdu_canvas,
+            iconTint = ContextCompat.getColor(requireContext(), R.color.gray),
+            title = "Something Went Wrong",
+            message = "Purchase could not be completed. Please try again or contact support.",
+            confirmText = "Try Again",
+            cancelText = "Contact Support",
+            onConfirm = { },
+            onCancel = { openUrl("mailto:support@urducanvas.com?subject=Purchase Issue") }
+        )
+    }
 
-    private fun setEvents() {
+    private fun showRestoreSuccessDialog() {
+        SubscriptionDialogHelper.show(
+            context = requireContext(),
+            iconRes = R.drawable.ic_crown,
+            iconTint = ContextCompat.getColor(requireContext(), R.color.appColor),
+            title = "Subscription Restored!",
+            message = "Your previous subscription has been restored successfully.",
+            confirmText = "Continue",
+            cancelable = false,
+            onConfirm = { findNavController().navigateUp() }
+        )
+    }
+
+    private fun showRestoreFailedDialog() {
+        SubscriptionDialogHelper.show(
+            context = requireContext(),
+            iconRes = R.drawable.ic_urdu_canvas,
+            iconTint = ContextCompat.getColor(requireContext(), R.color.gray),
+            title = "Nothing Found",
+            message = "No active subscription was found on this account.",
+            confirmText = "OK",
+            onConfirm = { }
+        )
+    }
+
+    private fun showCancelConfirmDialog() {
+        SubscriptionDialogHelper.show(
+            context = requireContext(),
+            iconRes = R.drawable.ic_crown,
+            iconTint = ContextCompat.getColor(requireContext(), R.color.gray),
+            title = "Cancel Subscription?",
+            message = "Your access will continue until the end of your current billing period. You will be taken to Google Play to manage your subscription.",
+            confirmText = "Manage on Play",
+            cancelText = "Keep My Plan",
+            onConfirm = {
+                openUrl("https://play.google.com/store/account/subscriptions?package=${requireContext().packageName}")
+            }
+        )
+    }
+
+    // ─── Setup ─────────────────────────────────────────────────────────────────
+
+    private fun setupRecyclerView() {
         binding.subscriptionsRV.layoutManager = GridLayoutManager(requireContext(), 3)
-
         adapter = SubscriptionsAdapter { selectedPlan ->
             selectedPlanId = selectedPlan.id
         }
-
         binding.subscriptionsRV.adapter = adapter
+    }
 
-        // Subscribe button
+    private fun setEvents() {
         binding.continueBtn.addPressEffect {
             viewModel.subscribe(requireActivity(), selectedPlanId)
         }
 
-        // Restore purchases
+        binding.cancel.addPressEffect {
+            showCancelConfirmDialog()
+        }
+
         binding.restore.addPressEffect {
             viewModel.restore()
         }
@@ -132,19 +248,7 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
     private fun openUrl(url: String) {
         try {
             startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-        } catch (e: Exception) { /* no browser */ }
-    }
-
-    // ─── Plans ─────────────────────────────────────────────────────────────────
-
-    private fun loadDummyPlans() {
-        val plans = listOf(
-            SubscriptionPlan(id = 1, title = "Monthly",  price = "Rs 399",  duration = "/Month",    badge = null),
-            SubscriptionPlan(id = 2, title = "6 Months", price = "Rs 899",  duration = "/6 Months", badge = "Save 25%"),
-            SubscriptionPlan(id = 3, title = "1 Year",   price = "Rs 2999", duration = "/ Year",    badge = "Save 35%")
-        )
-        plans[1].isSelected = true
-        adapter.submitList(plans)
+        } catch (e: Exception) { }
     }
 
     // ─── Animations ────────────────────────────────────────────────────────────
@@ -162,21 +266,28 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
             .setInterpolator(android.view.animation.DecelerateInterpolator())
             .withEndAction {
                 binding.subscriptionsCard.slideUpSoft()
+
+                // ✅ Animate activePlanCard right after subscriptionsCard
+                if (binding.activePlanCard.visibility == View.VISIBLE) {
+                    binding.activePlanCard.alpha = 0f
+                    binding.activePlanCard.translationY = binding.activePlanCard.height.toFloat().coerceAtLeast(60f)
+                    binding.activePlanCard.slideUpSoft(delay = 150)
+                }
+
                 binding.subscriptionsCard.postDelayed({
                     binding.subscriptionsRV.alpha = 1f
-                    val controller = AnimationUtils.loadLayoutAnimation(requireContext(), R.anim.layout_drop_controller)
-                    binding.subscriptionsRV.layoutAnimation = controller
-                    binding.subscriptionsRV.post { binding.subscriptionsRV.scheduleLayoutAnimation() }
-                    loadDummyPlans()
                 }, 550)
+
                 binding.subscriptionsCard.postDelayed({ showBottomSection() }, 700)
             }
     }
 
     private fun showBottomSection() {
-        listOf(binding.continueBtn, binding.subTitle, binding.termsOfUse,
-            binding.view1, binding.privacyPolicy, binding.view2, binding.restore)
-            .forEachIndexed { i, v -> v.slideUpSoft(delay = (i * 40).toLong()) }
+        val views = mutableListOf(
+            binding.continueBtn, binding.subTitle, binding.termsOfUse,
+            binding.view1, binding.privacyPolicy, binding.view2, binding.restore
+        )
+        views.forEachIndexed { i, v -> v.slideUpSoft(delay = (i * 40).toLong()) }
     }
 
     override fun onDestroyView() {

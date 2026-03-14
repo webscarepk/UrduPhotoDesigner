@@ -148,7 +148,6 @@ class MainViewModel @Inject constructor(
         _rawQuery.value = ""
     }
 
-    val isSubscribed = billingManager.isSubscribed
 
     init {
         viewModelScope.launch {

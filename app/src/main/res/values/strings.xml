@@ -304,7 +304,7 @@
     <string name="rs_399">Rs 399</string>
     <string name="save_25">Save 25%</string>
     <string name="restore">Restore</string>
-    <string name="no_commitment_cancel_anytime">No Commitment, Cancel Anytime</string>
+    <string name="no_commitment_cancel_anytime">Charged to Google Play at confirmation. Auto-renews; cancel 24+ hrs before renewal in Play settings.</string>
     <string name="continue_">Continue</string>
     <string name="premium_urdu_templates">Premium Urdu Templates</string>
     <string name="install_custom_urdu_fonts_ttf_otf">Install Custom Urdu Fonts (TTF/OTF)</string>
@@ -318,19 +318,22 @@
     <string name="premium_assets_detected">Premium Assets Detected</string>
     <string name="this_project_uses_premium_assets_please_remove_them_or_subscribe_to_export">This project uses premium assets. Please remove them or subscribe to export</string>
     <string name="see_more">See more</string>
-    <string name="buy_now">Buy Now</string>
+    <string name="buy_now">Subscribe Now</string>
     <string name="premium_assets_used">Premium Assets Used</string>
     <string name="price">Price</string>
     <string name="inches">Inches</string>
     <string name="centimeters">Centimeters</string>
+    <string name="subscribed_amp_unstoppable_new_features_unlocked"><![CDATA[Subscribed & unstoppable , new features unlocked!]]></string>
+    <string name="manage">Manage Plan</string>
+    <string name="active_plan">Active Plan</string>
 
     <array name="hue_colors">
-        <item>#FF0000</item>  <!-- Red -->
-        <item>#FFFF00</item>  <!-- Yellow -->
-        <item>#00FF00</item>  <!-- Green -->
-        <item>#00FFFF</item>  <!-- Cyan -->
-        <item>#0000FF</item>  <!-- Blue -->
-        <item>#FF00FF</item>  <!-- Magenta -->
-        <item>#FF0000</item>  <!-- Back to Red -->
+        <item>#FF0000</item>
+        <item>#FFFF00</item>
+        <item>#00FF00</item>
+        <item>#00FFFF</item>
+        <item>#0000FF</item>
+        <item>#FF00FF</item>
+        <item>#FF0000</item>
     </array>
 </resources>

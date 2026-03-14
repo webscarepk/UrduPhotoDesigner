@@ -23,14 +23,14 @@
     <androidx.constraintlayout.widget.Guideline
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.1"
+        app:layout_constraintGuide_percent="0.05"
         android:orientation="vertical"
         android:id="@+id/startGuide"/>
 
     <androidx.constraintlayout.widget.Guideline
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.9"
+        app:layout_constraintGuide_percent="0.95"
         android:orientation="vertical"
         android:id="@+id/endGuide"/>
 
@@ -98,14 +98,14 @@
         android:outlineSpotShadowColor="@color/shadowColor"
         android:background="@drawable/ic_button_bg"
         android:backgroundTint="@color/white"
-        android:layout_marginBottom="20dp"
+        android:layout_marginBottom="10dp"
         android:alpha="0"
         android:translationY="300dp"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
-        app:layout_constraintBottom_toTopOf="@id/subscriptionsRV"
+        app:layout_constraintBottom_toTopOf="@id/activePlanCard"
         app:layout_constraintTop_toBottomOf="@id/topCenterGuide"
-        android:padding="30dp">
+        android:padding="20dp">
 
         <TextView
             android:id="@+id/titleImage"
@@ -116,6 +116,7 @@
             android:fontFamily="@font/bold"
             android:textColor="@color/gray"
             android:textSize="20sp"
+            android:layout_marginTop="10dp"
             app:drawableTopCompat="@drawable/ic_urdu_canvas"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -197,6 +198,93 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="10dp"
+        app:cardElevation="3dp"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
+        app:layout_constraintBottom_toTopOf="@id/subscriptionsRV"
+        app:layout_constraintTop_toBottomOf="@id/subscriptionsCard"
+        android:outlineSpotShadowColor="@color/shadowColor"
+        app:cardBackgroundColor="@color/white"
+        android:alpha="0"
+        android:translationY="300dp"
+        android:id="@+id/activePlanCard"
+        android:layout_marginTop="10dp">
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/ic_active_plan_card_bg"
+            android:scaleType="centerCrop"/>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="15dp">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:background="@drawable/button_bg_round"
+                android:src="@drawable/ic_crown"
+                android:padding="7dp"
+                app:tint="@color/white"
+                android:id="@+id/activePlanImage"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                android:backgroundTint="@color/appColor"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/monthly"
+                android:textSize="16sp"
+                android:fontFamily="@font/bold"
+                app:layout_constraintStart_toEndOf="@id/activePlanImage"
+                android:textColor="@color/black"
+                android:layout_marginStart="10dp"
+                android:id="@+id/subscriptionCardTitle"
+                app:layout_constraintTop_toBottomOf="@+id/subscriptionCardSubTitle"
+                app:layout_constraintBottom_toBottomOf="@id/activePlanImage"/>
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/active_plan"
+                android:textSize="12sp"
+                android:layout_marginEnd="5dp"
+                android:fontFamily="@font/regular"
+                app:layout_constraintStart_toEndOf="@id/activePlanImage"
+                android:textColor="@color/gray"
+                android:layout_marginStart="10dp"
+                android:id="@+id/subscriptionCardSubTitle"
+                app:layout_constraintTop_toTopOf="@id/activePlanImage"
+                app:layout_constraintEnd_toStartOf="@id/cancel"
+                app:layout_constraintBottom_toTopOf="@id/subscriptionCardTitle"/>
+
+            <TextView
+                android:id="@+id/cancel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/ic_button_gradient_wrap"
+                android:text="@string/cancel"
+                android:textColor="@color/white"
+                android:paddingVertical="5dp"
+                android:fontFamily="@font/regular"
+                android:paddingHorizontal="16dp"
+                android:gravity="center"
+                android:textSize="12sp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"/>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </com.google.android.material.card.MaterialCardView>
+
     <androidx.recyclerview.widget.RecyclerView
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -204,9 +292,9 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:paddingHorizontal="40dp"
         app:layout_constraintBottom_toTopOf="@id/continueBtn"
-        app:layout_constraintTop_toBottomOf="@id/subscriptionsCard"
-        android:layout_marginBottom="20dp"
-        android:paddingBottom="20dp"
+        app:layout_constraintTop_toBottomOf="@id/activePlanCard"
+        android:layout_marginVertical="10dp"
+        android:paddingBottom="10dp"
         android:alpha="0"
         android:clipToPadding="false"
         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
@@ -242,7 +330,7 @@
         android:text="@string/no_commitment_cancel_anytime"
         android:gravity="center"
         android:alpha="0"
-        android:layout_marginBottom="30dp"
+        android:layout_marginBottom="10dp"
         android:fontFamily="@font/regular"
         android:textColor="@color/gray"
         android:textSize="12sp"/>

@@ -12,11 +12,17 @@ import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentSettingsBinding
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.core.net.toUri
+import androidx.lifecycle.lifecycleScope
+import com.webscare.urducanvas.di.BillingManager
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class SettingsFragment : androidx.fragment.app.Fragment() {
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
+    @Inject
+    lateinit var billingManager: BillingManager
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -28,11 +34,41 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        observeSubscription()
         setEvents()
+    }
+
+    private fun observeSubscription() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            billingManager.isSubscribed.collect { subscribed ->
+                if (subscribed) {
+                    binding.subscriptionCard.visibility = View.GONE
+                    binding.currentPlanCard.visibility = View.VISIBLE
+                } else {
+                    binding.subscriptionCard.visibility = View.VISIBLE
+                    binding.currentPlanCard.visibility = View.GONE
+                }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            billingManager.activePlan.collect { productId ->
+                binding.manageCardTitle.text = when (productId) {
+                    "urducanvas_monthly" -> "Monthly"
+                    "urducanvas_6months" -> "6 Months"
+                    "urducanvas_yearly" -> "Yearly"
+                    else -> "Pro"
+                }
+            }
+        }
     }
 
     private fun setEvents() {
         binding.upgradeNow.addPressEffect {
+            view?.post { findNavController().navigate(R.id.subscriptionsFragment) }
+        }
+
+        binding.manage.addPressEffect {
             view?.post { findNavController().navigate(R.id.subscriptionsFragment) }
         }
 

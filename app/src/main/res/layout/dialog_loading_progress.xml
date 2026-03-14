@@ -10,7 +10,7 @@
         android:id="@+id/exportProgress"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@drawable/card_bg"
+        android:background="@drawable/dialog_bg"
         android:padding="12dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

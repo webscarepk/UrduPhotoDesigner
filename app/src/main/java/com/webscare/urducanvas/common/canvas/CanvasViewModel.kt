@@ -50,6 +50,7 @@ import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.data.model.FontPanelState
 import com.webscare.urducanvas.data.model.PremiumAssetItem
+import com.webscare.urducanvas.di.BillingManager
 import com.webscare.urducanvas.domain.usecase.GetFontsUseCase
 import com.webscare.urducanvas.viewmodels.FontGate
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -63,13 +64,15 @@ import java.io.File
 import java.util.Stack
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.collections.map
 
 @HiltViewModel
 class CanvasViewModel @Inject constructor(
     private val getFontsUseCase: GetFontsUseCase,
     private val gson: Gson,
     private val dataStore: PreferencesDataStoreHelper,
-    private val fontGate: FontGate
+    private val fontGate: FontGate,
+    private val billingManager: BillingManager
 ) : ViewModel() {
 
     private val _fontPanelState = MutableLiveData(FontPanelState())
@@ -3539,7 +3542,12 @@ class CanvasViewModel @Inject constructor(
                     }
 
                     _canvasSize.value = exportResult.canvasSize
-                    _canvasElements.value = hydratedElements
+                    val subscribed = billingManager.isSubscribed.value
+
+                    _canvasElements.value = hydratedElements.map { element ->
+                        element.copy(isSubscribed = subscribed && element.isPremium)
+                    }
+
                     val selected =
                         hydratedElements.find { it.isSelected && it.type != ElementType.TEXT }
                     selected?.let {
@@ -3547,6 +3555,8 @@ class CanvasViewModel @Inject constructor(
                             it.bitmap = ImageProcessor.base64ToBitmap(it.bitmapData!!)
 //                            it.bitmap = ImageProcessor.filePathToBitmap(it.bitmapData!!)
                         }
+
+                        _currentFont.postValue(_localFonts.value.find { font -> font.id.toString() == it.fontId })
                         _brightness.postValue(it.adjustments.brightness)
                         _contrast.postValue(it.adjustments.contrast)
                         _saturation.postValue(it.adjustments.saturation)
@@ -3619,12 +3629,12 @@ class CanvasViewModel @Inject constructor(
 
 
     val hasPremiumAsset: LiveData<Boolean> = canvasElements.map { list ->
-        list?.any { it.isPremium } ?: false
+        list?.any { !it.isSubscribed && it.isPremium } ?: false
     }
 
     fun getPremiumAssets(): List<PremiumAssetItem> {
         return canvasElements.value
-            ?.filter { it.isPremium }
+            ?.filter { !it.isSubscribed && it.isPremium }
             ?.map { element ->
                 PremiumAssetItem(
                     elementId = element.id,

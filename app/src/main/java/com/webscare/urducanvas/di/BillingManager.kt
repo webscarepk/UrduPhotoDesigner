@@ -46,25 +46,72 @@ class BillingManager @Inject constructor(
 
     // ─── Check on Launch ───────────────────────────────────────────────────────
 
-    fun checkSubscriptionOnLaunch() {
-//        startConnection {
-//            billingClient.queryPurchasesAsync(
-//                QueryPurchasesParams.newBuilder()
-//                    .setProductType(BillingClient.ProductType.SUBS)
-//                    .build()
-//            ) { result, purchases ->
-//                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-//                    val activePurchase = purchases.firstOrNull {
-//                        it.purchaseState == Purchase.PurchaseState.PURCHASED
-//                    }
+    fun launchPlanChange(activity: Activity, newPlanId: Int) {
+        startConnection {
+            // 1. Get current active purchase token
+            billingClient.queryPurchasesAsync(
+                QueryPurchasesParams.newBuilder()
+                    .setProductType(BillingClient.ProductType.SUBS)
+                    .build()
+            ) { result, purchases ->
+                val currentPurchase = purchases.firstOrNull {
+                    it.purchaseState == Purchase.PurchaseState.PURCHASED
+                }
 
-//                    val productId = activePurchase?.products?.firstOrNull()
-//                    saveSubscriptionStatus(activePurchase != null, productId)
-//                }
-//                // if result is not OK (e.g. no internet), DataStore fallback
-//                // is already loaded via loadSavedSubscriptionStatus() on app start
-//            }
-//        }
+                val productId = PLAN_PRODUCT_IDS[newPlanId] ?: return@queryPurchasesAsync
+                val productDetails = availableProducts.find { it.productId == productId } ?: return@queryPurchasesAsync
+                val offerToken = productDetails.subscriptionOfferDetails?.firstOrNull()?.offerToken ?: return@queryPurchasesAsync
+
+                val productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
+                    .setProductDetails(productDetails)
+                    .setOfferToken(offerToken)
+                    .build()
+
+                val flowParams = BillingFlowParams.newBuilder()
+                    .setProductDetailsParamsList(listOf(productDetailsParams))
+                    .apply {
+                        // ↓ This is the key part — tells Play this is a subscription update
+                        if (currentPurchase != null) {
+                            setSubscriptionUpdateParams(
+                                BillingFlowParams.SubscriptionUpdateParams.newBuilder()
+                                    .setOldPurchaseToken(currentPurchase.purchaseToken)
+                                    .setSubscriptionReplacementMode(
+                                        // Upgrade → immediate with proration
+                                        // Downgrade → deferred (runs after current period)
+                                        BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.WITH_TIME_PRORATION
+                                    )
+                                    .build()
+                            )
+                        }
+                    }
+                    .build()
+
+                activity.runOnUiThread {
+                    billingClient.launchBillingFlow(activity, flowParams)
+                }
+            }
+        }
+    }
+
+    fun checkSubscriptionOnLaunch() {
+        startConnection {
+            billingClient.queryPurchasesAsync(
+                QueryPurchasesParams.newBuilder()
+                    .setProductType(BillingClient.ProductType.SUBS)
+                    .build()
+            ) { result, purchases ->
+                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                    val activePurchase = purchases.firstOrNull {
+                        it.purchaseState == Purchase.PurchaseState.PURCHASED
+                    }
+
+                    val productId = activePurchase?.products?.firstOrNull()
+                    saveSubscriptionStatus(activePurchase != null, productId)
+                }
+                // if result is not OK (e.g. no internet), DataStore fallback
+                // is already loaded via loadSavedSubscriptionStatus() on app start
+            }
+        }
     }
 
     private val _billingState = MutableStateFlow<BillingState>(BillingState.Idle)
@@ -248,7 +295,7 @@ class BillingManager @Inject constructor(
     private fun saveSubscriptionStatus(value: Boolean, productId: String? = null) {
         isSubscribedValue = value
         _isSubscribed.value = value
-        _activePlan.value = productId  // ← update in-memory plan
+        _activePlan.value = productId
 
         CoroutineScope(Dispatchers.IO).launch {
             dataStore.putPreference(PREF_IS_SUBSCRIBED, value)
@@ -266,7 +313,7 @@ class BillingManager @Inject constructor(
     // ─── Load from DataStore (offline fallback) ────────────────────────────────
 
     suspend fun loadSavedSubscriptionStatus() {
-        val DEBUG_MODE = true
+        val DEBUG_MODE = false
         if (DEBUG_MODE) {
             val debugSubscribed = false
             val debugPlan = ""
