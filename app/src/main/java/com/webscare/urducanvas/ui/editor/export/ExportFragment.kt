@@ -140,9 +140,9 @@ class ExportFragment : androidx.fragment.app.Fragment() {
             }
         }
 
-        viewModel.hasPremiumAsset.observe(viewLifecycleOwner) { hasPremium ->
-            updatePremiumBannerVisibility(hasPremium)
-        }
+//        viewModel.hasPremiumAsset.observe(viewLifecycleOwner) { hasPremium ->
+//            updatePremiumBannerVisibility(hasPremium)
+//        }
     }
 
     private fun updatePremiumBannerVisibility(hasPremium: Boolean) = with(binding) {
@@ -211,11 +211,11 @@ class ExportFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun startExport() = with(binding) {
-        val hasPremium = viewModel.hasPremiumAsset.value == true
-        if (hasPremium) {
-            findNavController().navigate(R.id.subscriptionsFragment)
-            return@with
-        }
+//        val hasPremium = viewModel.hasPremiumAsset.value == true
+//        if (hasPremium) {
+//            findNavController().navigate(R.id.subscriptionsFragment)
+//            return@with
+//        }
         binding.btnExport.isEnabled = false
         binding.btnExport.alpha = 0.7f
 
