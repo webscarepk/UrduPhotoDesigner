@@ -261,6 +261,17 @@
                     app:layout_constraintStart_toEndOf="@id/view1"
                     app:layout_constraintTop_toTopOf="@id/view1" />
 
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_premium_icon"
+                    android:id="@+id/isPremiumResolution"
+                    android:layout_marginStart="5dp"
+                    app:layout_constraintStart_toEndOf="@id/resolutionTitle"
+                    app:layout_constraintTop_toTopOf="@id/resolutionTitle"
+                    app:layout_constraintBottom_toBottomOf="@id/resolutionTitle"
+                    android:visibility="gone"/>
+
                 <TextView
                     android:id="@+id/resolutionValue"
                     android:layout_width="wrap_content"
@@ -378,6 +389,17 @@
                     app:layout_constraintBottom_toTopOf="@id/formatValue"
                     app:layout_constraintStart_toEndOf="@id/view3"
                     app:layout_constraintTop_toTopOf="@id/view3" />
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_premium_icon"
+                    android:id="@+id/isPremiumFormat"
+                    android:layout_marginStart="5dp"
+                    app:layout_constraintStart_toEndOf="@id/formatTitle"
+                    app:layout_constraintTop_toTopOf="@id/formatTitle"
+                    app:layout_constraintBottom_toBottomOf="@id/formatTitle"
+                    android:visibility="gone"/>
 
                 <TextView
                     android:id="@+id/formatValue"

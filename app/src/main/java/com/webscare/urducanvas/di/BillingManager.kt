@@ -44,6 +44,11 @@ class BillingManager @Inject constructor(
     private val _activePlan = MutableStateFlow<String?>(null)
     val activePlan: StateFlow<String?> = _activePlan
 
+    private val _expiryDate = MutableStateFlow<Long?>(null)
+    val expiryDate: StateFlow<Long?> = _expiryDate
+
+    private val _isCancelled = MutableStateFlow(false)
+    val isCancelled: StateFlow<Boolean> = _isCancelled
     // ─── Check on Launch ───────────────────────────────────────────────────────
 
     fun launchPlanChange(activity: Activity, newPlanId: Int) {
@@ -104,14 +109,62 @@ class BillingManager @Inject constructor(
                     val activePurchase = purchases.firstOrNull {
                         it.purchaseState == Purchase.PurchaseState.PURCHASED
                     }
-
                     val productId = activePurchase?.products?.firstOrNull()
                     saveSubscriptionStatus(activePurchase != null, productId)
+
+                    // ── Cancelled = subscribed but not auto-renewing ──────────
+                    _isCancelled.value = activePurchase != null && !activePurchase.isAutoRenewing
+
+                    if (activePurchase != null) fetchExpiryDate(activePurchase)
+                    else _expiryDate.value = null
                 }
-                // if result is not OK (e.g. no internet), DataStore fallback
-                // is already loaded via loadSavedSubscriptionStatus() on app start
             }
         }
+    }
+    private fun fetchExpiryDate(purchase: Purchase) {
+        val productId = purchase.products.firstOrNull() ?: return
+
+        val params = QueryProductDetailsParams.newBuilder()
+            .setProductList(
+                listOf(
+                    QueryProductDetailsParams.Product.newBuilder()
+                        .setProductId(productId)
+                        .setProductType(BillingClient.ProductType.SUBS)
+                        .build()
+                )
+            ).build()
+
+        billingClient.queryProductDetailsAsync(params) { result, productDetailsList ->
+            if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                // Purchase time + billing period = expiry
+                // purchaseTime is in millis, billing period is ISO 8601 e.g. "P1M", "P1Y"
+                val billingPeriod = productDetailsList.productDetailsList
+                    ?.firstOrNull()
+                    ?.subscriptionOfferDetails
+                    ?.firstOrNull()
+                    ?.pricingPhases
+                    ?.pricingPhaseList
+                    ?.lastOrNull()
+                    ?.billingPeriod // "P1M", "P6M", "P1Y"
+
+                val expiryMillis = calculateExpiry(purchase.purchaseTime, billingPeriod)
+                _expiryDate.value = expiryMillis
+            }
+        }
+    }
+
+    private fun calculateExpiry(purchaseTimeMillis: Long, billingPeriod: String?): Long {
+        val calendar = java.util.Calendar.getInstance().apply {
+            timeInMillis = purchaseTimeMillis
+        }
+        when (billingPeriod) {
+            "P1M" -> calendar.add(java.util.Calendar.MONTH, 1)
+            "P3M" -> calendar.add(java.util.Calendar.MONTH, 3)
+            "P6M" -> calendar.add(java.util.Calendar.MONTH, 6)
+            "P1Y" -> calendar.add(java.util.Calendar.YEAR, 1)
+            else  -> calendar.add(java.util.Calendar.MONTH, 1) // fallback
+        }
+        return calendar.timeInMillis
     }
 
     private val _billingState = MutableStateFlow<BillingState>(BillingState.Idle)
@@ -235,6 +288,7 @@ class BillingManager @Inject constructor(
 
     private fun acknowledgePurchase(purchase: Purchase) {
         val productId = purchase.products.firstOrNull()  // ← grab plan from purchase
+        _isCancelled.value = false
 
         if (purchase.isAcknowledged) {
             _billingState.value = BillingState.PurchaseSuccess(purchase)

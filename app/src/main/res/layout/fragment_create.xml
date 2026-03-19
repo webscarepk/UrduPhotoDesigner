@@ -303,7 +303,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="@string/create"
-        android:background="@drawable/button_bg"
+        android:background="@drawable/ic_button_gradient_wrap"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/canvasSize"

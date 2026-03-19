@@ -5,5 +5,6 @@ data class ExportQuality(
     val quality: Int,            // 100
     val description: String,     // "Maximum quality, larger file size"
     val extraSizePercent: Int,    // 40 for "+40%"
-    var isSelected: Boolean = false
+    var isSelected: Boolean = false,
+    var isPremium: Boolean = false
 )

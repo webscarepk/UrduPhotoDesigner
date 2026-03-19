@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".ui.editor.panels.text.appearance.childs.KasheedaFragment">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -11,103 +11,103 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="3dp"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/kasheedaBarCard"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/kasheedaBarCard">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/default_kasheeda"
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_marginEnd="6dp"
             android:layout_marginBottom="6dp"
+            app:cardBackgroundColor="@color/contrast"
             app:cardCornerRadius="6dp"
-            app:strokeWidth="0dp"
-            android:id="@+id/default_kasheeda"
+            app:cardElevation="0dp"
             app:layout_constraintEnd_toStartOf="@id/small"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:cardBackgroundColor="@color/contrast"
-            app:cardElevation="0dp">
+            app:strokeWidth="0dp">
 
             <ImageView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:padding="6dp"
                 android:src="@drawable/ic_none"
-                app:tint="@color/black"
-                android:padding="6dp"/>
+                app:tint="@color/black" />
 
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/small"
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_marginEnd="6dp"
             android:layout_marginBottom="6dp"
+            app:cardBackgroundColor="@color/contrast"
             app:cardCornerRadius="6dp"
-            app:strokeWidth="0dp"
-            android:id="@+id/small"
+            app:cardElevation="0dp"
             app:layout_constraintEnd_toStartOf="@id/medium"
             app:layout_constraintStart_toEndOf="@id/default_kasheeda"
             app:layout_constraintTop_toTopOf="parent"
-            app:cardBackgroundColor="@color/contrast"
-            app:cardElevation="0dp">
+            app:strokeWidth="0dp">
 
             <ImageView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:src="@drawable/ic_small"
                 android:layout_gravity="center"
-                app:tint="@color/black"
-                android:padding="8dp"/>
+                android:padding="8dp"
+                android:src="@drawable/ic_small"
+                app:tint="@color/black" />
 
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/medium"
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_marginEnd="6dp"
             android:layout_marginBottom="6dp"
+            app:cardBackgroundColor="@color/contrast"
             app:cardCornerRadius="6dp"
-            app:strokeWidth="0dp"
-            android:id="@+id/medium"
+            app:cardElevation="0dp"
+            app:layout_constraintEnd_toStartOf="@id/large"
             app:layout_constraintStart_toEndOf="@id/small"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/large"
-            app:cardBackgroundColor="@color/contrast"
-            app:cardElevation="0dp">
+            app:strokeWidth="0dp">
 
             <ImageView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:src="@drawable/ic_medium"
                 android:layout_gravity="center"
-                app:tint="@color/black"
-                android:padding="8dp"/>
+                android:padding="8dp"
+                android:src="@drawable/ic_medium"
+                app:tint="@color/black" />
 
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/large"
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_marginEnd="6dp"
             android:layout_marginBottom="6dp"
+            app:cardBackgroundColor="@color/contrast"
             app:cardCornerRadius="6dp"
-            app:strokeWidth="0dp"
-            android:id="@+id/large"
+            app:cardElevation="0dp"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/medium"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:cardBackgroundColor="@color/contrast"
-            app:cardElevation="0dp">
+            app:strokeWidth="0dp">
 
             <ImageView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:src="@drawable/ic_large"
                 android:layout_gravity="center"
-                app:tint="@color/black"
-                android:padding="8dp"/>
+                android:padding="8dp"
+                android:src="@drawable/ic_large"
+                app:tint="@color/black" />
 
         </com.google.android.material.card.MaterialCardView>
     </androidx.constraintlayout.widget.ConstraintLayout>
@@ -117,53 +117,64 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="3dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/kasheedaCard">
 
         <TextView
             android:id="@+id/lineTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/kashida_frequency"
-            android:fontFamily="@font/medium"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            android:textSize="12sp"
             android:layout_marginStart="12dp"
-            android:textColor="@color/black"/>
+            android:fontFamily="@font/medium"
+            android:text="@string/kashida_frequency"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
+            android:id="@+id/kashidaValue"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="1.0"
-            android:fontFamily="@font/regular"
-            app:layout_constraintTop_toTopOf="@id/lineTitle"
-            app:layout_constraintBottom_toBottomOf="@id/lineTitle"
-            app:layout_constraintStart_toEndOf="@id/lineTitle"
-            android:textSize="12sp"
+            android:layout_marginStart="6dp"
             android:background="@drawable/edit_bg_stroke"
+            android:fontFamily="@font/regular"
             android:paddingHorizontal="6dp"
             android:paddingVertical="4dp"
+            android:text="1.0"
             android:textColor="@color/black"
-            android:layout_marginStart="6dp"
-            android:id="@+id/kashidaValue"/>
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@id/lineTitle"
+            app:layout_constraintStart_toEndOf="@id/lineTitle"
+            app:layout_constraintTop_toTopOf="@id/lineTitle" />
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_premium_icon"
+            android:id="@+id/isPremiumKasheeda"
+            android:layout_marginStart="5dp"
+            app:layout_constraintStart_toEndOf="@id/kashidaValue"
+            app:layout_constraintTop_toTopOf="@id/kashidaValue"
+            app:layout_constraintBottom_toBottomOf="@id/kashidaValue"
+            android:visibility="gone"/>
 
         <SeekBar
-                android:progressBackgroundTint="@color/light_gray"
             android:id="@+id/kashidaSeekBar"
-            android:layout_marginTop="3dp"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/kashidaValue"
-            android:thumbTint="@color/appColor"
-            android:max="10"
+            android:layout_marginTop="3dp"
             android:indeterminateTint="@color/appColor"
+            android:max="10"
+            android:progress="0"
+            android:progressBackgroundTint="@color/light_gray"
             android:progressTint="@color/appColor"
-            android:progress="0"/>
+            android:thumbTint="@color/appColor"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/kashidaValue" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -111,7 +111,7 @@
             android:id="@+id/titleImage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/app_name"
+            android:text="@string/app_name_pro"
             android:drawablePadding="10dp"
             android:fontFamily="@font/bold"
             android:textColor="@color/gray"
@@ -122,20 +122,11 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"/>
 
-        <ImageView
-            android:id="@+id/premiumImage"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_premium"
-            app:layout_constraintTop_toBottomOf="@id/titleImage"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
-
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/premiumImage"
+            app:layout_constraintTop_toBottomOf="@id/titleImage"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             android:orientation="vertical"
@@ -265,6 +256,18 @@
                 app:layout_constraintTop_toTopOf="@id/activePlanImage"
                 app:layout_constraintEnd_toStartOf="@id/cancel"
                 app:layout_constraintBottom_toTopOf="@id/subscriptionCardTitle"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/expiryText"
+                android:text="12,Jul"
+                android:textColor="@color/gray"
+                android:textSize="12sp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/cancel"
+                android:padding="15dp"/>
 
             <TextView
                 android:id="@+id/cancel"

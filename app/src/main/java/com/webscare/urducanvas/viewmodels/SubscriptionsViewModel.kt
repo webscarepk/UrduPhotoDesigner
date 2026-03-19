@@ -18,7 +18,8 @@ class SubscriptionsViewModel @Inject constructor(
     val billingState: StateFlow<BillingManager.BillingState> = billingManager.billingState
     val isSubscribed: StateFlow<Boolean> = billingManager.isSubscribed
     val activePlan: StateFlow<String?> = billingManager.activePlan
-
+    val expiryDate: StateFlow<Long?> = billingManager.expiryDate
+    val isCancelled: StateFlow<Boolean> = billingManager.isCancelled
     private var _isRestoring = false
 
     private val _plans = MutableStateFlow<List<SubscriptionPlan>>(emptyList())
@@ -82,5 +83,9 @@ class SubscriptionsViewModel @Inject constructor(
         val v = _isRestoring
         _isRestoring = false
         return v
+    }
+
+    fun refreshSubscriptionStatus() {
+        billingManager.checkSubscriptionOnLaunch()
     }
 }

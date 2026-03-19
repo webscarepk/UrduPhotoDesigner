@@ -7,5 +7,6 @@ data class ExportFormat(
     val format: Bitmap.CompressFormat? = null,   // Bitmap.CompressFormat.JPEG
     val description: String,             // "Compressed, smaller size"
     val tags: List<String>,               // ["Small size", "Good for photos", "No transparency"]
-    var isSelected: Boolean = false
+    var isSelected: Boolean = false,
+    var isPremium: Boolean = false
 )

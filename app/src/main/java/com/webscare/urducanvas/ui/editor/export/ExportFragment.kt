@@ -23,6 +23,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.scale
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.webscare.urducanvas.R
@@ -31,6 +32,7 @@ import com.webscare.urducanvas.common.canvas.model.ExportOptions
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentExportBinding
+import com.webscare.urducanvas.viewmodels.SubscriptionsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,12 +42,13 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.getValue
 
 @AndroidEntryPoint
 class ExportFragment : androidx.fragment.app.Fragment() {
     private var _binding: FragmentExportBinding? = null
     private val binding get() = _binding!!
-
+    private val subscriptionViewModel: SubscriptionsViewModel by viewModels()
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
     private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
     private var exportResult: com.webscare.urducanvas.data.model.ExportResult? = null
@@ -143,20 +146,26 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         viewModel.hasPremiumAsset.observe(viewLifecycleOwner) { hasPremium ->
             updatePremiumBannerVisibility(hasPremium)
         }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            subscriptionViewModel.isSubscribed.collect {
+                val hasPremiumAsset = viewModel.hasPremiumAsset.value == true
+                updatePremiumBannerVisibility(hasPremiumAsset)
+                viewModel.exportOptions.value?.let { updateExportOptionsUI(it) }
+            }
+        }
     }
 
     private fun updatePremiumBannerVisibility(hasPremium: Boolean) = with(binding) {
-        premiumAssets.isVisible = hasPremium
+        premiumAssets.isVisible = hasPremium && !subscriptionViewModel.isSubscribed.value
 
-        if (hasPremium) {
+        if (isPremiumLocked()) {
             btnExport.text = getString(R.string.buy_now)
             btnExport.setIconResource(R.drawable.ic_premium_stroke)
-            seeMore.paintFlags = seeMore.paintFlags or Paint.UNDERLINE_TEXT_FLAG
-
-            seeMore.addPressEffect {
-                openPremiumAssetDetailSheet()
+            if (hasPremium) {
+                seeMore.paintFlags = seeMore.paintFlags or Paint.UNDERLINE_TEXT_FLAG
+                seeMore.addPressEffect { openPremiumAssetDetailSheet() }
             }
-
         } else {
             btnExport.text = getString(R.string.export)
             btnExport.setIconResource(R.drawable.ic_export)
@@ -180,18 +189,29 @@ class ExportFragment : androidx.fragment.app.Fragment() {
             format.text = result.format
         }
 
-    private fun updateExportOptionsUI(options: ExportOptions) =
-        with(binding) {
-            resolutionValue.text = "${options.resolution.name} • ${options.resolution.label}"
-            qualityValue.text = "${options.quality.label} • ${options.quality.quality}%"
-            formatValue.text = "${options.format.name} • .${options.format.name.lowercase()}"
+    private fun updateExportOptionsUI(options: ExportOptions) = with(binding) {
+        resolutionValue.text = "${options.resolution.name} • ${options.resolution.label}"
+        qualityValue.text = "${options.quality.label} • ${options.quality.quality}%"
+        formatValue.text = "${options.format.name} • .${options.format.name.lowercase()}"
 
-            tvExportSummaryDetails.text =
-                "${options.resolution.name} • ${options.quality.label} • ${options.format.name}"
+        // hide premium badges if subscribed
+        val isSubscribed = subscriptionViewModel.isSubscribed.value
+        isPremiumFormat.isVisible = options.format.isPremium && !isSubscribed
+        isPremiumResolution.isVisible = options.resolution.isPremium && !isSubscribed
 
-            resolution.text = options.resolution.name
-            format.text = options.format.name
+        tvExportSummaryDetails.text =
+            "${options.resolution.name} • ${options.quality.label} • ${options.format.name}"
+        resolution.text = options.resolution.name
+        format.text = options.format.name
+
+        if (isPremiumLocked()) {
+            btnExport.text = getString(R.string.buy_now)
+            btnExport.setIconResource(R.drawable.ic_premium_stroke)
+        } else {
+            btnExport.text = getString(R.string.export)
+            btnExport.setIconResource(R.drawable.ic_export)
         }
+    }
 
     private fun renderPreview() {
         val canvas = viewModel.canvasView.value ?: return
@@ -211,22 +231,19 @@ class ExportFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun startExport() = with(binding) {
-        val hasPremium = viewModel.hasPremiumAsset.value == true
-        if (hasPremium) {
+        if (isPremiumLocked()) {
             findNavController().navigate(R.id.subscriptionsFragment)
             return@with
         }
+
         binding.btnExport.isEnabled = false
         binding.btnExport.alpha = 0.7f
-
         btnExport.isEnabled = false
         btnExport.text = "Exporting..."
         startIconRotation()
-
         exportProgress.visibility = View.VISIBLE
         tvProgressPercent.text = "Exporting..."
         progressBar.progress = 30
-
         root.postDelayed({ exportCanvas() }, 300)
     }
 
@@ -653,6 +670,17 @@ class ExportFragment : androidx.fragment.app.Fragment() {
 
         binding.progressBar.progress = progress
         binding.tvProgressPercent.text = text
+    }
+
+    private fun isPremiumLocked(): Boolean {
+        val isSubscribed = subscriptionViewModel.isSubscribed.value
+        if (isSubscribed) return false
+
+        val hasPremiumAsset = viewModel.hasPremiumAsset.value == true
+        val options = viewModel.exportOptions.value
+        val hasPremiumOption = options?.format?.isPremium == true || options?.resolution?.isPremium == true
+
+        return hasPremiumAsset || hasPremiumOption
     }
 
     fun isBlueStacks(): Boolean {

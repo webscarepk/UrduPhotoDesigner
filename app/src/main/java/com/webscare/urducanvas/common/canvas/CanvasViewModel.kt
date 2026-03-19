@@ -331,16 +331,15 @@ class CanvasViewModel @Inject constructor(
     private var _isExplicitChange = false
 
     val availableResolutions = listOf(
-        ExportResolution("Original", 0, 0, 1f, "Native", "Keep original size", 2500),
-        ExportResolution("HD", 0, 0, 2f, "1280 x 720", "Standard quality", 800),
-        ExportResolution("Full HD", 0, 0, 3f, "1920 x 1080", "High quality", 1200),
-        ExportResolution("4k", 0, 0, 4f, "3840 x 2160", "Ultra quality", 4800)
+        ExportResolution("Regular", 0, 0, 0.5f, "1280 x 720", "Keep regular size", 2500),
+        ExportResolution("High", 0, 0, 3f, "1920 x 1080", "High quality", 1200, isPremium = true),
+        ExportResolution("Print", 0, 0, 4f, "3840 x 2160", "Print quality", 4800, isPremium = true)
     )
 
     val qualityOptions = listOf(
-        ExportQuality("High Quality", 100, "Maximum quality, larger file size", 40),
-        ExportQuality("Medium Quality", 75, "Balanced quality and size", 0),
-        ExportQuality("Low Quality", 50, "Faster export, smaller size", -30)
+        ExportQuality("High", 100, "Maximum compression, larger file size", 40),
+        ExportQuality("Medium", 75, "Balanced compression and size", 0),
+        ExportQuality("Low", 50, "Faster export, smaller size", -30)
     )
 
     val formatOptions = listOf(
@@ -348,7 +347,8 @@ class CanvasViewModel @Inject constructor(
             "PNG",
             Bitmap.CompressFormat.PNG,
             "Lossless format",
-            listOf("Transparent", "High Quality", "Larger Size")
+            listOf("Transparent", "High Quality", "Larger Size"),
+            isPremium = true
         ), ExportFormat(
             "JPEG",
             Bitmap.CompressFormat.JPEG,
@@ -363,7 +363,8 @@ class CanvasViewModel @Inject constructor(
             "PDF",
             null,
             "Portable Document Format",
-            listOf("Vector container", "Shareable", "Multi-page capable")
+            listOf("Vector container", "Shareable", "Multi-page capable"),
+            isPremium = true
         )
     )
 
@@ -833,11 +834,11 @@ class CanvasViewModel @Inject constructor(
     fun fetchExportOptionsFromDataStore() {
         viewModelScope.launch {
             val resName =
-                dataStore.getFirstPreference(PreferenceDataStoreKeysConstants.KEY_RESOLUTION, "")
+                dataStore.getFirstPreference(PreferenceDataStoreKeysConstants.KEY_RESOLUTION, "Regular")
             val qualityLabel =
-                dataStore.getFirstPreference(PreferenceDataStoreKeysConstants.KEY_QUALITY, "")
+                dataStore.getFirstPreference(PreferenceDataStoreKeysConstants.KEY_QUALITY, "Medium")
             val formatName =
-                dataStore.getFirstPreference(PreferenceDataStoreKeysConstants.KEY_FORMAT, "")
+                dataStore.getFirstPreference(PreferenceDataStoreKeysConstants.KEY_FORMAT, "JPEG")
 
             val res =
                 availableResolutions.find { it.name == resName } ?: availableResolutions.first()
@@ -1300,7 +1301,25 @@ class CanvasViewModel @Inject constructor(
 
     fun setKasheeda(kasheeda: Int) {
         _kasheeda.value = kasheeda
+        if (kasheeda > 1) {
+            markSelectedTextElementAsPremium(true)
+        } else {
+            markSelectedTextElementAsPremium(false)
+        }
         applyChangesToSelectedTextElements()
+    }
+
+    private fun markSelectedTextElementAsPremium(isPremium: Boolean) {
+        val isSubscribed = billingManager.isSubscribed.value
+        val updatedList = _canvasElements.value?.map { element ->
+            if (element.isSelected && element.type == ElementType.TEXT) {
+                element.copy(
+                    isPremium = isPremium,
+                    isSubscribed = isSubscribed
+                )
+            } else element
+        } ?: return
+        _canvasElements.value = updatedList
     }
 
     fun setTextDecoration(decorations: Set<TextDecoration>) {

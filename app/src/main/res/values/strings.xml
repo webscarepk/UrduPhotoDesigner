@@ -1,5 +1,6 @@
 <resources>
-    <string name="app_name">UrduCanvas</string>
+    <string name="app_name">Urdu Canvas</string>
+    <string name="app_name_pro">Urdu Canvas Pro</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="server_client_id">262118457778-vbkhl67en4464tieb8dd5s8e5l96067n.apps.googleusercontent.com</string>
@@ -326,6 +327,9 @@
     <string name="subscribed_amp_unstoppable_new_features_unlocked"><![CDATA[Subscribed & unstoppable , new features unlocked!]]></string>
     <string name="manage">Manage Plan</string>
     <string name="active_plan">Active Plan</string>
+    <string name="subscription_activated">Subscription Activated</string>
+    <string name="your_creativity_just_got_an_upgrade_enjoy_full_access_to_urducanvas">Your Creativity Just Got an Upgrade \n Enjoy Full Access to UrduCanvas</string>
+    <string name="start_creating">Start Creating</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>

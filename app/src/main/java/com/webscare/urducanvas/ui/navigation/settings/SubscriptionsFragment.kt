@@ -20,6 +20,7 @@ import com.webscare.urducanvas.viewmodels.SubscriptionsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
+import androidx.core.view.isVisible
 import com.webscare.urducanvas.common.utils.SubscriptionDialogHelper
 import javax.inject.Inject
 
@@ -97,6 +98,30 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
                 }
             }
         }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.expiryDate.collect { expiryMillis ->
+                if (expiryMillis != null) {
+                    val formatted = java.text.SimpleDateFormat(
+                        "MMM dd, yyyy", java.util.Locale.getDefault()
+                    ).format(java.util.Date(expiryMillis))
+                    binding.expiryText.text = "Active until\n$formatted"
+                    binding.expiryText.isVisible = true
+                } else {
+                    binding.expiryText.isVisible = false
+                }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.isCancelled.collect { cancelled ->
+                if (cancelled) {
+                    binding.cancel.text = "Resubscribe"
+                } else {
+                    binding.cancel.text = "Cancel"
+                }
+            }
+        }
     }
 
     // ─── Observe Billing State ─────────────────────────────────────────────────
@@ -141,74 +166,77 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
 
     private fun showPurchaseSuccessDialog() {
         val isUpgrade = billingManager.isSubscribed.value
-        SubscriptionDialogHelper.show(
-            context = requireContext(),
-            iconRes = R.drawable.ic_crown,
-            iconTint = ContextCompat.getColor(requireContext(), R.color.appColor),
-            title = if (isUpgrade) "Plan Updated!" else "Welcome to Premium!",
-            message = if (isUpgrade)
-                "Your plan has been updated successfully. New plan is active now."
-            else
-                "You now have full access to Urdu Canvas Premium. All templates, fonts and assets are unlocked.",
-            confirmText = if (isUpgrade) "Let's Go" else "Explore Now",
-            cancelable = false,
-            onConfirm = { findNavController().navigateUp() }
-        )
+        SubscriptionBottomSheet.newInstance(
+            SubscriptionSheetConfig(
+                iconRes = R.drawable.ic_subscribed_icon,
+                title = if (isUpgrade) "Plan Updated!" else "Subscription Activated",
+                message = if (isUpgrade)
+                    "Your plan has been updated successfully!\nNew plan is active now."
+                else
+                    "Your Creativity Just Got an Upgrade!\nEnjoy Full Access to UrduCanvas",
+                primaryText = if (isUpgrade) "Continue" else "Start Creating",
+                true,
+                secondaryText = if (isUpgrade) "View Plan" else " ",
+                cancelable = false,
+                onPrimary = { findNavController().navigateUp() }
+            )
+        ).show(childFragmentManager, "purchase_success")
+    }
+
+    private fun showCancelConfirmDialog() {
+        SubscriptionBottomSheet.newInstance(
+            SubscriptionSheetConfig(
+                iconRes = R.drawable.ic_cancelled_icon,   // your cancelled state icon
+                title = "Subscription Cancelled",
+                message = "Your access continues until billing period ends. Manage on Google Play.",
+                primaryText = "Continue with free plan",
+                secondaryText = "Buy Subscription",
+                onPrimary = {
+                    openUrl("https://play.google.com/store/account/subscriptions?package=${requireContext().packageName}")
+                },
+                onSecondary = { findNavController().navigateUp() }
+            )
+        ).show(childFragmentManager, "cancel_confirm")
     }
 
     private fun showErrorDialog(message: String) {
         if (message.contains("cancel", ignoreCase = true)) return
-        SubscriptionDialogHelper.show(
-            context = requireContext(),
-            iconRes = R.drawable.ic_urdu_canvas,
-            iconTint = ContextCompat.getColor(requireContext(), R.color.gray),
-            title = "Something Went Wrong",
-            message = "Purchase could not be completed. Please try again or contact support.",
-            confirmText = "Try Again",
-            cancelText = "Contact Support",
-            onConfirm = { },
-            onCancel = { openUrl("mailto:support@urducanvas.com?subject=Purchase Issue") }
-        )
+        SubscriptionBottomSheet.newInstance(
+            SubscriptionSheetConfig(
+                iconRes = R.drawable.ic_warning_icon,
+                title = "Something Went Wrong",
+                message = "Purchase could not be completed.\nPlease try again or contact support.",
+                primaryText = "Try Again",
+                secondaryText = "Contact Support",
+                onPrimary = { },
+                onSecondary = { openUrl("mailto:support@urducanvas.com?subject=Purchase Issue") }
+            )
+        ).show(childFragmentManager, "purchase_error")
     }
 
     private fun showRestoreSuccessDialog() {
-        SubscriptionDialogHelper.show(
-            context = requireContext(),
-            iconRes = R.drawable.ic_crown,
-            iconTint = ContextCompat.getColor(requireContext(), R.color.appColor),
-            title = "Subscription Restored!",
-            message = "Your previous subscription has been restored successfully.",
-            confirmText = "Continue",
-            cancelable = false,
-            onConfirm = { findNavController().navigateUp() }
-        )
+        SubscriptionBottomSheet.newInstance(
+            SubscriptionSheetConfig(
+                iconRes = R.drawable.ic_restored_icon,
+                title = "Subscription Restored!",
+                message = "Your previous subscription has been restored successfully.",
+                primaryText = "Continue",
+                cancelable = false,
+                onPrimary = { findNavController().navigateUp() }
+            )
+        ).show(childFragmentManager, "restore_success")
     }
 
     private fun showRestoreFailedDialog() {
-        SubscriptionDialogHelper.show(
-            context = requireContext(),
-            iconRes = R.drawable.ic_urdu_canvas,
-            iconTint = ContextCompat.getColor(requireContext(), R.color.gray),
-            title = "Nothing Found",
-            message = "No active subscription was found on this account.",
-            confirmText = "OK",
-            onConfirm = { }
-        )
-    }
-
-    private fun showCancelConfirmDialog() {
-        SubscriptionDialogHelper.show(
-            context = requireContext(),
-            iconRes = R.drawable.ic_crown,
-            iconTint = ContextCompat.getColor(requireContext(), R.color.gray),
-            title = "Cancel Subscription?",
-            message = "Your access will continue until the end of your current billing period. You will be taken to Google Play to manage your subscription.",
-            confirmText = "Manage on Play",
-            cancelText = "Keep My Plan",
-            onConfirm = {
-                openUrl("https://play.google.com/store/account/subscriptions?package=${requireContext().packageName}")
-            }
-        )
+        SubscriptionBottomSheet.newInstance(
+            SubscriptionSheetConfig(
+                iconRes = R.drawable.ic_nothing_found_icon,
+                title = "Nothing Found",
+                message = "No active subscription was found on this account.",
+                primaryText = "Buy Subscription",
+                onPrimary = { }
+            )
+        ).show(childFragmentManager, "restore_failed")
     }
 
     // ─── Setup ─────────────────────────────────────────────────────────────────
@@ -227,7 +255,11 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.cancel.addPressEffect {
-            showCancelConfirmDialog()
+            if (viewModel.isCancelled.value) {
+                openUrl("https://play.google.com/store/account/subscriptions?package=${requireContext().packageName}")
+            } else {
+                showCancelConfirmDialog()
+            }
         }
 
         binding.restore.addPressEffect {
@@ -288,6 +320,11 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
             binding.view1, binding.privacyPolicy, binding.view2, binding.restore
         )
         views.forEachIndexed { i, v -> v.slideUpSoft(delay = (i * 40).toLong()) }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.refreshSubscriptionStatus()
     }
 
     override fun onDestroyView() {

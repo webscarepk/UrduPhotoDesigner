@@ -5,17 +5,21 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
+import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import com.webscare.urducanvas.common.canvas.enums.KashidaSize
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentKasheedaBinding
+import com.webscare.urducanvas.viewmodels.SubscriptionsViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlin.getValue
 
 @AndroidEntryPoint
 class KasheedaFragment : androidx.fragment.app.Fragment() {
     private var _binding: FragmentKasheedaBinding? = null
     private val binding get() = _binding!!
-
+    private val subscriptionViewModel: SubscriptionsViewModel by viewModels()
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
@@ -49,6 +53,10 @@ class KasheedaFragment : androidx.fragment.app.Fragment() {
             // Update SeekBar to match frequency range
             binding.kashidaSeekBar.progress = kasheeda
             binding.kashidaValue.text = "$kasheeda"
+
+            val isPremiumKasheeda = kasheeda > 1
+            val isSubscribed = subscriptionViewModel.isSubscribed.value  // inject BillingManager, or read via ViewModel
+            binding.isPremiumKasheeda.isVisible = isPremiumKasheeda && !isSubscribed
         }
     }
 
