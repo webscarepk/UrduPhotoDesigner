@@ -344,12 +344,6 @@ class CanvasViewModel @Inject constructor(
 
     val formatOptions = listOf(
         ExportFormat(
-            "PNG",
-            Bitmap.CompressFormat.PNG,
-            "Lossless format",
-            listOf("Transparent", "High Quality", "Larger Size"),
-            isPremium = true
-        ), ExportFormat(
             "JPEG",
             Bitmap.CompressFormat.JPEG,
             "Compressed, smaller size",
@@ -359,6 +353,12 @@ class CanvasViewModel @Inject constructor(
             Bitmap.CompressFormat.WEBP,
             "Modern format with balance",
             listOf("Efficient", "Web Friendly", "Small & sharp")
+        ), ExportFormat(
+            "PNG",
+            Bitmap.CompressFormat.PNG,
+            "Lossless format",
+            listOf("Transparent", "High Quality", "Larger Size"),
+            isPremium = true
         ), ExportFormat(
             "PDF",
             null,
