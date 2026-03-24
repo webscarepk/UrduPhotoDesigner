@@ -52,4 +52,19 @@
         <item name="enableEdgeToEdge">true</item>
         <item name="paddingBottomSystemWindowInsets">false</item>
     </style>
+
+    <style name="GlassActiveIndicator">
+        <item name="android:color">#FF1A7A3A</item>
+        <item name="shapeAppearance">@style/GlassIndicatorShape</item>
+    </style>
+
+    <style name="GlassIndicatorShape" parent="">
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <style name="NavLabelStyle" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textSize">10sp</item>
+        <item name="android:fontFamily">@font/medium</item>
+        <item name="android:letterSpacing">0.02</item>
+    </style>
 </resources>

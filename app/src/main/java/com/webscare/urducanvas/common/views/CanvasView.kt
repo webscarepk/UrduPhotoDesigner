@@ -88,8 +88,8 @@ import kotlin.math.sin
 
 class CanvasView @JvmOverloads constructor(
     context: Context,
-    private var canvasWidth: Int = 300,
-    private var canvasHeight: Int = 300,
+    var canvasWidth: Int = 300,
+    var canvasHeight: Int = 300,
     attrs: AttributeSet? = null,
     var onEditTextRequested: ((CanvasElement) -> Unit)? = null,
     var onElementChanged: ((CanvasElement) -> Unit)? = null,

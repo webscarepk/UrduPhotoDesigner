@@ -106,17 +106,12 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         viewModel.fetchExportOptionsFromDataStore()
 
         viewModel.canvasView.observe(viewLifecycleOwner) { canvas ->
-            lifecycleScope.launch(Dispatchers.Main) {
-                if (canvas != null) {
-                    canvasView = canvas
-                    Log.d(
-                        "ExportFragmentCanvasView",
-                        "Received exportResult: ${viewModel.exportResult.value}"
-                    )
-                } else {
-                    Log.e("ExportFragment", "Canvas is null.")
-                    // Handle the null case, maybe show an error or fallback
-                }
+            if (canvas == null) return@observe
+            canvasView = canvas
+            // Only render if options are already ready too
+            val options = viewModel.exportOptions.value
+            if (options != null && canvas.canvasWidth > 0 && canvas.canvasHeight > 0) {
+                renderPreview()
             }
         }
 
@@ -135,7 +130,10 @@ class ExportFragment : androidx.fragment.app.Fragment() {
             if (!isAdded) return@observe
             lifecycleScope.launch(Dispatchers.Main) {
                 updateExportOptionsUI(options)
-                renderPreview()
+                val canvas = viewModel.canvasView.value
+                if (canvas != null && canvas.canvasWidth > 0 && canvas.canvasHeight > 0) {
+                    renderPreview()
+                }
                 Log.d(
                     "ExportFragmentExportOptions",
                     "Received exportResult: ${viewModel.exportResult.value}"

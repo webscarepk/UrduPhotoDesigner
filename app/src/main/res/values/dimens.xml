@@ -3,4 +3,5 @@
     <dimen name="_5sdp">5dp</dimen>
     <dimen name="_120sdp">120dp</dimen>
     <dimen name="_260sdp">260dp</dimen>
+    <dimen name="nav_corner_radius">32dp</dimen>
 </resources>

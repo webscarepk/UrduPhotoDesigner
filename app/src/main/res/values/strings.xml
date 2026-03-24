@@ -330,6 +330,10 @@
     <string name="subscription_activated">Subscription Activated</string>
     <string name="your_creativity_just_got_an_upgrade_enjoy_full_access_to_urducanvas">Your Creativity Just Got an Upgrade \n Enjoy Full Access to UrduCanvas</string>
     <string name="start_creating">Start Creating</string>
+    <string name="update_available">Update Available!</string>
+    <string name="enjoy_a_smoother_improved_urdu_canvas_experience_with_better_performance">Enjoy a smoother, improved Urdu Canvas experience with better performance</string>
+    <string name="update_now">Update Now</string>
+    <string name="remind_me_later">Remind me Later</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>

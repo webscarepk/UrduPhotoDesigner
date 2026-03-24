@@ -1,6 +1,7 @@
 package com.webscare.urducanvas.common.datastore
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 
 object PreferenceDataStoreKeysConstants {
@@ -18,4 +19,5 @@ object PreferenceDataStoreKeysConstants {
     val PREF_IS_SUBSCRIBED = booleanPreferencesKey("is_subscribed")
     val PREF_ACTIVE_PLAN = stringPreferencesKey("active_plan")
     var isSubscribedValue: Boolean = false
+    val REMIND_LATER_TIMESTAMP = longPreferencesKey("remind_later_timestamp")
 }

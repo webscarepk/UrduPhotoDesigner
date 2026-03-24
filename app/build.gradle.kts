@@ -142,4 +142,10 @@ dependencies {
 
     //Subscription
     implementation(libs.billing.ktx)
+
+    //Dynamic Animation
+    implementation(libs.androidx.dynamicanimation.ktx)
+
+    //In-App Updates
+    implementation(libs.app.update.ktx)
 }

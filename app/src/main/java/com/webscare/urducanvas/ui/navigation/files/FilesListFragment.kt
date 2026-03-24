@@ -780,7 +780,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                                 override fun onClick(widget: View) {
                                     // Navigate to In-App Fonts screen
                                     findNavController().navigate(
-                                        R.id.popularFontsFragment   // 👈 change to your actual in-app fonts destination
+                                        R.id.popularFontsFragment
                                     )
                                 }
 

@@ -2,7 +2,6 @@ package com.webscare.urducanvas
 
 import android.content.Intent
 import android.graphics.BitmapFactory
-import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -10,11 +9,9 @@ import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import androidx.activity.addCallback
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.graphics.toColorInt
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -24,12 +21,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.ui.setupWithNavController
-import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
+import com.webscare.urducanvas.common.utils.BlurEngine
+import com.webscare.urducanvas.common.views.LiquidGlassNavBar
 import com.webscare.urducanvas.databinding.ActivityMainBinding
 import com.webscare.urducanvas.di.BillingManager
+import com.webscare.urducanvas.di.UpdateManager
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -37,38 +35,46 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding!!
+
     private var _navController: NavController? = null
     private val navController get() = _navController!!
+
     private val viewModel: CanvasViewModel by viewModels()
-    val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
+
+    val navOptions: NavOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
+
+    /** Blur engine — internal: exposed so fragments can call forceCapture() on scroll idle. */
+    internal var blurEngine: BlurEngine? = null
+
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri?.let {
                 val inputStream = contentResolver.openInputStream(it)
                 val bitmap = BitmapFactory.decodeStream(inputStream)
                 inputStream?.close()
-
-                val widthVal = bitmap.width.toFloat()
-                val heightVal = bitmap.height.toFloat()
-
-                val canvasSize = CanvasSize("From Image", widthVal, heightVal)
-
+                val canvasSize = CanvasSize("From Image", bitmap.width.toFloat(), bitmap.height.toFloat())
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(canvasSize)
                 viewModel.setCanvasBackgroundImage(bitmap)
                 val editorNavOptions = NavOptions.Builder()
                     .setLaunchSingleTop(true)
-                    .setPopUpTo(R.id.editorFragment, inclusive = true) // 🔥 this line is key
+                    .setPopUpTo(R.id.editorFragment, inclusive = true)
                     .build()
                 navController.navigate(R.id.editorFragment, null, editorNavOptions)
             }
         }
 
-    @Inject
-    lateinit var billingManager: BillingManager
+    @Inject lateinit var billingManager: BillingManager
+    @Inject lateinit var updateManager: UpdateManager
+
     private val mainViewModel: MainViewModel by viewModels()
+
+    // ──────────────────────────────────────────────────────────
+    // Lifecycle
+    // ──────────────────────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -83,8 +89,9 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
+        updateManager.registerListener(this)
+        updateManager.checkForUpdate(this)
         forceImmersiveMode()
-
         billingManager.checkSubscriptionOnLaunch()
         initObservers()
 
@@ -92,97 +99,159 @@ class MainActivity : AppCompatActivity() {
             supportFragmentManager.findFragmentById(R.id.nav_host_main) as NavHostFragment
         _navController = navHostFragment.navController
 
-        binding.bottomNavigation.setupWithNavController(navController)
+        setupLiquidGlassNav()
+        handleIncomingIntent(intent)
+    }
 
-        binding.bottomNavigation.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_home -> {
+    // ──────────────────────────────────────────────────────────
+    // Liquid Glass Nav setup
+    // ──────────────────────────────────────────────────────────
+
+    private fun setupLiquidGlassNav() {
+        val nav = binding.bottomNavigation
+
+        // Build nav items — icons use selector drawables with state_checked
+        nav.setItems(
+            listOf(
+                LiquidGlassNavBar.NavItem(
+                    id = R.id.nav_home,
+                    iconDrawable = getDrawable(R.drawable.ic_home_selector)
+                ),
+                LiquidGlassNavBar.NavItem(
+                    id = R.id.nav_templates,
+                    iconDrawable = getDrawable(R.drawable.ic_templates_selector)
+                ),
+                LiquidGlassNavBar.NavItem(
+                    id = R.id.nav_add_images,
+                    iconDrawable = getDrawable(R.drawable.ic_add_image_stroke),
+                    isCta = true        // no selection state — slides never land here
+                ),
+                LiquidGlassNavBar.NavItem(
+                    id = R.id.nav_fav,
+                    iconDrawable = getDrawable(R.drawable.ic_file_selector)
+                ),
+                LiquidGlassNavBar.NavItem(
+                    id = R.id.nav_settings,
+                    iconDrawable = getDrawable(R.drawable.ic_setting_selector)
+                )
+            )
+        )
+
+        nav.setOnItemSelectedListener { slotIndex ->
+            when (slotIndex) {
+                0 -> { // home
                     if (navController.currentDestination?.id != R.id.homeFragment) {
                         navController.navigate(R.id.homeFragment, null, navOptions)
                     }
                 }
-
-                R.id.nav_templates -> {
+                1 -> { // templates
                     if (navController.currentDestination?.id != R.id.templateCategoriesFragment) {
                         navController.navigate(R.id.templateCategoriesFragment, null, navOptions)
                     }
                 }
-
-                R.id.nav_add_images -> {
+                2 -> { // add (CTA)
                     pickImageLauncher.launch("image/*")
                 }
-
-                R.id.nav_fav -> {
+                3 -> { // files/fav
                     if (navController.currentDestination?.id != R.id.filesFragment) {
                         navController.navigate(R.id.filesFragment, null, navOptions)
                     }
                 }
-
-                R.id.nav_settings -> {
+                4 -> { // settings
                     if (navController.currentDestination?.id != R.id.settingsFragment) {
                         navController.navigate(R.id.settingsFragment, null, navOptions)
                     }
                 }
-
-                else -> false
             }
-            true
         }
 
+        // Sync indicator & visibility on destination changes
         navController.addOnDestinationChangedListener { _, destination, _ ->
             val visibleDestinations = setOf(
-                R.id.homeFragment, R.id.templateCategoriesFragment, R.id.filesFragment, R.id.settingsFragment
+                R.id.homeFragment,
+                R.id.templateCategoriesFragment,
+                R.id.filesFragment,
+                R.id.settingsFragment
             )
+
             if (destination.id in visibleDestinations) {
-                if (!binding.bottomNavigation.isVisible) {
-                    binding.bottomNavigation.apply {
+                // Show with slide-up animation — NOTE: we never toggle visibility
+                // from a background thread; this is always on main thread here.
+                if (!nav.isVisible) {
+                    nav.apply {
                         visibility = View.VISIBLE
                         translationY = height.toFloat()
-                        animate().translationY(0f).setDuration(500).start()
+                        animate().translationY(0f).setDuration(400).start()
                     }
                 }
+                blurEngine?.startContinuous()
             } else {
-                binding.bottomNavigation.visibility = View.GONE
+                // Hide: animate out then GONE — still main thread only
+                if (nav.isVisible) {
+                    nav.animate()
+                        .translationY(nav.height.toFloat() + 40f)
+                        .setDuration(300)
+                        .withEndAction {
+                            // Safety: only touch visibility on main thread, check not destroyed
+                            if (!isDestroyed) nav.visibility = View.GONE
+                        }
+                        .start()
+                }
+                blurEngine?.stopContinuous()
             }
 
             setStatusBarTextColor(darkIcons = true)
 
-            // ✅ Selection only, NO navigation here
+            // Sync indicator to correct slot (no animation for programmatic sync)
             when (destination.id) {
-                R.id.homeFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_home).isChecked =
-                    true
-
-                R.id.templateCategoriesFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_templates).isChecked =
-                    true
-
-                R.id.filesFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_fav).isChecked =
-                    true
-
-                R.id.settingsFragment -> binding.bottomNavigation.menu.findItem(R.id.nav_settings).isChecked =
-                    true
+                R.id.homeFragment                -> nav.selectItem(0)
+                R.id.templateCategoriesFragment  -> nav.selectItem(1)
+                R.id.filesFragment               -> nav.selectItem(3)
+                R.id.settingsFragment            -> nav.selectItem(4)
             }
         }
 
+        // Wire back-press
         onBackPressedDispatcher.addCallback(this) {
-            val currentDest = navController.currentDestination?.id
-
-            when (currentDest) {
-                R.id.editorFragment -> {}
-
-                R.id.homeFragment -> {
-                    finish()
-                }
-
-                R.id.templateCategoriesFragment, R.id.filesFragment, R.id.settingsFragment -> {
-                    navController.navigate(R.id.homeFragment, null, navOptions)
-                }
-
-                else -> {}
+            when (navController.currentDestination?.id) {
+                R.id.editorFragment -> { /* editor handles its own back */ }
+                R.id.homeFragment -> finish()
+                R.id.templateCategoriesFragment,
+                R.id.filesFragment,
+                R.id.settingsFragment -> navController.navigate(R.id.homeFragment, null, navOptions)
+                else -> { /* do nothing */ }
             }
         }
 
-        handleIncomingIntent(intent)
+        // Start blur engine once views are laid out.
+        //
+        // SOURCE must be binding.navHostMain (FragmentContainerView), NOT binding.root.
+        //
+        // If we use binding.root (ConstraintLayout), source.draw() renders BOTH the
+        // fragment content AND the LiquidGlassNavBar (which is a child of root).
+        // The nav bar's green icons get blurred and fed back into the bar background,
+        // producing the green glow halo around icons seen in the screenshot.
+        //
+        // FragmentContainerView is a SIBLING of LiquidGlassNavBar in the layout, so
+        // drawing it never includes the nav bar. It also fills the full screen
+        // (constraints: top/bottom/start/end of parent), so the region behind the bar
+        // is fully rendered — the RecyclerView content extends behind the floating bar.
+        //
+        // Background stripping: remove the background from navHostMain so that if a
+        // fragment sets a white/solid background the FragmentContainerView itself stays
+        // transparent, allowing content behind it to show in the blur crop.
+        nav.post {
+            val fragmentHost = binding.navHostMain
+            fragmentHost.background = null   // prevent solid bg blocking blur capture
+            blurEngine = BlurEngine(fragmentHost, nav)
+            blurEngine?.updatePositions()
+            blurEngine?.startContinuous()
+        }
     }
+
+    // ──────────────────────────────────────────────────────────
+    // Status bar / immersive
+    // ──────────────────────────────────────────────────────────
 
     private fun setStatusBarTextColor(darkIcons: Boolean) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -202,18 +271,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun forceImmersiveMode() {
-        window?.let { window ->
+        window?.let { w ->
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                window.insetsController?.apply {
-                    hide(
-                       WindowInsets.Type.navigationBars()
-                    )
-                    systemBarsBehavior =
-                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                w.insetsController?.apply {
+                    hide(WindowInsets.Type.navigationBars())
+                    systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 }
             } else {
                 @Suppress("DEPRECATION")
-                window.decorView.systemUiVisibility =
+                w.decorView.systemUiVisibility =
                     View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
                             View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
                             View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
@@ -224,49 +290,36 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            forceImmersiveMode()
-        }
-    }
+    // ──────────────────────────────────────────────────────────
+    // Intent handling
+    // ──────────────────────────────────────────────────────────
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleIncomingIntent(intent)
     }
 
-    /**
-     * Handle all possible entry cases:
-     * - Normal app start (no data)
-     * - Cold start with image
-     * - Warm start with image
-     */
     private fun handleIncomingIntent(intent: Intent?) {
         if (intent == null) return
-
         val uri: Uri? = when (intent.action) {
             Intent.ACTION_VIEW -> intent.data
             Intent.ACTION_SEND -> intent.getParcelableExtra(Intent.EXTRA_STREAM)
             else -> null
         }
-
         if (uri != null && intent.type?.startsWith("image/") == true) {
             try {
-                contentResolver.openInputStream(uri)?.use { inputStream ->
-                    val bitmap = BitmapFactory.decodeStream(inputStream)
+                contentResolver.openInputStream(uri)?.use { stream ->
+                    val bitmap = BitmapFactory.decodeStream(stream)
                     if (bitmap != null) {
-                        val canvasSize = CanvasSize(
-                            "From Image", bitmap.width.toFloat(), bitmap.height.toFloat()
-                        )
+                        val canvasSize = CanvasSize("From Image", bitmap.width.toFloat(), bitmap.height.toFloat())
                         viewModel.clearCanvas()
                         viewModel.setCanvasSize(canvasSize)
                         viewModel.setCanvasBackgroundImage(bitmap)
-                        val editorNavOptions = NavOptions.Builder()
+                        val opts = NavOptions.Builder()
                             .setLaunchSingleTop(true)
                             .setPopUpTo(R.id.editorFragment, inclusive = true)
                             .build()
-                        navController.navigate(R.id.editorFragment, null, editorNavOptions)
+                        navController.navigate(R.id.editorFragment, null, opts)
                     }
                 }
             } catch (e: Exception) {
@@ -275,30 +328,38 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // ──────────────────────────────────────────────────────────
+    // Observers / Resume / Result / Destroy
+    // ──────────────────────────────────────────────────────────
+
     private fun initObservers() {
-        lifecycleScope.launch {
-            mainViewModel.localFonts.collect { fonts ->
-            }
-        }
+        lifecycleScope.launch { mainViewModel.localFonts.collect { } }
+        lifecycleScope.launch { mainViewModel.localImages.collect { } }
+        lifecycleScope.launch { billingManager.isSubscribed.collect { } }
+    }
 
-        lifecycleScope.launch {
-            mainViewModel.localImages.collect { images ->
-            }
-        }
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) forceImmersiveMode()
+    }
 
-        lifecycleScope.launch {
-            billingManager.isSubscribed.collect { subscribed ->
-                if (subscribed) {
-                    // Premium content dikhao / paywall hide karo
-                } else {
-                    // Paywall dikhao
-                }
-            }
+    override fun onResume() {
+        super.onResume()
+        updateManager.onResume(this)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == UpdateManager.REQUEST_CODE_UPDATE && resultCode != RESULT_OK) {
+            updateManager.checkForUpdate(this)
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        blurEngine?.destroy()
+        blurEngine = null
+        updateManager.onDestroy()
         _navController = null
         _binding = null
     }

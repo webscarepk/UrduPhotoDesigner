@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/contrast"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".ui.navigation.home.HomeFragment">
 
@@ -74,14 +75,17 @@
             android:textColor="@color/white"
             android:id="@+id/title"/>
 
-        <ImageView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_subscriptions"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
+        <com.airbnb.lottie.LottieAnimationView
             android:id="@+id/subscriptions"
-            />
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            app:lottie_rawRes="@raw/premium"
+            app:lottie_autoPlay="true"
+            android:layout_gravity="end|bottom"
+            android:layout_margin="4dp"
+            app:lottie_loop="true"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"/>
 
         <EditText
             android:id="@+id/searchBar"
