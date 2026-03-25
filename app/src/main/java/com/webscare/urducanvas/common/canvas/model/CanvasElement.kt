@@ -9,7 +9,6 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.text.TextPaint
-import com.webscare.urducanvas.common.utils.KashidaProcessor
 import com.google.gson.annotations.SerializedName
 import com.webscare.urducanvas.common.canvas.enums.BlendType
 import com.webscare.urducanvas.common.canvas.enums.ElementType
@@ -20,6 +19,7 @@ import com.webscare.urducanvas.common.canvas.enums.ShapeType
 import com.webscare.urducanvas.common.canvas.enums.TextAlignment
 import com.webscare.urducanvas.common.canvas.enums.TextDecoration
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
+import com.webscare.urducanvas.common.utils.KashidaProcessor
 import java.io.Serializable
 import java.util.UUID
 
@@ -27,143 +27,101 @@ data class CanvasElement(
     // Context is transient and should not be serialized. It will be re-provided on load.
     @field:Transient var context: Context? = null, // Made nullable for deserialization
 
-    @SerializedName("type")
-    var type: ElementType?,
+    @SerializedName("type") var type: ElementType?,
 
-    @SerializedName("text")
-    var text: String = "",
-    // Bitmap is also transient. It needs to be handled separately for serialization (e.g., to Base64 or URI).
-    @SerializedName("bitmap")
-    @field:Transient var bitmap: Bitmap? = null,
+    @Transient  // or @Exclude if using Gson's @Expose
+    @com.google.gson.annotations.JsonAdapter(value = Nothing::class) // skip serialization
+    var svgDrawable: android.graphics.drawable.PictureDrawable? = null,
 
-    @SerializedName("bitmapData")
-    var bitmapData: String? = null,
+    @SerializedName("text") var text: String = "",
 
-    @SerializedName("groupId")
-    var groupId: String? = null,
+    @SerializedName("bitmap") @field:Transient var bitmap: Bitmap? = null,
 
-    @SerializedName("imageFilter")
-    var imageFilter: ImageFilter = ImageFilter.None,
+    @SerializedName("bitmapData") var bitmapData: String? = null,
 
-    @SerializedName("adjustments")
-    var adjustments: AdjustmentValues = AdjustmentValues(),
+    @SerializedName("groupId") var groupId: String? = null,
 
-    @SerializedName("x")
-    var x: Float = 0f,
+    @SerializedName("imageFilter") var imageFilter: ImageFilter = ImageFilter.None,
 
-    @SerializedName("y")
-    var y: Float = 0f,
+    @SerializedName("adjustments") var adjustments: AdjustmentValues = AdjustmentValues(),
 
-    @SerializedName("scale")
-    var scale: Float = 1f,
+    @SerializedName("x") var x: Float = 0f,
 
-    @SerializedName("rotation")
-    var rotation: Float = 0f,
+    @SerializedName("y") var y: Float = 0f,
 
-    @SerializedName("hasOverlay")
-    var hasOverlay: Boolean = false,
+    @SerializedName("scale") var scale: Float = 1f,
 
-    @SerializedName("overlayColor")
-    var overlayColor: Int = Color.YELLOW,
+    @SerializedName("rotation") var rotation: Float = 0f,
 
-    @SerializedName("overlayOpacity")
-    var overlayOpacity: Int = 255,
+    @SerializedName("hasOverlay") var hasOverlay: Boolean = false,
 
-    @SerializedName("overlayGradient")
-    var overlayGradient: GradientItem? = null,
+    @SerializedName("overlayColor") var overlayColor: Int = Color.YELLOW,
 
-    @SerializedName("id")
-    val id: String = UUID.randomUUID().toString(),
+    @SerializedName("overlayOpacity") var overlayOpacity: Int = 255,
 
-    @SerializedName("isLocked")
-    var isLocked: Boolean = false,
+    @SerializedName("overlayGradient") var overlayGradient: GradientItem? = null,
 
-    @SerializedName("hasMask")
-    var hasMask: Boolean = false,
+    @SerializedName("id") val id: String = UUID.randomUUID().toString(),
 
-    @SerializedName("hasLight")
-    var hasLight: Boolean = false,
+    @SerializedName("isLocked") var isLocked: Boolean = false,
 
-    @SerializedName("hasColor")
-    var hasColor: Boolean = false,
+    @SerializedName("hasMask") var hasMask: Boolean = false,
 
-    @SerializedName("hasDetail")
-    var hasDetail: Boolean = false,
+    @SerializedName("hasLight") var hasLight: Boolean = false,
 
-    @SerializedName("zIndex")
-    var zIndex: Int = 0,
+    @SerializedName("hasColor") var hasColor: Boolean = false,
 
-    @SerializedName("isSelected")
-    var isSelected: Boolean = false,
+    @SerializedName("hasDetail") var hasDetail: Boolean = false,
 
-    @SerializedName("fontId")
-    var fontId: String? = null,
+    @SerializedName("zIndex") var zIndex: Int = 0,
 
-    @SerializedName("paintColor")
-    var paintColor: Int = Color.BLACK,
+    @SerializedName("isSelected") var isSelected: Boolean = false,
 
-    @SerializedName("paintTextSize")
-    var paintTextSize: Float = 80f,
+    @SerializedName("fontId") var fontId: String? = null,
 
-    @SerializedName("paintAlpha")
-    var paintAlpha: Int = 255,
+    @SerializedName("paintColor") var paintColor: Int = Color.BLACK,
 
-    @SerializedName("hasStroke")
-    var hasStroke: Boolean = false,
+    @SerializedName("paintTextSize") var paintTextSize: Float = 80f,
 
-    @SerializedName("strokeColor")
-    var strokeColor: Int = Color.BLACK,
+    @SerializedName("paintAlpha") var paintAlpha: Int = 255,
 
-    @SerializedName("strokeWidth")
-    var strokeWidth: Float = 1f,
+    @SerializedName("hasStroke") var hasStroke: Boolean = false,
 
-    @SerializedName("hasShadow")
-    var hasShadow: Boolean = false,
+    @SerializedName("strokeColor") var strokeColor: Int = Color.BLACK,
 
-    @SerializedName("shadowColor")
-    var shadowColor: Int = Color.GRAY,
+    @SerializedName("strokeWidth") var strokeWidth: Float = 1f,
 
-    @SerializedName("shadowDx")
-    var shadowDx: Float = 1f,
+    @SerializedName("hasShadow") var hasShadow: Boolean = false,
 
-    @SerializedName("shadowDy")
-    var shadowDy: Float = 1f,
+    @SerializedName("shadowColor") var shadowColor: Int = Color.GRAY,
 
-    @SerializedName("shadowRadius")
-    var shadowRadius: Float = 1f,
+    @SerializedName("shadowDx") var shadowDx: Float = 1f,
 
-    @SerializedName("shadowOpacity")
-    var shadowOpacity: Int = 1,
+    @SerializedName("shadowDy") var shadowDy: Float = 1f,
 
-    @SerializedName("hasLabel")
-    var hasLabel: Boolean = false,
+    @SerializedName("shadowRadius") var shadowRadius: Float = 1f,
 
-    @SerializedName("labelColor")
-    var labelColor: Int = Color.YELLOW,
+    @SerializedName("shadowOpacity") var shadowOpacity: Int = 1,
 
-    @SerializedName("labelShape")
-    var labelShape: LabelShape = LabelShape.RECTANGLE_FILL,
+    @SerializedName("hasLabel") var hasLabel: Boolean = false,
 
-    @SerializedName("lineSpacing")
-    var lineSpacing: Float = 1.0f,
+    @SerializedName("labelColor") var labelColor: Int = Color.YELLOW,
 
-    @SerializedName("letterSpacing")
-    var letterSpacing: Float = 0f,
+    @SerializedName("labelShape") var labelShape: LabelShape = LabelShape.RECTANGLE_FILL,
 
-    @SerializedName("letterCasing")
-    var letterCasing: LetterCasing = LetterCasing.NONE,
+    @SerializedName("lineSpacing") var lineSpacing: Float = 1.0f,
 
-    @SerializedName("textDecoration")
-    var textDecoration: Set<TextDecoration> = emptySet(),
+    @SerializedName("letterSpacing") var letterSpacing: Float = 0f,
 
-    @SerializedName("alignment")
-    var alignment: TextAlignment = TextAlignment.CENTER,
+    @SerializedName("letterCasing") var letterCasing: LetterCasing = LetterCasing.NONE,
 
-    @SerializedName("currentIndent")
-    var currentIndent: Float = 0f,
+    @SerializedName("textDecoration") var textDecoration: Set<TextDecoration> = emptySet(),
 
-    @SerializedName("listStyle")
-    var listStyle: ListStyle = ListStyle.NONE,
+    @SerializedName("alignment") var alignment: TextAlignment = TextAlignment.CENTER,
+
+    @SerializedName("currentIndent") var currentIndent: Float = 0f,
+
+    @SerializedName("listStyle") var listStyle: ListStyle = ListStyle.NONE,
 
     @SerializedName("fillGradient")
     // text fill gradient
@@ -177,97 +135,67 @@ data class CanvasElement(
     // text label gradient
     var labelGradient: GradientItem? = null,
 
-    @SerializedName("originalTypeface")
-    @field:Transient var originalTypeface: Typeface? = null,
+    @SerializedName("originalTypeface") @field:Transient var originalTypeface: Typeface? = null,
 
-    @SerializedName("hasBlur")
-    var hasBlur: Boolean = false,
+    @SerializedName("hasBlur") var hasBlur: Boolean = false,
 
-    @SerializedName("blurValue")
-    var blurValue: Float = 0f,
+    @SerializedName("blurValue") var blurValue: Float = 0f,
 
-    @SerializedName("blendType")
-    var blendType: BlendType = BlendType.NORMAL,
+    @SerializedName("blendType") var blendType: BlendType = BlendType.NORMAL,
 
-    @SerializedName("isVisible")
-    var isVisible: Boolean = true,
+    @SerializedName("isVisible") var isVisible: Boolean = true,
 
-    @SerializedName("backgroundColor")
-    var backgroundColor: Int = Color.WHITE,
+    @SerializedName("backgroundColor") var backgroundColor: Int = Color.WHITE,
 
-    @SerializedName("logicalContentWidth")
-    var logicalContentWidth: Float = 0f,
+    @SerializedName("logicalContentWidth") var logicalContentWidth: Float = 0f,
 
-    @SerializedName("logicalContentHeight")
-    var logicalContentHeight: Float = 0f,
+    @SerializedName("logicalContentHeight") var logicalContentHeight: Float = 0f,
 
-    @SerializedName("isFlippedX")
-    var isFlippedX: Boolean = false,
+    @SerializedName("isFlippedX") var isFlippedX: Boolean = false,
 
-    @SerializedName("isFlippedY")
-    var isFlippedY: Boolean = false,
+    @SerializedName("isFlippedY") var isFlippedY: Boolean = false,
 
-    @SerializedName("kashidaSize")
-    var kashidaSize: Int = 0,
+    @SerializedName("kashidaSize") var kashidaSize: Int = 0,
 
-    @SerializedName("drawStrokes")
-    var drawStrokes: MutableList<StrokeData>? = null,
+    @SerializedName("drawStrokes") var drawStrokes: MutableList<StrokeData>? = null,
 
-    @SerializedName("brushSettings")
-    var brushSettings: BrushSettings? = null,
+    @SerializedName("brushSettings") var brushSettings: BrushSettings? = null,
 
-    @SerializedName("allowsStrokeEditing")
-    var allowsStrokeEditing: Boolean = false,
+    @SerializedName("allowsStrokeEditing") var allowsStrokeEditing: Boolean = false,
 
-    @SerializedName("shapeType")
-    var shapeType: ShapeType? = null,
+    @SerializedName("shapeType") var shapeType: ShapeType? = null,
 
-    @SerializedName("shapeFillColor")
-    var shapeFillColor: Int = Color.TRANSPARENT,
+    @SerializedName("shapeFillColor") var shapeFillColor: Int = Color.TRANSPARENT,
 
-    @SerializedName("shapeStrokeColor")
-    var shapeStrokeColor: Int = Color.BLACK,
+    @SerializedName("shapeStrokeColor") var shapeStrokeColor: Int = Color.BLACK,
 
-    @SerializedName("shapeStrokeWidth")
-    var shapeStrokeWidth: Float = 6f,
+    @SerializedName("shapeStrokeWidth") var shapeStrokeWidth: Float = 6f,
 
-    @SerializedName("shapeCornerRadius")
-    var shapeCornerRadius: Float = 0f,
+    @SerializedName("shapeCornerRadius") var shapeCornerRadius: Float = 0f,
 
-    @SerializedName("shapeHasFill")
-    var shapeHasFill: Boolean = true,
+    @SerializedName("shapeHasFill") var shapeHasFill: Boolean = true,
 
-    @SerializedName("shapeHasStroke")
-    var shapeHasStroke: Boolean = true,
+    @SerializedName("shapeHasStroke") var shapeHasStroke: Boolean = true,
 
-    @SerializedName("shapeHasCorner")
-    var shapeHasCorner: Boolean = false,
+    @SerializedName("shapeHasCorner") var shapeHasCorner: Boolean = false,
 
-    @SerializedName("shapeFillGradient")
-    var shapeFillGradient: GradientItem? = null,
+    @SerializedName("shapeFillGradient") var shapeFillGradient: GradientItem? = null,
 
-    @SerializedName("shapeStrokeGradient")
-    var shapeStrokeGradient: GradientItem? = null,
+    @SerializedName("shapeStrokeGradient") var shapeStrokeGradient: GradientItem? = null,
 
-    @SerializedName("imagePanX")
-    var imagePanX: Float = 0f,
+    @SerializedName("imagePanX") var imagePanX: Float = 0f,
 
-    @SerializedName("imagePanY")
-    var imagePanY: Float = 0f,
+    @SerializedName("imagePanY") var imagePanY: Float = 0f,
 
-    @SerializedName("imageScale")
-    var imageScale: Float = 1f,
+    @SerializedName("imageScale") var imageScale: Float = 1f,
 
-    @SerializedName("imageFitMode")
-    var imageFitMode: String? = "cover",
+    @SerializedName("imageFitMode") var imageFitMode: String? = "cover",
 
-    @SerializedName("isPremium")
-    var isPremium: Boolean = false,
+    @SerializedName("isPremium") var isPremium: Boolean = false,
 
-    @SerializedName("isSubscribed")
-    var isSubscribed: Boolean = false,
+    @SerializedName("isSubscribed") var isSubscribed: Boolean = false,
 
-) : Serializable {
+    ) : Serializable {
 
     @field:Transient
     lateinit var paint: TextPaint
@@ -293,14 +221,15 @@ data class CanvasElement(
             logicalContentWidth
         } else if (type == ElementType.TEXT) {
             val lines = getTextWithKashida().split("\n")
-            // Ensure paint is initialized before using it
             if (::paint.isInitialized) {
                 lines.maxOfOrNull { line -> paint.measureText(line) } ?: 0f
             } else {
                 0f
             }
         } else {
-            bitmap?.width?.toFloat() ?: 0f
+            bitmap?.width?.toFloat() ?: svgDrawable?.intrinsicWidth?.toFloat()
+                ?.takeIf { it > 0 }  // ✅ SVG fallback
+            ?: 0f
         }
     }
 
@@ -319,7 +248,9 @@ data class CanvasElement(
                 0f
             }
         } else {
-            bitmap?.height?.toFloat() ?: 0f
+            bitmap?.height?.toFloat() ?: svgDrawable?.intrinsicHeight?.toFloat()
+                ?.takeIf { it > 0 }  // ✅ SVG fallback
+            ?: 0f
         }
     }
 

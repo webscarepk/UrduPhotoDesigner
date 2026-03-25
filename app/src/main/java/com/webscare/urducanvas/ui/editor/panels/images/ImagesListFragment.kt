@@ -56,7 +56,7 @@ class ImagesListFragment : Fragment() {
 
     private fun setEvents() {
 
-        imagesAdapter = ImagesAdapter { image, imageEntity ->
+        imagesAdapter = ImagesAdapter { bitmap, svgDrawable, imageEntity ->
 
             mainViewModel.updateImage(imageEntity.copy(is_recent = true))
 
@@ -70,7 +70,7 @@ class ImagesListFragment : Fragment() {
             ) {
 
                 viewModel.ensureBackgroundElement(requireActivity())
-                viewModel.setCanvasBackgroundImage(image)
+                viewModel.setCanvasBackgroundImage(bitmap)
 
                 return@ImagesAdapter
             }
@@ -79,18 +79,18 @@ class ImagesListFragment : Fragment() {
             // NORMAL IMAGE STICKER
             // -------------------------------
 
-            val resized = viewModel.canvasSize.value?.height?.roundToInt()?.let { height ->
-                viewModel.canvasSize.value?.width?.roundToInt()?.let { width ->
-                    bitmapCompress(image, width, height)
+            if (svgDrawable != null) {
+                // ✅ SVG sticker — no bitmap involved at all
+                viewModel.addSvgSticker(svgDrawable, requireActivity(), imageEntity.is_premium)
+            } else {
+                // Normal bitmap sticker
+                val resized = viewModel.canvasSize.value?.height?.roundToInt()?.let { h ->
+                    viewModel.canvasSize.value?.width?.roundToInt()?.let { w ->
+                        bitmapCompress(bitmap!!, w, h)
+                    }
                 }
+                viewModel.addSticker(resized?.trimTransparentEdges(), requireActivity(), ElementType.IMAGE, imageEntity.is_premium)
             }
-
-            viewModel.addSticker(
-                resized?.trimTransparentEdges(),
-                requireActivity(),
-                ElementType.IMAGE,
-                imageEntity.is_premium
-            )
         }
 
         binding.backgrounds.adapter = imagesAdapter

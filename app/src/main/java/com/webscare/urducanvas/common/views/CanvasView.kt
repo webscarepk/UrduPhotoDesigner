@@ -59,10 +59,7 @@ import com.webscare.urducanvas.common.canvas.enums.TextAlignment
 import com.webscare.urducanvas.common.canvas.enums.TextDecoration
 import com.webscare.urducanvas.common.canvas.enums.VAlign
 import com.webscare.urducanvas.common.canvas.model.CanvasElement
-import com.webscare.urducanvas.common.canvas.model.ExportFormat
 import com.webscare.urducanvas.common.canvas.model.ExportOptions
-import com.webscare.urducanvas.common.canvas.model.ExportQuality
-import com.webscare.urducanvas.common.canvas.model.ExportResolution
 import com.webscare.urducanvas.common.canvas.model.GradientItem
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import com.webscare.urducanvas.common.utils.BrushRenderUtils.createBackgroundGradientShader
@@ -125,7 +122,7 @@ class CanvasView @JvmOverloads constructor(
     private var currentBrushThickness: Float = 20f
     private var currentBrushHardness: Float = 1f
     private var currentBrushStyle: BrushStyle = BrushStyle.PEN
-    private var currentBrushGradient: com.webscare.urducanvas.common.canvas.model.GradientItem? =
+    private var currentBrushGradient: GradientItem? =
         null
 
     private var pickerX = 0f
@@ -144,7 +141,7 @@ class CanvasView @JvmOverloads constructor(
 
     private var activeGroupId: String? = null
     private var inSelectionMode = false
-    private var touchedDownElement: com.webscare.urducanvas.common.canvas.model.CanvasElement? =
+    private var touchedDownElement: CanvasElement? =
         null
     private var isDragCandidate = false
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
@@ -178,8 +175,8 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private val canvasElements =
-        mutableListOf<com.webscare.urducanvas.common.canvas.model.CanvasElement>()
-    private lateinit var backgroundElement: com.webscare.urducanvas.common.canvas.model.CanvasElement
+        mutableListOf<CanvasElement>()
+    private lateinit var backgroundElement: CanvasElement
 
     private var touchStartX = 0f
     private var touchStartY = 0f
@@ -267,9 +264,9 @@ class CanvasView @JvmOverloads constructor(
         AppCompatResources.getDrawable(context, R.drawable.ic_resize)!!
     }
 
-    private var selectedElements: CopyOnWriteArrayList<com.webscare.urducanvas.common.canvas.model.CanvasElement> =
+    private var selectedElements: CopyOnWriteArrayList<CanvasElement> =
         CopyOnWriteArrayList()
-    private var lastTouchedElement: com.webscare.urducanvas.common.canvas.model.CanvasElement? =
+    private var lastTouchedElement: CanvasElement? =
         null
 
     private fun Float.dpToPx(): Float = this * resources.displayMetrics.density
@@ -334,9 +331,9 @@ class CanvasView @JvmOverloads constructor(
         super.onSizeChanged(w, h, oldw, oldh)
 
         canvasElements.firstOrNull { it.type == ElementType.BACKGROUND }?.apply {
-                logicalContentWidth = canvasWidth.toFloat()
-                logicalContentHeight = canvasHeight.toFloat()
-            }
+            logicalContentWidth = canvasWidth.toFloat()
+            logicalContentHeight = canvasHeight.toFloat()
+        }
 
         if (canvasElements.isEmpty()) {
             ensureBackgroundElement()
@@ -557,7 +554,7 @@ class CanvasView @JvmOverloads constructor(
      * Syncs the canvas elements with a new list from the ViewModel.
      * Updates the internal `selectedElements` list based on the `isSelected` flag of incoming elements.
      */
-    fun syncElements(newElements: List<com.webscare.urducanvas.common.canvas.model.CanvasElement>) {
+    fun syncElements(newElements: List<CanvasElement>) {
         val oldSize = canvasElements.size
         canvasElements.clear()
         canvasElements.addAll(newElements)
@@ -690,29 +687,29 @@ class CanvasView @JvmOverloads constructor(
 
     fun setFont(fontEntity: com.webscare.urducanvas.data.model.FontEntity) {
         selectedElements.filter { it.type == ElementType.TEXT }.forEach { element ->
-                element.fontId = fontEntity.id.toString()
+            element.fontId = fontEntity.id.toString()
 
-                // Check if the file_path is not blank before attempting to create a typeface
-                if (fontEntity.file_path?.isNotBlank()!!) {
-                    try {
-                        element.paint.typeface = Typeface.createFromFile(fontEntity.file_path)
-                    } catch (e: Exception) {
-                        // Handle potential errors if the file path is valid but the file itself is corrupt or unreadable
-                        // You might log the error or set a default typeface here if needed
-                        println("Error loading typeface from file: ${fontEntity.file_path}. Error: ${e.message}")
+            // Check if the file_path is not blank before attempting to create a typeface
+            if (fontEntity.file_path?.isNotBlank()!!) {
+                try {
+                    element.paint.typeface = Typeface.createFromFile(fontEntity.file_path)
+                } catch (e: Exception) {
+                    // Handle potential errors if the file path is valid but the file itself is corrupt or unreadable
+                    // You might log the error or set a default typeface here if needed
+                    println("Error loading typeface from file: ${fontEntity.file_path}. Error: ${e.message}")
 
-                        element.paint.typeface = Typeface.DEFAULT
-                    }
-                } else {
-                    // If file_path is blank, do not set the typeface.
-                    // The existing typeface on the element will remain, or you could explicitly
-                    // set it to a default system typeface if that's desired when no custom font is selected.
-                    // For example:
-                    // element.paint.typeface = Typeface.DEFAULT
+                    element.paint.typeface = Typeface.DEFAULT
                 }
-
-                onElementChanged?.invoke(element)
+            } else {
+                // If file_path is blank, do not set the typeface.
+                // The existing typeface on the element will remain, or you could explicitly
+                // set it to a default system typeface if that's desired when no custom font is selected.
+                // For example:
+                // element.paint.typeface = Typeface.DEFAULT
             }
+
+            onElementChanged?.invoke(element)
+        }
         invalidate()
     }
 
@@ -737,7 +734,7 @@ class CanvasView @JvmOverloads constructor(
         invalidate()
     }
 
-    fun setCanvasBackgroundGradient(gradientItem: com.webscare.urducanvas.common.canvas.model.GradientItem) {
+    fun setCanvasBackgroundGradient(gradientItem: GradientItem) {
         ensureBackgroundElement()
         canvasElements.forEach { element ->
             if (element.type == ElementType.BACKGROUND) {
@@ -753,10 +750,10 @@ class CanvasView @JvmOverloads constructor(
     fun setCanvasBackgroundImage(src: Bitmap) {
         ensureBackgroundElement()
         canvasElements.first { it.type == ElementType.BACKGROUND }.apply {
-                fillGradient = null
-                backgroundColor = Color.WHITE
-                bitmap = src        // ← keep the full-size image
-            }
+            fillGradient = null
+            backgroundColor = Color.WHITE
+            bitmap = src        // ← keep the full-size image
+        }
         invalidate()
     }
 
@@ -835,13 +832,22 @@ class CanvasView @JvmOverloads constructor(
         onProgress?.invoke(50, "Please wait")
 
         val elementsWithBitmap = canvasElements
+
         val total = elementsWithBitmap.size
+
         if (total > 0) {
             onProgress?.invoke(70, "Encoding image data")
             elementsWithBitmap.forEachIndexed { index, element ->
-                element.bitmap?.let {
-                    // Keep using file path — avoids Base64 OOM (Crash 3)
-                    element.bitmapData = ImageProcessor.bitmapToBase64(it)
+                if (element.svgDrawable != null && element.bitmap == null) {
+                    val rasterized = rasterizeSvgElement(element)
+                    element.bitmap = rasterized                                    // ✅ set bitmap too
+                    element.bitmapData = rasterized?.let {
+                        ImageProcessor.bitmapToBase64Lossless(it)
+                    }
+                } else {
+                    element.bitmap?.let {
+                        element.bitmapData = ImageProcessor.bitmapToBase64(it)
+                    }
                 }
                 element.drawStrokes?.forEach { stroke -> stroke.serializePath() }
                 val progress = 70 + ((index + 1) * 20 / total)
@@ -894,18 +900,26 @@ class CanvasView @JvmOverloads constructor(
         onProgress?.invoke(30, "Rendering thumbnail")
         renderCanvasTo(canvas, scaleFactor)
 
-        // Deep-copy elements so we never mutate live canvas state
-        val elementsSnapshot = canvasElements.map { it.copy() }
+        val elementsSnapshot = canvasElements.map { original ->
+            original.copy().also { copy ->
+                copy.svgDrawable = original.svgDrawable  // ✅ @Transient not copied by data class
+                copy.bitmap = original.bitmap
+            }
+        }
 
         // Encode element bitmaps (if any)
         val total = elementsSnapshot.size
         if (total > 0) {
             onProgress?.invoke(70, "Encoding image data")
             elementsSnapshot.forEachIndexed { index, element ->
-                element.bitmap?.let { bmp ->
-                    // Scale bitmap down to thumbnail dimensions before Base64 — avoids OOM
-                    element.bitmapData = ImageProcessor.bitmapToBase64(bmp)
-                    element.bitmap = null
+                if (element.svgDrawable != null && element.bitmap == null) {
+                    // ✅ Use lossless PNG for SVG — lossy compression destroys sharp vector edges
+                    element.bitmapData = ImageProcessor.bitmapToBase64Lossless(rasterizeSvgElement(element)!!)
+                } else {
+                    element.bitmap?.let {
+                        element.bitmapData = ImageProcessor.bitmapToBase64(it)
+                        element.bitmap = null
+                    }
                 }
                 element.drawStrokes?.forEach { stroke ->
                     stroke.serializePath()
@@ -940,13 +954,21 @@ class CanvasView @JvmOverloads constructor(
                 drawStrokes = element.drawStrokes?.toList()?.map { s ->
                     s.copy(path = s.path?.let { Path(it) })
                 }?.toMutableList()
-            )
+            ).also { copy ->
+                copy.svgDrawable = element.svgDrawable  // ✅ restore @Transient
+                copy.bitmap = element.bitmap
+            }
         }
 
         safeElements.forEach { element ->
-            element.bitmap?.let { bmp ->
-                element.bitmapData = ImageProcessor.bitmapToBase64(bmp)
-                element.bitmap = null  // release raw Bitmap immediately — prevents raw + Base64 coexisting in RAM
+            if (element.svgDrawable != null && element.bitmap == null) {
+                // ✅ Use lossless PNG for SVG — lossy compression destroys sharp vector edges
+                element.bitmapData = ImageProcessor.bitmapToBase64Lossless(rasterizeSvgElement(element)!!)
+            } else {
+                element.bitmap?.let {
+                    element.bitmapData = ImageProcessor.bitmapToBase64(it)
+                    element.bitmap = null
+                }
             }
             element.drawStrokes?.forEach { stroke -> stroke.serializePath() }
         }
@@ -1859,6 +1881,22 @@ class CanvasView @JvmOverloads constructor(
                         )
 
                         else -> {
+                            element.svgDrawable?.let { drawable ->
+                                val w = element.logicalContentWidth.takeIf { it > 0 }
+                                    ?: drawable.intrinsicWidth.toFloat().takeIf { it > 0 } ?: 200f
+                                val h = element.logicalContentHeight.takeIf { it > 0 }
+                                    ?: drawable.intrinsicHeight.toFloat().takeIf { it > 0 } ?: 200f
+
+                                val left = -w / 2f
+                                val top = -h / 2f
+
+                                drawable.setBounds(
+                                    left.toInt(), top.toInt(), (left + w).toInt(), (top + h).toInt()
+                                )
+                                drawable.draw(canvas)
+                                return@let
+                            }
+
                             element.bitmap?.let { bmp ->
                                 var finalBitmap = bmp
 
@@ -2330,8 +2368,7 @@ class CanvasView @JvmOverloads constructor(
             val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = shadowColor
                 maskFilter = BlurMaskFilter(
-                    element.shadowRadius.coerceAtLeast(0.1f),
-                    BlurMaskFilter.Blur.NORMAL
+                    element.shadowRadius.coerceAtLeast(0.1f), BlurMaskFilter.Blur.NORMAL
                 )
             }
 
@@ -2354,9 +2391,7 @@ class CanvasView @JvmOverloads constructor(
                 if (element.shapeFillGradient != null) {
 
                     shader = createGradientShader(
-                        element.shapeFillGradient!!,
-                        localRect.width(),
-                        localRect.height()
+                        element.shapeFillGradient!!, localRect.width(), localRect.height()
                     )
 
                 } else {
@@ -2381,9 +2416,7 @@ class CanvasView @JvmOverloads constructor(
             canvas.withSave {
 
                 val finalBitmap = ImageAdjustmentHelper.applyAllAdjustments(
-                    element.context!!,
-                    bmp,
-                    element
+                    element.context!!, bmp, element
                 )
 
                 val srcW = finalBitmap.width.toFloat()
@@ -2433,8 +2466,7 @@ class CanvasView @JvmOverloads constructor(
 
                     ImageFilter.SoftBlur -> {
 
-                        paint.maskFilter =
-                            BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
+                        paint.maskFilter = BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
 
                         canvas.drawBitmap(finalBitmap, matrix, paint)
                     }
@@ -2446,8 +2478,7 @@ class CanvasView @JvmOverloads constructor(
                         val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                             color = Color.argb(180, 255, 255, 200)
                             maskFilter = BlurMaskFilter(
-                                25f,
-                                BlurMaskFilter.Blur.OUTER
+                                25f, BlurMaskFilter.Blur.OUTER
                             )
                         }
 
@@ -2473,9 +2504,7 @@ class CanvasView @JvmOverloads constructor(
                         if (element.overlayGradient != null) {
 
                             shader = createGradientShader(
-                                element.overlayGradient!!,
-                                localRect.width(),
-                                localRect.height()
+                                element.overlayGradient!!, localRect.width(), localRect.height()
                             )
 
                         } else {
@@ -2513,9 +2542,7 @@ class CanvasView @JvmOverloads constructor(
                 if (element.shapeStrokeGradient != null) {
 
                     shader = createGradientShader(
-                        element.shapeStrokeGradient!!,
-                        localRect.width(),
-                        localRect.height()
+                        element.shapeStrokeGradient!!, localRect.width(), localRect.height()
                     )
 
                 } else {
@@ -2685,23 +2712,23 @@ class CanvasView @JvmOverloads constructor(
 
         // 2) else if there's a gradient -> stretch it across the full canvas
         if (e.hasOverlay) {
-                canvas.withTranslation(left, top) {
-                    scale(e.scale, e.scale, pivotX, pivotY)
-                    rotate(e.rotation, pivotX, pivotY)
+            canvas.withTranslation(left, top) {
+                scale(e.scale, e.scale, pivotX, pivotY)
+                rotate(e.rotation, pivotX, pivotY)
 
-                    val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                        alpha = e.overlayOpacity.coerceIn(0, 255)
-                    }
-                    if (e.overlayGradient != null) {
-                        overlayPaint.shader = createGradientShader(e.overlayGradient!!, w, h)
-                    } else {
-                        overlayPaint.color = e.overlayColor
-                    }
-                    backgroundPaint.alpha = e.paintAlpha
-                    drawRect(0f, 0f, w, h, overlayPaint)
-                    backgroundPaint.shader = null
+                val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    alpha = e.overlayOpacity.coerceIn(0, 255)
                 }
-                return
+                if (e.overlayGradient != null) {
+                    overlayPaint.shader = createGradientShader(e.overlayGradient!!, w, h)
+                } else {
+                    overlayPaint.color = e.overlayColor
+                }
+                backgroundPaint.alpha = e.paintAlpha
+                drawRect(0f, 0f, w, h, overlayPaint)
+                backgroundPaint.shader = null
+            }
+            return
         } else {
             canvas.withTranslation(left, top) {
                 scale(e.scale, e.scale, pivotX, pivotY)
@@ -4087,6 +4114,25 @@ class CanvasView @JvmOverloads constructor(
         } else {
             overallOffsetY = 0f
         }
+    }
+
+    private fun rasterizeSvgElement(element: CanvasElement): Bitmap? {
+        val drawable = element.svgDrawable ?: return null
+
+        val intrinsicW = drawable.intrinsicWidth.takeIf { it > 0 }?.toFloat() ?: return null
+        val intrinsicH = drawable.intrinsicHeight.takeIf { it > 0 }?.toFloat() ?: return null
+
+        // Rasterize at canvas export resolution — canvasWidth is the true output size
+        // Scale up proportionally so the raster matches what the canvas would render
+        val exportScale = canvasWidth / (intrinsicW * element.scale).coerceAtLeast(1f)
+        val w = (intrinsicW * element.scale * exportScale).toInt().coerceAtLeast(1)
+        val h = (intrinsicH * element.scale * exportScale).toInt().coerceAtLeast(1)
+
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        drawable.setBounds(0, 0, w, h)
+        drawable.draw(c)
+        return bmp
     }
 
     fun clearCallbacks() {

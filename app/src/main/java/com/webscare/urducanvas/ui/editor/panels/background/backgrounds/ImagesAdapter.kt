@@ -15,21 +15,23 @@ import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.request.transition.Transition
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.databinding.LayoutImagesItemBinding
 
 class ImagesAdapter(
-    private val onImageSelected: (Bitmap, com.webscare.urducanvas.data.model.ImageEntity) -> Unit
+    private val onImageSelected: (Bitmap?, PictureDrawable?, ImageEntity) -> Unit
 ) : RecyclerView.Adapter<ImagesAdapter.ImageViewHolder>() {
 
-    private val images = mutableListOf<com.webscare.urducanvas.data.model.ImageEntity>()
+    private val images = mutableListOf<ImageEntity>()
 
-    fun submitList(newList: List<com.webscare.urducanvas.data.model.ImageEntity>) {
+    fun submitList(newList: List<ImageEntity>) {
         images.clear()
         images.addAll(newList)
         notifyDataSetChanged()
@@ -50,7 +52,7 @@ class ImagesAdapter(
     inner class ImageViewHolder(private val binding: LayoutImagesItemBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(image: com.webscare.urducanvas.data.model.ImageEntity) {
+        fun bind(image: ImageEntity) {
             binding.shimmerLayout.startShimmer()
 
             if (image.is_selected) {
@@ -72,30 +74,19 @@ class ImagesAdapter(
                     val bitmap = ImageProcessor.filePathToBitmap(
                         image.bitmapData!!
                     )
-                    onImageSelected(bitmap!!, image)
+                    onImageSelected(bitmap!!, null, image)
                 } else {
                     if (url.endsWith(".svg", true)) {
 
                         Glide.with(binding.root.context).`as`(PictureDrawable::class.java).load(url)
-                            .into(object :
-                                com.bumptech.glide.request.target.CustomTarget<PictureDrawable>() {
-
+                            .diskCacheStrategy(DiskCacheStrategy.DATA)
+                            .into(object : CustomTarget<PictureDrawable>() {
                                 override fun onResourceReady(
                                     resource: PictureDrawable,
                                     transition: Transition<in PictureDrawable>?
                                 ) {
-                                    val drawable = resource
-                                    val bitmap = createBitmap(
-                                        drawable.intrinsicWidth, drawable.intrinsicHeight
-                                    )
-
-                                    val canvas = android.graphics.Canvas(bitmap)
-                                    drawable.setBounds(0, 0, canvas.width, canvas.height)
-                                    drawable.draw(canvas)
-
-                                    onImageSelected(bitmap, image)
+                                    onImageSelected(null, resource, image)  // ← no bitmap, pass drawable
                                 }
-
                                 override fun onLoadCleared(placeholder: Drawable?) {}
                             })
 
@@ -108,7 +99,7 @@ class ImagesAdapter(
                                 override fun onResourceReady(
                                     bitmap: Bitmap, transition: Transition<in Bitmap>?
                                 ) {
-                                    onImageSelected(bitmap, image)
+                                    onImageSelected(bitmap, null, image)
                                 }
 
                                 override fun onLoadCleared(placeholder: Drawable?) {}

@@ -13,6 +13,7 @@ import com.webscare.urducanvas.databinding.FragmentBackgroundsListBinding
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @AndroidEntryPoint
 class BackgroundsListFragment() : androidx.fragment.app.Fragment() {
@@ -41,11 +42,11 @@ class BackgroundsListFragment() : androidx.fragment.app.Fragment() {
 
     private fun setEvents() {
 
-        imagesAdapter = ImagesAdapter { image, imageEntity ->
+        imagesAdapter = ImagesAdapter { bitmap, svgDrawable, imageEntity ->
             if (isAdded) {
                 mainViewModel.updateImage(imageEntity.copy(is_recent = true))
                 viewModel.ensureBackgroundElement(requireActivity())
-                viewModel.setCanvasBackgroundImage(image)
+                viewModel.setCanvasBackgroundImage(bitmap)
             }
         }
         binding.backgrounds.adapter = imagesAdapter

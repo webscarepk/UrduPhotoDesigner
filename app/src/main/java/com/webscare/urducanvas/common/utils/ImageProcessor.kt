@@ -348,6 +348,14 @@ object ImageProcessor {
         return result
     }
 
+    fun bitmapToBase64Lossless(bitmap: Bitmap): String {
+        val stream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        val result = Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
+        stream.reset()
+        return result
+    }
+
     /**
      * Convert Base64 -> Bitmap.
      */

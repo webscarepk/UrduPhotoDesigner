@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Path
 import android.graphics.Typeface
+import android.graphics.drawable.PictureDrawable
 import android.util.Log
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.scale
@@ -2476,6 +2477,47 @@ class CanvasViewModel @Inject constructor(
         notifyUndoRedoChanged()
     }
 
+    fun addSvgSticker(
+        drawable: PictureDrawable, context: Context, isPremium: Boolean = false
+    ) {
+        val currentList = _canvasElements.value ?: emptyList()
+        val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
+
+        val canvasW = _canvasSize.value?.width ?: return
+        val canvasH = _canvasSize.value?.height ?: return
+        if (canvasW <= 0f || canvasH <= 0f) return
+
+        // --- Compute display size respecting SVG aspect ratio, targeting 60% of canvas ---
+        val svgW = drawable.intrinsicWidth.takeIf { it > 0 }?.toFloat() ?: canvasW * 0.6f
+        val svgH = drawable.intrinsicHeight.takeIf { it > 0 }?.toFloat() ?: canvasH * 0.6f
+
+        val targetW = canvasW * 0.4f
+        val targetH = canvasH * 0.4f
+        val scaleFactor = minOf(targetW / svgW, targetH / svgH)
+
+        val element = CanvasElement(
+            context = context,
+            type = ElementType.IMAGE,
+            bitmap = null,           // ← no bitmap
+            bitmapData = null,       // ← nothing to serialize (SVG re-fetched on load)
+            x = canvasW / 2f,
+            y = canvasH / 2f,
+            paintAlpha = 255,
+            zIndex = newZIndex,
+            isPremium = isPremium
+        ).apply {
+            svgDrawable = drawable   // ← live vector drawable
+            scale = scaleFactor       // start at 60% of canvas visually
+        }
+
+        element.updatePaintProperties()
+
+        _canvasActions.push(CanvasAction.AddSticker(element.copy(context = null, bitmap = null)))
+        _redoStack.clear()
+        _canvasElements.value = currentList + element
+        notifyUndoRedoChanged()
+    }
+
     fun addSticker(
         bitmap: Bitmap?, context: Context, elementType: ElementType, isPremium: Boolean = false
     ) {
@@ -2498,34 +2540,36 @@ class CanvasViewModel @Inject constructor(
         val targetW = canvasW * 0.6f
         val targetH = canvasH * 0.6f
 
-        val finalBitmap = if (imageW > targetW || imageH > targetH) {
-            // Image is LARGER than canvas budget → scale DOWN
-            val scaleFactor = minOf(targetW / imageW, targetH / imageH)
-            val scaledWidth = (imageW * scaleFactor).toInt().coerceAtLeast(1)
-            val scaledHeight = (imageH * scaleFactor).toInt().coerceAtLeast(1)
-            bitmap.scale(scaledWidth, scaledHeight)
-        } else if (imageW < targetW * 0.2f || imageH < targetH * 0.2f) {
-            // Image is VERY SMALL relative to canvas → scale UP so it's visible
-            val scaleFactor = minOf(targetW / imageW, targetH / imageH) * 0.5f
-            val scaledWidth = (imageW * scaleFactor).toInt().coerceAtLeast(1)
-            val scaledHeight = (imageH * scaleFactor).toInt().coerceAtLeast(1)
-            bitmap.scale(scaledWidth, scaledHeight)
-        } else {
-            // Image is already in a good range relative to canvas → use as-is
-            bitmap
+        // ✅ Never physically resize the bitmap — compute display scale instead.
+        // This preserves full pixel resolution (critical for SVGs rasterized at 2× canvas size).
+        val initialScale = when {
+            imageW > targetW || imageH > targetH -> {
+                // Bitmap is larger than canvas budget → shrink visually via scale
+                minOf(targetW / imageW, targetH / imageH)
+            }
+            imageW < targetW * 0.2f || imageH < targetH * 0.2f -> {
+                // Bitmap is very small → boost it up so it's visible
+                minOf(targetW / imageW, targetH / imageH) * 0.5f
+            }
+            else -> {
+                // Already in a good range → no scaling needed
+                1f
+            }
         }
 
         val element = CanvasElement(
             context = context,
             type = elementType,
-            bitmap = finalBitmap,
-            bitmapData = ImageProcessor.bitmapToBase64(finalBitmap),
+            bitmap = bitmap,         // ← full-resolution bitmap, untouched
+            bitmapData = ImageProcessor.bitmapToBase64(bitmap),
             x = canvasW / 2f,
             y = canvasH / 2f,
             paintAlpha = 255,
             zIndex = newZIndex,
             isPremium = isPremium
-        )
+        ).apply {
+            scale = initialScale     // ← canvas matrix handles display size
+        }
 
         element.updatePaintProperties()
 

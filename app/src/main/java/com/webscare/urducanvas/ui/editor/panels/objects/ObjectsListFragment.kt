@@ -9,7 +9,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.utils.Constants
-import com.webscare.urducanvas.common.utils.ImageProcessor
+import com.webscare.urducanvas.common.utils.ImageProcessor.bitmapCompress
 import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
 import com.webscare.urducanvas.databinding.FragmentObjectsListBinding
 import com.webscare.urducanvas.ui.editor.panels.background.backgrounds.ImagesAdapter
@@ -70,20 +70,19 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun setEvents() {
-        imagesAdapter =
-            ImagesAdapter { image, imageEntity ->
+        imagesAdapter = ImagesAdapter { bitmap, svgDrawable, imageEntity ->
 
-                mainViewModel.updateImage(imageEntity.copy(is_recent = true))
+            mainViewModel.updateImage(imageEntity.copy(is_recent = true))
 
-                if (isAdded) {
-                    viewModel.addSticker(
-                        image.trimTransparentEdges(),
-                        requireActivity(),
-                        ElementType.STICKER,
-                        imageEntity.is_premium
-                    )
+            if (isAdded) {
+                if (svgDrawable != null) {
+                    // ✅ SVG sticker — no bitmap involved at all
+                    viewModel.addSvgSticker(svgDrawable, requireActivity(), imageEntity.is_premium)
+                } else {
+                    viewModel.addSticker(bitmap?.trimTransparentEdges(), requireActivity(), ElementType.IMAGE, imageEntity.is_premium)
                 }
             }
+        }
 
         if (isBaseTab(category)) {
             val data: List<com.webscare.urducanvas.common.canvas.model.EmojiMeta> =
@@ -138,14 +137,11 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
         val filtered = when {
             tabName.equals("Recents", true) -> allLocalImages.filter { img ->
                 img.is_recent && !(img.category.equals(
-                    "Backgrounds",
-                    true
+                    "Backgrounds", true
                 ) || img.category.equals(
-                    "Backgrounds Imported",
-                    true
+                    "Backgrounds Imported", true
                 ) || img.category.equals("Images", true) || img.category.equals(
-                    "Images Imported",
-                    true
+                    "Images Imported", true
                 )) && (filterText.isBlank() || img.alt_text?.contains(
                     filterText, true
                 ) == true)
@@ -153,8 +149,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
 
             else -> allLocalImages.filter { img ->
                 img.category.equals(
-                    tabName,
-                    true
+                    tabName, true
                 ) && (filterText.isBlank() || img.alt_text?.contains(filterText, true) == true)
             }
         }
