@@ -33,7 +33,6 @@ class UpdateManager @Inject constructor(
 
     companion object {
         const val REQUEST_CODE_UPDATE = 1001
-        const val REMIND_LATER_HOURS = 24L
         const val DEBUG_MODE = false
     }
 
@@ -45,15 +44,9 @@ class UpdateManager @Inject constructor(
 
     fun checkForUpdate(activity: AppCompatActivity) {
         CoroutineScope(Dispatchers.IO).launch {
-            val timestamp = dataStore.getFirstPreference(REMIND_LATER_TIMESTAMP, 0L)
-            val hoursSince = (System.currentTimeMillis() - timestamp) / (1000 * 60 * 60)
-
-            if (hoursSince < REMIND_LATER_HOURS) return@launch
-
             withContext(Dispatchers.Main) {
                 if (DEBUG_MODE) {
-                    // Simulate update available
-                    (appUpdateManager as FakeAppUpdateManager).setUpdateAvailable(7) // ← version 7
+                    (appUpdateManager as FakeAppUpdateManager).setUpdateAvailable(7)
                     fetchAndShowUpdate(activity)
                 } else {
                     fetchAndShowUpdate(activity)

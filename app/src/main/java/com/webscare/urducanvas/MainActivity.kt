@@ -184,7 +184,7 @@ class MainActivity : AppCompatActivity() {
                         animate().translationY(0f).setDuration(400).start()
                     }
                 }
-                blurEngine?.startContinuous()
+                if (blurEngine?.isRunning != true) blurEngine?.startContinuous()
             } else {
                 // Hide: animate out then GONE — still main thread only
                 if (nav.isVisible) {
@@ -202,12 +202,23 @@ class MainActivity : AppCompatActivity() {
 
             setStatusBarTextColor(darkIcons = true)
 
-            // Sync indicator to correct slot (no animation for programmatic sync)
+            // Re-register a one-shot layout listener so blur captures the
+            // new fragment exactly once after it has fully drawn.
+            val host = binding.navHostMain
+            host.viewTreeObserver.addOnGlobalLayoutListener(object :
+                android.view.ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    host.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    blurEngine?.forceCapture()
+                }
+            })
+
+            // Sync indicator — animate=false: no scale burst fires on arrival
             when (destination.id) {
-                R.id.homeFragment                -> nav.selectItem(0)
-                R.id.templateCategoriesFragment  -> nav.selectItem(1)
-                R.id.filesFragment               -> nav.selectItem(3)
-                R.id.settingsFragment            -> nav.selectItem(4)
+                R.id.homeFragment                -> nav.selectItem(0, animate = false)
+                R.id.templateCategoriesFragment  -> nav.selectItem(1, animate = false)
+                R.id.filesFragment               -> nav.selectItem(3, animate = false)
+                R.id.settingsFragment            -> nav.selectItem(4, animate = false)
             }
         }
 
@@ -242,10 +253,20 @@ class MainActivity : AppCompatActivity() {
         // transparent, allowing content behind it to show in the blur crop.
         nav.post {
             val fragmentHost = binding.navHostMain
-            fragmentHost.background = null   // prevent solid bg blocking blur capture
+            fragmentHost.background = null
             blurEngine = BlurEngine(fragmentHost, nav)
             blurEngine?.updatePositions()
             blurEngine?.startContinuous()
+
+            // OnDrawListener fires AFTER each draw pass completes — including when
+            // Glide/Coil posts a bitmap to an ImageView and triggers invalidate().
+            // This is the correct hook: blur captures the fully-rendered frame,
+            // not a pre-draw snapshot. Throttled by pending flag — safe at 60fps.
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
+                fragmentHost.viewTreeObserver.addOnDrawListener {
+                    blurEngine?.scheduleCapture()
+                }
+            }
         }
     }
 
@@ -275,6 +296,7 @@ class MainActivity : AppCompatActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 w.insetsController?.apply {
                     hide(WindowInsets.Type.navigationBars())
+                    show(WindowInsets.Type.statusBars())
                     systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 }
             } else {

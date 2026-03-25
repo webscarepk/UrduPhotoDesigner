@@ -59,8 +59,6 @@
         android:background="@drawable/ic_home_header"
         android:id="@+id/header"
         android:translationZ="12dp"
-        android:paddingHorizontal="20dp"
-        android:paddingTop="20dp"
         android:paddingBottom="30dp">
 
         <TextView
@@ -71,21 +69,30 @@
             app:layout_constraintBottom_toBottomOf="@id/subscriptions"
             android:text="@string/app_name"
             android:fontFamily="@font/bold"
+            android:layout_marginStart="20dp"
             android:textSize="24sp"
             android:textColor="@color/white"
             android:id="@+id/title"/>
 
-        <com.airbnb.lottie.LottieAnimationView
-            android:id="@+id/subscriptions"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            app:lottie_rawRes="@raw/premium"
-            app:lottie_autoPlay="true"
-            android:layout_gravity="end|bottom"
-            android:layout_margin="4dp"
-            app:lottie_loop="true"
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_subscriptions"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"/>
+            app:layout_constraintTop_toTopOf="parent"
+            android:id="@+id/subscriptions"
+            android:layout_marginEnd="20dp"
+            android:layout_marginTop="20dp"
+            />
+
+        <com.webscare.urducanvas.common.views.RippleView
+            android:id="@+id/subscriptionRipple"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            app:layout_constraintEnd_toEndOf="@id/subscriptions"
+            app:layout_constraintStart_toStartOf="@id/subscriptions"
+            app:layout_constraintTop_toTopOf="@id/subscriptions"
+            app:layout_constraintBottom_toBottomOf="@id/subscriptions" />
 
         <EditText
             android:id="@+id/searchBar"
@@ -98,6 +105,7 @@
             android:paddingHorizontal="12dp"
             android:paddingVertical="10dp"
             android:textSize="12sp"
+            android:layout_marginHorizontal="20dp"
             android:hint="@string/search_templates_fonts_and_assets"
             android:translationZ="1dp"
             app:layout_constraintEnd_toEndOf="parent"
@@ -105,7 +113,6 @@
             app:layout_constraintTop_toBottomOf="@id/subscriptions"
             android:textColorHint="@color/gray"
             android:textColor="@color/black"
-            android:layout_marginEnd="6dp"
             android:layout_marginTop="12dp"/>
 
         <LinearLayout
@@ -119,7 +126,7 @@
             app:layout_constraintEnd_toStartOf="@id/blankCanvas"
             app:layout_constraintTop_toBottomOf="@id/searchBar"
             android:layout_marginTop="14dp"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="32dp"
             android:foreground="?selectableItemBackground"
             android:background="@drawable/button_bg"
             android:backgroundTint="@color/white"
@@ -173,7 +180,7 @@
             android:orientation="vertical"
             android:layout_marginStart="10dp"
             android:id="@+id/templates"
-            android:layout_marginEnd="12dp"
+            android:layout_marginEnd="32dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/blankCanvas"
             app:layout_constraintTop_toTopOf="@id/create"
@@ -207,6 +214,7 @@
             app:layout_constraintTop_toBottomOf="@id/create"
             app:layout_constraintBottom_toBottomOf="parent"
             android:layout_marginTop="10dp"
+            android:layout_marginHorizontal="20dp"
             android:gravity="center">
             <TextView
                 android:layout_width="wrap_content"

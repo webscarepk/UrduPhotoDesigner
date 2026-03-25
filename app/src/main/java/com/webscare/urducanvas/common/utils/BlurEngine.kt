@@ -57,7 +57,14 @@ class BlurEngine(
     private val blurHandler = Handler(blurThread.looper)
     private val mainHandler = Handler(android.os.Looper.getMainLooper())
 
-    @Volatile private var pending = false
+    @Volatile private var pending      = false
+    @Volatile var isRunning    = false
+    @Volatile private var pendingStart  = 0L
+
+    // ── Debug: last raw crop delivered to nav bar ─────────────────────
+    // Set debugView to any ImageView to preview exactly what blur sees.
+    // Set to null in production. Never touches views from bg thread.
+    var debugImageView: android.widget.ImageView? = null
 
     // Reusable capture bitmap — scaled-down copy of sourceView
     // Recreated only when dimensions change
@@ -97,8 +104,14 @@ class BlurEngine(
 
     /** Must be called on the MAIN THREAD. Throttled — skipped if already in flight. */
     fun scheduleCapture() {
-        if (pending) return
+        // Safety: if pending has been stuck for >600ms, force-reset it
+        // This catches any silent failure in the blur thread
+        if (pending) {
+            val elapsed = System.currentTimeMillis() - pendingStart
+            if (elapsed > 600) pending = false else return
+        }
         pending = true
+        pendingStart = System.currentTimeMillis()
         doMainThreadCapture()
     }
 
@@ -108,17 +121,27 @@ class BlurEngine(
      * updates even when content behind is plain white (end of list).
      */
     fun forceCapture() {
-        pending = false   // reset so next scheduleCapture goes through immediately
-        scheduleCapture()
+        pending = false
+        pendingStart = 0L
+        doMainThreadCapture()
     }
 
-    fun startContinuous() { mainHandler.post(loopRunnable) }
-    fun stopContinuous()  { mainHandler.removeCallbacks(loopRunnable) }
+    fun startContinuous() {
+        if (isRunning) return
+        isRunning = true
+        mainHandler.post(loopRunnable)
+    }
+
+    fun stopContinuous() {
+        isRunning = false
+        mainHandler.removeCallbacks(loopRunnable)
+    }
 
     private val loopRunnable = object : Runnable {
         override fun run() {
+            if (!isRunning) return
             scheduleCapture()
-            mainHandler.postDelayed(this, 16L)  // 60fps — keeps up with any scroll speed
+            mainHandler.postDelayed(this, 16L)  // 60fps
         }
     }
 
@@ -238,10 +261,14 @@ class BlurEngine(
             region.recycle()
 
             mainHandler.post {
-                pending = false
-                navBarRef.get()?.apply {
-                    updateBlur(barOut)
-                    updateIndicatorBlur(indOut)
+                pending = false   // ALWAYS reset — must happen before any return path
+                val bar = navBarRef.get()
+                if (bar != null && !barOut.isRecycled && !indOut.isRecycled) {
+                    bar.updateBlur(barOut)
+                    bar.updateIndicatorBlur(indOut)
+                } else {
+                    if (!barOut.isRecycled) barOut.recycle()
+                    if (!indOut.isRecycled) indOut.recycle()
                 }
             }
         } catch (e: Exception) {

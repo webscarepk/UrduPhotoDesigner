@@ -22,28 +22,15 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!--
-        elevation="8dp" — system compositor draws the drop shadow OUTSIDE
-        view bounds, so it is never clipped by the view's own edges.
-        This is the correct way to float a view above content.
-
-        translationZ is kept so the bar draws on top of fragment content.
-        outlineProvider="background" tells the system to use the view's
-        background shape for the shadow outline — but since we draw custom,
-        we set it to NONE and let elevation give ambient + spot light shadows.
-
-        android:outlineProvider="none" disables the default rectangular
-        outline so the system shadow is soft/diffuse rather than a hard rect.
-    -->
     <com.webscare.urducanvas.common.views.LiquidGlassNavBar
         android:id="@+id/bottomNavigation"
         android:layout_width="0dp"
-        android:layout_height="64dp"
+        android:layout_height="72dp"
         android:layout_marginStart="20dp"
         android:layout_marginEnd="20dp"
         android:layout_marginBottom="20dp"
-        android:elevation="8dp"
-        android:translationZ="12dp"
+        android:translationZ="20dp"
+        android:visibility="gone"
         android:outlineProvider="none"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
