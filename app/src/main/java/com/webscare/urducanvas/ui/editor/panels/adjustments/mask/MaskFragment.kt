@@ -137,12 +137,11 @@ class MaskFragment : androidx.fragment.app.Fragment() {
         if (binding.editShape.text != getString(R.string.edit_shape)) {
             viewModel.enterMaskMode()
         }
-        val args = Bundle().apply { putInt("startPage", 1) }
         val nav = requireActivity().findNavController(R.id.panelNavHost)
 
         nav.popBackStack(R.id.adjustmentsParentFragment, true)
 
-        nav.navigate(R.id.drawFragment, args, NavOptions.Builder().setLaunchSingleTop(true).build())
+        nav.navigate(R.id.shapesParentFragment, null, NavOptions.Builder().setLaunchSingleTop(true).build())
     }
 
     private fun initObservers() {

@@ -39,5 +39,19 @@
         android:src="@drawable/ic_premium_icon"
         android:layout_gravity="top|end"
         android:id="@+id/isPremium"
-        android:visibility="gone"/>
+        android:visibility="visible"/>
+
+    <com.airbnb.lottie.LottieAnimationView
+        android:id="@+id/loading"
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        app:lottie_rawRes="@raw/loading_gray"
+        app:lottie_autoPlay="true"
+        android:layout_gravity="end|bottom"
+        android:layout_margin="3dp"
+        android:visibility="gone"
+        android:background="@drawable/button_bg_round"
+        android:backgroundTint="@color/white"
+        app:lottie_loop="true"
+        android:padding="3dp"/>
 </com.google.android.material.card.MaterialCardView>

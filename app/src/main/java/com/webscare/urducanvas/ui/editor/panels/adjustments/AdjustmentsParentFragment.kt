@@ -71,7 +71,18 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun setEvents() {
-        tabs = mutableListOf("Effects", "Adjust", "Filters", "Mask")
+        val selectedElement = elementId?.let { id ->
+            viewModel.canvasElements.value?.find { it.id == id }
+        }
+
+        val isSvgElement = selectedElement?.svgDrawable != null
+
+        // Hide Mask tab for SVG elements — masking requires a raster bitmap
+        tabs = if (isSvgElement) {
+            mutableListOf("Effects", "Adjust", "Filters")
+        } else {
+            mutableListOf("Effects", "Adjust", "Filters", "Mask")
+        }
 
         elementId?.let {
             adapter = EffectsPagerAdapter(

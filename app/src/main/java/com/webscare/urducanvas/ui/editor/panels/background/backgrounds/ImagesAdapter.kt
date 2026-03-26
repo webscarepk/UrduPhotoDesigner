@@ -1,9 +1,11 @@
 package com.webscare.urducanvas.ui.editor.panels.background.backgrounds
 
+import android.content.ContentValues.TAG
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.PictureDrawable
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
@@ -24,9 +26,14 @@ import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.databinding.LayoutImagesItemBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
 
 class ImagesAdapter(
-    private val onImageSelected: (Bitmap?, PictureDrawable?, ImageEntity) -> Unit
+    private val onImageSelected: (Bitmap?, PictureDrawable?, svgXml: String?, ImageEntity) -> Unit
 ) : RecyclerView.Adapter<ImagesAdapter.ImageViewHolder>() {
 
     private val images = mutableListOf<ImageEntity>()
@@ -70,43 +77,63 @@ class ImagesAdapter(
             val url = Constants.BASE_URL_GLIDE + image.file_url
 
             binding.root.addPressEffect {
-                if (image.bitmapData != null) {
-                    val bitmap = ImageProcessor.filePathToBitmap(
-                        image.bitmapData!!
-                    )
-                    onImageSelected(bitmap!!, null, image)
-                } else {
-                    if (url.endsWith(".svg", true)) {
+                    if (image.bitmapData != null) {
+                        val bitmap = ImageProcessor.filePathToBitmap(image.bitmapData!!)
+                        onImageSelected(bitmap!!, null, null, image)
 
-                        Glide.with(binding.root.context).`as`(PictureDrawable::class.java).load(url)
-                            .diskCacheStrategy(DiskCacheStrategy.DATA)
-                            .into(object : CustomTarget<PictureDrawable>() {
+                    } else {
+                        if (url.endsWith(".svg", true)) {
+
+                            // Fetch SVG XML bytes and render PictureDrawable simultaneously
+                            val glideTarget = object : CustomTarget<PictureDrawable>() {
                                 override fun onResourceReady(
                                     resource: PictureDrawable,
                                     transition: Transition<in PictureDrawable>?
                                 ) {
-                                    onImageSelected(null, resource, image)  // ← no bitmap, pass drawable
+                                    binding.loading.isVisible = true
+                                    // Fetch raw SVG XML on a background thread
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        val svgXml: String? = try {
+                                            val request = okhttp3.Request.Builder().url(url).build()
+                                            OkHttpClient().newCall(request).execute().use { response ->
+                                                response.body?.string()
+                                            }
+                                        } catch (e: Exception) {
+                                            null  // drawable-only fallback if fetch fails
+                                        }
+
+                                        withContext(Dispatchers.Main) {
+                                            Log.d(TAG, "onResourceReady: $svgXml")
+                                            binding.loading.isVisible = false
+                                            onImageSelected(null, resource, svgXml, image)
+                                        }
+                                    }
                                 }
                                 override fun onLoadCleared(placeholder: Drawable?) {}
-                            })
+                            }
 
-                    } else {
+                            Glide.with(binding.root.context)
+                                .`as`(PictureDrawable::class.java)
+                                .load(url)
+                                .diskCacheStrategy(DiskCacheStrategy.DATA)
+                                .into(glideTarget)
 
-                        Glide.with(binding.root.context).asBitmap().load(url)
-                            .diskCacheStrategy(DiskCacheStrategy.ALL).into(object :
-                                com.bumptech.glide.request.target.CustomTarget<Bitmap>() {
-
-                                override fun onResourceReady(
-                                    bitmap: Bitmap, transition: Transition<in Bitmap>?
-                                ) {
-                                    onImageSelected(bitmap, null, image)
-                                }
-
-                                override fun onLoadCleared(placeholder: Drawable?) {}
-                            })
+                        } else {
+                            Glide.with(binding.root.context).asBitmap().load(url)
+                                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                                .into(object : CustomTarget<Bitmap>() {
+                                    override fun onResourceReady(
+                                        bitmap: Bitmap,
+                                        transition: Transition<in Bitmap>?
+                                    ) {
+                                        onImageSelected(bitmap, null, null, image)
+                                    }
+                                    override fun onLoadCleared(placeholder: Drawable?) {}
+                                })
+                        }
                     }
                 }
-            }
+
             val isPng = image.file_name.endsWith(".png", ignoreCase = true) || image.file_name.endsWith(".svg", ignoreCase = true)
             binding.image.scaleType = if (isPng) android.widget.ImageView.ScaleType.FIT_CENTER else android.widget.ImageView.ScaleType.CENTER_CROP
 

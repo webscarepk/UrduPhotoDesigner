@@ -256,7 +256,7 @@ class ObjectsFragment : Fragment() {
                 val bitmap = ImageProcessor.filePathToBitmap(filePath!!) ?: return@launch
 
                 withContext(Dispatchers.Main) {
-                    viewModel.addSticker(bitmap, requireActivity(), ElementType.STICKER)
+                    viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE)
                 }
             } catch (e: Exception) {
                 Log.e("PhotoPicker", "Failed compressing image", e)

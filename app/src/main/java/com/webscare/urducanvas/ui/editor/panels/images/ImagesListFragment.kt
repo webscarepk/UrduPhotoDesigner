@@ -56,7 +56,7 @@ class ImagesListFragment : Fragment() {
 
     private fun setEvents() {
 
-        imagesAdapter = ImagesAdapter { bitmap, svgDrawable, imageEntity ->
+        imagesAdapter = ImagesAdapter { bitmap, svgDrawable, svgString, imageEntity ->
 
             mainViewModel.updateImage(imageEntity.copy(is_recent = true))
 
@@ -81,7 +81,7 @@ class ImagesListFragment : Fragment() {
 
             if (svgDrawable != null) {
                 // ✅ SVG sticker — no bitmap involved at all
-                viewModel.addSvgSticker(svgDrawable, requireActivity(), imageEntity.is_premium)
+                viewModel.addSvgSticker(svgDrawable,svgString, requireActivity(), imageEntity.is_premium)
             } else {
                 // Normal bitmap sticker
                 val resized = viewModel.canvasSize.value?.height?.roundToInt()?.let { h ->

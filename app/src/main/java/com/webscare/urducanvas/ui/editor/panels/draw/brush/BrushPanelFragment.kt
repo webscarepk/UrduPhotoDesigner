@@ -274,6 +274,7 @@ class BrushPanelFragment : Fragment() {
                 if (currentStyle != brushType) {
                     viewModel.setBrushStyle(brushType)
                 }
+                viewModel.enterDrawingMode(requireActivity())
 
                 // Update UI selection after click
                 styleCards.forEach { (otherCard, otherType) ->

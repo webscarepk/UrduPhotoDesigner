@@ -11,10 +11,14 @@ import android.graphics.ColorMatrixColorFilter
 import android.graphics.ImageDecoder
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.Picture
+import android.graphics.Rect
+import android.graphics.drawable.PictureDrawable
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Base64
+import android.util.Log
 import android.webkit.MimeTypeMap
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
@@ -298,6 +302,66 @@ object ImageProcessor {
         } else {
             Bitmap.createBitmap(this, left, top, right - left + 1, bottom - top + 1)
         }
+    }
+
+
+    fun PictureDrawable.trimTransparentEdges(): PictureDrawable {
+        val w = intrinsicWidth.takeIf { it > 0 } ?: picture.width
+        val h = intrinsicHeight.takeIf { it > 0 } ?: picture.height
+
+        // ✅ Must set bounds before draw() works correctly
+        setBounds(0, 0, w, h)
+
+        val tempBitmap = createBitmap(w, h)
+        Canvas(tempBitmap).also { draw(it) }
+
+        // Debug: check if any transparent pixels exist at all
+        val hasTransparency = (0 until w).any { x ->
+            (0 until h).any { y -> Color.alpha(tempBitmap.getPixel(x, y)) == 0 }
+        }
+        Log.d("SVG_TRIM", "hasTransparency: $hasTransparency, size: ${w}x${h}")
+
+        val bounds = tempBitmap.findNonTransparentBounds()
+        tempBitmap.recycle()
+
+        if (bounds == null) return this
+
+        val newW = bounds.width()
+        val newH = bounds.height()
+
+        val trimmedPicture = Picture()
+        val canvas = trimmedPicture.beginRecording(newW, newH)
+        canvas.translate(-bounds.left.toFloat(), -bounds.top.toFloat())
+        canvas.drawPicture(picture)
+        trimmedPicture.endRecording()
+
+        return PictureDrawable(trimmedPicture).also {
+            it.setBounds(0, 0, newW, newH)
+        }
+    }
+
+    private fun Bitmap.findNonTransparentBounds(alphaThreshold: Int = 10): Rect? {
+        var minX = width
+        var minY = height
+        var maxX = 0
+        var maxY = 0
+
+        val pixels = IntArray(width * height)
+        getPixels(pixels, 0, width, 0, 0, width, height)  // ✅ batch read, faster too
+
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                val alpha = pixels[x + y * width] shr 24 and 0xff
+                if (alpha > alphaThreshold) {  // ✅ ignore near-transparent anti-aliased edge pixels
+                    if (x < minX) minX = x
+                    if (x > maxX) maxX = x
+                    if (y < minY) minY = y
+                    if (y > maxY) maxY = y
+                }
+            }
+        }
+
+        return if (maxX >= minX && maxY >= minY) Rect(minX, minY, maxX + 1, maxY + 1) else null
     }
 
     fun getFileExtension(context: Context, uri: Uri): String {

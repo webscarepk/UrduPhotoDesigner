@@ -25,6 +25,7 @@ import android.graphics.Shader
 import android.graphics.SweepGradient
 import android.graphics.Typeface
 import android.graphics.Xfermode
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.text.TextPaint
 import android.util.AttributeSet
@@ -42,6 +43,7 @@ import androidx.core.graphics.toColorInt
 import androidx.core.graphics.withRotation
 import androidx.core.graphics.withSave
 import androidx.core.graphics.withTranslation
+import com.caverock.androidsvg.SVG
 import com.google.gson.Gson
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.BlendType
@@ -65,6 +67,7 @@ import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import com.webscare.urducanvas.common.utils.BrushRenderUtils.createBackgroundGradientShader
 import com.webscare.urducanvas.common.utils.ImageAdjustmentHelper
 import com.webscare.urducanvas.common.utils.ImageProcessor
+import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
 import com.webscare.urducanvas.common.utils.ShapeRenderUtils
 import com.webscare.urducanvas.common.utils.Utils.vibrateSoft
 import dagger.hilt.android.EntryPointAccessors
@@ -96,8 +99,7 @@ class CanvasView @JvmOverloads constructor(
     var onEndBatchUpdate: ((String) -> Unit)? = null,
     var onColorPicked: ((Int) -> Unit)? = null,
     var onRequestOpenLayers: (() -> Unit)? = null,
-    var onExitSelectionMode: (() -> Unit)? = null,
-    var onDrawStrokeCompleted: ((CanvasElement) -> Unit)? = null
+    var onExitSelectionMode: (() -> Unit)? = null
 ) : View(context, attrs) {
 
     private val gson: Gson by lazy {
@@ -113,6 +115,8 @@ class CanvasView @JvmOverloads constructor(
     private var currentPath: Path? = null
     private var currentPaint: Paint? = null
     private var activeDrawElement: CanvasElement? = null
+    private var activeSessionElement: CanvasElement? = null
+
 
     private var currentStrokePath: Path? = null
     private var currentStrokePaint: Paint? = null
@@ -122,8 +126,7 @@ class CanvasView @JvmOverloads constructor(
     private var currentBrushThickness: Float = 20f
     private var currentBrushHardness: Float = 1f
     private var currentBrushStyle: BrushStyle = BrushStyle.PEN
-    private var currentBrushGradient: GradientItem? =
-        null
+    private var currentBrushGradient: GradientItem? = null
 
     private var pickerX = 0f
     private var pickerY = 0f
@@ -141,8 +144,7 @@ class CanvasView @JvmOverloads constructor(
 
     private var activeGroupId: String? = null
     private var inSelectionMode = false
-    private var touchedDownElement: CanvasElement? =
-        null
+    private var touchedDownElement: CanvasElement? = null
     private var isDragCandidate = false
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
 
@@ -174,8 +176,7 @@ class CanvasView @JvmOverloads constructor(
         BitmapShader(bmp, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
     }
 
-    private val canvasElements =
-        mutableListOf<CanvasElement>()
+    private val canvasElements = mutableListOf<CanvasElement>()
     private lateinit var backgroundElement: CanvasElement
 
     private var touchStartX = 0f
@@ -264,10 +265,8 @@ class CanvasView @JvmOverloads constructor(
         AppCompatResources.getDrawable(context, R.drawable.ic_resize)!!
     }
 
-    private var selectedElements: CopyOnWriteArrayList<CanvasElement> =
-        CopyOnWriteArrayList()
-    private var lastTouchedElement: CanvasElement? =
-        null
+    private var selectedElements: CopyOnWriteArrayList<CanvasElement> = CopyOnWriteArrayList()
+    private var lastTouchedElement: CanvasElement? = null
 
     private fun Float.dpToPx(): Float = this * resources.displayMetrics.density
 
@@ -278,8 +277,9 @@ class CanvasView @JvmOverloads constructor(
         invalidate()
     }
 
-    fun setDrawingMode(enabled: Boolean) {
+    fun setDrawingMode(enabled: Boolean, sessionElement: CanvasElement? = null) {
         isDrawing = enabled
+        activeSessionElement = sessionElement
         invalidate()
     }
 
@@ -557,7 +557,7 @@ class CanvasView @JvmOverloads constructor(
     fun syncElements(newElements: List<CanvasElement>) {
         val oldSize = canvasElements.size
         canvasElements.clear()
-        canvasElements.addAll(newElements)
+        canvasElements.addAll(newElements.sortedBy { it.zIndex })
         selectedElements.clear()
         if (newElements.size > oldSize) {
             val newcomer = canvasElements.last()
@@ -807,6 +807,42 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
+    fun rasterizeSvgElement(
+        drawable: Drawable, element: CanvasElement, canvasScale: Float = 1f
+    ): Bitmap {
+        if (drawable is BitmapDrawable) {
+            drawable.bitmap?.let { return it }
+        }
+
+        // Get the logical content size — this is how big the SVG appears on canvas
+        // before element.scale is applied by the canvas matrix
+        val logicalW = element.logicalContentWidth.takeIf { it > 0 }
+            ?: if (drawable is android.graphics.drawable.PictureDrawable) drawable.picture.width.toFloat()
+                .takeIf { it > 0 } ?: 512f
+            else drawable.intrinsicWidth.toFloat().takeIf { it > 0 } ?: 512f
+
+        val logicalH = element.logicalContentHeight.takeIf { it > 0 }
+            ?: if (drawable is android.graphics.drawable.PictureDrawable) drawable.picture.height.toFloat()
+                .takeIf { it > 0 } ?: 512f
+            else drawable.intrinsicHeight.toFloat().takeIf { it > 0 } ?: 512f
+
+        // Actual displayed size on canvas = logicalSize * element.scale
+        // We also apply canvasScale (export scale factor) so exported images are sharp too
+        // Extra 2x oversample so user can still zoom in a bit without pixelation
+        val oversample = 2f
+        val bitmapW =
+            (logicalW * element.scale * canvasScale * oversample).roundToInt().coerceAtLeast(1)
+        val bitmapH =
+            (logicalH * element.scale * canvasScale * oversample).roundToInt().coerceAtLeast(1)
+
+        val bitmap = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, bitmapW, bitmapH)
+        drawable.draw(canvas)
+
+        return bitmap
+    }
+
     fun exportCanvas(
         options: ExportOptions,
         jsonOutputPath: String,
@@ -838,15 +874,25 @@ class CanvasView @JvmOverloads constructor(
         if (total > 0) {
             onProgress?.invoke(70, "Encoding image data")
             elementsWithBitmap.forEachIndexed { index, element ->
-                if (element.svgDrawable != null && element.bitmap == null) {
-                    val rasterized = rasterizeSvgElement(element)
-                    element.bitmap = rasterized                                    // ✅ set bitmap too
-                    element.bitmapData = rasterized?.let {
-                        ImageProcessor.bitmapToBase64Lossless(it)
+                when {
+                    // ✅ SVG with data — no bitmap needed, SVG XML is already in svgData field
+                    element.svgDrawable != null && element.svgData != null -> {
+                        element.bitmapData = null  // save space, SVG XML is the source of truth
                     }
-                } else {
-                    element.bitmap?.let {
-                        element.bitmapData = ImageProcessor.bitmapToBase64(it)
+
+                    // ⚠️ SVG without data (legacy) — rasterize as high-res fallback
+                    element.svgDrawable != null && element.bitmap == null -> {
+                        val rasterized =
+                            rasterizeSvgElement(element.svgDrawable!!, element, scaleFactor)
+                        element.bitmap = rasterized
+                        element.bitmapData = ImageProcessor.bitmapToBase64Lossless(rasterized)
+                    }
+
+                    // Regular bitmap element
+                    else -> {
+                        element.bitmap?.let {
+                            element.bitmapData = ImageProcessor.bitmapToBase64Lossless(it)
+                        }
                     }
                 }
                 element.drawStrokes?.forEach { stroke -> stroke.serializePath() }
@@ -875,7 +921,6 @@ class CanvasView @JvmOverloads constructor(
         val contentWidth = this.canvasWidth
         val contentHeight = this.canvasHeight
 
-        // Compute target dimensions while preserving aspect ratio
         val aspectRatio = contentWidth.toFloat() / contentHeight
         val targetWidth: Int
         val targetHeight: Int
@@ -892,7 +937,6 @@ class CanvasView @JvmOverloads constructor(
         val bitmap = createBitmap(targetWidth, targetHeight)
         val canvas = Canvas(bitmap)
 
-        // Scale down content to thumbnail size
         val scaleFactorX = targetWidth.toFloat() / contentWidth.toFloat()
         val scaleFactorY = targetHeight.toFloat() / contentHeight.toFloat()
         val scaleFactor = minOf(scaleFactorX, scaleFactorY)
@@ -902,28 +946,58 @@ class CanvasView @JvmOverloads constructor(
 
         val elementsSnapshot = canvasElements.map { original ->
             original.copy().also { copy ->
-                copy.svgDrawable = original.svgDrawable  // ✅ @Transient not copied by data class
+                copy.svgDrawable = original.svgDrawable
                 copy.bitmap = original.bitmap
             }
         }
 
-        // Encode element bitmaps (if any)
         val total = elementsSnapshot.size
         if (total > 0) {
             onProgress?.invoke(70, "Encoding image data")
             elementsSnapshot.forEachIndexed { index, element ->
-                if (element.svgDrawable != null && element.bitmap == null) {
-                    // ✅ Use lossless PNG for SVG — lossy compression destroys sharp vector edges
-                    element.bitmapData = ImageProcessor.bitmapToBase64Lossless(rasterizeSvgElement(element)!!)
-                } else {
-                    element.bitmap?.let {
-                        element.bitmapData = ImageProcessor.bitmapToBase64(it)
-                        element.bitmap = null
+                try {
+                    when {
+                        // SVG with svgData — source of truth, no bitmap needed
+                        element.svgDrawable != null && element.svgData != null -> {
+                            element.bitmapData = null
+                            element.bitmap = null
+                        }
+
+                        // SVG without svgData — rasterize as fallback
+                        element.svgDrawable != null && element.bitmap == null -> {
+                            val rasterized = rasterizeSvgElement(
+                                element.svgDrawable!!, element
+                            ) // canvasScale=1f default
+                            element.bitmap = rasterized
+                            element.bitmapData = ImageProcessor.bitmapToBase64Lossless(rasterized)
+                            element.svgDrawable = null  // ✅ clear @Transient — not serializable
+                        }
+
+                        // Regular bitmap
+                        else -> {
+                            element.bitmap?.let {
+                                element.bitmapData = ImageProcessor.bitmapToBase64Lossless(it)
+                            }
+                        }
                     }
+
+                    // ✅ Always clear transient fields before serialization —
+                    // Gson will crash or produce malformed JSON on non-serializable objects
+                    element.svgDrawable = null
+                    element.bitmap = null
+                    element.context = null
+                    element.originalTypeface = null
+
+                } catch (e: Exception) {
+                    Log.e("CanvasView", "Failed to encode element ${element.id}: ${e.message}", e)
+                    // Zero out problematic fields so Gson doesn't choke on this element
+                    element.bitmapData = null
+                    element.svgDrawable = null
+                    element.bitmap = null
+                    element.context = null
                 }
-                element.drawStrokes?.forEach { stroke ->
-                    stroke.serializePath()
-                }
+
+                element.drawStrokes?.forEach { stroke -> stroke.serializePath() }
                 val progress = 70 + ((index + 1) * 20 / total)
                 onProgress?.invoke(progress, "Saving ${index + 1} of $total")
             }
@@ -931,20 +1005,27 @@ class CanvasView @JvmOverloads constructor(
             onProgress?.invoke(90, "No bitmaps to encode")
         }
 
-        // Stream JSON to a temp file — never builds a giant String in RAM
+        // Serialize — catch exception explicitly so we know what actually failed
         val jsonFile = File(context.cacheDir, "thumb_meta_${System.currentTimeMillis()}.json")
-        try {
+        return try {
             jsonFile.bufferedWriter().use { writer ->
                 gson.toJson(elementsSnapshot, writer)
             }
-            if (!jsonFile.exists() || jsonFile.length() == 0L) {
-                throw IOException("Thumbnail metadata file was not written correctly")
-            }
+
             val json = jsonFile.readText()
+            if (json.isBlank()) {
+                throw IOException("JSON serialization produced empty output")
+            }
+
             onProgress?.invoke(95, "Thumbnail ready")
-            return Pair(bitmap, json)
+            Pair(bitmap, json)
+
+        } catch (e: Exception) {
+            Log.e("CanvasView", "exportCanvasThumbnail failed: ${e.message}", e)
+            // Return bitmap with empty JSON rather than crashing — caller can handle
+            Pair(bitmap, "[]")
         } finally {
-            jsonFile.delete() // Always clean up, even on exception
+            jsonFile.delete()
         }
     }
 
@@ -961,13 +1042,25 @@ class CanvasView @JvmOverloads constructor(
         }
 
         safeElements.forEach { element ->
-            if (element.svgDrawable != null && element.bitmap == null) {
-                // ✅ Use lossless PNG for SVG — lossy compression destroys sharp vector edges
-                element.bitmapData = ImageProcessor.bitmapToBase64Lossless(rasterizeSvgElement(element)!!)
-            } else {
-                element.bitmap?.let {
-                    element.bitmapData = ImageProcessor.bitmapToBase64(it)
-                    element.bitmap = null
+            when {
+                // ✅ SVG with data — no bitmap needed, SVG XML is already in svgData field
+                element.svgDrawable != null && element.svgData != null -> {
+                    element.bitmapData = null  // save space, SVG XML is the source of truth
+                }
+
+                // ⚠️ SVG without data (legacy) — rasterize as high-res fallback
+                element.svgDrawable != null && element.bitmap == null -> {
+                    val rasterized =
+                        rasterizeSvgElement(element.svgDrawable!!, element, element.scale)
+                    element.bitmap = rasterized
+                    element.bitmapData = ImageProcessor.bitmapToBase64Lossless(rasterized)
+                }
+
+                // Regular bitmap element
+                else -> {
+                    element.bitmap?.let {
+                        element.bitmapData = ImageProcessor.bitmapToBase64Lossless(it)
+                    }
                 }
             }
             element.drawStrokes?.forEach { stroke -> stroke.serializePath() }
@@ -1233,19 +1326,26 @@ class CanvasView @JvmOverloads constructor(
             withTranslation(offsetX, offsetY) {
                 scale(scale, scale)
                 if (isDrawing) {
-                    // 🟢 Draw all non-draw elements dimmed
-                    canvas.saveLayer(null, null)
-                    drawCanvasElements(this) // draw all normally first
-                    canvas.drawRect(
+                    // Draw canvas elements normally (dimmed by overlay on top — no saveLayer needed)
+                    drawCanvasElements(this, showOverlays = false, showCheckerboard = false)
+
+                    // Draw semi-transparent overlay on top — no offscreen bitmap, just a rect
+                    drawRect(
                         0f,
                         0f,
                         canvasWidth.toFloat(),
                         canvasHeight.toFloat(),
                         drawingModeOverlayPaint
                     )
-                    canvas.restore()
 
-                    // 🟢 Draw live preview path
+                    // Draw all committed session strokes ABOVE the overlay
+                    activeSessionElement?.let { session ->
+                        if (!session.drawStrokes.isNullOrEmpty()) {
+                            drawDrawElement(this, session)
+                        }
+                    }
+
+                    // Draw the current live in-progress stroke ABOVE everything
                     if (currentStrokePath != null && currentStrokePaint != null) {
                         drawLivePreviewStroke(this)
                     }
@@ -1855,7 +1955,7 @@ class CanvasView @JvmOverloads constructor(
         }
 
         // Draw all elements
-        canvasElements.sortedBy { it.zIndex }.forEach { element ->
+        canvasElements.forEach { element ->
             if (!element.isVisible) return@forEach
 
             if (element.type == ElementType.BACKGROUND) {
@@ -1868,9 +1968,24 @@ class CanvasView @JvmOverloads constructor(
                     canvas.scale(element.scale * fx, element.scale * fy)
 
                     when (element.type) {
-                        ElementType.DRAW -> drawDrawElement(
-                            canvas, element
-                        )
+                        ElementType.DRAW -> {
+                            if (element.bitmap != null) {
+                                // Committed/rasterized draw layer — render as bitmap
+                                val bmp = element.bitmap!!
+                                if (!bmp.isRecycled) {
+                                    val left = -bmp.width / 2f
+                                    val top = -bmp.height / 2f
+                                    canvas.drawBitmap(bmp, left, top, android.graphics.Paint().apply {
+                                        alpha = element.paintAlpha
+                                        isAntiAlias = true
+                                        isFilterBitmap = true
+                                    })
+                                }
+                            } else {
+                                // Active session strokes — render paths
+                                drawDrawElement(canvas, element)
+                            }
+                        }
 
                         ElementType.SHAPE -> drawShapeElement(
                             canvas, element
@@ -1881,19 +1996,240 @@ class CanvasView @JvmOverloads constructor(
                         )
 
                         else -> {
+                            val needsOpacityLayer = element.paintAlpha < 255
+                            if (needsOpacityLayer) {
+                                canvas.saveLayer(null, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                                    alpha = element.paintAlpha
+                                })
+                            }
+
                             element.svgDrawable?.let { drawable ->
                                 val w = element.logicalContentWidth.takeIf { it > 0 }
-                                    ?: drawable.intrinsicWidth.toFloat().takeIf { it > 0 } ?: 200f
+                                    ?: drawable.picture.width.toFloat().takeIf { it > 0 } ?: 200f
                                 val h = element.logicalContentHeight.takeIf { it > 0 }
-                                    ?: drawable.intrinsicHeight.toFloat().takeIf { it > 0 } ?: 200f
-
+                                    ?: drawable.picture.height.toFloat().takeIf { it > 0 } ?: 200f
                                 val left = -w / 2f
-                                val top = -h / 2f
+                                val top  = -h / 2f
 
-                                drawable.setBounds(
-                                    left.toInt(), top.toInt(), (left + w).toInt(), (top + h).toInt()
-                                )
-                                drawable.draw(canvas)
+                                val hasAnyAdjustment = element.hasLight || element.hasColor ||
+                                        element.hasDetail || element.hasBlur
+                                val hasImageFilter = element.imageFilter != ImageFilter.None
+                                val needsRaster = hasAnyAdjustment || hasImageFilter
+
+                                // ── CACHE — rasterize once, reuse every frame ─────────────────────
+                                // OOM fix: never create a bitmap inside onDraw on every frame.
+                                // We store the rasterized result on element.bitmap and reuse it.
+                                // It is invalidated (set null) whenever adjustments/filters change.
+                                val finalBitmap: Bitmap? = if (needsRaster) {
+                                    if (element.bitmap == null || element.bitmap!!.isRecycled) {
+                                        // First time or invalidated — rasterize once and cache
+                                        val svgData = element.svgData
+                                        val bmp: Bitmap = if (svgData != null) {
+                                            try {
+                                                val svg = SVG.getFromString(svgData)
+                                                val vb = svg.documentViewBox
+                                                val nativeW = if (vb != null && vb.width() > 0) vb.width() else w
+                                                val nativeH = if (vb != null && vb.height() > 0) vb.height() else h
+
+                                                // Cap at 2048 to prevent OOM on large SVGs
+                                                val scale = minOf(2048f / nativeW, 2048f / nativeH, 2f)
+                                                val bmpW = (nativeW * scale).toInt().coerceAtLeast(1)
+                                                val bmpH = (nativeH * scale).toInt().coerceAtLeast(1)
+
+                                                val raw = Bitmap.createBitmap(bmpW, bmpH, Bitmap.Config.ARGB_8888)
+                                                svg.documentWidth  = bmpW.toFloat()
+                                                svg.documentHeight = bmpH.toFloat()
+                                                svg.renderToCanvas(Canvas(raw))
+                                                val trimmed = raw.trimTransparentEdges()
+                                                if (trimmed != raw) raw.recycle()
+                                                trimmed
+                                            } catch (e: Exception) {
+                                                // SVG parse failed — fall back to PictureDrawable raster
+                                                Bitmap.createBitmap(w.toInt().coerceAtLeast(1), h.toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888).also {
+                                                    drawable.setBounds(0, 0, w.toInt(), h.toInt())
+                                                    drawable.draw(Canvas(it))
+                                                }
+                                            }
+                                        } else {
+                                            Bitmap.createBitmap(w.toInt().coerceAtLeast(1), h.toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888).also {
+                                                drawable.setBounds(0, 0, w.toInt(), h.toInt())
+                                                drawable.draw(Canvas(it))
+                                            }
+                                        }
+
+                                        // Apply adjustments and cache on element
+                                        val adjusted = ImageAdjustmentHelper.applyAllAdjustments(element.context!!, bmp, element)
+                                        if (adjusted != bmp) bmp.recycle()
+                                        element.bitmap = adjusted  // ✅ cached — not recreated next frame
+                                        adjusted
+                                    } else {
+                                        element.bitmap!! // ✅ reuse cached bitmap
+                                    }
+                                } else null
+
+                                // ── Shadow ───────────────────────────────────────────────────────────
+                                if (element.hasShadow && element.shadowOpacity > 0) {
+                                    // Use finalBitmap if available, else rasterize a temp just for shadow mask
+                                    val shadowSource = finalBitmap ?: createBitmap(
+                                        w.toInt().coerceAtLeast(1), h.toInt().coerceAtLeast(1)
+                                    ).also {
+                                        Canvas(it).also { c ->
+                                            drawable.setBounds(0, 0, w.toInt(), h.toInt())
+                                            drawable.draw(c)
+                                        }
+                                    }
+                                    val alphaMask = shadowSource.extractAlpha()
+                                    if (finalBitmap == null) shadowSource.recycle()
+
+                                    canvas.save()
+                                    canvas.translate(element.shadowDx, element.shadowDy)
+                                    canvas.drawBitmap(
+                                        alphaMask, left, top, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                                            color = Color.argb(
+                                                element.shadowOpacity.coerceIn(0, 255),
+                                                Color.red(element.shadowColor),
+                                                Color.green(element.shadowColor),
+                                                Color.blue(element.shadowColor)
+                                            )
+                                            maskFilter = BlurMaskFilter(
+                                                element.shadowRadius.coerceAtLeast(0.1f),
+                                                BlurMaskFilter.Blur.NORMAL
+                                            )
+                                        })
+                                    canvas.restore()
+                                    alphaMask.recycle()
+                                }
+
+                                // ── Stroke ───────────────────────────────────────────────────────────
+                                if (element.hasStroke && element.strokeWidth > 0f) {
+                                    val strokeSource = finalBitmap ?: createBitmap(
+                                        w.toInt().coerceAtLeast(1), h.toInt().coerceAtLeast(1)
+                                    ).also {
+                                        Canvas(it).also { c ->
+                                            drawable.setBounds(0, 0, w.toInt(), h.toInt())
+                                            drawable.draw(c)
+                                        }
+                                    }
+                                    val alphaBitmap = strokeSource.extractAlpha()
+                                    if (finalBitmap == null) strokeSource.recycle()
+
+                                    val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                                        style = Paint.Style.FILL
+                                        isFilterBitmap = true
+                                        if (element.strokeGradient != null) {
+                                            shader =
+                                                createGradientShader(element.strokeGradient!!, w, h)
+                                        } else {
+                                            color = element.strokeColor
+                                        }
+                                    }
+                                    canvas.save()
+                                    val strokeWidth = element.strokeWidth.toInt().coerceAtLeast(1)
+                                    for (angle in 0 until 360 step 10) {
+                                        val rad = Math.toRadians(angle.toDouble())
+                                        val dx = (strokeWidth * cos(rad)).toFloat()
+                                        val dy = (strokeWidth * sin(rad)).toFloat()
+                                        canvas.drawBitmap(
+                                            alphaBitmap, left + dx, top + dy, strokePaint
+                                        )
+                                    }
+                                    canvas.restore()
+                                    alphaBitmap.recycle()
+                                }
+
+                                // ── Main draw ─────────────────────────────────────────────────────────
+                                if (finalBitmap != null) {
+                                    // Fit the bitmap into w×h while preserving aspect ratio (same as SVG preserveAspectRatio="xMidYMid meet")
+                                    val bitmapAspect = finalBitmap.width.toFloat() / finalBitmap.height.toFloat()
+                                    val logicalAspect = w / h
+
+                                    val (drawW, drawH) = if (bitmapAspect > logicalAspect) {
+                                        // bitmap is wider — fit width, letterbox top/bottom
+                                        w to (w / bitmapAspect)
+                                    } else {
+                                        // bitmap is taller — fit height, pillarbox left/right
+                                        (h * bitmapAspect) to h
+                                    }
+
+                                    val bl = -drawW / 2f
+                                    val bt = -drawH / 2f
+                                    val br =  drawW / 2f
+                                    val bb =  drawH / 2f
+
+                                    canvas.saveLayer(bl, bt, br, bb, null)
+
+                                    val mainPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                                        isFilterBitmap = true
+                                        colorFilter = colorFilterFor(element.imageFilter)
+                                    }
+
+                                    when (element.imageFilter) {
+                                        ImageFilter.SoftBlur -> {
+                                            mainPaint.maskFilter = BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
+                                            canvas.drawBitmap(finalBitmap, null, RectF(bl, bt, br, bb), mainPaint)
+                                        }
+                                        ImageFilter.Glow -> {
+                                            canvas.drawBitmap(finalBitmap, null, RectF(bl, bt, br, bb), element.paint)
+                                            canvas.drawBitmap(finalBitmap, null, RectF(bl, bt, br, bb), Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                                                color = Color.argb(180, 255, 255, 200)
+                                                maskFilter = BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
+                                            })
+                                        }
+                                        else -> {
+                                            canvas.drawBitmap(finalBitmap, null, RectF(bl, bt, br, bb), mainPaint)
+                                        }
+                                    }
+
+                                    if (element.hasOverlay && element.overlayOpacity > 0) {
+                                        canvas.drawRect(bl, bt, br, bb, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                                            alpha = element.overlayOpacity.coerceIn(0, 255)
+                                            xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
+                                            if (element.overlayGradient != null) {
+                                                shader = createGradientShader(element.overlayGradient!!, drawW, drawH)
+                                            } else {
+                                                color = element.overlayColor
+                                            }
+                                        })
+                                    }
+
+                                    canvas.restore()
+                                    finalBitmap.recycle()
+                                } else {
+                                    // ── Pure vector path — no adjustments, no filters ────────────────
+                                    drawable.setBounds(
+                                        left.toInt(),
+                                        top.toInt(),
+                                        (left + w).toInt(),
+                                        (top + h).toInt()
+                                    )
+
+                                    canvas.saveLayer(left, top, left + w, top + h, null)
+                                    drawable.draw(canvas)
+
+                                    // Overlay
+                                    if (element.hasOverlay && element.overlayOpacity > 0) {
+                                        canvas.drawRect(
+                                            left,
+                                            top,
+                                            left + w,
+                                            top + h,
+                                            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                                                alpha = element.overlayOpacity.coerceIn(0, 255)
+                                                xfermode =
+                                                    PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
+                                                if (element.overlayGradient != null) {
+                                                    shader = createGradientShader(
+                                                        element.overlayGradient!!, w, h
+                                                    )
+                                                } else {
+                                                    color = element.overlayColor
+                                                }
+                                            })
+                                    }
+
+                                    canvas.restore()
+                                }
+
                                 return@let
                             }
 
@@ -2041,6 +2377,8 @@ class CanvasView @JvmOverloads constructor(
                                     canvas.drawRect(left, top, left + w, top + h, overlayPaint)
                                 }
                             }
+
+                            if (needsOpacityLayer) canvas.restore()
                         }
                     }
                 }
@@ -2444,13 +2782,10 @@ class CanvasView @JvmOverloads constructor(
                     postTranslate(dx, dy)
                 }
 
-                val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    colorFilter = colorFilterFor(element.imageFilter)
-                    isFilterBitmap = true
-                }
-
                 // ---------- MASK LAYER ----------
-                canvas.saveLayer(localRect, null)
+                canvas.saveLayer(localRect, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    alpha = element.paintAlpha  // ✅ opacity applies to the entire masked image
+                })
 
                 val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     style = Paint.Style.FILL
@@ -2459,7 +2794,12 @@ class CanvasView @JvmOverloads constructor(
 
                 canvas.drawPath(path, maskPaint)
 
-                paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+                val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    colorFilter = colorFilterFor(element.imageFilter)
+                    isFilterBitmap = true
+                    // ⚠️ No alpha here — handled by saveLayer above
+                    xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+                }
 
                 // ---------- IMAGE + FILTER ----------
                 when (element.imageFilter) {
@@ -2603,9 +2943,9 @@ class CanvasView @JvmOverloads constructor(
             }
         }
 
-        // 🟢 Live in-progress path
-        if (element == activeDrawElement && currentPath != null && currentPaint != null) {
-            canvas.drawPath(currentPath!!, currentPaint!!)
+        // 🟢 Live in-progress stroke for active session
+        if (element == activeSessionElement && currentStrokePath != null && currentStrokePaint != null) {
+            canvas.drawPath(currentStrokePath!!, currentStrokePaint!!)
         }
     }
 
@@ -3370,63 +3710,26 @@ class CanvasView @JvmOverloads constructor(
 
                 MotionEvent.ACTION_UP -> {
                     currentStrokePath?.lineTo(x, y)
-                    currentStrokePoints.add(x to y)
 
-                    if (currentStrokePath == null) return false
-
-                    // --- 1️⃣ Compute full stroke bounds in absolute canvas coordinates
-                    val rawBounds = RectF()
-                    currentStrokePath!!.computeBounds(rawBounds, true)
-
-                    // --- 2️⃣ Determine the visual center
-                    val centerX = rawBounds.centerX()
-                    val centerY = rawBounds.centerY()
-
-                    // --- 3️⃣ Translate the path so it becomes local (centered around 0,0)
-                    val normalizedPath = Path(currentStrokePath!!)
-                    val matrix = Matrix().apply { postTranslate(-centerX, -centerY) }
-                    normalizedPath.transform(matrix)
-
-                    // --- 4️⃣ Create the StrokeData (with the normalized path)
-                    val strokeData =
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.StrokeData(
-                            path = normalizedPath,
+                    val path = currentStrokePath
+                    if (path != null && activeSessionElement != null) {
+                        // Store path in ABSOLUTE canvas coordinates — no normalization
+                        val strokeData = com.webscare.urducanvas.common.canvas.model.StrokeData(
+                            path = Path(path),
                             color = currentBrushColor,
                             thickness = currentBrushThickness,
                             hardness = currentBrushHardness,
                             style = currentBrushStyle,
-                            gradient = currentBrushGradient,
+                            gradient = currentBrushGradient
                         )
+                        activeSessionElement!!.drawStrokes?.add(strokeData)
+                    }
 
-                    // --- 5️⃣ Create a centered CanvasElement positioned at the stroke center
-                    val drawElement =
-                        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasElement(
-                            type = ElementType.DRAW,
-                            x = centerX,
-                            y = centerY,
-                            drawStrokes = mutableListOf(strokeData),
-                            brushSettings = _root_ide_package_.com.webscare.urducanvas.common.canvas.model.BrushSettings(
-                                defaultColor = currentBrushColor,
-                                defaultThickness = currentBrushThickness,
-                                defaultHardness = currentBrushHardness,
-                                style = currentBrushStyle,
-                                gradient = currentBrushGradient
-                            ),
-                            allowsStrokeEditing = true,
-                            isVisible = true,
-                            backgroundColor = Color.TRANSPARENT
-                        ).apply {
-                            logicalContentWidth = rawBounds.width()
-                            logicalContentHeight = rawBounds.height()
-                        }
-
-                    // --- 6️⃣ Add to canvas
-                    onDrawStrokeCompleted?.invoke(drawElement)
-
-                    // --- 7️⃣ Cleanup
+                    // Cleanup live preview
                     currentStrokePath = null
                     currentStrokePaint = null
                     currentStrokePoints.clear()
+                    invalidate()
                 }
             }
 
@@ -4114,25 +4417,6 @@ class CanvasView @JvmOverloads constructor(
         } else {
             overallOffsetY = 0f
         }
-    }
-
-    private fun rasterizeSvgElement(element: CanvasElement): Bitmap? {
-        val drawable = element.svgDrawable ?: return null
-
-        val intrinsicW = drawable.intrinsicWidth.takeIf { it > 0 }?.toFloat() ?: return null
-        val intrinsicH = drawable.intrinsicHeight.takeIf { it > 0 }?.toFloat() ?: return null
-
-        // Rasterize at canvas export resolution — canvasWidth is the true output size
-        // Scale up proportionally so the raster matches what the canvas would render
-        val exportScale = canvasWidth / (intrinsicW * element.scale).coerceAtLeast(1f)
-        val w = (intrinsicW * element.scale * exportScale).toInt().coerceAtLeast(1)
-        val h = (intrinsicH * element.scale * exportScale).toInt().coerceAtLeast(1)
-
-        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        val c = Canvas(bmp)
-        drawable.setBounds(0, 0, w, h)
-        drawable.draw(c)
-        return bmp
     }
 
     fun clearCallbacks() {

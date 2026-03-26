@@ -33,6 +33,9 @@ data class CanvasElement(
     @com.google.gson.annotations.JsonAdapter(value = Nothing::class) // skip serialization
     var svgDrawable: android.graphics.drawable.PictureDrawable? = null,
 
+    @SerializedName("svgData")
+    var svgData: String? = null,
+
     @SerializedName("text") var text: String = "",
 
     @SerializedName("bitmap") @field:Transient var bitmap: Bitmap? = null,
@@ -227,9 +230,13 @@ data class CanvasElement(
                 0f
             }
         } else {
-            bitmap?.width?.toFloat() ?: svgDrawable?.intrinsicWidth?.toFloat()
-                ?.takeIf { it > 0 }  // ✅ SVG fallback
-            ?: 0f
+            if (svgDrawable != null) {
+                logicalContentWidth.takeIf { it > 0 }
+                    ?: svgDrawable?.picture?.width?.toFloat()?.takeIf { it > 0 }
+                    ?: 0f
+            } else {
+                bitmap?.width?.toFloat() ?: 0f
+            }
         }
     }
 
@@ -248,9 +255,13 @@ data class CanvasElement(
                 0f
             }
         } else {
-            bitmap?.height?.toFloat() ?: svgDrawable?.intrinsicHeight?.toFloat()
-                ?.takeIf { it > 0 }  // ✅ SVG fallback
-            ?: 0f
+            if (svgDrawable != null) {
+                logicalContentHeight.takeIf { it > 0 }
+                    ?: svgDrawable?.picture?.height?.toFloat()?.takeIf { it > 0 }
+                    ?: 0f
+            } else {
+                bitmap?.height?.toFloat() ?: 0f
+            }
         }
     }
 
@@ -295,7 +306,7 @@ data class CanvasElement(
             bounds.set(
                 -maxLineWidth / 2f, -totalHeight / 2f, maxLineWidth / 2f, totalHeight / 2f
             )
-        } else if (type == ElementType.DRAW && ::paint.isInitialized) {
+        } else if (type == ElementType.DRAW) {
             val drawBounds = getDrawBounds()
             bounds.set(drawBounds)
         } else {
@@ -352,6 +363,14 @@ data class CanvasElement(
     }
 
     fun getDrawBounds(): RectF {
+        // --- Case 1: Committed/rasterized draw element — has bitmap, no strokes
+        if (bitmap != null && drawStrokes.isNullOrEmpty()) {
+            val halfW = logicalContentWidth / 2f
+            val halfH = logicalContentHeight / 2f
+            return RectF(-halfW, -halfH, halfW, halfH)
+        }
+
+        // --- Case 2: Active session element — has absolute coordinate strokes, no bitmap
         val strokes = drawStrokes ?: return RectF(0f, 0f, 0f, 0f)
         if (strokes.isEmpty()) return RectF(0f, 0f, 0f, 0f)
 
@@ -362,22 +381,21 @@ data class CanvasElement(
         var hasValidStroke = false
 
         for (stroke in strokes) {
-            // ✅ Defensive guard — make sure path exists and has data
             if (stroke.path == null || stroke.path!!.isEmpty) {
                 stroke.restorePath()
             }
 
             val path = stroke.path
-            if (path == null || path.isEmpty) continue // skip invalid stroke
+            if (path == null || path.isEmpty) continue
 
             val pathBounds = RectF()
             try {
                 path.computeBounds(pathBounds, true)
             } catch (e: Exception) {
-                // Skip broken path safely
                 continue
             }
 
+            // Expand bounds by half stroke thickness so selection outline hugs the stroke edges
             val expand = (stroke.thickness.takeIf { it.isFinite() } ?: 0f) * 0.5f
             pathBounds.inset(-expand, -expand)
 
@@ -391,8 +409,18 @@ data class CanvasElement(
 
         if (!hasValidStroke) return RectF(0f, 0f, 0f, 0f)
 
-        val width = maxX - minX
-        val height = maxY - minY
-        return RectF(-width / 2f - 6f, -height / 2f - 6f, width / 2f + 6f, height / 2f + 6f)
+        // Strokes are in absolute canvas coordinates, element sits at x=0 y=0
+        // Shift bounds to be centered around element origin for consistent
+        // hit testing and selection outline rendering
+        val centerX = (minX + maxX) / 2f
+        val centerY = (minY + maxY) / 2f
+        val halfW = (maxX - minX) / 2f
+        val halfY = (maxY - minY) / 2f
+        return RectF(
+            centerX - halfW,
+            centerY - halfY,
+            centerX + halfW,
+            centerY + halfY
+        )
     }
 }

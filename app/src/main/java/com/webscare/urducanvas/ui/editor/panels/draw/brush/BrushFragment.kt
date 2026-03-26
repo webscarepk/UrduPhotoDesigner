@@ -41,9 +41,9 @@ class BrushFragment : androidx.fragment.app.Fragment() {
 
     private fun setupRecyclerViews() {
         tabs = ArrayList()
-        viewModel.enterDrawingMode()
+        viewModel.enterDrawingMode(requireActivity())
         adapter =
-            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter { tab ->
+            PanelTabsAdapter { tab ->
                 handleSelection(tab)
             }
         binding.categories.adapter = adapter
@@ -66,21 +66,21 @@ class BrushFragment : androidx.fragment.app.Fragment() {
     private fun initObservers() {
         lifecycleScope.launch {
             tabs.add(
-                _root_ide_package_.com.webscare.urducanvas.data.model.PanelTabs(
+                PanelTabs(
                     0,
                     "Style",
                     true
                 )
             )
             tabs.add(
-                _root_ide_package_.com.webscare.urducanvas.data.model.PanelTabs(
+                PanelTabs(
                     1,
                     "Size",
                     false
                 )
             )
             tabs.add(
-                _root_ide_package_.com.webscare.urducanvas.data.model.PanelTabs(
+                PanelTabs(
                     2,
                     "Color",
                     false
@@ -96,7 +96,7 @@ class BrushFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    private fun handleSelection(selectedCategory: com.webscare.urducanvas.data.model.PanelTabs?) {
+    private fun handleSelection(selectedCategory: PanelTabs?) {
         selectedCategory?.let { tab ->
             val selectedIndex = tabs.indexOfFirst { it.tab_name == tab.tab_name }
 
@@ -114,23 +114,23 @@ class BrushFragment : androidx.fragment.app.Fragment() {
     override fun onDestroy() {
         super.onDestroy()
         _binding = null
-        viewModel.exitDrawingMode()
+        viewModel.exitDrawingMode(commit = false)
     }
 
     override fun onPause() {
         super.onPause()
-        viewModel.exitDrawingMode()
+        viewModel.exitDrawingMode(commit = false)
     }
 
     override fun onStop() {
         super.onStop()
-        viewModel.exitDrawingMode()
+        viewModel.exitDrawingMode(commit = false)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-        viewModel.exitDrawingMode()
+        viewModel.exitDrawingMode(commit = false)
     }
 
     companion object {

@@ -46,6 +46,7 @@ import com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants
 import com.webscare.urducanvas.common.datastore.PreferencesDataStoreHelper
 import com.webscare.urducanvas.common.utils.BitmapCache
 import com.webscare.urducanvas.common.utils.ImageProcessor
+import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
 import com.webscare.urducanvas.common.views.CanvasView
 import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.data.model.FontEntity
@@ -66,6 +67,7 @@ import java.util.Stack
 import java.util.UUID
 import javax.inject.Inject
 import kotlin.collections.map
+import androidx.core.graphics.createBitmap
 
 @HiltViewModel
 class CanvasViewModel @Inject constructor(
@@ -328,6 +330,8 @@ class CanvasViewModel @Inject constructor(
     }
 
     private var selectedElement: CanvasElement? = null
+    private var _activeDrawSession: CanvasElement? = null
+
     private var currentBatchAction: BatchedCanvasAction? = null
     private var _isExplicitChange = false
 
@@ -586,18 +590,146 @@ class CanvasViewModel @Inject constructor(
         _isMaskingMode.value = false
     }
 
-    fun addDrawElement(stroke: CanvasElement) {
-        val currentList = _canvasElements.value.orEmpty().toMutableList()
+    fun startDrawSession(context: Context) {
+        val currentList = _canvasElements.value.orEmpty()
         val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
+        val canvasW = _canvasSize.value?.width ?: 0f
+        val canvasH = _canvasSize.value?.height ?: 0f
 
-        currentList.add(stroke.copy(zIndex = newZIndex, isSelected = false))
-        _canvasElements.postValue(currentList)
-
-        _canvasActions.push(CanvasAction.AddDrawStroke(stroke.copy(context = null, bitmap = null)))
-
-        _redoStack.clear()
-        notifyUndoRedoChanged()
+        _activeDrawSession = CanvasElement(
+            context = context,
+            type = ElementType.DRAW,
+            x = 0f,
+            y = 0f,
+            zIndex = newZIndex,
+            isSelected = false,
+            isVisible = true,
+            drawStrokes = mutableListOf(),
+            allowsStrokeEditing = true,
+            backgroundColor = Color.TRANSPARENT
+        )
     }
+
+    fun commitDrawSession() {
+        val session = _activeDrawSession ?: return
+        if (session.drawStrokes.isNullOrEmpty()) {
+            _activeDrawSession = null
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.Default) {
+            val canvasW = _canvasSize.value?.width?.toInt() ?: 0
+            val canvasH = _canvasSize.value?.height?.toInt() ?: 0
+
+            val rasterized: CanvasElement = if (canvasW > 0 && canvasH > 0) {
+
+                // --- Step 1: Compute tight bounds across all strokes ---
+                var minX = Float.MAX_VALUE
+                var minY = Float.MAX_VALUE
+                var maxX = -Float.MAX_VALUE
+                var maxY = -Float.MAX_VALUE
+
+                session.drawStrokes?.forEach { stroke ->
+                    val path = stroke.path ?: return@forEach
+                    val pathBounds = android.graphics.RectF()
+                    path.computeBounds(pathBounds, true)
+                    val expand = (stroke.thickness.takeIf { it.isFinite() } ?: 0f) * 0.5f
+                    pathBounds.inset(-expand, -expand)
+                    minX = minOf(minX, pathBounds.left)
+                    minY = minOf(minY, pathBounds.top)
+                    maxX = maxOf(maxX, pathBounds.right)
+                    maxY = maxOf(maxY, pathBounds.bottom)
+                }
+
+                // Clamp to canvas bounds
+                minX = minX.coerceAtLeast(0f)
+                minY = minY.coerceAtLeast(0f)
+                maxX = maxX.coerceAtMost(canvasW.toFloat())
+                maxY = maxY.coerceAtMost(canvasH.toFloat())
+
+                val strokesWidth = (maxX - minX).coerceAtLeast(1f)
+                val strokesHeight = (maxY - minY).coerceAtLeast(1f)
+
+                // --- Step 2: Render strokes onto a full-canvas bitmap ---
+                val fullBitmap = createBitmap(canvasW, canvasH)
+                val fullCanvas = android.graphics.Canvas(fullBitmap)
+
+                session.drawStrokes?.forEach { stroke ->
+                    when (stroke.style) {
+                        com.webscare.urducanvas.common.canvas.enums.BrushStyle.BRUSH ->
+                            com.webscare.urducanvas.common.utils.BrushRenderUtils.drawBrushStroke(fullCanvas, stroke, 255)
+
+                        com.webscare.urducanvas.common.canvas.enums.BrushStyle.PEN ->
+                            com.webscare.urducanvas.common.utils.BrushRenderUtils.drawTaperedPenStroke(fullCanvas, stroke, 255)
+
+                        com.webscare.urducanvas.common.canvas.enums.BrushStyle.HIGHLIGHTER -> {
+                            val paint = com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(stroke, canvasW, canvasH)
+                            paint.alpha = 130
+                            paint.strokeCap = android.graphics.Paint.Cap.BUTT
+                            val path = android.graphics.Path(stroke.path)
+                            val m = android.graphics.Matrix()
+                            m.postTranslate(0f, stroke.thickness * 0.3f)
+                            path.transform(m)
+                            fullCanvas.drawPath(path, paint)
+                        }
+
+                        else -> {
+                            val paint = com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(stroke, canvasW, canvasH)
+                            paint.alpha = 255
+                            fullCanvas.drawPath(stroke.path!!, paint)
+                        }
+                    }
+                }
+
+                // --- Step 3: Crop to tight bounds ---
+                val croppedBitmap = android.graphics.Bitmap.createBitmap(
+                    fullBitmap,
+                    minX.toInt(),
+                    minY.toInt(),
+                    strokesWidth.toInt(),
+                    strokesHeight.toInt()
+                )
+                fullBitmap.recycle()
+
+                val bitmapData = ImageProcessor.bitmapToBase64Lossless(croppedBitmap)
+
+                // --- Step 4: Position element at center of stroke bounds ---
+                val centerX = minX + strokesWidth / 2f
+                val centerY = minY + strokesHeight / 2f
+
+                session.copy(
+                    bitmap = croppedBitmap,
+                    bitmapData = bitmapData,
+                    drawStrokes = null,
+                    x = centerX,
+                    y = centerY,
+                    logicalContentWidth = strokesWidth,
+                    logicalContentHeight = strokesHeight,
+                    isSelected = true
+                )
+            } else {
+                session.copy(isSelected = false)
+            }
+
+            withContext(Dispatchers.Main) {
+                val currentList = _canvasElements.value.orEmpty().toMutableList()
+                currentList.add(rasterized)
+                _canvasElements.postValue(currentList)
+                _canvasActions.push(
+                    CanvasAction.AddDrawStroke(rasterized.copy(context = null, bitmap = null))
+                )
+                _redoStack.clear()
+                notifyUndoRedoChanged()
+                _activeDrawSession = null
+            }
+        }
+    }
+
+    fun discardDrawSession() {
+        _activeDrawSession = null
+    }
+
+    fun getActiveDrawSession(): CanvasElement? = _activeDrawSession
 
     fun updateBrushProperties(
         color: Int? = null,
@@ -1101,11 +1233,13 @@ class CanvasViewModel @Inject constructor(
         _isMaskingMode.value = true
     }
 
-    fun enterDrawingMode() {
+    fun enterDrawingMode(context: Context) {
+        startDrawSession(context)
         _isDrawingMode.value = true
     }
 
-    fun exitDrawingMode() {
+    fun exitDrawingMode(commit: Boolean = false) {
+        if (commit) commitDrawSession() else discardDrawSession()
         _isDrawingMode.value = false
     }
 
@@ -2478,7 +2612,10 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun addSvgSticker(
-        drawable: PictureDrawable, context: Context, isPremium: Boolean = false
+        drawable: PictureDrawable,
+        svgXml: String?,          // ✅ nullable — graceful fallback for legacy/import
+        context: Context,
+        isPremium: Boolean = false
     ) {
         val currentList = _canvasElements.value ?: emptyList()
         val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
@@ -2487,31 +2624,29 @@ class CanvasViewModel @Inject constructor(
         val canvasH = _canvasSize.value?.height ?: return
         if (canvasW <= 0f || canvasH <= 0f) return
 
-        // --- Compute display size respecting SVG aspect ratio, targeting 60% of canvas ---
-        val svgW = drawable.intrinsicWidth.takeIf { it > 0 }?.toFloat() ?: canvasW * 0.6f
-        val svgH = drawable.intrinsicHeight.takeIf { it > 0 }?.toFloat() ?: canvasH * 0.6f
-
+        val svgW = drawable.picture.width.takeIf { it > 0 }?.toFloat() ?: canvasW * 0.6f
+        val svgH = drawable.picture.height.takeIf { it > 0 }?.toFloat() ?: canvasH * 0.6f
         val targetW = canvasW * 0.4f
         val targetH = canvasH * 0.4f
         val scaleFactor = minOf(targetW / svgW, targetH / svgH)
 
         val element = CanvasElement(
             context = context,
-            type = ElementType.IMAGE,
-            bitmap = null,           // ← no bitmap
-            bitmapData = null,       // ← nothing to serialize (SVG re-fetched on load)
+            type = ElementType.STICKER,
+            bitmap = null,
+            bitmapData = null,
+            svgData = svgXml,     // ✅ persisted — survives any scale, forever
             x = canvasW / 2f,
             y = canvasH / 2f,
             paintAlpha = 255,
             zIndex = newZIndex,
             isPremium = isPremium
         ).apply {
-            svgDrawable = drawable   // ← live vector drawable
-            scale = scaleFactor       // start at 60% of canvas visually
+            svgDrawable = drawable
+            scale = scaleFactor
         }
 
         element.updatePaintProperties()
-
         _canvasActions.push(CanvasAction.AddSticker(element.copy(context = null, bitmap = null)))
         _redoStack.clear()
         _canvasElements.value = currentList + element
@@ -3121,9 +3256,23 @@ class CanvasViewModel @Inject constructor(
                 }
 
                 ElementType.STICKER -> {
-                    bitmapData?.let { data ->
-//                        bitmap = ImageProcessor.filePathToBitmap(data)
-                        bitmap = ImageProcessor.base64ToBitmap(data)
+                    if (svgData != null) {
+                        // ✅ Restore from raw SVG XML — resolution-independent, works at any scale
+                        try {
+                            val svg = com.caverock.androidsvg.SVG.getFromString(svgData)
+                            svgDrawable = android.graphics.drawable.PictureDrawable(svg.renderToPicture()).trimTransparentEdges()
+                            bitmap = null
+                        } catch (e: Exception) {
+                            // SVG parse failed — fall back to bitmapData if available
+                            bitmapData?.let { data ->
+                                bitmap = ImageProcessor.base64ToBitmap(data)
+                            }
+                        }
+                    } else {
+                        // Legacy element — no svgData, restore from rasterized bitmap
+                        bitmapData?.let { data ->
+                            bitmap = ImageProcessor.base64ToBitmap(data)
+                        }
                     }
                 }
 
@@ -3137,6 +3286,19 @@ class CanvasViewModel @Inject constructor(
                 ElementType.BACKGROUND -> {   // ✅ ADD THIS
                     bitmapData?.let { data ->
                         bitmap = ImageProcessor.base64ToBitmap(data)
+                    }
+                }
+
+                ElementType.DRAW -> {
+                    // Committed draw element — restore bitmap from bitmapData
+                    // Session draw elements have no bitmapData so this is a no-op for them
+                    if (drawStrokes.isNullOrEmpty()) {
+                        bitmapData?.let { data ->
+                            bitmap = ImageProcessor.base64ToBitmap(data)
+                        }
+                    } else {
+                        // Legacy stroke-based draw element — restore paths
+                        drawStrokes?.forEach { stroke -> stroke.restorePath() }
                     }
                 }
 
@@ -3571,8 +3733,8 @@ class CanvasViewModel @Inject constructor(
                     val fixed =
                         if (raw.adjustments == null) raw.copy(adjustments = AdjustmentValues()) else raw
                     fixed.copy(context = context).apply {
-                        drawStrokes?.forEach { stroke ->
-                            stroke.restorePath()
+                        if (type == ElementType.DRAW && !drawStrokes.isNullOrEmpty()) {
+                            drawStrokes?.forEach { stroke -> stroke.restorePath() }
                         }
                     }.restoreWithContext(context)
                 }

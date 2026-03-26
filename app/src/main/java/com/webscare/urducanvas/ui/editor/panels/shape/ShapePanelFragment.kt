@@ -282,8 +282,9 @@ class ShapePanelFragment : Fragment() {
             val elements = viewModel.canvasElements.value
             val isMask = viewModel.isMaskingMode.value
             val isShapeSelected = elements?.any { it.isSelected && it.type == ElementType.SHAPE } == true
-            if (isMask == true) {
-                val selectedElement = elements?.find { it.isSelected && it.type == ElementType.IMAGE }
+            val isImageSelected = elements?.any { it.isSelected && it.type == ElementType.IMAGE } == true
+            if (isMask == true && isImageSelected) {
+                val selectedElement = elements.find { it.isSelected && it.type == ElementType.IMAGE }
                 selectedElement?.let {
                     viewModel.mergeImageToShape(it, shape, requireActivity())
                 }

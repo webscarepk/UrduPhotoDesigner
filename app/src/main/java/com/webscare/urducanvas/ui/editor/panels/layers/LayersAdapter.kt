@@ -86,7 +86,7 @@ class LayersAdapter(
                     ElementType.TEXT -> element.text ?: "Text"
                     ElementType.IMAGE -> "Image"
                     ElementType.STICKER -> "Sticker"
-                    ElementType.DRAW -> element.brushSettings?.style?.displayName
+                    ElementType.DRAW -> "Brush"
                     ElementType.SHAPE -> element.shapeType?.displayName
                     else -> "Background"
                 }

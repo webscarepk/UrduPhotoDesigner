@@ -9,6 +9,7 @@ import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.net.Uri
 import android.os.Build.MANUFACTURER
 import android.os.Bundle
@@ -279,7 +280,7 @@ class EditorFragment : Fragment() {
         }
 
         binding.addDraw.setOnClickListener {
-            viewModel.enterDrawingMode()
+            viewModel.enterDrawingMode(requireActivity())
             val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
             navController.navigate(R.id.drawFragment, null, navOptions)
             toggleFabMenu(false)
@@ -715,7 +716,19 @@ class EditorFragment : Fragment() {
         viewModel.activePicker.observe(viewLifecycleOwner) { slot ->
             if (::sizedCanvasView.isInitialized) {
                 when (slot) {
-                    PickerTarget.EYE_DROPPER_LABEL, PickerTarget.EYE_DROPPER_OVERLAY, PickerTarget.COLOR_PICKER_OVERLAY, PickerTarget.EYE_DROPPER_SHADOW, PickerTarget.EYE_DROPPER_BACKGROUND, PickerTarget.EYE_DROPPER_TEXT_FILL, PickerTarget.EYE_DROPPER_TEXT_STROKE, PickerTarget.EYE_DROPPER_GRADIENT, PickerTarget.EYE_DROPPER_DRAW_STROKE -> {
+                    PickerTarget.EYE_DROPPER_LABEL,
+                    PickerTarget.EYE_DROPPER_OVERLAY,
+                    PickerTarget.COLOR_PICKER_OVERLAY,
+                    PickerTarget.EYE_DROPPER_SHADOW,
+                    PickerTarget.EYE_DROPPER_BACKGROUND,
+                    PickerTarget.EYE_DROPPER_TEXT_FILL,
+                    PickerTarget.EYE_DROPPER_TEXT_STROKE,
+                    PickerTarget.EYE_DROPPER_GRADIENT,
+                    PickerTarget.EYE_DROPPER_DRAW_STROKE,
+                    PickerTarget.EYE_DROPPER_DRAW_FILL,
+                    PickerTarget.EYE_DROPPER_IMAGE_STROKE,
+                    PickerTarget.EYE_DROPPER_SHAPE_STROKE,
+                    PickerTarget.EYE_DROPPER_SHAPE_FILL -> {
                         sizedCanvasView.enableColorPicker()
                     }
 
@@ -798,7 +811,16 @@ class EditorFragment : Fragment() {
                 }
 
                 if (targetDestination == R.id.adjustmentsParentFragment) {
-                    element.bitmap?.let { bmp ->
+                    if (element.bitmap != null) {
+                        BitmapCache.put(element.id, element.bitmap!!)
+                    } else if (element.svgDrawable != null) {
+                        // Rasterize SVG to bitmap just for preview purposes
+                        val svg = element.svgDrawable!!
+                        val w = svg.intrinsicWidth.takeIf { it > 0 } ?: 512
+                        val h = svg.intrinsicHeight.takeIf { it > 0 } ?: 512
+                        svg.setBounds(0, 0, w, h)
+                        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                        Canvas(bmp).also { svg.draw(it) }
                         BitmapCache.put(element.id, bmp)
                     }
                 }else if (targetDestination == R.id.textFragment || targetDestination == R.id.shapesParentFragment) {
@@ -859,6 +881,7 @@ class EditorFragment : Fragment() {
         updateIconVisibility(binding.opacityPane, anySelected)
         updateIconVisibility(binding.blendPane, anySelected)
         updateIconVisibility(binding.fontSizePane, showFont)
+        updateIconVisibility(binding.copyIcon, showCopy)
         updateIconVisibility(binding.copyIcon, showCopy)
         updateIconVisibility(binding.cutOutIcon, showRemoveBg)
         updateIconVisibility(
@@ -1029,9 +1052,6 @@ class EditorFragment : Fragment() {
                 },
                 onExitSelectionMode = {
                     viewModel.exitSelectionMode()
-                },
-                onDrawStrokeCompleted = { element ->
-                    viewModel.addDrawElement(element)
                 }).apply {
                 binding.canvasContainer.addView(this)
             }
@@ -1045,10 +1065,7 @@ class EditorFragment : Fragment() {
     /** Setup bottom navigation with navHost */
     private fun initBottomNavigation() {
         binding.bottomNavigation.setOnItemSelectedListener { menuItem ->
-            if (currentPanelItemId == menuItem.itemId) {
-                binding.panelNavHost.visibility = View.GONE
-                currentPanelItemId = null
-            } else {
+            if (currentPanelItemId != menuItem.itemId) {
                 binding.panelNavHost.visibility = View.VISIBLE
                 currentPanelItemId = menuItem.itemId
                 when (menuItem.itemId) {

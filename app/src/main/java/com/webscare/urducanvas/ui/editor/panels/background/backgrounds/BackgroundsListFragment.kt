@@ -4,16 +4,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
-import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.databinding.FragmentBackgroundsListBinding
-import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 @AndroidEntryPoint
 class BackgroundsListFragment() : androidx.fragment.app.Fragment() {
@@ -26,8 +21,7 @@ class BackgroundsListFragment() : androidx.fragment.app.Fragment() {
     val tabName: String? get() = arguments?.getString("tabName")
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentBackgroundsListBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -42,7 +36,7 @@ class BackgroundsListFragment() : androidx.fragment.app.Fragment() {
 
     private fun setEvents() {
 
-        imagesAdapter = ImagesAdapter { bitmap, svgDrawable, imageEntity ->
+        imagesAdapter = ImagesAdapter { bitmap, svgDrawable, svgString, imageEntity ->
             if (isAdded) {
                 mainViewModel.updateImage(imageEntity.copy(is_recent = true))
                 viewModel.ensureBackgroundElement(requireActivity())
@@ -64,14 +58,17 @@ class BackgroundsListFragment() : androidx.fragment.app.Fragment() {
     fun updateImages(images: List<com.webscare.urducanvas.data.model.ImageEntity>) {
         val imageList = when {
             tabName.equals("Recents", true) -> images.filter {
-                it.is_recent && (
-                        it.category.equals("Backgrounds", true) ||
-                                it.category.equals("Backgrounds Imported", true)
-                        )
+                it.is_recent && (it.category.equals(
+                    "Backgrounds",
+                    true
+                ) || it.category.equals("Backgrounds Imported", true))
             }
+
             else -> images.filter {
-                it.category.equals("Backgrounds", true) ||
-                        it.category.equals("Backgrounds Imported", true)
+                it.category.equals(
+                    "Backgrounds",
+                    true
+                ) || it.category.equals("Backgrounds Imported", true)
             }
         }
         binding.noEmojis.visibility = if (imageList.isEmpty()) View.VISIBLE else View.GONE

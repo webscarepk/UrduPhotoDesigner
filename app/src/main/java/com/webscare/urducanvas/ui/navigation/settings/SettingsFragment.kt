@@ -36,6 +36,17 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
         super.onViewCreated(view, savedInstanceState)
         observeSubscription()
         setEvents()
+        setVersionInfo()
+    }
+
+    private fun setVersionInfo() {
+        val versionName = try {
+            requireContext().packageManager
+                .getPackageInfo(requireContext().packageName, 0).versionName
+        } catch (e: Exception) {
+            "—"
+        }
+        binding.versionInfo.text = "Version $versionName"
     }
 
     private fun observeSubscription() {
@@ -64,6 +75,7 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun setEvents() {
+
         binding.upgradeNow.addPressEffect {
             view?.post { findNavController().navigate(R.id.subscriptionsFragment) }
         }

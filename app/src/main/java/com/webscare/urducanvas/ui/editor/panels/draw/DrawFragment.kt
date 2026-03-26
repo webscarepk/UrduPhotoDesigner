@@ -10,6 +10,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
@@ -49,7 +50,7 @@ class DrawFragment : Fragment() {
         binding.viewPager.adapter = adapter
         binding.viewPager.isUserInputEnabled = false
         binding.done.addPressEffect {
-            viewModel.exitDrawingMode()
+            viewModel.exitDrawingMode(commit = true)
         }
 
         binding.reset.addPressEffect { viewModel.resetBrushSettings() }
@@ -60,7 +61,7 @@ class DrawFragment : Fragment() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
                 if (position == 1) {
-                    viewModel.exitDrawingMode()
+                    viewModel.exitDrawingMode(commit = false)
                 }
             }
         })
@@ -70,6 +71,8 @@ class DrawFragment : Fragment() {
         lifecycleScope.launch {
             viewModel.isDrawingMode.observe(viewLifecycleOwner) { isDrawingMode ->
                 binding.done.isVisible = isDrawingMode
+                val canvasView = viewModel.getCanvasView()
+                canvasView?.setDrawingMode(isDrawingMode, viewModel.getActiveDrawSession())
             }
         }
     }
@@ -113,23 +116,23 @@ class DrawFragment : Fragment() {
     override fun onDestroy() {
         super.onDestroy()
         _binding = null
-        viewModel.exitDrawingMode()
+        viewModel.exitDrawingMode(commit = false)
     }
 
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
         if (hidden) {
-            viewModel.exitDrawingMode()
+            viewModel.exitDrawingMode(commit = false)
         }
     }
 
     override fun onPause() {
         super.onPause()
-        viewModel.exitDrawingMode()
+        viewModel.exitDrawingMode(commit = false)
     }
 
     override fun onStop() {
         super.onStop()
-        viewModel.exitDrawingMode()
+        viewModel.exitDrawingMode(commit = false)
     }
 }

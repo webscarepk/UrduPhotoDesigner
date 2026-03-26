@@ -1,6 +1,7 @@
 package com.webscare.urducanvas.ui.editor.panels.objects
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -70,14 +71,16 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun setEvents() {
-        imagesAdapter = ImagesAdapter { bitmap, svgDrawable, imageEntity ->
+        imagesAdapter = ImagesAdapter { bitmap, svgDrawable, svgString, imageEntity ->
 
             mainViewModel.updateImage(imageEntity.copy(is_recent = true))
 
             if (isAdded) {
                 if (svgDrawable != null) {
-                    // ✅ SVG sticker — no bitmap involved at all
-                    viewModel.addSvgSticker(svgDrawable, requireActivity(), imageEntity.is_premium)
+                    val trimmed = svgDrawable.trimTransparentEdges()
+                    Log.d("SVG", "original: ${svgDrawable.intrinsicWidth} x ${svgDrawable.intrinsicHeight}")
+                    Log.d("SVG", "trimmed:  ${trimmed.intrinsicWidth} x ${trimmed.intrinsicHeight}")
+                    viewModel.addSvgSticker(trimmed, svgString, requireActivity(), imageEntity.is_premium)
                 } else {
                     viewModel.addSticker(bitmap?.trimTransparentEdges(), requireActivity(), ElementType.IMAGE, imageEntity.is_premium)
                 }

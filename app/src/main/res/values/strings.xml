@@ -334,6 +334,8 @@
     <string name="enjoy_a_smoother_improved_urdu_canvas_experience_with_better_performance">Enjoy a smoother, improved Urdu Canvas experience with better performance</string>
     <string name="update_now">Update Now</string>
     <string name="remind_me_later">Remind me Later</string>
+    <string name="_2026_webscare_pvt_ltd_all_rights_reserved">© 2026 WebsCare Pvt. Ltd. All rights reserved.</string>
+    <string name="version_1_0_0">Version 1.0.0</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>
