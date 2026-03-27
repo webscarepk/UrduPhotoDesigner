@@ -63,6 +63,7 @@ import com.webscare.urducanvas.common.canvas.enums.VAlign
 import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import com.webscare.urducanvas.common.canvas.model.ExportOptions
 import com.webscare.urducanvas.common.canvas.model.GradientItem
+import com.webscare.urducanvas.common.canvas.model.StrokeData
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import com.webscare.urducanvas.common.utils.BrushRenderUtils.createBackgroundGradientShader
 import com.webscare.urducanvas.common.utils.ImageAdjustmentHelper
@@ -75,6 +76,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
+import java.util.Objects
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -99,7 +101,8 @@ class CanvasView @JvmOverloads constructor(
     var onEndBatchUpdate: ((String) -> Unit)? = null,
     var onColorPicked: ((Int) -> Unit)? = null,
     var onRequestOpenLayers: (() -> Unit)? = null,
-    var onExitSelectionMode: (() -> Unit)? = null
+    var onExitSelectionMode: (() -> Unit)? = null,
+    var onStrokeCompleted: ((StrokeData) -> Unit)? = null
 ) : View(context, attrs) {
 
     private val gson: Gson by lazy {
@@ -112,11 +115,7 @@ class CanvasView @JvmOverloads constructor(
     private var colorPickerBitmap: Bitmap? = null
     private var isColorPickerMode = false
 
-    private var currentPath: Path? = null
-    private var currentPaint: Paint? = null
-    private var activeDrawElement: CanvasElement? = null
     private var activeSessionElement: CanvasElement? = null
-
 
     private var currentStrokePath: Path? = null
     private var currentStrokePaint: Paint? = null
@@ -211,6 +210,22 @@ class CanvasView @JvmOverloads constructor(
     private var initialOverallScale = 1f
 
     private val lastDrawnIconRect = mutableMapOf<String, RectF>()
+
+    // Per-element cache for the expensive pre-blurred shadow bitmap.
+    // Key = elementId. Invalidated whenever shadow params change (detected via fingerprint).
+    private data class ShadowCacheEntry(
+        val bitmap: Bitmap,
+        val fingerprint: Int,   // hash of all shadow params that affect the blur output
+        val scaleX: Float,
+        val scaleY: Float,
+        val offsetX: Float,     // scaled offset[0] from extractAlpha
+        val offsetY: Float      // scaled offset[1] from extractAlpha
+    )
+    private val shadowBitmapCache = mutableMapOf<String, ShadowCacheEntry>()
+
+    // Per-element cache for the stroke alpha bitmap (36 drawBitmap calls/frame otherwise).
+    private data class StrokeCacheEntry(val bitmap: Bitmap, val fingerprint: Int)
+    private val strokeBitmapCache = mutableMapOf<String, StrokeCacheEntry>()
 
     init {
         gestureDetector = GestureDetector(context, GestureListener())
@@ -668,6 +683,9 @@ class CanvasView @JvmOverloads constructor(
         elementsToRemove.forEach { element ->
             canvasElements.remove(element)
             onElementRemoved?.invoke(element) // Notify ViewModel to remove for each
+            // Release cached shadow/stroke bitmaps for this element
+            shadowBitmapCache.remove(element.id)?.bitmap?.recycle()
+            strokeBitmapCache.remove(element.id)?.bitmap?.recycle()
         }
         selectedElements.clear() // Clear the selected elements list
         invalidate()
@@ -2067,58 +2085,140 @@ class CanvasView @JvmOverloads constructor(
                                     }
                                 } else null
 
+                                // ── Compute draw rect (aspect-ratio-correct, shared by shadow/stroke/main) ──
+                                val drawW: Float
+                                val drawH: Float
+                                val bl: Float
+                                val bt: Float
+                                val br: Float
+                                val bb: Float
+                                if (finalBitmap != null) {
+                                    val bitmapAspect = finalBitmap.width.toFloat() / finalBitmap.height.toFloat()
+                                    val logicalAspect = w / h
+                                    if (bitmapAspect > logicalAspect) {
+                                        drawW = w;         drawH = w / bitmapAspect
+                                    } else {
+                                        drawW = h * bitmapAspect; drawH = h
+                                    }
+                                    bl = -drawW / 2f; bt = -drawH / 2f
+                                    br =  drawW / 2f; bb =  drawH / 2f
+                                } else {
+                                    drawW = w; drawH = h
+                                    bl = left; bt = top; br = left + w; bb = top + h
+                                }
+
                                 // ── Shadow ───────────────────────────────────────────────────────────
                                 if (element.hasShadow && element.shadowOpacity > 0) {
-                                    // Use finalBitmap if available, else rasterize a temp just for shadow mask
-                                    val shadowSource = finalBitmap ?: createBitmap(
-                                        w.toInt().coerceAtLeast(1), h.toInt().coerceAtLeast(1)
-                                    ).also {
-                                        Canvas(it).also { c ->
-                                            drawable.setBounds(0, 0, w.toInt(), h.toInt())
-                                            drawable.draw(c)
-                                        }
-                                    }
-                                    val alphaMask = shadowSource.extractAlpha()
-                                    if (finalBitmap == null) shadowSource.recycle()
+                                    // Fingerprint covers every param that changes the blurred bitmap shape.
+                                    // shadowDx/Dy are NOT included — they are applied at draw time, not
+                                    // baked into the blur, so changing offset doesn't need a re-bake.
+                                    val shadowFp = Objects.hash(
+                                        element.id, element.shadowRadius, element.shadowColor,
+                                        element.shadowOpacity, drawW.toInt(), drawH.toInt()
+                                    )
 
-                                    canvas.save()
-                                    canvas.translate(element.shadowDx, element.shadowDy)
-                                    canvas.drawBitmap(
-                                        alphaMask, left, top, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                                            color = Color.argb(
-                                                element.shadowOpacity.coerceIn(0, 255),
-                                                Color.red(element.shadowColor),
-                                                Color.green(element.shadowColor),
-                                                Color.blue(element.shadowColor)
-                                            )
+                                    val cached = shadowBitmapCache[element.id]
+                                    val entry: ShadowCacheEntry = if (cached != null && cached.fingerprint == shadowFp && !cached.bitmap.isRecycled) {
+                                        cached // ✅ reuse — no blur work this frame
+                                    } else {
+                                        // Cache miss or params changed — build once and store
+                                        cached?.bitmap?.recycle()
+
+                                        val shadowSource = finalBitmap ?: createBitmap(
+                                            w.toInt().coerceAtLeast(1), h.toInt().coerceAtLeast(1)
+                                        ).also { bmp ->
+                                            Canvas(bmp).also { c ->
+                                                drawable.setBounds(0, 0, w.toInt(), h.toInt())
+                                                drawable.draw(c)
+                                            }
+                                        }
+
+                                        val srcW = shadowSource.width.toFloat()
+                                        val srcH = shadowSource.height.toFloat()
+
+                                        // extractAlpha(paint, offset) pre-bakes BlurMaskFilter into
+                                        // the returned bitmap. Required because Android silently drops
+                                        // maskFilter on drawBitmap(..., dstRectF, paint) scaled draws.
+                                        val blurPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                                             maskFilter = BlurMaskFilter(
                                                 element.shadowRadius.coerceAtLeast(0.1f),
                                                 BlurMaskFilter.Blur.NORMAL
                                             )
-                                        })
+                                        }
+                                        val offset = IntArray(2)
+                                        val blurredBitmap = shadowSource.extractAlpha(blurPaint, offset)
+                                        if (finalBitmap == null) shadowSource.recycle()
+
+                                        // Scale offset into draw-rect space so it lands correctly
+                                        // when the blurred bitmap is drawn into bl/bt/br/bb
+                                        val scaleX = (br - bl) / srcW
+                                        val scaleY = (bb - bt) / srcH
+
+                                        ShadowCacheEntry(
+                                            bitmap = blurredBitmap,
+                                            fingerprint = shadowFp,
+                                            scaleX = scaleX,
+                                            scaleY = scaleY,
+                                            offsetX = offset[0] * scaleX,
+                                            offsetY = offset[1] * scaleY
+                                        ).also { shadowBitmapCache[element.id] = it }
+                                    }
+
+                                    val shadowColor = Color.argb(
+                                        element.shadowOpacity.coerceIn(0, 255),
+                                        Color.red(element.shadowColor),
+                                        Color.green(element.shadowColor),
+                                        Color.blue(element.shadowColor)
+                                    )
+                                    val drawPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                                        isFilterBitmap = true
+                                        colorFilter = android.graphics.PorterDuffColorFilter(
+                                            shadowColor, PorterDuff.Mode.SRC_IN
+                                        )
+                                    }
+
+                                    val dstLeft   = bl + entry.offsetX + element.shadowDx
+                                    val dstTop    = bt + entry.offsetY + element.shadowDy
+                                    val dstRight  = dstLeft + entry.bitmap.width  * entry.scaleX
+                                    val dstBottom = dstTop  + entry.bitmap.height * entry.scaleY
+
+                                    canvas.save()
+                                    canvas.drawBitmap(entry.bitmap, null, RectF(dstLeft, dstTop, dstRight, dstBottom), drawPaint)
                                     canvas.restore()
-                                    alphaMask.recycle()
                                 }
 
                                 // ── Stroke ───────────────────────────────────────────────────────────
                                 if (element.hasStroke && element.strokeWidth > 0f) {
-                                    val strokeSource = finalBitmap ?: createBitmap(
-                                        w.toInt().coerceAtLeast(1), h.toInt().coerceAtLeast(1)
-                                    ).also {
-                                        Canvas(it).also { c ->
-                                            drawable.setBounds(0, 0, w.toInt(), h.toInt())
-                                            drawable.draw(c)
+                                    // Stroke alpha bitmap only depends on the shape, not color/gradient —
+                                    // so fingerprint on shape dimensions only. Color is applied at draw time.
+                                    val strokeFp = Objects.hash(
+                                        element.id, element.strokeWidth, drawW.toInt(), drawH.toInt()
+                                    )
+
+                                    val cachedStroke = strokeBitmapCache[element.id]
+                                    val strokeAlpha: Bitmap = if (cachedStroke != null && cachedStroke.fingerprint == strokeFp && !cachedStroke.bitmap.isRecycled) {
+                                        cachedStroke.bitmap // ✅ reuse
+                                    } else {
+                                        cachedStroke?.bitmap?.recycle()
+                                        val strokeSource = finalBitmap ?: createBitmap(
+                                            w.toInt().coerceAtLeast(1), h.toInt().coerceAtLeast(1)
+                                        ).also { bmp ->
+                                            Canvas(bmp).also { c ->
+                                                drawable.setBounds(0, 0, w.toInt(), h.toInt())
+                                                drawable.draw(c)
+                                            }
                                         }
+                                        val alpha = strokeSource.extractAlpha()
+                                        if (finalBitmap == null) strokeSource.recycle()
+                                        StrokeCacheEntry(alpha, strokeFp)
+                                            .also { strokeBitmapCache[element.id] = it }.bitmap
                                     }
-                                    val alphaBitmap = strokeSource.extractAlpha()
-                                    if (finalBitmap == null) strokeSource.recycle()
 
                                     val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                                         style = Paint.Style.FILL
                                         isFilterBitmap = true
                                         if (element.strokeGradient != null) {
-                                            shader =
-                                                createGradientShader(element.strokeGradient!!, w, h)
+                                            shader = createGradientShader(element.strokeGradient!!, drawW, drawH)
                                         } else {
                                             color = element.strokeColor
                                         }
@@ -2130,32 +2230,16 @@ class CanvasView @JvmOverloads constructor(
                                         val dx = (strokeWidth * cos(rad)).toFloat()
                                         val dy = (strokeWidth * sin(rad)).toFloat()
                                         canvas.drawBitmap(
-                                            alphaBitmap, left + dx, top + dy, strokePaint
+                                            strokeAlpha, null,
+                                            RectF(bl + dx, bt + dy, br + dx, bb + dy),
+                                            strokePaint
                                         )
                                     }
                                     canvas.restore()
-                                    alphaBitmap.recycle()
                                 }
 
                                 // ── Main draw ─────────────────────────────────────────────────────────
                                 if (finalBitmap != null) {
-                                    // Fit the bitmap into w×h while preserving aspect ratio (same as SVG preserveAspectRatio="xMidYMid meet")
-                                    val bitmapAspect = finalBitmap.width.toFloat() / finalBitmap.height.toFloat()
-                                    val logicalAspect = w / h
-
-                                    val (drawW, drawH) = if (bitmapAspect > logicalAspect) {
-                                        // bitmap is wider — fit width, letterbox top/bottom
-                                        w to (w / bitmapAspect)
-                                    } else {
-                                        // bitmap is taller — fit height, pillarbox left/right
-                                        (h * bitmapAspect) to h
-                                    }
-
-                                    val bl = -drawW / 2f
-                                    val bt = -drawH / 2f
-                                    val br =  drawW / 2f
-                                    val bb =  drawH / 2f
-
                                     canvas.saveLayer(bl, bt, br, bb, null)
 
                                     val mainPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -3723,6 +3807,7 @@ class CanvasView @JvmOverloads constructor(
                             gradient = currentBrushGradient
                         )
                         activeSessionElement!!.drawStrokes?.add(strokeData)
+                        onStrokeCompleted?.invoke(strokeData)
                     }
 
                     // Cleanup live preview
@@ -4427,6 +4512,7 @@ class CanvasView @JvmOverloads constructor(
         onStartBatchUpdate = null
         onEndBatchUpdate = null
         onColorPicked = null
+        onStrokeCompleted = null
         onRequestOpenLayers = null
         onExitSelectionMode = null
     }

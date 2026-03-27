@@ -7,11 +7,13 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import com.webscare.urducanvas.common.canvas.model.FilterItem
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import com.webscare.urducanvas.common.utils.BitmapCache
 import com.webscare.urducanvas.databinding.FragmentFiltersBinding
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.core.graphics.createBitmap
 
 @AndroidEntryPoint
 class FiltersFragment : androidx.fragment.app.Fragment() {
@@ -122,7 +124,10 @@ class FiltersFragment : androidx.fragment.app.Fragment() {
         super.onCreate(savedInstanceState)
         arguments?.let { bundle ->
             elementId = arguments?.getString("elementId")
-            previewBitmap = BitmapCache.get(elementId ?: "")
+            val sourceBitmap = BitmapCache.get(elementId ?: "")
+            previewBitmap = if (sourceBitmap != null && !sourceBitmap.isRecycled) {
+                sourceBitmap.copy(sourceBitmap.config ?: Bitmap.Config.ARGB_8888, false)
+            } else null
         }
     }
 
@@ -153,17 +158,36 @@ class FiltersFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun initObservers() {
-
         viewModel.selectedElements.observe(viewLifecycleOwner) { elements ->
             val element = elements.firstOrNull() ?: return@observe
 
             if (elementId != element.id) {
                 elementId = element.id
 
+                // Cache bitmap if available
                 element.bitmap?.let { bmp ->
                     BitmapCache.put(element.id, bmp)
                 }
-                previewBitmap = BitmapCache.get(element.id)
+
+                // Try cache first
+                val sourceBitmap = BitmapCache.get(element.id)
+                previewBitmap = if (sourceBitmap != null && !sourceBitmap.isRecycled) {
+                    sourceBitmap.copy(sourceBitmap.config ?: Bitmap.Config.ARGB_8888, false)
+                } else {
+                    // ✅ Fallback: rasterize SVG drawable if bitmap is null/missing
+                    element.svgDrawable?.let { drawable ->
+                        val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: 512
+                        val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: 512
+                        val bmp = createBitmap(width, height)
+                        val canvas = android.graphics.Canvas(bmp)
+                        drawable.setBounds(0, 0, width, height)
+                        drawable.draw(canvas)
+                        // Cache the rasterized result for reuse
+                        BitmapCache.put(element.id, bmp)
+                        bmp
+                    }
+                }
+
                 filtersAdapter.updatePreviewBitmap(previewBitmap)
             }
         }
@@ -175,6 +199,8 @@ class FiltersFragment : androidx.fragment.app.Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        previewBitmap?.recycle()
+        previewBitmap = null
         _binding = null
     }
 

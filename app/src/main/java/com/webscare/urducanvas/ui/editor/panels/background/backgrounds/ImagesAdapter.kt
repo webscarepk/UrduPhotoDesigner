@@ -77,34 +77,38 @@ class ImagesAdapter(
             val url = Constants.BASE_URL_GLIDE + image.file_url
 
             binding.root.addPressEffect {
-                    if (image.bitmapData != null) {
+                if (image.bitmapData != null) {
+                    if (image.file_name.endsWith(".svg", ignoreCase = true)) {
+                        val svgXml = image.bitmapData!!
+                        val svg = com.caverock.androidsvg.SVG.getFromString(svgXml)
+                        val drawable = PictureDrawable(svg.renderToPicture())
+                        onImageSelected(null, drawable, svgXml, image)
+                    } else {
                         val bitmap = ImageProcessor.filePathToBitmap(image.bitmapData!!)
                         onImageSelected(bitmap!!, null, null, image)
-
-                    } else {
+                    }
+                } else {
                         if (url.endsWith(".svg", true)) {
 
-                            // Fetch SVG XML bytes and render PictureDrawable simultaneously
                             val glideTarget = object : CustomTarget<PictureDrawable>() {
                                 override fun onResourceReady(
                                     resource: PictureDrawable,
                                     transition: Transition<in PictureDrawable>?
                                 ) {
                                     binding.loading.isVisible = true
-                                    // Fetch raw SVG XML on a background thread
                                     CoroutineScope(Dispatchers.IO).launch {
                                         val svgXml: String? = try {
                                             val request = okhttp3.Request.Builder().url(url).build()
                                             OkHttpClient().newCall(request).execute().use { response ->
-                                                response.body?.string()
+                                                response.body.string()
                                             }
                                         } catch (e: Exception) {
-                                            null  // drawable-only fallback if fetch fails
+                                            null
                                         }
 
                                         withContext(Dispatchers.Main) {
-                                            Log.d(TAG, "onResourceReady: $svgXml")
                                             binding.loading.isVisible = false
+                                            // Pass svgXml — Fragment will cache it to Room
                                             onImageSelected(null, resource, svgXml, image)
                                         }
                                     }
@@ -138,27 +142,37 @@ class ImagesAdapter(
             binding.image.scaleType = if (isPng) android.widget.ImageView.ScaleType.FIT_CENTER else android.widget.ImageView.ScaleType.CENTER_CROP
 
             if (image.bitmapData != null) {
-                Glide.with(itemView.context).load(image.bitmapData).into(binding.image)
+                if (image.file_name.endsWith(".svg", ignoreCase = true)) {
+                    // bitmapData is raw SVG XML — render it directly, no Glide
+                    try {
+                        val svg = com.caverock.androidsvg.SVG.getFromString(image.bitmapData)
+                        val drawable = PictureDrawable(svg.renderToPicture())
+                        binding.image.setImageDrawable(drawable)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to render cached SVG: ${e.message}")
+                    }
+                } else {
+                    // bitmapData is a file path — load normally with Glide
+                    Glide.with(itemView.context).load(image.bitmapData).into(binding.image)
+                }
 
                 binding.shimmerLayout.stopShimmer()
                 binding.shimmerLayout.setShimmer(null)
+
             } else {
                 if (url.endsWith(".svg", true)) {
 
                     Glide.with(binding.root.context).`as`(PictureDrawable::class.java).load(url)
                         .diskCacheStrategy(DiskCacheStrategy.DATA)
                         .listener(object : RequestListener<PictureDrawable> {
-
                             override fun onLoadFailed(
                                 e: GlideException?,
                                 model: Any?,
                                 target: Target<PictureDrawable>,
                                 isFirstResource: Boolean
                             ): Boolean {
-
                                 binding.shimmerLayout.stopShimmer()
                                 binding.shimmerLayout.setShimmer(null)
-
                                 return true
                             }
 

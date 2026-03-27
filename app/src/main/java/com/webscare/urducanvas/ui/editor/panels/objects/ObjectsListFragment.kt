@@ -73,7 +73,12 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
     private fun setEvents() {
         imagesAdapter = ImagesAdapter { bitmap, svgDrawable, svgString, imageEntity ->
 
-            mainViewModel.updateImage(imageEntity.copy(is_recent = true))
+            val updatedEntity = if (svgString != null && imageEntity.bitmapData == null) {
+                imageEntity.copy(is_recent = true, bitmapData = svgString)
+            } else {
+                imageEntity.copy(is_recent = true)
+            }
+            mainViewModel.updateImage(updatedEntity)
 
             if (isAdded) {
                 if (svgDrawable != null) {

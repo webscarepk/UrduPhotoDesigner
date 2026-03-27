@@ -5,6 +5,7 @@ import com.webscare.urducanvas.common.canvas.enums.TextAlignment
 import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.common.canvas.model.GradientItem
+import com.webscare.urducanvas.common.canvas.model.StrokeData
 import com.webscare.urducanvas.data.model.FontEntity
 
 sealed class CanvasAction {
@@ -93,5 +94,9 @@ sealed class CanvasAction {
         val elementId: String,
         val newFilter: ImageFilter?,
         val oldFilter: ImageFilter?
+    ) : CanvasAction()
+
+    data class DrawSessionStroke(
+        val strokeData: StrokeData  // a deep copy of the stroke that was just added
     ) : CanvasAction()
 }

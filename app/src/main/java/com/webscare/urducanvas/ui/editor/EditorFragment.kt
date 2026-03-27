@@ -1052,6 +1052,9 @@ class EditorFragment : Fragment() {
                 },
                 onExitSelectionMode = {
                     viewModel.exitSelectionMode()
+                },
+                onStrokeCompleted = { stroke ->
+                    viewModel.notifyDrawStrokeAdded(stroke)
                 }).apply {
                 binding.canvasContainer.addView(this)
             }

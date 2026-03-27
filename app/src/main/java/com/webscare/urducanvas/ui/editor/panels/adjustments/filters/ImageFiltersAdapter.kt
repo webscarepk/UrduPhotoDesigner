@@ -42,6 +42,9 @@ class ImageFiltersAdapter(
             binding.filterName.text = filterItem.name
 
             baseBitmap?.let { bmp ->
+                // ✅ Guard against recycled bitmap before use
+                if (bmp.isRecycled) return@let
+
                 val maxSize = 150
                 val aspectRatio = bmp.width.toFloat() / bmp.height.toFloat()
                 val (targetWidth, targetHeight) = if (aspectRatio > 1) {
@@ -49,9 +52,16 @@ class ImageFiltersAdapter(
                 } else {
                     (maxSize * aspectRatio).toInt() to maxSize
                 }
-                val thumb = bmp.scale(targetWidth, targetHeight)
-                val filteredThumb = ImageProcessor.applyFilter(thumb, filterItem.filter)
-                binding.filterPreview.setImageBitmap(filteredThumb)
+
+                // ✅ Wrap in try-catch as a secondary safety net for race conditions
+                val filteredThumb = try {
+                    val thumb = bmp.scale(targetWidth, targetHeight)
+                    ImageProcessor.applyFilter(thumb, filterItem.filter)
+                } catch (e: IllegalArgumentException) {
+                    null
+                }
+
+                filteredThumb?.let { binding.filterPreview.setImageBitmap(it) }
             }
 
             val isCurrentItemSelected = filterItem.filter == selectedFilter
@@ -77,7 +87,9 @@ class ImageFiltersAdapter(
     }
 
     fun updatePreviewBitmap(newBitmap: Bitmap?) {
+        val old = this.baseBitmap
         this.baseBitmap = newBitmap
+        old?.recycle()
         notifyDataSetChanged()
     }
 }

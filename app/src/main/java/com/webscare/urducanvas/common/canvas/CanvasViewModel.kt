@@ -68,6 +68,7 @@ import java.util.UUID
 import javax.inject.Inject
 import kotlin.collections.map
 import androidx.core.graphics.createBitmap
+import com.webscare.urducanvas.common.canvas.model.StrokeData
 
 @HiltViewModel
 class CanvasViewModel @Inject constructor(
@@ -617,6 +618,8 @@ class CanvasViewModel @Inject constructor(
             return
         }
 
+        _canvasActions.removeAll { it is CanvasAction.DrawSessionStroke }
+
         viewModelScope.launch(Dispatchers.Default) {
             val canvasW = _canvasSize.value?.width?.toInt() ?: 0
             val canvasH = _canvasSize.value?.height?.toInt() ?: 0
@@ -726,7 +729,10 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun discardDrawSession() {
+        _canvasActions.removeAll { it is CanvasAction.DrawSessionStroke }
+        _redoStack.removeAll { it is CanvasAction.DrawSessionStroke }
         _activeDrawSession = null
+        notifyUndoRedoChanged()
     }
 
     fun getActiveDrawSession(): CanvasElement? = _activeDrawSession
@@ -3217,6 +3223,18 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Called by CanvasView after each stroke is committed to the active draw session.
+     * Records the stroke so it can be individually undone/redone during the session.
+     */
+    fun notifyDrawStrokeAdded(stroke: StrokeData) {
+        // Deep-copy the path so the undo record is independent of future mutations
+        val snapshot = stroke.copy(path = stroke.path?.let { android.graphics.Path(it) })
+        _canvasActions.push(CanvasAction.DrawSessionStroke(snapshot))
+        _redoStack.clear()
+        notifyUndoRedoChanged()
+    }
+
     fun undo() {
         if (_canvasActions.isEmpty()) return
         val action = _canvasActions.pop()
@@ -3630,6 +3648,22 @@ class CanvasViewModel @Inject constructor(
                 _canvasElements.value?.find { it.id == action.elementId && it.isSelected }?.let {
                     _currentImageFilter.value = if (isRedo) action.newFilter else action.oldFilter
                 }
+            }
+
+            is CanvasAction.DrawSessionStroke -> {
+                val session = _activeDrawSession ?: return
+                if (isRedo) {
+                    // Re-append the stroke (deep copy so redo record stays clean)
+                    val restored = action.strokeData.copy(
+                        path = action.strokeData.path?.let { android.graphics.Path(it) }
+                    )
+                    session.drawStrokes?.add(restored)
+                } else {
+                    // Undo: remove the last stroke from the session
+                    session.drawStrokes?.removeLastOrNull()
+                }
+                // Trigger a canvas redraw so the live preview updates immediately
+                _canvasView.value?.invalidate()
             }
         }
 
