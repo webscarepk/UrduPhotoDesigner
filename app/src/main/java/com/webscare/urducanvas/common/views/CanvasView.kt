@@ -3403,7 +3403,7 @@ class CanvasView @JvmOverloads constructor(
                     maskFilter = BlurMaskFilter(element.shadowRadius, BlurMaskFilter.Blur.NORMAL)
                 }
                 val sa = sp.alpha
-                sp.alpha = element.paintAlpha
+                sp.alpha = element.shadowOpacity
                 canvas.drawText(
                     displayText, xPos + element.shadowDx, yOffset + element.shadowDy, sp
                 )

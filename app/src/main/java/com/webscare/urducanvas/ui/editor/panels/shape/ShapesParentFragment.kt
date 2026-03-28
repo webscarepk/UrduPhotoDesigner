@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -61,12 +62,27 @@ class ShapesParentFragment : Fragment() {
     }
 
     private fun initObservers() {
-        viewModel.openAppearanceTab.observe(viewLifecycleOwner) {
-
-            binding.viewPager.post {
-                binding.viewPager.currentItem = 1
+        viewModel.openAppearanceTab.observe(viewLifecycleOwner) { openTab ->
+            if (isAdded){
+                binding.viewPager.post {
+                    binding.viewPager.currentItem = if (openTab == true) 1 else 0
+                }
             }
+        }
 
+        viewModel.selectedElements.observe(viewLifecycleOwner) { selected ->
+            val element = selected?.firstOrNull()
+            val hasImage = element?.bitmap != null || element?.bitmapData != null
+
+            if (hasImage) {
+                // Shape already has an image — show replace + edit, hide add
+                binding.addImage.setImageResource(R.drawable.ic_replace) // your replace icon
+                binding.editImage.isVisible = true
+            } else {
+                // Shape has no image — show add, hide edit
+                binding.addImage.setImageResource(R.drawable.ic_import) // your add icon
+                binding.editImage.isVisible = false
+            }
         }
     }
 

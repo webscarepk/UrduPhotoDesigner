@@ -66,10 +66,10 @@ class TextFragment : Fragment() {
     }
 
     private fun initObservers() {
-        viewModel.openAppearanceTab.observe(viewLifecycleOwner) {
+        viewModel.openAppearanceTab.observe(viewLifecycleOwner) { openTab ->
             if (isAdded){
                 binding.viewPager.post {
-                    binding.viewPager.currentItem = 1
+                    binding.viewPager.currentItem = if (openTab == true) 1 else 0
                 }
             }
         }
@@ -300,8 +300,8 @@ class TextFragment : Fragment() {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onDestroyView() {
+        super.onDestroyView()
         viewModel.closeAppearanceTab()
         _binding = null
     }

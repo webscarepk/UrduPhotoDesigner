@@ -516,7 +516,7 @@ class EditorFragment : Fragment() {
                 val exportDate =
                     SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
                 val fileBaseName = viewModel.buildProjectFileName()
-                val fileName = "$fileBaseName.proj"
+                val fileName = "$fileBaseName"
                 // ---- Prepare model ----
                 if (exportModel == null) {
                     exportModel =
@@ -718,7 +718,6 @@ class EditorFragment : Fragment() {
                 when (slot) {
                     PickerTarget.EYE_DROPPER_LABEL,
                     PickerTarget.EYE_DROPPER_OVERLAY,
-                    PickerTarget.COLOR_PICKER_OVERLAY,
                     PickerTarget.EYE_DROPPER_SHADOW,
                     PickerTarget.EYE_DROPPER_BACKGROUND,
                     PickerTarget.EYE_DROPPER_TEXT_FILL,

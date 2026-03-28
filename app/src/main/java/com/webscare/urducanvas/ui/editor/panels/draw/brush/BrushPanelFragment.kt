@@ -315,6 +315,7 @@ class BrushPanelFragment : Fragment() {
                 onColorPickerClicked = {
                     viewModel.startPicking(PickerTarget.COLOR_PICKER_DRAW_STROKE)
                     viewModel.setBrushGradient(null)
+                    viewModel.setPagingLocked(true)
                     childFragmentManager.beginTransaction().replace(
                         R.id.brushPanel, ColorPickerFragment()
                     ).addToBackStack(null).commit()

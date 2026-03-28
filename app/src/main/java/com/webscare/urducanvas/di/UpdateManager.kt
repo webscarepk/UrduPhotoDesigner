@@ -37,7 +37,7 @@ class UpdateManager @Inject constructor(
     }
 
     private val appUpdateManager = if (DEBUG_MODE) {
-        FakeAppUpdateManager(context) // ← fake for testing
+        FakeAppUpdateManager(context)
     } else {
         AppUpdateManagerFactory.create(context)
     }
@@ -46,7 +46,7 @@ class UpdateManager @Inject constructor(
         CoroutineScope(Dispatchers.IO).launch {
             withContext(Dispatchers.Main) {
                 if (DEBUG_MODE) {
-                    (appUpdateManager as FakeAppUpdateManager).setUpdateAvailable(7)
+                    (appUpdateManager as FakeAppUpdateManager).setUpdateAvailable(10)
                     fetchAndShowUpdate(activity)
                 } else {
                     fetchAndShowUpdate(activity)

@@ -33,7 +33,7 @@ class UpdateDialog(
             window?.apply {
                 setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
                 setLayout(
-                    (context.resources.displayMetrics.widthPixels * 0.90).toInt(),
+                    (context.resources.displayMetrics.widthPixels * 0.70).toInt(),
                     WindowManager.LayoutParams.WRAP_CONTENT
                 )
                 setGravity(Gravity.CENTER)

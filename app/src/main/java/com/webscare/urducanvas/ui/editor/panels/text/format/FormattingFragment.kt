@@ -171,40 +171,51 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.lineSpace.apply {
-            
             max = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                     if (fromUser) {
                         val mappedLineSpacing = -0.5f + (progress / 100.0f) * (3.0f + 0.5f)
                         binding.lineSpacing.text = "%.2f".format(mappedLineSpacing)
-
+                        // Live preview — no undo entry yet
                         viewModel.setLineSpacing(mappedLineSpacing)
                     }
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar) {}
-                override fun onStopTrackingTouch(sb: SeekBar) {}
+                override fun onStartTrackingTouch(sb: SeekBar) {
+                    // Snapshot the before-state before any preview changes
+                    viewModel.beginLineSpacingDrag()
+                }
+
+                override fun onStopTrackingTouch(sb: SeekBar) {
+                    // Finger lifted — commit one undoable action
+                    viewModel.commitLineSpacing()
+                }
             })
         }
 
         binding.letterSpace.apply {
-            
             max = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                     if (fromUser) {
                         val mappedLetterSpacing =
-                            -0.5f + (progress / 100.0f) * 2.0f // Letter spacing range from -0.5 to 1.5
-                        binding.letterSpacing.text =
-                            "%.2f".format(mappedLetterSpacing) // Display with 2 decimal places
-
+                            -0.5f + (progress / 100.0f) * 2.0f
+                        binding.letterSpacing.text = "%.2f".format(mappedLetterSpacing)
+                        // Live preview — no undo entry yet
                         viewModel.setLetterSpacing(mappedLetterSpacing)
                     }
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar) {}
-                override fun onStopTrackingTouch(sb: SeekBar) {}
+                override fun onStartTrackingTouch(sb: SeekBar) {
+                    // Snapshot the before-state before any preview changes
+                    viewModel.beginLetterSpacingDrag()
+                }
+
+                override fun onStopTrackingTouch(sb: SeekBar) {
+                    // Finger lifted — commit one undoable action
+                    viewModel.commitLetterSpacing()
+                }
             })
         }
     }

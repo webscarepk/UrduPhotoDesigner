@@ -90,6 +90,7 @@ class LabelsFragment : androidx.fragment.app.Fragment() {
                 {
                     viewModel.clearLabelGradients()
                     viewModel.startPicking(PickerTarget.COLOR_PICKER_LABEL)
+                    viewModel.setPagingLocked(true)
                     childFragmentManager.beginTransaction().replace(
                             R.id.labelsFragment,
                             _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment()

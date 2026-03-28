@@ -13,6 +13,7 @@ import androidx.core.graphics.toColorInt
 import androidx.dynamicanimation.animation.FloatValueHolder
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
+import kotlin.math.sin
 
 /**
  * LiquidGlassNavBar — iOS 26 liquid glass style.
@@ -175,28 +176,32 @@ class LiquidGlassNavBar @JvmOverloads constructor(
             // ValueAnimator drives scale: 0→1 over ~440ms
             // scale = 1 + (MAX-1)*sin(π*t)  →  peaks at t=0.5, returns to 1 at t=1
             scaleAnim?.cancel()
+            var navigated = false
             scaleAnim = ValueAnimator.ofFloat(0f, 1f).apply {
                 duration = 600L
                 interpolator = android.view.animation.AccelerateDecelerateInterpolator()
                 addUpdateListener { anim ->
                     val t = anim.animatedFraction
                     // sine curve: 0 at start, peak at 0.5, 0 at end
-                    val sine = Math.sin(Math.PI * t.toDouble()).toFloat()
+                    val sine = sin(Math.PI * t.toDouble()).toFloat()
                     indicatorScale = 1f + (MAX_INDICATOR_SCALE - 1f) * sine
                     invalidate()
+
+                    if (!navigated && t >= 0.2f) {
+                        navigated = true
+                        onComplete?.invoke()
+                    }
                 }
                 addListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationEnd(a: Animator) {
                         indicatorScale = 1f
                         journeyProgress = 1f
                         invalidate()
-                        onComplete?.invoke()   // navigate AFTER animation completes
                     }
                 })
                 start()
             }
         } else {
-            // Cancel all animations immediately — no scale, no spring
             springAnim.cancel()
             scaleAnim?.cancel()
             scaleAnim = null

@@ -45,7 +45,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:fontFamily="@font/bold"
-            android:text="@string/auto_saving_changes"
+            android:text="@string/loading_project"
             android:textColor="@color/black"
             android:textSize="14sp"
             app:layout_constraintBottom_toTopOf="@id/subtitle"

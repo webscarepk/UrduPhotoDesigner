@@ -96,6 +96,7 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
                     } else {
                         viewModel.startPicking(PickerTarget.COLOR_PICKER_TEXT_FILL)
                     }
+                    viewModel.setPagingLocked(true)
                     childFragmentManager.beginTransaction().replace(
                             R.id.fillStroke,
                         ColorPickerFragment()

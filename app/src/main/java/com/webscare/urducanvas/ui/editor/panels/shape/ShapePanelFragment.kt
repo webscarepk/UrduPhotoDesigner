@@ -209,6 +209,7 @@ class ShapePanelFragment : Fragment() {
                         viewModel.setFillGradient(null)
                         viewModel.startPicking(PickerTarget.COLOR_PICKER_SHAPE_FILL)
                     }
+                    viewModel.setPagingLocked(true)
                     childFragmentManager.beginTransaction().replace(
                         R.id.shapePanel,
                         ColorPickerFragment()

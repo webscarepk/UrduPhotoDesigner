@@ -1425,14 +1425,67 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
+    // Snapshots of selected elements captured at the START of a seekbar drag.
+    // Used by commit functions so the undo action has the true "before" value,
+    // not the already-previewed intermediate state.
+    private var lineSpacingDragSnapshot: Map<String, CanvasElement> = emptyMap()
+    private var letterSpacingDragSnapshot: Map<String, CanvasElement> = emptyMap()
+
+    fun beginLineSpacingDrag() {
+        lineSpacingDragSnapshot = _canvasElements.value
+            ?.filter { it.isSelected && it.type == ElementType.TEXT }
+            ?.associate { it.id to it.copy(context = null, bitmap = null) }
+            ?: emptyMap()
+    }
+
     fun setLineSpacing(spacing: Float) {
         _lineSpacing.value = spacing
-        applyChangesToSelectedTextElements()
+        applyChangesToSelectedTextElementsPreview()
+    }
+
+    fun commitLineSpacing() {
+        commitWithSnapshot(lineSpacingDragSnapshot)
+        lineSpacingDragSnapshot = emptyMap()
+    }
+
+    fun beginLetterSpacingDrag() {
+        letterSpacingDragSnapshot = _canvasElements.value
+            ?.filter { it.isSelected && it.type == ElementType.TEXT }
+            ?.associate { it.id to it.copy(context = null, bitmap = null) }
+            ?: emptyMap()
     }
 
     fun setLetterSpacing(spacing: Float) {
         _letterSpacing.value = spacing
-        applyChangesToSelectedTextElements()
+        applyChangesToSelectedTextElementsPreview()
+    }
+
+    fun commitLetterSpacing() {
+        commitWithSnapshot(letterSpacingDragSnapshot)
+        letterSpacingDragSnapshot = emptyMap()
+    }
+
+    /**
+     * Pushes a single [CanvasAction.UpdateElement] using [snapshot] as the "before" state
+     * and the current canvas state as "after". Skips the push entirely if nothing changed.
+     */
+    private fun commitWithSnapshot(snapshot: Map<String, CanvasElement>) {
+        if (snapshot.isEmpty()) return
+        val currentList = _canvasElements.value ?: return
+        var pushed = false
+        currentList.forEach { element ->
+            val before = snapshot[element.id] ?: return@forEach
+            val after = element.copy(context = null, bitmap = null)
+            // Only push if something actually changed — avoids phantom undo entries
+            if (before.lineSpacing != after.lineSpacing || before.letterSpacing != after.letterSpacing) {
+                _canvasActions.push(CanvasAction.UpdateElement(element.id, after, before))
+                pushed = true
+            }
+        }
+        if (pushed) {
+            _redoStack.clear()
+            notifyUndoRedoChanged()
+        }
     }
 
     fun setLetterCasing(casing: LetterCasing) {
@@ -1661,6 +1714,53 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun getFontPanelState(): FontPanelState = _fontPanelState.value ?: FontPanelState()
+    /**
+     * Applies the current LiveData values to selected text elements WITHOUT pushing to the
+     * undo stack. Use this during continuous gestures (seekbar drag) so every intermediate
+     * value doesn't pollute undo history. Call [applyChangesToSelectedTextElements] once on
+     * finger-up to commit a single undoable action.
+     */
+    private fun applyChangesToSelectedTextElementsPreview() {
+        val currentList = _canvasElements.value?.toMutableList() ?: return
+        val updatedList = currentList.map { element ->
+            if (element.isSelected && element.type == ElementType.TEXT) {
+                element.copy(
+                    lineSpacing = _lineSpacing.value ?: element.lineSpacing,
+                    letterSpacing = _letterSpacing.value ?: element.letterSpacing,
+                    letterCasing = _letterCasing.value ?: element.letterCasing,
+                    textDecoration = _textDecoration.value ?: element.textDecoration,
+                    alignment = _textAlignment.value ?: element.alignment,
+                    currentIndent = _paragraphIndentation.value ?: element.currentIndent,
+                    listStyle = _listStyle.value ?: element.listStyle,
+                    hasShadow = _hasShadow.value ?: element.hasShadow,
+                    shadowColor = _shadowColor.value ?: element.shadowColor,
+                    shadowDx = _shadowDx.value ?: element.shadowDx,
+                    shadowDy = _shadowDy.value ?: element.shadowDy,
+                    shadowRadius = _shadowRadius.value ?: element.shadowRadius,
+                    shadowOpacity = _shadowOpacity.value ?: element.shadowOpacity,
+                    hasStroke = _hasBorder.value ?: element.hasStroke,
+                    strokeColor = _borderColor.value ?: element.strokeColor,
+                    strokeWidth = _borderWidth.value ?: element.strokeWidth,
+                    hasLabel = _hasLabel.value ?: element.hasLabel,
+                    labelColor = _labelColor.value ?: element.labelColor,
+                    labelShape = _labelShape.value ?: element.labelShape,
+                    fillGradient = if (_fillGradient.value == null) null else _fillGradient.value ?: element.fillGradient,
+                    strokeGradient = if (_strokeGradient.value == null) null else _strokeGradient.value ?: element.strokeGradient,
+                    labelGradient = if (_labelGradient.value == null) null else _labelGradient.value ?: element.labelGradient,
+                    blurValue = _blurValue.value ?: element.blurValue,
+                    hasBlur = _hasBlur.value ?: element.hasBlur,
+                    paintAlpha = _opacity.value ?: element.paintAlpha,
+                    blendType = _blendingType.value ?: element.blendType,
+                    kashidaSize = _kasheeda.value ?: element.kashidaSize
+                ).apply {
+                    paint.typeface = element.applyTypefaceFromFontList()
+                }
+            } else element
+        }
+        // Update canvas visuals immediately, no undo entry
+        _canvasElements.value = updatedList
+    }
+
     private fun applyChangesToSelectedTextElements() {
         val currentList = _canvasElements.value?.toMutableList() ?: return
         var oldElement: CanvasElement? = null
@@ -2917,6 +3017,7 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun setTextBorder(enabled: Boolean, color: Int, width: Float) {
+        clearStrokeGradients()
         _borderColor.value = color
         _borderWidth.value = width
         _hasBorder.value = enabled
@@ -2931,6 +3032,7 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun setTextColor(color: Int) {
+        clearFillGradients()
         val currentList = _canvasElements.value?.toMutableList() ?: mutableListOf()
         val context = currentList.firstOrNull()?.context
         var oldColor: Int? = null
@@ -3773,6 +3875,22 @@ class CanvasViewModel @Inject constructor(
                     }.restoreWithContext(context)
                 }
 
+                val currentFonts = _localFonts.value
+                val hydratedWithFonts = hydratedElements.map { element ->
+                    if (element.type == ElementType.TEXT && element.fontId != null) {
+                        val font = currentFonts.find { it.id.toString() == element.fontId }
+                        if (font?.file_path?.isNotBlank() == true) {
+                            try {
+                                element.paint.typeface = Typeface.createFromFile(font.file_path)
+                            } catch (e: Exception) {
+                                element.paint.typeface = ResourcesCompat.getFont(context, R.font.default_canvas)
+                                    ?: Typeface.DEFAULT
+                            }
+                        }
+                    }
+                    element
+                }
+
                 _loadingStage.postValue("Applying to canvas" to 90)
                 withContext(Dispatchers.Main) {
 
@@ -3803,12 +3921,16 @@ class CanvasViewModel @Inject constructor(
                     _canvasSize.value = exportResult.canvasSize
                     val subscribed = billingManager.isSubscribed.value
 
-                    _canvasElements.value = hydratedElements.map { element ->
-                        element.copy(isSubscribed = subscribed && element.isPremium)
+                    _canvasElements.value = hydratedWithFonts.map { element ->
+                        element.copy(isSubscribed = subscribed && element.isPremium).also { copied ->
+                            if (copied.type == ElementType.TEXT) {
+                                copied.paint.typeface = copied.applyTypefaceFromFontList()
+                            }
+                        }
                     }
 
                     val selected =
-                        hydratedElements.find { it.isSelected && it.type != ElementType.TEXT }
+                        hydratedWithFonts.find { it.isSelected && it.type != ElementType.TEXT }
                     selected?.let {
                         if (it.bitmapData != null) {
                             it.bitmap = ImageProcessor.base64ToBitmap(it.bitmapData!!)

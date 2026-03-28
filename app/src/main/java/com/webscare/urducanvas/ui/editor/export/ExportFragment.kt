@@ -334,7 +334,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
 
                 Log.d(TAG, "exportCanvasInternal: ${exportResult?.fileName} ")
                 val fileBaseName = "project_${System.currentTimeMillis()}"
-                val fileName = "$fileBaseName.proj"
+                val fileName = "$fileBaseName"
                 val result = exportResult?.apply {
                     this.imagePath = imagePath
                     this.jsonPath = jsonPath

@@ -73,6 +73,7 @@ class ImageStrokeFragment : Fragment() {
                     viewModel.clearLabelGradients()
                     viewModel.startPicking(PickerTarget.COLOR_PICKER_IMAGE_STROKE)
 
+                    viewModel.setPagingLocked(true)
                     childFragmentManager.beginTransaction().replace(
                         R.id.imageStroke,
                         ColorPickerFragment()

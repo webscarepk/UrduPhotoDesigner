@@ -61,7 +61,7 @@ class SubscriptionsViewModel @Inject constructor(
             allPlans
         }
 
-        filteredPlans.forEachIndexed { i, plan -> plan.isSelected = i == 0 }
+        filteredPlans.forEachIndexed { i, plan -> plan.isSelected = i == 1 }
         _plans.value = filteredPlans
     }
 

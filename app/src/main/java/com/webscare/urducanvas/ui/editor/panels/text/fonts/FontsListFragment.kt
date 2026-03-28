@@ -32,6 +32,10 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
     private lateinit var fontsAdapter: FontsAdapter
     private var fontEntity: com.webscare.urducanvas.data.model.FontEntity? = null
 
+    // The ID of the most recently tapped font. Only this font will be applied
+    // when its download completes — earlier downloads are ignored.
+    private var lastRequestedFontId: Int? = null
+
     private var currentLanguage: String? = null
     private var currentCategory: String? = null
 
@@ -192,6 +196,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         }
 
         fontEntity = font
+        lastRequestedFontId = font.id  // always track the latest tap
 
         // Optimistic UI: show spinner without losing scroll position
         val b = safeBinding ?: return
@@ -233,20 +238,25 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
                 downloadState.values.forEach { state ->
                     when (state) {
                         is FontDownloadState.Progress -> {
-                            fontEntity?.let { fontsAdapter.selectedFontId = it.id.toString() }
                             Log.d("FONT_DEBUG", "Progress observed")
                         }
 
                         is FontDownloadState.SuccessWithTypeface -> {
-                            Log.d("FONT_DEBUG", "SUCCESS observed")
-                            fontEntity = state.fontEntity
-                            fontEntity?.let { font ->
-                                fontsAdapter.selectedFontId = font.id.toString()
-                                // Tell the next submitWithScrollPreservation to scroll here
-                                pendingScrollToFontId = font.id.toString()
-                                viewModel.setFont(font)
+                            Log.d("FONT_DEBUG", "SUCCESS observed id=${state.fontEntity.id} lastRequested=$lastRequestedFontId")
+                            val completedFont = state.fontEntity
+
+                            if (completedFont.id == lastRequestedFontId) {
+                                // This is the font the user last tapped — apply it and clean up
+                                fontEntity = completedFont
+                                fontsAdapter.selectedFontId = completedFont.id.toString()
+                                pendingScrollToFontId = completedFont.id.toString()
+                                viewModel.setFont(completedFont)
+                                lastRequestedFontId = null
                                 mainViewModel.clearFontDownloadState()
                             }
+                            // If it's NOT the last-requested font, do nothing —
+                            // don't clear state (would wipe the pending last font),
+                            // don't apply (user already moved on to a newer tap).
                         }
 
                         is FontDownloadState.Error -> {
@@ -256,6 +266,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
                             }
                             fontEntity = null
                             pendingScrollToFontId = null
+                            lastRequestedFontId = null
                             mainViewModel.clearFontDownloadState()
                         }
 

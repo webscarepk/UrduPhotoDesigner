@@ -148,10 +148,19 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
                     ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
 
                 withContext(Dispatchers.Main) {
-                    viewModel.replaceSticker(
-                        ImageProcessor.filePathToBitmap(filePath!!),
-                        requireActivity()
-                    )
+                    val selectedElement = elementId?.let { id ->
+                        viewModel.canvasElements.value?.find { it.id == id }
+                    }
+
+                    if (selectedElement?.type == ElementType.SHAPE) {
+                        viewModel.addImageInsideShape(ImageProcessor.filePathToBitmap(filePath!!)!!, requireActivity())
+                    } else {
+                        val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                        viewModel.replaceSticker(
+                            ImageProcessor.filePathToBitmap(filePath!!),
+                            requireActivity()
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("ImagesFragment", "Failed to import image", e)

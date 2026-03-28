@@ -39,6 +39,8 @@ class MainActivity : AppCompatActivity() {
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding!!
 
+    private var updateCheckTriggered = false
+
     private var _navController: NavController? = null
     private val navController get() = _navController!!
 
@@ -90,7 +92,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         updateManager.registerListener(this)
-        updateManager.checkForUpdate(this)
         forceImmersiveMode()
         billingManager.checkSubscriptionOnLaunch()
         initObservers()
@@ -167,6 +168,17 @@ class MainActivity : AppCompatActivity() {
 
         // Sync indicator & visibility on destination changes
         navController.addOnDestinationChangedListener { _, destination, _ ->
+
+            if (destination.id == R.id.homeFragment) {
+                // Check once per session — UpdateManager should guard against
+                // repeated network calls internally, but the flag below is a
+                // cheap safety net in case it doesn't.
+                if (!updateCheckTriggered) {
+                    updateCheckTriggered = true
+                    updateManager.checkForUpdate(this)
+                }
+            }
+
             val visibleDestinations = setOf(
                 R.id.homeFragment,
                 R.id.templateCategoriesFragment,

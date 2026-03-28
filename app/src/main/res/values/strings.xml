@@ -179,6 +179,7 @@
     <string name="group_all">Group All</string>
     <string name="un_group_all">Ungroup All</string>
     <string name="auto_saving_changes">Saving changes …</string>
+    <string name="loading_project">Loading project …</string>
     <string name="upload_photo">Add Photo</string>
     <string name="blank_canvas">New Canvas</string>
     <string name="browse_templates">Templates</string>
