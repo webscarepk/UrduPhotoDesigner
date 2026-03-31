@@ -63,10 +63,10 @@ class ShapesParentFragment : Fragment() {
 
     private fun initObservers() {
         viewModel.openAppearanceTab.observe(viewLifecycleOwner) { openTab ->
-            if (isAdded){
-                binding.viewPager.post {
-                    binding.viewPager.currentItem = if (openTab == true) 1 else 0
-                }
+            if (!isAdded || _binding == null) return@observe
+            val targetPage = if (openTab == true) 1 else 0
+            if (binding.viewPager.currentItem != targetPage) {
+                binding.viewPager.setCurrentItem(targetPage, false)
             }
         }
 
@@ -75,12 +75,10 @@ class ShapesParentFragment : Fragment() {
             val hasImage = element?.bitmap != null || element?.bitmapData != null
 
             if (hasImage) {
-                // Shape already has an image — show replace + edit, hide add
-                binding.addImage.setImageResource(R.drawable.ic_replace) // your replace icon
+                binding.addImage.setImageResource(R.drawable.ic_replace)
                 binding.editImage.isVisible = true
             } else {
-                // Shape has no image — show add, hide edit
-                binding.addImage.setImageResource(R.drawable.ic_import) // your add icon
+                binding.addImage.setImageResource(R.drawable.ic_import)
                 binding.editImage.isVisible = false
             }
         }
@@ -93,6 +91,7 @@ class ShapesParentFragment : Fragment() {
 
         adapter = ShapePagerAdapter(this, tabs)
         binding.viewPager.adapter = adapter
+        binding.viewPager.setCurrentItem(0, false)
 
         binding.addImage.addPressEffect { pickImage.launch("image/*") }
         binding.editImage.addPressEffect {
@@ -188,7 +187,6 @@ class ShapesParentFragment : Fragment() {
         mediator = null
         binding.viewPager.adapter = null
         super.onDestroyView()
-        viewModel.closeAppearanceTab()
         _binding = null
     }
 }

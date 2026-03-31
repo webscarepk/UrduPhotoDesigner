@@ -302,7 +302,6 @@ class TextFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        viewModel.closeAppearanceTab()
         _binding = null
     }
 }

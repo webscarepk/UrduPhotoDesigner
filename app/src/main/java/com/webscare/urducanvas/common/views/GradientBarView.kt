@@ -4,16 +4,21 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
+import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Shader
 import android.util.AttributeSet
 import android.view.MotionEvent
-import android.view.View
 import android.view.ViewConfiguration
 import androidx.annotation.ColorInt
+import androidx.core.graphics.withSave
 import com.webscare.urducanvas.common.canvas.model.GradientItem
 import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.hypot
+import kotlin.math.sin
 
 class GradientBarView @JvmOverloads constructor(
     context: Context,
@@ -21,113 +26,159 @@ class GradientBarView @JvmOverloads constructor(
     defStyle: Int = 0
 ) : android.view.View(context, attrs, defStyle) {
 
-    var gradientItem: com.webscare.urducanvas.common.canvas.model.GradientItem =
-        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.GradientItem()
+    var gradientItem: GradientItem = GradientItem()
         set(value) {
-            field = value
-            colors = value.colors.toMutableList()
+            field     = value
+            colors    = value.colors.toMutableList()
             positions = value.positions.toMutableList()
-            invalidateShader()
+            rebuildShader()
         }
 
-    private var colors = mutableListOf<Int>()
+    private var colors    = mutableListOf<Int>()
     private var positions = mutableListOf<Float>()
 
-    var onStopSelected: ((index: Int) -> Unit)? = null
-    var onStopAdded: ((index: Int, color: Int, position: Float) -> Unit)? = null
-    var onStopMoved: ((index: Int, newPosition: Float) -> Unit)? = null
-    var onStopRemoved: ((index: Int) -> Unit)? = null
+    var onStopSelected: ((index: Int) -> Unit)?                         = null
+    var onStopAdded:    ((index: Int, color: Int, pos: Float) -> Unit)? = null
+    var onStopMoved:    ((index: Int, newPos: Float) -> Unit)?          = null
+    var onStopRemoved:  ((index: Int) -> Unit)?                         = null
 
-    private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
+    // ── Paints ────────────────────────────────────────────────────────────────
+
+    // barPaint carries the gradient shader — NEVER cleared between frames
+    private val barPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
+    // handleFillPaint is always solid — never touches barPaint
+    private val handleFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
+    private val handleStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style       = Paint.Style.STROKE
         strokeWidth = resources.displayMetrics.density * 2
-        color = Color.WHITE
     }
 
-    private val handleRadius = resources.displayMetrics.density * 10
+    private val handleRadius    = resources.displayMetrics.density * 10
     private val barCornerRadius = resources.displayMetrics.density * 18
-    private val barPadding = resources.displayMetrics.density
-    private val extraInset = handleRadius / 2.5f
+    private val barPadding      = resources.displayMetrics.density
+    private val extraInset      = handleRadius / 2.5f
 
-    private var activeHandle = -1
+    private var activeHandle  = -1
     private var pendingHandle = -1
-    private var pendingAdd = false
+    private var pendingAdd    = false
     private var downX = 0f
     private var downY = 0f
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
 
-    init {
-        gradientItem = gradientItem
+    // ── Geometry ──────────────────────────────────────────────────────────────
+
+    private val barRect    get() = RectF(barPadding, barPadding, width - barPadding, height - barPadding)
+    private val minHandleX get() = barPadding + handleRadius + extraInset
+    private val maxHandleX get() = width - barPadding - handleRadius - extraInset
+    private val effWidth   get() = maxHandleX - minHandleX
+
+    private fun posToX(pos: Float) = minHandleX + pos.coerceIn(0f, 1f) * effWidth
+    private fun xToPos(x: Float)   = (x.coerceIn(minHandleX, maxHandleX) - minHandleX) / effWidth
+
+    // ── Shader rebuild (never called from onDraw) ─────────────────────────────
+
+    /**
+     * Rebuilds barPaint's shader using the LINEAR gradient math from CanvasView,
+     * respecting angle, scale, centerX/centerY, colors and positions.
+     * Called only when data changes — NOT from onDraw.
+     */
+    private fun rebuildShader() {
+        val w = width.toFloat()
+        val h = height.toFloat()
+        if (w <= 0f || h <= 0f) {
+            // onSizeChanged will retry once the view is measured
+            return
+        }
+
+        val c = colors.toIntArray()
+        val p = positions.toFloatArray()
+        val item = gradientItem
+
+        val theta   = Math.toRadians(item.angle.toDouble())
+        val halfLen = hypot(w, h) * item.scale / 2f
+        val dx      = (cos(theta) * halfLen).toFloat()
+        val dy      = (sin(theta) * halfLen).toFloat()
+
+        val shader = LinearGradient(-dx, -dy, dx, dy, c, p, Shader.TileMode.CLAMP)
+        val matrix = Matrix().apply {
+            postTranslate(w * item.centerX, h * item.centerY)
+        }
+        shader.setLocalMatrix(matrix)
+
+        barPaint.shader = shader
+        // Request one redraw — onDraw will NOT call rebuildShader again
+        invalidate()
     }
+
+    /** Public alias kept for callers in GradientEditorFragment. */
+    fun invalidateShader() = rebuildShader()
+
+    // ── Size change ───────────────────────────────────────────────────────────
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        rebuildShader()
+    }
+
+    // ── Drawing ───────────────────────────────────────────────────────────────
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        // Draw gradient bar background
-        val barLeft = barPadding
-        val barTop = barPadding
-        val barRight = width - barPadding
-        val barBottom = height - barPadding
-        val rect = RectF(barLeft, barTop, barRight, barBottom)
-        fillPaint.style = Paint.Style.FILL
-        canvas.drawRoundRect(rect, barCornerRadius, barCornerRadius, fillPaint)
+        val rect = barRect
+        val cy   = height / 2f
 
-        // Handle position calculations
-        val minX = barLeft + handleRadius + extraInset
-        val maxX = barRight - handleRadius - extraInset
-        val effWidth = maxX - minX
-        val cy = height / 2f
-
-        // Draw each stop handle
-        positions.forEachIndexed { i, pos ->
-            val cx = minX + (pos.coerceIn(0f, 1f) * effWidth)
-            fillPaint.shader = null
-            fillPaint.color = colors[i]
-            canvas.drawCircle(cx, cy, handleRadius, fillPaint)
-            strokePaint.color = if (isColorDark(colors[i])) {
-                Color.WHITE
-            } else {
-                Color.BLACK
-            }
-            canvas.drawCircle(cx, cy, handleRadius, strokePaint)
+        // 1. Draw gradient bar clipped to rounded rect — uses barPaint (has shader)
+        canvas.withSave {
+            clipPath(Path().apply {
+                addRoundRect(rect, barCornerRadius, barCornerRadius, Path.Direction.CW)
+            })
+            canvas.drawRoundRect(rect, barCornerRadius, barCornerRadius, barPaint)
         }
+
+        // 2. Draw stop handles — uses handleFillPaint / handleStrokePaint (always solid)
+        positions.forEachIndexed { i, pos ->
+            val cx = posToX(pos)
+            handleFillPaint.color   = colors[i]
+            handleStrokePaint.color = if (isColorDark(colors[i])) Color.WHITE else Color.BLACK
+            canvas.drawCircle(cx, cy, handleRadius, handleFillPaint)
+            canvas.drawCircle(cx, cy, handleRadius, handleStrokePaint)
+        }
+
+        // ⚠️  Do NOT call rebuildShader() here — that was the flicker cause
     }
+
+    // ── Touch ─────────────────────────────────────────────────────────────────
 
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         val rawX = ev.x
         val rawY = ev.y
-
-        val minHandleX = barPadding + handleRadius + extraInset + handleRadius
-        val maxHandleX = width - minHandleX
-        val x = rawX.coerceIn(minHandleX, maxHandleX)
-        val effWidth = maxHandleX - minHandleX
-        val pos = (x - minHandleX) / effWidth
+        val pos  = xToPos(rawX)
+        val cy   = height / 2f
 
         when (ev.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 downX = rawX
                 downY = rawY
 
-                // bar geometry
-                val barTop = barPadding
-                val barBottom = height - barPadding
-                val cy = height / 2f
-
-                val hitRadius = resources.displayMetrics.density * 24  // 48dp diameter
-                pendingHandle = positions.indexOfFirst { pos ->
-                    val handleX = minHandleX + pos * effWidth
-                    val dx = rawX - handleX
+                val hitRadius = resources.displayMetrics.density * 24
+                pendingHandle = positions.indexOfFirst { p ->
+                    val hx = posToX(p)
+                    val dx = rawX - hx
                     val dy = rawY - cy
                     dx * dx + dy * dy <= hitRadius * hitRadius
                 }
 
                 if (pendingHandle >= 0) {
-                    // Tapped directly on a handle
                     activeHandle = pendingHandle
-                    pendingAdd = false
+                    pendingAdd   = false
                 } else {
-                    // Allow adding only if tap is near the bar vertically
+                    val barTop    = barPadding
+                    val barBottom = height - barPadding
                     pendingAdd = rawY in (barTop - hitRadius)..(barBottom + hitRadius)
                 }
                 return true
@@ -136,28 +187,16 @@ class GradientBarView @JvmOverloads constructor(
             MotionEvent.ACTION_MOVE -> {
                 if (activeHandle >= 0) {
                     if (abs(rawX - downX) > touchSlop || abs(rawY - downY) > touchSlop) {
-                        // Prevent handles from crossing neighbors by enforcing a small separation
-                        val lower = if (activeHandle > 0)
-                            positions[activeHandle - 1]
-                        else
-                            0f
+                        val lower = if (activeHandle > 0) positions[activeHandle - 1] else 0f
+                        val upper = if (activeHandle < positions.lastIndex) positions[activeHandle + 1] else 1f
+                        val clamped = pos.coerceIn(lower + 0.001f, upper - 0.001f)
 
-                        val upper = if (activeHandle < positions.lastIndex)
-                            positions[activeHandle + 1]
-                        else
-                            1f
-
-                        val minSeparation = 0.001f
-                        val min = lower + minSeparation
-                        val max = upper - minSeparation
-
-                        val clamped = pos.coerceIn(min, max)
-                        // Only update if there's a noticeable change (e.g., 0.001f threshold)
                         if (abs(clamped - positions[activeHandle]) > 0.001f) {
                             positions[activeHandle] = clamped
-                            gradientItem.positions = positions.toList()
+                            gradientItem.positions   = positions.toList()
+                            // Rebuild shader immediately — smooth real-time drag
+                            rebuildShader()
                             onStopMoved?.invoke(activeHandle, clamped)
-                            invalidateShader()
                         }
                         pendingAdd = false
                         return true
@@ -176,74 +215,51 @@ class GradientBarView @JvmOverloads constructor(
                         && abs(rawY - downY) <= touchSlop
                     ) {
                         onStopSelected?.invoke(activeHandle)
-                        postInvalidateOnAnimation()
+                        invalidate()
                     }
                 } else if (pendingAdd) {
                     if (abs(rawX - downX) <= touchSlop && abs(rawY - downY) <= touchSlop) {
-                        val idx =
-                            positions.indexOfFirst { it > pos }.takeIf { it >= 0 } ?: positions.size
+                        val idx     = positions.indexOfFirst { it > pos }.takeIf { it >= 0 } ?: positions.size
                         val sampled = sampleColorAt(pos)
                         onStopAdded?.invoke(idx, sampled, pos)
-                        invalidateShader()
+                        // ViewModel will set gradientItem → setter → rebuildShader
                     }
-                    pendingAdd = false
-                    activeHandle = -1
+                    pendingAdd    = false
+                    activeHandle  = -1
                     pendingHandle = -1
                     return true
                 }
-                activeHandle = -1
+                activeHandle  = -1
                 pendingHandle = -1
-                pendingAdd = false
+                pendingAdd    = false
             }
         }
-
         return super.onTouchEvent(ev)
     }
 
-    fun invalidateShader() {
-        if (width == 0 || height == 0) return
-        val barLeft = barPadding + handleRadius + extraInset
-        val barRight = width - barPadding - handleRadius - extraInset
-        val cy = height / 2f
-        fillPaint.shader = LinearGradient(
-            barLeft, cy,
-            barRight, cy,
-            colors.toIntArray(), positions.toFloatArray(), Shader.TileMode.CLAMP
-        )
-        postInvalidateOnAnimation()
-    }
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun sampleColorAt(pos: Float): Int {
         val i = positions.indexOfLast { it <= pos }.coerceAtLeast(0)
         if (i == positions.lastIndex) return colors.last()
         val t = (pos - positions[i]) / (positions[i + 1] - positions[i])
         fun lerp(a: Int, b: Int) = (a + ((b - a) * t)).toInt()
-        val a = lerp(Color.alpha(colors[i]), Color.alpha(colors[i + 1]))
-        val r = lerp(Color.red(colors[i]), Color.red(colors[i + 1]))
-        val g = lerp(Color.green(colors[i]), Color.green(colors[i + 1]))
-        val b = lerp(Color.blue(colors[i]), Color.blue(colors[i + 1]))
-        return Color.argb(a, r, g, b)
+        return Color.argb(
+            lerp(Color.alpha(colors[i]), Color.alpha(colors[i + 1])),
+            lerp(Color.red(colors[i]),   Color.red(colors[i + 1])),
+            lerp(Color.green(colors[i]), Color.green(colors[i + 1])),
+            lerp(Color.blue(colors[i]),  Color.blue(colors[i + 1]))
+        )
     }
 
-    /**
-     * @return true if the color is “dark”, false if it’s “light”
-     */
     private fun isColorDark(@ColorInt color: Int): Boolean {
-        val r = Color.red(color)
-        val g = Color.green(color)
-        val b = Color.blue(color)
-
-        // compute luminance (0…255)
-        val luminance = 0.299 * r + 0.587 * g + 0.114 * b
-
-        // threshold at 128 (mid‐point). <128 → dark; ≥128 → light
+        val luminance = 0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)
         return luminance < 128
     }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        setLayerType(LAYER_TYPE_HARDWARE, null)
-        invalidateShader()
+        setLayerType(LAYER_TYPE_SOFTWARE, null)
+        rebuildShader()
     }
-
 }

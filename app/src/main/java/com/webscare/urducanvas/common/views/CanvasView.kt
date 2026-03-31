@@ -2768,11 +2768,13 @@ class CanvasView @JvmOverloads constructor(
         val localHalfH = element.logicalContentHeight / 2f
         val localRect = RectF(-localHalfW, -localHalfH, localHalfW, localHalfH)
 
-        val path = ShapeRenderUtils.buildShapePath(
-            element.shapeType ?: ShapeType.RECTANGLE,
-            localRect,
-            if (element.shapeHasCorner) element.shapeCornerRadius else 0f
-        )
+        val shapeType = element.shapeType ?: ShapeType.RECTANGLE
+        val cornerRadius = if (element.shapeHasCorner) element.shapeCornerRadius else 0f
+
+        // Path is built WITHOUT corner radius baked in (except for RECT/ROUNDED_RECT).
+        // Rounding for all other shapes is applied at draw-time via CornerPathEffect
+        // inside ShapeRenderUtils.withCornerEffect().
+        val path = ShapeRenderUtils.buildShapePath(shapeType, localRect, cornerRadius)
 
         // -------------------------------------------------
         // 1️⃣ SHADOW (DRAW FIRST - BEHIND EVERYTHING)
@@ -2796,7 +2798,9 @@ class CanvasView @JvmOverloads constructor(
 
             canvas.save()
             canvas.translate(element.shadowDx, element.shadowDy)
-            canvas.drawPath(path, shadowPaint)
+            ShapeRenderUtils.withCornerEffect(shadowPaint, cornerRadius, shapeType) {
+                canvas.drawPath(path, shadowPaint)
+            }
             canvas.restore()
         }
 
@@ -2824,7 +2828,9 @@ class CanvasView @JvmOverloads constructor(
                 alpha = element.paintAlpha
             }
 
-            canvas.drawPath(path, fillPaint)
+            ShapeRenderUtils.withCornerEffect(fillPaint, cornerRadius, shapeType) {
+                canvas.drawPath(path, fillPaint)
+            }
         }
 
         // -------------------------------------------------
@@ -2868,7 +2874,7 @@ class CanvasView @JvmOverloads constructor(
 
                 // ---------- MASK LAYER ----------
                 canvas.saveLayer(localRect, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    alpha = element.paintAlpha  // ✅ opacity applies to the entire masked image
+                    alpha = element.paintAlpha  // opacity applies to the entire masked image
                 })
 
                 val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -2876,12 +2882,15 @@ class CanvasView @JvmOverloads constructor(
                     color = Color.WHITE
                 }
 
-                canvas.drawPath(path, maskPaint)
+                // Apply corner rounding to the mask so the image is clipped with rounded corners too
+                ShapeRenderUtils.withCornerEffect(maskPaint, cornerRadius, shapeType) {
+                    canvas.drawPath(path, maskPaint)
+                }
 
                 val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     colorFilter = colorFilterFor(element.imageFilter)
                     isFilterBitmap = true
-                    // ⚠️ No alpha here — handled by saveLayer above
+                    // No alpha here — handled by saveLayer above
                     xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
                 }
 
@@ -2958,29 +2967,30 @@ class CanvasView @JvmOverloads constructor(
 
         if (element.shapeHasStroke) {
 
+            val scaleSafe = element.scale.takeIf { it > 0f } ?: 1f
+            val visualStrokeWidth = (element.shapeStrokeWidth ?: 1f) / scaleSafe
+
             val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
 
                 style = Paint.Style.STROKE
-                strokeWidth = element.shapeStrokeWidth ?: 1f
+                strokeWidth = visualStrokeWidth
 
                 if (element.shapeStrokeGradient != null) {
-
                     shader = createGradientShader(
                         element.shapeStrokeGradient!!, localRect.width(), localRect.height()
                     )
-
                 } else {
-
                     color = element.shapeStrokeColor ?: Color.BLACK
                 }
 
                 alpha = element.paintAlpha
-
                 strokeJoin = Paint.Join.ROUND
                 strokeCap = Paint.Cap.ROUND
             }
 
-            canvas.drawPath(path, strokePaint)
+            ShapeRenderUtils.withCornerEffect(strokePaint, cornerRadius, shapeType) {
+                canvas.drawPath(path, strokePaint)
+            }
         }
     }
 

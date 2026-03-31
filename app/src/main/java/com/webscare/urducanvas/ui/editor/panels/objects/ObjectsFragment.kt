@@ -15,7 +15,6 @@ import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
@@ -25,21 +24,16 @@ import androidx.lifecycle.lifecycleScope
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.utils.ImageProcessor
-import com.webscare.urducanvas.common.utils.ImageProcessor.bitmapCompress
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentObjectsBinding
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import com.webscare.urducanvas.common.canvas.enums.ElementType
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.roundToInt
-import kotlin.text.equals
-import kotlin.text.trim
 
 @AndroidEntryPoint
 class ObjectsFragment : Fragment() {
@@ -49,6 +43,11 @@ class ObjectsFragment : Fragment() {
     private var tabs = mutableListOf<String>()
     private val mainViewModel: MainViewModel by activityViewModels()
     private val viewModel: CanvasViewModel by activityViewModels()
+
+    // Guards against adding GlobalLayoutListener + OnTabSelectedListener more than once
+    private var tabLayoutListenerAttached = false
+    private var tabSelectedListenerAttached = false
+
     private val pickImage =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             uri?.let { handlePickedUri(it) }
@@ -63,7 +62,6 @@ class ObjectsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         setEvents()
         initObservers()
     }
@@ -71,51 +69,51 @@ class ObjectsFragment : Fragment() {
     private fun initObservers() {
         lifecycleScope.launch {
             mainViewModel.localImages.collect { images ->
+
                 val baseTabs = listOf(
                     "Emoticons", "Animals", "Nature", "Food", "Sports",
                     "Transport", "Objects", "Alchemy", "Shapes",
                     "Arrows", "Letters", "Flags"
                 )
 
-                val extraTabs = images.map { it.category.trim() }.filterNot {
-                    it.equals("Backgrounds", true) ||
-                            it.equals("Backgrounds Imported", true) ||
-                            it.equals("Images", true) ||
-                            it.equals("Images Imported", true)
-                }.distinct()
-
-                val hasObjectRecents = images.any {
-                    it.is_recent && !(
-                            it.category.equals("Backgrounds", true) ||
-                                    it.category.equals("Backgrounds Imported", true) ||
-                                    it.category.equals("Images", true) ||
-                                    it.category.equals("Images Imported", true)
-                            )
+                val extraTabs = withContext(Dispatchers.Default) {
+                    images.map { it.category.trim() }
+                        .filterNot {
+                            it.equals("Backgrounds", ignoreCase = true) ||
+                                    it.equals("Backgrounds Imported", ignoreCase = true) ||
+                                    it.equals("Images", ignoreCase = true) ||
+                                    it.equals("Images Imported", ignoreCase = true)
+                        }
+                        .distinct()
                 }
 
-                val newTabs = mutableListOf<String>()
-
-                if (hasObjectRecents) {
-                    newTabs.add("Recents")
+                val hasObjectRecents = withContext(Dispatchers.Default) {
+                    images.any { img ->
+                        img.is_recent &&
+                                !img.category.equals("Backgrounds", ignoreCase = true) &&
+                                !img.category.equals("Backgrounds Imported", ignoreCase = true) &&
+                                !img.category.equals("Images", ignoreCase = true) &&
+                                !img.category.equals("Images Imported", ignoreCase = true)
+                    }
                 }
 
-                val combinedTabs = (extraTabs + baseTabs)
+                val newTabs = buildList {
+                    if (hasObjectRecents) add("Recents")
+                    addAll(extraTabs + baseTabs)
+                }
 
-                newTabs.addAll(combinedTabs)
-
-                if (binding.viewPager.adapter == null || newTabs != tabs) {
-                    // only if structure changed
+                if (newTabs != tabs) {
                     tabs.clear()
                     tabs.addAll(newTabs)
+
                     adapter = ObjectsPagerAdapter(
                         requireActivity().supportFragmentManager, lifecycle, tabs
                     )
-
                     binding.viewPager.adapter = adapter
                     binding.viewPager.isUserInputEnabled = false
+
                     setupTabLayout()
                 } else {
-                    // just refresh existing fragments
                     adapter.refreshData(images)
                 }
             }
@@ -129,42 +127,47 @@ class ObjectsFragment : Fragment() {
             tab.customView = tabView
         }.attach()
 
-        binding.tabLayout.viewTreeObserver.addOnGlobalLayoutListener {
-           if (isAdded){
-               for (i in 0 until binding.tabLayout.tabCount) {
-                   val tabView = (binding.tabLayout.getChildAt(0) as? ViewGroup)?.getChildAt(i)
-                   tabView?.scaleX = 0.9f
-                   tabView?.scaleY = 0.9f
-               }
-
-               // Make the first tab look selected initially
-               binding.tabLayout.getTabAt(binding.tabLayout.selectedTabPosition)?.view?.apply {
-                   scaleX = 1.0f
-                   scaleY = 1.0f
-               }
-           }
+        // GlobalLayoutListener — register only once per view lifetime
+        if (!tabLayoutListenerAttached) {
+            tabLayoutListenerAttached = true
+            binding.tabLayout.viewTreeObserver.addOnGlobalLayoutListener {
+                if (!isAdded) return@addOnGlobalLayoutListener
+                val tabStrip = binding.tabLayout.getChildAt(0) as? ViewGroup ?: return@addOnGlobalLayoutListener
+                for (i in 0 until tabStrip.childCount) {
+                    tabStrip.getChildAt(i)?.apply {
+                        scaleX = 0.9f
+                        scaleY = 0.9f
+                    }
+                }
+                binding.tabLayout.getTabAt(binding.tabLayout.selectedTabPosition)?.view?.apply {
+                    scaleX = 1.0f
+                    scaleY = 1.0f
+                }
+            }
         }
 
-        binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab?) {
-                tab?.view?.animate()
-                    ?.scaleX(1.0f)
-                    ?.scaleY(1.0f)
-                    ?.setDuration(150)
-                    ?.setInterpolator(android.view.animation.OvershootInterpolator())
-                    ?.start()
-            }
+        // Tab selected listener — register only once per view lifetime
+        if (!tabSelectedListenerAttached) {
+            tabSelectedListenerAttached = true
+            binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+                override fun onTabSelected(tab: TabLayout.Tab?) {
+                    tab?.view?.animate()
+                        ?.scaleX(1.0f)?.scaleY(1.0f)
+                        ?.setDuration(150)
+                        ?.setInterpolator(android.view.animation.OvershootInterpolator())
+                        ?.start()
+                }
 
-            override fun onTabUnselected(tab: TabLayout.Tab?) {
-                tab?.view?.animate()
-                    ?.scaleX(0.9f)
-                    ?.scaleY(0.9f)
-                    ?.setDuration(150)
-                    ?.start()
-            }
+                override fun onTabUnselected(tab: TabLayout.Tab?) {
+                    tab?.view?.animate()
+                        ?.scaleX(0.9f)?.scaleY(0.9f)
+                        ?.setDuration(150)
+                        ?.start()
+                }
 
-            override fun onTabReselected(tab: TabLayout.Tab?) {}
-        })
+                override fun onTabReselected(tab: TabLayout.Tab?) {}
+            })
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -172,10 +175,8 @@ class ObjectsFragment : Fragment() {
         binding.searchIcon.addPressEffect {
             binding.searchIcon.isVisible = false
             binding.searchBar.isVisible = true
-
             binding.searchBar.requestFocus()
-            val imm =
-                requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showSoftInput(binding.searchBar, InputMethodManager.SHOW_IMPLICIT)
         }
 
@@ -188,54 +189,40 @@ class ObjectsFragment : Fragment() {
 
         binding.searchBar.imeOptions = EditorInfo.IME_ACTION_SEARCH
         binding.searchBar.setRawInputType(InputType.TYPE_CLASS_TEXT)
-
         binding.searchBar.setImeActionLabel("🔍", EditorInfo.IME_ACTION_SEARCH)
 
         binding.searchBar.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                val query = binding.searchBar.text.toString()
-                adapter.filter(query)
+                adapter.filter(binding.searchBar.text.toString())
                 hideKeyboard()
-
                 true
-            } else {
-                false
-            }
+            } else false
         }
 
         binding.searchBar.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(
-                charSequence: CharSequence?, start: Int, count: Int, after: Int
-            ) {
-            }
-
-            override fun onTextChanged(
-                charSequence: CharSequence?, start: Int, before: Int, count: Int
-            ) {
-                val hasText = charSequence?.isNotEmpty() == true
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun afterTextChanged(s: Editable?) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val hasText = !s.isNullOrEmpty()
                 binding.searchBar.setCompoundDrawablesWithIntrinsicBounds(
-                    null, null, if (hasText) {
-                        ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close)
-                    } else {
-                        null
-                    }, null
+                    null, null,
+                    if (hasText) ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close) else null,
+                    null
                 )
             }
-
-            override fun afterTextChanged(charSequence: Editable?) {}
         })
 
-        binding.searchBar.setOnTouchListener { v, event ->
+        binding.searchBar.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_UP) {
                 val drawableRight = binding.searchBar.compoundDrawables[2]
-                if (drawableRight != null && event.x >= binding.searchBar.width - binding.searchBar.paddingRight - drawableRight.bounds.width()) {
+                if (drawableRight != null &&
+                    event.x >= binding.searchBar.width - binding.searchBar.paddingRight - drawableRight.bounds.width()
+                ) {
                     binding.searchBar.text.clear()
                     adapter.filter("")
                     binding.searchBar.setCompoundDrawablesWithIntrinsicBounds(
                         ContextCompat.getDrawable(requireActivity(), R.drawable.ic_search),
-                        null,
-                        null,
-                        null
+                        null, null, null
                     )
                     hideKeyboard()
                     return@setOnTouchListener true
@@ -254,7 +241,6 @@ class ObjectsFragment : Fragment() {
             try {
                 val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
                 val bitmap = ImageProcessor.filePathToBitmap(filePath!!) ?: return@launch
-
                 withContext(Dispatchers.Main) {
                     viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE)
                 }
@@ -270,8 +256,10 @@ class ObjectsFragment : Fragment() {
         binding.searchBar.clearFocus()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onDestroyView() {
+        super.onDestroyView()
+        tabLayoutListenerAttached = false
+        tabSelectedListenerAttached = false
         _binding = null
     }
 }

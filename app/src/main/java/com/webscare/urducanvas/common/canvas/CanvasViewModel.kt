@@ -1250,11 +1250,7 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun startPicking(slot: PickerTarget) {
-        if (_activePicker.value == null) {
-            _activePicker.value = slot
-        } else {
-            _activePicker.value = null
-        }
+        _activePicker.value = slot
     }
 
     fun stopPicking() {
@@ -1305,11 +1301,11 @@ class CanvasViewModel @Inject constructor(
 
             PickerTarget.COLOR_PICKER_LABEL -> setTextLabel(true, color, _labelShape.value!!)
             PickerTarget.COLOR_PICKER_GRADIENT -> {
-                _gradientStopColor.value = color
+                updateSelectedStopColor(color)
             }
 
             PickerTarget.EYE_DROPPER_GRADIENT -> {
-                _gradientStopColor.value = color
+                updateSelectedStopColor(color)   // same fix
             }
 
             PickerTarget.EYE_DROPPER_DRAW_STROKE -> {

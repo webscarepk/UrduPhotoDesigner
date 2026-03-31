@@ -787,11 +787,9 @@ class EditorFragment : Fragment() {
 
             // If nothing should be open → close panels
             if (targetDestination == null) {
-
+                viewModel.closeAppearanceTab()
                 if (
-                    currentDest == R.id.textFragment ||
-                    currentDest == R.id.adjustmentsParentFragment ||
-                    currentDest == R.id.shapesParentFragment
+                    currentDest == R.id.adjustmentsParentFragment
                 ) {
                     if (currentDest in panelDestinations) {
                         navController.popBackStack(currentDest, true)
@@ -813,7 +811,6 @@ class EditorFragment : Fragment() {
                     if (element.bitmap != null) {
                         BitmapCache.put(element.id, element.bitmap!!)
                     } else if (element.svgDrawable != null) {
-                        // Rasterize SVG to bitmap just for preview purposes
                         val svg = element.svgDrawable!!
                         val w = svg.intrinsicWidth.takeIf { it > 0 } ?: 512
                         val h = svg.intrinsicHeight.takeIf { it > 0 } ?: 512
@@ -955,45 +952,36 @@ class EditorFragment : Fragment() {
                                 }
 
                                 ElementType.DRAW, ElementType.SHAPE -> {
-                                    // ✅ If SHAPE contains a masked image → open Image Adjustments instead
+                                    // If SHAPE contains a masked image → open Image Adjustments instead
                                     if (element.type == ElementType.SHAPE && element.bitmap != null) {
                                         val selected =
                                             viewModel.canvasElements.value?.find { it.id == element.id }
                                         selected?.let {
                                             val key = it.id
-                                            BitmapCache.put(
-                                                key, it.bitmap!!
-                                            )
-                                            val bundle =
-                                                Bundle().apply { putString("elementId", key) }
+                                            BitmapCache.put(key, it.bitmap!!)
+                                            val bundle = Bundle().apply { putString("elementId", key) }
 
-                                            val navOptions =
-                                                NavOptions.Builder().setLaunchSingleTop(true)
-                                                    .setPopUpTo(
-                                                        R.id.adjustmentsParentFragment,
-                                                        inclusive = true
-                                                    ).build()
+                                            val navOptions = NavOptions.Builder()
+                                                .setLaunchSingleTop(true)
+                                                .setPopUpTo(R.id.adjustmentsParentFragment, inclusive = true)
+                                                .build()
 
-                                            navController.navigate(
-                                                R.id.adjustmentsParentFragment, bundle, navOptions
-                                            )
+                                            navController.navigate(R.id.adjustmentsParentFragment, bundle, navOptions)
                                         }
+                                    } else if (element.type == ElementType.SHAPE) {
+                                        // Normal shape (no masked bitmap) → go to ShapesParentFragment
+                                        val bundle = Bundle().apply { putInt("startPage", 0) }
+                                        val navOptions = NavOptions.Builder()
+                                            .setLaunchSingleTop(true)
+                                            .build()
+                                        navController.navigate(R.id.shapesParentFragment, bundle, navOptions)
                                     } else {
-                                        // 🧠 Normal Shape or Draw Mode — open DrawFragment as usual
-                                        val startPage = when (element.type) {
-                                            ElementType.DRAW -> 0
-                                            ElementType.SHAPE -> 1
-                                            else -> 0
-                                        }
-
-                                        val bundle =
-                                            Bundle().apply { putInt("startPage", startPage) }
-                                        val navOptions =
-                                            NavOptions.Builder().setLaunchSingleTop(true).build()
-
-                                        navController.navigate(
-                                            R.id.drawFragment, bundle, navOptions
-                                        )
+                                        // ElementType.DRAW → go to DrawFragment
+                                        val bundle = Bundle().apply { putInt("startPage", 0) }
+                                        val navOptions = NavOptions.Builder()
+                                            .setLaunchSingleTop(true)
+                                            .build()
+                                        navController.navigate(R.id.drawFragment, bundle, navOptions)
                                     }
                                 }
 

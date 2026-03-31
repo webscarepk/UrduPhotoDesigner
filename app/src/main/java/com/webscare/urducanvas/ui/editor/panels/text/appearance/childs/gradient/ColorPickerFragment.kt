@@ -133,7 +133,6 @@ class ColorPickerFragment : androidx.fragment.app.Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        viewModel.stopPicking()
         _binding = null
     }
 }

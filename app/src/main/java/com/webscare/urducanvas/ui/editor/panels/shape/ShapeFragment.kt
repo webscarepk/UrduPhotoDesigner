@@ -24,9 +24,10 @@ class ShapeFragment : Fragment() {
     private lateinit var pagerAdapter: ShapePanelPagerAdapter
     private val viewModel: CanvasViewModel by activityViewModels()
 
-    private var isFillEnabled = true
-    private var isStrokeEnabled = false
-    private var isCornerEnabled = false
+    // Mirrors the ViewModel state — synced from observers before any toggle runs
+    private var isFillEnabled   = false
+    private var isStrokeEnabled = true
+    private var isCornerEnabled = true
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -37,27 +38,20 @@ class ShapeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         setupRecyclerViews()
         initObservers()
     }
 
     private fun setupRecyclerViews() {
-
         val parentTab = arguments?.getString("tabName") ?: ""
-
         val isEnabledForAdapter = parentTab != "Shape"
 
-        tabs = ArrayList()
-
-        adapter = AdjustmentPanelTabsAdapter(
-            { tab -> handleSelection(tab) },
-            isEnabledForAdapter
-        )
+        tabs    = ArrayList()
+        adapter = AdjustmentPanelTabsAdapter({ tab -> handleUserTap(tab) }, isEnabledForAdapter)
 
         binding.categories.adapter = adapter
 
-        binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
+        binding.viewPager.orientation    = ViewPager2.ORIENTATION_VERTICAL
         binding.viewPager.offscreenPageLimit = 1
 
         pagerAdapter = ShapePanelPagerAdapter(this, tabs)
@@ -65,8 +59,9 @@ class ShapeFragment : Fragment() {
 
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
-                val selectedCategory = tabs[position]
-                handleSelection(selectedCategory)
+                // User swiped the pager — update selection highlight only, no toggle
+                val selectedCategory = tabs.getOrNull(position) ?: return
+                selectTabVisually(selectedCategory)
                 binding.categories.smoothScrollToPosition(position)
             }
         })
@@ -78,27 +73,25 @@ class ShapeFragment : Fragment() {
             tabs.clear()
 
             when (parentTab) {
-                "Shape" -> {
-                    tabs.add(AdjustmentPanelTabs(0, "Shape", true, is_enabled = false))
-                }
-
+                "Shape" -> tabs.add(AdjustmentPanelTabs(0, "Shape", true, is_enabled = false))
                 "Style" -> {
-                    tabs.add(AdjustmentPanelTabs(0, "Fill", true, is_enabled = false))
+                    tabs.add(AdjustmentPanelTabs(0, "Fill",   true,  is_enabled = false))
                     tabs.add(AdjustmentPanelTabs(1, "Stroke", false, is_enabled = false))
                     tabs.add(AdjustmentPanelTabs(2, "Corner", false, is_enabled = false))
                 }
             }
 
             adapter.submitList(ArrayList(tabs))
-            // Ensure the ViewPager and first selection match
+
+            // Navigate to the first page WITHOUT toggling any state
             if (tabs.isNotEmpty()) {
-                handleSelection(tabs[0])
+                navigateTo(tabs[0])
             }
         }
 
         val parentTab = arguments?.getString("tabName") ?: ""
 
-        // 1. Listen to ViewModel to keep UI in sync with Canvas state
+        // Sync local flags FROM ViewModel — these arrive before any user interaction
         viewModel.shapeFillEnabled.observe(viewLifecycleOwner) { enabled ->
             isFillEnabled = enabled
             updateTabsFromState(parentTab)
@@ -117,69 +110,71 @@ class ShapeFragment : Fragment() {
 
     private fun updateTabsFromState(parentTab: String) {
         if (parentTab == "Shape") {
-            // For "Shape" tab, we don't show eye/enabled states, just selection
             tabs = arrayListOf(
-                AdjustmentPanelTabs(
-                    0, "Shape", tabs.getOrNull(0)?.is_selected ?: true, is_enabled = false
-                )
+                AdjustmentPanelTabs(0, "Shape", tabs.getOrNull(0)?.is_selected ?: true, is_enabled = false)
             )
         } else {
-            // For "Style" and "Color", we map Fill/Stroke to the actual enabled state
             tabs = arrayListOf(
-                AdjustmentPanelTabs(
-                    0, "Fill", tabs.getOrNull(0)?.is_selected ?: true, is_enabled = isFillEnabled
-                ), AdjustmentPanelTabs(
-                    1,
-                    "Stroke",
-                    tabs.getOrNull(1)?.is_selected ?: false,
-                    is_enabled = isStrokeEnabled
-                ), AdjustmentPanelTabs(
-                    2,
-                    "Corner",
-                    tabs.getOrNull(1)?.is_selected ?: false,
-                    is_enabled = isCornerEnabled
-                )
+                AdjustmentPanelTabs(0, "Fill",   tabs.getOrNull(0)?.is_selected ?: true,  is_enabled = isFillEnabled),
+                AdjustmentPanelTabs(1, "Stroke", tabs.getOrNull(1)?.is_selected ?: false, is_enabled = isStrokeEnabled),
+                AdjustmentPanelTabs(2, "Corner", tabs.getOrNull(2)?.is_selected ?: false, is_enabled = isCornerEnabled)
             )
         }
         adapter.submitList(ArrayList(tabs))
     }
 
-    private fun handleSelection(selectedCategory: AdjustmentPanelTabs) {
+    /**
+     * Called only on REAL USER TAPS on a tab chip.
+     * Toggles the enabled state in the ViewModel, then updates the pager position.
+     */
+    private fun handleUserTap(selectedCategory: AdjustmentPanelTabs) {
         val parentTab = arguments?.getString("tabName") ?: ""
 
-        // Toggle Logic (Only for Style/Color tabs)
         if (parentTab != "Shape") {
-            if (selectedCategory.tab_name == "Fill") {
-                val newState = !isFillEnabled
-                // Rule: Both cannot be disabled
-                if (!newState && !isStrokeEnabled) {
-                    viewModel.toggleFillEnabled(true)
-                } else {
-                    viewModel.toggleFillEnabled(newState)
+            when (selectedCategory.tab_name) {
+                "Fill" -> {
+                    val newState = !isFillEnabled
+                    // Both cannot be disabled simultaneously
+                    if (!newState && !isStrokeEnabled) {
+                        viewModel.toggleFillEnabled(true)
+                    } else {
+                        viewModel.toggleFillEnabled(newState)
+                    }
                 }
-            } else if (selectedCategory.tab_name == "Stroke") {
-                val newState = !isStrokeEnabled
-                if (!newState && !isFillEnabled) {
-                    viewModel.toggleStrokeEnabled(true)
-                } else {
-                    viewModel.toggleStrokeEnabled(newState)
+                "Stroke" -> {
+                    val newState = !isStrokeEnabled
+                    if (!newState && !isFillEnabled) {
+                        viewModel.toggleStrokeEnabled(true)
+                    } else {
+                        viewModel.toggleStrokeEnabled(newState)
+                    }
                 }
-            } else if (selectedCategory.tab_name == "Corner") {
-                val newState = !isCornerEnabled
-                viewModel.toggleCornerEnabled(newState)
+                "Corner" -> {
+                    viewModel.toggleCornerEnabled(!isCornerEnabled)
+                }
             }
         }
 
-        // Standard ViewPager switching logic
-        val selectedIndex = tabs.indexOfFirst { it.tab_name == selectedCategory.tab_name }
-        if (selectedIndex != -1) {
-            val updatedCategories = tabs.map {
-                it.copy(is_selected = it.tab_name == selectedCategory.tab_name)
-            }
-            tabs = ArrayList(updatedCategories)
-            adapter.submitList(tabs)
-            binding.viewPager.setCurrentItem(selectedIndex, true)
+        // Always switch the page regardless of the toggle outcome
+        navigateTo(selectedCategory)
+    }
+
+    /**
+     * Switches the ViewPager to [selectedCategory] and updates the selection
+     * highlight — NO ViewModel state changes, safe to call at any time.
+     */
+    private fun navigateTo(selectedCategory: AdjustmentPanelTabs) {
+        selectTabVisually(selectedCategory)
+        val index = tabs.indexOfFirst { it.tab_name == selectedCategory.tab_name }
+        if (index != -1) {
+            binding.viewPager.setCurrentItem(index, true)
         }
+    }
+
+    /** Updates the is_selected flag in the tab list and notifies the adapter. */
+    private fun selectTabVisually(selectedCategory: AdjustmentPanelTabs) {
+        tabs = ArrayList(tabs.map { it.copy(is_selected = it.tab_name == selectedCategory.tab_name) })
+        adapter.submitList(tabs)
     }
 
     override fun onDestroy() {

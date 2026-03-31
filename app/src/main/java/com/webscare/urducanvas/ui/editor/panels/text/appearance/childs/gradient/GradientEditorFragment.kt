@@ -47,34 +47,26 @@ class GradientEditorFragment : androidx.fragment.app.Fragment() {
 
     private fun initObservers() {
         viewModel.gradient.observe(viewLifecycleOwner) { gradient ->
+            // Always update the model immediately
             binding.gradientBar.gradientItem = gradient
-            binding.gradientBar.post {
+            // Force the shader refresh after layout (safe even if already laid out)
+            binding.gradientBar.doOnLayout {
                 binding.gradientBar.invalidateShader()
             }
+
             viewModel.finishPickingGradient(gradient)
+
             binding.preview.doOnLayout {
                 val w = it.width
                 val h = it.height
-                val drawable = gradient.createGradientPreviewDrawable(
-                    gradient,
-                    width = w,
-                    height = h
-                )
+                val drawable = gradient.createGradientPreviewDrawable(gradient, width = w, height = h)
                 it.background = drawable
             }
-            // redraw your gradientBar as well
+
             when (gradient.type) {
-                GradientType.LINEAR -> {
-                    updateButtonTints(binding.linear)
-                }
-
-                GradientType.RADIAL -> {
-                    updateButtonTints(binding.radial)
-                }
-
-                else -> {
-                    updateButtonTints(binding.sweep)
-                }
+                GradientType.LINEAR -> updateButtonTints(binding.linear)
+                GradientType.RADIAL -> updateButtonTints(binding.radial)
+                else                -> updateButtonTints(binding.sweep)
             }
             binding.gradientBar.invalidate()
         }

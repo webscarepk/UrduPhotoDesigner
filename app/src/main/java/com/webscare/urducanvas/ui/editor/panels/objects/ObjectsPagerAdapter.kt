@@ -1,42 +1,62 @@
 package com.webscare.urducanvas.ui.editor.panels.objects
 
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.Lifecycle
-import androidx.fragment.app.Fragment
+import androidx.viewpager2.adapter.FragmentStateAdapter
 
 class ObjectsPagerAdapter(
     private val fm: FragmentManager,
     lifecycle: Lifecycle,
-    private var tabs: List<String>
-) : androidx.viewpager2.adapter.FragmentStateAdapter(fm, lifecycle) {
+    private val tabs: List<String>
+) : FragmentStateAdapter(fm, lifecycle) {
 
-    // current filter text
     private var currentQuery: String = ""
 
-    /** Called by the host whenever the search text changes */
+    /**
+     * Push a new filter query to every currently-attached ObjectsListFragment.
+     * FragmentStateAdapter keeps live fragments in the FragmentManager under
+     * the tag "f{itemId}", so we filter by instance type which is safe and
+     * avoids touching fragments that haven't been created yet.
+     */
     fun filter(query: String) {
+        if (currentQuery == query) return          // no-op if unchanged
         currentQuery = query
-        // find any existing fragments and tell them to re-filter
-        fm.fragments
-            .filterIsInstance<ObjectsListFragment>()
-            .forEach { it.updateFilter(query) }
+        forEachLiveFragment { it.updateFilter(query) }
     }
 
+    /**
+     * Push fresh image data to every currently-attached ObjectsListFragment.
+     * Only non-base-tab fragments actually use this data, so each fragment
+     * guards against unnecessary work internally.
+     */
     fun refreshData(images: List<com.webscare.urducanvas.data.model.ImageEntity>) {
-        fm.fragments
-            .filterIsInstance<ObjectsListFragment>()
-            .forEach { it.updateImages(images) }
+        forEachLiveFragment { it.updateImages(images) }
     }
 
-    fun setTabs(newTabs: List<String>) {
-        this.tabs = newTabs
-        notifyDataSetChanged()
-    }
+    // ── FragmentStateAdapter contract ─────────────────────────────────────────
 
     override fun getItemCount(): Int = tabs.size
 
     override fun createFragment(position: Int): Fragment {
-        // pass the initial filter into the fragment’s arguments
         return ObjectsListFragment.newInstance(tabs[position], currentQuery)
+    }
+
+    /**
+     * Stable IDs prevent ViewPager2 from destroying and recreating fragments
+     * when notifyDataSetChanged() is called. We use the tab name's hash code
+     * so a tab always maps to the same fragment regardless of its position.
+     */
+    override fun getItemId(position: Int): Long = tabs[position].hashCode().toLong()
+
+    override fun containsItem(itemId: Long): Boolean =
+        tabs.any { it.hashCode().toLong() == itemId }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private inline fun forEachLiveFragment(action: (ObjectsListFragment) -> Unit) {
+        fm.fragments
+            .filterIsInstance<ObjectsListFragment>()
+            .forEach(action)
     }
 }
