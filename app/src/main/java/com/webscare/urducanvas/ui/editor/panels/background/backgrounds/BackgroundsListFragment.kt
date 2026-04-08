@@ -40,7 +40,7 @@ class BackgroundsListFragment() : androidx.fragment.app.Fragment() {
             if (isAdded) {
                 mainViewModel.updateImage(imageEntity.copy(is_recent = true))
                 viewModel.ensureBackgroundElement(requireActivity())
-                viewModel.setCanvasBackgroundImage(bitmap)
+                viewModel.setCanvasBackgroundImage(bitmap, requireActivity())
             }
         }
         binding.backgrounds.adapter = imagesAdapter

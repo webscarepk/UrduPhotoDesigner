@@ -149,7 +149,8 @@ class BackgroundsFragment : androidx.fragment.app.Fragment() {
                     ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
                 withContext(Dispatchers.Main) {
                     viewModel.setCanvasBackgroundImage(
-                        ImageProcessor.filePathToBitmap(filePath!!)
+                        ImageProcessor.filePathToBitmap(filePath!!),
+                        requireActivity()
                     )
                 }
             } catch (e: Exception) {

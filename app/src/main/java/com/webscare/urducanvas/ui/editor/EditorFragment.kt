@@ -62,7 +62,6 @@ import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.common.canvas.model.ExportOptions
 import com.webscare.urducanvas.common.utils.BitmapCache
-import com.webscare.urducanvas.common.utils.Converter
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.views.CanvasView
@@ -110,7 +109,7 @@ class EditorFragment : Fragment() {
     private var exportDialogBinding: DialogAutoSavingLayoutBinding? = null
     private var rotationAnimator: ObjectAnimator? = null
     private var isSaving = false
-
+    private var shapeJustAdded = false
     private var saveJsonJob: Job? = null
     private var savePending = false
     private var lastJsonSaveTime = 0L
@@ -262,24 +261,25 @@ class EditorFragment : Fragment() {
             toggleFabMenu(false)
         }
 
-        binding.addObject.setOnClickListener {
+        binding.addObject.addPressEffect {
             val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
             val bundle = Bundle().apply { putInt("startPage", 1) } // Assuming page 1 is index 0
             navController.navigate(R.id.objectsFragment, bundle, navOptions)
             toggleFabMenu(false)
         }
 
-        binding.addShapes.setOnClickListener {
+        binding.addShapes.addPressEffect {
+            shapeJustAdded = true
             viewModel.addShapeElement()
             toggleFabMenu(false)
         }
 
-        binding.addImage.setOnClickListener {
+        binding.addImage.addPressEffect {
             pickImage.launch("image/*")
             toggleFabMenu(false)
         }
 
-        binding.addDraw.setOnClickListener {
+        binding.addDraw.addPressEffect {
             viewModel.enterDrawingMode(requireActivity())
             val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
             navController.navigate(R.id.drawFragment, null, navOptions)
@@ -456,8 +456,8 @@ class EditorFragment : Fragment() {
                     if (now - lastJsonSaveTime < saveDebounce) return@launch
 
                     // ✅ Check on live list BEFORE serializing — free, no RAM cost
-                    val hasRealElements = viewModel.canvasElements.value
-                        ?.any { it.type?.name != "Background" }
+                    val hasRealElements =
+                        viewModel.canvasElements.value?.any { it.type?.name != "Background" }
 
                     val isEmpty = viewModel.canvasElements.value?.isEmpty()
 
@@ -494,7 +494,7 @@ class EditorFragment : Fragment() {
             lifecycleScope.launch(Dispatchers.IO) {
                 // ---- Save Image ----
                 if (exportImage) {
-                    ImageProcessor.saveBitmapToFile(exportBitmap, options, imagePath)
+                    ImageProcessor.saveBitmapToFile(exportBitmap, imagePath)
                     withContext(Dispatchers.Main) {
                         updateExportDialog(96, "Image saved")
                     }
@@ -519,19 +519,18 @@ class EditorFragment : Fragment() {
                 val fileName = "$fileBaseName"
                 // ---- Prepare model ----
                 if (exportModel == null) {
-                    exportModel =
-                        ExportResult(
-                            imagePath = imagePath,
-                            jsonPath = jsonPath,
-                            fileName = fileName,
-                            fileSizeMB = fileSizeMB,
-                            resolution = options.resolution.label,
-                            format = options.format.name,
-                            quality = options.quality.label,
-                            canvasSize = canvasSize,
-                            exportDate = exportDate,
-                            updatedDate = exportDate,
-                        )
+                    exportModel = ExportResult(
+                        imagePath = imagePath,
+                        jsonPath = jsonPath,
+                        fileName = fileName,
+                        fileSizeMB = fileSizeMB,
+                        resolution = options.resolution.label,
+                        format = options.format.name,
+                        quality = options.quality.label,
+                        canvasSize = canvasSize,
+                        exportDate = exportDate,
+                        updatedDate = exportDate,
+                    )
                 } else {
                     if (exportModel!!.imagePath.startsWith("/storage")) {
                         exportModel!!.imagePath = imagePath
@@ -716,18 +715,7 @@ class EditorFragment : Fragment() {
         viewModel.activePicker.observe(viewLifecycleOwner) { slot ->
             if (::sizedCanvasView.isInitialized) {
                 when (slot) {
-                    PickerTarget.EYE_DROPPER_LABEL,
-                    PickerTarget.EYE_DROPPER_OVERLAY,
-                    PickerTarget.EYE_DROPPER_SHADOW,
-                    PickerTarget.EYE_DROPPER_BACKGROUND,
-                    PickerTarget.EYE_DROPPER_TEXT_FILL,
-                    PickerTarget.EYE_DROPPER_TEXT_STROKE,
-                    PickerTarget.EYE_DROPPER_GRADIENT,
-                    PickerTarget.EYE_DROPPER_DRAW_STROKE,
-                    PickerTarget.EYE_DROPPER_DRAW_FILL,
-                    PickerTarget.EYE_DROPPER_IMAGE_STROKE,
-                    PickerTarget.EYE_DROPPER_SHAPE_STROKE,
-                    PickerTarget.EYE_DROPPER_SHAPE_FILL -> {
+                    PickerTarget.EYE_DROPPER_LABEL, PickerTarget.EYE_DROPPER_OVERLAY, PickerTarget.EYE_DROPPER_SHADOW, PickerTarget.EYE_DROPPER_BACKGROUND, PickerTarget.EYE_DROPPER_TEXT_FILL, PickerTarget.EYE_DROPPER_TEXT_STROKE, PickerTarget.EYE_DROPPER_GRADIENT, PickerTarget.EYE_DROPPER_DRAW_STROKE, PickerTarget.EYE_DROPPER_DRAW_FILL, PickerTarget.EYE_DROPPER_IMAGE_STROKE, PickerTarget.EYE_DROPPER_SHAPE_STROKE, PickerTarget.EYE_DROPPER_SHAPE_FILL -> {
                         sizedCanvasView.enableColorPicker()
                     }
 
@@ -761,16 +749,11 @@ class EditorFragment : Fragment() {
                 newSelection.size == 1 && first != null -> {
                     when (first.type) {
 
-                        ElementType.TEXT ->
-                            R.id.textFragment
+                        ElementType.TEXT -> R.id.textFragment
 
-                        ElementType.IMAGE,
-                        ElementType.STICKER,
-                        ElementType.BACKGROUND ->
-                            R.id.adjustmentsParentFragment
+                        ElementType.IMAGE, ElementType.STICKER, ElementType.BACKGROUND -> R.id.adjustmentsParentFragment
 
-                        ElementType.SHAPE ->
-                            R.id.shapesParentFragment
+                        ElementType.SHAPE -> R.id.shapesParentFragment
 
                         else -> null
                     }
@@ -780,17 +763,13 @@ class EditorFragment : Fragment() {
             }
 
             val panelDestinations = listOf(
-                R.id.textFragment,
-                R.id.adjustmentsParentFragment,
-                R.id.shapesParentFragment
+                R.id.textFragment, R.id.adjustmentsParentFragment, R.id.shapesParentFragment
             )
 
             // If nothing should be open → close panels
             if (targetDestination == null) {
                 viewModel.closeAppearanceTab()
-                if (
-                    currentDest == R.id.adjustmentsParentFragment
-                ) {
+                if (currentDest == R.id.adjustmentsParentFragment) {
                     if (currentDest in panelDestinations) {
                         navController.popBackStack(currentDest, true)
                     }
@@ -819,13 +798,19 @@ class EditorFragment : Fragment() {
                         Canvas(bmp).also { svg.draw(it) }
                         BitmapCache.put(element.id, bmp)
                     }
-                }else if (targetDestination == R.id.textFragment || targetDestination == R.id.shapesParentFragment) {
-                    viewModel.openAppearanceTab()
+                } else if (targetDestination == R.id.textFragment || targetDestination == R.id.shapesParentFragment) {
+                    if (!(targetDestination == R.id.shapesParentFragment && shapeJustAdded)) {
+                        viewModel.openAppearanceTab()
+                    }
                 }
 
-                val navOptions = NavOptions.Builder()
-                    .setLaunchSingleTop(true)
-                    .build()
+                val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
+
+                if (targetDestination == R.id.shapesParentFragment) {
+                    val startPage = if (shapeJustAdded) 0 else 1
+                    shapeJustAdded = false
+                    bundle.putInt("startPage", startPage)
+                }
 
                 navController.navigate(targetDestination, bundle, navOptions)
             }
@@ -867,12 +852,13 @@ class EditorFragment : Fragment() {
         val hasBackground = selected.any { it.type == ElementType.BACKGROUND }
         val hasShapeMask = selected.any { it.type == ElementType.SHAPE && it.bitmap != null }
         val isMulti = selected.size > 1
+        val isSvg = selected.any { it.svgData != null}
         val anySelected = selected.isNotEmpty()
 
         val showFont = anySelected && hasText && !isMulti && !hasImage && !hasBackground
         val showCopy = anySelected && !hasBackground && !isMulti
         val showAlignWithSelection = isMulti
-        val showRemoveBg = (hasImage || hasBackground || hasShapeMask) && !isMulti
+        val showRemoveBg = (hasImage || hasBackground || hasShapeMask) && !isMulti && !isSvg
 
         updateIconVisibility(binding.opacityPane, anySelected)
         updateIconVisibility(binding.blendPane, anySelected)
@@ -925,6 +911,12 @@ class EditorFragment : Fragment() {
                 canvasWidth = widthPx,
                 canvasHeight = heightPx,
                 onEditTextRequested = { element ->
+                    if (!isAdded || view == null || !viewLifecycleOwner.lifecycle.currentState.isAtLeast(
+                            Lifecycle.State.STARTED
+                        )
+                    ) {
+                        return@CanvasView
+                    }
                     viewLifecycleOwner.lifecycleScope.launch {
                         try {
                             when (element.type) {
@@ -959,29 +951,36 @@ class EditorFragment : Fragment() {
                                         selected?.let {
                                             val key = it.id
                                             BitmapCache.put(key, it.bitmap!!)
-                                            val bundle = Bundle().apply { putString("elementId", key) }
+                                            val bundle =
+                                                Bundle().apply { putString("elementId", key) }
 
-                                            val navOptions = NavOptions.Builder()
-                                                .setLaunchSingleTop(true)
-                                                .setPopUpTo(R.id.adjustmentsParentFragment, inclusive = true)
-                                                .build()
+                                            val navOptions =
+                                                NavOptions.Builder().setLaunchSingleTop(true)
+                                                    .setPopUpTo(
+                                                        R.id.adjustmentsParentFragment,
+                                                        inclusive = true
+                                                    ).build()
 
-                                            navController.navigate(R.id.adjustmentsParentFragment, bundle, navOptions)
+                                            navController.navigate(
+                                                R.id.adjustmentsParentFragment, bundle, navOptions
+                                            )
                                         }
                                     } else if (element.type == ElementType.SHAPE) {
                                         // Normal shape (no masked bitmap) → go to ShapesParentFragment
                                         val bundle = Bundle().apply { putInt("startPage", 0) }
-                                        val navOptions = NavOptions.Builder()
-                                            .setLaunchSingleTop(true)
-                                            .build()
-                                        navController.navigate(R.id.shapesParentFragment, bundle, navOptions)
+                                        val navOptions =
+                                            NavOptions.Builder().setLaunchSingleTop(true).build()
+                                        navController.navigate(
+                                            R.id.shapesParentFragment, bundle, navOptions
+                                        )
                                     } else {
                                         // ElementType.DRAW → go to DrawFragment
                                         val bundle = Bundle().apply { putInt("startPage", 0) }
-                                        val navOptions = NavOptions.Builder()
-                                            .setLaunchSingleTop(true)
-                                            .build()
-                                        navController.navigate(R.id.drawFragment, bundle, navOptions)
+                                        val navOptions =
+                                            NavOptions.Builder().setLaunchSingleTop(true).build()
+                                        navController.navigate(
+                                            R.id.drawFragment, bundle, navOptions
+                                        )
                                     }
                                 }
 
@@ -1025,16 +1024,17 @@ class EditorFragment : Fragment() {
                 },
                 onRequestOpenLayers = {
                     requireActivity().runOnUiThread {
-                        if (view != null && viewLifecycleOwner.lifecycle.currentState.isAtLeast(
-                                Lifecycle.State.CREATED
+                        if (!isAdded || view == null || !viewLifecycleOwner.lifecycle.currentState.isAtLeast(
+                                Lifecycle.State.STARTED
                             )
                         ) {
-                            viewModel.enterSelectionMode()
-                            binding.bottomNavigation.selectedItemId = R.id.nav_layers
-                            navController.navigate(R.id.layersFragment)
-                            currentPanelItemId = R.id.nav_layers
-                            binding.panelNavHost.visibility = View.VISIBLE
+                            return@runOnUiThread
                         }
+                        viewModel.enterSelectionMode()
+                        binding.bottomNavigation.selectedItemId = R.id.nav_layers
+                        navController.navigate(R.id.layersFragment)
+                        currentPanelItemId = R.id.nav_layers
+                        binding.panelNavHost.visibility = View.VISIBLE
                     }
                 },
                 onExitSelectionMode = {
@@ -1048,8 +1048,7 @@ class EditorFragment : Fragment() {
             viewModel.setCanvasView(sizedCanvasView)
         }
 
-        canvasManager =
-            CanvasManager(sizedCanvasView)
+        canvasManager = CanvasManager(sizedCanvasView)
     }
 
     /** Setup bottom navigation with navHost */
@@ -1230,7 +1229,7 @@ class EditorFragment : Fragment() {
         binding.cutOutIcon.addPressEffect {
             view?.post {
                 val selected = viewModel.selectedElements.value?.firstOrNull()
-                if (selected?.bitmap != null && selected.bitmapData != null){
+                if (selected?.bitmap != null && selected.bitmapData != null) {
                     findNavController().navigate(R.id.bgRemovalFragment)
                 }
             }
@@ -1519,8 +1518,8 @@ class EditorFragment : Fragment() {
         rotationAnimator = null
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onDestroyView() {
+        super.onDestroyView()
         saveJsonJob?.cancel()
         _binding = null
         _navController = null

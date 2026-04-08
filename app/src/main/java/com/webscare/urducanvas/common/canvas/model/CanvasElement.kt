@@ -200,6 +200,9 @@ data class CanvasElement(
 
     ) : Serializable {
 
+    @field:Transient var cachedAdjustedBitmap: Bitmap? = null
+    @field:Transient var isAdjustmentDirty: Boolean = true
+
     @field:Transient
     lateinit var paint: TextPaint
 

@@ -382,7 +382,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
 
                     canvasViewModel.clearCanvas()
                     canvasViewModel.setCanvasSize(canvasSize)
-                    canvasViewModel.setCanvasBackgroundImage(it)
+                    canvasViewModel.setCanvasBackgroundImage(it, requireActivity())
                     view?.post {
                         findNavController().navigate(R.id.editorFragment, bundle, navOptions)
                     }

@@ -903,8 +903,12 @@ class CanvasViewModel @Inject constructor(
         val updatedList = currentList.map { element ->
             if (element.isSelected && (element.type == ElementType.IMAGE || element.type == ElementType.STICKER || element.type == ElementType.SHAPE || (element.type == ElementType.BACKGROUND && element.bitmap != null))) {
                 val oldElement = element.copy(context = null, bitmap = null)
+
                 val newAdjustments = update(element.adjustments)
                 val updated = element.copy(adjustments = newAdjustments)
+                updated.isAdjustmentDirty = true
+                updated.cachedAdjustedBitmap?.recycle()
+                updated.cachedAdjustedBitmap = null
 
                 _canvasActions.push(
                     CanvasAction.UpdateElement(
@@ -2640,15 +2644,50 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
-    fun setCanvasBackgroundImage(bitmap: Bitmap?) {
-        val previousBitmap = _backgroundImage.value
-        // Only push action if there's a change
-        if (bitmap != previousBitmap) {
-            _canvasActions.push(CanvasAction.SetBackgroundImage(bitmap, previousBitmap))
-            _redoStack.clear()
-            _backgroundImage.value = bitmap
-            notifyUndoRedoChanged()
-        }
+//    fun setCanvasBackgroundImage(bitmap: Bitmap?) {
+//        val previousBitmap = _backgroundImage.value
+//        // Only push action if there's a change
+//        if (bitmap != previousBitmap) {
+//            _canvasActions.push(CanvasAction.SetBackgroundImage(bitmap, previousBitmap))
+//            _redoStack.clear()
+//            _backgroundImage.value = bitmap
+//            notifyUndoRedoChanged()
+//        }
+//    }
+
+    fun setCanvasBackgroundImage(bitmap: Bitmap?, context: Context) {
+        if (bitmap?.width!! <= 0 || bitmap.height!! <= 0) return
+
+        val currentList = _canvasElements.value ?: emptyList()
+        val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
+
+        val canvasW = _canvasSize.value?.width ?: return
+        val canvasH = _canvasSize.value?.height ?: return
+
+        // Place it right above the background element (zIndex 1) so it sits as a background-like layer
+        val bgZIndex = currentList.firstOrNull { it.type == ElementType.BACKGROUND }?.zIndex ?: 0
+
+        val element = CanvasElement(
+            context = context,
+            type = ElementType.IMAGE,
+            bitmap = bitmap,
+            bitmapData = ImageProcessor.bitmapToBase64(bitmap),
+            x = canvasW / 2f,
+            y = canvasH / 2f,
+            paintAlpha = 255,
+            zIndex = newZIndex,
+            // Full canvas logical size so the cover-scale math fills the canvas
+            logicalContentWidth = canvasW,
+            logicalContentHeight = canvasH,
+            imageFitMode = "cover",
+            scale = 1f
+        )
+
+        element.updatePaintProperties()
+        _canvasActions.push(CanvasAction.AddSticker(element.copy(context = null, bitmap = null)))
+        _redoStack.clear()
+        _canvasElements.value = currentList + element
+        notifyUndoRedoChanged()
     }
 
     fun setCanvasGradient(newGradient: GradientItem) {
@@ -3134,7 +3173,12 @@ class CanvasViewModel @Inject constructor(
         val oldFilter = targetElement.imageFilter
         if (oldFilter != newFilter) {
             val context = targetElement.context
-            val updatedElement = targetElement.copy(imageFilter = newFilter!!, context = context)
+            val updatedElement = targetElement.copy(imageFilter = newFilter!!, context = context).also {
+                // ✅ Stale cached bitmap must be discarded when the filter changes
+                it.isAdjustmentDirty = true
+                it.cachedAdjustedBitmap?.recycle()
+                it.cachedAdjustedBitmap = null
+            }
 
             _canvasElements.value =
                 currentList.map { if (it.id == updatedElement.id) updatedElement else it }

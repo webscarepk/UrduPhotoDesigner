@@ -68,7 +68,7 @@ class ImageFiltersAdapter(
 
             binding.card.strokeWidth = if (isCurrentItemSelected) 4 else 0
 
-            binding.card.addPressEffect {
+            binding.filterView.addPressEffect {
                 onFilterSelected.invoke(filterItem)
             }
         }

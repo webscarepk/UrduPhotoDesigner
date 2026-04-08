@@ -51,12 +51,28 @@ object ImageProcessor {
         if (!dir.exists()) dir.mkdirs()
     }
 
-    // --- Save Bitmap with options ---
-    fun saveBitmapToFile(bitmap: Bitmap, options: ExportOptions, path: String) {
+    fun downsampleIfNeeded(bitmap: Bitmap, maxW: Int, maxH: Int): Bitmap {
+        val w = bitmap.width
+        val h = bitmap.height
+
+        // Already within bounds — return as-is, no copy made
+        if (w <= maxW && h <= maxH) return bitmap
+
+        val scale = minOf(maxW.toFloat() / w, maxH.toFloat() / h)
+        val newW = (w * scale).roundToInt().coerceAtLeast(1)
+        val newH = (h * scale).roundToInt().coerceAtLeast(1)
+
+        val scaled = bitmap.scale(newW, newH)
+        bitmap.recycle() // original no longer needed
+        return scaled
+    }
+
+    // ← New overload for thumbnails — always PNG to preserve transparency
+    fun saveBitmapToFile(bitmap: Bitmap, path: String) {
         val file = File(path)
         ensureDir(file.parentFile!!)
         FileOutputStream(file).use { stream ->
-            bitmap.compress(options.format.format!!, options.quality.quality, stream)
+            bitmap.compress(Bitmap.CompressFormat.PNG, 30, stream)
             stream.flush()
             stream.fd.sync()
         }

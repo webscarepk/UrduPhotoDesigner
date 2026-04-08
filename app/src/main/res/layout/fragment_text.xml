@@ -101,7 +101,7 @@
             android:layout_height="30dp"
             android:textColor="@color/black"
             android:fontFamily="@font/regular"
-            android:textSize="15sp"
+            android:textSize="12sp"
             android:maxLines="1"
             android:singleLine="true"
             android:background="@drawable/button_bg_small"

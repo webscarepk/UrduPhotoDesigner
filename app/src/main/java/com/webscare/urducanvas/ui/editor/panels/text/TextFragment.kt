@@ -122,13 +122,13 @@ class TextFragment : Fragment() {
             binding.searchIcon.isVisible = false
             binding.searchBar.isVisible = true
             binding.searchBar.requestFocus()
-            val imm =
-                requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            binding.searchBar.setSelection(binding.searchBar.text?.length ?: 0)
+            val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showSoftInput(binding.searchBar, InputMethodManager.SHOW_IMPLICIT)
         }
 
         binding.searchBar.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus && binding.searchBar.text.isNullOrEmpty()) {
+            if (!hasFocus) {
                 binding.searchIcon.isVisible = true
                 binding.searchBar.isVisible = false
             }
@@ -144,6 +144,8 @@ class TextFragment : Fragment() {
                 val query = binding.searchBar.text.toString()
                 mainViewModel.setQuery(query)
                 hideKeyboard()
+                binding.searchBar.isVisible = false
+                binding.searchIcon.isVisible = true
                 true
             } else {
                 false

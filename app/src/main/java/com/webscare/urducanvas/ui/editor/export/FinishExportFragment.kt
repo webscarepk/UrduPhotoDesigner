@@ -6,7 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.FileProvider
-import androidx.fragment.app.Fragment
+import com.webscare.urducanvas.BuildConfig
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
@@ -17,12 +17,11 @@ import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.utils.Utils.copyToClipboard
 import com.webscare.urducanvas.databinding.FragmentFinishExportBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import com.webscare.urducanvas.common.utils.Utils.copyToClipboard
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import androidx.core.graphics.scale
 
 @AndroidEntryPoint
 class FinishExportFragment : androidx.fragment.app.Fragment() {
@@ -91,32 +90,57 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
         }
 
         // 🔹 Share logic
+        // 🔹 Share logic
         binding.share.addPressEffect {
             val export = viewModel.exportResult.value ?: return@addPressEffect
-            val jsonFile = File(export.jsonPath)
-            val imageFile = File(export.imagePath)
 
-            if (!jsonFile.exists() || !imageFile.exists()) {
-                return@addPressEffect
+            if (BuildConfig.DEBUG) {
+                // Debug: zip json + thumbnail image and share
+                val jsonFile = File(export.jsonPath)
+                val imageFile = File(export.imagePath)
+
+                if (!jsonFile.exists() || !imageFile.exists()) return@addPressEffect
+
+                val thumbnailFile = createThumbnail(imageFile, export.imagePath)
+                if (thumbnailFile == null) return@addPressEffect
+
+                val downloadFolder = android.os.Environment
+                    .getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+                val zipFile = File(downloadFolder, "design_${System.currentTimeMillis()}.zip")
+                createZipFromFiles(listOf(jsonFile, thumbnailFile), zipFile)
+
+                // Clean up temp thumbnail
+                thumbnailFile.delete()
+
+                val uri = FileProvider.getUriForFile(
+                    requireContext(),
+                    "${requireContext().packageName}.fileprovider",
+                    zipFile
+                )
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/zip"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivity(Intent.createChooser(intent, "Share Design Zip"))
+
+            } else {
+                // Release: share the final exported image directly
+                val imageFile = File(export.imagePath)
+                if (!imageFile.exists()) return@addPressEffect
+
+                val uri = FileProvider.getUriForFile(
+                    requireContext(),
+                    "${requireContext().packageName}.fileprovider",
+                    imageFile
+                )
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "image/*"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivity(Intent.createChooser(intent, "Share Image"))
             }
-
-            val downloadFolder = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
-            val zipFile = File(downloadFolder, "design_${System.currentTimeMillis()}.zip")
-            createZipFromFiles(listOf(jsonFile, imageFile), zipFile)
-
-            val uri = FileProvider.getUriForFile(
-                requireContext(),
-                "${requireContext().packageName}.fileprovider",
-                zipFile
-            )
-
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "application/zip"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-
-            startActivity(Intent.createChooser(intent, "Share Design Zip"))
         }
 
         // 🔹 Open logic (PDF or Image)
@@ -176,6 +200,26 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
                 printHelper.printBitmap(export.fileName ?: "Design", bitmap)
             }
         }
+    }
+
+    private fun createThumbnail(originalFile: File, imagePath: String): File? {
+        val original = ImageProcessor.filePathToBitmap(imagePath) ?: return null
+
+        val maxDim = 512
+        val scale = maxDim.toFloat() / maxOf(original.width, original.height)
+        val thumbWidth = (original.width * scale).toInt()
+        val thumbHeight = (original.height * scale).toInt()
+
+        val thumbnail = original.scale(thumbWidth, thumbHeight)
+
+        val thumbFile = File(requireContext().cacheDir, "thumb_${originalFile.nameWithoutExtension}.jpg")
+        thumbFile.outputStream().use { out ->
+            thumbnail.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, out)
+        }
+        thumbnail.recycle()
+        original.recycle()
+
+        return thumbFile
     }
 
     fun createZipFromFiles(files: List<File>, outputZip: File) {

@@ -70,7 +70,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(canvasSize)
-                viewModel.setCanvasBackgroundImage(bitmap)
+                viewModel.setCanvasBackgroundImage(bitmap, requireActivity())
                 val editorNavOptions = NavOptions.Builder().setLaunchSingleTop(true)
                     .setPopUpTo(R.id.editorFragment, inclusive = true) // 🔥 this line is key
                     .build()

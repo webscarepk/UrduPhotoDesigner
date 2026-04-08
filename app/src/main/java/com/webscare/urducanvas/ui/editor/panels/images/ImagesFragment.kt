@@ -21,6 +21,7 @@ import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.utils.ImageProcessor
+import com.webscare.urducanvas.common.utils.ImageProcessor.downsampleIfNeeded
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentImagesBinding
 import com.webscare.urducanvas.viewmodels.MainViewModel
@@ -97,30 +98,30 @@ class ImagesFragment : Fragment() {
         }
 
         binding.searchIcon.addPressEffect {
-
             binding.searchIcon.isVisible = false
             binding.searchBar.isVisible = true
             binding.searchBar.requestFocus()
-
-            val imm =
-                requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-
+            binding.searchBar.setSelection(binding.searchBar.text?.length ?: 0)
+            val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showSoftInput(binding.searchBar, InputMethodManager.SHOW_IMPLICIT)
         }
 
         binding.searchBar.setOnEditorActionListener { _, actionId, _ ->
-
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-
                 val query = binding.searchBar.text.toString()
-
                 adapter.filter(query)
-
                 hideKeyboard()
-
+                binding.searchBar.isVisible = false
+                binding.searchIcon.isVisible = true
                 true
-
             } else false
+        }
+
+        binding.searchBar.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                binding.searchBar.isVisible = false
+                binding.searchIcon.isVisible = true
+            }
         }
     }
 
@@ -142,38 +143,30 @@ class ImagesFragment : Fragment() {
     // --------------------------------------------------
 
     private fun handlePickedUri(uri: Uri) {
-
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-
             try {
+                val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                val rawBitmap = ImageProcessor.filePathToBitmap(filePath!!) ?: return@launch
 
-                val filePath =
-                    ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                val canvasW = viewModel.canvasSize.value?.width ?: rawBitmap.width
+                val canvasH = viewModel.canvasSize.value?.height ?: rawBitmap.height
 
-                val bitmap = ImageProcessor.filePathToBitmap(filePath!!)
+                val maxW = (canvasW.toInt() * 2).coerceAtLeast(1024)
+                val maxH = (canvasH.toInt() * 2).coerceAtLeast(1024)
+
+                val bitmap = downsampleIfNeeded(rawBitmap, maxW, maxH)
 
                 withContext(Dispatchers.Main) {
-
                     val selectedTab =
                         binding.tabLayout.getTabAt(binding.tabLayout.selectedTabPosition)?.text
 
-                    // Decide behaviour based on tab
                     if (selectedTab?.equals("Backgrounds") == true) {
-
-                        viewModel.setCanvasBackgroundImage(bitmap)
-
+                        viewModel.setCanvasBackgroundImage(bitmap, requireActivity())
                     } else {
-
-                        viewModel.addSticker(
-                            bitmap,
-                            requireActivity(),
-                            ElementType.IMAGE
-                        )
+                        viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE)
                     }
                 }
-
             } catch (e: Exception) {
-
                 Log.e("ImagesFragment", "Failed to import image", e)
             }
         }

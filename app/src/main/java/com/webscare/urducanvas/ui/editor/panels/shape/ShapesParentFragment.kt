@@ -58,12 +58,26 @@ class ShapesParentFragment : Fragment() {
 
         setEvents()
         setupTabLayout()
-        initObservers()
+        val startPage = arguments?.getInt("startPage", -1) ?: -1
+        if (startPage != -1) {
+            binding.viewPager.setCurrentItem(startPage, false)
+        }
+
+        initObservers(skipFirstTabSwitch = startPage == 0)
     }
 
-    private fun initObservers() {
+    private fun initObservers(skipFirstTabSwitch: Boolean = false) {
+        var isFirstEmission = skipFirstTabSwitch
+
         viewModel.openAppearanceTab.observe(viewLifecycleOwner) { openTab ->
             if (!isAdded || _binding == null) return@observe
+
+            // Skip the first emission if we were opened via FAB (startPage = 0)
+            if (isFirstEmission) {
+                isFirstEmission = false
+                return@observe
+            }
+
             val targetPage = if (openTab == true) 1 else 0
             if (binding.viewPager.currentItem != targetPage) {
                 binding.viewPager.setCurrentItem(targetPage, false)

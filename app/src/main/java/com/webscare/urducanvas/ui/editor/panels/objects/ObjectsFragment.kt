@@ -20,7 +20,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.utils.ImageProcessor
@@ -30,6 +32,7 @@ import com.webscare.urducanvas.viewmodels.MainViewModel
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import com.webscare.urducanvas.common.canvas.enums.ElementType
+import com.webscare.urducanvas.common.utils.ImageProcessor.downsampleIfNeeded
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -43,8 +46,8 @@ class ObjectsFragment : Fragment() {
     private var tabs = mutableListOf<String>()
     private val mainViewModel: MainViewModel by activityViewModels()
     private val viewModel: CanvasViewModel by activityViewModels()
+    private val tabResultMap = mutableMapOf<String, Boolean>()
 
-    // Guards against adding GlobalLayoutListener + OnTabSelectedListener more than once
     private var tabLayoutListenerAttached = false
     private var tabSelectedListenerAttached = false
 
@@ -67,54 +70,59 @@ class ObjectsFragment : Fragment() {
     }
 
     private fun initObservers() {
-        lifecycleScope.launch {
-            mainViewModel.localImages.collect { images ->
+        viewLifecycleOwner.lifecycleScope.launch {          // ← view-scoped, not fragment-scoped
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {   // ← cancels on STOP
+                mainViewModel.localImages.collect { images ->
 
-                val baseTabs = listOf(
-                    "Emoticons", "Animals", "Nature", "Food", "Sports",
-                    "Transport", "Objects", "Alchemy", "Shapes",
-                    "Arrows", "Letters", "Flags"
-                )
-
-                val extraTabs = withContext(Dispatchers.Default) {
-                    images.map { it.category.trim() }
-                        .filterNot {
-                            it.equals("Backgrounds", ignoreCase = true) ||
-                                    it.equals("Backgrounds Imported", ignoreCase = true) ||
-                                    it.equals("Images", ignoreCase = true) ||
-                                    it.equals("Images Imported", ignoreCase = true)
-                        }
-                        .distinct()
-                }
-
-                val hasObjectRecents = withContext(Dispatchers.Default) {
-                    images.any { img ->
-                        img.is_recent &&
-                                !img.category.equals("Backgrounds", ignoreCase = true) &&
-                                !img.category.equals("Backgrounds Imported", ignoreCase = true) &&
-                                !img.category.equals("Images", ignoreCase = true) &&
-                                !img.category.equals("Images Imported", ignoreCase = true)
-                    }
-                }
-
-                val newTabs = buildList {
-                    if (hasObjectRecents) add("Recents")
-                    addAll(extraTabs + baseTabs)
-                }
-
-                if (newTabs != tabs) {
-                    tabs.clear()
-                    tabs.addAll(newTabs)
-
-                    adapter = ObjectsPagerAdapter(
-                        requireActivity().supportFragmentManager, lifecycle, tabs
+                    val baseTabs = listOf(
+                        "Emoticons", "Animals", "Nature", "Food", "Sports",
+                        "Transport", "Objects", "Alchemy", "Shapes",
+                        "Arrows", "Letters", "Flags"
                     )
-                    binding.viewPager.adapter = adapter
-                    binding.viewPager.isUserInputEnabled = false
 
-                    setupTabLayout()
-                } else {
-                    adapter.refreshData(images)
+                    val extraTabs = withContext(Dispatchers.Default) {
+                        images.map { it.category.trim() }
+                            .filterNot {
+                                it.equals("Backgrounds", ignoreCase = true) ||
+                                        it.equals("Backgrounds Imported", ignoreCase = true) ||
+                                        it.equals("Images", ignoreCase = true) ||
+                                        it.equals("Images Imported", ignoreCase = true)
+                            }
+                            .distinct()
+                    }
+
+                    val hasObjectRecents = withContext(Dispatchers.Default) {
+                        images.any { img ->
+                            img.is_recent &&
+                                    !img.category.equals("Backgrounds", ignoreCase = true) &&
+                                    !img.category.equals("Backgrounds Imported", ignoreCase = true) &&
+                                    !img.category.equals("Images", ignoreCase = true) &&
+                                    !img.category.equals("Images Imported", ignoreCase = true)
+                        }
+                    }
+
+                    val newTabs = buildList {
+                        if (hasObjectRecents) add("Recents")
+                        addAll(extraTabs + baseTabs)
+                    }
+
+                    if (newTabs != tabs) {
+                        tabs.clear()
+                        tabs.addAll(newTabs)
+
+                        adapter = ObjectsPagerAdapter(
+                            requireActivity().supportFragmentManager, lifecycle, tabs
+                        )
+                        adapter.onTabVisibilityChanged = { category, hasResults ->
+                            setTabVisible(category, hasResults)
+                        }
+                        binding.viewPager.adapter = adapter
+                        binding.viewPager.isUserInputEnabled = false
+
+                        setupTabLayout()
+                    } else {
+                        adapter.refreshData(images)
+                    }
                 }
             }
         }
@@ -176,12 +184,13 @@ class ObjectsFragment : Fragment() {
             binding.searchIcon.isVisible = false
             binding.searchBar.isVisible = true
             binding.searchBar.requestFocus()
+            binding.searchBar.setSelection(binding.searchBar.text?.length ?: 0)
             val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showSoftInput(binding.searchBar, InputMethodManager.SHOW_IMPLICIT)
         }
 
         binding.searchBar.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus && binding.searchBar.text.isNullOrEmpty()) {
+            if (!hasFocus) {
                 binding.searchIcon.isVisible = true
                 binding.searchBar.isVisible = false
             }
@@ -194,7 +203,10 @@ class ObjectsFragment : Fragment() {
         binding.searchBar.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 adapter.filter(binding.searchBar.text.toString())
+                applySearchFilter(binding.searchBar.text.toString())
                 hideKeyboard()
+                binding.searchBar.isVisible = false
+                binding.searchIcon.isVisible = true
                 true
             } else false
         }
@@ -209,6 +221,13 @@ class ObjectsFragment : Fragment() {
                     if (hasText) ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close) else null,
                     null
                 )
+                if (!hasText) {
+                    tabResultMap.clear()
+                    showAllTabs()
+                    applySearchFilter("")
+                } else {
+                    tabResultMap.clear() // reset so we collect fresh results for new query
+                }
             }
         })
 
@@ -219,7 +238,10 @@ class ObjectsFragment : Fragment() {
                     event.x >= binding.searchBar.width - binding.searchBar.paddingRight - drawableRight.bounds.width()
                 ) {
                     binding.searchBar.text.clear()
+                    applySearchFilter("")
                     adapter.filter("")
+                    tabResultMap.clear()
+                    showAllTabs()
                     binding.searchBar.setCompoundDrawablesWithIntrinsicBounds(
                         ContextCompat.getDrawable(requireActivity(), R.drawable.ic_search),
                         null, null, null
@@ -236,11 +258,101 @@ class ObjectsFragment : Fragment() {
         }
     }
 
+    private fun showAllTabs() {
+        val tabStrip = binding.tabLayout.getChildAt(0) as? ViewGroup ?: return
+        for (i in 0 until tabStrip.childCount) {
+            tabStrip.getChildAt(i)?.isVisible = true
+        }
+    }
+
+    private fun applySearchFilter(query: String) {
+        adapter.filter(query)
+
+        if (query.isBlank()) {
+            showAllTabs()
+            return
+        }
+
+        val images = mainViewModel.localImages.value ?: return
+        val tabStrip = binding.tabLayout.getChildAt(0) as? ViewGroup ?: return
+
+        var firstVisibleIndex = -1
+
+        for (i in tabs.indices) {
+            val category = tabs[i]
+            val hasResults = when {
+                // Base emoji tabs
+                ObjectsListFragment.isBaseTab(category) -> {
+                    val emojiData = ObjectsListFragment.emojiDataForCategory(category)
+                    emojiData.any { it.name.contains(query, ignoreCase = true) }
+                }
+                // Recents tab
+                category.equals("Recents", ignoreCase = true) -> {
+                    images.any { img ->
+                        img.is_recent &&
+                                !img.category.equals("Backgrounds", ignoreCase = true) &&
+                                !img.category.equals("Backgrounds Imported", ignoreCase = true) &&
+                                !img.category.equals("Images", ignoreCase = true) &&
+                                !img.category.equals("Images Imported", ignoreCase = true) &&
+                                img.alt_text?.contains(query, ignoreCase = true) == true
+                    }
+                }
+                // All other DB-backed tabs
+                else -> {
+                    images.any { img ->
+                        img.category.equals(category, ignoreCase = true) &&
+                                img.alt_text?.contains(query, ignoreCase = true) == true
+                    }
+                }
+            }
+
+            tabStrip.getChildAt(i)?.isVisible = hasResults
+            if (hasResults && firstVisibleIndex == -1) firstVisibleIndex = i
+        }
+
+        // Jump to first visible tab if current one is now hidden
+        val currentTab = binding.tabLayout.selectedTabPosition
+        if (tabStrip.getChildAt(currentTab)?.isVisible == false && firstVisibleIndex != -1) {
+            binding.viewPager.setCurrentItem(firstVisibleIndex, false)
+        }
+    }
+
+    private fun setTabVisible(category: String, hasResults: Boolean) {
+        tabResultMap[category] = hasResults
+
+        // Wait until ALL tabs have reported before updating visibility
+        if (tabResultMap.size < tabs.size) return
+
+        val tabStrip = binding.tabLayout.getChildAt(0) as? ViewGroup ?: return
+
+        var firstVisibleIndex = -1
+        for (i in tabs.indices) {
+            val hasData = tabResultMap[tabs[i]] == true
+            tabStrip.getChildAt(i)?.isVisible = hasData
+            if (hasData && firstVisibleIndex == -1) firstVisibleIndex = i
+        }
+
+        // If current tab is now hidden, jump to first visible tab
+        val currentTab = binding.tabLayout.selectedTabPosition
+        if (tabStrip.getChildAt(currentTab)?.isVisible == false && firstVisibleIndex != -1) {
+            binding.viewPager.setCurrentItem(firstVisibleIndex, false)
+        }
+    }
+
     private fun handlePickedUri(uri: Uri) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
-                val bitmap = ImageProcessor.filePathToBitmap(filePath!!) ?: return@launch
+                val rawBitmap = ImageProcessor.filePathToBitmap(filePath!!) ?: return@launch
+
+                val canvasW = viewModel.canvasSize.value?.width ?: rawBitmap.width.toFloat()
+                val canvasH = viewModel.canvasSize.value?.height ?: rawBitmap.height.toFloat()
+
+                val maxW = (canvasW * 2).toInt().coerceAtLeast(1024)
+                val maxH = (canvasH * 2).toInt().coerceAtLeast(1024)
+
+                val bitmap = downsampleIfNeeded(rawBitmap, maxW, maxH)
+
                 withContext(Dispatchers.Main) {
                     viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE)
                 }

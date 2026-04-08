@@ -24,6 +24,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
     private var _binding: FragmentObjectsListBinding? = null
     private val binding get() = _binding!!
 
+    var onFilterResult: ((category: String, count: Int) -> Unit)? = null
     private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
 
@@ -140,6 +141,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
             if (_binding == null) return@launch
             binding.noEmojis.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
             emojiAdapter?.updateData(filtered)
+            onFilterResult?.invoke(category, filtered.size)  // ← report up
         }
     }
 
@@ -166,6 +168,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
             if (_binding == null) return@launch
             binding.noEmojis.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
             imagesAdapter?.submitList(filtered)
+            onFilterResult?.invoke(category, filtered.size)
         }
     }
 

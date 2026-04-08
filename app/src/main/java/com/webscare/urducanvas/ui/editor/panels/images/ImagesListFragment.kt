@@ -70,7 +70,7 @@ class ImagesListFragment : Fragment() {
             ) {
 
                 viewModel.ensureBackgroundElement(requireActivity())
-                viewModel.setCanvasBackgroundImage(bitmap)
+                viewModel.setCanvasBackgroundImage(bitmap, requireActivity())
 
                 return@ImagesAdapter
             }
