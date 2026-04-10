@@ -1,0 +1,75 @@
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:background="@drawable/button_bg"
+    android:backgroundTint="@color/white"
+    android:layout_width="180dp"
+    android:padding="10dp"
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/zoom"
+        android:textColor="@color/black"
+        android:textSize="14sp"
+        android:fontFamily="@font/medium"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
+
+    <ImageView
+        android:id="@+id/reset"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_refresh"
+        android:background="@drawable/button_bg_round"
+        android:backgroundTint="@color/contrast"
+        android:padding="6dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/title"
+        app:layout_constraintBottom_toBottomOf="@id/title"/>
+
+    <TextView
+        android:id="@+id/zoomValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="100%"
+        android:textColor="@color/black"
+        android:textSize="12sp"
+        android:fontFamily="@font/regular"
+        android:background="@drawable/edit_bg_stroke"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="5dp"
+        android:layout_marginTop="5dp"
+        app:layout_constraintStart_toEndOf="@id/zoomIn"
+        app:layout_constraintEnd_toStartOf="@id/zoomOut"
+        app:layout_constraintTop_toBottomOf="@id/title"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <ImageView
+        android:id="@+id/zoomIn"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:src="@drawable/ic_zoom_in"
+        android:background="@drawable/button_bg_round"
+        android:backgroundTint="@color/contrast"
+        android:padding="6dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/zoomValue"
+        app:layout_constraintTop_toTopOf="@id/zoomValue"
+        app:layout_constraintBottom_toBottomOf="@id/zoomValue"/>
+
+    <ImageView
+        android:id="@+id/zoomOut"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:src="@drawable/ic_zoom_out"
+        android:background="@drawable/button_bg_round"
+        android:backgroundTint="@color/contrast"
+        android:padding="6dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/zoomValue"
+        app:layout_constraintTop_toTopOf="@id/zoomValue"
+        app:layout_constraintBottom_toBottomOf="@id/zoomValue"/>
+</androidx.constraintlayout.widget.ConstraintLayout>

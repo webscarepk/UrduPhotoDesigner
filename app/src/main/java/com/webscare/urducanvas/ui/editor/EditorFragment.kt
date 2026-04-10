@@ -48,6 +48,7 @@ import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.setupWithNavController
+import com.webscare.urducanvas.BuildConfig
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasManager
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
@@ -69,6 +70,7 @@ import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.databinding.DialogAutoSavingLayoutBinding
 import com.webscare.urducanvas.databinding.FragmentEditorBinding
 import com.webscare.urducanvas.databinding.LayoutBlendPopupBinding
+import com.webscare.urducanvas.databinding.LayoutZoomPopupBinding
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -80,6 +82,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
 fun Int.dpToPx(context: Context): Int {
     return (this * context.resources.displayMetrics.density + 0.5f).toInt()
@@ -137,7 +140,12 @@ class EditorFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-//        activity?.window?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        if (!BuildConfig.DEBUG) {
+            activity?.window?.setFlags(
+                WindowManager.LayoutParams.FLAG_SECURE,
+                WindowManager.LayoutParams.FLAG_SECURE
+            )
+        }
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavigation) { view, insets ->
             if (MANUFACTURER.equals("realme", ignoreCase = true)) {
@@ -726,6 +734,25 @@ class EditorFragment : Fragment() {
             }
         }
 
+        viewModel.isGridEnabled.observe(viewLifecycleOwner) { enabled ->
+            updateToggleButton(binding.grid, enabled)
+            sizedCanvasView.setGridEnabled(enabled)
+        }
+
+        viewModel.isRulerEnabled.observe(viewLifecycleOwner) { enabled ->
+            updateToggleButton(binding.ruler, enabled)
+            sizedCanvasView.setRulerEnabled(enabled)
+        }
+
+        viewModel.isPanMode.observe(viewLifecycleOwner) { enabled ->
+            updateToggleButton(binding.pan, enabled)
+            sizedCanvasView.setPanMode(enabled)
+        }
+
+        viewModel.zoomLevel.observe(viewLifecycleOwner) { zoom ->
+            sizedCanvasView.setZoomLevel(zoom)
+        }
+
         viewModel.selectedElements.observe(viewLifecycleOwner) { newSelection ->
 
             if (!isAdded) return@observe
@@ -1042,6 +1069,9 @@ class EditorFragment : Fragment() {
                 },
                 onStrokeCompleted = { stroke ->
                     viewModel.notifyDrawStrokeAdded(stroke)
+                },
+                onZoomChanged = { zoom ->
+                    viewModel.setZoomLevel(zoom)
                 }).apply {
                 binding.canvasContainer.addView(this)
             }
@@ -1233,6 +1263,22 @@ class EditorFragment : Fragment() {
                     findNavController().navigate(R.id.bgRemovalFragment)
                 }
             }
+        }
+
+        binding.zoom.addPressEffect {
+            showZoomPopup(binding.zoom)
+        }
+
+        binding.grid.addPressEffect {
+            viewModel.toggleGrid()
+        }
+
+        binding.ruler.addPressEffect {
+            viewModel.toggleRuler()
+        }
+
+        binding.pan.addPressEffect {
+            viewModel.togglePanMode()
         }
 
         binding.done.addPressEffect {
@@ -1518,10 +1564,90 @@ class EditorFragment : Fragment() {
         rotationAnimator = null
     }
 
+    private fun showZoomPopup(anchorView: View) {
+        val popupBinding =
+            LayoutZoomPopupBinding.inflate(LayoutInflater.from(requireActivity()))
+
+        val popupWindow = PopupWindow(
+            popupBinding.root,
+            (180 * requireActivity().resources.displayMetrics.density).toInt(),
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            true
+        )
+        popupWindow.elevation = 8f
+        popupWindow.isOutsideTouchable = true
+
+        fun refreshLabel() {
+            val raw = viewModel.zoomLevel.value ?: 1f
+            val pct = (raw * 100f).roundToInt()
+            popupBinding.zoomValue.text = "$pct%"
+        }
+        refreshLabel()
+
+        popupBinding.zoomIn.addPressEffect {
+            viewModel.zoomIn()
+            refreshLabel()
+        }
+
+        popupBinding.zoomOut.addPressEffect {
+            viewModel.zoomOut()
+            refreshLabel()
+        }
+
+        popupBinding.reset.addPressEffect {
+            viewModel.resetZoom()
+            refreshLabel()
+            popupWindow.dismiss()
+        }
+
+        // ── Smart positioning (LayersFragment se copy) ──
+        anchorView.post {
+            val screenHeight = resources.displayMetrics.heightPixels
+            val location = IntArray(2)
+            anchorView.getLocationOnScreen(location)
+            val anchorTop    = location[1]
+            val anchorBottom = anchorTop + anchorView.height
+
+            popupBinding.root.measure(
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
+            val popupHeight = popupBinding.root.measuredHeight
+            val spaceBelow  = screenHeight - anchorBottom
+            val spaceAbove  = anchorTop
+
+            when {
+                spaceBelow >= popupHeight -> popupWindow.showAsDropDown(anchorView)
+                spaceAbove >= popupHeight -> popupWindow.showAtLocation(
+                    anchorView, Gravity.NO_GRAVITY,
+                    location[0], anchorTop - popupHeight
+                )
+                else -> popupWindow.showAsDropDown(anchorView)
+            }
+        }
+    }
+
+    private fun updateToggleButton(view: android.widget.ImageView, isActive: Boolean) {
+        if (isActive) {
+            view.backgroundTintList =
+                ColorStateList.valueOf(colorOf(R.color.appColor))
+            view.imageTintList =
+                ColorStateList.valueOf(colorOf(R.color.white))
+        } else {
+            view.backgroundTintList =
+                ColorStateList.valueOf(colorOf(R.color.contrast))
+            view.imageTintList =
+                ColorStateList.valueOf(colorOf(R.color.gray))
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         saveJsonJob?.cancel()
         _binding = null
         _navController = null
+        if (!BuildConfig.DEBUG) {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
     }
 }

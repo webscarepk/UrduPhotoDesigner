@@ -71,6 +71,7 @@ import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
 import com.webscare.urducanvas.common.utils.ShapeRenderUtils
 import com.webscare.urducanvas.common.utils.Utils.vibrateSoft
+import com.webscare.urducanvas.ui.editor.dpToPx
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -102,7 +103,8 @@ class CanvasView @JvmOverloads constructor(
     var onColorPicked: ((Int) -> Unit)? = null,
     var onRequestOpenLayers: (() -> Unit)? = null,
     var onExitSelectionMode: (() -> Unit)? = null,
-    var onStrokeCompleted: ((StrokeData) -> Unit)? = null
+    var onStrokeCompleted: ((StrokeData) -> Unit)? = null,
+    var onZoomChanged: ((Float) -> Unit)? = null
 ) : View(context, attrs) {
 
     private val gson: Gson by lazy {
@@ -272,6 +274,36 @@ class CanvasView @JvmOverloads constructor(
     private var showRotationVerticalGuide = false
     private var showRotationHorizontalGuide = false
 
+    // ── Grid overlay ─────────────────────────────────────────────
+    private var showGrid  = false
+    private val gridPaint = Paint().apply {
+        color = Color.argb(40, 0, 0, 0)   // halka gray, canvas k upar
+        strokeWidth = 0.5f
+        style = Paint.Style.STROKE
+        isAntiAlias = false
+    }
+
+    // ── Ruler overlay ─────────────────────────────────────────────
+    private var showRuler = false
+    private val rulerPaint = Paint().apply {
+        color = Color.argb(180, 50, 50, 50)
+        strokeWidth = 1f
+        style = Paint.Style.STROKE
+        isAntiAlias = true
+    }
+    private val rulerTextPaint = Paint().apply {
+        color = Color.argb(200, 50, 50, 50)
+        textSize = 8f.dpToPx()
+        isAntiAlias = true
+        textAlign = Paint.Align.CENTER
+    }
+    private val rulerBgPaint = Paint().apply {
+        color = Color.argb(160, 240, 240, 240)
+        style = Paint.Style.FILL
+    }
+
+    // ── Pan mode (single-finger pan without selecting elements) ───
+    private var isPanMode = false
     private val removeIcon: Drawable by lazy {
         AppCompatResources.getDrawable(context, R.drawable.ic_cross)!!
     }
@@ -1415,6 +1447,16 @@ class CanvasView @JvmOverloads constructor(
             canvas.drawLine(
                 0f, height / 2f, width.toFloat(), height / 2f, alignmentPaint
             )
+        }
+
+        // ── GRID ─────────────────────────────────────────────────
+        if (showGrid) {
+            drawGrid(canvas)
+        }
+
+        // ── RULER ─────────────────────────────────────────────────
+        if (showRuler) {
+            drawRuler(canvas)
         }
     }
 
@@ -3722,6 +3764,11 @@ class CanvasView @JvmOverloads constructor(
     private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
         override fun onDoubleTap(e: MotionEvent): Boolean {
 
+            if (isPanMode) {
+                stepZoomOverall()
+                return true
+            }
+
             val (x, y) = screenToCanvas(e.x, e.y)
 
             val touchedElement =
@@ -3818,12 +3865,15 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private fun stepZoomOverall() {
+        // 50% → 100% → 200% → 300% → 50% cycle
         val next = when {
-            overallScale < 1.5f -> 2f
-            overallScale < 3.5f -> 4f
-            else -> 1f
+            overallScale < 0.9f  -> 1.0f   // 50%  → 100%
+            overallScale < 1.5f  -> 2.0f   // 100% → 200%
+            overallScale < 2.5f  -> 3.0f   // 200% → 300%
+            else                 -> 0.5f   // 300% → 50%
         }
         animateOverallZoom(next)
+        onZoomChanged?.invoke(next)         // popup label update karo
     }
 
     private fun animateOverallZoom(toScale: Float) {
@@ -3969,16 +4019,26 @@ class CanvasView @JvmOverloads constructor(
 
             MotionEvent.ACTION_POINTER_DOWN -> {
                 if (event.pointerCount == 2) {
-                    currentMode = Mode.MULTI_TOUCH
                     initialPinchDistance = getPinchDistance(event)
-                    initialPinchAngle = getPinchAngle(event)
-                    initialScale = selectedElements.firstOrNull()?.scale ?: 1f
-                    initialRotation = selectedElements.firstOrNull()?.rotation ?: 0f
-                }
-                if (event.pointerCount == 2 && selectedElements.isEmpty()) {
-                    currentMode = Mode.CANVAS_PAN
-                    initialPinchDistance = getPinchDistance(event)
-                    initialOverallScale = overallScale
+                    initialPinchAngle    = getPinchAngle(event)
+                    initialOverallScale  = overallScale
+
+                    when {
+                        // Pan mode ON → 2 finger zoom allowed
+                        isPanMode -> {
+                            currentMode = Mode.CANVAS_PAN
+                        }
+                        // Pan mode OFF, elements selected → element scale/rotate
+                        selectedElements.isNotEmpty() -> {
+                            currentMode     = Mode.MULTI_TOUCH
+                            initialScale    = selectedElements.firstOrNull()?.scale ?: 1f
+                            initialRotation = selectedElements.firstOrNull()?.rotation ?: 0f
+                        }
+                        // Pan mode OFF, no elements → sirf pan, no zoom
+                        else -> {
+                            currentMode = Mode.CANVAS_PAN
+                        }
+                    }
                 }
             }
 
@@ -4140,27 +4200,24 @@ class CanvasView @JvmOverloads constructor(
                             tightBounds.contains(touchPoint[0], touchPoint[1])
                         }
 
-                if (touchedElement != null) {
+                if (touchedElement != null && !isPanMode) {
+                    // isPanMode ON hai to element touch ignore karo —
+                    // neeche wala else block chalega jo CANVAS_PAN set karega
                     if (touchedElement.groupId != null) {
-                        // Select all elements in the same group
                         val groupMembers =
                             canvasElements.filter { it.groupId == touchedElement.groupId }
-                        // Clear any previously selected elements
                         canvasElements.forEach { it.isSelected = false }
-                        selectedElements.clear() // Clear internal selection list
-
-                        // Add all group members to the selection
+                        selectedElements.clear()
                         groupMembers.forEach { element ->
                             element.isSelected = true
                             selectedElements.add(element)
                         }
                         touchStartX = x
                         touchStartY = y
-                        currentMode = Mode.DRAG // Set to drag mode after selecting the group
+                        currentMode = Mode.DRAG
                         vibrateSoft()
                     } else {
                         if (inSelectionMode) {
-                            // 🔹 Multi-select toggle always runs in selection mode
                             if (touchedElement.isSelected) {
                                 touchedDownElement = touchedElement
                                 isDragCandidate = true
@@ -4168,27 +4225,22 @@ class CanvasView @JvmOverloads constructor(
                                 touchStartY = y
                                 currentMode = Mode.NONE
                             } else {
-                                // select
                                 touchedElement.isSelected = true
                                 selectedElements.add(touchedElement)
                                 onElementSelected?.invoke(selectedElements)
                                 vibrateSoft()
                             }
                         } else {
-                            // 🔹 Normal mode (single select + drag)
                             if (touchedElement.isSelected) {
-                                // already selected → start drag
                                 lastTouchedElement = touchedElement
                                 currentMode = Mode.DRAG
                                 touchStartX = x
                                 touchStartY = y
                             } else {
-                                // fresh select
                                 canvasElements.forEach { it.isSelected = false }
                                 selectedElements.clear()
                                 touchedElement.isSelected = true
                                 selectedElements.add(touchedElement)
-
                                 lastTouchedElement = touchedElement
                                 currentMode = Mode.DRAG
                                 touchStartX = x
@@ -4202,41 +4254,39 @@ class CanvasView @JvmOverloads constructor(
                     invalidate()
                     return true
                 } else {
+                    // isPanMode ON hai, ya empty canvas tap — pan mode set karo
                     val bg =
                         canvasElements.firstOrNull { it.type == ElementType.BACKGROUND && !it.isLocked }
-                    if (bg?.bitmap != null) {
-                        // select the background so ACTION_MOVE will pan it
+                    if (!isPanMode && bg?.bitmap != null) {
                         canvasElements.forEach { it.isSelected = false }
                         selectedElements.clear()
                         bg.isSelected = true
                         selectedElements.add(bg)
                         onElementSelected?.invoke(selectedElements)
-
                         currentMode = Mode.DRAG
                         touchStartX = x
                         touchStartY = y
                         invalidate()
                         return true
                     }
-                    // 3. Tapped on empty canvas, deselect all elements
-                    if (selectedElements.isNotEmpty()) {
+                    if (selectedElements.isNotEmpty() && !isPanMode) {
                         canvasElements.forEach { it.isSelected = false }
                         selectedElements.clear()
                         inSelectionMode = false
                         onExitSelectionMode?.invoke()
-                        onElementSelected?.invoke(selectedElements) // Notify ViewModel of empty selection
+                        onElementSelected?.invoke(selectedElements)
                         invalidate()
                     } else {
-                        if (overallScale > 1f) {
-                            currentMode = Mode.CANVAS_PAN
-                            touchStartX = event.x
-                            touchStartY = event.y
-                            return true
-                        }
+                        // Pan mode ON, ya zoomed in — canvas pan karo
+                        currentMode = Mode.CANVAS_PAN
+                        touchStartX = event.x
+                        touchStartY = event.y
+                        return true
                     }
                     currentMode = Mode.NONE
                     return true
                 }
+
             }
 
             MotionEvent.ACTION_MOVE -> {
@@ -4248,13 +4298,27 @@ class CanvasView @JvmOverloads constructor(
                     // allow overall canvas pan/zoom
                     when (currentMode) {
                         Mode.CANVAS_PAN -> {
+                            // 2-finger: sirf pan (no zoom)
                             if (event.pointerCount == 2) {
-                                val newDist = getPinchDistance(event)
-                                val factor = newDist / initialPinchDistance
-                                overallScale = (initialOverallScale * factor).coerceIn(1f, 4f)
-                                clampOverallPan()
-                                invalidate()
-                            } else if (event.pointerCount == 1 && overallScale > 1f) {
+                                if (isPanMode) {
+                                    // Pan mode ON → 2 finger pinch zoom
+                                    val newDist = getPinchDistance(event)
+                                    val factor  = newDist / initialPinchDistance
+                                    overallScale = (initialOverallScale * factor).coerceIn(0.5f, 3.0f)
+                                    clampOverallPan()
+                                    invalidate()
+                                } else {
+                                    // Pan mode OFF → sirf midpoint pan, no zoom
+                                    val dx = (event.getX(0) + event.getX(1)) / 2f - touchStartX
+                                    val dy = (event.getY(0) + event.getY(1)) / 2f - touchStartY
+                                    overallOffsetX += dx
+                                    overallOffsetY += dy
+                                    clampOverallPan()
+                                    touchStartX = (event.getX(0) + event.getX(1)) / 2f
+                                    touchStartY = (event.getY(0) + event.getY(1)) / 2f
+                                    invalidate()
+                                }
+                            } else if (event.pointerCount == 1) {
                                 val dx = event.x - touchStartX
                                 val dy = event.y - touchStartY
                                 overallOffsetX += dx
@@ -4496,23 +4560,33 @@ class CanvasView @JvmOverloads constructor(
                     }
 
                     Mode.CANVAS_PAN -> {
-                        if (selectedElements.isEmpty()) {
-                            if (event.pointerCount == 2) {
+                        if (event.pointerCount == 2) {
+                            if (isPanMode) {
+                                // Pan mode ON → 2 finger pinch zoom
                                 val newDist = getPinchDistance(event)
-                                val factor = newDist / initialPinchDistance
-                                overallScale =
-                                    (initialOverallScale * factor).coerceIn(1f, 4f) // limit zoom
+                                val factor  = newDist / initialPinchDistance
+                                overallScale = (initialOverallScale * factor).coerceIn(0.5f, 3.0f)
+                                clampOverallPan()
                                 invalidate()
-                            } else if (event.pointerCount == 1 && overallScale > 1f) {
-                                val dx = event.x - touchStartX
-                                val dy = event.y - touchStartY
+                            } else {
+                                val dx = (event.getX(0) + event.getX(1)) / 2f - touchStartX
+                                val dy = (event.getY(0) + event.getY(1)) / 2f - touchStartY
                                 overallOffsetX += dx
                                 overallOffsetY += dy
                                 clampOverallPan()
-                                touchStartX = event.x
-                                touchStartY = event.y
+                                touchStartX = (event.getX(0) + event.getX(1)) / 2f
+                                touchStartY = (event.getY(0) + event.getY(1)) / 2f
                                 invalidate()
                             }
+                        } else if (event.pointerCount == 1) {
+                            val dx = event.x - touchStartX
+                            val dy = event.y - touchStartY
+                            overallOffsetX += dx
+                            overallOffsetY += dy
+                            clampOverallPan()
+                            touchStartX = event.x
+                            touchStartY = event.y
+                            invalidate()
                         }
                     }
 
@@ -4621,6 +4695,177 @@ class CanvasView @JvmOverloads constructor(
         } else {
             overallOffsetY = 0f
         }
+    }
+
+    private fun canvasToView(cx: Float, cy: Float): Pair<Float, Float> {
+        val scaledWidth  = canvasWidth  * scale
+        val scaledHeight = canvasHeight * scale
+        val ox = (width  - scaledWidth)  / 2f   // offsetX
+        val oy = (height - scaledHeight) / 2f   // offsetY
+        val pivotX = width  / 2f
+        val pivotY = height / 2f
+
+        // Step 1+2: canvas local → after inner scale+translate
+        val vx0 = cx * scale + ox
+        val vy0 = cy * scale + oy
+
+        // Step 3: apply overallScale around pivot, then overallOffset
+        val vx = (vx0 - pivotX) * overallScale + pivotX + overallOffsetX
+        val vy = (vy0 - pivotY) * overallScale + pivotY + overallOffsetY
+
+        return vx to vy
+    }
+
+    private fun drawGrid(canvas: Canvas) {
+        val gridSpacing = 50f   // canvas pixels per cell
+
+        // Canvas 4 corners → view space
+        val (left,   top)    = canvasToView(0f,              0f)
+        val (right,  _)      = canvasToView(canvasWidth.toFloat(),  0f)
+        val (_,      bottom) = canvasToView(0f,              canvasHeight.toFloat())
+
+        // 1 grid step in view pixels
+        val stepViewPx = gridSpacing * scale * overallScale
+
+        if (stepViewPx < 2f) return
+
+        // Vertical lines
+        var x = left
+        while (x <= right + 0.5f) {
+            canvas.drawLine(x, top, x, bottom, gridPaint)
+            x += stepViewPx
+        }
+
+        // Horizontal lines
+        var y = top
+        while (y <= bottom + 0.5f) {
+            canvas.drawLine(left, y, right, y, gridPaint)
+            y += stepViewPx
+        }
+    }
+
+    /**
+     * Canvas edges ke saath ruler draw karta hai.
+     * Top ruler: horizontal measurements (X axis)
+     * Left ruler: vertical measurements (Y axis)
+     * Ruler background semi-transparent hota hai.
+     */
+    private fun drawRuler(canvas: Canvas) {
+        val tickSpacing      = 50f    // canvas units between ticks
+        val rulerThicknessPx = 16f.dpToPx()
+        val majorTickLen     = rulerThicknessPx * 0.6f
+        val minorTickLen     = rulerThicknessPx * 0.3f
+
+        // Canvas boundaries in view space
+        val (canvasLeft, canvasTop)     = canvasToView(0f,              0f)
+        val (canvasRight, canvasBottom) = canvasToView(canvasWidth.toFloat(), canvasHeight.toFloat())
+
+        val stepViewPx = tickSpacing * scale * overallScale
+
+        if (stepViewPx < 4f) return   // too small to be useful
+
+        // ── TOP RULER background ─────────────────────────────────
+        canvas.drawRect(canvasLeft, canvasTop,
+            canvasRight, canvasTop + rulerThicknessPx, rulerBgPaint)
+        canvas.drawLine(canvasLeft, canvasTop + rulerThicknessPx,
+            canvasRight, canvasTop + rulerThicknessPx, rulerPaint)
+
+        // ── LEFT RULER background ────────────────────────────────
+        canvas.drawRect(canvasLeft, canvasTop,
+            canvasLeft + rulerThicknessPx, canvasBottom, rulerBgPaint)
+        canvas.drawLine(canvasLeft + rulerThicknessPx, canvasTop,
+            canvasLeft + rulerThicknessPx, canvasBottom, rulerPaint)
+
+        // Corner square
+        canvas.drawRect(canvasLeft, canvasTop,
+            canvasLeft + rulerThicknessPx, canvasTop + rulerThicknessPx, rulerBgPaint)
+
+        // ── TOP RULER ticks + labels (X axis) ───────────────────
+        var tickIndex = 0
+        var x = canvasLeft
+        while (x <= canvasRight + 0.5f) {
+            val isMajor  = tickIndex % 5 == 0
+            val tickLen  = if (isMajor) majorTickLen else minorTickLen
+            val tickTop  = canvasTop + rulerThicknessPx - tickLen
+
+            canvas.drawLine(x, tickTop, x, canvasTop + rulerThicknessPx, rulerPaint)
+
+            if (isMajor) {
+                canvas.drawText(
+                    "${(tickIndex * tickSpacing).toInt()}",
+                    x,
+                    canvasTop + rulerThicknessPx - majorTickLen - 2f,
+                    rulerTextPaint
+                )
+            }
+            x += stepViewPx
+            tickIndex++
+        }
+
+        // ── LEFT RULER ticks + labels (Y axis) ──────────────────
+        tickIndex = 0
+        var y = canvasTop
+        while (y <= canvasBottom + 0.5f) {
+            val isMajor   = tickIndex % 5 == 0
+            val tickLen   = if (isMajor) majorTickLen else minorTickLen
+            val tickLeft  = canvasLeft + rulerThicknessPx - tickLen
+
+            canvas.drawLine(tickLeft, y, canvasLeft + rulerThicknessPx, y, rulerPaint)
+
+            if (isMajor && tickIndex > 0) {
+                canvas.withSave {
+                    // Rotate text -90° so it reads bottom-to-top along left ruler
+                    val labelX = canvasLeft + rulerThicknessPx - majorTickLen - 2f
+                    rotate(-90f, labelX, y)
+                    canvas.drawText(
+                        "${(tickIndex * tickSpacing).toInt()}",
+                        labelX, y + rulerTextPaint.textSize / 3f,
+                        rulerTextPaint
+                    )
+                }
+            }
+            y += stepViewPx
+            tickIndex++
+        }
+    }
+
+    fun setGridEnabled(enabled: Boolean)  { showGrid  = enabled
+        invalidate() }
+    fun setRulerEnabled(enabled: Boolean) { showRuler = enabled
+        invalidate() }
+    fun setPanMode(enabled: Boolean) {
+        isPanMode = enabled
+        if (enabled && selectedElements.isNotEmpty()) {
+            canvasElements.forEach { it.isSelected = false }
+            selectedElements.clear()
+            onElementSelected?.invoke(emptyList())
+            invalidate()
+        }
+    }
+
+    /** ViewModel se zoom level set karna — overallScale use karta hai */
+    fun setZoomLevel(zoom: Float) {
+        overallScale = zoom.coerceIn(0.5f, 5f)
+        clampOverallPan()
+        invalidate()
+    }
+
+    /** Current zoom level ViewModel ko dene ke liye */
+    fun getCurrentZoom(): Float = overallScale
+
+    // ── Zoom in/out buttons (popup se call hoga) ─────────────────
+    fun zoomIn(step: Float = 0.25f) {
+        animateOverallZoom((overallScale + step).coerceAtMost(5f))
+    }
+
+    fun zoomOut(step: Float = 0.25f) {
+        animateOverallZoom((overallScale - step).coerceAtLeast(0.5f))
+    }
+
+    fun resetZoom() {
+        overallOffsetX = 0f
+        overallOffsetY = 0f
+        animateOverallZoom(1f)
     }
 
     fun clearCallbacks() {

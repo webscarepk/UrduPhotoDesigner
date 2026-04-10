@@ -336,6 +336,20 @@ class CanvasViewModel @Inject constructor(
     private var currentBatchAction: BatchedCanvasAction? = null
     private var _isExplicitChange = false
 
+    // ── Canvas overlay toggles ───────────────────────────────────
+    private val _isGridEnabled  = MutableLiveData(false)
+    val isGridEnabled:  LiveData<Boolean> get() = _isGridEnabled
+
+    private val _isRulerEnabled = MutableLiveData(false)
+    val isRulerEnabled: LiveData<Boolean> get() = _isRulerEnabled
+
+    private val _isPanMode      = MutableLiveData(false)
+    val isPanMode:      LiveData<Boolean> get() = _isPanMode
+
+    // ── Zoom level (1.0f = 100%) ─────────────────────────────────
+    private val _zoomLevel = MutableLiveData(1.0f)
+    val zoomLevel: LiveData<Float> get() = _zoomLevel
+
     val availableResolutions = listOf(
         ExportResolution("Regular", 0, 0, 0.5f, "1280 x 720", "Keep regular size", 2500),
         ExportResolution("High", 0, 0, 3f, "1920 x 1080", "High quality", 1200, isPremium = true),
@@ -392,6 +406,44 @@ class CanvasViewModel @Inject constructor(
 
     private val _canvasView = MutableLiveData<CanvasView?>()
     val canvasView: LiveData<CanvasView?> = _canvasView
+
+    fun toggleGrid() {
+        _isGridEnabled.value = !(_isGridEnabled.value ?: false)
+    }
+
+    fun toggleRuler() {
+        _isRulerEnabled.value = !(_isRulerEnabled.value ?: false)
+    }
+
+    fun togglePanMode() {
+        _isPanMode.value = !(_isPanMode.value ?: false)
+    }
+
+    private val zoomMin  = 0.5f
+    private val zoomMax  = 3.0f
+    private val zoomStep = 0.2f
+
+    fun setZoomLevel(zoom: Float) {
+        _zoomLevel.value = zoom.coerceIn(zoomMin, zoomMax)
+    }
+
+    fun zoomIn() {
+        val current = _zoomLevel.value ?: 1f
+        val next = (Math.round(current / zoomStep) * zoomStep + zoomStep)
+            .coerceAtMost(zoomMax)
+        _zoomLevel.value = Math.round(next / zoomStep) * zoomStep
+    }
+
+    fun zoomOut() {
+        val current = _zoomLevel.value ?: 1f
+        val next = (Math.round(current / zoomStep) * zoomStep - zoomStep)
+            .coerceAtLeast(zoomMin)
+        _zoomLevel.value = Math.round(next / zoomStep) * zoomStep
+    }
+
+    fun resetZoom() {
+        _zoomLevel.value = 1.0f   // 100%
+    }
 
     fun markChanged() {
         hasChanges.value = true

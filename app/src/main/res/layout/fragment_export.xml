@@ -644,7 +644,7 @@
         android:fontFamily="@font/medium"
         android:gravity="center"
         android:paddingHorizontal="30dp"
-        android:text="@string/reset"
+        android:text="@string/default_"
         android:textColor="@color/black"
         android:textSize="12sp"
         app:drawableStartCompat="@drawable/ic_refresh"

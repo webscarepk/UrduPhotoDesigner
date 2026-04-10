@@ -140,7 +140,8 @@
     <string name="estimated">Estimated</string>
     <string name="_4_8_mb">~4.8 MB</string>
     <string name="_4k_medium_quality_png">4K • Medium Quality • PNG</string>
-    <string name="reset">Default</string>
+    <string name="default_">Default</string>
+    <string name="reset">Reset</string>
     <string name="export">Export</string>
     <string name="hd">HD</string>
     <string name="standard_quality">Standard Quality</string>
@@ -337,6 +338,7 @@
     <string name="remind_me_later">Remind me Later</string>
     <string name="_2026_webscare_pvt_ltd_all_rights_reserved">© 2026 WebsCare Pvt. Ltd. All rights reserved.</string>
     <string name="version_1_0_0">Version 1.0.0</string>
+    <string name="zoom">Zoom</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>

@@ -47,136 +47,254 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:translationZ="10dp"
-        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@id/centerGuide"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintTop_toTopOf="parent">
 
         <ImageView
             android:id="@+id/fabAdd"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
-            android:contentDescription="@string/add_elements"
-            app:fabSize="normal"
-            app:tint="@color/black"
             android:background="@drawable/button_bg_round"
-            app:backgroundTint="@color/white"
-            android:translationZ="10dp"
+            android:contentDescription="@string/add_elements"
             android:outlineSpotShadowColor="@color/shadowColor"
             android:padding="15dp"
             android:src="@drawable/ic_add"
+            android:translationZ="10dp"
+            app:backgroundTint="@color/white"
+            app:fabSize="normal"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent"
+            app:tint="@color/black" />
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/fabMenu"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:visibility="gone"
-            android:translationZ="2dp"
             android:layout_marginBottom="10dp"
-            android:backgroundTint="@color/white"
             android:background="@drawable/button_bg_round"
-            app:layout_constraintStart_toStartOf="@id/fabAdd"
-            app:layout_constraintEnd_toEndOf="@id/fabAdd"
+            android:backgroundTint="@color/white"
+            android:padding="8dp"
+            android:translationZ="2dp"
+            android:visibility="gone"
             app:layout_constraintBottom_toTopOf="@id/fabAdd"
-            android:padding="8dp">
+            app:layout_constraintEnd_toEndOf="@id/fabAdd"
+            app:layout_constraintStart_toStartOf="@id/fabAdd">
 
             <ImageView
                 android:id="@+id/addText"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
-                android:padding="5dp"
                 android:layout_marginTop="10dp"
                 android:contentDescription="@string/add_text"
+                android:padding="5dp"
                 android:src="@drawable/ic_add_text_fab"
-                app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toTopOf="@id/addShapes"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
+                app:layout_constraintTop_toTopOf="parent" />
 
             <ImageView
                 android:id="@+id/addShapes"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
-                android:padding="5dp"
                 android:layout_marginTop="8dp"
                 android:contentDescription="@string/add_shape"
+                android:padding="5dp"
                 android:src="@drawable/ic_add_shapes_fab"
-                app:layout_constraintTop_toBottomOf="@id/addText"
                 app:layout_constraintBottom_toTopOf="@id/addImage"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
+                app:layout_constraintTop_toBottomOf="@id/addText" />
 
             <ImageView
                 android:id="@+id/addImage"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
-                android:padding="5dp"
                 android:layout_marginTop="8dp"
                 android:contentDescription="@string/add_image"
+                android:padding="5dp"
                 android:src="@drawable/ic_add_image_fab"
-                app:layout_constraintTop_toBottomOf="@id/addShapes"
                 app:layout_constraintBottom_toTopOf="@id/addObject"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
+                app:layout_constraintTop_toBottomOf="@id/addShapes" />
 
             <ImageView
                 android:id="@+id/addObject"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
-                android:padding="5dp"
                 android:layout_marginTop="8dp"
                 android:contentDescription="@string/add_object"
+                android:padding="5dp"
                 android:src="@drawable/ic_add_objects_fab"
-                app:tint="@color/gray"
-                app:layout_constraintTop_toBottomOf="@id/addImage"
                 app:layout_constraintBottom_toTopOf="@id/addDraw"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
+                app:layout_constraintTop_toBottomOf="@id/addImage"
+                app:tint="@color/gray" />
 
             <!-- BOTTOM -->
             <ImageView
                 android:id="@+id/addDraw"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
-                android:padding="4dp"
-                android:contentDescription="@string/draw"
-                android:src="@drawable/ic_add_draw_fab"
                 android:layout_marginTop="8dp"
-                app:layout_constraintTop_toBottomOf="@id/addObject"
+                android:contentDescription="@string/draw"
+                android:padding="4dp"
+                android:src="@drawable/ic_add_draw_fab"
                 app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
+                app:layout_constraintTop_toBottomOf="@id/addObject" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <ImageView
-        android:id="@+id/back"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/header"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:paddingVertical="10dp"
+        android:paddingHorizontal="20dp"
         android:backgroundTint="@color/white"
-        android:padding="7dp"
-        android:background="@drawable/button_bg_round"
-        android:src="@drawable/ic_back"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
-        app:layout_constraintTop_toBottomOf="@id/topGuide" />
+        android:translationZ="10dp"
+        android:outlineSpotShadowColor="@color/shadowColor"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:background="@drawable/ic_editor_header">
 
-    <ImageView
-        android:id="@+id/done"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:backgroundTint="@color/white"
-        android:padding="7dp"
-        android:background="@drawable/button_bg_round"
-        android:src="@drawable/ic_done"
-        app:tint="@color/black"
-        app:layout_constraintBottom_toBottomOf="@id/back"
-        app:layout_constraintEnd_toStartOf="@id/endGuide"
-        app:layout_constraintTop_toTopOf="@id/back" />
+        <LinearLayout
+            android:orientation="horizontal"
+            android:id="@+id/redoUndo"
+            android:weightSum="2"
+            android:layout_width="80dp"
+            android:layout_height="32dp"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/contrast"
+            android:layout_marginStart="5dp"
+            app:layout_constraintBottom_toBottomOf="@id/back"
+            app:layout_constraintStart_toEndOf="@id/back"
+            app:layout_constraintTop_toTopOf="@id/back"
+            android:paddingHorizontal="5dp">
+
+            <ImageView
+                android:id="@+id/undo"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/button_bg_round"
+                android:backgroundTint="@color/contrast"
+                app:tint="@color/black"
+                android:src="@drawable/ic_undo"
+                android:paddingHorizontal="9dp"
+                android:paddingVertical="4dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"/>
+
+            <ImageView
+                android:id="@+id/redo"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/button_bg_round"
+                android:backgroundTint="@color/contrast"
+                app:tint="@color/black"
+                android:paddingHorizontal="9dp"
+                android:paddingVertical="4dp"
+                android:src="@drawable/ic_redo"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toEndOf="@id/undo"
+                app:layout_constraintTop_toTopOf="parent" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/back"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/contrast"
+            app:tint="@color/black"
+            android:padding="8dp"
+            android:src="@drawable/ic_back"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:id="@+id/grid"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/contrast"
+            app:tint="@color/gray"
+            android:padding="8dp"
+            android:src="@drawable/ic_grid"
+            android:layout_marginEnd="5dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/pan"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:id="@+id/ruler"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/contrast"
+            app:tint="@color/gray"
+            android:padding="8dp"
+            android:src="@drawable/ic_ruler"
+            android:layout_marginEnd="5dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/grid"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:id="@+id/pan"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/contrast"
+            app:tint="@color/gray"
+            android:padding="8dp"
+            android:src="@drawable/ic_hand"
+            android:layout_marginEnd="5dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/zoom"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:id="@+id/zoom"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/contrast"
+            app:tint="@color/black"
+            android:padding="8dp"
+            android:src="@drawable/ic_zoom"
+            android:layout_marginEnd="5dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/done"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:id="@+id/done"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/contrast"
+            app:tint="@color/black"
+            android:padding="7dp"
+            android:src="@drawable/ic_done"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <FrameLayout
         android:id="@+id/canvasContainer"
@@ -186,137 +304,138 @@
         app:layout_constraintBottom_toTopOf="@id/panelNavHost"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintStart_toEndOf="@id/startGuide"
-        app:layout_constraintTop_toBottomOf="@id/back" />
+        app:layout_constraintTop_toBottomOf="@id/header" />
 
     <LinearLayout
-        android:orientation="vertical"
         android:id="@+id/alignmentKit"
-        android:visibility="gone"
-        android:translationZ="5dp"
-        android:outlineSpotShadowColor="@color/shadowColor"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@id/canvasContainer"
-        app:layout_constraintBottom_toBottomOf="@id/canvasContainer"
         android:background="@drawable/alignment_kit_bg"
         android:backgroundTint="@color/white"
-        android:padding="6dp">
+        android:orientation="vertical"
+        android:outlineSpotShadowColor="@color/shadowColor"
+        android:padding="6dp"
+        android:translationZ="5dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/canvasContainer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/canvasContainer">
 
         <ImageView
+            android:id="@+id/leftAlign"
             android:layout_width="30dp"
             android:layout_height="30dp"
+            android:background="@drawable/button_bg"
+            android:backgroundTint="@color/contrast"
+            android:foreground="?selectableItemBackground"
+            android:padding="6dp"
             android:src="@drawable/ic_left"
-            android:background="@drawable/button_bg"
-            android:backgroundTint="@color/contrast"
-            android:foreground="?selectableItemBackground"
             android:tooltipText="Align Left"
-            app:tint="@color/black"
-            android:padding="6dp"
-            android:id="@+id/leftAlign"/>
+            app:tint="@color/black" />
 
         <ImageView
+            android:id="@+id/rightAlign"
             android:layout_width="30dp"
             android:layout_height="30dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/button_bg"
+            android:backgroundTint="@color/contrast"
+            android:foreground="?selectableItemBackground"
+            android:padding="6dp"
             android:src="@drawable/ic_right"
-            android:foreground="?selectableItemBackground"
-            android:background="@drawable/button_bg"
-            android:backgroundTint="@color/contrast"
             android:tooltipText="Align Right"
-            app:tint="@color/black"
-            android:layout_marginTop="6dp"
-            android:padding="6dp"
-            android:id="@+id/rightAlign"/>
+            app:tint="@color/black" />
 
         <ImageView
+            android:id="@+id/center_horizontal"
             android:layout_width="30dp"
             android:layout_height="30dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/button_bg"
+            android:backgroundTint="@color/contrast"
+            android:foreground="?selectableItemBackground"
+            android:padding="6dp"
             android:src="@drawable/ic_center_vertical"
-            android:background="@drawable/button_bg"
-            android:foreground="?selectableItemBackground"
-            android:backgroundTint="@color/contrast"
-            app:tint="@color/black"
             android:tooltipText="Align Center Horizontal"
-            android:layout_marginTop="6dp"
-            android:padding="6dp"
-            android:id="@+id/center_horizontal"/>
+            app:tint="@color/black" />
 
         <ImageView
+            android:id="@+id/center_vertical"
             android:layout_width="30dp"
             android:layout_height="30dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/button_bg"
+            android:backgroundTint="@color/contrast"
+            android:foreground="?selectableItemBackground"
+            android:padding="6dp"
             android:src="@drawable/ic_center_horizontal"
-            android:background="@drawable/button_bg"
-            android:foreground="?selectableItemBackground"
-            android:backgroundTint="@color/contrast"
             android:tooltipText="Align Center Vertical"
-            app:tint="@color/black"
-            android:layout_marginTop="6dp"
-            android:padding="6dp"
-            android:id="@+id/center_vertical"/>
+            app:tint="@color/black" />
 
         <ImageView
+            android:id="@+id/topAlign"
             android:layout_width="30dp"
             android:layout_height="30dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/button_bg"
+            android:backgroundTint="@color/contrast"
+            android:foreground="?selectableItemBackground"
+            android:padding="6dp"
             android:src="@drawable/ic_top"
-            android:background="@drawable/button_bg"
-            android:foreground="?selectableItemBackground"
-            android:backgroundTint="@color/contrast"
             android:tooltipText="Align Top"
-            app:tint="@color/black"
-            android:layout_marginTop="6dp"
-            android:padding="6dp"
-            android:id="@+id/topAlign"/>
+            app:tint="@color/black" />
 
         <ImageView
+            android:id="@+id/bottomAlign"
             android:layout_width="30dp"
             android:layout_height="30dp"
-            android:src="@drawable/ic_bottom"
-            android:background="@drawable/button_bg"
-            android:foreground="?selectableItemBackground"
-            android:backgroundTint="@color/contrast"
-            android:tooltipText="Align Bottom"
-            app:tint="@color/black"
             android:layout_marginTop="6dp"
+            android:background="@drawable/button_bg"
+            android:backgroundTint="@color/contrast"
+            android:foreground="?selectableItemBackground"
             android:padding="6dp"
-            android:id="@+id/bottomAlign"/>
+            android:src="@drawable/ic_bottom"
+            android:tooltipText="Align Bottom"
+            app:tint="@color/black" />
 
         <View
-            android:layout_marginTop="6dp"
             android:id="@+id/view"
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="@color/appColor"/>
+            android:layout_marginTop="6dp"
+            android:background="@color/appColor" />
 
         <LinearLayout
-            android:orientation="vertical"
             android:id="@+id/alignType"
             android:layout_width="30dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:background="@drawable/button_bg"
             android:backgroundTint="@color/contrast"
+            android:orientation="vertical"
             android:padding="6dp">
-            <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@drawable/ic_align_art_board_filled"
-                android:id="@+id/art_board"
-                android:foreground="?selectableItemBackground"
-                android:tooltipText="Align to Artboard"
-                app:tint="@color/black"
-                android:contentDescription="@string/align_to_canvas"/>
 
             <ImageView
-                android:visibility="gone"
+                android:id="@+id/art_board"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:contentDescription="@string/align_to_canvas"
+                android:foreground="?selectableItemBackground"
+                android:src="@drawable/ic_align_art_board_filled"
+                android:tooltipText="Align to Artboard"
+                app:tint="@color/black" />
+
+            <ImageView
+                android:id="@+id/selection"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:contentDescription="@string/align_to_selection"
                 android:foreground="?selectableItemBackground"
                 android:src="@drawable/ic_align_selection_stroke"
-                android:id="@+id/selection"
-                android:layout_marginTop="12dp"
                 android:tooltipText="Align to Selection"
-                app:tint="@color/black"
-                android:contentDescription="@string/align_to_selection"/>
+                android:visibility="gone"
+                app:tint="@color/black" />
 
         </LinearLayout>
     </LinearLayout>
@@ -326,10 +445,10 @@
         android:name="androidx.navigation.fragment.NavHostFragment"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:defaultNavHost="false"
-        android:visibility="visible"
         android:elevation="12dp"
         android:translationZ="24dp"
+        android:visibility="visible"
+        app:defaultNavHost="false"
         app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -339,253 +458,209 @@
     <ScrollView
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:layout_constraintEnd_toStartOf="@id/endGuide"
+        android:scrollbars="none"
         app:layout_constraintBottom_toTopOf="@id/panelNavHost"
-        app:layout_constraintStart_toStartOf="parent"
-        android:scrollbars="none">
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
+        app:layout_constraintStart_toStartOf="parent">
+
         <LinearLayout
-            android:orientation="horizontal"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
             <LinearLayout
                 android:id="@+id/showHideContainer"
                 android:layout_width="38dp"
                 android:layout_height="wrap_content"
-                android:translationZ="5dp"
-                android:visibility="gone"
                 android:layout_marginBottom="6dp"
-                android:outlineSpotShadowColor="@color/shadowColor"
                 android:background="@drawable/alignment_kit_bg"
-                android:backgroundTint="@color/white">
+                android:backgroundTint="@color/white"
+                android:outlineSpotShadowColor="@color/shadowColor"
+                android:translationZ="5dp"
+                android:visibility="gone">
 
                 <ImageView
                     android:id="@+id/showHide"
                     android:layout_width="38dp"
                     android:layout_height="38dp"
                     android:paddingVertical="10dp"
-                    android:tooltipText="@string/hide"
                     android:src="@drawable/ic_back"
-                    app:tint="@color/black"/>
+                    android:tooltipText="@string/hide"
+                    app:tint="@color/black" />
             </LinearLayout>
 
             <LinearLayout
-                android:layout_marginStart="6dp"
-                android:visibility="gone"
                 android:id="@+id/opacityPane"
-                android:translationZ="5dp"
-                android:outlineSpotShadowColor="@color/shadowColor"
-                android:layout_marginBottom="6dp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_marginBottom="6dp"
                 android:background="@drawable/button_bg"
                 android:backgroundTint="@color/white"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:outlineSpotShadowColor="@color/shadowColor"
+                android:translationZ="5dp"
+                android:visibility="gone">
 
                 <TextView
                     android:id="@+id/opacityValue"
                     android:layout_width="38dp"
                     android:layout_height="38dp"
-                    android:text="32"
+                    android:layout_gravity="center_vertical"
                     android:background="@drawable/button_bg"
                     android:backgroundTint="@color/white"
-                    android:visibility="gone"
                     android:fontFamily="@font/bold"
+                    android:gravity="center"
+                    android:text="32"
                     android:textColor="@color/black"
                     android:textSize="14sp"
-                    android:gravity="center"
-                    android:layout_gravity="center_vertical"/>
+                    android:visibility="gone" />
 
                 <ImageView
-                    android:visibility="visible"
                     android:id="@+id/opacityIcon"
                     android:layout_width="38dp"
                     android:layout_height="38dp"
-                    android:tooltipText="@string/opacity"
-                    android:padding="10dp"
                     android:foreground="?selectableItemBackground"
+                    android:padding="10dp"
                     android:src="@drawable/ic_opacity"
-                    app:tint="@color/black"/>
+                    android:tooltipText="@string/opacity"
+                    android:visibility="visible"
+                    app:tint="@color/black" />
 
                 <SeekBar
-                android:progressBackgroundTint="@color/light_gray"
-                    android:min="0"
-                    android:visibility="gone"
                     android:id="@+id/seekBarOpacity"
                     android:layout_width="150dp"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_vertical"
-                    android:thumbTint="@color/appColor"
                     android:indeterminateTint="@color/appColor"
-                    android:progressTint="@color/appColor"/>
+                    android:min="0"
+                    android:progressBackgroundTint="@color/light_gray"
+                    android:progressTint="@color/appColor"
+                    android:thumbTint="@color/appColor"
+                    android:visibility="gone" />
 
             </LinearLayout>
 
             <LinearLayout
-                android:visibility="gone"
                 android:id="@+id/blendPane"
-                android:translationZ="5dp"
-                android:outlineSpotShadowColor="@color/shadowColor"
-                android:layout_marginBottom="6dp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_marginBottom="6dp"
                 android:background="@drawable/button_bg"
                 android:backgroundTint="@color/white"
                 android:orientation="horizontal"
-                android:layout_marginStart="6dp">
+                android:outlineSpotShadowColor="@color/shadowColor"
+                android:translationZ="5dp"
+                android:visibility="gone">
 
                 <ImageView
+                    android:id="@+id/blendIcon"
                     android:layout_width="38dp"
                     android:layout_height="38dp"
-                    android:visibility="visible"
-                    android:id="@+id/blendIcon"
-                    android:tooltipText="@string/blend"
-                    android:padding="6dp"
                     android:background="@drawable/button_bg"
                     android:backgroundTint="@color/white"
+                    android:padding="6dp"
                     android:src="@drawable/ic_blend"
-                    app:tint="@color/black"/>
+                    android:tooltipText="@string/blend"
+                    android:visibility="visible"
+                    app:tint="@color/black" />
 
                 <TextView
-                    android:visibility="gone"
                     android:id="@+id/blend_spinner"
                     android:layout_width="150dp"
                     android:layout_height="38dp"
-                    android:dropDownWidth="wrap_content"
-                    android:popupBackground="@color/contrast"
-                    android:layout_marginStart="6dp"
-                    android:paddingVertical="6dp"
-                    android:paddingHorizontal="12dp"
-                    android:textColor="@color/black"
                     android:layout_gravity="center_vertical"
+                    android:layout_marginStart="6dp"
+                    android:dropDownWidth="wrap_content"
                     android:fontFamily="@font/regular"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="6dp"
+                    android:popupBackground="@color/contrast"
+                    android:textColor="@color/black"
                     android:textSize="12sp"
-                    android:gravity="center_vertical"/>
+                    android:visibility="gone" />
 
             </LinearLayout>
 
-        <LinearLayout
-            android:visibility="gone"
-            android:id="@+id/fontSizePane"
-            android:translationZ="5dp"
-            android:outlineSpotShadowColor="@color/shadowColor"
-            android:layout_marginBottom="6dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/button_bg"
-            android:backgroundTint="@color/white"
-            android:orientation="horizontal"
-            android:layout_marginStart="6dp">
-
-            <TextView
-                android:id="@+id/fontSize"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
-                android:text="32"
+            <LinearLayout
+                android:id="@+id/fontSizePane"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_marginBottom="6dp"
                 android:background="@drawable/button_bg"
                 android:backgroundTint="@color/white"
-                android:visibility="visible"
-                android:fontFamily="@font/bold"
-                android:textColor="@color/black"
-                android:textSize="14sp"
-                android:gravity="center"
-                android:layout_gravity="center_vertical"/>
+                android:orientation="horizontal"
+                android:outlineSpotShadowColor="@color/shadowColor"
+                android:translationZ="5dp"
+                android:visibility="gone">
 
-            <SeekBar
-                android:progressBackgroundTint="@color/light_gray"
-                android:visibility="gone"
-                android:id="@+id/seekBarFontSize"
-                android:layout_width="150dp"
-                android:min="0"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:thumbTint="@color/appColor"
-                android:indeterminateTint="@color/appColor"
-                android:progressTint="@color/appColor"/>
+                <TextView
+                    android:id="@+id/fontSize"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:layout_gravity="center_vertical"
+                    android:background="@drawable/button_bg"
+                    android:backgroundTint="@color/white"
+                    android:fontFamily="@font/bold"
+                    android:gravity="center"
+                    android:text="32"
+                    android:textColor="@color/black"
+                    android:textSize="14sp"
+                    android:visibility="visible" />
 
-        </LinearLayout>
+                <SeekBar
+                    android:id="@+id/seekBarFontSize"
+                    android:layout_width="150dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:indeterminateTint="@color/appColor"
+                    android:min="0"
+                    android:progressBackgroundTint="@color/light_gray"
+                    android:progressTint="@color/appColor"
+                    android:thumbTint="@color/appColor"
+                    android:visibility="gone" />
+
+            </LinearLayout>
 
             <ImageView
-                android:visibility="gone"
                 android:id="@+id/cutOutIcon"
                 android:layout_width="38dp"
                 android:layout_height="38dp"
-                android:translationZ="5dp"
-                android:outlineSpotShadowColor="@color/shadowColor"
+                android:layout_marginStart="6dp"
                 android:layout_marginBottom="6dp"
                 android:background="@drawable/button_bg"
                 android:backgroundTint="@color/white"
-                android:padding="10dp"
-                android:tooltipText="@string/remove_bg"
                 android:foreground="?selectableItemBackground"
+                android:outlineSpotShadowColor="@color/shadowColor"
+                android:padding="10dp"
                 android:src="@drawable/ic_select_subject"
-                android:layout_marginStart="6dp"
-                app:tint="@color/black"/>
+                android:tooltipText="@string/remove_bg"
+                android:translationZ="5dp"
+                android:visibility="gone"
+                app:tint="@color/black" />
 
             <ImageView
-                android:visibility="gone"
                 android:id="@+id/copyIcon"
                 android:layout_width="38dp"
                 android:layout_height="38dp"
-                android:translationZ="5dp"
-                android:outlineSpotShadowColor="@color/shadowColor"
+                android:layout_marginStart="6dp"
                 android:layout_marginBottom="6dp"
                 android:background="@drawable/button_bg"
                 android:backgroundTint="@color/white"
-                android:padding="10dp"
-                android:tooltipText="@string/copy"
                 android:foreground="?selectableItemBackground"
+                android:outlineSpotShadowColor="@color/shadowColor"
+                android:padding="10dp"
                 android:src="@drawable/ic_copy"
-                android:layout_marginStart="6dp"
-                app:tint="@color/black"/>
+                android:tooltipText="@string/copy"
+                android:translationZ="5dp"
+                android:visibility="gone"
+                app:tint="@color/black" />
 
         </LinearLayout>
     </ScrollView>
-
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/redoUndo"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@drawable/button_bg"
-        android:backgroundTint="@color/white"
-        android:paddingHorizontal="6dp"
-        android:outlineSpotShadowColor="@color/shadowColor"
-        android:paddingVertical="6dp"
-        android:translationZ="5dp"
-        app:layout_constraintBottom_toBottomOf="@id/back"
-        app:layout_constraintEnd_toStartOf="@id/done"
-        app:layout_constraintStart_toEndOf="@id/back"
-        app:layout_constraintTop_toTopOf="@id/back">
-
-        <ImageView
-            android:id="@+id/undo"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/button_bg"
-            android:backgroundTint="@color/contrast"
-            android:paddingHorizontal="9dp"
-            android:paddingVertical="4dp"
-            android:src="@drawable/ic_undo"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:tint="@color/black" />
-
-        <ImageView
-            android:id="@+id/redo"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/button_bg"
-            android:backgroundTint="@color/contrast"
-            android:paddingHorizontal="9dp"
-            android:paddingVertical="4dp"
-            android:src="@drawable/ic_redo"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toEndOf="@id/undo"
-            app:layout_constraintTop_toTopOf="parent"
-            app:tint="@color/black" />
-    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigation"
@@ -594,12 +669,12 @@
         android:layout_gravity="center_vertical"
         android:background="@color/white"
         android:fitsSystemWindows="true"
-        android:paddingBottom="0dp"
         android:paddingHorizontal="20dp"
-        app:itemIconTint="@color/bottom_nav_icon_color"
+        android:paddingBottom="0dp"
         app:activeIndicatorLabelPadding="0dp"
         app:itemActiveIndicatorStyle="@null"
         app:itemBackground="@null"
+        app:itemIconTint="@color/bottom_nav_icon_color"
         app:labelVisibilityMode="unlabeled"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
