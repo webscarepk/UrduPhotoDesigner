@@ -389,7 +389,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onDestroy() {
+    override fun onDestroy(){
         super.onDestroy()
         blurEngine?.destroy()
         blurEngine = null

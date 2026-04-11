@@ -264,6 +264,14 @@ class CanvasView @JvmOverloads constructor(
         isAntiAlias = true
     }
 
+    private val canvasShadowPaint = Paint().apply {
+        color = Color.BLACK
+        style = Paint.Style.FILL
+        isAntiAlias = true
+        alpha = 30   // softness control
+        maskFilter = BlurMaskFilter(100f, BlurMaskFilter.Blur.NORMAL)
+    }
+
     private val drawingModeOverlayPaint = Paint().apply {
         color = Color.argb(120, 255, 255, 255)
         style = Paint.Style.FILL
@@ -277,8 +285,8 @@ class CanvasView @JvmOverloads constructor(
     // ── Grid overlay ─────────────────────────────────────────────
     private var showGrid  = false
     private val gridPaint = Paint().apply {
-        color = Color.argb(40, 0, 0, 0)   // halka gray, canvas k upar
-        strokeWidth = 0.5f
+        color = Color.argb(60, 0, 0, 0)
+        strokeWidth = 1f
         style = Paint.Style.STROKE
         isAntiAlias = false
     }
@@ -1272,8 +1280,15 @@ class CanvasView @JvmOverloads constructor(
         val parentWidth = MeasureSpec.getSize(widthMeasureSpec)
         val parentHeight = MeasureSpec.getSize(heightMeasureSpec)
 
-        val widthRatio = parentWidth.toFloat() / canvasWidth
-        val heightRatio = parentHeight.toFloat() / canvasHeight
+        val marginHorizontal = 20f * resources.displayMetrics.density // 20dp
+        val marginVertical = 10f * resources.displayMetrics.density // 20dp
+
+        val availableWidth = parentWidth - (marginHorizontal * 2)
+        val availableHeight = parentHeight - (marginVertical * 2)
+
+        val widthRatio = availableWidth / canvasWidth
+        val heightRatio = availableHeight / canvasHeight
+
         scale = minOf(widthRatio, heightRatio)
 
         setMeasuredDimension(parentWidth, parentHeight)
@@ -1392,6 +1407,7 @@ class CanvasView @JvmOverloads constructor(
             withTranslation(offsetX, offsetY) {
                 scale(scale, scale)
                 if (isDrawing) {
+                    drawCanvasShadow(this)
                     // Draw canvas elements normally (dimmed by overlay on top — no saveLayer needed)
                     drawCanvasElements(this, showOverlays = false, showCheckerboard = false)
 
@@ -1416,6 +1432,7 @@ class CanvasView @JvmOverloads constructor(
                         drawLivePreviewStroke(this)
                     }
                 } else {
+                    drawCanvasShadow(this)
                     // 🔵 Normal render when not drawing
                     drawCanvasElements(this)
                 }
@@ -4024,17 +4041,13 @@ class CanvasView @JvmOverloads constructor(
                     initialOverallScale  = overallScale
 
                     when {
-                        // Pan mode ON → 2 finger zoom allowed
-                        isPanMode -> {
-                            currentMode = Mode.CANVAS_PAN
-                        }
-                        // Pan mode OFF, elements selected → element scale/rotate
-                        selectedElements.isNotEmpty() -> {
+                        // Elements selected → element scale/rotate (pan mode OFF only)
+                        selectedElements.isNotEmpty() && !isPanMode -> {
                             currentMode     = Mode.MULTI_TOUCH
                             initialScale    = selectedElements.firstOrNull()?.scale ?: 1f
                             initialRotation = selectedElements.firstOrNull()?.rotation ?: 0f
                         }
-                        // Pan mode OFF, no elements → sirf pan, no zoom
+                        // Empty canvas (ya pan mode ON) → overall canvas zoom
                         else -> {
                             currentMode = Mode.CANVAS_PAN
                         }
@@ -4298,26 +4311,20 @@ class CanvasView @JvmOverloads constructor(
                     // allow overall canvas pan/zoom
                     when (currentMode) {
                         Mode.CANVAS_PAN -> {
-                            // 2-finger: sirf pan (no zoom)
                             if (event.pointerCount == 2) {
-                                if (isPanMode) {
-                                    // Pan mode ON → 2 finger pinch zoom
-                                    val newDist = getPinchDistance(event)
-                                    val factor  = newDist / initialPinchDistance
-                                    overallScale = (initialOverallScale * factor).coerceIn(0.5f, 3.0f)
-                                    clampOverallPan()
-                                    invalidate()
-                                } else {
-                                    // Pan mode OFF → sirf midpoint pan, no zoom
-                                    val dx = (event.getX(0) + event.getX(1)) / 2f - touchStartX
-                                    val dy = (event.getY(0) + event.getY(1)) / 2f - touchStartY
-                                    overallOffsetX += dx
-                                    overallOffsetY += dy
-                                    clampOverallPan()
-                                    touchStartX = (event.getX(0) + event.getX(1)) / 2f
-                                    touchStartY = (event.getY(0) + event.getY(1)) / 2f
-                                    invalidate()
+                                // Empty canvas ya pan mode → overall zoom
+                                val newDist = getPinchDistance(event)
+                                val factor  = newDist / initialPinchDistance
+                                var newScale = (initialOverallScale * factor).coerceIn(0.5f, 3.0f)
+                                // Snap to 100% when within 95%–105%
+                                if (newScale in 0.95f..1.05f) {
+                                    if (overallScale != 1.0f) vibrateSoft()
+                                    newScale = 1.0f
                                 }
+                                overallScale = newScale
+                                clampOverallPan()
+                                onZoomChanged?.invoke(overallScale)
+                                invalidate()
                             } else if (event.pointerCount == 1) {
                                 val dx = event.x - touchStartX
                                 val dy = event.y - touchStartY
@@ -4561,23 +4568,18 @@ class CanvasView @JvmOverloads constructor(
 
                     Mode.CANVAS_PAN -> {
                         if (event.pointerCount == 2) {
-                            if (isPanMode) {
-                                // Pan mode ON → 2 finger pinch zoom
-                                val newDist = getPinchDistance(event)
-                                val factor  = newDist / initialPinchDistance
-                                overallScale = (initialOverallScale * factor).coerceIn(0.5f, 3.0f)
-                                clampOverallPan()
-                                invalidate()
-                            } else {
-                                val dx = (event.getX(0) + event.getX(1)) / 2f - touchStartX
-                                val dy = (event.getY(0) + event.getY(1)) / 2f - touchStartY
-                                overallOffsetX += dx
-                                overallOffsetY += dy
-                                clampOverallPan()
-                                touchStartX = (event.getX(0) + event.getX(1)) / 2f
-                                touchStartY = (event.getY(0) + event.getY(1)) / 2f
-                                invalidate()
+                            val newDist = getPinchDistance(event)
+                            val factor  = newDist / initialPinchDistance
+                            var newScale = (initialOverallScale * factor).coerceIn(0.5f, 3.0f)
+                            // Snap to 100% when within 95%–105%
+                            if (newScale in 0.95f..1.05f) {
+                                if (overallScale != 1.0f) vibrateSoft()
+                                newScale = 1.0f
                             }
+                            overallScale = newScale
+                            clampOverallPan()
+                            onZoomChanged?.invoke(overallScale)
+                            invalidate()
                         } else if (event.pointerCount == 1) {
                             val dx = event.x - touchStartX
                             val dy = event.y - touchStartY
@@ -4676,25 +4678,28 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private fun clampOverallPan() {
-        val scaledW = canvasWidth * scale * overallScale
-        val scaledH = canvasHeight * scale * overallScale
 
-        val containerW = width.toFloat()
-        val containerH = height.toFloat()
+        val screenW = width.toFloat()
+        val screenH = height.toFloat()
 
-        if (scaledW > containerW) {
-            val maxOffsetX = (scaledW - containerW) / 2f
-            overallOffsetX = overallOffsetX.coerceIn(-maxOffsetX, maxOffsetX)
-        } else {
-            overallOffsetX = 0f
-        }
+        // Scaled canvas size
+        val scaledCanvasW = canvasWidth * scale * overallScale
+        val scaledCanvasH = canvasHeight * scale * overallScale
 
-        if (scaledH > containerH) {
-            val maxOffsetY = (scaledH - containerH) / 2f
-            overallOffsetY = overallOffsetY.coerceIn(-maxOffsetY, maxOffsetY)
-        } else {
-            overallOffsetY = 0f
-        }
+        // 👇 25% margin (THIS IS KEY)
+        val marginX = screenW * 0.25f
+        val marginY = screenH * 0.25f
+
+        // Center based movement limits
+        val maxOffsetX = (scaledCanvasW / 2f) - marginX
+        val maxOffsetY = (scaledCanvasH / 2f) - marginY
+
+        // If canvas smaller than screen → center only
+        val finalMaxOffsetX = if (scaledCanvasW < screenW) 0f else maxOffsetX
+        val finalMaxOffsetY = if (scaledCanvasH < screenH) 0f else maxOffsetY
+
+        overallOffsetX = overallOffsetX.coerceIn(-finalMaxOffsetX, finalMaxOffsetX)
+        overallOffsetY = overallOffsetY.coerceIn(-finalMaxOffsetY, finalMaxOffsetY)
     }
 
     private fun canvasToView(cx: Float, cy: Float): Pair<Float, Float> {
@@ -4717,31 +4722,54 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private fun drawGrid(canvas: Canvas) {
-        val gridSpacing = 50f   // canvas pixels per cell
+        val gridSpacing = 50f
 
-        // Canvas 4 corners → view space
-        val (left,   top)    = canvasToView(0f,              0f)
-        val (right,  _)      = canvasToView(canvasWidth.toFloat(),  0f)
-        val (_,      bottom) = canvasToView(0f,              canvasHeight.toFloat())
+        // canvasToView() use karo — exact same transform as onDraw
+        val (left,  top)    = canvasToView(0f,                   0f)
+        val (right, bottom) = canvasToView(canvasWidth.toFloat(), canvasHeight.toFloat())
 
-        // 1 grid step in view pixels
-        val stepViewPx = gridSpacing * scale * overallScale
+        val stepPx = gridSpacing * scale * overallScale
+        if (stepPx < 2f) return
 
-        if (stepViewPx < 2f) return
+        gridPaint.strokeWidth = (1f / overallScale).coerceIn(0.8f, 1.5f)
 
-        // Vertical lines
         var x = left
         while (x <= right + 0.5f) {
             canvas.drawLine(x, top, x, bottom, gridPaint)
-            x += stepViewPx
+            x += stepPx
         }
 
-        // Horizontal lines
         var y = top
         while (y <= bottom + 0.5f) {
             canvas.drawLine(left, y, right, y, gridPaint)
-            y += stepViewPx
+            y += stepPx
         }
+    }
+
+    private fun drawCanvasShadow(canvas: Canvas) {
+
+        val rect = RectF(
+            0f,
+            0f,
+            canvasWidth.toFloat(),
+            canvasHeight.toFloat()
+        )
+
+        val spread = 40f // increase spread for softness
+
+        val shadowRect = RectF(
+            rect.left - spread,
+            rect.top - spread,
+            rect.right + spread,
+            rect.bottom + spread
+        )
+
+        canvas.drawRoundRect(
+            shadowRect,
+            30f,
+            30f,
+            canvasShadowPaint
+        )
     }
 
     /**
@@ -4751,18 +4779,24 @@ class CanvasView @JvmOverloads constructor(
      * Ruler background semi-transparent hota hai.
      */
     private fun drawRuler(canvas: Canvas) {
-        val tickSpacing      = 50f    // canvas units between ticks
         val rulerThicknessPx = 16f.dpToPx()
         val majorTickLen     = rulerThicknessPx * 0.6f
         val minorTickLen     = rulerThicknessPx * 0.3f
 
         // Canvas boundaries in view space
-        val (canvasLeft, canvasTop)     = canvasToView(0f,              0f)
+        val (canvasLeft, canvasTop)     = canvasToView(0f, 0f)
         val (canvasRight, canvasBottom) = canvasToView(canvasWidth.toFloat(), canvasHeight.toFloat())
 
+        // Smart tick spacing — canvas size ke hisaab se calculate karo
+        // Target: ~8 major ticks across full width
+        val rawSpacing = canvasWidth / 8f
+        // Round to nearest "nice" number: 50, 100, 200, 250, 500, 1000 etc
+        val tickSpacing = niceNumber(rawSpacing)
+
+        // View pixels per one canvas unit tick
         val stepViewPx = tickSpacing * scale * overallScale
 
-        if (stepViewPx < 4f) return   // too small to be useful
+        if (stepViewPx < 4f) return
 
         // ── TOP RULER background ─────────────────────────────────
         canvas.drawRect(canvasLeft, canvasTop,
@@ -4845,7 +4879,7 @@ class CanvasView @JvmOverloads constructor(
 
     /** ViewModel se zoom level set karna — overallScale use karta hai */
     fun setZoomLevel(zoom: Float) {
-        overallScale = zoom.coerceIn(0.5f, 5f)
+        overallScale = zoom.coerceIn(0.5f, 3.0f)
         clampOverallPan()
         invalidate()
     }
@@ -4866,6 +4900,11 @@ class CanvasView @JvmOverloads constructor(
         overallOffsetX = 0f
         overallOffsetY = 0f
         animateOverallZoom(1f)
+    }
+
+    private fun niceNumber(raw: Float): Float {
+        val candidates = listOf(10f, 20f, 25f, 50f, 100f, 200f, 250f, 500f, 1000f, 2000f)
+        return candidates.minByOrNull { kotlin.math.abs(it - raw) } ?: 100f
     }
 
     fun clearCallbacks() {

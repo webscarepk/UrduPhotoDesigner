@@ -24,7 +24,9 @@ import androidx.core.graphics.scale
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.ExportViewType
@@ -105,10 +107,10 @@ class ExportFragment : androidx.fragment.app.Fragment() {
     private fun initObservers() {
         viewModel.fetchExportOptionsFromDataStore()
 
+        // LiveData — already safe, viewLifecycleOwner used
         viewModel.canvasView.observe(viewLifecycleOwner) { canvas ->
             if (canvas == null) return@observe
             canvasView = canvas
-            // Only render if options are already ready too
             val options = viewModel.exportOptions.value
             if (options != null && canvas.canvasWidth > 0 && canvas.canvasHeight > 0) {
                 renderPreview()
@@ -116,10 +118,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         }
 
         viewModel.exportResult.observe(viewLifecycleOwner) { result ->
-            Log.d(
-                "ExportFragmentExportResult",
-                "Received exportResult: ${viewModel.exportResult.value}"
-            )
+            Log.d("ExportFragmentExportResult", "Received exportResult: $result")
             result?.let {
                 exportResult = it
                 renderExportResult(it)
@@ -128,16 +127,13 @@ class ExportFragment : androidx.fragment.app.Fragment() {
 
         viewModel.exportOptions.observe(viewLifecycleOwner) { options ->
             if (!isAdded) return@observe
-            lifecycleScope.launch(Dispatchers.Main) {
+            // FIX: was plain lifecycleScope — now tied to view lifecycle
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
                 updateExportOptionsUI(options)
                 val canvas = viewModel.canvasView.value
                 if (canvas != null && canvas.canvasWidth > 0 && canvas.canvasHeight > 0) {
                     renderPreview()
                 }
-                Log.d(
-                    "ExportFragmentExportOptions",
-                    "Received exportResult: ${viewModel.exportResult.value}"
-                )
             }
         }
 
@@ -145,11 +141,14 @@ class ExportFragment : androidx.fragment.app.Fragment() {
             updatePremiumBannerVisibility(hasPremium)
         }
 
+        // FIX: was missing repeatOnLifecycle — coroutine would outlive view
         viewLifecycleOwner.lifecycleScope.launch {
-            subscriptionViewModel.isSubscribed.collect {
-                val hasPremiumAsset = viewModel.hasPremiumAsset.value == true
-                updatePremiumBannerVisibility(hasPremiumAsset)
-                viewModel.exportOptions.value?.let { updateExportOptionsUI(it) }
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                subscriptionViewModel.isSubscribed.collect {
+                    val hasPremiumAsset = viewModel.hasPremiumAsset.value == true
+                    updatePremiumBannerVisibility(hasPremiumAsset)
+                    viewModel.exportOptions.value?.let { opts -> updateExportOptionsUI(opts) }
+                }
             }
         }
     }
@@ -368,9 +367,10 @@ class ExportFragment : androidx.fragment.app.Fragment() {
 
                 // 7. Update UI on complete
                 withContext(Dispatchers.Main) {
+                    if (_binding == null) return@withContext
                     updateProgress(100, "Export complete")
                     binding.exportProgress.postDelayed({
-                        binding.exportProgress.visibility = View.GONE
+                        _binding?.exportProgress?.visibility = View.GONE
                     }, 1000)
 
                     stopRotationAnimation(binding.view4)
@@ -686,8 +686,8 @@ class ExportFragment : androidx.fragment.app.Fragment() {
             .contains("bluestacks") || Build.DEVICE.lowercase().contains("bluestacks"))
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onDestroyView() {
+        super.onDestroyView()
         _binding = null
     }
 }

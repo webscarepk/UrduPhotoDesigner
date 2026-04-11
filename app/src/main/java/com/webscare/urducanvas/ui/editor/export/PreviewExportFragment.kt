@@ -10,11 +10,10 @@ import androidx.navigation.fragment.findNavController
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentPreviewExportBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class PreviewExportFragment : androidx.fragment.app.Fragment() {
+class PreviewExportFragment : Fragment() {
     private var _binding: FragmentPreviewExportBinding? = null
     private val binding get() = _binding!!
 
@@ -45,10 +44,19 @@ class PreviewExportFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.back.addPressEffect { findNavController().navigateUp() }
+
+        binding.zoomableImage.onDismissProgress = { progress ->
+            binding.scrim.alpha = 1f - progress
+        }
+
+        binding.zoomableImage.onDismiss = {
+            findNavController().navigateUp()
+        }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onDestroyView() {
+        super.onDestroyView()
+        binding.zoomableImage.onDismiss = null
         _binding = null
     }
 }

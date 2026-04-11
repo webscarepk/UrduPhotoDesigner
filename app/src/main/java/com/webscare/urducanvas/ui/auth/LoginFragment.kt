@@ -235,8 +235,8 @@ class LoginFragment : androidx.fragment.app.Fragment() {
         imm.hideSoftInputFromWindow(view?.windowToken, 0)
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onDestroyView() {
+        super.onDestroyView()
         _binding = null
     }
 

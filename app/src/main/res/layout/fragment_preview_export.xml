@@ -4,35 +4,48 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@android:color/transparent"
     tools:context=".ui.editor.export.PreviewExportFragment">
 
+    <!--
+        Scrim: sits behind the image, fades out as the user drags down.
+        In your Fragment:
+            zoomableImageView.onDismissProgress = { p -> binding.scrim.alpha = 1f - p }
+        Black background is revealed/hidden here — NOT on the root view.
+    -->
+    <View
+        android:id="@+id/scrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/contrast" />
+
     <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/topGuide"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.02"
-        android:id="@+id/topGuide"/>
+        app:layout_constraintGuide_percent="0.02" />
 
     <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/bottomGuide"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.95"
         android:orientation="horizontal"
-        android:id="@+id/bottomGuide"/>
+        app:layout_constraintGuide_percent="0.95" />
 
     <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/startGuide"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.05"
         android:orientation="vertical"
-        android:id="@+id/startGuide"/>
+        app:layout_constraintGuide_percent="0.05" />
 
     <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/endGuide"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.95"
         android:orientation="vertical"
-        android:id="@+id/endGuide"/>
+        app:layout_constraintGuide_percent="0.95" />
 
     <com.webscare.urducanvas.common.views.ZoomableImageView
         android:id="@+id/zoomableImage"

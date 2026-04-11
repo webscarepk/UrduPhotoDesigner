@@ -221,6 +221,7 @@ class ObjectsFragment : Fragment() {
                     if (hasText) ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close) else null,
                     null
                 )
+                if (!::adapter.isInitialized) return
                 if (!hasText) {
                     tabResultMap.clear()
                     showAllTabs()
@@ -239,7 +240,7 @@ class ObjectsFragment : Fragment() {
                 ) {
                     binding.searchBar.text.clear()
                     applySearchFilter("")
-                    adapter.filter("")
+                    if (::adapter.isInitialized) adapter.filter("")
                     tabResultMap.clear()
                     showAllTabs()
                     binding.searchBar.setCompoundDrawablesWithIntrinsicBounds(
@@ -266,6 +267,7 @@ class ObjectsFragment : Fragment() {
     }
 
     private fun applySearchFilter(query: String) {
+        if (!::adapter.isInitialized) return
         adapter.filter(query)
 
         if (query.isBlank()) {

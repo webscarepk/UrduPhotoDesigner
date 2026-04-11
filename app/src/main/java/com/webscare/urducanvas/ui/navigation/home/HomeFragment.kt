@@ -14,7 +14,9 @@ import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.snackbar.Snackbar
@@ -289,176 +291,197 @@ class HomeFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun initObservers() {
-        lifecycleScope.launch {
-            mainViewModel.templateDownloadStates.collect { downloadState ->
-                downloadState.values.forEach { state ->
-                    when (state) {
-                        is TemplateDownloadState.Progress -> {
-                            val ui =
-                                ProgressUi(
-                                    state.progress, isDownloading = true, isDownloaded = false
-                                )
-                            trendsAdapter.updateTemplateProgress(
-                                state.template.id, state.progress,
-                                isDownloading = true,
-                                isDownloaded = false
-                            )
-                            popularTemplatesAdapter.updateProgress(state.template.id, ui)
-                        }
 
-                        is TemplateDownloadState.SuccessWithTemplate -> {
-                            val t = state.template
-                            val ui =
-                                ProgressUi(
-                                    100, isDownloading = false, isDownloaded = true
-                                )
-                            trendsAdapter.updateTemplateProgress(
-                                t.id, 100, isDownloading = false, isDownloaded = true
-                            )
-                            trendsAdapter.notifyTemplateStateChanged(t)
-                            popularTemplatesAdapter.updateProgress(state.template.id, ui)
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
 
-                            mainViewModel.clearTemplateDownloadState()
-                            viewModel.clearCanvas()
-                            viewModel.clearLoading()
-
-                            findNavController().popBackStack(R.id.editorFragment, true)
-
-                            showGlobalSuccessSnack("Template ready") {
-                                viewModel.setProjectSourceName(t.category ?: t.subcategory)
-                                val exportResult = t.toExportResultFinal().copy(fileName = viewModel.buildProjectFileName())
-                                lifecycleScope.launch {
-                                    viewModel.loadTemplateFromJsonFile(
-                                        exportResult, requireContext()
+                mainViewModel.templateDownloadStates.collect { downloadState ->
+                    downloadState.values.forEach { state ->
+                        when (state) {
+                            is TemplateDownloadState.Progress -> {
+                                val ui =
+                                    ProgressUi(
+                                        state.progress, isDownloading = true, isDownloaded = false
                                     )
-                                }
-                            }
-                        }
-
-                        is TemplateDownloadState.Error -> {
-                            val ui =
-                                ProgressUi(
-                                    0, isDownloading = false, isDownloaded = false
-                                )
-                            downloadingTemplate?.let { t ->
                                 trendsAdapter.updateTemplateProgress(
-                                    t.id, 0, isDownloading = false, isDownloaded = false
-                                )
-                                popularTemplatesAdapter.updateProgress(
-                                    t.id, ui
-                                )
-                            }
-                        }
-
-                        is TemplateDownloadState.Success -> {
-                            mainViewModel.clearTemplateDownloadState()
-                        }
-                    }
-                }
-            }
-        }
-
-        lifecycleScope.launch {
-            mainViewModel.trendRows.collect { rows ->
-                trendsAdapter.submitList(rows)
-            }
-        }
-
-        lifecycleScope.launch {
-            mainViewModel.localTemplates.collect { all ->
-                val premiumTemplates = all.filter { it.is_popular }
-
-                popularTemplatesAdapter.submitList(premiumTemplates)
-
-                binding.popularTemplate.visibility =
-                    if (premiumTemplates.isEmpty()) View.GONE else View.VISIBLE
-            }
-        }
-
-        lifecycleScope.launch {
-            mainViewModel.localFonts.collect { fonts ->
-                val filteredFonts = fonts.filter { !it.font_category.equals("Imported", true) }
-                fontsAdapter.submitList(filteredFonts)
-                binding.popularFonts.visibility =
-                    if (filteredFonts.isEmpty()) View.GONE else View.VISIBLE
-            }
-        }
-
-        lifecycleScope.launch {
-            mainViewModel.fontDownloadStates.collect { downloadState ->
-                downloadState.values.forEach { state ->
-                    when (state) {
-                        is FontDownloadState.Progress -> {
-                            val font = state.fontEntity
-                            fontsAdapter.updateProgress(
-                                font.id,
-                                ProgressUi(
-                                    progress = state.progress,
+                                    state.template.id, state.progress,
                                     isDownloading = true,
                                     isDownloaded = false
                                 )
-                            )
-                        }
+                                popularTemplatesAdapter.updateProgress(state.template.id, ui)
+                            }
 
-                        is FontDownloadState.SuccessWithTypeface -> {
-                            val font = state.fontEntity
-
-                            fontsAdapter.updateProgress(
-                                font.id,
-                                ProgressUi(
-                                    100, isDownloading = false, isDownloaded = true
+                            is TemplateDownloadState.SuccessWithTemplate -> {
+                                val t = state.template
+                                val ui =
+                                    ProgressUi(
+                                        100, isDownloading = false, isDownloaded = true
+                                    )
+                                trendsAdapter.updateTemplateProgress(
+                                    t.id, 100, isDownloading = false, isDownloaded = true
                                 )
-                            )
+                                trendsAdapter.notifyTemplateStateChanged(t)
+                                popularTemplatesAdapter.updateProgress(state.template.id, ui)
 
-                            showGlobalSuccessSnack("Font downloaded") {
-                                lifecycleScope.launch {
-                                    viewModel.clearCanvas()
-                                    viewModel.clearLoading()
-                                    findNavController().popBackStack(R.id.editorFragment, true)
+                                mainViewModel.clearTemplateDownloadState()
+                                viewModel.clearCanvas()
+                                viewModel.clearLoading()
 
-                                    viewModel.setCanvasSize(
-                                        CanvasSize(
-                                            "", 2000f, 2000f
+                                findNavController().popBackStack(R.id.editorFragment, true)
+
+                                showGlobalSuccessSnack("Template ready") {
+                                    viewModel.setProjectSourceName(t.category ?: t.subcategory)
+                                    val exportResult = t.toExportResultFinal().copy(fileName = viewModel.buildProjectFileName())
+                                    lifecycleScope.launch {
+                                        viewModel.loadTemplateFromJsonFile(
+                                            exportResult, requireContext()
                                         )
-                                    )
-                                    viewModel.addTextWithFont(
-                                        requireActivity().getString(R.string.dummyText),
-                                        font,
-                                        requireActivity()
-                                    )
-
-                                    if (isAdded && findNavController().currentDestination?.id != R.id.editorFragment) {
-                                        view?.post {
-                                            findNavController().navigate(
-                                                R.id.editorFragment, bundle, navOptions
-                                            )
-                                        }
                                     }
                                 }
-                                mainViewModel.clearFontDownloadState()
+                            }
+
+                            is TemplateDownloadState.Error -> {
+                                val ui =
+                                    ProgressUi(
+                                        0, isDownloading = false, isDownloaded = false
+                                    )
+                                downloadingTemplate?.let { t ->
+                                    trendsAdapter.updateTemplateProgress(
+                                        t.id, 0, isDownloading = false, isDownloaded = false
+                                    )
+                                    popularTemplatesAdapter.updateProgress(
+                                        t.id, ui
+                                    )
+                                }
+                            }
+
+                            is TemplateDownloadState.Success -> {
+                                mainViewModel.clearTemplateDownloadState()
                             }
                         }
-
-                        is FontDownloadState.Error -> {
-                            val font = state.fontEntity
-                            fontsAdapter.updateProgress(
-                                font.id,
-                                ProgressUi(
-                                    progress = 0, isDownloading = false, isDownloaded = false
-                                )
-                            )
-
-                            mainViewModel.clearFontDownloadState()
-                            if (isAdded) {
-                                Snackbar.make(
-                                    requireView(), "Download failed!", Snackbar.LENGTH_SHORT
-                                ).show()
-                            }
-                        }
-
-                        else -> {}
                     }
                 }
+
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+
+                mainViewModel.trendRows.collect { rows ->
+                    trendsAdapter.submitList(rows)
+                }
+
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+
+                mainViewModel.localTemplates.collect { all ->
+                    val premiumTemplates = all.filter { it.is_popular }
+
+                    popularTemplatesAdapter.submitList(premiumTemplates)
+
+                    binding.popularTemplate.visibility =
+                        if (premiumTemplates.isEmpty()) View.GONE else View.VISIBLE
+                }
+
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+
+                mainViewModel.localFonts.collect { fonts ->
+                    val filteredFonts = fonts.filter { !it.font_category.equals("Imported", true) }
+                    fontsAdapter.submitList(filteredFonts)
+                    binding.popularFonts.visibility =
+                        if (filteredFonts.isEmpty()) View.GONE else View.VISIBLE
+                }
+
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+
+                mainViewModel.fontDownloadStates.collect { downloadState ->
+                    downloadState.values.forEach { state ->
+                        when (state) {
+                            is FontDownloadState.Progress -> {
+                                val font = state.fontEntity
+                                fontsAdapter.updateProgress(
+                                    font.id,
+                                    ProgressUi(
+                                        progress = state.progress,
+                                        isDownloading = true,
+                                        isDownloaded = false
+                                    )
+                                )
+                            }
+
+                            is FontDownloadState.SuccessWithTypeface -> {
+                                val font = state.fontEntity
+
+                                fontsAdapter.updateProgress(
+                                    font.id,
+                                    ProgressUi(
+                                        100, isDownloading = false, isDownloaded = true
+                                    )
+                                )
+
+                                showGlobalSuccessSnack("Font downloaded") {
+                                    lifecycleScope.launch {
+                                        viewModel.clearCanvas()
+                                        viewModel.clearLoading()
+                                        findNavController().popBackStack(R.id.editorFragment, true)
+
+                                        viewModel.setCanvasSize(
+                                            CanvasSize(
+                                                "", 2000f, 2000f
+                                            )
+                                        )
+                                        viewModel.addTextWithFont(
+                                            requireActivity().getString(R.string.dummyText),
+                                            font,
+                                            requireActivity()
+                                        )
+
+                                        if (isAdded && findNavController().currentDestination?.id != R.id.editorFragment) {
+                                            view?.post {
+                                                findNavController().navigate(
+                                                    R.id.editorFragment, bundle, navOptions
+                                                )
+                                            }
+                                        }
+                                    }
+                                    mainViewModel.clearFontDownloadState()
+                                }
+                            }
+
+                            is FontDownloadState.Error -> {
+                                val font = state.fontEntity
+                                fontsAdapter.updateProgress(
+                                    font.id,
+                                    ProgressUi(
+                                        progress = 0, isDownloading = false, isDownloaded = false
+                                    )
+                                )
+
+                                mainViewModel.clearFontDownloadState()
+                                if (isAdded) {
+                                    Snackbar.make(
+                                        requireView(), "Download failed!", Snackbar.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+
+                            else -> {}
+                        }
+                    }
+                }
+
             }
         }
 
@@ -502,8 +525,8 @@ class HomeFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onDestroyView() {
+        super.onDestroyView()
         _binding = null
     }
 }

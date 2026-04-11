@@ -375,8 +375,8 @@ class SearchFragment : Fragment() {
         val templates: List<TemplateEntity>, val fonts: List<FontEntity>, val files: List<Any>
     )
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onDestroyView() {
+        super.onDestroyView()
         _binding = null
     }
 }

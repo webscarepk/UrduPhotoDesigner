@@ -55,15 +55,26 @@ object ImageProcessor {
         val w = bitmap.width
         val h = bitmap.height
 
-        // Already within bounds — return as-is, no copy made
-        if (w <= maxW && h <= maxH) return bitmap
+        // GPU hard limit: DisplayListCanvas rejects any single drawBitmap call
+        // that exceeds 100 MB. We use 96 MB as a safe margin.
+        // For ARGB_8888 (4 bytes/px): 96 MB / 4 = 24,000,000 pixels max.
+        val MAX_GPU_PIXELS = 24_000_000
+        val gpuCapW = 4899 // sqrt(24_000_000) rounded down, used to derive capped dims
+        val gpuCapH = 4899
 
-        val scale = minOf(maxW.toFloat() / w, maxH.toFloat() / h)
+        // Final target = most restrictive of caller's requested max and GPU limit
+        val targetW = minOf(maxW, gpuCapW)
+        val targetH = minOf(maxH, gpuCapH)
+
+        // Already within bounds — return as-is, no copy made
+        if (w <= targetW && h <= targetH && w * h <= MAX_GPU_PIXELS) return bitmap
+
+        val scale = minOf(targetW.toFloat() / w, targetH.toFloat() / h)
         val newW = (w * scale).roundToInt().coerceAtLeast(1)
         val newH = (h * scale).roundToInt().coerceAtLeast(1)
 
         val scaled = bitmap.scale(newW, newH)
-        bitmap.recycle() // original no longer needed
+        bitmap.recycle()
         return scaled
     }
 

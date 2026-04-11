@@ -25,6 +25,7 @@ import android.widget.PopupWindow
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.createBitmap
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.asFlow
@@ -33,11 +34,13 @@ import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.snackbar.Snackbar
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.common.utils.DialogUtils
 import com.webscare.urducanvas.common.utils.ImageProcessor
+import com.webscare.urducanvas.common.utils.ImageProcessor.downsampleIfNeeded
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.data.model.FontEntity
@@ -47,7 +50,6 @@ import com.webscare.urducanvas.databinding.FragmentFilesListBinding
 import com.webscare.urducanvas.databinding.LayoutFilesPopupBinding
 import com.webscare.urducanvas.viewmodels.FiltersViewModel
 import com.webscare.urducanvas.viewmodels.MainViewModel
-import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -58,11 +60,9 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.core.graphics.createBitmap
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 @AndroidEntryPoint
-class FilesListFragment : androidx.fragment.app.Fragment() {
+class FilesListFragment : Fragment() {
     private var _binding: FragmentFilesListBinding? = null
     private val binding get() = _binding!!
 
@@ -82,9 +82,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
         }
 
     private var rotationAnimator: ObjectAnimator? = null
-    val navOptions = NavOptions.Builder()
-        .setLaunchSingleTop(true)
-        .build()
+    val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,8 +90,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentFilesListBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -111,40 +108,35 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
 
     @SuppressLint("ClickableViewAccessibility")
     private fun setEvents() {
-        adapter = FilesAdapter(
-            emptyList(), isGrid = false,
-            onItemClick = { item ->
-                openItem(item)
-            },
-            onItemLongClick = {},
-            onOptionsClick = { item, anchorView ->
-                showFilePopup(anchorView, item)
-            }, onRename = { item, newName ->
-                if (newName.isNotEmpty()) {
-                    lifecycleScope.launch {
-                        when (item) {
-                            is ExportResult -> viewModel.insertExportResult(item.copy(fileName = newName))
-                            is ImageEntity -> viewModel.updateImage(item.copy(file_name = newName))
-                            is FontEntity -> viewModel.updateFont(item.copy(font_name = newName))
-                        }
+        adapter = FilesAdapter(emptyList(), isGrid = false, onItemClick = { item ->
+            openItem(item)
+        }, onItemLongClick = {}, onOptionsClick = { item, anchorView ->
+            showFilePopup(anchorView, item)
+        }, onRename = { item, newName ->
+            if (newName.isNotEmpty()) {
+                lifecycleScope.launch {
+                    when (item) {
+                        is ExportResult -> viewModel.insertExportResult(item.copy(fileName = newName))
+                        is ImageEntity -> viewModel.updateImage(item.copy(file_name = newName))
+                        is FontEntity -> viewModel.updateFont(item.copy(font_name = newName))
                     }
                 }
-            }, onSelectionChanged = { active ->
-                binding.deleteAll.visibility = if (active) View.VISIBLE else View.GONE
-                binding.addMore.visibility = if (active) View.GONE else View.VISIBLE
-                if (tabName.equals("All", true) || tabName.equals("Projects", true)) {
-                    binding.addMore.visibility = View.GONE
-                }
-            })
+            }
+        }, onSelectionChanged = { active ->
+            binding.deleteAll.visibility = if (active) View.VISIBLE else View.GONE
+            binding.addMore.visibility = if (active) View.GONE else View.VISIBLE
+            if (tabName.equals("All", true) || tabName.equals("Projects", true)) {
+                binding.addMore.visibility = View.GONE
+            }
+        })
         binding.filesRV.adapter = adapter
         binding.filesRV.layoutManager = LinearLayoutManager(requireContext())
 
         binding.filesRV.setOnTouchListener { v, event ->
             if (event.action == android.view.MotionEvent.ACTION_DOWN) {
                 if (adapter.isEditing()) {
-                    val imm = requireContext()
-                        .getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
-                            as android.view.inputmethod.InputMethodManager
+                    val imm =
+                        requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
                     imm.hideSoftInputFromWindow(v.windowToken, 0)
                     requireActivity().currentFocus?.clearFocus()
                     adapter.stopEditing()
@@ -159,7 +151,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.deleteAll.addPressEffect {
-            val selectedItems = adapter.getSelectedItems() // we’ll add this helper in adapter
+            val selectedItems = adapter.getSelectedItems() // we'll add this helper in adapter
             if (selectedItems.isNotEmpty()) {
                 DialogUtils.showDeleteDialog(
                     requireActivity(),
@@ -194,40 +186,37 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
         val ext = name.substringAfterLast('.', "").lowercase()
 
         when (ext) {
-            "ttf", "otf" -> {   // FONT IMPORT
+            "ttf", "otf" -> {   // FONT IMPORT — no bitmap processing needed
                 lifecycleScope.launch(Dispatchers.IO) {
                     try {
                         val fontFile = copyToTemp(uri, ".$ext")
                         val exportDate =
                             SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
-                        val fontEntity =
-                            _root_ide_package_.com.webscare.urducanvas.data.model.FontEntity(
-                                id = System.currentTimeMillis().toInt(),
-                                file_name = fontFile.name,
-                                font_name = fontFile.nameWithoutExtension,
-                                font_category = "Imported",
-                                font_language = "Imported",
-                                file_url = "",
-                                file_size = fontFile.length().toString(),
-                                font_image = null,
-                                image_url = "",
-                                alt_text = "Font sample image",
-                                user_id = 0,
-                                created_at = exportDate,
-                                updated_at = exportDate,
-                                is_selected = false,
-                                is_downloaded = true,
-                                is_downloading = false,
-                                file_path = fontFile.absolutePath
-                            )
+                        val fontEntity = FontEntity(
+                            id = System.currentTimeMillis().toInt(),
+                            file_name = fontFile.name,
+                            font_name = fontFile.nameWithoutExtension,
+                            font_category = "Imported",
+                            font_language = "Imported",
+                            file_url = "",
+                            file_size = fontFile.length().toString(),
+                            font_image = null,
+                            image_url = "",
+                            alt_text = "Font sample image",
+                            user_id = 0,
+                            created_at = exportDate,
+                            updated_at = exportDate,
+                            is_selected = false,
+                            is_downloaded = true,
+                            is_downloading = false,
+                            file_path = fontFile.absolutePath
+                        )
                         viewModel.insertFont(fontEntity)
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
                             Snackbar.make(
-                                requireView(),   // or binding.root
-                                "Font import failed",
-                                Snackbar.LENGTH_SHORT
+                                requireView(), "Font import failed", Snackbar.LENGTH_SHORT
                             ).show()
                         }
                     }
@@ -239,23 +228,33 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                     try {
                         val filePath =
                             ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
-                        val exportDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(
-                            Date()
-                        )
+                                ?: return@launch
+                        val rawBitmap = ImageProcessor.filePathToBitmap(filePath) ?: return@launch
 
-                        val entity =
-                            _root_ide_package_.com.webscare.urducanvas.data.model.ImageEntity(
-                                id = System.currentTimeMillis().toInt(),
-                                file_name = File(filePath!!).name,
-                                file_url = "",
-                                file_size = File(filePath).length().toString(),
-                                alt_text = "",
-                                category = "Backgrounds Imported",
-                                user_id = 0,
-                                is_selected = false,
-                                bitmapData = filePath,
-                                created_at = exportDate
-                            )
+                        // We don't know which canvas this will be used on, so cap at the
+                        // GPU hard limit (4899px / 24 MP) — safe for any canvas size.
+                        val bitmap =
+                            downsampleIfNeeded(rawBitmap, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)
+
+                        // Write the downsampled bitmap back to the temp file
+                        val outFile = File(filePath)
+                        outFile.outputStream()
+                            .use { bitmap.compress(Bitmap.CompressFormat.JPEG, 95, it) }
+
+                        val exportDate =
+                            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                        val entity = ImageEntity(
+                            id = System.currentTimeMillis().toInt(),
+                            file_name = outFile.name,
+                            file_url = "",
+                            file_size = outFile.length().toString(),
+                            alt_text = "",
+                            category = "Backgrounds Imported",
+                            user_id = 0,
+                            is_selected = false,
+                            bitmapData = filePath,
+                            created_at = exportDate
+                        )
                         viewModel.insertImage(entity)
                     } catch (e: Exception) {
                         Log.e("BackgroundPicker", "Failed", e)
@@ -268,22 +267,33 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                     try {
                         val filePath =
                             ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                                ?: return@launch
+                        val rawBitmap = ImageProcessor.filePathToBitmap(filePath) ?: return@launch
+
+                        // Same GPU-safe cap — no canvas context available here.
+                        val bitmap =
+                            downsampleIfNeeded(rawBitmap, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)
+
+                        // Write the downsampled bitmap back to the temp file
+                        // PNG is lossless so quality param is ignored — always use PNG for stickers
+                        val outFile = File(filePath)
+                        outFile.outputStream()
+                            .use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+
                         val exportDate =
                             SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-
-                        val entity =
-                            _root_ide_package_.com.webscare.urducanvas.data.model.ImageEntity(
-                                id = System.currentTimeMillis().toInt(),
-                                file_name = File(filePath!!).name,
-                                file_url = "",
-                                file_size = File(filePath).length().toString(),
-                                alt_text = "",
-                                category = "Images Imported",
-                                user_id = 0,
-                                is_selected = false,
-                                bitmapData = filePath,
-                                created_at = exportDate
-                            )
+                        val entity = ImageEntity(
+                            id = System.currentTimeMillis().toInt(),
+                            file_name = outFile.name,
+                            file_url = "",
+                            file_size = outFile.length().toString(),
+                            alt_text = "",
+                            category = "Images Imported",
+                            user_id = 0,
+                            is_selected = false,
+                            bitmapData = filePath,
+                            created_at = exportDate
+                        )
                         viewModel.insertImage(entity)
                     } catch (e: Exception) {
                         Log.e("StickerPicker", "Failed", e)
@@ -311,9 +321,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
 
     private fun copyToTemp(uri: Uri, dotExt: String): File {
         val tempFile = File.createTempFile(
-            "imported_${System.currentTimeMillis()}",
-            dotExt,
-            requireContext().cacheDir
+            "imported_${System.currentTimeMillis()}", dotExt, requireContext().cacheDir
         )
         requireContext().contentResolver.openInputStream(uri).use { input ->
             tempFile.outputStream().use { out -> input?.copyTo(out) }
@@ -351,15 +359,11 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
             is FontEntity -> {
                 canvasViewModel.setCanvasSize(
                     CanvasSize(
-                        "",
-                        2000f,
-                        2000f
+                        "", 2000f, 2000f
                     )
                 )
                 canvasViewModel.addTextWithFont(
-                    requireActivity().getString(R.string.dummyText),
-                    item,
-                    requireActivity()
+                    requireActivity().getString(R.string.dummyText), item, requireActivity()
                 )
                 view?.post {
                     findNavController().navigate(R.id.editorFragment, bundle, navOptions)
@@ -373,12 +377,9 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                     val widthVal = it.width.toFloat()
                     val heightVal = it.height.toFloat()
 
-                    val canvasSize =
-                        CanvasSize(
-                            "From Image",
-                            widthVal,
-                            heightVal
-                        )
+                    val canvasSize = CanvasSize(
+                        "From Image", widthVal, heightVal
+                    )
 
                     canvasViewModel.clearCanvas()
                     canvasViewModel.setCanvasSize(canvasSize)
@@ -402,7 +403,6 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
 
         popupWindow.elevation = 2f
         popupWindow.isOutsideTouchable = true
-        
 
         anchorView.post {
             val screenHeight = resources.displayMetrics.heightPixels
@@ -412,7 +412,6 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
             val anchorTop = location[1]
             val anchorBottom = anchorTop + anchorView.height
 
-            // Measure popup height
             popupBinding.root.measure(
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
@@ -423,18 +422,12 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
             val spaceAbove = anchorTop
 
             if (spaceBelow >= popupHeight) {
-                // Enough space below → dropdown
                 popupWindow.showAsDropDown(anchorView)
             } else if (spaceAbove >= popupHeight) {
-                // Enough space above → show on top
                 popupWindow.showAtLocation(
-                    anchorView,
-                    Gravity.NO_GRAVITY,
-                    location[0], // x
-                    anchorTop - popupHeight // y (above anchor)
+                    anchorView, Gravity.NO_GRAVITY, location[0], anchorTop - popupHeight
                 )
             } else {
-                // Default fallback → force dropdown
                 popupWindow.showAsDropDown(anchorView)
             }
         }
@@ -444,52 +437,39 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
 
             when (item) {
                 is ExportResult -> {
-                    // Export the project file as JSON/Zip or shareable format
                     lifecycleScope.launch {
-                        // Example: save to external storage
                         val bitmap = BitmapFactory.decodeFile(item.imagePath)
                         if (bitmap != null) {
                             exportToGallery(bitmap, item.fileName, Bitmap.CompressFormat.PNG)
-                            // or detect extension from fileName
                         } else {
                             Snackbar.make(
-                                requireView(),   // or binding.root if using ViewBinding
-                                "Could not load image",
-                                Snackbar.LENGTH_SHORT
+                                requireView(), "Could not load image", Snackbar.LENGTH_SHORT
                             ).show()
                         }
                     }
                 }
 
                 is ImageEntity -> {
-                    // Save/Share image file
                     lifecycleScope.launch {
                         val bitmap = BitmapFactory.decodeFile(item.bitmapData)
                         if (bitmap != null) {
                             exportToGallery(bitmap, item.file_name, Bitmap.CompressFormat.PNG)
-                            // or detect extension from fileName
                         } else {
                             Snackbar.make(
-                                requireView(),   // or binding.root if using ViewBinding
-                                "Could not load image",
-                                Snackbar.LENGTH_SHORT
+                                requireView(), "Could not load image", Snackbar.LENGTH_SHORT
                             ).show()
                         }
                     }
                 }
 
                 is FontEntity -> {
-                    // Save font file (.ttf)
                     lifecycleScope.launch {
                         val bitmap = BitmapFactory.decodeFile(item.font_image)
                         if (bitmap != null) {
                             exportToGallery(bitmap, item.font_name, Bitmap.CompressFormat.PNG)
-                            // or detect extension from fileName
                         } else {
                             Snackbar.make(
-                                requireView(),   // or binding.root if using ViewBinding
-                                "Could not load image",
-                                Snackbar.LENGTH_SHORT
+                                requireView(), "Could not load image", Snackbar.LENGTH_SHORT
                             ).show()
                         }
                     }
@@ -499,20 +479,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
 
         popupBinding.actionSelect.addPressEffect {
             popupWindow.dismiss()
-
-            when (item) {
-                is ExportResult -> {
-                    adapter.toggleMultiSelectMode(true)
-                }
-
-                is ImageEntity -> {
-                    adapter.toggleMultiSelectMode(true)
-                }
-
-                is FontEntity -> {
-                    adapter.toggleMultiSelectMode(true)
-                }
-            }
+            adapter.toggleMultiSelectMode(true)
         }
 
         popupBinding.actionDuplicate.addPressEffect {
@@ -523,7 +490,6 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                         val srcImage = File(item.imagePath)
                         val srcJson = File(item.jsonPath)
 
-                        // use same hierarchy as ImageProcessor
                         val newImageFile =
                             ImageProcessor.newExportImageFile(requireActivity(), srcImage.name)
                         val newJsonFile =
@@ -582,7 +548,6 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                 }
             }
         }
-
 
         popupBinding.actionRename.addPressEffect {
             popupWindow.dismiss()
@@ -648,19 +613,10 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
             resolver.openOutputStream(it)?.use { stream ->
                 bitmap.compress(format, 100, stream)
             }
-            Snackbar.make(
-                requireView(),
-                "Exported to Gallery",
-                Snackbar.LENGTH_SHORT
-            ).show()
+            Snackbar.make(requireView(), "Exported to Gallery", Snackbar.LENGTH_SHORT).show()
         } ?: run {
-            Snackbar.make(
-                requireView(),
-                "Export failed",
-                Snackbar.LENGTH_SHORT
-            ).show()
+            Snackbar.make(requireView(), "Export failed", Snackbar.LENGTH_SHORT).show()
         }
-
     }
 
     private fun initObservers() {
@@ -712,13 +668,13 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                         val q = query.trim().lowercase()
 
                         val filteredFonts = fonts.filter {
-                            it.font_category == "Imported" &&
-                                    (q.isEmpty() || it.font_name.lowercase().contains(q))
+                            it.font_category == "Imported" && (q.isEmpty() || it.font_name.lowercase()
+                                .contains(q))
                         }
 
                         val filteredImages = images.filter {
-                            it.category == "Images Imported" &&
-                                    (q.isEmpty() || it.file_name.lowercase().contains(q))
+                            it.category == "Images Imported" && (q.isEmpty() || it.file_name.lowercase()
+                                .contains(q))
                         }
 
                         val filteredProjects = results.filter {
@@ -728,7 +684,8 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                         filteredFonts + filteredImages + filteredProjects
                     }.collect { list ->
                         adapter.updateList(list)
-                        binding.noImagesText.text = requireActivity().getString(R.string.no_assets_available)
+                        binding.noImagesText.text =
+                            requireActivity().getString(R.string.no_assets_available)
                         binding.noEmojis.visibility =
                             if (list.isEmpty()) View.VISIBLE else View.GONE
                     }
@@ -738,14 +695,14 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
             "Projects" -> {
                 lifecycleScope.launch {
                     combine(
-                        viewModel.exportResults.asFlow(),
-                        filtersViewModel.searchQuery
+                        viewModel.exportResults.asFlow(), filtersViewModel.searchQuery
                     ) { results, query ->
                         val q = query.trim().lowercase()
                         results.filter { q.isEmpty() || it.fileName.lowercase().contains(q) }
                     }.collect { list ->
                         adapter.updateList(list)
-                        binding.noImagesText.text = requireActivity().getString(R.string.no_projects_available)
+                        binding.noImagesText.text =
+                            requireActivity().getString(R.string.no_projects_available)
                         binding.noEmojis.visibility =
                             if (list.isEmpty()) View.VISIBLE else View.GONE
                     }
@@ -755,13 +712,12 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
             "Fonts" -> {
                 lifecycleScope.launch {
                     combine(
-                        viewModel.localFonts,
-                        filtersViewModel.searchQuery
+                        viewModel.localFonts, filtersViewModel.searchQuery
                     ) { fonts, query ->
                         val q = query.trim().lowercase()
                         fonts.filter {
-                            it.font_category == "Imported" &&
-                                    (q.isEmpty() || it.font_name.lowercase().contains(q))
+                            it.font_category == "Imported" && (q.isEmpty() || it.font_name.lowercase()
+                                .contains(q))
                         }
                     }.collect { list ->
                         if (list.isEmpty()) {
@@ -778,20 +734,14 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
 
                             val clickableSpan = object : android.text.style.ClickableSpan() {
                                 override fun onClick(widget: View) {
-                                    // Navigate to In-App Fonts screen
-                                    findNavController().navigate(
-                                        R.id.popularFontsFragment
-                                    )
+                                    findNavController().navigate(R.id.popularFontsFragment)
                                 }
 
                                 override fun updateDrawState(ds: android.text.TextPaint) {
                                     super.updateDrawState(ds)
                                     ds.isUnderlineText = true
-                                    val typeface = ResourcesCompat.getFont(
-                                        requireContext(),
-                                        R.font.medium
-                                    )
-
+                                    val typeface =
+                                        ResourcesCompat.getFont(requireContext(), R.font.medium)
                                     ds.typeface = typeface
                                     ds.color = requireContext().getColor(R.color.appColor)
                                 }
@@ -812,7 +762,6 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
                             adapter.updateList(list)
                             binding.noEmojis.visibility = View.GONE
                         }
-
                     }
                 }
             }
@@ -820,18 +769,17 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
             "Stickers" -> {
                 lifecycleScope.launch {
                     combine(
-                        viewModel.localImages,
-                        filtersViewModel.searchQuery
+                        viewModel.localImages, filtersViewModel.searchQuery
                     ) { images, query ->
                         val q = query.trim().lowercase()
                         images.filter {
-                            it.category == "Images Imported" &&
-                                    (q.isEmpty() || it.file_name.lowercase().contains(q))
+                            it.category == "Images Imported" && (q.isEmpty() || it.file_name.lowercase()
+                                .contains(q))
                         }
                     }.collect { list ->
                         adapter.updateList(list)
-
-                        binding.noImagesText.text = requireActivity().getString(R.string.no_stickers_available)
+                        binding.noImagesText.text =
+                            requireActivity().getString(R.string.no_stickers_available)
                         binding.noEmojis.visibility =
                             if (list.isEmpty()) View.VISIBLE else View.GONE
                     }
@@ -841,23 +789,22 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
             "Backgrounds" -> {
                 lifecycleScope.launch {
                     combine(
-                        viewModel.localImages,
-                        filtersViewModel.searchQuery
+                        viewModel.localImages, filtersViewModel.searchQuery
                     ) { images, query ->
                         val q = query.trim().lowercase()
                         images.filter {
-                            it.category == "Backgrounds Imported" &&
-                                    (q.isEmpty() || it.file_name.lowercase().contains(q))
+                            it.category == "Backgrounds Imported" && (q.isEmpty() || it.file_name.lowercase()
+                                .contains(q))
                         }
                     }.collect { list ->
                         adapter.updateList(list)
-                        binding.noImagesText.text = requireActivity().getString(R.string.no_backgrounds_available)
+                        binding.noImagesText.text =
+                            requireActivity().getString(R.string.no_backgrounds_available)
                         binding.noEmojis.visibility =
                             if (list.isEmpty()) View.VISIBLE else View.GONE
                     }
                 }
             }
-
         }
     }
 
@@ -874,7 +821,7 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
             }
             window?.setBackgroundDrawableResource(android.R.color.transparent)
             val params = window?.attributes
-            params?.width = (resources.displayMetrics.widthPixels * 0.8).toInt() // 80% width
+            params?.width = (resources.displayMetrics.widthPixels * 0.8).toInt()
             params?.height = ViewGroup.LayoutParams.WRAP_CONTENT
             window?.attributes = params
             window?.setGravity(Gravity.CENTER)
@@ -882,7 +829,6 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
         }
 
         dialogBinding?.title?.text = "Loading Template"
-
         startIconRotation()
     }
 
@@ -909,8 +855,8 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
         dialogBinding = null
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onDestroyView() {
+        super.onDestroyView()
         _binding = null
     }
 
@@ -922,6 +868,8 @@ class FilesListFragment : androidx.fragment.app.Fragment() {
     }
 
     companion object {
+        private const val MAX_IMAGE_DIMENSION = 4899
+
         fun newInstance(tabName: String): FilesListFragment {
             return FilesListFragment().apply {
                 arguments = Bundle().apply {
