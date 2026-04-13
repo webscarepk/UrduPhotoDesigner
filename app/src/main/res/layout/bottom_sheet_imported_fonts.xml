@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bottom_sheet_bg">
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/startGuide"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.05" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/endGuide"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.95" />
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:fontFamily="@font/bold"
+        android:text="@string/imported_fonts"
+        android:textColor="@color/black"
+        android:textSize="20sp"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintEnd_toStartOf="@id/back"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Close button -->
+    <ImageView
+        android:id="@+id/back"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:src="@drawable/ic_close"
+        app:layout_constraintTop_toTopOf="@id/title"
+        app:layout_constraintBottom_toBottomOf="@id/title"
+        app:layout_constraintEnd_toStartOf="@id/endGuide" />
+
+    <!--
+        RecyclerView fills ALL remaining space below the header,
+        all the way to the bottom of the sheet.
+        The button floats ON TOP of it — RV scrolls under the button.
+    -->
+
+    <!-- Empty state — same region as RV, centred -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/fontsRV"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:orientation="vertical"
+        android:paddingTop="8dp"
+        android:paddingBottom="80dp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintTop_toBottomOf="@id/back"
+        tools:listitem="@layout/layout_imported_fonts_grid" />
+
+    <LinearLayout
+        android:id="@+id/noEmojis"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/back"
+        app:layout_constraintBottom_toTopOf="@id/importFont"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_nothing_found" />
+
+        <TextView
+            android:id="@+id/noImagesText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:fontFamily="@font/regular"
+            android:gravity="center_horizontal"
+            android:textColor="@color/black"
+            android:textSize="15sp"
+            android:text="@string/no_fonts_available" />
+
+    </LinearLayout>
+
+    <!--
+        Import button — floats over the RV.
+        elevation renders it above the list. The RV's paddingBottom="80dp"
+        ensures the last list item can scroll clear of this button.
+    -->
+    <TextView
+        android:id="@+id/importFont"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:background="@drawable/ic_button_gradient_wrap"
+        android:elevation="8dp"
+        android:fontFamily="@font/bold"
+        android:gravity="center"
+        android:paddingVertical="12dp"
+        android:text="@string/import_font"
+        android:textColor="@color/whiteText"
+        android:textSize="15sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
+        app:layout_constraintStart_toEndOf="@id/startGuide" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

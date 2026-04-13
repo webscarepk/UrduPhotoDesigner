@@ -4317,9 +4317,12 @@ class CanvasView @JvmOverloads constructor(
                                 val factor  = newDist / initialPinchDistance
                                 var newScale = (initialOverallScale * factor).coerceIn(0.5f, 3.0f)
                                 // Snap to 100% when within 95%–105%
-                                if (newScale in 0.95f..1.05f) {
-                                    if (overallScale != 1.0f) vibrateSoft()
-                                    newScale = 1.0f
+                                val snapTargets = listOf(0.5f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f)
+                                val snapThreshold = 0.03f
+                                val snappedTarget = snapTargets.firstOrNull { abs(newScale - it) <= snapThreshold }
+                                if (snappedTarget != null) {
+                                    if (overallScale != snappedTarget) vibrateSoft()
+                                    newScale = snappedTarget
                                 }
                                 overallScale = newScale
                                 clampOverallPan()
@@ -4572,9 +4575,12 @@ class CanvasView @JvmOverloads constructor(
                             val factor  = newDist / initialPinchDistance
                             var newScale = (initialOverallScale * factor).coerceIn(0.5f, 3.0f)
                             // Snap to 100% when within 95%–105%
-                            if (newScale in 0.95f..1.05f) {
-                                if (overallScale != 1.0f) vibrateSoft()
-                                newScale = 1.0f
+                            val snapTargets = listOf(0.5f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f)
+                            val snapThreshold = 0.03f
+                            val snappedTarget = snapTargets.firstOrNull { abs(newScale - it) <= snapThreshold }
+                            if (snappedTarget != null) {
+                                if (overallScale != snappedTarget) vibrateSoft()
+                                newScale = snappedTarget
                             }
                             overallScale = newScale
                             clampOverallPan()
@@ -4695,8 +4701,8 @@ class CanvasView @JvmOverloads constructor(
         val maxOffsetY = (scaledCanvasH / 2f) - marginY
 
         // If canvas smaller than screen → center only
-        val finalMaxOffsetX = if (scaledCanvasW < screenW) 0f else maxOffsetX
-        val finalMaxOffsetY = if (scaledCanvasH < screenH) 0f else maxOffsetY
+        val finalMaxOffsetX = if (scaledCanvasW < screenW) marginX else maxOffsetX
+        val finalMaxOffsetY = if (scaledCanvasH < screenH) marginY else maxOffsetY
 
         overallOffsetX = overallOffsetX.coerceIn(-finalMaxOffsetX, finalMaxOffsetX)
         overallOffsetY = overallOffsetY.coerceIn(-finalMaxOffsetY, finalMaxOffsetY)
@@ -4879,45 +4885,25 @@ class CanvasView @JvmOverloads constructor(
 
     /** ViewModel se zoom level set karna — overallScale use karta hai */
     fun setZoomLevel(zoom: Float) {
-        overallScale = zoom.coerceIn(0.5f, 3.0f)
+        var newScale = zoom.coerceIn(0.5f, 3.0f)
+
+        val snapTargets = listOf(0.5f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f)
+        val snappedTarget = snapTargets.firstOrNull { abs(newScale - it) <= 0.03f }
+        if (snappedTarget != null) {
+            if (overallScale != snappedTarget) vibrateSoft()
+            newScale = snappedTarget
+        }
+
+        overallScale = newScale
         clampOverallPan()
         invalidate()
     }
 
-    /** Current zoom level ViewModel ko dene ke liye */
     fun getCurrentZoom(): Float = overallScale
-
-    // ── Zoom in/out buttons (popup se call hoga) ─────────────────
-    fun zoomIn(step: Float = 0.25f) {
-        animateOverallZoom((overallScale + step).coerceAtMost(5f))
-    }
-
-    fun zoomOut(step: Float = 0.25f) {
-        animateOverallZoom((overallScale - step).coerceAtLeast(0.5f))
-    }
-
-    fun resetZoom() {
-        overallOffsetX = 0f
-        overallOffsetY = 0f
-        animateOverallZoom(1f)
-    }
 
     private fun niceNumber(raw: Float): Float {
         val candidates = listOf(10f, 20f, 25f, 50f, 100f, 200f, 250f, 500f, 1000f, 2000f)
         return candidates.minByOrNull { kotlin.math.abs(it - raw) } ?: 100f
-    }
-
-    fun clearCallbacks() {
-        onEditTextRequested = null
-        onElementChanged = null
-        onElementRemoved = null
-        onElementSelected = null
-        onStartBatchUpdate = null
-        onEndBatchUpdate = null
-        onColorPicked = null
-        onStrokeCompleted = null
-        onRequestOpenLayers = null
-        onExitSelectionMode = null
     }
 
     override fun onAttachedToWindow() {

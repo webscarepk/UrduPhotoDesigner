@@ -23,6 +23,7 @@ import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget
 import com.webscare.urducanvas.common.canvas.enums.PickerTarget
 import com.webscare.urducanvas.common.canvas.enums.ShapeType
+import com.webscare.urducanvas.common.utils.ColorPickerDialog
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentShapePanelBinding

@@ -28,6 +28,7 @@ import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentTextBinding
+import com.webscare.urducanvas.ui.editor.panels.text.fonts.imported.ImportedFontsBottomSheet
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -45,11 +46,6 @@ class TextFragment : Fragment() {
     private var tabs = emptyList<String>()
     private val viewModel: CanvasViewModel by activityViewModels()
     private val mainViewModel: MainViewModel by activityViewModels()
-
-    private val pickFont =
-        registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-            uri?.let { handlePickedFontUri(it) }
-        }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -115,7 +111,8 @@ class TextFragment : Fragment() {
             )
         }
         binding.addFont.addPressEffect {
-            pickFont.launch("*/*")
+            ImportedFontsBottomSheet.newInstance()
+                .show(childFragmentManager, ImportedFontsBottomSheet.TAG)
         }
 
         binding.searchIcon.addPressEffect {
@@ -199,107 +196,6 @@ class TextFragment : Fragment() {
         val imm = requireContext().getSystemService(InputMethodManager::class.java)
         imm.hideSoftInputFromWindow(binding.searchBar.windowToken, 0)
         binding.searchBar.clearFocus()
-    }
-
-    private data class ContentInfo(val displayName: String, val extension: String)
-
-    private fun resolveContentInfo(uri: Uri): ContentInfo {
-        val cr = requireContext().contentResolver
-
-        // Try display name via query
-        var name: String? = null
-        cr.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
-            ?.use { c ->
-                val idx = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-                if (idx != -1 && c.moveToFirst()) {
-                    name = c.getString(idx)
-                }
-            }
-
-        // Fallback to lastPathSegment
-        if (name.isNullOrBlank()) {
-            name = uri.lastPathSegment ?: "picked_file"
-        }
-
-        val lower = name!!.lowercase()
-        val extFromName = lower.substringAfterLast('.', missingDelimiterValue = "")
-        if (extFromName.isNotBlank()) {
-            return ContentInfo(displayName = name!!, extension = extFromName)
-        }
-
-        // If no extension in name, try mime type
-        val mime = cr.getType(uri)?.lowercase().orEmpty()
-        val guessedExt = when (mime) {
-            "font/ttf", "application/x-font-ttf", "application/font-sfnt" -> "ttf"
-            "font/otf", "application/x-font-otf", "application/font-otf", "application/font-sfnt" -> "otf"
-            else -> "" // unknown
-        }
-
-        return ContentInfo(displayName = name!!, extension = guessedExt)
-    }
-
-    private fun copyToTempWithExtension(uri: Uri, dotExt: String): File {
-        val tempFile = File.createTempFile(
-            "font_${System.currentTimeMillis()}", dotExt, requireContext().cacheDir
-        )
-        requireContext().contentResolver.openInputStream(uri).use { input ->
-            tempFile.outputStream().use { out -> input?.copyTo(out) }
-        }
-        return tempFile
-    }
-
-    private fun handlePickedFontUri(uri: Uri) {
-        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val info = resolveContentInfo(uri)
-                val ext = info.extension.lowercase()
-
-                val allowed = setOf("ttf", "otf")
-                if (ext !in allowed) {
-                    withContext(Dispatchers.Main) {
-                        Snackbar.make(
-                            binding.root,
-                            "Please select a .ttf or .otf font file",
-                            Snackbar.LENGTH_SHORT
-                        ).show()
-                    }
-                    return@launch
-                }
-
-                val fontFile = copyToTempWithExtension(uri, ".$ext")
-
-                val exportDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                val fontEntity = _root_ide_package_.com.webscare.urducanvas.data.model.FontEntity(
-                    id = System.currentTimeMillis().toInt(),
-                    file_name = fontFile.name,
-                    font_name = fontFile.nameWithoutExtension,
-                    font_category = "Imported",
-                    font_language = "Imported",
-                    file_url = "",
-                    file_size = fontFile.length().toString(),
-                    font_image = null,
-                    image_url = "",
-                    alt_text = "Font sample image",
-                    user_id = 0,
-                    created_at = exportDate,
-                    updated_at = exportDate,
-                    is_selected = false,
-                    is_downloaded = true,
-                    is_downloading = false,
-                    file_path = fontFile.absolutePath
-                )
-                mainViewModel.insertFont(fontEntity)
-                withContext(Dispatchers.Main) {
-                    viewModel.setFont(fontEntity)
-                }
-            } catch (e: Exception) {
-                Log.e("FontPicker", "Failed to handle font", e)
-                withContext(Dispatchers.Main) {
-                    Snackbar.make(binding.root, "Failed to import font", Snackbar.LENGTH_SHORT)
-                        .show()
-                }
-            }
-        }
     }
 
     override fun onDestroyView() {

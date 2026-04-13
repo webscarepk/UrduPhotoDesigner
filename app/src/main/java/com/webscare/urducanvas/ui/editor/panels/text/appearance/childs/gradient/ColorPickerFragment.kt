@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.utils.ColorPickerDialog
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentColorPickerBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
@@ -17,21 +18,18 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlin.math.roundToInt
 
 @AndroidEntryPoint
-class ColorPickerFragment : androidx.fragment.app.Fragment() {
+class ColorPickerFragment : Fragment() {
     private var _binding: FragmentColorPickerBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
-    private var currentHue = 0f
+    private val viewModel: CanvasViewModel by activityViewModels()
+
+    private var currentHue = 0f          // 0–360
+    private var currentBrightness = 0.5f // 0–1 (0=black, 0.5=pure, 1=white)
     private var tempColor: Int = Color.RED
 
     private val rainbow = intArrayOf(
-        Color.RED,
-        Color.YELLOW,
-        Color.GREEN,
-        Color.CYAN,
-        Color.BLUE,
-        Color.MAGENTA,
-        Color.RED
+        Color.RED, Color.YELLOW, Color.GREEN,
+        Color.CYAN, Color.BLUE, Color.MAGENTA, Color.RED
     )
 
     override fun onCreateView(
@@ -43,21 +41,16 @@ class ColorPickerFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        setEvents()
-    }
-
-    private fun setEvents() {
         setupHueBar()
-        setupAlphaBar()
-        val hueBar = binding.seekbarHue
-        val alphaBar = binding.seekbarAlpha
+        setupBrightnessBar()
+        updateColor()
 
-        val initialHue = (hueBar.progress * hueBar.max).roundToInt()
-        val initialAlpha = (alphaBar.progress * alphaBar.max).roundToInt()
-
-        hueBar.onProgressChanged?.invoke(initialHue)
-        alphaBar.onProgressChanged?.invoke(initialAlpha)
+        // ── tap colorCode to open dialog ───────────────────────────────────
+        binding.colorCode.setOnClickListener {
+            ColorPickerDialog(requireContext()) { color ->
+                applyColorFromInt(color)
+            }.show()
+        }
 
         binding.done.addPressEffect {
             viewModel.finishPicking(tempColor)
@@ -66,69 +59,109 @@ class ColorPickerFragment : androidx.fragment.app.Fragment() {
         }
     }
 
+    // ── Hue Bar: full rainbow ──────────────────────────────────────────────────
     private fun setupHueBar() {
         binding.seekbarHue.apply {
-           max = 360
-           setGradient(
-                rainbow
-            )
-            progress = 0f
+            max = 360
+            setGradient(rainbow)
+            progress = currentHue / 360f
+
             onProgressChanged = { hueDeg ->
                 currentHue = hueDeg.toFloat()
+                rebuildBrightnessGradient()
+                updateColor()
+            }
 
-                Log.d(TAG, "setupHueBar: $currentHue")
-                val opaque = Color.HSVToColor(floatArrayOf(currentHue, 1f, 1f))
-                val rawTransparent = opaque and 0x00FFFFFF
-                val bakedTransparent = bakeAlpha(rawTransparent)
-                binding.seekbarAlpha.setGradient(intArrayOf(bakedTransparent, opaque))
-
-                binding.seekbarAlpha.progress = binding.seekbarAlpha.progress
-                applyPickedColor()
+            onColorPicked = { _ ->
+                binding.colorCode.text = colorToHex(tempColor)
             }
         }
     }
 
-    private fun setupAlphaBar() {
+    // ── Brightness Bar: black → pure hue → white ──────────────────────────────
+    private fun setupBrightnessBar() {
         binding.seekbarAlpha.apply {
-            max = 255
-            val opaque = Color.HSVToColor(floatArrayOf(currentHue, 1f, 1f))
-            val rawTransparent = opaque and 0x00FFFFFF
-            val bakedTransparent = bakeAlpha(rawTransparent)
+            max = 100
+            progress = currentBrightness
+            rebuildBrightnessGradient()
 
-            setGradient(
-                intArrayOf(bakedTransparent, opaque)
-            )
-           progress = max.toFloat()
-           onProgressChanged = {
-                applyPickedColor()
+            onProgressChanged = { value ->
+                currentBrightness = value / 100f
+                updateColor()
+            }
+
+            onColorPicked = { _ ->
+                binding.colorCode.text = colorToHex(tempColor)
             }
         }
     }
 
-    private fun applyPickedColor() {
-        val alphaFraction = binding.seekbarAlpha.progress
-        val alpha = (alphaFraction * 255f).roundToInt()
-        val hsv = floatArrayOf(currentHue, 1f, 1f)
-        val rawColor = Color.HSVToColor(alpha, hsv)
-        val opaqueBaked = bakeAlpha(rawColor, Color.WHITE)
-
-        tempColor = opaqueBaked
-        viewModel.finishPicking(opaqueBaked)
+    // rebuilds brightness bar gradient: black → pure hue color → white
+    private fun rebuildBrightnessGradient() {
+        val pureHue = Color.HSVToColor(floatArrayOf(currentHue, 1f, 1f))
+        binding.seekbarAlpha.setGradient(
+            intArrayOf(Color.BLACK, pureHue, Color.WHITE),
+            floatArrayOf(0f, 0.5f, 1f)
+        )
     }
 
-    /** Composite srcColor onto white background. */
-    private fun bakeAlpha(srcColor: Int, bgColor: Int = Color.WHITE): Int {
-        val a = Color.alpha(srcColor)
-        val r = Color.red(srcColor)
-        val g = Color.green(srcColor)
-        val b = Color.blue(srcColor)
-        val br = Color.red(bgColor)
-        val bg = Color.green(bgColor)
-        val bb = Color.blue(bgColor)
-        val outR = (r * a + br * (255 - a)) / 255
-        val outG = (g * a + bg * (255 - a)) / 255
-        val outB = (b * a + bb * (255 - a)) / 255
-        return Color.rgb(outR, outG, outB)
+    // ── Compute final color from hue + brightness ──────────────────────────────
+    private fun updateColor() {
+        tempColor = when {
+            currentBrightness <= 0.5f -> {
+                // black → pure hue  (brightness 0→0.5 maps to value 0→1, saturation stays 1)
+                val t = currentBrightness * 2f  // 0→1
+                val pureHue = Color.HSVToColor(floatArrayOf(currentHue, 1f, 1f))
+                blendColors(Color.BLACK, pureHue, t)
+            }
+            else -> {
+                // pure hue → white  (brightness 0.5→1 maps saturation 1→0 at full value)
+                val t = (currentBrightness - 0.5f) * 2f  // 0→1
+                val pureHue = Color.HSVToColor(floatArrayOf(currentHue, 1f, 1f))
+                blendColors(pureHue, Color.WHITE, t)
+            }
+        }
+
+        binding.colorCode.text = colorToHex(tempColor)
+        viewModel.finishPicking(tempColor)
+    }
+
+    // ── Apply color from dialog or external source ─────────────────────────────
+    private fun applyColorFromInt(color: Int) {
+        // decompose to HSV to find hue
+        val hsv = FloatArray(3)
+        Color.colorToHSV(color, hsv)
+        currentHue = hsv[0]   // 0–360
+
+        // figure out brightness position from saturation + value
+        // value=1, sat=1 → pure (0.5), value<1 → dark side, sat<1 at value=1 → light side
+        currentBrightness = when {
+            hsv[2] < 1f -> hsv[2] * 0.5f               // dark side: 0→0.5
+            else        -> 0.5f + (1f - hsv[1]) * 0.5f // light side: 0.5→1
+        }
+
+        // snap both bar handles
+        binding.seekbarHue.progress = currentHue / 360f
+        binding.seekbarAlpha.progress = currentBrightness
+
+        rebuildBrightnessGradient()
+
+        tempColor = color
+        binding.colorCode.text = colorToHex(color)
+        viewModel.finishPicking(color)
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    private fun blendColors(from: Int, to: Int, t: Float): Int {
+        val r = (Color.red(from)   + t * (Color.red(to)   - Color.red(from))).toInt()
+        val g = (Color.green(from) + t * (Color.green(to) - Color.green(from))).toInt()
+        val b = (Color.blue(from)  + t * (Color.blue(to)  - Color.blue(from))).toInt()
+        return Color.rgb(r, g, b)
+    }
+
+    private fun colorToHex(color: Int): String {
+        return String.format("#%06X", 0xFFFFFF and color)
     }
 
     override fun onDestroyView() {

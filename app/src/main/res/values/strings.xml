@@ -339,6 +339,8 @@
     <string name="_2026_webscare_pvt_ltd_all_rights_reserved">© 2026 WebsCare Pvt. Ltd. All rights reserved.</string>
     <string name="version_1_0_0">Version 1.0.0</string>
     <string name="zoom">Zoom</string>
+    <string name="ff0000_or_rgb_255_0_0">#FF0000 or rgb(255,0,0)</string>
+    <string name="imported_fonts">Imported Fonts</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>

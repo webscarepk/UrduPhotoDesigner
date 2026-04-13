@@ -12,7 +12,6 @@ import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.LayoutColorItemBinding
 import com.webscare.urducanvas.databinding.LayoutColorPickerItemBinding // Assuming you create this layout
 import com.webscare.urducanvas.databinding.LayoutEyeDropperItemBinding // New layout for eye dropper
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class ColorsAdapter(
     private val colorList: List<com.webscare.urducanvas.common.canvas.model.ColorItem>,

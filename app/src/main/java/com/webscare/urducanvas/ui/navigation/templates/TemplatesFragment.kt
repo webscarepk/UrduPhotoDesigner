@@ -72,7 +72,7 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
         CanvasSize("Business Card", 1050f, 600f), CanvasSize("Billboard", 1920f, 1080f),
         CanvasSize("Vertical Banner", 1080f, 1920f), CanvasSize("Horizontal Banner", 1920f, 600f),
         CanvasSize("Flyer", 2550f, 3300f), CanvasSize("Resume", 2480f, 3508f),
-        CanvasSize("Invitation", 1500f, 2100f)
+        CanvasSize("Invitation", 1500f, 2100f), CanvasSize("Logo", 800f, 800f)
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {

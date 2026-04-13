@@ -1577,30 +1577,45 @@ class EditorFragment : Fragment() {
         popupWindow.elevation = 8f
         popupWindow.isOutsideTouchable = true
 
-        fun refreshLabel() {
-            val raw = viewModel.zoomLevel.value ?: 1f
-            val pct = (raw * 100f).roundToInt()
-            popupBinding.zoomValue.text = "$pct%"
-        }
-        refreshLabel()
+        fun zoomPercentFromProgress(progress: Int): Int = 50 + progress
 
-        popupBinding.zoomIn.addPressEffect {
-            viewModel.zoomIn()
-            refreshLabel()
+        fun progressFromZoomLevel(zoomLevel: Float): Int =
+            ((zoomLevel * 100f).roundToInt() - 50).coerceIn(0, 250)
+
+        fun refreshLabel(progress: Int) {
+            popupBinding.zoomValue.text = "${zoomPercentFromProgress(progress)}%"
         }
 
-        popupBinding.zoomOut.addPressEffect {
-            viewModel.zoomOut()
-            refreshLabel()
-        }
+        // Sync seekbar to current zoom level
+        val initialProgress = progressFromZoomLevel(viewModel.zoomLevel.value ?: 1f)
+        popupBinding.zoomSeekbar.progress = initialProgress
+        refreshLabel(initialProgress)
+
+        popupBinding.zoomSeekbar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    val zoomFraction = zoomPercentFromProgress(progress) / 100f
+                    viewModel.setZoomLevel(zoomFraction)
+                    // Read back actual snapped value directly from canvasView, not ViewModel
+                    val actualZoom = sizedCanvasView.getCurrentZoom()
+                    val actualProgress = progressFromZoomLevel(actualZoom)
+                    seekBar.progress = actualProgress
+                    refreshLabel(actualProgress)
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar) {}
+        })
 
         popupBinding.reset.addPressEffect {
             viewModel.resetZoom()
-            refreshLabel()
+            val resetProgress = progressFromZoomLevel(viewModel.zoomLevel.value ?: 1f)
+            popupBinding.zoomSeekbar.progress = resetProgress
+            refreshLabel(resetProgress)
             popupWindow.dismiss()
         }
 
-        // ── Smart positioning (LayersFragment se copy) ──
+        // ── Smart positioning ──
         anchorView.post {
             val screenHeight = resources.displayMetrics.heightPixels
             val location = IntArray(2)

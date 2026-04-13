@@ -77,7 +77,9 @@ class CreateFragment : BottomSheetDialogFragment() {
             "Resume", 2480f, 3508f
         ), CanvasSize(
             "Invitation", 1500f, 2100f
-        )   // 5in × 7in
+        ), CanvasSize(
+            "Logo", 800f, 800f
+        )
     )
 
     private var currentUnit = UnitType.PIXELS

@@ -3,6 +3,7 @@ package com.webscare.urducanvas.di
 import android.app.Activity
 import android.content.Context
 import com.android.billingclient.api.*
+import com.webscare.urducanvas.BuildConfig
 import com.webscare.urducanvas.common.datastore.PreferenceDataStoreAPI
 import com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.PREF_IS_SUBSCRIBED
 import com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.PREF_ACTIVE_PLAN  // ← add this key in your constants
@@ -99,6 +100,7 @@ class BillingManager @Inject constructor(
     }
 
     fun checkSubscriptionOnLaunch() {
+        if (BuildConfig.DEBUG) return
         startConnection {
             billingClient.queryPurchasesAsync(
                 QueryPurchasesParams.newBuilder()
@@ -367,9 +369,9 @@ class BillingManager @Inject constructor(
     // ─── Load from DataStore (offline fallback) ────────────────────────────────
 
     suspend fun loadSavedSubscriptionStatus() {
-        val DEBUG_MODE = false
+        val DEBUG_MODE = BuildConfig.DEBUG
         if (DEBUG_MODE) {
-            val debugSubscribed = false
+            val debugSubscribed = true
             val debugPlan = ""
             isSubscribedValue = debugSubscribed
             _isSubscribed.value = debugSubscribed

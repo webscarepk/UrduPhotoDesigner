@@ -39,37 +39,46 @@
         android:textSize="12sp"
         android:fontFamily="@font/regular"
         android:background="@drawable/edit_bg_stroke"
-        android:paddingHorizontal="10dp"
+        android:paddingHorizontal="5dp"
+        android:layout_marginStart="10dp"
         android:paddingVertical="5dp"
-        android:layout_marginTop="5dp"
-        app:layout_constraintStart_toEndOf="@id/zoomIn"
-        app:layout_constraintEnd_toStartOf="@id/zoomOut"
-        app:layout_constraintTop_toBottomOf="@id/title"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintTop_toTopOf="@id/title"
+        app:layout_constraintBottom_toBottomOf="@id/title"
+        app:layout_constraintStart_toEndOf="@id/title"/>
 
     <ImageView
         android:id="@+id/zoomIn"
-        android:layout_width="28dp"
-        android:layout_height="28dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:src="@drawable/ic_zoom_in"
-        android:background="@drawable/button_bg_round"
-        android:backgroundTint="@color/contrast"
-        android:padding="6dp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/zoomValue"
-        app:layout_constraintTop_toTopOf="@id/zoomValue"
-        app:layout_constraintBottom_toBottomOf="@id/zoomValue"/>
+        app:layout_constraintEnd_toStartOf="@id/zoomSeekbar"
+        app:layout_constraintTop_toTopOf="@id/zoomSeekbar"
+        app:layout_constraintBottom_toBottomOf="@id/zoomSeekbar"/>
+
+    <SeekBar
+        android:id="@+id/zoomSeekbar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:indeterminateTint="@color/appColor"
+        android:max="300"
+        android:progress="150"
+        android:progressBackgroundTint="@color/light_gray"
+        android:progressTint="@color/contrast"
+        android:thumbTint="@color/appColor"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/zoomIn"
+        app:layout_constraintEnd_toStartOf="@id/zoomOut"
+        app:layout_constraintTop_toBottomOf="@id/zoomValue" />
 
     <ImageView
         android:id="@+id/zoomOut"
-        android:layout_width="28dp"
-        android:layout_height="28dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:src="@drawable/ic_zoom_out"
-        android:background="@drawable/button_bg_round"
-        android:backgroundTint="@color/contrast"
-        android:padding="6dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/zoomValue"
-        app:layout_constraintTop_toTopOf="@id/zoomValue"
-        app:layout_constraintBottom_toBottomOf="@id/zoomValue"/>
+        app:layout_constraintStart_toEndOf="@id/zoomSeekbar"
+        app:layout_constraintTop_toTopOf="@id/zoomSeekbar"
+        app:layout_constraintBottom_toBottomOf="@id/zoomSeekbar"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

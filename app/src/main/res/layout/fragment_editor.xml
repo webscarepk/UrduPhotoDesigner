@@ -176,10 +176,10 @@
             android:layout_height="32dp"
             android:background="@drawable/button_bg_round"
             android:backgroundTint="@color/contrast"
-            android:layout_marginStart="5dp"
+            android:layout_marginEnd="5dp"
             app:layout_constraintBottom_toBottomOf="@id/back"
-            app:layout_constraintStart_toEndOf="@id/back"
             app:layout_constraintTop_toTopOf="@id/back"
+            app:layout_constraintEnd_toStartOf="@id/done"
             android:paddingHorizontal="5dp">
 
             <ImageView
@@ -228,69 +228,69 @@
 
         <ImageView
             android:id="@+id/grid"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:background="@drawable/button_bg_round"
             android:backgroundTint="@color/contrast"
             app:tint="@color/gray"
             android:padding="8dp"
             android:src="@drawable/ic_grid"
-            android:layout_marginEnd="5dp"
+            android:layout_marginStart="5dp"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/pan"
+            app:layout_constraintStart_toEndOf="@id/ruler"
             app:layout_constraintTop_toTopOf="parent" />
 
         <ImageView
             android:id="@+id/ruler"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:background="@drawable/button_bg_round"
             android:backgroundTint="@color/contrast"
             app:tint="@color/gray"
             android:padding="8dp"
             android:src="@drawable/ic_ruler"
-            android:layout_marginEnd="5dp"
+            android:layout_marginStart="5dp"
+            app:layout_constraintStart_toEndOf="@id/back"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/grid"
             app:layout_constraintTop_toTopOf="parent" />
 
         <ImageView
             android:id="@+id/pan"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:background="@drawable/button_bg_round"
             android:backgroundTint="@color/contrast"
             app:tint="@color/gray"
             android:padding="8dp"
             android:src="@drawable/ic_hand"
-            android:layout_marginEnd="5dp"
+            android:layout_marginStart="5dp"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/zoom"
+            app:layout_constraintStart_toEndOf="@id/grid"
             app:layout_constraintTop_toTopOf="parent" />
 
         <ImageView
             android:id="@+id/zoom"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:background="@drawable/button_bg_round"
             android:backgroundTint="@color/contrast"
             app:tint="@color/black"
             android:padding="8dp"
             android:src="@drawable/ic_zoom"
-            android:layout_marginEnd="5dp"
+            android:layout_marginStart="5dp"
+            app:layout_constraintStart_toEndOf="@id/pan"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/done"
             app:layout_constraintTop_toTopOf="parent" />
 
         <ImageView
             android:id="@+id/done"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:background="@drawable/button_bg_round"
-            android:backgroundTint="@color/contrast"
-            app:tint="@color/black"
-            android:padding="7dp"
-            android:src="@drawable/ic_done"
+            android:background="@drawable/ic_button_gradient_wrap"
+            app:tint="@color/appColor"
+            android:backgroundTint="#30005D28"
+            android:padding="8dp"
+            android:src="@drawable/ic_export_canvas"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />

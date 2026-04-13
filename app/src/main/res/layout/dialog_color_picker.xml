@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <EditText
+        android:id="@+id/colorCode"
+        android:layout_width="0dp"
+        android:layout_height="38dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginTop="12dp"
+        android:paddingHorizontal="12dp"
+        android:fontFamily="@font/regular"
+        android:textSize="12sp"
+        android:hint="@string/ff0000_or_rgb_255_0_0"
+        android:textColor="@color/black"
+        android:background="@drawable/button_bg"
+        android:backgroundTint="@color/contrast"/>
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        app:cardBackgroundColor="@color/black"
+        app:cardCornerRadius="10dp"
+        app:layout_constraintTop_toTopOf="@id/colorCode"
+        app:layout_constraintBottom_toBottomOf="@id/colorCode"
+        app:layout_constraintEnd_toEndOf="@id/colorCode"
+        android:layout_marginEnd="6dp"
+        android:id="@+id/colorPreview"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

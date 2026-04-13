@@ -12,6 +12,7 @@ import androidx.fragment.app.activityViewModels
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.PickerTarget
+import com.webscare.urducanvas.common.utils.ColorPickerDialog
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.databinding.FragmentImagesShadowBinding
 import com.webscare.urducanvas.databinding.FragmentShadowsBinding

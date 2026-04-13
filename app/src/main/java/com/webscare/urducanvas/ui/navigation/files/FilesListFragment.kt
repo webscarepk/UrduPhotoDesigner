@@ -720,6 +720,8 @@ class FilesListFragment : Fragment() {
                                 .contains(q))
                         }
                     }.collect { list ->
+                        adapter.updateList(list)
+
                         if (list.isEmpty()) {
 
                             binding.noEmojis.visibility = View.VISIBLE
@@ -759,7 +761,6 @@ class FilesListFragment : Fragment() {
                                 android.text.method.LinkMovementMethod.getInstance()
 
                         } else {
-                            adapter.updateList(list)
                             binding.noEmojis.visibility = View.GONE
                         }
                     }

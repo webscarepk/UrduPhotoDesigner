@@ -43,6 +43,7 @@ class ColorPickerBar @JvmOverloads constructor(
 
     var max: Int = 100
     var onProgressChanged: ((Int) -> Unit)? = null
+    var onColorPicked: ((String) -> Unit)? = null  // ← returns hex e.g. "#FF0000"
 
     private var thumbColor: Int = gradientColors.first()
 
@@ -120,7 +121,10 @@ class ColorPickerBar @JvmOverloads constructor(
                 return true
             }
             MotionEvent.ACTION_UP,
-            MotionEvent.ACTION_CANCEL -> return true
+            MotionEvent.ACTION_CANCEL -> {
+                onColorPicked?.invoke(colorToHex(thumbColor))  // ← fire on finger lift
+                return true
+            }
         }
         return super.onTouchEvent(event)
     }
@@ -128,6 +132,10 @@ class ColorPickerBar @JvmOverloads constructor(
     /**
      * @return true if the color is “dark”, false if it’s “light”
      */
+    private fun colorToHex(@ColorInt color: Int): String {
+        return String.format("#%06X", 0xFFFFFF and color)
+    }
+
     private fun isColorDark(@ColorInt color: Int): Boolean {
         val r = Color.red(color)
         val g = Color.green(color)
