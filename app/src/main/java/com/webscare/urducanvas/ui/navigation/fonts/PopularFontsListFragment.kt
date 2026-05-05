@@ -82,7 +82,7 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
             } else {
                 viewModel.setCanvasSize(
                     CanvasSize(
-                        "", 2000f, 2000f
+                        id = 0,"", 2000f, 2000f
                     )
                 )
                 viewModel.addTextWithFont(
@@ -216,8 +216,8 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
                             showGlobalSuccessSnack("Font downloaded") {
                                 lifecycleScope.launch {
                                     viewModel.setCanvasSize(
-                                        _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-                                            "", 2000f, 2000f
+                                        CanvasSize(
+                                            id = 0,"", 2000f, 2000f
                                         )
                                     )
                                     viewModel.addTextWithFont(

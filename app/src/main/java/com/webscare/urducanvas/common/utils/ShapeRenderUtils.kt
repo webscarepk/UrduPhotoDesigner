@@ -239,4 +239,48 @@ object ShapeRenderUtils {
         }
         path.close()
     }
+
+    /**
+     * Computes the actual visual bounds of a shape based on its type and logical dimensions.
+     *
+     * For shapes like LINE, the visual bounds are NOT the same as the logical rect —
+     * a line is just a horizontal stroke, so its tight visual height equals the stroke thickness,
+     * not the full logical rect height.
+     *
+     * @param shapeType the shape type
+     * @param logicalW  the logical content width (full rect width)
+     * @param logicalH  the logical content height (full rect height)
+     * @param strokeWidth the shape's stroke thickness (for line-like shapes)
+     * @return tight visual bounds centered at (0,0)
+     */
+    fun computeVisualBounds(
+        shapeType: ShapeType,
+        logicalW: Float,
+        logicalH: Float,
+        strokeWidth: Float = 0f
+    ): RectF {
+        return when (shapeType) {
+            // LINE: only the stroke thickness has visual presence vertically.
+            ShapeType.LINE -> {
+                val halfH = (strokeWidth.coerceAtLeast(1f)) / 2f
+                RectF(-logicalW / 2f, -halfH, logicalW / 2f, halfH)
+            }
+
+            // Polygons & stars: drawn as inscribed in width — height equals width visually.
+            ShapeType.PENTAGON,
+            ShapeType.HEXAGON,
+            ShapeType.OCTAGON,
+            ShapeType.STAR_FIVE,
+            ShapeType.STAR_SIX,
+            ShapeType.STAR_SEVEN,
+            ShapeType.STAR_TEN -> {
+                // These use rect.width()/2 as radius — bounds = square of side = width.
+                val side = logicalW
+                RectF(-side / 2f, -side / 2f, side / 2f, side / 2f)
+            }
+
+            // Everything else uses full logical rect.
+            else -> RectF(-logicalW / 2f, -logicalH / 2f, logicalW / 2f, logicalH / 2f)
+        }
+    }
 }

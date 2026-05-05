@@ -45,6 +45,10 @@ import com.google.android.gms.auth.api.identity.SignInClient
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
+import com.webscare.urducanvas.data.local.CanvasSizeDao
+import com.webscare.urducanvas.data.repository.CanvasSizeRepoImpl
+import com.webscare.urducanvas.domain.repo.CanvasSizeRepo
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -259,5 +263,17 @@ object AppModule {
     @Singleton
     fun provideExportResultsUseCase(repository: ExportResultsRepo): ExportResultsUseCase {
         return ExportResultsUseCase(repository)
+    }
+
+    @Provides
+    fun provideCanvasSizeDao(db: AppDatabase): CanvasSizeDao = db.canvasSizeDao()
+
+    @Provides
+    @Singleton
+    fun provideCanvasSizeRepo(
+        api: EndPointsInterface,
+        dao: CanvasSizeDao
+    ): CanvasSizeRepo {
+        return CanvasSizeRepoImpl(api, dao)
     }
 }

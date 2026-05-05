@@ -359,7 +359,7 @@ class FilesListFragment : Fragment() {
             is FontEntity -> {
                 canvasViewModel.setCanvasSize(
                     CanvasSize(
-                        "", 2000f, 2000f
+                        id = 0,"", 2000f, 2000f
                     )
                 )
                 canvasViewModel.addTextWithFont(
@@ -378,7 +378,7 @@ class FilesListFragment : Fragment() {
                     val heightVal = it.height.toFloat()
 
                     val canvasSize = CanvasSize(
-                        "From Image", widthVal, heightVal
+                        id = 0,"From Image", widthVal, heightVal
                     )
 
                     canvasViewModel.clearCanvas()

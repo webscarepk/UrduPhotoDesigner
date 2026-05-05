@@ -23,6 +23,7 @@ import com.webscare.urducanvas.databinding.LayoutLayerItemPopupBinding
 import com.webscare.urducanvas.databinding.LayoutToolbarLayersNormalBinding
 import com.webscare.urducanvas.databinding.LayoutToolbarLayersSelectionBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.ui.creation.CreateFragment
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,11 +31,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @AndroidEntryPoint
-class LayersFragment : androidx.fragment.app.Fragment() {
+class LayersFragment : Fragment() {
     private var _binding: FragmentLayersBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    private val viewModel: CanvasViewModel by activityViewModels()
     private lateinit var adapter: LayersAdapter
     private lateinit var itemTouchHelper: ItemTouchHelper
     private lateinit var normalToolbar: LayoutToolbarLayersNormalBinding
@@ -120,6 +121,10 @@ class LayersFragment : androidx.fragment.app.Fragment() {
 
         normalToolbar.title.text = getString(R.string.layers)
         normalToolbar.subTitle.text = getString(R.string.drag_to_rearrange)
+
+        normalToolbar.canvasSizeBtn.addPressEffect {
+            CreateFragment.newResizeInstance().show(parentFragmentManager, "resize_canvas")
+        }
     }
 
     private fun setupRecyclerView() {
@@ -198,6 +203,11 @@ class LayersFragment : androidx.fragment.app.Fragment() {
                     binding.layers.smoothScrollToPosition(pos)
                 }
             }
+        }
+
+        viewModel.canvasSize.observe(viewLifecycleOwner) { size ->
+            size ?: return@observe
+            normalToolbar.canvasSizeBtn.text = "${size.width.toInt()} × ${size.height.toInt()}"
         }
     }
 

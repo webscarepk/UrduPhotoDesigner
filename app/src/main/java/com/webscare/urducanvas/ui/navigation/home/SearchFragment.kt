@@ -135,7 +135,7 @@ class SearchFragment : Fragment() {
             } else {
                 canvasViewModel.setCanvasSize(
                     CanvasSize(
-                        "", 2000f, 2000f
+                        id = 0,"", 2000f, 2000f
                     )
                 )
                 canvasViewModel.addTextWithFont(
@@ -181,6 +181,7 @@ class SearchFragment : Fragment() {
             is FontEntity -> {
                 canvasViewModel.setCanvasSize(
                     CanvasSize(
+                        id = 0,
                         "",
                         2000f,
                         2000f
@@ -205,6 +206,7 @@ class SearchFragment : Fragment() {
 
                     val canvasSize =
                         CanvasSize(
+                            id = 0,
                             "From Image",
                             widthVal,
                             heightVal

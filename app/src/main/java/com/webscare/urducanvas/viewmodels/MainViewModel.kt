@@ -12,6 +12,7 @@ import com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState
 import com.webscare.urducanvas.common.sealed.Response
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.GradientPresets
+import com.webscare.urducanvas.data.model.CanvasSizeEntity
 import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.data.model.FontsResponse
@@ -26,11 +27,13 @@ import com.webscare.urducanvas.domain.usecase.DeleteFontsUseCase
 import com.webscare.urducanvas.domain.usecase.DeleteGradientUseCase
 import com.webscare.urducanvas.domain.usecase.DeleteImagesUseCase
 import com.webscare.urducanvas.domain.usecase.ExportResultsUseCase
+import com.webscare.urducanvas.domain.usecase.FetchAPICanvasSizesUseCase
 import com.webscare.urducanvas.domain.usecase.FetchAPIFontsUseCase
 import com.webscare.urducanvas.domain.usecase.FetchAPIImagesUseCase
 import com.webscare.urducanvas.domain.usecase.FetchAPITemplatesUseCase
 import com.webscare.urducanvas.domain.usecase.FetchAPITrendsUseCase
 import com.webscare.urducanvas.domain.usecase.GetAllGradientsUseCase
+import com.webscare.urducanvas.domain.usecase.GetCanvasSizesUseCase
 import com.webscare.urducanvas.domain.usecase.GetFontsUseCase
 import com.webscare.urducanvas.domain.usecase.GetImagesUseCase
 import com.webscare.urducanvas.domain.usecase.GetTemplatesUseCase
@@ -83,7 +86,9 @@ class MainViewModel @Inject constructor(
     private val fetchAPITrendsUseCase: FetchAPITrendsUseCase,
     private val getTrendsUseCase: GetTrendsUseCase,
     private val insertTrendsUseCase: InsertTrendsUseCase,
-    private val billingManager: BillingManager
+    private val billingManager: BillingManager,
+    private val fetchAPICanvasSizesUseCase: FetchAPICanvasSizesUseCase,
+    private val getCanvasSizesUseCase: GetCanvasSizesUseCase,
 ) : ViewModel() {
 
     private val _trendRows = MutableStateFlow<List<HomeRow>>(emptyList())
@@ -134,6 +139,9 @@ class MainViewModel @Inject constructor(
         MutableLiveData<List<ExportResult>>()
     val exportResults: LiveData<List<ExportResult>> get() = _exportResults
 
+    private val _localCanvasSizes = MutableStateFlow<List<CanvasSizeEntity>>(emptyList())
+    val localCanvasSizes: StateFlow<List<CanvasSizeEntity>> = _localCanvasSizes.asStateFlow()
+
     private val _rawQuery = MutableStateFlow("")
     val rawQuery: StateFlow<String> = _rawQuery.asStateFlow()
 
@@ -157,7 +165,9 @@ class MainViewModel @Inject constructor(
             fetchAndStoreImagesFromApi()
             fetchAndStoreTemplatesFromApi()
             fetchAndStoreTrendsFromApi()
+            fetchAndStoreCanvasSizesFromApi()
         }
+        observeLocalCanvasSizes()
         observeLocalFonts()
         observeLocalImages()
         getAllExportResults()
@@ -303,6 +313,25 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun fetchAndStoreCanvasSizesFromApi() {
+        viewModelScope.launch {
+            fetchAPICanvasSizesUseCase().collect { response ->
+                when (response) {
+                    is Response.Loading -> _isLoading.value = true
+                    is Response.Success -> {
+                        _isLoading.value = false
+                    }
+                    is Response.Error -> {
+                        _isLoading.value = false
+                        // silently fail — Room already has data from last successful fetch
+                        Log.w("MainViewModel", "Canvas sizes fetch failed: ${response.message}")
+                    }
+                    else -> {}
+                }
+            }
+        }
+    }
+
     fun fetchAndStoreTrendsFromApi() {
         viewModelScope.launch {
             fetchAPITrendsUseCase().collect { response ->
@@ -417,6 +446,13 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    private fun observeLocalCanvasSizes() {
+        viewModelScope.launch {
+            getCanvasSizesUseCase().collect { sizes ->
+                _localCanvasSizes.value = sizes
+            }
+        }
+    }
     private fun observeLocalFonts() {
         viewModelScope.launch {
             getFontsUseCase().collect { fonts ->

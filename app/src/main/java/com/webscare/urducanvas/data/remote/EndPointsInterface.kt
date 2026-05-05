@@ -1,6 +1,7 @@
 package com.webscare.urducanvas.data.remote
 
 import com.webscare.urducanvas.common.utils.Constants
+import com.webscare.urducanvas.data.model.CanvasSizeResponse
 import com.webscare.urducanvas.data.model.FontsResponse
 import com.webscare.urducanvas.data.model.ImageResponse
 import com.webscare.urducanvas.data.model.LoginResponse
@@ -19,12 +20,12 @@ interface EndPointsInterface {
     @GET("fonts")
     suspend fun getAllFonts(
         @Header("X-API-KEY") apiKey: String = Constants.X_API_KEY
-    ): com.webscare.urducanvas.data.model.FontsResponse
+    ): FontsResponse
 
     @GET("images")
     suspend fun getAllImages(
         @Header("X-API-KEY") apiKey: String = Constants.X_API_KEY
-    ): com.webscare.urducanvas.data.model.ImageResponse
+    ): ImageResponse
 
     @FormUrlEncoded
     @POST("login/user")
@@ -32,7 +33,7 @@ interface EndPointsInterface {
         @Field("email") email: String,
         @Field("password") password: String,
         @Header("X-API-KEY") apiKey: String = Constants.X_API_KEY
-    ): com.webscare.urducanvas.data.model.LoginResponse
+    ): LoginResponse
 
     @FormUrlEncoded
     @POST("register/user")
@@ -41,21 +42,26 @@ interface EndPointsInterface {
         @Field("email") email: String,
         @Field("password") password: String,
         @Header("X-API-KEY") apiKey: String = Constants.X_API_KEY
-    ): com.webscare.urducanvas.data.model.RegistrationResponse
+    ): RegistrationResponse
 
     @GET("templates")
     suspend fun getAllTemplates(
         @Header("X-API-KEY") apiKey: String = Constants.X_API_KEY
-    ): com.webscare.urducanvas.data.model.TemplatesResponse
+    ): TemplatesResponse
 
     @GET("trends_with_templates")
     suspend fun getTrendsWithTemplates(
         @Header("X-API-KEY") apiKey: String = Constants.X_API_KEY
-    ): com.webscare.urducanvas.data.model.TrendResponse
+    ): TrendResponse
 
     @GET("template/json/{id}")
     suspend fun getTemplateJson(
         @Header("X-API-KEY") apiKey: String = Constants.X_API_KEY,
         @Path("id") id: String
     ): retrofit2.Response<ResponseBody>
+
+    @GET("canvas/sizes")
+    suspend fun getCanvasSizes(
+        @Header("X-API-KEY") apiKey: String = Constants.X_API_KEY
+    ): CanvasSizeResponse
 }

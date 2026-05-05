@@ -35,7 +35,7 @@ class SplashFragment : Fragment(), TextureView.SurfaceTextureListener {
 
         // ✅ Remove the status bar padding MainActivity injects — we want true full screen
         requireActivity().window.decorView.post {
-            binding.root.setPadding(0, 0, 0, 0)
+            _binding?.root?.setPadding(0, 0, 0, 0)
         }
 
         // Hide system bars

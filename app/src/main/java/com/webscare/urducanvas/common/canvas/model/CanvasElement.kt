@@ -20,6 +20,7 @@ import com.webscare.urducanvas.common.canvas.enums.TextAlignment
 import com.webscare.urducanvas.common.canvas.enums.TextDecoration
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import com.webscare.urducanvas.common.utils.KashidaProcessor
+import com.webscare.urducanvas.common.utils.ShapeRenderUtils
 import java.io.Serializable
 import java.util.UUID
 
@@ -289,11 +290,8 @@ data class CanvasElement(
         if (type == ElementType.TEXT && ::paint.isInitialized) {
             val lines = getTextWithKashida().split("\n")
             val fm = paint.fontMetrics
-
-            // True line height
             val lineHeight = (fm.descent - fm.ascent) * lineSpacing
 
-            // Get actual text bounds for each line using getTextBounds()
             val tempRect = Rect()
             var maxLineWidth = 0f
 
@@ -305,26 +303,41 @@ data class CanvasElement(
 
             val totalHeight = lines.size * lineHeight
 
-            // === Instead of rotating here, keep bounds in logical space ===
             bounds.set(
                 -maxLineWidth / 2f, -totalHeight / 2f, maxLineWidth / 2f, totalHeight / 2f
             )
         } else if (type == ElementType.DRAW) {
             val drawBounds = getDrawBounds()
             bounds.set(drawBounds)
-        } else {
-            bounds.set(
-                -getLocalContentWidth() / 2f,
-                -getLocalContentHeight() / 2f,
-                getLocalContentWidth() / 2f,
-                getLocalContentHeight() / 2f
+        } else if (type == ElementType.SHAPE) {
+            val visual = ShapeRenderUtils.computeVisualBounds(
+                shapeType ?: ShapeType.RECTANGLE,
+                logicalContentWidth,
+                logicalContentHeight,
+                shapeStrokeWidth
             )
+            bounds.set(visual)
+        } else {
+            // Image / SVG / Background — full logical rect
+            val w = getLocalContentWidth()
+            val h = getLocalContentHeight()
+            bounds.set(-w / 2f, -h / 2f, w / 2f, h / 2f)
         }
 
-        // Padding for selection outline
-        val basePadding = 6f
-        val dynamicPadding = paint.textSize * 0.25f
-        val totalPadding = basePadding + dynamicPadding
+        // ✅ Type-specific padding
+        val totalPadding = when (type) {
+            ElementType.TEXT -> {
+                val basePadding = 6f
+                val dynamicPadding = if (::paint.isInitialized) paint.textSize * 0.25f else 0f
+                basePadding + dynamicPadding
+            }
+            ElementType.SHAPE -> {
+                val strokePad = if (shapeHasStroke) shapeStrokeWidth / 2f else 0f
+                strokePad + 12f
+            }
+            ElementType.DRAW -> 8f
+            else -> 8f
+        }
 
         bounds.inset(-totalPadding, -totalPadding)
 

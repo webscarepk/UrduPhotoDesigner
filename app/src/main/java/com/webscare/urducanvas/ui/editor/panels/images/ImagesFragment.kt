@@ -182,47 +182,49 @@ class ImagesFragment : Fragment() {
 
             mainViewModel.localImages.collect { images ->
 
-                val imageTabs = images.map { it.category.trim() }
-                    .filter {
-                        it.equals("Images", true) ||
-                                it.equals("Images Imported", true) ||
-                                it.equals("Backgrounds", true) ||
-                                it.equals("Backgrounds Imported", true)
-                    }
-                    .distinct()
+               if (isAdded){
+                   val imageTabs = images.map { it.category.trim() }
+                       .filter {
+                           it.equals("Images", true) ||
+                                   it.equals("Images Imported", true) ||
+                                   it.equals("Backgrounds", true) ||
+                                   it.equals("Backgrounds Imported", true)
+                       }
+                       .distinct()
 
-                val hasRecents = images.any {
+                   val hasRecents = images.any {
 
-                    it.is_recent && (
-                            it.category.equals("Images", true) ||
-                                    it.category.equals("Images Imported", true) ||
-                                    it.category.equals("Backgrounds", true) ||
-                                    it.category.equals("Backgrounds Imported", true)
-                            )
-                }
+                       it.is_recent && (
+                               it.category.equals("Images", true) ||
+                                       it.category.equals("Images Imported", true) ||
+                                       it.category.equals("Backgrounds", true) ||
+                                       it.category.equals("Backgrounds Imported", true)
+                               )
+                   }
 
-                val newTabs = mutableListOf<String>().apply {
+                   val newTabs = mutableListOf<String>().apply {
 
-                    if (hasRecents) add("Recents")
+                       if (hasRecents) add("Recents")
 
-                    addAll(imageTabs)
-                }
+                       addAll(imageTabs)
+                   }
 
-                if (newTabs != tabs) {
+                   if (newTabs != tabs) {
 
-                    tabs.clear()
-                    tabs.addAll(newTabs)
+                       tabs.clear()
+                       tabs.addAll(newTabs)
 
-                    adapter.setTabs(tabs)
+                       adapter.setTabs(tabs)
 
-                    binding.noEmojis.isVisible = tabs.isEmpty()
+                       binding.noEmojis.isVisible = tabs.isEmpty()
 
-                } else {
+                   } else {
 
-                    binding.noEmojis.isVisible = images.isEmpty()
+                       binding.noEmojis.isVisible = images.isEmpty()
 
-                    adapter.refreshData(images)
-                }
+                       adapter.refreshData(images)
+                   }
+               }
             }
         }
     }

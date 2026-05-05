@@ -50,6 +50,7 @@ data class TemplateEntity(
             format      = "JSON",
             quality     = "-",                              // JSON has no quality
             canvasSize  = CanvasSize(
+                id = 0,
                 name = "",
                 width = canvas_width.toFloat(),
                 height = canvas_height.toFloat()

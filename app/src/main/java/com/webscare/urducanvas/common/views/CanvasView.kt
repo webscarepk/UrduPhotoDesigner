@@ -71,7 +71,6 @@ import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
 import com.webscare.urducanvas.common.utils.ShapeRenderUtils
 import com.webscare.urducanvas.common.utils.Utils.vibrateSoft
-import com.webscare.urducanvas.ui.editor.dpToPx
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -184,7 +183,7 @@ class CanvasView @JvmOverloads constructor(
         isAntiAlias = true
     }
 
-    private val canvasElements = mutableListOf<CanvasElement>()
+    private val canvasElements = CopyOnWriteArrayList<CanvasElement>()
     private lateinit var backgroundElement: CanvasElement
 
     private var touchStartX = 0f
@@ -283,7 +282,7 @@ class CanvasView @JvmOverloads constructor(
     private var showRotationHorizontalGuide = false
 
     // ── Grid overlay ─────────────────────────────────────────────
-    private var showGrid  = false
+    private var showGrid = false
     private val gridPaint = Paint().apply {
         color = Color.argb(60, 0, 0, 0)
         strokeWidth = 1f
@@ -337,6 +336,7 @@ class CanvasView @JvmOverloads constructor(
     fun resizeCanvas(newWidth: Int, newHeight: Int) {
         this.canvasWidth = newWidth
         this.canvasHeight = newHeight
+        updateBackgroundToCanvas()
         requestLayout()
         invalidate()
     }
@@ -394,14 +394,25 @@ class CanvasView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
 
-        canvasElements.firstOrNull { it.type == ElementType.BACKGROUND }?.apply {
-            logicalContentWidth = canvasWidth.toFloat()
-            logicalContentHeight = canvasHeight.toFloat()
-        }
+        updateBackgroundToCanvas()
 
         if (canvasElements.isEmpty()) {
             ensureBackgroundElement()
         }
+    }
+
+    private fun updateBackgroundToCanvas() {
+        val bg = canvasElements.firstOrNull { it.type == ElementType.BACKGROUND } ?: return
+
+        bg.logicalContentWidth = canvasWidth.toFloat()
+        bg.logicalContentHeight = canvasHeight.toFloat()
+
+        bg.x = canvasWidth / 2f
+        bg.y = canvasHeight / 2f
+
+        bg.scale = 1f
+
+        onElementChanged?.invoke(bg)
     }
 
     /**
@@ -567,7 +578,14 @@ class CanvasView @JvmOverloads constructor(
                     VAlign.MIDDLE -> canvasHeight / 2f
                     VAlign.BOTTOM -> canvasHeight - halfH
                 }
-                elem.y = rawY.coerceIn(halfH, canvasHeight - halfH)
+                val minY = halfH
+                val maxY = canvasHeight - halfH
+                val oversized = (halfH * 2f) > canvasHeight
+                elem.y = when {
+                    oversized -> canvasHeight / 2f          // element taller than canvas: center it
+                    minY <= maxY -> rawY.coerceIn(minY, maxY)
+                    else -> canvasHeight / 2f               // safety fallback
+                }
                 onElementChanged?.invoke(elem)
                 invalidate()
                 return
@@ -902,7 +920,7 @@ class CanvasView @JvmOverloads constructor(
         val bitmapH =
             (logicalH * element.scale * canvasScale * oversample).roundToInt().coerceAtLeast(1)
 
-        val bitmap = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(bitmapW, bitmapH)
         val canvas = Canvas(bitmap)
         drawable.setBounds(0, 0, bitmapW, bitmapH)
         drawable.draw(canvas)
@@ -1309,7 +1327,7 @@ class CanvasView @JvmOverloads constructor(
         return luminance < 128
     }
 
-    private fun computeBackgroundPanBounds(e: com.webscare.urducanvas.common.canvas.model.CanvasElement): Pair<ClosedFloatingPointRange<Float>, ClosedFloatingPointRange<Float>> {
+    private fun computeBackgroundPanBounds(e: CanvasElement): Pair<ClosedFloatingPointRange<Float>, ClosedFloatingPointRange<Float>> {
         val w = canvasWidth.toFloat()
         val h = canvasHeight.toFloat()
         val bmp = e.bitmap!!
@@ -1329,7 +1347,7 @@ class CanvasView @JvmOverloads constructor(
     private fun drawLivePreviewStroke(canvas: Canvas) {
         if (currentStrokePath == null) return
 
-        val tempStroke = _root_ide_package_.com.webscare.urducanvas.common.canvas.model.StrokeData(
+        val tempStroke = StrokeData(
             path = currentStrokePath!!,
             color = currentBrushColor,
             thickness = currentBrushThickness,
@@ -2075,7 +2093,7 @@ class CanvasView @JvmOverloads constructor(
                                     val left = -bmp.width / 2f
                                     val top = -bmp.height / 2f
                                     canvas.drawBitmap(
-                                        bmp, left, top, android.graphics.Paint().apply {
+                                        bmp, left, top, Paint().apply {
                                             alpha = element.paintAlpha
                                             isAntiAlias = true
                                             isFilterBitmap = true
@@ -2329,8 +2347,7 @@ class CanvasView @JvmOverloads constructor(
                                             val alpha = strokeSource.extractAlpha()
                                             if (finalBitmap == null) strokeSource.recycle()
                                             StrokeCacheEntry(
-                                                alpha,
-                                                strokeFp
+                                                alpha, strokeFp
                                             ).also { strokeBitmapCache[element.id] = it }.bitmap
                                         }
 
@@ -2364,7 +2381,8 @@ class CanvasView @JvmOverloads constructor(
                                 // ── Main draw ─────────────────────────────────────────────────────────
                                 if (finalBitmap != null) {
                                     // Only use saveLayer when compositing is actually required
-                                    val needsLayer = element.hasOverlay && element.overlayOpacity > 0
+                                    val needsLayer =
+                                        element.hasOverlay && element.overlayOpacity > 0
                                     if (needsLayer) canvas.saveLayer(bl, bt, br, bb, null)
                                     else canvas.save()
 
@@ -2469,19 +2487,18 @@ class CanvasView @JvmOverloads constructor(
                                 if (bmp.isRecycled) return@let
 
                                 // ── Use cached adjusted bitmap; rebuild only when dirty ──
-                                val finalBitmap: Bitmap = if (element.isAdjustmentDirty
-                                    || element.cachedAdjustedBitmap == null
-                                    || element.cachedAdjustedBitmap!!.isRecycled) {
-                                    val result = ImageAdjustmentHelper.applyAllAdjustments(
-                                        element.context!!, bmp, element
-                                    )
-                                    element.cachedAdjustedBitmap?.recycle()
-                                    element.cachedAdjustedBitmap = result
-                                    element.isAdjustmentDirty = false
-                                    result
-                                } else {
-                                    element.cachedAdjustedBitmap!!
-                                }
+                                val finalBitmap: Bitmap =
+                                    if (element.isAdjustmentDirty || element.cachedAdjustedBitmap == null || element.cachedAdjustedBitmap!!.isRecycled) {
+                                        val result = ImageAdjustmentHelper.applyAllAdjustments(
+                                            element.context!!, bmp, element
+                                        )
+                                        element.cachedAdjustedBitmap?.recycle()
+                                        element.cachedAdjustedBitmap = result
+                                        element.isAdjustmentDirty = false
+                                        result
+                                    } else {
+                                        element.cachedAdjustedBitmap!!
+                                    }
 
                                 val w = finalBitmap.width.toFloat()
                                 val h = finalBitmap.height.toFloat()
@@ -2921,7 +2938,11 @@ class CanvasView @JvmOverloads constructor(
         val localRect = RectF(-localHalfW, -localHalfH, localHalfW, localHalfH)
 
         val shapeType = element.shapeType ?: ShapeType.RECTANGLE
-        val cornerRadius = if (element.shapeHasCorner) element.shapeCornerRadius else 0f
+        val cornerRadius = if (element.shapeHasCorner) {
+            element.shapeCornerRadius
+        } else {
+            0f
+        }
 
         // Path is built WITHOUT corner radius baked in (except for RECT/ROUNDED_RECT).
         // Rounding for all other shapes is applied at draw-time via CornerPathEffect
@@ -2995,17 +3016,20 @@ class CanvasView @JvmOverloads constructor(
 
             canvas.withSave {
 
-                val finalBitmap: Bitmap = if (element.isAdjustmentDirty
-                    || element.cachedAdjustedBitmap == null
-                    || element.cachedAdjustedBitmap!!.isRecycled) {
-                    val r = ImageAdjustmentHelper.applyAllAdjustments(element.context!!, bmp, element)
-                    element.cachedAdjustedBitmap?.recycle()
-                    element.cachedAdjustedBitmap = r
-                    element.isAdjustmentDirty = false
-                    r
-                } else {
-                    element.cachedAdjustedBitmap!!
-                }
+                val finalBitmap: Bitmap =
+                    if (element.isAdjustmentDirty || element.cachedAdjustedBitmap == null || element.cachedAdjustedBitmap!!.isRecycled) {
+                        val r = ImageAdjustmentHelper.applyAllAdjustments(
+                            element.context!!,
+                            bmp,
+                            element
+                        )
+                        element.cachedAdjustedBitmap?.recycle()
+                        element.cachedAdjustedBitmap = r
+                        element.isAdjustmentDirty = false
+                        r
+                    } else {
+                        element.cachedAdjustedBitmap!!
+                    }
 
                 val srcW = finalBitmap.width.toFloat()
                 val srcH = finalBitmap.height.toFloat()
@@ -3204,7 +3228,7 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private fun drawBackgroundElement(
-        canvas: Canvas, e: com.webscare.urducanvas.common.canvas.model.CanvasElement
+        canvas: Canvas, e: CanvasElement
     ) {
         val w = canvasWidth.toFloat()
         val h = canvasHeight.toFloat()
@@ -3252,17 +3276,16 @@ class CanvasView @JvmOverloads constructor(
 
                 if (bmp.isRecycled) return@withTranslation
                 // ── Cache adjusted background; rebuild only when dirty ──
-                val adjustedBackground: Bitmap = if (e.isAdjustmentDirty
-                    || e.cachedAdjustedBitmap == null
-                    || e.cachedAdjustedBitmap!!.isRecycled) {
-                    val result = ImageAdjustmentHelper.applyAllAdjustments(e.context!!, bmp, e)
-                    e.cachedAdjustedBitmap?.recycle()
-                    e.cachedAdjustedBitmap = result
-                    e.isAdjustmentDirty = false
-                    result
-                } else {
-                    e.cachedAdjustedBitmap!!
-                }
+                val adjustedBackground: Bitmap =
+                    if (e.isAdjustmentDirty || e.cachedAdjustedBitmap == null || e.cachedAdjustedBitmap!!.isRecycled) {
+                        val result = ImageAdjustmentHelper.applyAllAdjustments(e.context!!, bmp, e)
+                        e.cachedAdjustedBitmap?.recycle()
+                        e.cachedAdjustedBitmap = result
+                        e.isAdjustmentDirty = false
+                        result
+                    } else {
+                        e.cachedAdjustedBitmap!!
+                    }
 
                 val bw = adjustedBackground.width.toFloat()
                 val bh = adjustedBackground.height.toFloat()
@@ -3351,7 +3374,7 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private fun createGradientShader(
-        gradientItem: com.webscare.urducanvas.common.canvas.model.GradientItem,
+        gradientItem: GradientItem,
         width: Float,
         height: Float,
         translateX: Float = 0f,
@@ -3414,7 +3437,7 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private fun drawTextElement(
-        canvas: Canvas, element: com.webscare.urducanvas.common.canvas.model.CanvasElement
+        canvas: Canvas, element: CanvasElement
     ) {
         if (element.paintAlpha == 0) return
 
@@ -3621,7 +3644,7 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
-    private fun drawWithBlend(element: com.webscare.urducanvas.common.canvas.model.CanvasElement): Xfermode? {
+    private fun drawWithBlend(element: CanvasElement): Xfermode? {
         return when (element.blendType) {
             BlendType.SRC -> PorterDuffXfermode(
                 PorterDuff.Mode.SRC
@@ -3656,7 +3679,7 @@ class CanvasView @JvmOverloads constructor(
         canvas: Canvas,
         text: String,
         yOffset: Float,
-        element: com.webscare.urducanvas.common.canvas.model.CanvasElement
+        element: CanvasElement
     ) {
 
         if (element.paintAlpha == 0) return
@@ -3737,7 +3760,7 @@ class CanvasView @JvmOverloads constructor(
         return Math.toDegrees(atan2(y.toDouble(), x.toDouble())).toFloat()
     }
 
-    fun com.webscare.urducanvas.common.canvas.model.CanvasElement.containsPoint(
+    fun CanvasElement.containsPoint(
         px: Float, py: Float
     ): Boolean {
         val bounds = getTightTextBounds()
@@ -3884,10 +3907,10 @@ class CanvasView @JvmOverloads constructor(
     private fun stepZoomOverall() {
         // 50% → 100% → 200% → 300% → 50% cycle
         val next = when {
-            overallScale < 0.9f  -> 1.0f   // 50%  → 100%
-            overallScale < 1.5f  -> 2.0f   // 100% → 200%
-            overallScale < 2.5f  -> 3.0f   // 200% → 300%
-            else                 -> 0.5f   // 300% → 50%
+            overallScale < 0.9f -> 1.0f   // 50%  → 100%
+            overallScale < 1.5f -> 2.0f   // 100% → 200%
+            overallScale < 2.5f -> 3.0f   // 200% → 300%
+            else -> 0.5f   // 300% → 50%
         }
         animateOverallZoom(next)
         onZoomChanged?.invoke(next)         // popup label update karo
@@ -3960,7 +3983,7 @@ class CanvasView @JvmOverloads constructor(
 
                         currentBrushGradient?.let {
                             shader =
-                                com.webscare.urducanvas.common.utils.BrushRenderUtils.createBackgroundGradientShader(
+                                createBackgroundGradientShader(
                                     it, width.toFloat(), height.toFloat()
                                 )
                         }
@@ -3984,7 +4007,7 @@ class CanvasView @JvmOverloads constructor(
                     val path = currentStrokePath
                     if (path != null && activeSessionElement != null) {
                         // Store path in ABSOLUTE canvas coordinates — no normalization
-                        val strokeData = com.webscare.urducanvas.common.canvas.model.StrokeData(
+                        val strokeData = StrokeData(
                             path = Path(path),
                             color = currentBrushColor,
                             thickness = currentBrushThickness,
@@ -4037,14 +4060,14 @@ class CanvasView @JvmOverloads constructor(
             MotionEvent.ACTION_POINTER_DOWN -> {
                 if (event.pointerCount == 2) {
                     initialPinchDistance = getPinchDistance(event)
-                    initialPinchAngle    = getPinchAngle(event)
-                    initialOverallScale  = overallScale
+                    initialPinchAngle = getPinchAngle(event)
+                    initialOverallScale = overallScale
 
                     when {
                         // Elements selected → element scale/rotate (pan mode OFF only)
                         selectedElements.isNotEmpty() && !isPanMode -> {
-                            currentMode     = Mode.MULTI_TOUCH
-                            initialScale    = selectedElements.firstOrNull()?.scale ?: 1f
+                            currentMode = Mode.MULTI_TOUCH
+                            initialScale = selectedElements.firstOrNull()?.scale ?: 1f
                             initialRotation = selectedElements.firstOrNull()?.rotation ?: 0f
                         }
                         // Empty canvas (ya pan mode ON) → overall canvas zoom
@@ -4214,8 +4237,7 @@ class CanvasView @JvmOverloads constructor(
                         }
 
                 if (touchedElement != null && !isPanMode) {
-                    // isPanMode ON hai to element touch ignore karo —
-                    // neeche wala else block chalega jo CANVAS_PAN set karega
+
                     if (touchedElement.groupId != null) {
                         val groupMembers =
                             canvasElements.filter { it.groupId == touchedElement.groupId }
@@ -4314,12 +4336,13 @@ class CanvasView @JvmOverloads constructor(
                             if (event.pointerCount == 2) {
                                 // Empty canvas ya pan mode → overall zoom
                                 val newDist = getPinchDistance(event)
-                                val factor  = newDist / initialPinchDistance
+                                val factor = newDist / initialPinchDistance
                                 var newScale = (initialOverallScale * factor).coerceIn(0.5f, 3.0f)
                                 // Snap to 100% when within 95%–105%
                                 val snapTargets = listOf(0.5f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f)
                                 val snapThreshold = 0.03f
-                                val snappedTarget = snapTargets.firstOrNull { abs(newScale - it) <= snapThreshold }
+                                val snappedTarget =
+                                    snapTargets.firstOrNull { abs(newScale - it) <= snapThreshold }
                                 if (snappedTarget != null) {
                                     if (overallScale != snappedTarget) vibrateSoft()
                                     newScale = snappedTarget
@@ -4572,12 +4595,13 @@ class CanvasView @JvmOverloads constructor(
                     Mode.CANVAS_PAN -> {
                         if (event.pointerCount == 2) {
                             val newDist = getPinchDistance(event)
-                            val factor  = newDist / initialPinchDistance
+                            val factor = newDist / initialPinchDistance
                             var newScale = (initialOverallScale * factor).coerceIn(0.5f, 3.0f)
                             // Snap to 100% when within 95%–105%
                             val snapTargets = listOf(0.5f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f)
                             val snapThreshold = 0.03f
-                            val snappedTarget = snapTargets.firstOrNull { abs(newScale - it) <= snapThreshold }
+                            val snappedTarget =
+                                snapTargets.firstOrNull { abs(newScale - it) <= snapThreshold }
                             if (snappedTarget != null) {
                                 if (overallScale != snappedTarget) vibrateSoft()
                                 newScale = snappedTarget
@@ -4709,11 +4733,11 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private fun canvasToView(cx: Float, cy: Float): Pair<Float, Float> {
-        val scaledWidth  = canvasWidth  * scale
+        val scaledWidth = canvasWidth * scale
         val scaledHeight = canvasHeight * scale
-        val ox = (width  - scaledWidth)  / 2f   // offsetX
+        val ox = (width - scaledWidth) / 2f   // offsetX
         val oy = (height - scaledHeight) / 2f   // offsetY
-        val pivotX = width  / 2f
+        val pivotX = width / 2f
         val pivotY = height / 2f
 
         // Step 1+2: canvas local → after inner scale+translate
@@ -4731,7 +4755,7 @@ class CanvasView @JvmOverloads constructor(
         val gridSpacing = 50f
 
         // canvasToView() use karo — exact same transform as onDraw
-        val (left,  top)    = canvasToView(0f,                   0f)
+        val (left, top) = canvasToView(0f, 0f)
         val (right, bottom) = canvasToView(canvasWidth.toFloat(), canvasHeight.toFloat())
 
         val stepPx = gridSpacing * scale * overallScale
@@ -4755,46 +4779,31 @@ class CanvasView @JvmOverloads constructor(
     private fun drawCanvasShadow(canvas: Canvas) {
 
         val rect = RectF(
-            0f,
-            0f,
-            canvasWidth.toFloat(),
-            canvasHeight.toFloat()
+            0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat()
         )
 
         val spread = 40f // increase spread for softness
 
         val shadowRect = RectF(
-            rect.left - spread,
-            rect.top - spread,
-            rect.right + spread,
-            rect.bottom + spread
+            rect.left - spread, rect.top - spread, rect.right + spread, rect.bottom + spread
         )
 
         canvas.drawRoundRect(
-            shadowRect,
-            30f,
-            30f,
-            canvasShadowPaint
+            shadowRect, 30f, 30f, canvasShadowPaint
         )
     }
 
-    /**
-     * Canvas edges ke saath ruler draw karta hai.
-     * Top ruler: horizontal measurements (X axis)
-     * Left ruler: vertical measurements (Y axis)
-     * Ruler background semi-transparent hota hai.
-     */
     private fun drawRuler(canvas: Canvas) {
         val rulerThicknessPx = 16f.dpToPx()
-        val majorTickLen     = rulerThicknessPx * 0.6f
-        val minorTickLen     = rulerThicknessPx * 0.3f
+        val majorTickLen = rulerThicknessPx * 0.6f
+        val minorTickLen = rulerThicknessPx * 0.3f
 
         // Canvas boundaries in view space
-        val (canvasLeft, canvasTop)     = canvasToView(0f, 0f)
-        val (canvasRight, canvasBottom) = canvasToView(canvasWidth.toFloat(), canvasHeight.toFloat())
+        val (canvasLeft, canvasTop) = canvasToView(0f, 0f)
+        val (canvasRight, canvasBottom) = canvasToView(
+            canvasWidth.toFloat(), canvasHeight.toFloat()
+        )
 
-        // Smart tick spacing — canvas size ke hisaab se calculate karo
-        // Target: ~8 major ticks across full width
         val rawSpacing = canvasWidth / 8f
         // Round to nearest "nice" number: 50, 100, 200, 250, 500, 1000 etc
         val tickSpacing = niceNumber(rawSpacing)
@@ -4805,28 +4814,45 @@ class CanvasView @JvmOverloads constructor(
         if (stepViewPx < 4f) return
 
         // ── TOP RULER background ─────────────────────────────────
-        canvas.drawRect(canvasLeft, canvasTop,
-            canvasRight, canvasTop + rulerThicknessPx, rulerBgPaint)
-        canvas.drawLine(canvasLeft, canvasTop + rulerThicknessPx,
-            canvasRight, canvasTop + rulerThicknessPx, rulerPaint)
+        canvas.drawRect(
+            canvasLeft, canvasTop, canvasRight, canvasTop + rulerThicknessPx, rulerBgPaint
+        )
+        canvas.drawLine(
+            canvasLeft,
+            canvasTop + rulerThicknessPx,
+            canvasRight,
+            canvasTop + rulerThicknessPx,
+            rulerPaint
+        )
 
         // ── LEFT RULER background ────────────────────────────────
-        canvas.drawRect(canvasLeft, canvasTop,
-            canvasLeft + rulerThicknessPx, canvasBottom, rulerBgPaint)
-        canvas.drawLine(canvasLeft + rulerThicknessPx, canvasTop,
-            canvasLeft + rulerThicknessPx, canvasBottom, rulerPaint)
+        canvas.drawRect(
+            canvasLeft, canvasTop, canvasLeft + rulerThicknessPx, canvasBottom, rulerBgPaint
+        )
+        canvas.drawLine(
+            canvasLeft + rulerThicknessPx,
+            canvasTop,
+            canvasLeft + rulerThicknessPx,
+            canvasBottom,
+            rulerPaint
+        )
 
         // Corner square
-        canvas.drawRect(canvasLeft, canvasTop,
-            canvasLeft + rulerThicknessPx, canvasTop + rulerThicknessPx, rulerBgPaint)
+        canvas.drawRect(
+            canvasLeft,
+            canvasTop,
+            canvasLeft + rulerThicknessPx,
+            canvasTop + rulerThicknessPx,
+            rulerBgPaint
+        )
 
         // ── TOP RULER ticks + labels (X axis) ───────────────────
         var tickIndex = 0
         var x = canvasLeft
         while (x <= canvasRight + 0.5f) {
-            val isMajor  = tickIndex % 5 == 0
-            val tickLen  = if (isMajor) majorTickLen else minorTickLen
-            val tickTop  = canvasTop + rulerThicknessPx - tickLen
+            val isMajor = tickIndex % 5 == 0
+            val tickLen = if (isMajor) majorTickLen else minorTickLen
+            val tickTop = canvasTop + rulerThicknessPx - tickLen
 
             canvas.drawLine(x, tickTop, x, canvasTop + rulerThicknessPx, rulerPaint)
 
@@ -4846,9 +4872,9 @@ class CanvasView @JvmOverloads constructor(
         tickIndex = 0
         var y = canvasTop
         while (y <= canvasBottom + 0.5f) {
-            val isMajor   = tickIndex % 5 == 0
-            val tickLen   = if (isMajor) majorTickLen else minorTickLen
-            val tickLeft  = canvasLeft + rulerThicknessPx - tickLen
+            val isMajor = tickIndex % 5 == 0
+            val tickLen = if (isMajor) majorTickLen else minorTickLen
+            val tickLeft = canvasLeft + rulerThicknessPx - tickLen
 
             canvas.drawLine(tickLeft, y, canvasLeft + rulerThicknessPx, y, rulerPaint)
 
@@ -4859,7 +4885,8 @@ class CanvasView @JvmOverloads constructor(
                     rotate(-90f, labelX, y)
                     canvas.drawText(
                         "${(tickIndex * tickSpacing).toInt()}",
-                        labelX, y + rulerTextPaint.textSize / 3f,
+                        labelX,
+                        y + rulerTextPaint.textSize / 3f,
                         rulerTextPaint
                     )
                 }
@@ -4869,10 +4896,16 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
-    fun setGridEnabled(enabled: Boolean)  { showGrid  = enabled
-        invalidate() }
-    fun setRulerEnabled(enabled: Boolean) { showRuler = enabled
-        invalidate() }
+    fun setGridEnabled(enabled: Boolean) {
+        showGrid = enabled
+        invalidate()
+    }
+
+    fun setRulerEnabled(enabled: Boolean) {
+        showRuler = enabled
+        invalidate()
+    }
+
     fun setPanMode(enabled: Boolean) {
         isPanMode = enabled
         if (enabled && selectedElements.isNotEmpty()) {
@@ -4883,7 +4916,6 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
-    /** ViewModel se zoom level set karna — overallScale use karta hai */
     fun setZoomLevel(zoom: Float) {
         var newScale = zoom.coerceIn(0.5f, 3.0f)
 
@@ -4903,7 +4935,7 @@ class CanvasView @JvmOverloads constructor(
 
     private fun niceNumber(raw: Float): Float {
         val candidates = listOf(10f, 20f, 25f, 50f, 100f, 200f, 250f, 500f, 1000f, 2000f)
-        return candidates.minByOrNull { kotlin.math.abs(it - raw) } ?: 100f
+        return candidates.minByOrNull { abs(it - raw) } ?: 100f
     }
 
     override fun onAttachedToWindow() {

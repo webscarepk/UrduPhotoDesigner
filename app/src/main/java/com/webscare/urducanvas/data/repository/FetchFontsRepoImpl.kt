@@ -11,22 +11,22 @@ import kotlinx.coroutines.flow.channelFlow
 import javax.inject.Inject
 
 class FetchFontsRepoImpl @Inject constructor(
-    private val api: com.webscare.urducanvas.data.remote.EndPointsInterface
-) : com.webscare.urducanvas.domain.repo.FetchFontsRepo {
+    private val api: EndPointsInterface
+) : FetchFontsRepo {
 
-    override fun fetchFonts(): Flow<com.webscare.urducanvas.common.sealed.Response<com.webscare.urducanvas.data.model.FontsResponse>> = channelFlow {
+    override fun fetchFonts(): Flow<Response<FontsResponse>> = channelFlow {
         try {
-            trySend(_root_ide_package_.com.webscare.urducanvas.common.sealed.Response.Loading)
+            trySend(Response.Loading)
             val response = api.getAllFonts()
 
             Log.e(TAG, "fetchFontsAPI: $response")
-            trySend(_root_ide_package_.com.webscare.urducanvas.common.sealed.Response.Success(response))
+            trySend(Response.Success(response))
         } catch (e: Exception) {
             Log.e(TAG, "fetchFontsAPI: $e")
             if (e.message?.contains("Connection reset") == true){
-                trySend(_root_ide_package_.com.webscare.urducanvas.common.sealed.Response.Error("Unstable Internet Connection!"))
+                trySend(Response.Error("Unstable Internet Connection!"))
             }else{
-                trySend(_root_ide_package_.com.webscare.urducanvas.common.sealed.Response.Error("Unexpected Error Occurred ${e.message}"))
+                trySend(Response.Error("Unexpected Error Occurred ${e.message}"))
             }
         }
     }

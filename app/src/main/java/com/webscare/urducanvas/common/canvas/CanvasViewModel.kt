@@ -8,6 +8,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.PictureDrawable
 import android.util.Log
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import androidx.core.graphics.toColorInt
 import androidx.lifecycle.LiveData
@@ -39,12 +40,12 @@ import com.webscare.urducanvas.common.canvas.model.ExportOptions
 import com.webscare.urducanvas.common.canvas.model.ExportQuality
 import com.webscare.urducanvas.common.canvas.model.ExportResolution
 import com.webscare.urducanvas.common.canvas.model.GradientItem
+import com.webscare.urducanvas.common.canvas.model.StrokeData
 import com.webscare.urducanvas.common.canvas.sealed.BatchedCanvasAction
 import com.webscare.urducanvas.common.canvas.sealed.CanvasAction
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants
 import com.webscare.urducanvas.common.datastore.PreferencesDataStoreHelper
-import com.webscare.urducanvas.common.utils.BitmapCache
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
 import com.webscare.urducanvas.common.views.CanvasView
@@ -66,9 +67,6 @@ import java.io.File
 import java.util.Stack
 import java.util.UUID
 import javax.inject.Inject
-import kotlin.collections.map
-import androidx.core.graphics.createBitmap
-import com.webscare.urducanvas.common.canvas.model.StrokeData
 
 @HiltViewModel
 class CanvasViewModel @Inject constructor(
@@ -337,14 +335,14 @@ class CanvasViewModel @Inject constructor(
     private var _isExplicitChange = false
 
     // ── Canvas overlay toggles ───────────────────────────────────
-    private val _isGridEnabled  = MutableLiveData(false)
-    val isGridEnabled:  LiveData<Boolean> get() = _isGridEnabled
+    private val _isGridEnabled = MutableLiveData(false)
+    val isGridEnabled: LiveData<Boolean> get() = _isGridEnabled
 
     private val _isRulerEnabled = MutableLiveData(false)
     val isRulerEnabled: LiveData<Boolean> get() = _isRulerEnabled
 
-    private val _isPanMode      = MutableLiveData(false)
-    val isPanMode:      LiveData<Boolean> get() = _isPanMode
+    private val _isPanMode = MutableLiveData(false)
+    val isPanMode: LiveData<Boolean> get() = _isPanMode
 
     // ── Zoom level (1.0f = 100%) ─────────────────────────────────
     private val _zoomLevel = MutableLiveData(1.0f)
@@ -419,8 +417,8 @@ class CanvasViewModel @Inject constructor(
         _isPanMode.value = !(_isPanMode.value ?: false)
     }
 
-    private val zoomMin  = 0.5f
-    private val zoomMax  = 3.0f
+    private val zoomMin = 0.5f
+    private val zoomMax = 3.0f
     private val zoomStep = 0.2f
 
     fun setZoomLevel(zoom: Float) {
@@ -457,7 +455,7 @@ class CanvasViewModel @Inject constructor(
     fun updateCornerRadius(value: Float) {
         _shapeCornerRadius.value = value
         _shapeCornerEnabled.value = true
-        updateSelectedShape { it.copy(shapeCornerRadius = value, shapeHasStroke = true) }
+        updateSelectedShape { it.copy(shapeCornerRadius = value, shapeHasCorner = true) }
     }
 
     fun updateStrokeWidth(value: Float) {
@@ -712,13 +710,26 @@ class CanvasViewModel @Inject constructor(
                 session.drawStrokes?.forEach { stroke ->
                     when (stroke.style) {
                         com.webscare.urducanvas.common.canvas.enums.BrushStyle.BRUSH ->
-                            com.webscare.urducanvas.common.utils.BrushRenderUtils.drawBrushStroke(fullCanvas, stroke, 255)
+                            com.webscare.urducanvas.common.utils.BrushRenderUtils.drawBrushStroke(
+                                fullCanvas,
+                                stroke,
+                                255
+                            )
 
                         com.webscare.urducanvas.common.canvas.enums.BrushStyle.PEN ->
-                            com.webscare.urducanvas.common.utils.BrushRenderUtils.drawTaperedPenStroke(fullCanvas, stroke, 255)
+                            com.webscare.urducanvas.common.utils.BrushRenderUtils.drawTaperedPenStroke(
+                                fullCanvas,
+                                stroke,
+                                255
+                            )
 
                         com.webscare.urducanvas.common.canvas.enums.BrushStyle.HIGHLIGHTER -> {
-                            val paint = com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(stroke, canvasW, canvasH)
+                            val paint =
+                                com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
+                                    stroke,
+                                    canvasW,
+                                    canvasH
+                                )
                             paint.alpha = 130
                             paint.strokeCap = android.graphics.Paint.Cap.BUTT
                             val path = android.graphics.Path(stroke.path)
@@ -729,7 +740,12 @@ class CanvasViewModel @Inject constructor(
                         }
 
                         else -> {
-                            val paint = com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(stroke, canvasW, canvasH)
+                            val paint =
+                                com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
+                                    stroke,
+                                    canvasW,
+                                    canvasH
+                                )
                             paint.alpha = 255
                             fullCanvas.drawPath(stroke.path!!, paint)
                         }
@@ -1029,7 +1045,10 @@ class CanvasViewModel @Inject constructor(
     fun fetchExportOptionsFromDataStore() {
         viewModelScope.launch {
             val resName =
-                dataStore.getFirstPreference(PreferenceDataStoreKeysConstants.KEY_RESOLUTION, "Regular")
+                dataStore.getFirstPreference(
+                    PreferenceDataStoreKeysConstants.KEY_RESOLUTION,
+                    "Regular"
+                )
             val qualityLabel =
                 dataStore.getFirstPreference(PreferenceDataStoreKeysConstants.KEY_QUALITY, "Medium")
             val formatName =
@@ -1766,6 +1785,7 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun getFontPanelState(): FontPanelState = _fontPanelState.value ?: FontPanelState()
+
     /**
      * Applies the current LiveData values to selected text elements WITHOUT pushing to the
      * undo stack. Use this during continuous gestures (seekbar drag) so every intermediate
@@ -1796,9 +1816,12 @@ class CanvasViewModel @Inject constructor(
                     hasLabel = _hasLabel.value ?: element.hasLabel,
                     labelColor = _labelColor.value ?: element.labelColor,
                     labelShape = _labelShape.value ?: element.labelShape,
-                    fillGradient = if (_fillGradient.value == null) null else _fillGradient.value ?: element.fillGradient,
-                    strokeGradient = if (_strokeGradient.value == null) null else _strokeGradient.value ?: element.strokeGradient,
-                    labelGradient = if (_labelGradient.value == null) null else _labelGradient.value ?: element.labelGradient,
+                    fillGradient = if (_fillGradient.value == null) null else _fillGradient.value
+                        ?: element.fillGradient,
+                    strokeGradient = if (_strokeGradient.value == null) null else _strokeGradient.value
+                        ?: element.strokeGradient,
+                    labelGradient = if (_labelGradient.value == null) null else _labelGradient.value
+                        ?: element.labelGradient,
                     blurValue = _blurValue.value ?: element.blurValue,
                     hasBlur = _hasBlur.value ?: element.hasBlur,
                     paintAlpha = _opacity.value ?: element.paintAlpha,
@@ -1931,14 +1954,42 @@ class CanvasViewModel @Inject constructor(
         val oldSize = _canvasSize.value
         if (oldSize != newSize) {
             _canvasActions.push(
-                CanvasAction.SetCanvasSize(
-                    newSize, oldSize ?: newSize
-                )
-            ) // Push old size for undo
+                CanvasAction.SetCanvasSize(newSize, oldSize ?: newSize)
+            )
             _redoStack.clear()
             _canvasSize.value = newSize
+            syncBackgroundElementSize(newSize)   // ← ADD THIS
             notifyUndoRedoChanged()
         }
+    }
+
+    // ADD this private helper below setCanvasSize:
+    private fun syncBackgroundElementSize(size: CanvasSize) {
+        val current = _canvasElements.value?.toMutableList() ?: return
+        val bgIndex = current.indexOfFirst { it.type == ElementType.BACKGROUND }
+        if (bgIndex == -1) return
+        val bg = current[bgIndex]
+        current[bgIndex] = bg.copy(
+            x = size.width / 2f,
+            y = size.height / 2f,
+            logicalContentWidth = size.width,
+            logicalContentHeight = size.height
+        ).also {
+            it.isLocked = bg.isLocked
+            it.paintColor = bg.paintColor
+            it.fillGradient = bg.fillGradient
+            it.bitmap = bg.bitmap
+            it.bitmapData = bg.bitmapData
+            it.cachedAdjustedBitmap = bg.cachedAdjustedBitmap
+            it.context = bg.context
+            it.updatePaintProperties()
+        }
+        _canvasElements.value = current
+    }
+
+    fun resizeCanvas(newSize: CanvasSize) {
+        setCanvasSize(newSize)  // reuses undo stack, LiveData update, everything
+        hasChanges.value = true
     }
 
     fun setCanvasUnit(newUnit: UnitType) {
@@ -2875,10 +2926,12 @@ class CanvasViewModel @Inject constructor(
                 // Bitmap is larger than canvas budget → shrink visually via scale
                 minOf(targetW / imageW, targetH / imageH)
             }
+
             imageW < targetW * 0.2f || imageH < targetH * 0.2f -> {
                 // Bitmap is very small → boost it up so it's visible
                 minOf(targetW / imageW, targetH / imageH) * 0.5f
             }
+
             else -> {
                 // Already in a good range → no scaling needed
                 1f
@@ -3225,12 +3278,13 @@ class CanvasViewModel @Inject constructor(
         val oldFilter = targetElement.imageFilter
         if (oldFilter != newFilter) {
             val context = targetElement.context
-            val updatedElement = targetElement.copy(imageFilter = newFilter!!, context = context).also {
-                // ✅ Stale cached bitmap must be discarded when the filter changes
-                it.isAdjustmentDirty = true
-                it.cachedAdjustedBitmap?.recycle()
-                it.cachedAdjustedBitmap = null
-            }
+            val updatedElement =
+                targetElement.copy(imageFilter = newFilter!!, context = context).also {
+                    // ✅ Stale cached bitmap must be discarded when the filter changes
+                    it.isAdjustmentDirty = true
+                    it.cachedAdjustedBitmap?.recycle()
+                    it.cachedAdjustedBitmap = null
+                }
 
             _canvasElements.value =
                 currentList.map { if (it.id == updatedElement.id) updatedElement else it }
@@ -3472,7 +3526,9 @@ class CanvasViewModel @Inject constructor(
                         // ✅ Restore from raw SVG XML — resolution-independent, works at any scale
                         try {
                             val svg = com.caverock.androidsvg.SVG.getFromString(svgData)
-                            svgDrawable = android.graphics.drawable.PictureDrawable(svg.renderToPicture()).trimTransparentEdges()
+                            svgDrawable =
+                                android.graphics.drawable.PictureDrawable(svg.renderToPicture())
+                                    .trimTransparentEdges()
                             bitmap = null
                         } catch (e: Exception) {
                             // SVG parse failed — fall back to bitmapData if available
@@ -3826,7 +3882,9 @@ class CanvasViewModel @Inject constructor(
             }
 
             is CanvasAction.SetCanvasSize -> {
-                _canvasSize.value = if (isRedo) action.newSize else action.oldSize
+                val sizeToApply = if (isRedo) action.newSize else action.oldSize
+                _canvasSize.value = sizeToApply
+                syncBackgroundElementSize(sizeToApply)
             }
 
             is CanvasAction.ApplyImageFilter -> {
@@ -3975,8 +4033,9 @@ class CanvasViewModel @Inject constructor(
                             try {
                                 element.paint.typeface = Typeface.createFromFile(font.file_path)
                             } catch (e: Exception) {
-                                element.paint.typeface = ResourcesCompat.getFont(context, R.font.default_canvas)
-                                    ?: Typeface.DEFAULT
+                                element.paint.typeface =
+                                    ResourcesCompat.getFont(context, R.font.default_canvas)
+                                        ?: Typeface.DEFAULT
                             }
                         }
                     }
@@ -4014,11 +4073,12 @@ class CanvasViewModel @Inject constructor(
                     val subscribed = billingManager.isSubscribed.value
 
                     _canvasElements.value = hydratedWithFonts.map { element ->
-                        element.copy(isSubscribed = subscribed && element.isPremium).also { copied ->
-                            if (copied.type == ElementType.TEXT) {
-                                copied.paint.typeface = copied.applyTypefaceFromFontList()
+                        element.copy(isSubscribed = subscribed && element.isPremium)
+                            .also { copied ->
+                                if (copied.type == ElementType.TEXT) {
+                                    copied.paint.typeface = copied.applyTypefaceFromFontList()
+                                }
                             }
-                        }
                     }
 
                     val selected =

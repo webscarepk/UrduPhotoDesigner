@@ -99,7 +99,7 @@ class ShapePanelFragment : Fragment() {
 
         binding.cornerRadiusBar.apply {
             
-            max = 300
+            max = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                     binding.cornerRadius.text = "$progress"  // Show the progress directly as the value

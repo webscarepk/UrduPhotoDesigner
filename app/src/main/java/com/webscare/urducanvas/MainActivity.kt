@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity() {
                 val inputStream = contentResolver.openInputStream(it)
                 val bitmap = BitmapFactory.decodeStream(inputStream)
                 inputStream?.close()
-                val canvasSize = CanvasSize("From Image", bitmap.width.toFloat(), bitmap.height.toFloat())
+                val canvasSize = CanvasSize(id = 0, "From Image", bitmap.width.toFloat(), bitmap.height.toFloat())
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(canvasSize)
                 viewModel.setCanvasBackgroundImage(bitmap, this@MainActivity)
@@ -345,7 +345,7 @@ class MainActivity : AppCompatActivity() {
                 contentResolver.openInputStream(uri)?.use { stream ->
                     val bitmap = BitmapFactory.decodeStream(stream)
                     if (bitmap != null) {
-                        val canvasSize = CanvasSize("From Image", bitmap.width.toFloat(), bitmap.height.toFloat())
+                        val canvasSize = CanvasSize(id = 0,"From Image", bitmap.width.toFloat(), bitmap.height.toFloat())
                         viewModel.clearCanvas()
                         viewModel.setCanvasSize(canvasSize)
                         viewModel.setCanvasBackgroundImage(bitmap, this@MainActivity)

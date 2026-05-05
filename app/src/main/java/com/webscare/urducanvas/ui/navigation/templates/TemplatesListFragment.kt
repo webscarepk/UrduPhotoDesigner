@@ -26,6 +26,7 @@ import com.webscare.urducanvas.data.model.TemplateEntity
 import com.webscare.urducanvas.data.model.toExportResultFinal
 import com.webscare.urducanvas.databinding.DialogLoadingProgressBinding
 import com.webscare.urducanvas.databinding.FragmentTemplatesListBinding
+import com.webscare.urducanvas.ui.creation.CanvasSizeAdapter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -50,7 +51,7 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
     private var bundle: Bundle = Bundle()
     private var loadingDialog: AlertDialog? = null
     private var dialogBinding: DialogLoadingProgressBinding? = null
-    private lateinit var sizeAdapter: com.webscare.urducanvas.ui.creation.CanvasSizeAdapter
+    private lateinit var sizeAdapter: CanvasSizeAdapter
     private lateinit var sglm: StaggeredGridLayoutManager
     private var shuffleAfterRefresh = false
     private var filterJob: Job? = null
@@ -64,17 +65,6 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
     private var suppressChipClicks = false
     private var suppressPriceChipClicks = false
     private var filterPanelVisible = false
-
-    private val sizeList = listOf(
-        CanvasSize("Instagram Story", 1080f, 1920f), CanvasSize("Instagram Post", 1080f, 1080f),
-        CanvasSize("YouTube Thumbnail", 1280f, 720f), CanvasSize("Facebook Cover", 820f, 312f),
-        CanvasSize("YouTube Channel Art", 2560f, 1440f), CanvasSize("A4", 2480f, 3508f),
-        CanvasSize("Letter", 2550f, 3300f), CanvasSize("Poster", 3600f, 5400f),
-        CanvasSize("Business Card", 1050f, 600f), CanvasSize("Billboard", 1920f, 1080f),
-        CanvasSize("Vertical Banner", 1080f, 1920f), CanvasSize("Horizontal Banner", 1920f, 600f),
-        CanvasSize("Flyer", 2550f, 3300f), CanvasSize("Resume", 2480f, 3508f),
-        CanvasSize("Invitation", 1500f, 2100f), CanvasSize("Logo", 800f, 800f)
-    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,7 +82,7 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        setupPriceChips()
+//        setupPriceChips()
         setEvents()
         setupRecycler()
         observeData()
@@ -114,37 +104,37 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
 
     // ─── Price Chips (static — set up once) ──────────────────────────────────
 
-    private fun setupPriceChips() {
-        val cg = binding.priceChipGroup
-        cg.removeAllViews()
-        listOf("All", "Free", "Premium").forEach { label ->
-            val chip = layoutInflater.inflate(R.layout.chip_filter_item, cg, false) as Chip
-            chip.id = View.generateViewId()
-            chip.text = label
-            chip.isCheckable = true
-            chip.isChecked = label.equals(activePrice, true)
-            cg.addView(chip)
-
-            chip.addPressEffect {
-                if (suppressPriceChipClicks) return@addPressEffect
-                val clicked = chip.text.toString()
-                if (chip.isChecked && !clicked.equals("All", true)) {
-                    suppressPriceChipClicks = true
-                    cg.clearCheck()
-                    findChipByText(cg, "All")?.isChecked = true
-                    suppressPriceChipClicks = false
-                    activePrice = "All"
-                } else {
-                    suppressPriceChipClicks = true
-                    cg.clearCheck(); chip.isChecked = true
-                    suppressPriceChipClicks = false
-                    activePrice = clicked
-                }
-                applyFiltersList()
-                if (filterPanelVisible) toggleFilterPanel()
-            }
-        }
-    }
+//    private fun setupPriceChips() {
+//        val cg = binding.priceChipGroup
+//        cg.removeAllViews()
+//        listOf("All", "Free", "Premium").forEach { label ->
+//            val chip = layoutInflater.inflate(R.layout.chip_filter_item, cg, false) as Chip
+//            chip.id = View.generateViewId()
+//            chip.text = label
+//            chip.isCheckable = true
+//            chip.isChecked = label.equals(activePrice, true)
+//            cg.addView(chip)
+//
+//            chip.addPressEffect {
+//                if (suppressPriceChipClicks) return@addPressEffect
+//                val clicked = chip.text.toString()
+//                if (chip.isChecked && !clicked.equals("All", true)) {
+//                    suppressPriceChipClicks = true
+//                    cg.clearCheck()
+//                    findChipByText(cg, "All")?.isChecked = true
+//                    suppressPriceChipClicks = false
+//                    activePrice = "All"
+//                } else {
+//                    suppressPriceChipClicks = true
+//                    cg.clearCheck(); chip.isChecked = true
+//                    suppressPriceChipClicks = false
+//                    activePrice = clicked
+//                }
+//                applyFiltersList()
+//                if (filterPanelVisible) toggleFilterPanel()
+//            }
+//        }
+//    }
 
     // ─── Events ───────────────────────────────────────────────────────────────
 
@@ -241,7 +231,7 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
             else                                -> currentCategory ?: "Templates"
         }
 
-        sizeAdapter = com.webscare.urducanvas.ui.creation.CanvasSizeAdapter(sizeList, onClick = { selected ->
+        sizeAdapter = CanvasSizeAdapter(emptyList(), onClick = { selected ->
             activeSize = if (activeSize?.name == selected.name) null else selected
             sizeAdapter.selectedSizeName = activeSize?.name ?: ""
             applyFiltersList()
@@ -324,6 +314,16 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
     // ─── Data Observation ─────────────────────────────────────────────────────
 
     private fun observeData() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            mainViewModel.localCanvasSizes.collect { entities ->
+                if (entities.isEmpty()) return@collect
+                val sizes = entities.map {
+                    CanvasSize(id = it.id, name = it.name, width = it.width, height = it.height)
+                }
+                sizeAdapter.submitList(sizes)
+            }
+        }
+
         viewLifecycleOwner.lifecycleScope.launch {
             mainViewModel.isLoading.collect { loading ->
                 if (!loading && binding.swipeRefresh.isRefreshing) {

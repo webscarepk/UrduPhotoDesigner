@@ -4,6 +4,7 @@
     android:layout_height="?attr/actionBarSize"
     android:paddingHorizontal="10dp"
     android:paddingVertical="10dp"
+    android:background="@color/white"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <TextView
@@ -27,4 +28,20 @@
         android:fontFamily="@font/regular"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/title"/>
+
+    <TextView
+        android:id="@+id/canvasSizeBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="1080 × 1920"
+        android:textSize="11sp"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="4dp"
+        android:fontFamily="@font/medium"
+        android:background="@drawable/button_bg_dim"
+        android:textColor="@color/white"
+        android:gravity="center"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

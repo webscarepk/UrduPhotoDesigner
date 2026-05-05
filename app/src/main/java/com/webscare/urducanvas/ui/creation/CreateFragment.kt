@@ -1,12 +1,10 @@
 package com.webscare.urducanvas.ui.creation
 
 import android.annotation.SuppressLint
-import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
-import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
@@ -14,13 +12,13 @@ import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.PopupMenu
 import android.widget.PopupWindow
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -33,7 +31,9 @@ import com.webscare.urducanvas.common.utils.Converter
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentCreateBinding
 import com.webscare.urducanvas.databinding.PopupUnitSelectorBinding
+import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class CreateFragment : BottomSheetDialogFragment() {
@@ -42,45 +42,7 @@ class CreateFragment : BottomSheetDialogFragment() {
 
     private val unitList = listOf("Pixels", "Inches", "Centimeters")
 
-    private val sizeList = listOf(
-        CanvasSize(
-            "Instagram Story", 1080f, 1920f
-        ), CanvasSize(
-            "Instagram Post", 1080f, 1080f
-        ), CanvasSize(
-            "YouTube Thumbnail", 1280f, 720f
-        ), CanvasSize(
-            "Facebook Cover", 820f, 312f
-        ), CanvasSize(
-            "YouTube Channel Art", 2560f, 1440f
-        ), CanvasSize(
-            "A4", 2480f, 3508f
-        ),               // 210mm × 297mm
-        CanvasSize(
-            "Letter", 2550f, 3300f
-        ),          // 8.5in × 11in
-        CanvasSize(
-            "Poster", 3600f, 5400f
-        ),          // 12in × 18in
-        CanvasSize(
-            "Business Card", 1050f, 600f
-        ), // 3.5in × 2in
-        CanvasSize(
-            "Billboard", 1920f, 1080f
-        ), CanvasSize(
-            "Vertical Banner", 1080f, 1920f
-        ), CanvasSize(
-            "Horizontal Banner", 1920f, 600f
-        ), CanvasSize(
-            "Flyer (US Letter)", 2550f, 3300f
-        ), CanvasSize(
-            "Resume", 2480f, 3508f
-        ), CanvasSize(
-            "Invitation", 1500f, 2100f
-        ), CanvasSize(
-            "Logo", 800f, 800f
-        )
-    )
+    private val mainViewModel: MainViewModel by activityViewModels()
 
     private var currentUnit = UnitType.PIXELS
     private var isLinked = false
@@ -100,10 +62,33 @@ class CreateFragment : BottomSheetDialogFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setEvents()
+        observeViewmodel()
+    }
+
+    private fun observeViewmodel() {
+        viewModel.canvasSize.observe(viewLifecycleOwner) { size ->
+            size ?: return@observe
+            if (isAdded) {
+                binding.width.setText(size.width.toString())
+                binding.height.setText(size.height.toString())
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            mainViewModel.localCanvasSizes.collect { entities ->
+                    if (entities.isEmpty()) return@collect
+                    val sizes = entities.map {
+                        CanvasSize(id = it.id, name = it.name, width = it.width, height = it.height)
+                    }
+                    adapter.submitList(sizes)
+                }
+        }
     }
 
     @SuppressLint("DefaultLocale")
     private fun setEvents() {
+        val isResizeMode = arguments?.getBoolean(ARG_RESIZE_MODE, false) == true
+
         binding.apply {
 
             // 🔹 Unit selection (same as before)
@@ -111,12 +96,21 @@ class CreateFragment : BottomSheetDialogFragment() {
                 showUnitPopup(unitBox)
             }
 
+            if (isResizeMode) {
+                create.text = getString(R.string.resize)
+            }
+
             // 🔹 Adapter setup
-            adapter = CanvasSizeAdapter(sizeList, onClick = { selected ->
-                viewModel.clearCanvas()
-                viewModel.setCanvasSize(selected)
-                view?.post { findNavController().navigate(R.id.editorFragment, null) }
-                dismiss()
+            adapter = CanvasSizeAdapter(emptyList(), onClick = { selected ->
+                if (isResizeMode) {
+                    viewModel.resizeCanvas(selected)   // ← no clearCanvas, no navigate
+                    dismiss()
+                } else {
+                    viewModel.clearCanvas()
+                    viewModel.setCanvasSize(selected)
+                    view?.post { findNavController().navigate(R.id.editorFragment, null) }
+                    dismiss()
+                }
             }, true)
             sizesRV.adapter = adapter
 
@@ -208,7 +202,6 @@ class CreateFragment : BottomSheetDialogFragment() {
                 val wInput = clampCanvasSize(getSafeIntValue(width), currentUnit)
                 val hInput = clampCanvasSize(getSafeIntValue(height), currentUnit)
 
-                // ✅ Always convert to pixels before storing in ViewModel
                 val wPx = when (currentUnit) {
                     UnitType.PIXELS -> wInput
                     UnitType.INCHES -> Converter.inchesToPx(wInput).toFloat()
@@ -220,11 +213,17 @@ class CreateFragment : BottomSheetDialogFragment() {
                     UnitType.CENTIMETERS -> Converter.cmToPx(hInput).toFloat()
                 }
 
-                val canvasSize = CanvasSize("Custom", wPx, hPx)
-                viewModel.clearCanvas()
-                viewModel.setCanvasSize(canvasSize)
-                view?.post { findNavController().navigate(R.id.editorFragment, null) }
-                dismiss()
+                val newSize = CanvasSize(id = 0, "Custom", wPx, hPx)
+
+                if (isResizeMode) {
+                    viewModel.resizeCanvas(newSize)   // ← no clearCanvas, no navigate
+                    dismiss()
+                } else {
+                    viewModel.clearCanvas()
+                    viewModel.setCanvasSize(newSize)
+                    view?.post { findNavController().navigate(R.id.editorFragment, null) }
+                    dismiss()
+                }
             }
 
             back.addPressEffect { dismiss() }
@@ -276,13 +275,31 @@ class CreateFragment : BottomSheetDialogFragment() {
                     binding.width.setText(oldWidthPx.toFloat().toString())
                     binding.height.setText(oldHeightPx.toFloat().toString())
                 }
+
                 UnitType.INCHES -> {
-                    binding.width.setText(String.format("%.1f", Converter.pxToInches(oldWidthPx.toFloat())))
-                    binding.height.setText(String.format("%.1f", Converter.pxToInches(oldHeightPx.toFloat())))
+                    binding.width.setText(
+                        String.format(
+                            "%.1f", Converter.pxToInches(oldWidthPx.toFloat())
+                        )
+                    )
+                    binding.height.setText(
+                        String.format(
+                            "%.1f", Converter.pxToInches(oldHeightPx.toFloat())
+                        )
+                    )
                 }
+
                 UnitType.CENTIMETERS -> {
-                    binding.width.setText(String.format("%.1f", Converter.pxToCm(oldWidthPx.toFloat())))
-                    binding.height.setText(String.format("%.1f", Converter.pxToCm(oldHeightPx.toFloat())))
+                    binding.width.setText(
+                        String.format(
+                            "%.1f", Converter.pxToCm(oldWidthPx.toFloat())
+                        )
+                    )
+                    binding.height.setText(
+                        String.format(
+                            "%.1f", Converter.pxToCm(oldHeightPx.toFloat())
+                        )
+                    )
                 }
             }
 
@@ -313,9 +330,7 @@ class CreateFragment : BottomSheetDialogFragment() {
                 popupWindow.showAsDropDown(anchorView)
             } else if (anchorTop >= popupHeight) {
                 popupWindow.showAtLocation(
-                    anchorView, Gravity.NO_GRAVITY,
-                    location[0],
-                    anchorTop - popupHeight
+                    anchorView, Gravity.NO_GRAVITY, location[0], anchorTop - popupHeight
                 )
             } else {
                 popupWindow.showAsDropDown(anchorView)
@@ -348,31 +363,20 @@ class CreateFragment : BottomSheetDialogFragment() {
 
     @SuppressLint("DefaultLocale")
     private fun updateListForUnit(unitType: UnitType) {
-        val convertedList = sizeList.map { size ->
+        val baseSizes = mainViewModel.localCanvasSizes.value.map {
+            CanvasSize(it.id, it.name, it.width, it.height)
+        }
+        val convertedList = baseSizes.map { size ->
             when (unitType) {
                 UnitType.PIXELS -> size.copy()
                 UnitType.INCHES -> size.copy(
-                    width = String.format(
-                        "%.1f", Converter.pxToInches(
-                            size.width
-                        )
-                    ).toFloat(), height = String.format(
-                        "%.1f", Converter.pxToInches(
-                            size.height
-                        )
-                    ).toFloat()
+                    width = String.format("%.1f", Converter.pxToInches(size.width)).toFloat(),
+                    height = String.format("%.1f", Converter.pxToInches(size.height)).toFloat()
                 )
 
                 UnitType.CENTIMETERS -> size.copy(
-                    width = String.format(
-                        "%.1f", Converter.pxToCm(
-                            size.width
-                        )
-                    ).toFloat(), height = String.format(
-                        "%.1f", Converter.pxToCm(
-                            size.height
-                        )
-                    ).toFloat()
+                    width = String.format("%.1f", Converter.pxToCm(size.width)).toFloat(),
+                    height = String.format("%.1f", Converter.pxToCm(size.height)).toFloat()
                 )
             }
         }
@@ -408,13 +412,8 @@ class CreateFragment : BottomSheetDialogFragment() {
                         WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 }
             } else {
-                @Suppress("DEPRECATION")
-                window.decorView.systemUiVisibility =
-                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-                            View.SYSTEM_UI_FLAG_FULLSCREEN or
-                            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                @Suppress("DEPRECATION") window.decorView.systemUiVisibility =
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             }
         }
     }
@@ -442,7 +441,8 @@ class CreateFragment : BottomSheetDialogFragment() {
             com.google.android.material.R.id.design_bottom_sheet
         ) ?: return
 
-        bottomSheet.background = ContextCompat.getDrawable(requireContext(), R.drawable.bottom_sheet_bg)
+        bottomSheet.background =
+            ContextCompat.getDrawable(requireContext(), R.drawable.bottom_sheet_bg)
         bottomSheet.setBackgroundResource(android.R.color.transparent)
 
         ViewCompat.setOnApplyWindowInsetsListener(bottomSheet) { v, insets ->
@@ -470,5 +470,17 @@ class CreateFragment : BottomSheetDialogFragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    companion object {
+        private const val ARG_RESIZE_MODE = "resize_mode"
+
+        fun newResizeInstance(): CreateFragment {
+            return CreateFragment().apply {
+                arguments = Bundle().apply {
+                    putBoolean(ARG_RESIZE_MODE, true)
+                }
+            }
+        }
     }
 }

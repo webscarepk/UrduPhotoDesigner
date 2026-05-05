@@ -67,7 +67,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
                 val canvasSize =
                     CanvasSize(
-                        "From Image", widthVal, heightVal
+                        id = 0,"From Image", widthVal, heightVal
                     )
 
                 viewModel.clearCanvas()
@@ -171,7 +171,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
             } else {
                 viewModel.setCanvasSize(
                     _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-                        "", 2000f, 2000f
+                        id = 0,"", 2000f, 2000f
                     )
                 )
                 viewModel.addTextWithFont(
@@ -439,7 +439,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
                                         viewModel.setCanvasSize(
                                             CanvasSize(
-                                                "", 2000f, 2000f
+                                                id = 0,"", 2000f, 2000f
                                             )
                                         )
                                         viewModel.addTextWithFont(

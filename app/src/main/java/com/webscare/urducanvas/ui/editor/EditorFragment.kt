@@ -578,14 +578,17 @@ class EditorFragment : Fragment() {
             if (size != null) {
                 canvasSize = size
 
-                initBottomNavigation()
-                initCanvas(size.width.toInt(), size.height.toInt())
-
-                initUIControls()
-                initBackHandling()
-                observeAfterCanvasReady()
-
-                if (exportModel == null) {
+                if (!::sizedCanvasView.isInitialized) {
+                    // First time — full setup
+                    initBottomNavigation()
+                    initCanvas(size.width.toInt(), size.height.toInt())
+                    initUIControls()
+                    initBackHandling()
+                    observeAfterCanvasReady()
+                    if (exportModel == null) autoSaveSilent()
+                } else {
+                    // Resize only — just update canvas dimensions
+                    sizedCanvasView.resizeCanvas(size.width.toInt(), size.height.toInt())
                     autoSaveSilent()
                 }
             }
@@ -1642,7 +1645,7 @@ class EditorFragment : Fragment() {
         }
     }
 
-    private fun updateToggleButton(view: android.widget.ImageView, isActive: Boolean) {
+    private fun updateToggleButton(view: ImageView, isActive: Boolean) {
         if (isActive) {
             view.backgroundTintList =
                 ColorStateList.valueOf(colorOf(R.color.appColor))
