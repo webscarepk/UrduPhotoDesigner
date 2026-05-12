@@ -12,10 +12,15 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -23,33 +28,47 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.canvas.enums.ElementType
+import com.webscare.urducanvas.common.canvas.model.EmojiMeta
+import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.ImageProcessor
+import com.webscare.urducanvas.common.utils.ImageProcessor.downsampleIfNeeded
+import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
+import com.webscare.urducanvas.common.utils.SvgLoader
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.data.model.ObjectsData
 import com.webscare.urducanvas.databinding.FragmentObjectsBinding
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import com.google.android.material.tabs.TabLayout
-import com.google.android.material.tabs.TabLayoutMediator
-import com.webscare.urducanvas.common.canvas.enums.ElementType
-import com.webscare.urducanvas.common.utils.ImageProcessor.downsampleIfNeeded
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.abs
 
 @AndroidEntryPoint
 class ObjectsFragment : Fragment() {
+
     private var _binding: FragmentObjectsBinding? = null
     private val binding get() = _binding!!
-    private lateinit var adapter: ObjectsPagerAdapter
-    private var tabs = mutableListOf<String>()
+
     private val mainViewModel: MainViewModel by activityViewModels()
     private val viewModel: CanvasViewModel by activityViewModels()
-    private val tabResultMap = mutableMapOf<String, Boolean>()
 
-    private var tabLayoutListenerAttached = false
-    private var tabSelectedListenerAttached = false
+    private val fragmentCache = LinkedHashMap<String, ObjectsListFragment>()
+    private val tabs = mutableListOf<String>()
+    private var currentTabIndex = 0
+    private var currentFragment: ObjectsListFragment? = null
+    private var currentQuery = ""
+    private var lastObjectsData: ObjectsData? = null
+    private var tabListenerAttached = false
+
+    // Stable adapter — created once, lives for the lifetime of this fragment
+    private var thumbnailAdapter: ThumbnailAdapter? = null
 
     private val pickImage =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -66,146 +85,472 @@ class ObjectsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setEvents()
-        initObservers()
+        attachDragHandleSwipe()
+        setupThumbnailStrip()
+
+        val initial = mainViewModel.objectsData.value
+        tabs.clear()
+        tabs.addAll(initial.tabs)
+
+        currentTabIndex = mainViewModel.lastObjectsTabCategory
+            ?.let { savedCategory -> tabs.indexOf(savedCategory).takeIf { it >= 0 } }
+            ?: 0
+
+        rebuildTabLayout(selectIndex = currentTabIndex)
+
+        if (tabs.isNotEmpty()) {
+            showTab(currentTabIndex.coerceIn(0, tabs.lastIndex))
+        }
+
+        observeObjectsData()
+        observePanelExpanded()
+        observeSelectionMode()
     }
 
-    private fun initObservers() {
-        viewLifecycleOwner.lifecycleScope.launch {          // ← view-scoped, not fragment-scoped
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {   // ← cancels on STOP
-                mainViewModel.localImages.collect { images ->
+    override fun onDestroyView() {
+        tabListenerAttached = false
+        _binding = null
+        super.onDestroyView()
+    }
 
-                    val baseTabs = listOf(
-                        "Emoticons", "Animals", "Nature", "Food", "Sports",
-                        "Transport", "Objects", "Alchemy", "Shapes",
-                        "Arrows", "Letters", "Flags"
-                    )
+    // ── Thumbnail strip ───────────────────────────────────────────────────────
 
-                    val extraTabs = withContext(Dispatchers.Default) {
-                        images.map { it.category.trim() }
-                            .filterNot {
-                                it.equals("Backgrounds", ignoreCase = true) ||
-                                        it.equals("Backgrounds Imported", ignoreCase = true) ||
-                                        it.equals("Images", ignoreCase = true) ||
-                                        it.equals("Images Imported", ignoreCase = true)
-                            }
-                            .distinct()
-                    }
+    private fun setupThumbnailStrip() {
+        // FIX: onDeselect now receives SelectedItem and dispatches correctly
+        thumbnailAdapter = ThumbnailAdapter(
+            onDeselect = { item ->
+                when (item) {
+                    is SelectedItem.Image -> mainViewModel.toggleImageSelection(item.entity.id)
+                    is SelectedItem.Emoji -> mainViewModel.toggleEmojiSelection(item.meta.char)
+                }
+            }
+        )
+        binding.selectedThumbnails.apply {
+            layoutManager = LinearLayoutManager(
+                requireContext(), LinearLayoutManager.HORIZONTAL, false
+            )
+            adapter = thumbnailAdapter
+            isNestedScrollingEnabled = false
+        }
+    }
 
-                    val hasObjectRecents = withContext(Dispatchers.Default) {
-                        images.any { img ->
-                            img.is_recent &&
-                                    !img.category.equals("Backgrounds", ignoreCase = true) &&
-                                    !img.category.equals("Backgrounds Imported", ignoreCase = true) &&
-                                    !img.category.equals("Images", ignoreCase = true) &&
-                                    !img.category.equals("Images Imported", ignoreCase = true)
+    // ── Drag handle ───────────────────────────────────────────────────────────
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun attachDragHandleSwipe() {
+        val thresholdPx = 30 * resources.displayMetrics.density
+        var startY = 0f
+
+        binding.dragHandle.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> { startY = event.rawY; true }
+                MotionEvent.ACTION_UP -> {
+                    val dy = startY - event.rawY
+                    if (abs(dy) >= thresholdPx) {
+                        when {
+                            dy > 0 && !mainViewModel.isPanelExpanded.value ->
+                                mainViewModel.togglePanelExpanded()
+                            dy < 0 && mainViewModel.isPanelExpanded.value ->
+                                mainViewModel.togglePanelExpanded()
                         }
                     }
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> true
+                else -> false
+            }
+        }
+    }
 
-                    val newTabs = buildList {
-                        if (hasObjectRecents) add("Recents")
-                        addAll(extraTabs + baseTabs)
+    // ── Observe expanded state ────────────────────────────────────────────────
+
+    private fun observePanelExpanded() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.isPanelExpanded.collect { expanded ->
+                    applyExpandedUi(expanded)
+                    for ((_, fragment) in fragmentCache) {
+                        fragment.onPanelExpanded(expanded)
                     }
+                }
+            }
+        }
+    }
 
-                    if (newTabs != tabs) {
-                        tabs.clear()
-                        tabs.addAll(newTabs)
+    private fun applyExpandedUi(expanded: Boolean) {
+        binding.headerCollapsed.isVisible   = !expanded
+        binding.headerExpanded.isVisible    = expanded
+        binding.tabLayoutExpanded.isVisible = expanded
 
-                        adapter = ObjectsPagerAdapter(
-                            requireActivity().supportFragmentManager, lifecycle, tabs
-                        )
-                        adapter.onTabVisibilityChanged = { category, hasResults ->
-                            setTabVisible(category, hasResults)
-                        }
-                        binding.viewPager.adapter = adapter
-                        binding.viewPager.isUserInputEnabled = false
+        val cs = ConstraintSet()
+        cs.clone(binding.root as ConstraintLayout)
+        cs.connect(
+            R.id.fragmentContainer, ConstraintSet.TOP,
+            if (expanded) R.id.tabLayoutExpanded else R.id.headerCollapsed,
+            ConstraintSet.BOTTOM
+        )
+        cs.applyTo(binding.root as ConstraintLayout)
 
-                        setupTabLayout()
+        if (expanded) {
+            binding.searchBarExpanded.setText(currentQuery)
+            binding.searchBarExpanded.setSelection(binding.searchBarExpanded.text?.length ?: 0)
+            updateExpandedSearchCross(currentQuery)
+        } else {
+            binding.searchBarExpanded.text?.clear()
+            if (currentQuery.isBlank()) {
+                binding.searchBar.isVisible  = false
+                binding.searchIcon.isVisible = true
+            }
+        }
+    }
+
+    // ── Selection toolbar ─────────────────────────────────────────────────────
+
+    private fun observeSelectionMode() {
+        val slideDistance = 200 * resources.displayMetrics.density
+
+        binding.selectionToolbar.apply {
+            alpha        = 0f
+            translationY = slideDistance
+            isVisible    = false
+        }
+
+        // Toolbar show/hide driven by isInMultiSelectMode (covers both images + emojis)
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.isInMultiSelectMode.collect { inMode ->
+                    if (_binding == null) return@collect
+                    if (inMode) {
+                        binding.selectionToolbar.isVisible = true
+                        binding.selectionToolbar.animate()
+                            .alpha(1f).translationY(0f)
+                            .setDuration(240)
+                            .setInterpolator(DecelerateInterpolator(1.5f))
+                            .start()
                     } else {
-                        adapter.refreshData(images)
+                        val endY = binding.selectionToolbar.height
+                            .takeIf { it > 0 }?.toFloat() ?: slideDistance
+                        binding.selectionToolbar.animate()
+                            .alpha(0f).translationY(endY)
+                            .setDuration(180)
+                            .setInterpolator(AccelerateInterpolator(1.5f))
+                            .withEndAction {
+                                if (_binding == null) return@withEndAction
+                                binding.selectionToolbar.isVisible = false
+                                binding.selectionToolbar.translationY = endY
+                            }.start()
                     }
                 }
             }
         }
+
+        // FIX: combine both selectedImageIds and selectedEmojiChars for
+        // accurate count label and complete thumbnail strip
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                combine(
+                    mainViewModel.selectedImageIds,
+                    mainViewModel.selectedEmojiChars
+                ) { imageIds, emojiChars -> Pair(imageIds, emojiChars) }
+                    .collect { (imageIds, emojiChars) ->
+                        if (_binding == null) return@collect
+
+                        val totalCount = imageIds.size + emojiChars.size
+                        binding.selectionCount.text = when (totalCount) {
+                            0    -> ""
+                            1    -> "1 selected"
+                            else -> "$totalCount selected"
+                        }
+
+                        // Build SelectedItem list for thumbnail strip
+                        val data = mainViewModel.objectsData.value
+                        val allImages = buildList {
+                            addAll(data.recents)
+                            data.imagesByCategory.values.forEach { addAll(it) }
+                        }
+
+                        val imageItems = allImages
+                            .filter { it.id in imageIds }
+                            .distinctBy { it.id }
+                            .map { SelectedItem.Image(it) }
+
+                        val emojiItems = emojiChars.map { char ->
+                            SelectedItem.Emoji(
+                                meta         = EmojiMeta(char = char, name = ""),
+                                cachedBitmap = null
+                            )
+                        }
+
+                        thumbnailAdapter?.submitList(imageItems + emojiItems)
+                    }
+            }
+        }
     }
 
-    private fun setupTabLayout() {
-        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
-            val tabView = LayoutInflater.from(context).inflate(R.layout.custom_tab, null)
-            tabView.findViewById<TextView>(R.id.tabTitle).text = tabs[position]
-            tab.customView = tabView
-        }.attach()
+    // ── Done — add all selected to canvas ─────────────────────────────────────
 
-        // GlobalLayoutListener — register only once per view lifetime
-        if (!tabLayoutListenerAttached) {
-            tabLayoutListenerAttached = true
-            binding.tabLayout.viewTreeObserver.addOnGlobalLayoutListener {
-                if (!isAdded) return@addOnGlobalLayoutListener
-                val tabStrip = binding.tabLayout.getChildAt(0) as? ViewGroup ?: return@addOnGlobalLayoutListener
-                for (i in 0 until tabStrip.childCount) {
-                    tabStrip.getChildAt(i)?.apply {
-                        scaleX = 0.9f
-                        scaleY = 0.9f
+    private fun addAllSelectedToCanvas() {
+        val data        = mainViewModel.objectsData.value
+        val selectedIds = mainViewModel.selectedImageIds.value
+        val allImages   = buildList {
+            addAll(data.recents)
+            data.imagesByCategory.values.forEach { addAll(it) }
+        }
+        val toAdd = allImages.filter { it.id in selectedIds }.distinctBy { it.id }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            // Add selected images
+            toAdd.forEach { entity ->
+                val url   = Constants.BASE_URL_GLIDE + entity.file_url
+                val isSvg = entity.file_name.endsWith(".svg", ignoreCase = true)
+
+                if (isSvg) {
+                    val result = withContext(Dispatchers.IO) {
+                        SvgLoader.resolve(url, entity.bitmapData)
+                    }
+                    result?.let { (drawable, xml) ->
+                        viewModel.addSvgSticker(
+                            drawable.trimTransparentEdges(), xml,
+                            requireActivity(), entity.is_premium
+                        )
+                    }
+                } else {
+                    val source: Any = entity.bitmapData ?: url
+                    val bitmap = withContext(Dispatchers.IO) {
+                        runCatching {
+                            com.bumptech.glide.Glide.with(requireActivity()).asBitmap()
+                                .load(source)
+                                .diskCacheStrategy(com.bumptech.glide.load.engine.DiskCacheStrategy.ALL)
+                                .submit().get()
+                        }.getOrNull()
+                    }
+                    bitmap?.let {
+                        viewModel.addSticker(
+                            it.trimTransparentEdges(),
+                            requireActivity(),
+                            ElementType.IMAGE,
+                            entity.is_premium
+                        )
                     }
                 }
-                binding.tabLayout.getTabAt(binding.tabLayout.selectedTabPosition)?.view?.apply {
-                    scaleX = 1.0f
-                    scaleY = 1.0f
-                }
+            }
+
+            // Add selected emojis — delegate to each alive ObjectsListFragment
+            // that is a base tab (emoji tab) and has selected chars
+            for ((_, fragment) in fragmentCache) {
+                fragment.addSelectedEmojisToCanvas()
+            }
+
+            // FIX: clear ALL selection (images + emojis)
+            mainViewModel.clearAllSelection()
+            if (mainViewModel.isPanelExpanded.value) mainViewModel.togglePanelExpanded()
+        }
+    }
+
+    // ── Tab switching ─────────────────────────────────────────────────────────
+
+    private fun showTab(position: Int) {
+        if (position < 0 || position >= tabs.size) return
+        val category = tabs[position]
+        currentTabIndex = position
+        mainViewModel.lastObjectsTabCategory = category
+
+        val target = fragmentCache.getOrPut(category) {
+            ObjectsListFragment.newInstance(category, currentQuery).also { f ->
+                f.onFilterResult = { cat, count -> onTabFilterResult(cat, count > 0) }
             }
         }
 
-        // Tab selected listener — register only once per view lifetime
-        if (!tabSelectedListenerAttached) {
-            tabSelectedListenerAttached = true
-            binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-                override fun onTabSelected(tab: TabLayout.Tab?) {
-                    tab?.view?.animate()
-                        ?.scaleX(1.0f)?.scaleY(1.0f)
-                        ?.setDuration(150)
-                        ?.setInterpolator(android.view.animation.OvershootInterpolator())
-                        ?.start()
+        childFragmentManager.beginTransaction()
+            .setReorderingAllowed(true)
+            .apply {
+                for (f in childFragmentManager.fragments) {
+                    if (f !== target && !f.isHidden) hide(f)
                 }
+                if (!target.isAdded) add(R.id.fragmentContainer, target, category)
+                else if (target.isHidden) show(target)
+            }
+            .commitNow()
 
-                override fun onTabUnselected(tab: TabLayout.Tab?) {
-                    tab?.view?.animate()
-                        ?.scaleX(0.9f)?.scaleY(0.9f)
-                        ?.setDuration(150)
-                        ?.start()
+        currentFragment = target
+        target.onPanelExpanded(mainViewModel.isPanelExpanded.value)
+    }
+
+    // ── TabLayout ─────────────────────────────────────────────────────────────
+
+    private fun rebuildTabLayout(selectIndex: Int) {
+        tabListenerAttached = false
+
+        listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
+            tl.removeAllTabs()
+            tabs.forEach { category ->
+                val tab = tl.newTab()
+                val tabView = LayoutInflater.from(context)
+                    .inflate(R.layout.custom_tab, tl, false)
+                tabView.findViewById<TextView>(R.id.tabTitle).text = category
+                tab.customView = tabView
+                tl.addTab(tab, false)
+            }
+            val safe = selectIndex.coerceIn(0, tabs.lastIndex)
+            tl.getTabAt(safe)?.select()
+            tl.post {
+                tl.getTabAt(safe)?.view?.let { v ->
+                    tl.scrollTo((v.left - tl.width / 2 + v.width / 2).coerceAtLeast(0), 0)
                 }
+            }
+        }
+        attachTabListeners()
+    }
 
-                override fun onTabReselected(tab: TabLayout.Tab?) {}
-            })
+    private fun attachTabListeners() {
+        if (tabListenerAttached) return
+        tabListenerAttached = true
+
+        val listener = object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                val pos = tab?.position ?: return
+                tab.view.animate().scaleX(1f).scaleY(1f).setDuration(100)
+                    .setInterpolator(OvershootInterpolator(1.2f)).start()
+                val other = if (tab.parent == binding.tabLayout)
+                    binding.tabLayoutExpanded else binding.tabLayout
+                if (other.selectedTabPosition != pos) other.getTabAt(pos)?.select()
+                showTab(pos)
+            }
+            override fun onTabUnselected(tab: TabLayout.Tab?) {
+                tab?.view?.animate()?.scaleX(0.9f)?.scaleY(0.9f)?.setDuration(100)?.start()
+            }
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+        }
+
+        binding.tabLayout.addOnTabSelectedListener(listener)
+        binding.tabLayoutExpanded.addOnTabSelectedListener(listener)
+    }
+
+    // ── Data observation ──────────────────────────────────────────────────────
+
+    private fun observeObjectsData() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.objectsData.collect { data -> onObjectsDataChanged(data) }
+            }
         }
     }
+
+    private fun onObjectsDataChanged(data: ObjectsData) {
+        if (_binding == null) return
+        if (lastObjectsData === data) return
+        lastObjectsData = data
+
+        val tabsChanged = data.tabs != tabs
+        if (tabsChanged) {
+            val currentCategory = tabs.getOrNull(currentTabIndex)
+            tabs.clear()
+            tabs.addAll(data.tabs)
+            val newIndex = currentCategory?.let { tabs.indexOf(it) }
+                ?.takeIf { it >= 0 }
+                ?: currentTabIndex.coerceAtMost(tabs.lastIndex)
+            currentTabIndex = newIndex
+            rebuildTabLayout(selectIndex = newIndex)
+        }
+
+        for ((_, fragment) in fragmentCache) fragment.onNewData(data)
+    }
+
+    // ── Search ────────────────────────────────────────────────────────────────
+
+    private fun applySearch(query: String) {
+        currentQuery = query
+        for ((_, fragment) in fragmentCache) fragment.updateFilter(query)
+
+        if (query.isBlank()) { showAllTabs(); return }
+
+        val data = mainViewModel.objectsData.value
+        listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
+            val tabStrip = tl.getChildAt(0) as? ViewGroup ?: return@forEach
+            for (i in tabs.indices) {
+                val category = tabs[i]
+                val hasResults = when {
+                    ObjectsListFragment.isBaseTab(category) ->
+                        ObjectsListFragment.emojiDataForCategory(category)
+                            .any { it.name.contains(query, ignoreCase = true) }
+                    category.equals("Recents", ignoreCase = true) ->
+                        data.recents.any { it.matchesQuery(query) }
+                    else ->
+                        data.imagesByCategory[category].orEmpty()
+                            .any { it.matchesQuery(query) }
+                }
+                tabStrip.getChildAt(i)?.isVisible = hasResults
+            }
+        }
+        jumpToFirstVisibleTab()
+    }
+
+    private fun onTabFilterResult(category: String, hasResults: Boolean) {
+        if (_binding == null) return
+        val i = tabs.indexOf(category).takeIf { it >= 0 } ?: return
+        listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
+            val tabStrip = tl.getChildAt(0) as? ViewGroup ?: return@forEach
+            val tabView  = tabStrip.getChildAt(i) ?: return@forEach
+            if (tabView.isVisible == hasResults) return@forEach
+            tabView.isVisible = hasResults
+        }
+        if (!hasResults && binding.tabLayout.selectedTabPosition == i) jumpToFirstVisibleTab()
+    }
+
+    private fun jumpToFirstVisibleTab() {
+        val tabStrip = binding.tabLayout.getChildAt(0) as? ViewGroup ?: return
+        for (i in tabs.indices) {
+            if (tabStrip.getChildAt(i)?.isVisible == true) {
+                showTab(i)
+                binding.tabLayout.getTabAt(i)?.select()
+                binding.tabLayoutExpanded.getTabAt(i)?.select()
+                return
+            }
+        }
+    }
+
+    private fun showAllTabs() {
+        listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
+            val tabStrip = tl.getChildAt(0) as? ViewGroup ?: return@forEach
+            for (i in 0 until tabStrip.childCount) tabStrip.getChildAt(i)?.isVisible = true
+        }
+    }
+
+    // ── Events ────────────────────────────────────────────────────────────────
 
     @SuppressLint("ClickableViewAccessibility")
     private fun setEvents() {
+        binding.addImage.addPressEffect { pickImage.launch("image/*") }
+        binding.addImageExpanded.addPressEffect { pickImage.launch("image/*") }
+        binding.closeExpanded.addPressEffect { mainViewModel.togglePanelExpanded() }
+
+        // FIX: cancel clears ALL selection (images + emojis)
+        binding.cancelSelection.addPressEffect { mainViewModel.clearAllSelection() }
+        binding.doneSelection.addPressEffect   { addAllSelectedToCanvas() }
+
         binding.searchIcon.addPressEffect {
             binding.searchIcon.isVisible = false
-            binding.searchBar.isVisible = true
+            binding.searchBar.isVisible  = true
             binding.searchBar.requestFocus()
             binding.searchBar.setSelection(binding.searchBar.text?.length ?: 0)
-            val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.showSoftInput(binding.searchBar, InputMethodManager.SHOW_IMPLICIT)
+            showKeyboard(binding.searchBar)
         }
 
         binding.searchBar.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus) {
+            if (!hasFocus && currentQuery.isBlank()) {
                 binding.searchIcon.isVisible = true
-                binding.searchBar.isVisible = false
+                binding.searchBar.isVisible  = false
             }
         }
 
         binding.searchBar.imeOptions = EditorInfo.IME_ACTION_SEARCH
         binding.searchBar.setRawInputType(InputType.TYPE_CLASS_TEXT)
-        binding.searchBar.setImeActionLabel("🔍", EditorInfo.IME_ACTION_SEARCH)
 
         binding.searchBar.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                adapter.filter(binding.searchBar.text.toString())
-                applySearchFilter(binding.searchBar.text.toString())
+                applySearch(binding.searchBar.text.toString())
                 hideKeyboard()
-                binding.searchBar.isVisible = false
+                binding.searchBar.isVisible  = false
                 binding.searchIcon.isVisible = true
                 true
             } else false
@@ -215,146 +560,101 @@ class ObjectsFragment : Fragment() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun afterTextChanged(s: Editable?) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                val hasText = !s.isNullOrEmpty()
-                binding.searchBar.setCompoundDrawablesWithIntrinsicBounds(
-                    null, null,
-                    if (hasText) ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close) else null,
-                    null
-                )
-                if (!::adapter.isInitialized) return
-                if (!hasText) {
-                    tabResultMap.clear()
-                    showAllTabs()
-                    applySearchFilter("")
-                } else {
-                    tabResultMap.clear() // reset so we collect fresh results for new query
-                }
+                updateCollapsedSearchCross(s?.toString().orEmpty())
+                applySearch(s?.toString().orEmpty())
             }
         })
 
         binding.searchBar.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_UP) {
-                val drawableRight = binding.searchBar.compoundDrawables[2]
-                if (drawableRight != null &&
-                    event.x >= binding.searchBar.width - binding.searchBar.paddingRight - drawableRight.bounds.width()
+                val dr = binding.searchBar.compoundDrawables[2]
+                if (dr != null && event.x >= binding.searchBar.width -
+                    binding.searchBar.paddingRight - dr.bounds.width()
                 ) {
                     binding.searchBar.text.clear()
-                    applySearchFilter("")
-                    if (::adapter.isInitialized) adapter.filter("")
-                    tabResultMap.clear()
-                    showAllTabs()
-                    binding.searchBar.setCompoundDrawablesWithIntrinsicBounds(
-                        ContextCompat.getDrawable(requireActivity(), R.drawable.ic_search),
-                        null, null, null
-                    )
+                    applySearch("")
                     hideKeyboard()
+                    binding.searchBar.isVisible  = false
+                    binding.searchIcon.isVisible = true
                     return@setOnTouchListener true
                 }
             }
             false
         }
 
-        binding.addImage.addPressEffect {
-            pickImage.launch("image/*")
-        }
-    }
+        binding.searchBarExpanded.imeOptions = EditorInfo.IME_ACTION_SEARCH
+        binding.searchBarExpanded.setRawInputType(InputType.TYPE_CLASS_TEXT)
 
-    private fun showAllTabs() {
-        val tabStrip = binding.tabLayout.getChildAt(0) as? ViewGroup ?: return
-        for (i in 0 until tabStrip.childCount) {
-            tabStrip.getChildAt(i)?.isVisible = true
-        }
-    }
-
-    private fun applySearchFilter(query: String) {
-        if (!::adapter.isInitialized) return
-        adapter.filter(query)
-
-        if (query.isBlank()) {
-            showAllTabs()
-            return
+        binding.searchBarExpanded.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                applySearch(binding.searchBarExpanded.text.toString())
+                hideKeyboard(); true
+            } else false
         }
 
-        val images = mainViewModel.localImages.value ?: return
-        val tabStrip = binding.tabLayout.getChildAt(0) as? ViewGroup ?: return
+        binding.searchBarExpanded.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun afterTextChanged(s: Editable?) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                updateExpandedSearchCross(s?.toString().orEmpty())
+                applySearch(s?.toString().orEmpty())
+            }
+        })
 
-        var firstVisibleIndex = -1
-
-        for (i in tabs.indices) {
-            val category = tabs[i]
-            val hasResults = when {
-                // Base emoji tabs
-                ObjectsListFragment.isBaseTab(category) -> {
-                    val emojiData = ObjectsListFragment.emojiDataForCategory(category)
-                    emojiData.any { it.name.contains(query, ignoreCase = true) }
-                }
-                // Recents tab
-                category.equals("Recents", ignoreCase = true) -> {
-                    images.any { img ->
-                        img.is_recent &&
-                                !img.category.equals("Backgrounds", ignoreCase = true) &&
-                                !img.category.equals("Backgrounds Imported", ignoreCase = true) &&
-                                !img.category.equals("Images", ignoreCase = true) &&
-                                !img.category.equals("Images Imported", ignoreCase = true) &&
-                                img.alt_text?.contains(query, ignoreCase = true) == true
-                    }
-                }
-                // All other DB-backed tabs
-                else -> {
-                    images.any { img ->
-                        img.category.equals(category, ignoreCase = true) &&
-                                img.alt_text?.contains(query, ignoreCase = true) == true
-                    }
+        binding.searchBarExpanded.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_UP) {
+                val dr = binding.searchBarExpanded.compoundDrawables[2]
+                if (dr != null && event.x >= binding.searchBarExpanded.width -
+                    binding.searchBarExpanded.paddingRight - dr.bounds.width()
+                ) {
+                    binding.searchBarExpanded.text.clear()
+                    applySearch("")
+                    return@setOnTouchListener true
                 }
             }
-
-            tabStrip.getChildAt(i)?.isVisible = hasResults
-            if (hasResults && firstVisibleIndex == -1) firstVisibleIndex = i
-        }
-
-        // Jump to first visible tab if current one is now hidden
-        val currentTab = binding.tabLayout.selectedTabPosition
-        if (tabStrip.getChildAt(currentTab)?.isVisible == false && firstVisibleIndex != -1) {
-            binding.viewPager.setCurrentItem(firstVisibleIndex, false)
+            false
         }
     }
 
-    private fun setTabVisible(category: String, hasResults: Boolean) {
-        tabResultMap[category] = hasResults
+    private fun updateCollapsedSearchCross(text: String) {
+        binding.searchBar.setCompoundDrawablesWithIntrinsicBounds(
+            null, null,
+            if (text.isNotEmpty()) ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close)
+            else null, null
+        )
+    }
 
-        // Wait until ALL tabs have reported before updating visibility
-        if (tabResultMap.size < tabs.size) return
+    private fun updateExpandedSearchCross(text: String) {
+        binding.searchBarExpanded.setCompoundDrawablesWithIntrinsicBounds(
+            null, null,
+            if (text.isNotEmpty()) ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close)
+            else null, null
+        )
+    }
 
-        val tabStrip = binding.tabLayout.getChildAt(0) as? ViewGroup ?: return
+    private fun showKeyboard(v: View) {
+        val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.showSoftInput(v, InputMethodManager.SHOW_IMPLICIT)
+    }
 
-        var firstVisibleIndex = -1
-        for (i in tabs.indices) {
-            val hasData = tabResultMap[tabs[i]] == true
-            tabStrip.getChildAt(i)?.isVisible = hasData
-            if (hasData && firstVisibleIndex == -1) firstVisibleIndex = i
-        }
-
-        // If current tab is now hidden, jump to first visible tab
-        val currentTab = binding.tabLayout.selectedTabPosition
-        if (tabStrip.getChildAt(currentTab)?.isVisible == false && firstVisibleIndex != -1) {
-            binding.viewPager.setCurrentItem(firstVisibleIndex, false)
-        }
+    private fun hideKeyboard() {
+        requireContext().getSystemService(InputMethodManager::class.java)
+            ?.hideSoftInputFromWindow(binding.root.windowToken, 0)
+        binding.searchBar.clearFocus()
+        binding.searchBarExpanded.clearFocus()
     }
 
     private fun handlePickedUri(uri: Uri) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
-                val rawBitmap = ImageProcessor.filePathToBitmap(filePath!!) ?: return@launch
-
+                val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)
+                    ?.absolutePath ?: return@launch
+                val rawBitmap = ImageProcessor.filePathToBitmap(filePath) ?: return@launch
                 val canvasW = viewModel.canvasSize.value?.width ?: rawBitmap.width.toFloat()
                 val canvasH = viewModel.canvasSize.value?.height ?: rawBitmap.height.toFloat()
-
                 val maxW = (canvasW * 2).toInt().coerceAtLeast(1024)
                 val maxH = (canvasH * 2).toInt().coerceAtLeast(1024)
-
                 val bitmap = downsampleIfNeeded(rawBitmap, maxW, maxH)
-
                 withContext(Dispatchers.Main) {
                     viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE)
                 }
@@ -364,16 +664,10 @@ class ObjectsFragment : Fragment() {
         }
     }
 
-    private fun hideKeyboard() {
-        val imm = requireContext().getSystemService(InputMethodManager::class.java)
-        imm.hideSoftInputFromWindow(binding.searchBar.windowToken, 0)
-        binding.searchBar.clearFocus()
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        tabLayoutListenerAttached = false
-        tabSelectedListenerAttached = false
-        _binding = null
+    companion object {
+        val BASE_TABS = listOf(
+            "Emoticons", "Animals", "Nature", "Food", "Sports",
+            "Transport", "Objects", "Alchemy", "Shapes", "Arrows", "Letters", "Flags"
+        )
     }
 }

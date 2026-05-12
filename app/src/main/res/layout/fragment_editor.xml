@@ -40,7 +40,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.7" />
+        app:layout_constraintGuide_percent="0.65" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/fabContainer"
@@ -62,7 +62,7 @@
             android:outlineSpotShadowColor="@color/shadowColor"
             android:padding="15dp"
             android:src="@drawable/ic_add"
-            android:translationZ="10dp"
+            android:translationZ="6dp"
             app:backgroundTint="@color/white"
             app:fabSize="normal"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -161,7 +161,7 @@
         android:paddingVertical="10dp"
         android:paddingHorizontal="20dp"
         android:backgroundTint="@color/white"
-        android:translationZ="10dp"
+        android:translationZ="6dp"
         android:outlineSpotShadowColor="@color/shadowColor"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -300,7 +300,7 @@
         android:id="@+id/canvasContainer"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@id/panelNavHost"
+        app:layout_constraintBottom_toTopOf="@id/centerGuide"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/header" />
@@ -439,15 +439,29 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!-- Top-only shadow strip — sits in the gap between canvas and panel -->
+    <View
+        android:id="@+id/panelTopShadow"
+        android:layout_width="0dp"
+        android:layout_height="30dp"
+        android:background="@drawable/top_shadow"
+        android:importantForAccessibility="no"
+        app:layout_constraintTop_toBottomOf="@id/centerGuide"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/panelNavHost" />
+
+    <!-- Panel — zero elevation, shadow handled by the View above -->
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/panelNavHost"
         android:name="androidx.navigation.fragment.NavHostFragment"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:elevation="12dp"
-        android:translationZ="24dp"
+        android:elevation="0dp"
         android:visibility="visible"
         app:defaultNavHost="false"
+        android:translationZ="6dp"
+        android:background="@drawable/bottom_sheet_bg"
         app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -455,6 +469,7 @@
         app:navGraph="@navigation/panel_nav_graph" />
 
     <ScrollView
+        android:id="@+id/contextToolsScroll"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:scrollbars="none"

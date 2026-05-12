@@ -5,9 +5,12 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.webscare.urducanvas.common.canvas.enums.ErrorType
+import com.webscare.urducanvas.common.canvas.enums.SectionStatus
 import com.webscare.urducanvas.common.canvas.model.GradientItem
 import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
 import com.webscare.urducanvas.common.canvas.sealed.HomeRow
+import com.webscare.urducanvas.common.canvas.sealed.HomeUiState
 import com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState
 import com.webscare.urducanvas.common.sealed.Response
 import com.webscare.urducanvas.common.utils.Constants
@@ -18,6 +21,9 @@ import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.data.model.FontsResponse
 import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.data.model.ImageResponse
+import com.webscare.urducanvas.data.model.ImagesData
+import com.webscare.urducanvas.data.model.ObjectsData
+import com.webscare.urducanvas.data.model.ShapesData
 import com.webscare.urducanvas.data.model.TemplateEntity
 import com.webscare.urducanvas.data.model.TemplatesResponse
 import com.webscare.urducanvas.data.model.TrendResponse
@@ -49,14 +55,20 @@ import com.webscare.urducanvas.domain.usecase.UpdateFontsUseCase
 import com.webscare.urducanvas.domain.usecase.UpdateGradientUseCase
 import com.webscare.urducanvas.domain.usecase.UpdateImagesUseCase
 import com.webscare.urducanvas.domain.usecase.UpdateTemplatesUseCase
+import com.webscare.urducanvas.ui.editor.panels.objects.ObjectsFragment
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -91,6 +103,28 @@ class MainViewModel @Inject constructor(
     private val getCanvasSizesUseCase: GetCanvasSizesUseCase,
 ) : ViewModel() {
 
+    private val _selectedImageIds = MutableStateFlow<Set<Int>>(emptySet())
+    val selectedImageIds: StateFlow<Set<Int>> = _selectedImageIds.asStateFlow()
+
+    private val _selectedEmojiChars = MutableStateFlow<Set<String>>(emptySet())
+    val selectedEmojiChars: StateFlow<Set<String>> = _selectedEmojiChars.asStateFlow()
+
+    private val _isPanelExpanded = MutableStateFlow(false)
+    val isPanelExpanded: StateFlow<Boolean> = _isPanelExpanded.asStateFlow()
+
+    // Per-section status (so we can show inline retry per section)
+    private val _templatesStatus = MutableStateFlow(SectionStatus.Loading)
+    val templatesStatus: StateFlow<SectionStatus> = _templatesStatus.asStateFlow()
+
+    private val _fontsStatus = MutableStateFlow(SectionStatus.Loading)
+    val fontsStatus: StateFlow<SectionStatus> = _fontsStatus.asStateFlow()
+
+    private val _trendsStatus = MutableStateFlow(SectionStatus.Loading)
+    val trendsStatus: StateFlow<SectionStatus> = _trendsStatus.asStateFlow()
+
+    // Unified home state
+    private val _homeUiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
+    val homeUiState: StateFlow<HomeUiState> = _homeUiState.asStateFlow()
     private val _trendRows = MutableStateFlow<List<HomeRow>>(emptyList())
     val trendRows: StateFlow<List<HomeRow>> = _trendRows.asStateFlow()
 
@@ -119,6 +153,140 @@ class MainViewModel @Inject constructor(
     val localImages: StateFlow<List<ImageEntity>> =
         _localImages.asStateFlow()
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Pre-computed Objects fragment data.
+    //
+    // Filtering 2000 items × 20 fragments = 40k+ allocations per emit. Doing
+    // it ONCE here on Dispatchers.Default — every fragment then reads its
+    // category's slice in O(1) from imagesByCategory.
+    //
+    // SharingStarted.Eagerly = build the map as soon as MainViewModel is
+    // created so by the time the user navigates to Objects, .value is already
+    // populated. initialValue gives the UI emoji tabs IMMEDIATELY, even
+    // before the DB has loaded.
+    // ─────────────────────────────────────────────────────────────────────────
+    val objectsData: StateFlow<ObjectsData> = localImages
+        .map { images ->
+            withContext(Dispatchers.Default) { buildObjectsData(images) }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = ObjectsData.Initial
+        )
+
+    private fun buildObjectsData(images: List<ImageEntity>): ObjectsData {
+        Log.d("IMAGES_DEBUG", "buildObjectsData called: ${images.size}")
+        val recents = ArrayList<ImageEntity>()
+        val byCategory = HashMap<String, MutableList<ImageEntity>>()
+
+        for (img in images) {
+            if (!img.parent_category.equals("Vectors", ignoreCase = true)) continue
+
+            byCategory.getOrPut(img.category) { ArrayList() }.add(img)
+            if (img.is_recent) recents.add(img)
+        }
+
+        val baseLower = ObjectsFragment.BASE_TABS.map { it.lowercase() }.toHashSet()
+        val extraTabs = byCategory.keys
+            .map { it.trim() }
+            .filter { it.lowercase() !in baseLower }
+            .distinct()
+            .sorted()
+
+        val tabs = buildList {
+            if (recents.isNotEmpty()) add("Recents")
+            addAll(extraTabs)                  // Vectors subcategories tabs
+            addAll(ObjectsFragment.BASE_TABS)  // Emoji tabs at end
+        }
+
+        return ObjectsData(tabs, byCategory, recents)
+    }
+
+    // ─── ImagesData — same Eagerly pattern as objectsData ───────────────────────
+    val imagesData: StateFlow<ImagesData> = localImages
+        .map { images ->
+            withContext(Dispatchers.Default) { buildImagesData(images) }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = ImagesData.Initial
+        )
+
+    private fun buildImagesData(images: List<ImageEntity>): ImagesData {
+        val recents = ArrayList<ImageEntity>()
+        val byCategory = HashMap<String, MutableList<ImageEntity>>()
+
+        for (img in images) {
+            val parent = img.parent_category ?: continue
+            if (!parent.equals("Images", ignoreCase = true) &&
+                !parent.equals("Backgrounds", ignoreCase = true)
+            ) continue
+
+            val tabName = when {
+                img.category.equals("Images Imported", ignoreCase = true)      -> "My Images"
+                img.category.equals("Backgrounds Imported", ignoreCase = true) -> "My Backgrounds"
+                else -> img.category.trim()
+            }
+
+            byCategory.getOrPut(tabName) { ArrayList() }.add(img)
+            if (img.is_recent) recents.add(img)
+        }
+
+        val specialTabs = setOf("My Images", "My Backgrounds")
+
+        val imageTabs = byCategory.keys
+            .filter { it !in specialTabs }
+            .filter { tab -> byCategory[tab]?.any { it.parent_category.equals("Images", ignoreCase = true) } == true }
+            .sorted()
+
+        val backgroundTabs = byCategory.keys
+            .filter { it !in specialTabs }
+            .filter { tab -> byCategory[tab]?.any { it.parent_category.equals("Backgrounds", ignoreCase = true) } == true }
+            .sorted()
+
+        val tabs = buildList {
+            if (recents.isNotEmpty()) add("Recents")
+            addAll(imageTabs)
+            if (byCategory.containsKey("My Images")) add("My Images")
+            addAll(backgroundTabs)
+            if (byCategory.containsKey("My Backgrounds")) add("My Backgrounds")
+        }
+
+        return ImagesData(tabs, byCategory, recents)
+    }
+
+    // ─── ShapesData ───────────────────────────────────────────────────────────
+    val shapesData: StateFlow<ShapesData> = localImages
+        .map { images ->
+            withContext(Dispatchers.Default) { buildShapesData(images) }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = ShapesData.initial()
+        )
+
+    private fun buildShapesData(images: List<ImageEntity>): ShapesData {
+        val recents = ArrayList<ImageEntity>()
+        val byCategory = HashMap<String, MutableList<ImageEntity>>()
+
+        for (img in images) {
+            if (!img.parent_category.equals("Shapes", ignoreCase = true)) continue
+            byCategory.getOrPut(img.category.trim()) { ArrayList() }.add(img)
+            if (img.is_recent) recents.add(img)
+        }
+
+        val apiTabs = byCategory.keys.sorted()
+
+        val tabs = buildList {
+            if (recents.isNotEmpty()) add("Recents")
+            addAll(apiTabs)
+        }
+
+        return ShapesData(tabs, byCategory, recents)
+    }
     private val _localTemplates =
         MutableStateFlow<List<TemplateEntity>>(emptyList())
     val localTemplates: StateFlow<List<TemplateEntity>> =
@@ -144,6 +312,12 @@ class MainViewModel @Inject constructor(
 
     private val _rawQuery = MutableStateFlow("")
     val rawQuery: StateFlow<String> = _rawQuery.asStateFlow()
+
+    // Persists which Objects tab the user last had open.
+    // Stored here (in ViewModel) so it survives ObjectsFragment recreation.
+    var lastObjectsTabCategory: String? = null
+    var lastShapesTabCategory: String? = null
+    var lastImagesTabCategory: String? = null
 
     // Debounced, distinct stream for UI filtering
     val queryDebounced = rawQuery.map { it.trim() }.distinctUntilChanged()
@@ -230,44 +404,37 @@ class MainViewModel @Inject constructor(
     fun insertGradient(g: GradientItem) =
         viewModelScope.launch { insert(g) }
 
-    fun fetchAndStoreTemplatesFromApi() {
-        viewModelScope.launch {
-            fetchAPITemplatesUseCase().collect { response ->
-                when (response) {
-                    is Response.Loading -> _isLoading.value =
-                        true
+    private fun recomputeHomeState() {
+        val templates = _localTemplates.value
+        val fonts = _localFonts.value
+        val trends = _trendRows.value
+        val recents = _exportResults.value.orEmpty()
 
-                    is Response.Success -> {
-                        _isLoading.value = false
-                        val subscribed = billingManager.isSubscribed.value
+        val hasAnyData = templates.isNotEmpty() || fonts.isNotEmpty() ||
+                trends.isNotEmpty() || recents.isNotEmpty()
 
-                        val templatesToSave = response.data!!.templates.map { template ->
-                            if (subscribed) template.copy(is_subscribed = true)
-                            else template
-                        }
+        val tStatus = _templatesStatus.value
+        val fStatus = _fontsStatus.value
+        val trStatus = _trendsStatus.value
 
-                        insertTemplatesUseCase.invoke(
-                            TemplatesResponse(templates = templatesToSave)
-                        )
-                    }
+        val anyLoading = tStatus == SectionStatus.Loading ||
+                fStatus == SectionStatus.Loading ||
+                trStatus == SectionStatus.Loading
 
-                    is Response.Error -> {
-                        _isLoading.value = false
-                        _error.value = response.message
-                    }
+        val allFailed = tStatus == SectionStatus.Failed &&
+                fStatus == SectionStatus.Failed &&
+                trStatus == SectionStatus.Failed
 
-                    else -> {}
-                }
-            }
+        val newState = when {
+            hasAnyData -> HomeUiState.Content
+            anyLoading -> HomeUiState.Loading
+            allFailed -> HomeUiState.Error(ErrorType.NO_INTERNET, "Couldn't load content")
+            else -> HomeUiState.Empty
         }
-    }
 
-    private fun observeLocalTemplates() {
-        viewModelScope.launch {
-            getTemplatesUseCase().collect { templates ->
-                _localTemplates.value = templates
-            }
-        }
+        Log.d("HomeState", "templates=$tStatus fonts=$fStatus trends=$trStatus | hasData=$hasAnyData | newState=$newState")
+
+        _homeUiState.value = newState
     }
 
     fun insertTemplate(template: TemplateEntity) {
@@ -276,94 +443,20 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun fetchAndStoreFontsFromApi() {
+    private fun observeLocalTemplates() {
         viewModelScope.launch {
-            fetchAPIFontsUseCase().collect { response ->
-                when (response) {
-                    is Response.Loading -> _isLoading.value =
-                        true
-
-                    is Response.Success -> {
-                        _isLoading.value = false
-                        val subscribed = billingManager.isSubscribed.value  // ← current status
-
-                        val fontsToSave = response.data!!.fonts.map { font ->
-                            if (subscribed) {
-                                font.copy(is_subscribed = true)  // subscribed → sab unlock
-                            } else {
-                                font
-                            }
-                        }
-                        insertFontsUseCase.invoke(
-                            FontsResponse(
-                                message = response.data.message,
-                                fonts = fontsToSave
-                            )
-                        )
-                    }
-
-                    is Response.Error -> {
-                        _isLoading.value = false
-                        _error.value = response.message
-                    }
-
-                    else -> {}
-                }
+            getTemplatesUseCase().collect { templates ->
+                _localTemplates.value = templates
+                recomputeHomeState()
             }
         }
     }
 
-    fun fetchAndStoreCanvasSizesFromApi() {
+    private fun observeLocalFonts() {
         viewModelScope.launch {
-            fetchAPICanvasSizesUseCase().collect { response ->
-                when (response) {
-                    is Response.Loading -> _isLoading.value = true
-                    is Response.Success -> {
-                        _isLoading.value = false
-                    }
-                    is Response.Error -> {
-                        _isLoading.value = false
-                        // silently fail — Room already has data from last successful fetch
-                        Log.w("MainViewModel", "Canvas sizes fetch failed: ${response.message}")
-                    }
-                    else -> {}
-                }
-            }
-        }
-    }
-
-    fun fetchAndStoreTrendsFromApi() {
-        viewModelScope.launch {
-            fetchAPITrendsUseCase().collect { response ->
-                when (response) {
-                    is Response.Loading -> _isLoading.value =
-                        true
-
-                    is Response.Success -> {
-                        _isLoading.value = false
-                        val subscribed = billingManager.isSubscribed.value
-
-                        val trendsToSave = response.data!!.trends.map { trend ->
-                            trend.copy(
-                                templates = trend.templates.map { template ->
-                                    if (subscribed) template.copy(is_subscribed = true)
-                                    else template
-                                }
-                            )
-                        }
-
-                        insertTrendsUseCase.invoke(
-                            TrendResponse(trends = trendsToSave)
-                        )
-                    }
-
-                    is Response.Error -> {
-                        _isLoading.value = false
-                        _error.value = response.message
-                    }
-
-                    else -> {}
-                }
+            getFontsUseCase().collect { fonts ->
+                _localFonts.value = fonts
+                recomputeHomeState()
             }
         }
     }
@@ -378,6 +471,118 @@ class MainViewModel @Inject constructor(
                 }
             }.collect { rows ->
                 _trendRows.value = rows
+                recomputeHomeState()
+            }
+        }
+    }
+
+    private fun getAllExportResults() {
+        viewModelScope.launch {
+            exportResultsUseCase.getAllExportResults().collect {
+                _exportResults.value = it
+                recomputeHomeState()
+            }
+        }
+    }
+
+    fun fetchAndStoreTemplatesFromApi() {
+        viewModelScope.launch {
+            fetchAPITemplatesUseCase().collect { response ->
+                when (response) {
+                    is Response.Loading -> _templatesStatus.value = SectionStatus.Loading
+
+                    is Response.Success -> {
+                        _templatesStatus.value = SectionStatus.Loaded
+                        val subscribed = billingManager.isSubscribed.value
+                        val templatesToSave = response.data!!.templates.map { template ->
+                            if (subscribed) template.copy(is_subscribed = true) else template
+                        }
+                        insertTemplatesUseCase.invoke(
+                            TemplatesResponse(templates = templatesToSave)
+                        )
+                        recomputeHomeState()
+                    }
+
+                    is Response.Error -> {
+                        _templatesStatus.value = SectionStatus.Failed
+                        recomputeHomeState()
+                    }
+
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    fun fetchAndStoreFontsFromApi() {
+        viewModelScope.launch {
+            fetchAPIFontsUseCase().collect { response ->
+                when (response) {
+                    is Response.Loading -> _fontsStatus.value = SectionStatus.Loading
+
+                    is Response.Success -> {
+                        _fontsStatus.value = SectionStatus.Loaded
+                        val subscribed = billingManager.isSubscribed.value
+
+                        val fontsToSave = response.data!!.fonts.map { font ->
+                            if (subscribed) {
+                                font.copy(is_subscribed = true)
+                            } else {
+                                font
+                            }
+                        }
+                        insertFontsUseCase.invoke(
+                            FontsResponse(
+                                message = response.data.message,
+                                fonts = fontsToSave
+                            )
+                        )
+                        recomputeHomeState()
+                    }
+
+                    is Response.Error -> {
+                        _fontsStatus.value = SectionStatus.Failed
+                        recomputeHomeState()
+                    }
+
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    fun fetchAndStoreTrendsFromApi() {
+        viewModelScope.launch {
+            fetchAPITrendsUseCase().collect { response ->
+                when (response) {
+                    is Response.Loading -> _trendsStatus.value = SectionStatus.Loading
+
+                    is Response.Success -> {
+                        _trendsStatus.value = SectionStatus.Loaded
+                        val subscribed = billingManager.isSubscribed.value
+
+                        val trendsToSave = response.data!!.trends.map { trend ->
+                            trend.copy(
+                                templates = trend.templates.map { template ->
+                                    if (subscribed) template.copy(is_subscribed = true)
+                                    else template
+                                }
+                            )
+                        }
+
+                        insertTrendsUseCase.invoke(
+                            TrendResponse(trends = trendsToSave)
+                        )
+                        recomputeHomeState()
+                    }
+
+                    is Response.Error -> {
+                        _trendsStatus.value = SectionStatus.Failed
+                        recomputeHomeState()
+                    }
+
+                    else -> {}
+                }
             }
         }
     }
@@ -386,11 +591,9 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             fetchAPIImagesUseCase().collect { response ->
                 when (response) {
-                    is Response.Loading -> _isLoading.value =
-                        true
+                    is Response.Loading -> { /* not part of home UI */ }
 
                     is Response.Success -> {
-                        _isLoading.value = false
                         val subscribed = billingManager.isSubscribed.value
 
                         val imagesToSave = response.data!!.image.map { image ->
@@ -410,8 +613,26 @@ class MainViewModel @Inject constructor(
                     }
 
                     is Response.Error -> {
-                        _isLoading.value = false
-                        _error.value = response.message
+                        Log.w("MainViewModel", "Images fetch failed: ${response.message}")
+                    }
+
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    fun fetchAndStoreCanvasSizesFromApi() {
+        viewModelScope.launch {
+            fetchAPICanvasSizesUseCase().collect { response ->
+                when (response) {
+                    is Response.Loading -> { /* not part of home UI */ }
+
+                    is Response.Success -> { /* Room observer picks it up */ }
+
+                    is Response.Error -> {
+                        // silently fail — Room already has data from last successful fetch
+                        Log.w("MainViewModel", "Canvas sizes fetch failed: ${response.message}")
                     }
 
                     else -> {}
@@ -450,13 +671,6 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             getCanvasSizesUseCase().collect { sizes ->
                 _localCanvasSizes.value = sizes
-            }
-        }
-    }
-    private fun observeLocalFonts() {
-        viewModelScope.launch {
-            getFontsUseCase().collect { fonts ->
-                _localFonts.value = fonts
             }
         }
     }
@@ -645,18 +859,68 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private fun getAllExportResults() {
-        viewModelScope.launch {
-            exportResultsUseCase.getAllExportResults().collect {
-                _exportResults.value = it
-            }
-        }
-    }
-
     fun clearFontDownloadState() {
         _fontDownloadStates.value = _fontDownloadStates.value.filterValues { state ->
             state is FontDownloadState.Progress
         }
     }
 
+    fun retryHomeData() {
+        _templatesStatus.value = SectionStatus.Loading
+        _fontsStatus.value = SectionStatus.Loading
+        _trendsStatus.value = SectionStatus.Loading
+        recomputeHomeState()
+
+        fetchAndStoreTemplatesFromApi()
+        fetchAndStoreFontsFromApi()
+        fetchAndStoreTrendsFromApi()
+    }
+
+    fun retryTemplates() { _templatesStatus.value = SectionStatus.Loading; fetchAndStoreTemplatesFromApi() }
+    fun retryFonts() { _fontsStatus.value = SectionStatus.Loading; fetchAndStoreFontsFromApi() }
+    fun retryTrends() { _trendsStatus.value = SectionStatus.Loading; fetchAndStoreTrendsFromApi() }
+
+    val isInMultiSelectMode: StateFlow<Boolean> =
+        combine(_selectedImageIds, _selectedEmojiChars) { imageIds, emojiChars ->
+            imageIds.isNotEmpty() || emojiChars.isNotEmpty()
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun clearAllSelection() {
+        clearImageSelection()
+        clearEmojiSelection()
+    }
+
+    fun toggleImageSelection(id: Int) {
+        _selectedImageIds.value = _selectedImageIds.value.toMutableSet().apply {
+            if (contains(id)) remove(id) else add(id)
+        }
+    }
+
+    fun clearImageSelection() {
+        _selectedImageIds.value = emptySet()
+    }
+
+    fun isImageSelected(id: Int): Boolean = id in _selectedImageIds.value
+
+    fun toggleEmojiSelection(char: String) {
+        _selectedEmojiChars.value = _selectedEmojiChars.value.toMutableSet().apply {
+            if (contains(char)) remove(char) else add(char)
+        }
+    }
+
+    fun clearEmojiSelection() {
+        _selectedEmojiChars.value = emptySet()
+    }
+
+    fun isEmojiSelected(char: String): Boolean = char in _selectedEmojiChars.value
+
+    fun togglePanelExpanded() {
+        _isPanelExpanded.value = !_isPanelExpanded.value
+    }
+
+    fun collapsePanelIfExpanded() {
+        if (_isPanelExpanded.value) {
+            _isPanelExpanded.value = false
+        }
+    }
 }

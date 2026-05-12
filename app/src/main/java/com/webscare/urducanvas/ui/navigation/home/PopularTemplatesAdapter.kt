@@ -23,21 +23,21 @@ import com.webscare.urducanvas.databinding.LayoutTemplatePopularBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class PopularTemplatesAdapter(
-    private val onClick: (com.webscare.urducanvas.data.model.TemplateEntity, Boolean) -> Unit
-) : androidx.recyclerview.widget.ListAdapter<com.webscare.urducanvas.data.model.TemplateEntity, PopularTemplatesAdapter.VH>(Diff()) {
+    private val onClick: (TemplateEntity, Boolean) -> Unit
+) : ListAdapter<TemplateEntity, PopularTemplatesAdapter.VH>(Diff()) {
 
     init {
         setHasStableIds(true)
     }
 
-    fun updateProgress(templateId: Int, state: com.webscare.urducanvas.data.model.ProgressUi) {
+    fun updateProgress(templateId: Int, state: ProgressUi) {
         val idx = currentList.indexOfFirst { it.id == templateId }
         if (idx != -1) notifyItemChanged(idx, state)
     }
 
     inner class VH(val binding: LayoutTemplatePopularBinding) :
         RecyclerView.ViewHolder(binding.root) {
-        fun bind(item: com.webscare.urducanvas.data.model.TemplateEntity) {
+        fun bind(item: TemplateEntity) {
             binding.shimmerLayout.startShimmer()
 
             binding.isPremium.isVisible = item.is_premium && !item.is_subscribed
@@ -92,7 +92,7 @@ class PopularTemplatesAdapter(
                 }).into(binding.image)
         }
 
-        fun applyProgress(state: com.webscare.urducanvas.data.model.ProgressUi) {
+        fun applyProgress(state: ProgressUi) {
             binding.apply {
                 val downloading = state.isDownloading && !state.isDownloaded
 
@@ -117,7 +117,7 @@ class PopularTemplatesAdapter(
 
     override fun onBindViewHolder(holder: VH, position: Int, payloads: MutableList<Any>) {
         if (payloads.isNotEmpty()) {
-            val state = payloads.firstOrNull() as? com.webscare.urducanvas.data.model.ProgressUi
+            val state = payloads.firstOrNull() as? ProgressUi
             if (state != null) {
                 holder.applyProgress(state)
                 return
@@ -131,8 +131,8 @@ class PopularTemplatesAdapter(
     override fun onCreateViewHolder(p: ViewGroup, vt: Int) =
         VH(LayoutTemplatePopularBinding.inflate(LayoutInflater.from(p.context), p, false))
 
-    class Diff : DiffUtil.ItemCallback<com.webscare.urducanvas.data.model.TemplateEntity>() {
-        override fun areItemsTheSame(o: com.webscare.urducanvas.data.model.TemplateEntity, n: com.webscare.urducanvas.data.model.TemplateEntity) = o.id == n.id
-        override fun areContentsTheSame(o: com.webscare.urducanvas.data.model.TemplateEntity, n: com.webscare.urducanvas.data.model.TemplateEntity) = o == n
+    class Diff : DiffUtil.ItemCallback<TemplateEntity>() {
+        override fun areItemsTheSame(o: TemplateEntity, n: TemplateEntity) = o.id == n.id
+        override fun areContentsTheSame(o: TemplateEntity, n: TemplateEntity) = o == n
     }
 }

@@ -3061,14 +3061,30 @@ class CanvasView @JvmOverloads constructor(
                     alpha = element.paintAlpha  // opacity applies to the entire masked image
                 })
 
-                val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    style = Paint.Style.FILL
-                    color = Color.WHITE
-                }
+                if (element.shapeHasFill) {
+                    val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        style = Paint.Style.FILL
+                        if (element.shapeFillGradient != null) {
+                            shader = createGradientShader(
+                                element.shapeFillGradient!!, localRect.width(), localRect.height()
+                            )
+                        } else {
+                            color = element.shapeFillColor ?: Color.TRANSPARENT
+                        }
+                    }
+                    ShapeRenderUtils.withCornerEffect(fillPaint, cornerRadius, shapeType) {
+                        canvas.drawPath(path, fillPaint)
+                    }
+                }else {
+                    val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        style = Paint.Style.FILL
+                        color = Color.WHITE
+                    }
 
-                // Apply corner rounding to the mask so the image is clipped with rounded corners too
-                ShapeRenderUtils.withCornerEffect(maskPaint, cornerRadius, shapeType) {
-                    canvas.drawPath(path, maskPaint)
+                    // Apply corner rounding to the mask so the image is clipped with rounded corners too
+                    ShapeRenderUtils.withCornerEffect(maskPaint, cornerRadius, shapeType) {
+                        canvas.drawPath(path, maskPaint)
+                    }
                 }
 
                 val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {

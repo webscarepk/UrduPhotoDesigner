@@ -11,20 +11,15 @@ class SvgDecoder : ResourceDecoder<InputStream, SVG> {
     override fun handles(source: InputStream, options: Options): Boolean = true
 
     override fun decode(
-        source: InputStream,
-        width: Int,
-        height: Int,
-        options: Options
+        source: InputStream, width: Int, height: Int, options: Options
     ): Resource<SVG>? {
         return try {
             val svg = SVG.getFromInputStream(source)
-            val viewBox = svg.documentViewBox
-            if (viewBox != null && (viewBox.width() <= 0f || viewBox.height() <= 0f)) {
-                return null
-            }
+            val targetSize = if (width > 0) width else 114
+            svg.documentWidth = targetSize.toFloat()
+            svg.documentHeight = targetSize.toFloat()
             SimpleResource(svg)
         } catch (e: Exception) {
-            e.printStackTrace()
             null
         }
     }

@@ -8,14 +8,17 @@ import android.view.ViewGroup
 import androidx.core.view.doOnPreDraw
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
+import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import com.webscare.urducanvas.common.canvas.enums.TemplatesViewState
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.google.android.material.chip.Chip
 import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.enums.SectionStatus
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.common.canvas.sealed.HomeRow
 import com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState
@@ -160,6 +163,13 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
                     .hideSoftInputFromWindow(binding.searchBar.windowToken, 0)
                 true
             } else false
+        }
+
+        binding.searchBar.doAfterTextChanged { text ->
+            if (text.isNullOrEmpty()) {
+                activeQuery = ""
+                applyFilters()
+            }
         }
     }
 
@@ -321,10 +331,13 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
                 .map { (title, templates) ->
                     HomeRow.CategoryRow(title, templates.distinctBy { it.id }.take(10))
                 }
-            subcategoryAdapter.submitList(rows)
+            subcategoryAdapter.submitList(rows) { updateScreenState(mainViewModel.templatesStatus.value) }
         } else {
             listMode = ListMode.GRID; switchToGrid()
-            templatesAdapter.submitList(filtered); rebalanceSpans()
+            templatesAdapter.submitList(filtered) {
+                rebalanceSpans()
+                updateScreenState(mainViewModel.templatesStatus.value)
+            }
         }
     }
 
@@ -360,6 +373,15 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
     private fun observeData() {
 
         viewLifecycleOwner.lifecycleScope.launch {
+            kotlinx.coroutines.flow.combine(
+                mainViewModel.templatesStatus,
+                mainViewModel.localTemplates
+            ) { status, _ -> status }.collect { status ->
+                updateScreenState(status)
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
             mainViewModel.localCanvasSizes.collect { entities ->
                 if (entities.isEmpty()) return@collect
                 val sizes = entities.map {
@@ -387,6 +409,7 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
                 }
                 buildSubcategoryChips(categoryTemplates)
                 applyFilters()
+                updateScreenState(mainViewModel.templatesStatus.value)
             }
         }
 
@@ -434,6 +457,103 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
                 }
             }
         }
+    }
+
+    private fun renderState(state: TemplatesViewState) {
+        android.util.Log.d("TemplatesState", "Rendering: $state")
+        binding.apply {
+            when (state) {
+                TemplatesViewState.Loading -> {
+                    loadingState.root.visibility = View.VISIBLE
+                    emptyState.root.visibility = View.GONE
+                    categoriesRV.visibility = View.GONE
+                    topFadeOverlay.visibility = View.GONE
+                }
+                TemplatesViewState.Content -> {
+                    loadingState.root.visibility = View.GONE
+                    emptyState.root.visibility = View.GONE
+                    categoriesRV.visibility = View.VISIBLE
+                    topFadeOverlay.visibility = View.VISIBLE
+                }
+                TemplatesViewState.Empty -> {
+                    loadingState.root.visibility = View.GONE
+                    categoriesRV.visibility = View.GONE
+                    topFadeOverlay.visibility = View.GONE
+                    emptyState.root.visibility = View.VISIBLE
+                    emptyState.errorIcon.setImageResource(R.drawable.ic_nothing_found)
+                    emptyState.errorTitle.text = "No templates yet"
+                    emptyState.errorMessage.text = "There are no templates in this category yet. Check back soon!"
+                    emptyState.retryButton.visibility = View.GONE
+                }
+                TemplatesViewState.FilterEmpty -> {
+                    loadingState.root.visibility = View.GONE
+                    categoriesRV.visibility = View.GONE
+                    topFadeOverlay.visibility = View.GONE
+                    emptyState.root.visibility = View.VISIBLE
+                    emptyState.errorIcon.setImageResource(R.drawable.ic_search)
+                    emptyState.errorTitle.text = "No matches"
+                    emptyState.errorMessage.text = "Try a different search or clear your filters"
+                    emptyState.retryButton.visibility = View.VISIBLE
+                    // Reuse retry button as "Clear filters"
+                    (emptyState.retryButton.getChildAt(0) as? android.widget.TextView)?.text = "Clear filters"
+                    emptyState.retryButton.addPressEffect {
+                        activeQuery = ""
+                        activeSize = null
+                        activePrice = "All"
+                        activeSubcategory = "All"
+                        binding.searchBar.setText("")
+                        canvasSizeAdapter.selectedSizeName = ""
+                        canvasSizeAdapter.notifyDataSetChanged()
+                        applyFilters()
+                    }
+                }
+                TemplatesViewState.Error -> {
+                    loadingState.root.visibility = View.GONE
+                    categoriesRV.visibility = View.GONE
+                    topFadeOverlay.visibility = View.GONE
+                    emptyState.root.visibility = View.VISIBLE
+                    emptyState.errorIcon.setImageResource(R.drawable.ic_no_internet)
+                    emptyState.errorTitle.text = "Couldn't load templates"
+                    emptyState.errorMessage.text = "Check your connection and try again"
+                    emptyState.retryButton.visibility = View.VISIBLE
+                    (emptyState.retryButton.getChildAt(0) as? android.widget.TextView)?.text = "Retry"
+                    emptyState.retryButton.addPressEffect {
+                        mainViewModel.retryTemplates()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun updateScreenState(status: SectionStatus) {
+        val hasCategoryData = categoryTemplates.isNotEmpty()
+        val hasFiltersApplied = activeQuery.isNotBlank()
+                || activeSize != null
+                || !activePrice.equals("All", true)
+                || !activeSubcategory.equals("All", true)
+
+        val state = when {
+            hasCategoryData && currentVisibleCount() == 0 && hasFiltersApplied ->
+                TemplatesViewState.FilterEmpty
+            hasCategoryData ->
+                TemplatesViewState.Content
+            status == SectionStatus.Loading ->
+                TemplatesViewState.Loading
+            status == SectionStatus.Failed ->
+                TemplatesViewState.Error
+            else ->
+                TemplatesViewState.Empty
+        }
+        android.util.Log.d("TemplatesState",
+            "status=$status, categoryTemplates=${categoryTemplates.size}, " +
+                    "visibleCount=${currentVisibleCount()}, filtersApplied=$hasFiltersApplied, " +
+                    "→ state=$state")
+        renderState(state)
+    }
+
+    private fun currentVisibleCount(): Int {
+        return if (isGridMode()) templatesAdapter.itemCount
+        else subcategoryAdapter.itemCount
     }
 
     override fun onDestroy() { super.onDestroy(); _binding = null }

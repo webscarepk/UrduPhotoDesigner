@@ -3,7 +3,7 @@ package com.webscare.urducanvas.ui.editor.panels.shape
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.webscare.urducanvas.data.model.AdjustmentPanelTabs
-import com.webscare.urducanvas.data.model.PanelTabs
+import com.webscare.urducanvas.ui.editor.panels.adjustments.mask.MaskFragment
 
 class ShapePanelPagerAdapter(
     fragment: Fragment,
@@ -12,15 +12,13 @@ class ShapePanelPagerAdapter(
 
     override fun getItemCount() = tabs.size
 
-    override fun createFragment(position: Int): Fragment {
-        return ShapePanelFragment.newInstance(tabs[position].tab_name)
-    }
+    override fun createFragment(position: Int): Fragment =
+        when (tabs[position].tab_name) {
+            "Mask" -> MaskFragment()
+            else   -> ShapePanelFragment.newInstance(tabs[position].tab_name)
+        }
 
-    override fun getItemId(position: Int): Long {
-        return tabs[position].id.toLong()
-    }
-
-    override fun containsItem(itemId: Long): Boolean {
-        return tabs.any { it.id.toLong() == itemId }
-    }
+    override fun getItemId(position: Int): Long = tabs[position].id.toLong()
+    override fun containsItem(itemId: Long): Boolean =
+        tabs.any { it.id.toLong() == itemId }
 }

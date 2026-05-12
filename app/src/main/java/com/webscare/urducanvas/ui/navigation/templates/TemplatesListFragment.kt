@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.SimpleItemAnimator
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.google.android.material.chip.Chip
 import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.enums.ListViewState
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.common.canvas.sealed.HomeRow
 import com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState
@@ -137,6 +138,76 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
 //    }
 
     // ─── Events ───────────────────────────────────────────────────────────────
+
+    private fun renderState(state: ListViewState) {
+        binding.apply {
+            when (state) {
+                ListViewState.Loading -> {
+                    loadingState.root.visibility = View.VISIBLE
+                    emptyState.root.visibility = View.GONE
+                    swipeRefresh.visibility = View.GONE
+                }
+                ListViewState.Content -> {
+                    loadingState.root.visibility = View.GONE
+                    emptyState.root.visibility = View.GONE
+                    swipeRefresh.visibility = View.VISIBLE
+                }
+                ListViewState.FilterEmpty -> {
+                    loadingState.root.visibility = View.GONE
+                    swipeRefresh.visibility = View.GONE
+                    emptyState.root.visibility = View.VISIBLE
+                    emptyState.errorIcon.setImageResource(R.drawable.ic_search)
+                    emptyState.errorTitle.text = "No matches"
+                    emptyState.errorMessage.text = "Try a different search or clear your filters"
+                    emptyState.retryButton.visibility = View.VISIBLE
+                    (emptyState.retryButton.getChildAt(0) as? android.widget.TextView)?.text = "Clear filters"
+                    emptyState.retryButton.setOnClickListener {
+                        activeQuery = ""; activeSize = null; activePrice = "All"; activeSubcategory = "All"
+                        binding.searchBar.setText("")
+                        sizeAdapter.selectedSizeName = ""
+                        sizeAdapter.notifyDataSetChanged()
+                        applyFiltersList()
+                    }
+                }
+                ListViewState.Error -> {
+                    loadingState.root.visibility = View.GONE
+                    swipeRefresh.visibility = View.GONE
+                    emptyState.root.visibility = View.VISIBLE
+                    emptyState.errorIcon.setImageResource(R.drawable.ic_no_internet)
+                    emptyState.errorTitle.text = "Couldn't load templates"
+                    emptyState.errorMessage.text = "Check your connection and try again"
+                    emptyState.retryButton.visibility = View.VISIBLE
+                    (emptyState.retryButton.getChildAt(0) as? android.widget.TextView)?.text = "Retry"
+                    emptyState.retryButton.setOnClickListener { mainViewModel.retryTemplates() }
+                }
+                ListViewState.Empty -> {
+                    loadingState.root.visibility = View.GONE
+                    swipeRefresh.visibility = View.GONE
+                    emptyState.root.visibility = View.VISIBLE
+                    emptyState.errorIcon.setImageResource(R.drawable.ic_nothing_found)
+                    emptyState.errorTitle.text = "No templates here"
+                    emptyState.errorMessage.text = "There are no templates in this section yet"
+                    emptyState.retryButton.visibility = View.GONE
+                }
+            }
+        }
+    }
+
+    private fun updateListState() {
+        val status = mainViewModel.templatesStatus.value
+        val hasData = baseTemplates.isNotEmpty()
+        val hasFilters = activeQuery.isNotBlank() || activeSize != null ||
+                !activePrice.equals("All", true) || !activeSubcategory.equals("All", true)
+
+        val state = when {
+            hasData && adapter.itemCount == 0 && hasFilters -> ListViewState.FilterEmpty
+            hasData -> ListViewState.Content
+            status == com.webscare.urducanvas.common.canvas.enums.SectionStatus.Loading -> ListViewState.Loading
+            status == com.webscare.urducanvas.common.canvas.enums.SectionStatus.Failed -> ListViewState.Error
+            else -> ListViewState.Empty
+        }
+        renderState(state)
+    }
 
     private fun setEvents() {
         binding.searchBar.doAfterTextChanged {
@@ -292,9 +363,11 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
             val filtered = filterTemplatesList(baseTemplates, activeSubcategory, activeQuery, activeSize, activePrice)
             val result = if (forceShuffle) filtered.shuffled() else filtered
             withContext(Dispatchers.Main) {
-                adapter.submitList(result)
-                sglm.invalidateSpanAssignments()
-                if (!binding.templatesRV.canScrollVertically(-1)) binding.templatesRV.scrollToPosition(0)
+                adapter.submitList(result) {
+                    sglm.invalidateSpanAssignments()
+                    if (!binding.templatesRV.canScrollVertically(-1)) binding.templatesRV.scrollToPosition(0)
+                    updateListState()    // ← inside submitList callback
+                }
             }
         }
     }
@@ -314,6 +387,10 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
     // ─── Data Observation ─────────────────────────────────────────────────────
 
     private fun observeData() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            mainViewModel.templatesStatus.collect { updateListState() }
+        }
+
         viewLifecycleOwner.lifecycleScope.launch {
             mainViewModel.localCanvasSizes.collect { entities ->
                 if (entities.isEmpty()) return@collect
@@ -380,6 +457,7 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
                 }
 
                 applyFiltersList()
+                updateListState()
             }
         }
 

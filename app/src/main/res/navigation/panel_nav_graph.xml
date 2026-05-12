@@ -11,11 +11,6 @@
         android:label="fragment_text"
         tools:layout="@layout/fragment_text" />
     <fragment
-        android:id="@+id/backgroundsFragment"
-        android:name="com.webscare.urducanvas.ui.editor.panels.background.BackgroundsFragment"
-        android:label="fragment_backgrounds"
-        tools:layout="@layout/fragment_backgrounds" />
-    <fragment
         android:id="@+id/imagesFragment"
         android:name="com.webscare.urducanvas.ui.editor.panels.images.ImagesFragment"
         android:label="fragment_images"
@@ -60,4 +55,9 @@
         android:name="com.webscare.urducanvas.ui.editor.panels.shape.ShapesParentFragment"
         android:label="fragment_shapes_parent"
         tools:layout="@layout/fragment_shapes_parent" />
+    <fragment
+        android:id="@+id/shapeFragment"
+        android:name="com.webscare.urducanvas.ui.editor.panels.shape.ShapeFragment"
+        android:label="fragment_shape"
+        tools:layout="@layout/fragment_shape" />
 </navigation>

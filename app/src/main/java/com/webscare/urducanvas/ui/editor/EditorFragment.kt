@@ -23,6 +23,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.animation.AnimationUtils
+import android.view.animation.DecelerateInterpolator
 import android.view.animation.LinearInterpolator
 import android.widget.EditText
 import android.widget.ImageView
@@ -34,6 +35,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.AnimRes
 import androidx.annotation.ColorRes
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.Guideline
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -43,6 +45,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
@@ -76,6 +79,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -117,13 +121,14 @@ class EditorFragment : Fragment() {
     private var savePending = false
     private var lastJsonSaveTime = 0L
     private val saveDebounce = 500L
-
+    private var selectionFromUserInteraction = false
     private var isFabMenuOpen = false
     private var fabInitialX = 0f
     private var fabInitialY = 0f
     private var fabInitialTouchX = 0f
     private var fabInitialTouchY = 0f
     private var fabMargin = 0
+    private var panelAnimator: ValueAnimator? = null
 
     private val pickImage =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -142,8 +147,7 @@ class EditorFragment : Fragment() {
 
         if (!BuildConfig.DEBUG) {
             activity?.window?.setFlags(
-                WindowManager.LayoutParams.FLAG_SECURE,
-                WindowManager.LayoutParams.FLAG_SECURE
+                WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE
             )
         }
 
@@ -166,7 +170,7 @@ class EditorFragment : Fragment() {
 
                 // Hide bottom nav for adjustments
                 binding.bottomNavigation.isVisible =
-                    destination.id != R.id.adjustmentsParentFragment
+                    destination.id != R.id.adjustmentsParentFragment && destination.id != R.id.shapeFragment
 
                 when (destination.id) {
 
@@ -203,16 +207,6 @@ class EditorFragment : Fragment() {
                     R.id.shapesParentFragment -> {
                         binding.bottomNavigation.selectedItemId = R.id.nav_shapes
                         currentPanelItemId = R.id.nav_shapes
-                        binding.panelNavHost.visibility = View.VISIBLE
-                    }
-
-                    R.id.adjustmentsParentFragment -> {
-                        // Adjustments has no bottom nav tab
-                        binding.bottomNavigation.menu.findItem(
-                            binding.bottomNavigation.selectedItemId
-                        )?.isChecked = false
-
-                        currentPanelItemId = null
                         binding.panelNavHost.visibility = View.VISIBLE
                     }
 
@@ -574,6 +568,14 @@ class EditorFragment : Fragment() {
 
     private fun observeViewModel() {
 
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.isPanelExpanded.collectLatest { expanded ->
+                    expandPanel(expanded)
+                }
+            }
+        }
+
         viewModel.canvasSize.observe(viewLifecycleOwner) { size ->
             if (size != null) {
                 canvasSize = size
@@ -765,15 +767,39 @@ class EditorFragment : Fragment() {
 
             lastSelection = newSelection.toList()
 
+            // ── Toolbar visibility ────────────────────────────────────────────────
+            // When panel is expanded (full-screen sticker browser), suppress ALL
+            // context tools — alignment kit, opacity, blend etc. The user is in
+            // browse mode, not edit mode.
+            if (mainViewModel.isPanelExpanded.value) {
+                // Just update internal state, show nothing
+                resetPanelsOnSelectionChange()
+                selectionFromUserInteraction = false
+                return@observe
+            }
+
             resetPanelsOnSelectionChange()
             updateToolbarVisibility(newSelection)
 
-            if (viewModel.inSelectionMode.value == true) return@observe
+            if (viewModel.inSelectionMode.value == true) {
+                selectionFromUserInteraction = false
+                return@observe
+            }
 
             val first = newSelection.firstOrNull()
             val currentDest = navController.currentDestination?.id
 
-            if (currentDest == R.id.layersFragment) return@observe
+            if (currentDest == R.id.layersFragment) {
+                selectionFromUserInteraction = false
+                return@observe
+            }
+
+            // ── KEY FIX: Only navigate to adjustment/shape panels when the
+            //    selection came from a real user interaction (tap on canvas,
+            //    double-tap, edit icon tap). NOT when an element was just added
+            //    programmatically via addSticker/addSvgSticker. ──────────────────
+            if (!selectionFromUserInteraction) return@observe
+            selectionFromUserInteraction = false   // consume — one-shot flag
 
             val targetDestination = when {
                 newSelection.size == 1 && first != null -> {
@@ -783,7 +809,12 @@ class EditorFragment : Fragment() {
 
                         ElementType.IMAGE, ElementType.STICKER, ElementType.BACKGROUND -> R.id.adjustmentsParentFragment
 
-                        ElementType.SHAPE -> R.id.shapesParentFragment
+                        ElementType.SHAPE -> if (shapeJustAdded) {
+                            shapeJustAdded = false
+                            null
+                        } else {
+                            R.id.shapeFragment
+                        }
 
                         else -> null
                     }
@@ -793,28 +824,25 @@ class EditorFragment : Fragment() {
             }
 
             val panelDestinations = listOf(
-                R.id.textFragment, R.id.adjustmentsParentFragment, R.id.shapesParentFragment
+                R.id.textFragment,
+                R.id.adjustmentsParentFragment,
+                R.id.shapesParentFragment,
+                R.id.shapeFragment
             )
 
-            // If nothing should be open → close panels
             if (targetDestination == null) {
                 viewModel.closeAppearanceTab()
-                if (currentDest == R.id.adjustmentsParentFragment) {
-                    if (currentDest in panelDestinations) {
-                        navController.popBackStack(currentDest, true)
-                    }
+                val dest = navController.currentDestination?.id
+                if (dest != null && dest in panelDestinations) {
+                    navController.popBackStack(dest, true)
                 }
-
                 return@observe
             }
 
             if (currentDest == targetDestination) return@observe
 
             first?.let { element ->
-
-                val bundle = Bundle().apply {
-                    putString("elementId", element.id)
-                }
+                val bundle = Bundle().apply { putString("elementId", element.id) }
 
                 if (targetDestination == R.id.adjustmentsParentFragment) {
                     if (element.bitmap != null) {
@@ -837,14 +865,13 @@ class EditorFragment : Fragment() {
                 val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
 
                 if (targetDestination == R.id.shapesParentFragment) {
-                    val startPage = if (shapeJustAdded) 0 else 1
                     shapeJustAdded = false
-                    bundle.putInt("startPage", startPage)
                 }
 
                 navController.navigate(targetDestination, bundle, navOptions)
             }
         }
+
     }
 
     private fun List<CanvasElement>.sameSelectionAs(other: List<CanvasElement>): Boolean {
@@ -882,7 +909,7 @@ class EditorFragment : Fragment() {
         val hasBackground = selected.any { it.type == ElementType.BACKGROUND }
         val hasShapeMask = selected.any { it.type == ElementType.SHAPE && it.bitmap != null }
         val isMulti = selected.size > 1
-        val isSvg = selected.any { it.svgData != null}
+        val isSvg = selected.any { it.svgData != null }
         val anySelected = selected.isNotEmpty()
 
         val showFont = anySelected && hasText && !isMulti && !hasImage && !hasBackground
@@ -974,37 +1001,12 @@ class EditorFragment : Fragment() {
                                 }
 
                                 ElementType.DRAW, ElementType.SHAPE -> {
-                                    // If SHAPE contains a masked image → open Image Adjustments instead
-                                    if (element.type == ElementType.SHAPE && element.bitmap != null) {
-                                        val selected =
-                                            viewModel.canvasElements.value?.find { it.id == element.id }
-                                        selected?.let {
-                                            val key = it.id
-                                            BitmapCache.put(key, it.bitmap!!)
-                                            val bundle =
-                                                Bundle().apply { putString("elementId", key) }
-
-                                            val navOptions =
-                                                NavOptions.Builder().setLaunchSingleTop(true)
-                                                    .setPopUpTo(
-                                                        R.id.adjustmentsParentFragment,
-                                                        inclusive = true
-                                                    ).build()
-
-                                            navController.navigate(
-                                                R.id.adjustmentsParentFragment, bundle, navOptions
-                                            )
-                                        }
-                                    } else if (element.type == ElementType.SHAPE) {
-                                        // Normal shape (no masked bitmap) → go to ShapesParentFragment
-                                        val bundle = Bundle().apply { putInt("startPage", 0) }
+                                    if (element.type == ElementType.SHAPE) {
                                         val navOptions =
                                             NavOptions.Builder().setLaunchSingleTop(true).build()
-                                        navController.navigate(
-                                            R.id.shapesParentFragment, bundle, navOptions
-                                        )
+                                        navController.navigate(R.id.shapeFragment, null, navOptions)
                                     } else {
-                                        // ElementType.DRAW → go to DrawFragment
+                                        // ElementType.DRAW
                                         val bundle = Bundle().apply { putInt("startPage", 0) }
                                         val navOptions =
                                             NavOptions.Builder().setLaunchSingleTop(true).build()
@@ -1036,6 +1038,7 @@ class EditorFragment : Fragment() {
                     }
                 },
                 onElementSelected = { elements ->
+                    selectionFromUserInteraction = true
                     viewModel.onCanvasSelectionChanged(elements)
                 },
                 onEndBatchUpdate = { elementId ->
@@ -1088,6 +1091,7 @@ class EditorFragment : Fragment() {
     private fun initBottomNavigation() {
         binding.bottomNavigation.setOnItemSelectedListener { menuItem ->
             if (currentPanelItemId != menuItem.itemId) {
+                mainViewModel.collapsePanelIfExpanded()
                 binding.panelNavHost.visibility = View.VISIBLE
                 currentPanelItemId = menuItem.itemId
                 when (menuItem.itemId) {
@@ -1568,8 +1572,7 @@ class EditorFragment : Fragment() {
     }
 
     private fun showZoomPopup(anchorView: View) {
-        val popupBinding =
-            LayoutZoomPopupBinding.inflate(LayoutInflater.from(requireActivity()))
+        val popupBinding = LayoutZoomPopupBinding.inflate(LayoutInflater.from(requireActivity()))
 
         val popupWindow = PopupWindow(
             popupBinding.root,
@@ -1594,7 +1597,8 @@ class EditorFragment : Fragment() {
         popupBinding.zoomSeekbar.progress = initialProgress
         refreshLabel(initialProgress)
 
-        popupBinding.zoomSeekbar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        popupBinding.zoomSeekbar.setOnSeekBarChangeListener(object :
+            SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
                     val zoomFraction = zoomPercentFromProgress(progress) / 100f
@@ -1606,6 +1610,7 @@ class EditorFragment : Fragment() {
                     refreshLabel(actualProgress)
                 }
             }
+
             override fun onStartTrackingTouch(seekBar: SeekBar) {}
             override fun onStopTrackingTouch(seekBar: SeekBar) {}
         })
@@ -1623,7 +1628,7 @@ class EditorFragment : Fragment() {
             val screenHeight = resources.displayMetrics.heightPixels
             val location = IntArray(2)
             anchorView.getLocationOnScreen(location)
-            val anchorTop    = location[1]
+            val anchorTop = location[1]
             val anchorBottom = anchorTop + anchorView.height
 
             popupBinding.root.measure(
@@ -1631,15 +1636,15 @@ class EditorFragment : Fragment() {
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
             )
             val popupHeight = popupBinding.root.measuredHeight
-            val spaceBelow  = screenHeight - anchorBottom
-            val spaceAbove  = anchorTop
+            val spaceBelow = screenHeight - anchorBottom
+            val spaceAbove = anchorTop
 
             when {
                 spaceBelow >= popupHeight -> popupWindow.showAsDropDown(anchorView)
                 spaceAbove >= popupHeight -> popupWindow.showAtLocation(
-                    anchorView, Gravity.NO_GRAVITY,
-                    location[0], anchorTop - popupHeight
+                    anchorView, Gravity.NO_GRAVITY, location[0], anchorTop - popupHeight
                 )
+
                 else -> popupWindow.showAsDropDown(anchorView)
             }
         }
@@ -1647,16 +1652,67 @@ class EditorFragment : Fragment() {
 
     private fun updateToggleButton(view: ImageView, isActive: Boolean) {
         if (isActive) {
-            view.backgroundTintList =
-                ColorStateList.valueOf(colorOf(R.color.appColor))
-            view.imageTintList =
-                ColorStateList.valueOf(colorOf(R.color.white))
+            view.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.appColor))
+            view.imageTintList = ColorStateList.valueOf(colorOf(R.color.white))
         } else {
-            view.backgroundTintList =
-                ColorStateList.valueOf(colorOf(R.color.contrast))
-            view.imageTintList =
-                ColorStateList.valueOf(colorOf(R.color.gray))
+            view.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.contrast))
+            view.imageTintList = ColorStateList.valueOf(colorOf(R.color.gray))
         }
+    }
+
+    private fun expandPanel(expanded: Boolean) {
+        val root = binding.root as? ConstraintLayout ?: return
+        val guideline = root.findViewById<Guideline>(R.id.centerGuide) ?: return
+
+        // Cancel any in-progress animation immediately
+        panelAnimator?.cancel()
+
+        val rootHeight = root.height
+        if (rootHeight == 0) {
+            // Layout not measured yet — apply instantly without animation
+            applyGuidelinePercent(guideline, if (expanded) 0.01f else 0.65f)
+            return
+        }
+
+        // Convert percent targets to pixel positions
+        // guideBegin = distance from top of root in pixels
+        val collapsedPx = (rootHeight * 0.65f).toInt()
+        val expandedPx = (rootHeight * 0.01f).toInt()
+
+        val currentParams = guideline.layoutParams as ConstraintLayout.LayoutParams
+        val startPx = currentParams.guideBegin.takeIf { it >= 0 }
+            ?: (rootHeight * if (expanded) 0.65f else 0.01f).toInt()
+        val endPx = if (expanded) expandedPx else collapsedPx
+
+        if (startPx == endPx) return
+
+        panelAnimator = ValueAnimator.ofInt(startPx, endPx).apply {
+            duration = 320
+            interpolator = DecelerateInterpolator(1.8f)
+
+            addUpdateListener { anim ->
+                val px = anim.animatedValue as Int
+                val lp = guideline.layoutParams as ConstraintLayout.LayoutParams
+                lp.guideBegin = px
+                lp.guidePercent = -1f   // disable percent mode — use absolute px
+                lp.guideEnd = -1
+                guideline.layoutParams = lp
+            }
+
+            start()
+        }
+    }
+
+    /**
+     * Sets guideline position by percent without animation.
+     * Used when layout isn't measured yet (rootHeight == 0).
+     */
+    private fun applyGuidelinePercent(guideline: Guideline, percent: Float) {
+        val lp = guideline.layoutParams as ConstraintLayout.LayoutParams
+        lp.guidePercent = percent
+        lp.guideBegin = -1
+        lp.guideEnd = -1
+        guideline.layoutParams = lp
     }
 
     override fun onDestroyView() {

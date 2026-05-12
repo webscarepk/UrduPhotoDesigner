@@ -6,6 +6,7 @@ import android.annotation.SuppressLint
 import android.app.Dialog
 import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -21,8 +22,10 @@ import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.snackbar.Snackbar
 import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.enums.ErrorType
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
+import com.webscare.urducanvas.common.canvas.sealed.HomeUiState
 import com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.utils.showGlobalSuccessSnack
@@ -290,7 +293,69 @@ class HomeFragment : androidx.fragment.app.Fragment() {
         }
     }
 
+    private fun renderHomeState(state: HomeUiState) {
+        binding.apply {
+            when (state) {
+                is HomeUiState.Loading -> {
+                    Log.d("HomeState", "→ LOADING branch")
+                    loadingState.root.visibility = View.VISIBLE
+                    errorState.root.visibility = View.GONE
+                    contentScroll.visibility = View.GONE
+                }
+                is HomeUiState.Content -> {
+                    Log.d("HomeState", "→ CONTENT branch")
+                    loadingState.root.visibility = View.GONE
+                    errorState.root.visibility = View.GONE
+                    contentScroll.visibility = View.VISIBLE
+                }
+                is HomeUiState.Empty -> {
+                    Log.d("HomeState", "→ EMPTY branch")
+                    loadingState.root.visibility = View.GONE
+                    contentScroll.visibility = View.GONE
+                    errorState.root.visibility = View.VISIBLE
+                    errorState.errorIcon.setImageResource(R.drawable.ic_nothing_found) // your empty icon
+                    errorState.errorTitle.text = "Nothing here yet"
+                    errorState.errorMessage.text = "Check back soon for new templates and fonts"
+                    errorState.retryButton.addPressEffect {
+                        mainViewModel.retryHomeData()
+                    }
+                }
+                is HomeUiState.Error -> {
+                    Log.d("HomeState", "→ ERROR branch, type=${state.type}")
+                    loadingState.root.visibility = View.GONE
+                    contentScroll.visibility = View.GONE
+                    errorState.root.visibility = View.VISIBLE
+
+                    when (state.type) {
+                        ErrorType.NO_INTERNET -> {
+                            errorState.errorIcon.setImageResource(R.drawable.ic_no_internet)
+                            errorState.errorTitle.text = "No connection"
+                            errorState.errorMessage.text = "Check your internet and try again"
+                        }
+                        ErrorType.SERVER_ERROR, ErrorType.UNKNOWN -> {
+                            errorState.errorIcon.setImageResource(R.drawable.ic_info)
+                            errorState.errorTitle.text = "Something went wrong"
+                            errorState.errorMessage.text = state.message.ifEmpty { "Please try again in a moment" }
+                        }
+                    }
+                    errorState.retryButton.addPressEffect {
+                        mainViewModel.retryHomeData()
+                    }
+                }
+            }
+        }
+    }
+
     private fun initObservers() {
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.homeUiState.collect { state ->
+                    Log.d("HomeState", "Fragment received: $state")
+                    renderHomeState(state)
+                }
+            }
+        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {

@@ -17,7 +17,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         android:layout_marginHorizontal="10dp"
-        android:visibility="gone">
+        android:visibility="visible">
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/shapes"
             android:layout_width="0dp"

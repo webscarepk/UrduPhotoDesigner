@@ -11,6 +11,7 @@ data class ImageEntity(
     val file_size: String,
     val alt_text: String? = null,
     val category: String,
+    val parent_category: String? = null,
     val user_id: Int,
     val is_premium: Boolean = false,
     val is_subscribed: Boolean = false,
@@ -18,4 +19,11 @@ data class ImageEntity(
     var bitmapData: String? = null,
     var created_at: String? = null,
     val is_recent: Boolean = false
-)
+){
+    fun matchesQuery(query: String): Boolean {
+        if (query.isBlank()) return true
+        return alt_text?.contains(query, ignoreCase = true) == true
+                || file_name.contains(query, ignoreCase = true)
+                || category.contains(query, ignoreCase = true)
+    }
+}

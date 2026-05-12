@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="3dp"
+    app:cardCornerRadius="10dp"
+    app:strokeWidth="0dp"
+    app:cardBackgroundColor="@color/white"
+    app:cardElevation="0dp">
+
+    <com.webscare.urducanvas.common.views.SquareFrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <!-- Emoji character — displayed using the symbols font -->
+        <TextView
+            android:id="@+id/emojiText"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:fontFamily="@font/symbols"
+            android:gravity="center"
+            android:textSize="40sp"
+            android:includeFontPadding="false" />
+
+        <!-- Selection radio icon — same pattern as layout_images_item_expanded -->
+        <ImageView
+            android:id="@+id/selection"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="4dp"
+            android:src="@drawable/ic_unselected_radio"
+            android:visibility="gone" />
+
+        <!--
+            Loading indicator — shown while the high-res bitmap renders.
+            Same position and style as the loading anim in layout_images_item_expanded.
+            Stays gone until user taps the emoji.
+        -->
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/loading"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="4dp"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/white"
+            android:padding="3dp"
+            android:visibility="gone"
+            app:lottie_autoPlay="true"
+            app:lottie_loop="true"
+            app:lottie_rawRes="@raw/loading_gray" />
+
+    </com.webscare.urducanvas.common.views.SquareFrameLayout>
+
+</com.google.android.material.card.MaterialCardView>
