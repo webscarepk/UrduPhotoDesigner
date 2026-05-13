@@ -6,6 +6,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.webscare.urducanvas.common.canvas.enums.ErrorType
+import com.webscare.urducanvas.common.canvas.enums.PanelType
 import com.webscare.urducanvas.common.canvas.enums.SectionStatus
 import com.webscare.urducanvas.common.canvas.model.GradientItem
 import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
@@ -106,11 +107,17 @@ class MainViewModel @Inject constructor(
     private val _selectedImageIds = MutableStateFlow<Set<Int>>(emptySet())
     val selectedImageIds: StateFlow<Set<Int>> = _selectedImageIds.asStateFlow()
 
+    private val _selectedShapesIds = MutableStateFlow<Set<Int>>(emptySet())
+    val selectedShapesIds: StateFlow<Set<Int>> = _selectedShapesIds.asStateFlow()
+
     private val _selectedEmojiChars = MutableStateFlow<Set<String>>(emptySet())
     val selectedEmojiChars: StateFlow<Set<String>> = _selectedEmojiChars.asStateFlow()
 
-    private val _isPanelExpanded = MutableStateFlow(false)
-    val isPanelExpanded: StateFlow<Boolean> = _isPanelExpanded.asStateFlow()
+    private val _expandedPanel = MutableStateFlow<PanelType?>(null)
+    val expandedPanel: StateFlow<PanelType?> = _expandedPanel.asStateFlow()
+
+    private val _selectedImagesIds = MutableStateFlow<Set<Int>>(emptySet())
+    val selectedImagesIds: StateFlow<Set<Int>> = _selectedImagesIds.asStateFlow()
 
     // Per-section status (so we can show inline retry per section)
     private val _templatesStatus = MutableStateFlow(SectionStatus.Loading)
@@ -914,13 +921,40 @@ class MainViewModel @Inject constructor(
 
     fun isEmojiSelected(char: String): Boolean = char in _selectedEmojiChars.value
 
-    fun togglePanelExpanded() {
-        _isPanelExpanded.value = !_isPanelExpanded.value
+    val isInImagesMultiSelectMode: StateFlow<Boolean> = _selectedImagesIds
+        .map { it.isNotEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun toggleImagesSelection(id: Int) {
+        _selectedImagesIds.value = _selectedImagesIds.value.toMutableSet().apply {
+            if (contains(id)) remove(id) else add(id)
+        }
     }
 
-    fun collapsePanelIfExpanded() {
-        if (_isPanelExpanded.value) {
-            _isPanelExpanded.value = false
+    fun clearImagesSelection() {
+        _selectedImagesIds.value = emptySet()
+    }
+
+    val isInShapesMultiSelectMode: StateFlow<Boolean> = _selectedShapesIds
+        .map { it.isNotEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun toggleShapesSelection(id: Int) {
+        _selectedShapesIds.value = _selectedShapesIds.value.toMutableSet().apply {
+            if (contains(id)) remove(id) else add(id)
         }
+    }
+
+    fun clearShapesSelection() {
+        _selectedShapesIds.value = emptySet()
+    }
+
+    fun isPanelExpanded(panel: PanelType): Boolean = _expandedPanel.value == panel
+    fun togglePanel(panel: PanelType) {
+        _expandedPanel.value = if (_expandedPanel.value == panel) null else panel
+    }
+    fun collapsePanel() { _expandedPanel.value = null }
+    fun collapsePanelIfExpanded(panel: PanelType) {
+        if (_expandedPanel.value == panel) _expandedPanel.value = null
     }
 }

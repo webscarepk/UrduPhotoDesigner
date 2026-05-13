@@ -1,8 +1,10 @@
 package com.webscare.urducanvas.ui.editor.panels.objects
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.os.bundleOf
@@ -12,6 +14,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
 import com.webscare.urducanvas.common.canvas.enums.ElementType
+import com.webscare.urducanvas.common.canvas.enums.PanelType
+import com.webscare.urducanvas.common.utils.EmojiBitmapRenderer
 import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
 import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.data.model.ObjectsData
@@ -23,6 +27,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.abs
 
 @AndroidEntryPoint
 class ObjectsListFragment : androidx.fragment.app.Fragment() {
@@ -49,7 +54,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
     private var isPanelExpanded: Boolean = false
 
     private var prevSelectedIds: Set<Int> = emptySet()
-    private var prevWasInMode: Boolean = false          // track previous mode state
+    private var prevWasInMode: Boolean = false
     private var prevSelectedEmojiChars: Set<String> = emptySet()
     private var prevEmojiWasInMode: Boolean = false
 
@@ -86,6 +91,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
         }
 
         setupSwipeRefresh()
+        setupExpandGesture()    // ← NEW: swipe-up on RecyclerView to expand
 
         if (isBaseTab(category)) {
             setupEmojiTab()
@@ -129,23 +135,53 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
         }
     }
 
+    // ── Swipe-up to expand gesture ────────────────────────────────────────────
+    //
+    // Same logic as ImagesListFragment.setupExpandGesture():
+    //
+    // In collapsed state the RecyclerView is HORIZONTAL — it consumes
+    // left/right drag itself. Vertical drag is not consumed, so we intercept
+    // upward vertical swipes to expand the panel.
+    //
+    // In expanded state returns false immediately — the vertical RecyclerView
+    // and SwipeRefreshLayout handle all touch events themselves.
+    //
+    // Directional guard: dy > dx * 1.5f ensures we only trigger on gestures
+    // that are more vertical than horizontal, so horizontal scroll works fine.
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupExpandGesture() {
+        val thresholdPx = 40 * resources.displayMetrics.density
+        var startY = 0f
+        var startX = 0f
+
+        binding.objects.setOnTouchListener { _, event ->
+            // Expanded: let RecyclerView and SwipeRefreshLayout handle everything
+            if (isPanelExpanded) return@setOnTouchListener false
+
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    startY = event.rawY
+                    startX = event.rawX
+                    false   // don't consume — RecyclerView needs it for scroll init
+                }
+                MotionEvent.ACTION_UP -> {
+                    val dy = startY - event.rawY   // positive = finger moved up
+                    val dx = abs(startX - event.rawX)
+
+                    if (dy > thresholdPx && dy > dx * 1.5f) {
+                        mainViewModel.togglePanel(PanelType.OBJECTS)
+                        true
+                    } else {
+                        false
+                    }
+                }
+                else -> false
+            }
+        }
+    }
+
     // ── Image selection observer ──────────────────────────────────────────────
-    //
-    // Uses combine() so one emission covers both selection and mode changes.
-    //
-    // KEY FIX — why the current tab didn't enter selection mode:
-    //
-    // isInMultiSelectMode setter was a plain field assignment (no notify).
-    // The observer set isInMultiSelectMode = true then called updateSelectionForId
-    // which only notified the ONE long-pressed item. All other items on the same
-    // tab never received any notify — their ViewHolders still had
-    // inMultiSelectMode=false in wireClicks, so single tap still added to canvas.
-    //
-    // Fix: when mode changes (prevWasInMode != inMode), call applyModeToAll()
-    // which does notifyItemRangeChanged(0, count, PAYLOAD_SELECTION).
-    // This hits every visible ViewHolder with the lightweight payload path —
-    // only radio visibility updates, no Glide reload, no shimmer restart.
-    // Then separately call updateSelectionForId for the specific changed item.
 
     private fun observeSelectionState() {
         viewLifecycleOwner.lifecycleScope.launch {
@@ -158,23 +194,17 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                         val adapter = imagesAdapter ?: return@collect
 
                         val modeChanged = inMode != prevWasInMode
-
-                        // Always update the flag first
                         adapter.isInMultiSelectMode = inMode
 
                         if (modeChanged) {
-                            // Mode flipped — notify ALL items so every ViewHolder
-                            // shows/hides its radio icon and rewires its click handler
                             adapter.applyModeToAll()
                             prevWasInMode = inMode
                         }
 
                         if (!inMode) {
-                            // Mode exited — clear all selection state
                             adapter.clearSelectionShadow()
                             prevSelectedIds = emptySet()
                         } else {
-                            // Mode active — notify only changed individual items
                             val added   = newIds - prevSelectedIds
                             val removed = prevSelectedIds - newIds
                             added.forEach   { id -> adapter.updateSelectionForId(id, true)  }
@@ -202,8 +232,6 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                         adapter.isInMultiSelectMode = inMode
 
                         if (modeChanged) {
-                            // isInMultiSelectMode setter in EmojiAdapter already calls
-                            // notifyDataSetChanged — no extra call needed here
                             prevEmojiWasInMode = inMode
                         }
 
@@ -230,7 +258,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                 context        = requireActivity(),
                 initialEmojis  = baseEmojiData,
                 onEmojiClicked = { bmp ->
-                    if (isPanelExpanded) mainViewModel.togglePanelExpanded()
+                    if (isPanelExpanded) mainViewModel.togglePanel(PanelType.OBJECTS)
                     viewModel.addSticker(bmp, requireActivity(), ElementType.STICKER)
                 },
                 onEmojiLongPress = { emoji ->
@@ -253,7 +281,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
             imagesAdapter = ImagesAdapter(
                 context = requireActivity(),
                 onImageSelected = { bitmap, svgDrawable, svgXml, entity ->
-                    if (isPanelExpanded) mainViewModel.togglePanelExpanded()
+                    if (isPanelExpanded) mainViewModel.togglePanel(PanelType.OBJECTS)
 
                     val updated = if (svgXml != null && entity.bitmapData == null)
                         entity.copy(is_recent = true, bitmapData = svgXml)
@@ -330,8 +358,6 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
             emojiAdapter?.isExpanded = expanded
         } else {
             imagesAdapter?.isExpanded = expanded
-            // After notifyDataSetChanged from isExpanded, fresh ViewHolders
-            // need the current mode — applyModeToAll() ensures they all get it
             val currentMode = mainViewModel.isInMultiSelectMode.value
             imagesAdapter?.isInMultiSelectMode = currentMode
             if (currentMode) imagesAdapter?.applyModeToAll()
@@ -345,38 +371,14 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
         val selectedChars = mainViewModel.selectedEmojiChars.value
         if (selectedChars.isEmpty()) return
 
-        val paint = emojiAdapter?.getPaint() ?: return
-
         selectedChars.forEach { char ->
             viewLifecycleOwner.lifecycleScope.launch {
-                val bmp = withContext(Dispatchers.Default) {
-                    renderEmojiForCanvas(char, paint)
+                val bmp = withContext(Dispatchers.IO) {
+                    EmojiBitmapRenderer.render(char, sizePx = 512)
                 }
                 viewModel.addSticker(bmp, requireActivity(), ElementType.STICKER)
             }
         }
-    }
-
-    private fun renderEmojiForCanvas(
-        char: String,
-        paint: android.graphics.Paint
-    ): android.graphics.Bitmap {
-        val size     = 2048
-        val bounds   = android.graphics.Rect()
-        paint.getTextBounds(char, 0, char.length, bounds)
-        val glyphW = bounds.width().coerceAtLeast(1)
-        val glyphH = bounds.height().coerceAtLeast(1)
-        val pad    = ((maxOf(glyphW, glyphH)) * 0.06f).toInt().coerceAtLeast(4)
-        val outW   = glyphW + pad * 2
-        val outH   = glyphH + pad * 2
-        val cSize  = (maxOf(outW, outH) * 1.5f).toInt().coerceAtLeast(size)
-        val full   = android.graphics.Bitmap.createBitmap(cSize, cSize, android.graphics.Bitmap.Config.ARGB_8888)
-        val canvas = android.graphics.Canvas(full)
-        canvas.drawText(char, -bounds.left.toFloat() + pad, -bounds.top.toFloat() + pad, paint)
-        return try {
-            val cropped = android.graphics.Bitmap.createBitmap(full, 0, 0, outW.coerceAtMost(cSize), outH.coerceAtMost(cSize))
-            full.recycle(); cropped
-        } catch (e: IllegalArgumentException) { full }
     }
 
     private fun buildLayoutManager(expanded: Boolean): GridLayoutManager =

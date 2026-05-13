@@ -54,6 +54,18 @@
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/topGuide">
 
+        <ImageView
+            android:id="@+id/back"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:backgroundTint="@color/white"
+            android:padding="7dp"
+            android:background="@drawable/button_bg_round"
+            android:src="@drawable/ic_back"
+            app:layout_constraintStart_toEndOf="@id/startGuide"
+            app:layout_constraintTop_toTopOf="@id/tabLayout"
+            app:layout_constraintBottom_toBottomOf="@id/tabLayout" />
+
         <!-- Add image / Replace image inside shape -->
         <ImageView
             android:id="@+id/addImage"

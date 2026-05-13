@@ -570,8 +570,8 @@ class EditorFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                mainViewModel.isPanelExpanded.collectLatest { expanded ->
-                    expandPanel(expanded)
+                mainViewModel.expandedPanel.collect { panel ->
+                    expandPanel(panel != null)
                 }
             }
         }
@@ -771,7 +771,7 @@ class EditorFragment : Fragment() {
             // When panel is expanded (full-screen sticker browser), suppress ALL
             // context tools — alignment kit, opacity, blend etc. The user is in
             // browse mode, not edit mode.
-            if (mainViewModel.isPanelExpanded.value) {
+            if (mainViewModel.expandedPanel.value != null) {
                 // Just update internal state, show nothing
                 resetPanelsOnSelectionChange()
                 selectionFromUserInteraction = false
@@ -1091,7 +1091,7 @@ class EditorFragment : Fragment() {
     private fun initBottomNavigation() {
         binding.bottomNavigation.setOnItemSelectedListener { menuItem ->
             if (currentPanelItemId != menuItem.itemId) {
-                mainViewModel.collapsePanelIfExpanded()
+                mainViewModel.collapsePanel()
                 binding.panelNavHost.visibility = View.VISIBLE
                 currentPanelItemId = menuItem.itemId
                 when (menuItem.itemId) {

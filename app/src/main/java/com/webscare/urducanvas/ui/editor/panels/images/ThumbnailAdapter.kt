@@ -3,15 +3,20 @@ package com.webscare.urducanvas.ui.editor.panels.objects
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.RectF
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.core.graphics.createBitmap
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.enums.ShapeType
 import com.webscare.urducanvas.common.canvas.model.EmojiMeta
 import com.webscare.urducanvas.common.utils.Constants
+import com.webscare.urducanvas.common.utils.ShapeRenderUtils.drawShape
 import com.webscare.urducanvas.common.utils.SvgLoader
 import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.databinding.LayoutThumbnailItemBinding
@@ -26,23 +31,17 @@ import kotlinx.coroutines.withContext
 sealed class SelectedItem {
     data class Image(val entity: ImageEntity) : SelectedItem()
     data class Emoji(val meta: EmojiMeta, val cachedBitmap: Bitmap? = null) : SelectedItem()
+    data class Shape(val shape: ShapeType) : SelectedItem()
 
     val uniqueId: String get() = when (this) {
         is Image -> "img_${entity.id}"
         is Emoji -> "emoji_${meta.char}"
+        is Shape -> "shape_${shape.name}"
     }
 }
 
 // ── ThumbnailAdapter ──────────────────────────────────────────────────────────
 
-/**
- * Stable ListAdapter for the selection toolbar strip.
- * Uses its own dedicated layout_thumbnail_item.xml — a simple 52dp square
- * card with image preview + close icon. No shimmer, no premium badge.
- *
- * Created once in ObjectsFragment, updated via submitList().
- * DiffUtil handles smooth add/remove as user selects/deselects.
- */
 class ThumbnailAdapter(
     private val onDeselect: (SelectedItem) -> Unit
 ) : ListAdapter<SelectedItem, ThumbnailAdapter.ThumbnailViewHolder>(DIFF) {
@@ -55,15 +54,14 @@ class ThumbnailAdapter(
                 old.uniqueId == new.uniqueId
         }
         private const val EMOJI_THUMB_SIZE = 256
+        private const val SHAPE_THUMB_SIZE = 200
     }
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
         ThumbnailViewHolder(
-            LayoutThumbnailItemBinding.inflate(
-                LayoutInflater.from(parent.context), parent, false
-            )
+            LayoutThumbnailItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         )
 
     override fun onBindViewHolder(holder: ThumbnailViewHolder, position: Int) {
@@ -76,27 +74,20 @@ class ThumbnailAdapter(
 
         fun bind(item: SelectedItem) {
             binding.thumbImage.setImageDrawable(null)
-
-            // Close icon — deselects this item
             binding.thumbClose.setOnClickListener { onDeselect(item) }
 
             when (item) {
                 is SelectedItem.Image -> loadImage(item.entity)
                 is SelectedItem.Emoji -> loadEmoji(item.meta, item.cachedBitmap)
+                is SelectedItem.Shape -> loadShape(item.shape)
             }
         }
 
         private fun loadImage(entity: ImageEntity) {
             val url   = Constants.BASE_URL_GLIDE + entity.file_url
             val isSvg = entity.file_name.endsWith(".svg", ignoreCase = true)
-
             if (isSvg) {
-                SvgLoader.load(
-                    url       = url,
-                    imageView = binding.thumbImage,
-                    scope     = scope,
-                    cachedXml = entity.bitmapData
-                ) { _, _ -> }
+                SvgLoader.load(url, binding.thumbImage, scope, entity.bitmapData) { _, _ -> }
             } else {
                 Glide.with(binding.thumbImage)
                     .load(entity.bitmapData ?: url)
@@ -106,12 +97,17 @@ class ThumbnailAdapter(
         }
 
         private fun loadEmoji(meta: EmojiMeta, cachedBitmap: Bitmap?) {
-            if (cachedBitmap != null) {
-                binding.thumbImage.setImageBitmap(cachedBitmap)
-                return
-            }
+            if (cachedBitmap != null) { binding.thumbImage.setImageBitmap(cachedBitmap); return }
             scope.launch {
                 val bmp = withContext(Dispatchers.Default) { renderEmojiThumbnail(meta.char) }
+                binding.thumbImage.setImageBitmap(bmp)
+            }
+        }
+
+        private fun loadShape(shape: ShapeType) {
+            // Render shape bitmap off main thread — same as ShapeAdapter pre-rendering
+            scope.launch {
+                val bmp = withContext(Dispatchers.Default) { renderShapeThumbnail(shape) }
                 binding.thumbImage.setImageBitmap(bmp)
             }
         }
@@ -127,6 +123,23 @@ class ThumbnailAdapter(
             val fm     = paint.fontMetrics
             canvas.drawText(char, size / 2f, (size - fm.bottom - fm.top) / 2f, paint)
             return bmp
+        }
+
+        private fun renderShapeThumbnail(shape: ShapeType): Bitmap {
+            val size   = SHAPE_THUMB_SIZE
+            val bitmap = createBitmap(size, size)
+            val canvas = Canvas(bitmap)
+            val paint  = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                // Use a visible color for thumbnail context (dark on light)
+                color       = android.graphics.Color.parseColor("#333333")
+                strokeWidth = size * 0.045f
+                style       = Paint.Style.STROKE
+            }
+            val pad    = size * 0.2f
+            val radius = size * 0.15f
+            val rect   = RectF(pad, pad, size - pad, size - pad)
+            drawShape(canvas, paint, shape, rect, if (shape == ShapeType.RECTANGLE) 0f else radius)
+            return bitmap
         }
     }
 }

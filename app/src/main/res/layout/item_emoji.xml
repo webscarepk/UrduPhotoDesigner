@@ -1,12 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.appcompat.widget.AppCompatTextView
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/emojiText"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="40dp"
     android:layout_height="40dp"
-    android:gravity="center"
-    android:textSize="24dp"
     android:clickable="true"
-    android:textColor="@color/black"
-    android:fontFamily="@font/symbols"
-    android:foreground="?attr/selectableItemBackgroundBorderless"/>
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackgroundBorderless">
+
+    <!-- UNCHANGED from working version — fontFamily and textColor kept as before -->
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/emojiText"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:textSize="24dp"
+        android:textColor="@color/black"
+        android:fontFamily="@font/symbols" />
+
+    <com.airbnb.lottie.LottieAnimationView
+        android:id="@+id/loading"
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="2dp"
+        android:background="@drawable/button_bg_round"
+        android:backgroundTint="@color/white"
+        android:padding="2dp"
+        android:visibility="gone"
+        app:lottie_autoPlay="true"
+        app:lottie_loop="true"
+        app:lottie_rawRes="@raw/loading_gray" />
+
+</FrameLayout>

@@ -43,9 +43,11 @@ import com.webscare.urducanvas.data.model.ObjectsData
 import com.webscare.urducanvas.databinding.FragmentObjectsBinding
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import com.google.android.material.tabs.TabLayout
+import com.webscare.urducanvas.common.canvas.enums.PanelType
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
@@ -122,6 +124,7 @@ class ObjectsFragment : Fragment() {
                 when (item) {
                     is SelectedItem.Image -> mainViewModel.toggleImageSelection(item.entity.id)
                     is SelectedItem.Emoji -> mainViewModel.toggleEmojiSelection(item.meta.char)
+                    is SelectedItem.Shape -> { /* images panel has no shape selection */ }
                 }
             }
         )
@@ -148,10 +151,8 @@ class ObjectsFragment : Fragment() {
                     val dy = startY - event.rawY
                     if (abs(dy) >= thresholdPx) {
                         when {
-                            dy > 0 && !mainViewModel.isPanelExpanded.value ->
-                                mainViewModel.togglePanelExpanded()
-                            dy < 0 && mainViewModel.isPanelExpanded.value ->
-                                mainViewModel.togglePanelExpanded()
+                            dy > 0 && !mainViewModel.isPanelExpanded(PanelType.OBJECTS) -> mainViewModel.togglePanel(PanelType.OBJECTS)
+                            dy < 0 && mainViewModel.isPanelExpanded(PanelType.OBJECTS) -> mainViewModel.togglePanel(PanelType.OBJECTS)
                         }
                     }
                     true
@@ -167,7 +168,9 @@ class ObjectsFragment : Fragment() {
     private fun observePanelExpanded() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                mainViewModel.isPanelExpanded.collect { expanded ->
+                mainViewModel.expandedPanel
+                    .map { it == PanelType.OBJECTS }
+                    .collect { expanded ->
                     applyExpandedUi(expanded)
                     for ((_, fragment) in fragmentCache) {
                         fragment.onPanelExpanded(expanded)
@@ -182,14 +185,11 @@ class ObjectsFragment : Fragment() {
         binding.headerExpanded.isVisible    = expanded
         binding.tabLayoutExpanded.isVisible = expanded
 
-        val cs = ConstraintSet()
-        cs.clone(binding.root as ConstraintLayout)
-        cs.connect(
-            R.id.fragmentContainer, ConstraintSet.TOP,
-            if (expanded) R.id.tabLayoutExpanded else R.id.headerCollapsed,
-            ConstraintSet.BOTTOM
-        )
-        cs.applyTo(binding.root as ConstraintLayout)
+        val lp = binding.fragmentContainer.layoutParams
+                as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+        lp.topToBottom = if (expanded) R.id.tabLayoutExpanded else R.id.headerCollapsed
+        lp.topToTop    = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+        binding.fragmentContainer.layoutParams = lp
 
         if (expanded) {
             binding.searchBarExpanded.setText(currentQuery)
@@ -343,7 +343,7 @@ class ObjectsFragment : Fragment() {
 
             // FIX: clear ALL selection (images + emojis)
             mainViewModel.clearAllSelection()
-            if (mainViewModel.isPanelExpanded.value) mainViewModel.togglePanelExpanded()
+            if (mainViewModel.isPanelExpanded(PanelType.OBJECTS)) mainViewModel.togglePanel(PanelType.OBJECTS)
         }
     }
 
@@ -373,7 +373,7 @@ class ObjectsFragment : Fragment() {
             .commitNow()
 
         currentFragment = target
-        target.onPanelExpanded(mainViewModel.isPanelExpanded.value)
+        target.onPanelExpanded(mainViewModel.isPanelExpanded(PanelType.OBJECTS))
     }
 
     // ── TabLayout ─────────────────────────────────────────────────────────────
@@ -522,7 +522,7 @@ class ObjectsFragment : Fragment() {
     private fun setEvents() {
         binding.addImage.addPressEffect { pickImage.launch("image/*") }
         binding.addImageExpanded.addPressEffect { pickImage.launch("image/*") }
-        binding.closeExpanded.addPressEffect { mainViewModel.togglePanelExpanded() }
+        binding.closeExpanded.addPressEffect { mainViewModel.togglePanel(PanelType.OBJECTS) }
 
         // FIX: cancel clears ALL selection (images + emojis)
         binding.cancelSelection.addPressEffect { mainViewModel.clearAllSelection() }
@@ -607,8 +607,14 @@ class ObjectsFragment : Fragment() {
                 if (dr != null && event.x >= binding.searchBarExpanded.width -
                     binding.searchBarExpanded.paddingRight - dr.bounds.width()
                 ) {
+                    // Clear text + search
                     binding.searchBarExpanded.text.clear()
                     applySearch("")
+                    // Remove the cross drawable immediately
+                    updateExpandedSearchCross("")
+                    // Dismiss keyboard and remove focus
+                    hideKeyboard()
+                    binding.searchBarExpanded.clearFocus()
                     return@setOnTouchListener true
                 }
             }

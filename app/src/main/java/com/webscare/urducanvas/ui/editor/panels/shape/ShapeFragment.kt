@@ -201,6 +201,9 @@ class ShapeFragment : Fragment() {
             findNavController()
                 .navigate(R.id.adjustmentsParentFragment, bundle, navOptions)
         }
+
+
+        binding.back.addPressEffect { findNavController().navigateUp() }
     }
 
     override fun onDestroyView() {

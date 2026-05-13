@@ -5,35 +5,37 @@
     in the top-right corner to deselect.
     Kept intentionally minimal — no shimmer, no premium badge, no loading anim.
 -->
-<com.google.android.material.card.MaterialCardView
+<RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="52dp"
-    android:layout_height="52dp"
-    android:layout_marginEnd="6dp"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="0dp"
-    app:strokeWidth="0dp"
-    app:cardBackgroundColor="@color/contrast">
+    android:layout_width="60dp"
+    android:layout_height="60dp"
+    android:layout_marginEnd="6dp">
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        app:cardCornerRadius="8dp"
+        android:layout_alignParentBottom="true"
+        app:cardElevation="0dp"
+        app:strokeWidth="0dp"
+        app:cardBackgroundColor="@color/contrast">
 
-    <ImageView
-        android:id="@+id/thumbImage"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="centerCrop"
-        android:padding="4dp" />
-
-    <!-- Close/cross icon — tapping removes item from selection -->
+        <ImageView
+            android:id="@+id/thumbImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:padding="4dp" />
+    </com.google.android.material.card.MaterialCardView>
     <ImageView
         android:id="@+id/thumbClose"
         android:layout_width="16dp"
         android:layout_height="16dp"
-        android:layout_gravity="top|end"
+        android:translationZ="3dp"
         android:layout_margin="2dp"
+        android:layout_alignParentEnd="true"
         android:src="@drawable/ic_close"
         android:background="@drawable/button_bg_round"
-        android:backgroundTint="@color/black"
-        android:padding="2dp"
-        app:tint="@color/white" />
-
-</com.google.android.material.card.MaterialCardView>
+        android:padding="4dp"
+        app:tint="@color/black" />
+</RelativeLayout>

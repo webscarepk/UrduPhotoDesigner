@@ -7,24 +7,36 @@
     app:cardCornerRadius="10dp"
     app:strokeWidth="0dp"
     app:cardBackgroundColor="@color/white"
-    app:cardElevation="0dp">
+    app:cardElevation="0dp"
+    app:cardForegroundColor="@android:color/transparent">
 
+    <!--
+        app:cardForegroundColor="@android:color/transparent" removes the
+        MaterialCardView internal foreground scrim that was tinting the content
+        and causing the dim/lower-alpha appearance on emoji.
+
+        AppCompatTextView instead of TextView — same as collapsed item which
+        renders emoji correctly. AppCompatTextView has better emoji fallback
+        handling via EmojiCompat.
+
+        fontFamily kept — same as collapsed item. If collapsed shows correctly
+        with symbols font, expanded should too now that the card scrim is gone.
+    -->
     <com.webscare.urducanvas.common.views.SquareFrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <!-- Emoji character — displayed using the symbols font -->
-        <TextView
+        <androidx.appcompat.widget.AppCompatTextView
             android:id="@+id/emojiText"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_gravity="center"
-            android:fontFamily="@font/symbols"
             android:gravity="center"
             android:textSize="40sp"
+            android:textColor="@color/black"
+            android:fontFamily="@font/symbols"
             android:includeFontPadding="false" />
 
-        <!-- Selection radio icon — same pattern as layout_images_item_expanded -->
         <ImageView
             android:id="@+id/selection"
             android:layout_width="22dp"
@@ -34,11 +46,6 @@
             android:src="@drawable/ic_unselected_radio"
             android:visibility="gone" />
 
-        <!--
-            Loading indicator — shown while the high-res bitmap renders.
-            Same position and style as the loading anim in layout_images_item_expanded.
-            Stays gone until user taps the emoji.
-        -->
         <com.airbnb.lottie.LottieAnimationView
             android:id="@+id/loading"
             android:layout_width="20dp"
