@@ -635,6 +635,12 @@ class EditorFragment : Fragment() {
                     binding.canvasContainer.invalidate()
                     scheduleJsonSave()
                 }
+                val panelDestinations = listOf(R.id.adjustmentsParentFragment, R.id.shapeFragment)
+                val currentDest = navController.currentDestination?.id
+                if (currentDest != null && currentDest in panelDestinations) {
+                    val hasSelection = elements?.any { it.isSelected } == true
+                    if (!hasSelection) navController.popBackStack(currentDest, true)
+                }
             }
         }
 
@@ -824,9 +830,7 @@ class EditorFragment : Fragment() {
             }
 
             val panelDestinations = listOf(
-                R.id.textFragment,
                 R.id.adjustmentsParentFragment,
-                R.id.shapesParentFragment,
                 R.id.shapeFragment
             )
 

@@ -244,6 +244,9 @@ class CanvasViewModel @Inject constructor(
     private val _blur = MutableLiveData(0f)
     val blur: LiveData<Float> = _blur
 
+    private val _featherRadius = MutableLiveData(0f)
+    val featherRadius: LiveData<Float> = _featherRadius
+
     private val _shadows = MutableLiveData(0f)
     val shadows: LiveData<Float> = _shadows
 
@@ -918,6 +921,32 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
+    fun setFeather(value: Float) {
+        _featherRadius.value = value
+        val currentList = _canvasElements.value ?: return
+        val updatedList = currentList.map { element ->
+            if (element.isSelected) {
+                val old = element.copy(context = null, bitmap = null)
+                element.featherRadius = value
+                element.hasFeather = value > 0f
+                element.isAdjustmentDirty = true
+                element.cachedAdjustedBitmap?.recycle()
+                element.cachedAdjustedBitmap = null
+                _canvasActions.push(
+                    CanvasAction.UpdateElement(
+                        elementId = element.id,
+                        newElement = element.copy(context = null, bitmap = null),
+                        oldElement = old
+                    )
+                )
+                element
+            } else element
+        }
+        _canvasElements.value = updatedList
+        _redoStack.clear()
+        notifyUndoRedoChanged()
+    }
+
     private fun updateSelectedElementValue(updateBlock: (CanvasElement) -> Unit) {
         val currentList = _canvasElements.value ?: return
         val updatedList = currentList.map {
@@ -1009,6 +1038,7 @@ class CanvasViewModel @Inject constructor(
         _sharpness.value = 0f
         _clarity.value = 0f
         _fade.value = 0f
+         _featherRadius.value = 0f
 
         updateSelectedElementAdjustments { AdjustmentValues() }
     }
@@ -2330,6 +2360,7 @@ class CanvasViewModel @Inject constructor(
                     _highlights.value = adj.highlights
                     _clarity.value = adj.clarity
                     _fade.value = adj.fade
+                    _featherRadius.value = firstImage.featherRadius
                 }
             }
 
@@ -2486,26 +2517,28 @@ class CanvasViewModel @Inject constructor(
         val element = _selectedElements.value?.firstOrNull() ?: return
 
         val alreadyDisabled = when (type) {
-            "Shadow" -> !element.hasShadow
-            "Stroke" -> !element.hasStroke
-            "Blur" -> !element.hasBlur
+            "Shadow"  -> !element.hasShadow
+            "Stroke"  -> !element.hasStroke
+            "Blur"    -> !element.hasBlur
             "Overlay" -> !element.hasOverlay
-            "Light" -> !element.hasLight
-            "Color" -> !element.hasColor
-            "Detail" -> !element.hasDetail
-            else -> false
+            "Light"   -> !element.hasLight
+            "Color"   -> !element.hasColor
+            "Detail"  -> !element.hasDetail
+            "Feather" -> !element.hasFeather   // ← ADD
+            else      -> false
         }
 
         if (!alreadyDisabled) {
             val updatedElement = element.copy().apply {
                 when (type) {
-                    "Shadow" -> hasShadow = false
-                    "Stroke" -> hasStroke = false
-                    "Blur" -> hasBlur = false
+                    "Shadow"  -> hasShadow  = false
+                    "Stroke"  -> hasStroke  = false
+                    "Blur"    -> hasBlur    = false
                     "Overlay" -> hasOverlay = false
-                    "Light" -> hasLight = false
-                    "Color" -> hasColor = false
-                    "Detail" -> hasDetail = false
+                    "Light"   -> hasLight   = false
+                    "Color"   -> hasColor   = false
+                    "Detail"  -> hasDetail  = false
+                    "Feather" -> hasFeather = false   // ← ADD
                 }
             }
             updateCanvasElement(updatedElement)
@@ -2520,24 +2553,24 @@ class CanvasViewModel @Inject constructor(
                     hasShadow = !hasShadow
                     if (hasShadow) applyShadowPresets(this)
                 }
-
                 "Stroke" -> {
                     hasStroke = !hasStroke
                     if (hasStroke) applyStrokePresets(this)
                 }
-
                 "Blur" -> {
                     hasBlur = !hasBlur
                     if (hasBlur) applyBlurPresets(this)
                 }
-
                 "Overlay" -> {
                     hasOverlay = !hasOverlay
                     if (hasOverlay) applyOverlayPresets(this)
                 }
-
-                "Light" -> hasLight = !hasLight
-                "Color" -> hasColor = !hasColor
+                "Feather" -> {                            // ← ADD
+                    hasFeather = !hasFeather               // ← ADD
+                    if (hasFeather) applyFeatherPresets(this)  // ← ADD
+                }                                          // ← ADD
+                "Light"  -> hasLight  = !hasLight
+                "Color"  -> hasColor  = !hasColor
                 "Detail" -> hasDetail = !hasDetail
             }
         }
@@ -2548,41 +2581,38 @@ class CanvasViewModel @Inject constructor(
         val element = _selectedElements.value?.firstOrNull() ?: return
 
         val alreadyEnabled = when (type) {
-            "Shadow" -> element.hasShadow
-            "Stroke" -> element.hasStroke
-            "Blur" -> element.hasBlur
+            "Shadow"  -> element.hasShadow
+            "Stroke"  -> element.hasStroke
+            "Blur"    -> element.hasBlur
             "Overlay" -> element.hasOverlay
-            "Light" -> element.hasLight
-            "Color" -> element.hasColor
-            "Detail" -> element.hasDetail
-            else -> true
+            "Light"   -> element.hasLight
+            "Color"   -> element.hasColor
+            "Detail"  -> element.hasDetail
+            "Feather" -> element.hasFeather   // ← ADD
+            else      -> true
         }
 
         if (!alreadyEnabled) {
             val updatedElement = element.copy().apply {
                 when (type) {
-                    "Shadow" -> {
-                        hasShadow = true; applyShadowPresets(this)
-                    }
-
-                    "Stroke" -> {
-                        hasStroke = true; applyStrokePresets(this)
-                    }
-
-                    "Blur" -> {
-                        hasBlur = true; applyBlurPresets(this)
-                    }
-
-                    "Overlay" -> {
-                        hasOverlay = true; applyOverlayPresets(this)
-                    }
-
-                    "Light" -> hasLight = true
-                    "Color" -> hasColor = true
-                    "Detail" -> hasDetail = true
+                    "Shadow"  -> { hasShadow  = true; applyShadowPresets(this) }
+                    "Stroke"  -> { hasStroke  = true; applyStrokePresets(this) }
+                    "Blur"    -> { hasBlur    = true; applyBlurPresets(this) }
+                    "Overlay" -> { hasOverlay = true; applyOverlayPresets(this) }
+                    "Feather" -> { hasFeather = true; applyFeatherPresets(this) }  // ← ADD
+                    "Light"   -> hasLight  = true
+                    "Color"   -> hasColor  = true
+                    "Detail"  -> hasDetail = true
                 }
             }
             updateCanvasElement(updatedElement)
+        }
+    }
+
+    private fun applyFeatherPresets(element: CanvasElement) {
+        if (element.featherRadius == 0f) {
+            element.featherRadius = 30f   // sensible default: 30% feather
+            _featherRadius.value = element.featherRadius
         }
     }
 
@@ -3945,6 +3975,7 @@ class CanvasViewModel @Inject constructor(
         _clarity.value = adj.clarity
         _fade.value = adj.fade
         _sharpness.value = adj.sharpness
+        _featherRadius.value = element.featherRadius
     }
 
     fun clearCanvas() {

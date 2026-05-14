@@ -3,7 +3,6 @@ package com.webscare.urducanvas.ui.editor.panels.adjustments.effects
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,14 +10,14 @@ import android.widget.SeekBar
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColorInt
 import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget
 import com.webscare.urducanvas.common.canvas.enums.PickerTarget
-import com.webscare.urducanvas.common.utils.ColorPickerDialog
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentImageStrokeBinding
@@ -29,7 +28,6 @@ import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import kotlin.getValue
 
 @AndroidEntryPoint
 class ImageStrokeFragment : Fragment() {
@@ -58,66 +56,51 @@ class ImageStrokeFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        colorsAdapter =
-            ColorsAdapter(
-                Constants.colorList,
-                onColorSelected = { color ->
-                    val selectedColor = color.colorCode.toColorInt()
-                    val width = viewModel.borderWidth.value ?: 1f
-                    viewModel.clearStrokeGradients()
-                    viewModel.setImageBorder(true, selectedColor, width)
-                },
-                onNoneSelected = {
-                    viewModel.setImageBorder(false, Color.TRANSPARENT, 0f)
-                },
-                onColorPickerClicked = {
-                    viewModel.clearLabelGradients()
-                    viewModel.startPicking(PickerTarget.COLOR_PICKER_IMAGE_STROKE)
+        colorsAdapter = ColorsAdapter(Constants.colorList, onColorSelected = { color ->
+            val selectedColor = color.colorCode.toColorInt()
+            val width = viewModel.borderWidth.value ?: 1f
+            viewModel.clearStrokeGradients()
+            viewModel.setImageBorder(true, selectedColor, width)
+        }, onNoneSelected = {
+            viewModel.setImageBorder(false, Color.TRANSPARENT, 0f)
+        }, onColorPickerClicked = {
+            viewModel.clearLabelGradients()
+            viewModel.startPicking(PickerTarget.COLOR_PICKER_IMAGE_STROKE)
 
-                    viewModel.setPagingLocked(true)
-                    childFragmentManager.beginTransaction().replace(
-                        R.id.imageStroke,
-                        ColorPickerFragment()
-                    ).addToBackStack(null).commit()
-                },
-                onEyeDropperClicked = {
-                    viewModel.clearLabelGradients()
-                    viewModel.startPicking(PickerTarget.EYE_DROPPER_IMAGE_STROKE)
-                })
+            viewModel.setPagingLocked(true)
+            childFragmentManager.beginTransaction().replace(
+                R.id.imageStroke, ColorPickerFragment()
+            ).addToBackStack(null).commit()
+        }, onEyeDropperClicked = {
+            viewModel.clearLabelGradients()
+            viewModel.startPicking(PickerTarget.EYE_DROPPER_IMAGE_STROKE)
+        })
 
         gradientsAdapter =
-            GradientsAdapter(
-                gradientList = emptyList(),
-                onGradientSelected = { _, item ->
-                    val width = viewModel.borderWidth.value ?: 1f
-                    viewModel.setImageStrokeGradient(item, width)
-                },
-                onGradientEditSelected = { _, item ->
-                    viewModel.startPickingGradient(GradientPickerTarget.IMAGE_STROKE)
-                    viewModel.setGradient(item)
-                    viewModel.setPagingLocked(true)
-                    childFragmentManager.beginTransaction().replace(
-                        R.id.imageStroke,
-                        GradientEditorFragment().apply {
-                            arguments = Bundle().apply { putBoolean("IS_EDIT", true) }
+            GradientsAdapter(gradientList = emptyList(), onGradientSelected = { _, item ->
+                val width = viewModel.borderWidth.value ?: 1f
+                viewModel.setImageStrokeGradient(item, width)
+            }, onGradientEditSelected = { _, item ->
+                viewModel.startPickingGradient(GradientPickerTarget.IMAGE_STROKE)
+                viewModel.setGradient(item)
+                viewModel.setPagingLocked(true)
+                childFragmentManager.beginTransaction().replace(
+                    R.id.imageStroke, GradientEditorFragment().apply {
+                        arguments = Bundle().apply { putBoolean("IS_EDIT", true) }
+                    }).addToBackStack(null).commit()
+            }, onNoneSelected = {
+                viewModel.clearStrokeGradients()
+                viewModel.setImageBorder(false, Color.TRANSPARENT, 0f)
+            }, onGradientPickerClicked = {
+                viewModel.startPickingGradient(GradientPickerTarget.IMAGE_STROKE)
+                viewModel.setPagingLocked(true)
+                childFragmentManager.beginTransaction().replace(
+                    R.id.imageStroke, GradientEditorFragment().apply {
+                            arguments = Bundle().apply {
+                                putBoolean("IS_EDIT", false)
+                            }
                         }).addToBackStack(null).commit()
-                },
-                onNoneSelected = {
-                    viewModel.clearStrokeGradients()
-                    viewModel.setImageBorder(false, Color.TRANSPARENT, 0f)
-                },
-                onGradientPickerClicked = {
-                    viewModel.startPickingGradient(GradientPickerTarget.IMAGE_STROKE)
-                    viewModel.setPagingLocked(true)
-                    childFragmentManager.beginTransaction().replace(
-                        R.id.imageStroke,
-                        GradientEditorFragment()
-                            .apply {
-                                arguments = Bundle().apply {
-                                    putBoolean("IS_EDIT", false)
-                                }
-                            }).addToBackStack(null).commit()
-                })
+            })
 
         binding.colors.apply {
             setHasFixedSize(true)
@@ -170,6 +153,7 @@ class ImageStrokeFragment : Fragment() {
                 override fun onStartTrackingTouch(sb: SeekBar?) {
                     viewModel.enableFeature("Stroke")
                 }
+
                 override fun onStopTrackingTouch(sb: SeekBar) {}
             })
         }
@@ -231,9 +215,9 @@ class ImageStrokeFragment : Fragment() {
         binding.borderSize.text = "${viewModel.borderWidth.value!!}"
         binding.border.progress = viewModel.borderWidth.value?.toInt()!!
         binding.gradients.layoutManager =
-            LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+            GridLayoutManager(requireContext(), 3, GridLayoutManager.HORIZONTAL, false)
         binding.colors.layoutManager =
-            LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+            GridLayoutManager(requireContext(), 3, GridLayoutManager.HORIZONTAL, false)
     }
 
     override fun onDestroyView() {

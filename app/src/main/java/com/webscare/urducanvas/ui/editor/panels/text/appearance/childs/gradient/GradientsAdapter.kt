@@ -19,16 +19,16 @@ import com.webscare.urducanvas.databinding.LayoutColorPickerItemBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class GradientsAdapter(
-    private var gradientList: List<com.webscare.urducanvas.common.canvas.model.GradientItem>,
-    private val onGradientSelected: (Bitmap, com.webscare.urducanvas.common.canvas.model.GradientItem) -> Unit,
-    private val onGradientEditSelected: (Bitmap, com.webscare.urducanvas.common.canvas.model.GradientItem) -> Unit,
+    private var gradientList: List<GradientItem>,
+    private val onGradientSelected: (Bitmap, GradientItem) -> Unit,
+    private val onGradientEditSelected: (Bitmap, GradientItem) -> Unit,
     private val onNoneSelected: () -> Unit,
     private val onGradientPickerClicked: () -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var selectedPosition: Int = RecyclerView.NO_POSITION
 
-    var selectedItem: com.webscare.urducanvas.common.canvas.model.GradientItem? = null
+    var selectedItem: GradientItem? = null
         set(value) {
             field = value
             gradientList.forEach { it.isSelected = (it == value) }
@@ -44,7 +44,7 @@ class GradientsAdapter(
     inner class GradientViewHolder(val binding: LayoutColorItemBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(item: com.webscare.urducanvas.common.canvas.model.GradientItem, isSelected: Boolean) {
+        fun bind(item: GradientItem, isSelected: Boolean) {
 
             binding.colorView.background = GradientDrawable(
                 GradientDrawable.Orientation.RIGHT_LEFT,
@@ -53,14 +53,11 @@ class GradientsAdapter(
             val gradientDrawable = GradientDrawable(GradientDrawable.Orientation.RIGHT_LEFT, item.colors.toIntArray())
 
             if (isSelected) {
-                binding.root.strokeWidth = 4
-                binding.root.setCardBackgroundColor(Color.WHITE)
-                binding.edit.visibility = View.VISIBLE
                 binding.root.strokeColor = ContextCompat.getColor(binding.root.context, R.color.appColor)
+                binding.edit.visibility = View.VISIBLE
             } else {
-                binding.root.strokeWidth = 0
+                binding.root.strokeColor = Color.TRANSPARENT
                 binding.edit.visibility = View.GONE
-                binding.root.setCardBackgroundColor(Color.WHITE)
             }
 
             binding.root.addPressEffect {
@@ -154,7 +151,7 @@ class GradientsAdapter(
         }
     }
 
-    fun updateList(new:List<com.webscare.urducanvas.common.canvas.model.GradientItem>){
+    fun updateList(new:List<GradientItem>){
         gradientList = new
         notifyDataSetChanged()
     }

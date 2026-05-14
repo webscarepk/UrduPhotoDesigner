@@ -6,19 +6,13 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import com.webscare.urducanvas.data.model.AdjustmentPanelTabs
-import com.webscare.urducanvas.data.model.PanelTabs
 import com.webscare.urducanvas.databinding.FragmentEffectsBinding
 import com.webscare.urducanvas.ui.editor.panels.adjustments.AdjustmentPanelTabsAdapter
-import com.webscare.urducanvas.ui.editor.panels.adjustments.custom.AdjustmentsFragment
-import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
-import kotlin.getValue
 
 @AndroidEntryPoint
 class EffectsFragment : Fragment() {
@@ -51,10 +45,11 @@ class EffectsFragment : Fragment() {
         tabs.add(AdjustmentPanelTabs(1, "Color", is_selected = false))
         tabs.add(AdjustmentPanelTabs(2, "Blur", is_selected = false))
         tabs.add(AdjustmentPanelTabs(3, "Stroke", is_selected = false))
+        tabs.add(AdjustmentPanelTabs(4, "Feather", is_selected = false))
     }
 
     private fun setupRecyclerViews() {
-        adapter = AdjustmentPanelTabsAdapter( { tab ->
+        adapter = AdjustmentPanelTabsAdapter({ tab ->
             handleTabClick(tab)
         })
         binding.categories.adapter = adapter
@@ -81,11 +76,12 @@ class EffectsFragment : Fragment() {
             var isAnyChange = false
             tabs.forEachIndexed { index, tab ->
                 val currentState = when (tab.tab_name) {
-                    "Color" -> element.hasOverlay
-                    "Shadow" -> element.hasShadow
-                    "Stroke" -> element.hasStroke
-                    "Blur" -> element.hasBlur
-                    else -> false
+                    "Color"   -> element.hasOverlay
+                    "Shadow"  -> element.hasShadow
+                    "Stroke"  -> element.hasStroke
+                    "Blur"    -> element.hasBlur
+                    "Feather" -> element.hasFeather
+                    else      -> false
                 }
 
                 if (tab.is_enabled != currentState) {
@@ -102,10 +98,11 @@ class EffectsFragment : Fragment() {
 
     private fun setupInitialTabs(element: CanvasElement) {
         tabs.clear()
-        tabs.add(AdjustmentPanelTabs(0, "Shadow", is_selected = true, is_enabled = element.hasShadow))
-        tabs.add(AdjustmentPanelTabs(1, "Color", is_selected = false, is_enabled = element.hasOverlay))
-        tabs.add(AdjustmentPanelTabs(2, "Blur", is_selected = false, is_enabled = element.hasBlur))
-        tabs.add(AdjustmentPanelTabs(3, "Stroke", is_selected = false, is_enabled = element.hasStroke))
+        tabs.add(AdjustmentPanelTabs(0, "Shadow",  is_selected = true,  is_enabled = element.hasShadow))
+        tabs.add(AdjustmentPanelTabs(1, "Color",   is_selected = false, is_enabled = element.hasOverlay))
+        tabs.add(AdjustmentPanelTabs(2, "Blur",    is_selected = false, is_enabled = element.hasBlur))
+        tabs.add(AdjustmentPanelTabs(3, "Stroke",  is_selected = false, is_enabled = element.hasStroke))
+        tabs.add(AdjustmentPanelTabs(4, "Feather", is_selected = false, is_enabled = element.hasFeather))
         adapter.submitList(ArrayList(tabs))
     }
 
@@ -113,6 +110,7 @@ class EffectsFragment : Fragment() {
         val currentSelectedTab = tabs.find { it.is_selected }
 
         if (currentSelectedTab?.tab_name == clickedTab.tab_name) {
+            // Tapping the already-selected tab toggles the feature on/off
             viewModel.toggleFeature(if (clickedTab.tab_name == "Color") "Overlay" else clickedTab.tab_name)
         } else {
             val selectedIndex = tabs.indexOfFirst { it.tab_name == clickedTab.tab_name }

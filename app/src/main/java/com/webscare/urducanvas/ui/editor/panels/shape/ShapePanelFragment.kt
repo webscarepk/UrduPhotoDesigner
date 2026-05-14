@@ -306,8 +306,7 @@ class ShapePanelFragment : Fragment() {
         }
 
         binding.colors.apply {
-            layoutManager = if (tabName == "Stroke") LinearLayoutManager(requireActivity(),
-                LinearLayoutManager.HORIZONTAL, false) else GridLayoutManager(requireActivity(), 3,
+            layoutManager = GridLayoutManager(requireActivity(), 3,
                 GridLayoutManager.HORIZONTAL, false)
 
             setHasFixedSize(true)
@@ -315,8 +314,7 @@ class ShapePanelFragment : Fragment() {
         }
 
         binding.gradients.apply {
-            layoutManager = if (tabName == "Stroke") LinearLayoutManager(requireActivity(),
-                LinearLayoutManager.HORIZONTAL, false) else GridLayoutManager(requireActivity(), 3,
+            layoutManager = GridLayoutManager(requireActivity(), 3,
                 GridLayoutManager.HORIZONTAL, false)
 
             setHasFixedSize(true)

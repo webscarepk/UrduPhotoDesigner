@@ -29,7 +29,7 @@ data class CanvasElement(
     @field:Transient var context: Context? = null, // Made nullable for deserialization
 
     @SerializedName("type") var type: ElementType?,
-
+    @SerializedName("customName") var customName: String? = null,
     @Transient  // or @Exclude if using Gson's @Expose
     @com.google.gson.annotations.JsonAdapter(value = Nothing::class) // skip serialization
     var svgDrawable: android.graphics.drawable.PictureDrawable? = null,
@@ -144,6 +144,10 @@ data class CanvasElement(
     @SerializedName("hasBlur") var hasBlur: Boolean = false,
 
     @SerializedName("blurValue") var blurValue: Float = 0f,
+
+    @SerializedName("hasFeather") var hasFeather: Boolean = false,
+
+    @SerializedName("featherRadius") var featherRadius: Float = 0f,
 
     @SerializedName("blendType") var blendType: BlendType = BlendType.NORMAL,
 

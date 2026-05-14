@@ -1,8 +1,8 @@
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/fontCard"
-    android:layout_width="48dp"
-    android:layout_height="48dp"
+    android:layout_width="58dp"
+    android:layout_height="58dp"
     android:layout_marginEnd="6dp"
     android:layout_marginBottom="6dp"
     app:cardBackgroundColor="@color/selection"
@@ -20,20 +20,20 @@
             android:layout_height="match_parent"
             app:shimmer_auto_start="true"
             app:shimmer_base_alpha="0.5"
-            app:shimmer_duration="700"
-app:shimmer_repeat_delay="0"
             app:shimmer_base_color="@color/contrast"
             app:shimmer_colored="true"
-            app:shimmer_highlight_alpha="1.0">
+            app:shimmer_duration="700"
+            app:shimmer_highlight_alpha="1.0"
+            app:shimmer_repeat_delay="0">
 
             <ImageView
                 android:id="@+id/font"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:padding="6dp"
-                android:src="@drawable/ic_launcher_background"
                 android:background="@color/contrast"
-                android:scaleType="fitCenter" />
+                android:padding="6dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_launcher_background" />
 
         </com.facebook.shimmer.ShimmerFrameLayout>
 
@@ -41,23 +41,23 @@ app:shimmer_repeat_delay="0"
             android:id="@+id/loading"
             android:layout_width="16dp"
             android:layout_height="16dp"
-            app:lottie_rawRes="@raw/loading_gray"
-            app:lottie_autoPlay="true"
             android:layout_gravity="end|bottom"
             android:layout_margin="4dp"
-            android:visibility="gone"
             android:background="@drawable/button_bg_round"
             android:backgroundTint="@color/white"
+            android:padding="3dp"
+            android:visibility="gone"
+            app:lottie_autoPlay="true"
             app:lottie_loop="true"
-            android:padding="3dp"/>
+            app:lottie_rawRes="@raw/loading_gray" />
 
         <ImageView
+            android:id="@+id/isPremium"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@drawable/ic_premium_icon"
             android:layout_gravity="top|end"
-            android:id="@+id/isPremium"
-            android:visibility="visible"/>
+            android:src="@drawable/ic_premium_icon"
+            android:visibility="visible" />
 
         <ImageView
             android:id="@+id/download"
@@ -65,11 +65,11 @@ app:shimmer_repeat_delay="0"
             android:layout_height="16dp"
             android:layout_gravity="end|bottom"
             android:layout_margin="4dp"
-            android:src="@drawable/ic_download"
-            android:visibility="gone"
             android:background="@drawable/button_bg_round"
             android:backgroundTint="@color/white"
             android:padding="3dp"
+            android:src="@drawable/ic_download"
+            android:visibility="gone"
             app:tint="@color/appColor" />
     </FrameLayout>
 </com.google.android.material.card.MaterialCardView>

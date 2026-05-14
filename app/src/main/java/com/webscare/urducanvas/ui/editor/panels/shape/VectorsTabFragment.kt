@@ -6,13 +6,11 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
-import com.google.android.material.snackbar.Snackbar
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.ElementType
@@ -36,9 +34,6 @@ class VectorsTabFragment : Fragment() {
     private val mainViewModel: MainViewModel by activityViewModels()
     private var shapesAdapter: ShapeAdapter? = null
     private var isPanelExpanded = false
-
-    // Track whether we already showed the hint this session
-    private var hintShown = false
 
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -79,6 +74,7 @@ class VectorsTabFragment : Fragment() {
 
         binding.objects.apply {
             setHasFixedSize(true)
+            itemAnimator = null          // suppress flicker on dataset changes
             layoutManager = buildLayoutManager(isPanelExpanded)
             adapter = shapesAdapter
         }
@@ -111,20 +107,10 @@ class VectorsTabFragment : Fragment() {
                 collapsePanel()
             }
 
-            // B: Shape already selected — update its type
+            // B: Shape already selected — update its type then collapse so user sees the result
             isShapeSelected -> {
                 viewModel.updateShapeType(shape)
-
-                // Show hint once per session so user knows how to add a new shape
-                if (!hintShown) {
-                    hintShown = true
-                    Snackbar.make(
-                        requireView(),
-                        getString(R.string.hint_shape_update),   // see string resource below
-                        Snackbar.LENGTH_SHORT
-                    ).show()
-                }
-                // Don't collapse — let user keep browsing to change shape type
+                collapsePanel()
             }
 
             // C: No shape selected — add new shape and collapse so user sees it
@@ -186,7 +172,6 @@ class VectorsTabFragment : Fragment() {
         if (_binding == null) return
 
         binding.swipeRefresh?.isEnabled = expanded
-        binding.objects.recycledViewPool.clear()
         binding.objects.layoutManager = buildLayoutManager(expanded)
         shapesAdapter?.isExpanded = expanded
         if (expanded) binding.objects.scrollToPosition(0)

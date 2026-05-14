@@ -210,6 +210,7 @@ class ImagesListFragment : Fragment() {
                     else entity.copy(is_recent = true)
 
                     mainViewModel.updateImage(updated)
+                    if (mainViewModel.isPanelExpanded(PanelType.IMAGES)) mainViewModel.togglePanel(PanelType.IMAGES)
 
                     if (!isAdded) return@ImagesAdapter
 

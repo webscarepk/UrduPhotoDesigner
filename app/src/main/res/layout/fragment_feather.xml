@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    tools:context=".ui.editor.panels.adjustments.effects.FeatherFragment">
+
+    <!-- Feather -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/featherCard"
+        android:visibility="visible"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="3dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/featherTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Feather"
+            android:fontFamily="@font/medium"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:textSize="12sp"
+            android:layout_marginStart="12dp"
+            android:textColor="@color/black"/>
+
+        <TextView
+            android:id="@+id/featherSize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:fontFamily="@font/regular"
+            app:layout_constraintTop_toTopOf="@id/featherTitle"
+            app:layout_constraintBottom_toBottomOf="@id/featherTitle"
+            app:layout_constraintStart_toEndOf="@id/featherTitle"
+            android:textSize="12sp"
+            android:background="@drawable/edit_bg_stroke"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="4dp"
+            android:textColor="@color/black"
+            android:layout_marginStart="6dp"/>
+
+        <SeekBar
+            android:progressBackgroundTint="@color/light_gray"
+            android:id="@+id/feather"
+            android:layout_marginTop="3dp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/featherSize"
+            android:thumbTint="@color/appColor"
+            android:indeterminateTint="@color/appColor"
+            android:progressTint="@color/appColor"
+            android:progress="0"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Opacity -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/opacityCard"
+        android:visibility="visible"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/featherCard"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/opacityTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Opacity"
+            android:fontFamily="@font/medium"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:textSize="12sp"
+            android:layout_marginStart="12dp"
+            android:textColor="@color/black"/>
+
+        <TextView
+            android:id="@+id/opacitySize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="255"
+            android:fontFamily="@font/regular"
+            app:layout_constraintTop_toTopOf="@id/opacityTitle"
+            app:layout_constraintBottom_toBottomOf="@id/opacityTitle"
+            app:layout_constraintStart_toEndOf="@id/opacityTitle"
+            android:textSize="12sp"
+            android:background="@drawable/edit_bg_stroke"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="4dp"
+            android:textColor="@color/black"
+            android:layout_marginStart="6dp"/>
+
+        <SeekBar
+            android:progressBackgroundTint="@color/light_gray"
+            android:id="@+id/opacity"
+            android:layout_marginTop="3dp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/opacitySize"
+            android:thumbTint="@color/appColor"
+            android:indeterminateTint="@color/appColor"
+            android:progressTint="@color/appColor"
+            android:progress="255"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

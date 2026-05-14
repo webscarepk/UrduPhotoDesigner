@@ -70,8 +70,9 @@ class ShapesListFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.objects.apply {
-            setHasFixedSize(false)
+            setHasFixedSize(true)
             setItemViewCacheSize(20)
+            itemAnimator = null          // suppress flicker on dataset changes
             recycledViewPool.setMaxRecycledViews(0, 25)
         }
 
@@ -215,7 +216,6 @@ class ShapesListFragment : Fragment() {
         }
 
         binding.swipeRefresh?.isEnabled = expanded
-        binding.objects.recycledViewPool.clear()
         binding.objects.layoutManager = buildLayoutManager(expanded)
         imagesAdapter?.isExpanded = expanded
 

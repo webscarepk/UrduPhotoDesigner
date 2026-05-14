@@ -79,14 +79,13 @@
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/gradients"
             android:layout_width="0dp"
-            android:layout_height="0dp"
+            android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:visibility="gone"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
             tools:itemCount="100"
             tools:listitem="@layout/layout_color_item" />
     </androidx.constraintlayout.widget.ConstraintLayout>

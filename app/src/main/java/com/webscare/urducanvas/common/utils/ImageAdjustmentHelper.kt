@@ -7,6 +7,8 @@ import android.graphics.Color
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
+import android.graphics.RadialGradient
+import android.graphics.Shader
 import android.renderscript.Allocation
 import android.renderscript.Element
 import android.renderscript.RenderScript
@@ -32,12 +34,9 @@ object ImageAdjustmentHelper {
 
         // ─────────────────────────────────────────────
         // 1️⃣  BRIGHTNESS  (-100 → +100)
-        //     Uniform lightening/darkening of every pixel.
-        //     Implemented as a translate-only shift on each channel.
-        //     +100 → all channels +100 (lighter), -100 → all channels -100 (darker)
         // ─────────────────────────────────────────────
         if (element.hasLight && values.brightness != 0f) {
-            val shift = values.brightness * 1.0f   // range: -100 … +100
+            val shift = values.brightness * 1.0f
             cm.postConcat(ColorMatrix(floatArrayOf(
                 1f, 0f, 0f, 0f, shift,
                 0f, 1f, 0f, 0f, shift,
@@ -48,13 +47,10 @@ object ImageAdjustmentHelper {
 
         // ─────────────────────────────────────────────
         // 2️⃣  CONTRAST  (0.5 → 1.5)
-        //     Scales each channel around the midpoint (128).
-        //     >1 → more difference between lights and darks
-        //     <1 → flatter, less difference
         // ─────────────────────────────────────────────
         if (element.hasLight && values.contrast != 1f) {
             val c = values.contrast.coerceIn(0.5f, 1.5f)
-            val t = 128f * (1f - c)   // keep midpoint 128 fixed
+            val t = 128f * (1f - c)
             cm.postConcat(ColorMatrix(floatArrayOf(
                 c, 0f, 0f, 0f, t,
                 0f, c, 0f, 0f, t,
@@ -65,9 +61,6 @@ object ImageAdjustmentHelper {
 
         // ─────────────────────────────────────────────
         // 4️⃣  SATURATION  (0 → 2)
-        //     0 = fully desaturated (greyscale)
-        //     1 = no change
-        //     2 = double saturation
         // ─────────────────────────────────────────────
         if (element.hasColor && values.saturation != 1f) {
             val sat = ColorMatrix()
@@ -77,12 +70,9 @@ object ImageAdjustmentHelper {
 
         // ─────────────────────────────────────────────
         // 5️⃣  TEMPERATURE  (-100 → +100)
-        //     Positive = warmer (boost R, reduce B)
-        //     Negative = cooler (boost B, reduce R)
-        //     Does NOT touch green channel.
         // ─────────────────────────────────────────────
         if (element.hasColor && values.temperature != 0f) {
-            val t = values.temperature / 100f   // -1 … +1
+            val t = values.temperature / 100f
             cm.postConcat(ColorMatrix(floatArrayOf(
                 1f + t * 0.2f, 0f, 0f, 0f, t * 20f,
                 0f,            1f, 0f, 0f, 0f,
@@ -93,11 +83,9 @@ object ImageAdjustmentHelper {
 
         // ─────────────────────────────────────────────
         // 6️⃣  TINT  (-100 → +100)
-        //     Positive = shift toward magenta (boost R + B, reduce G)
-        //     Negative = shift toward green  (boost G, reduce R + B)
         // ─────────────────────────────────────────────
         if (element.hasColor && values.tint != 0f) {
-            val t = values.tint / 100f   // -1 … +1
+            val t = values.tint / 100f
             cm.postConcat(ColorMatrix(floatArrayOf(
                 1f + t * 0.1f, 0f,            0f, 0f, t * 10f,
                 0f,            1f - t * 0.2f, 0f, 0f, -t * 20f,
@@ -107,7 +95,7 @@ object ImageAdjustmentHelper {
         }
 
         // ─────────────────────────────────────────────
-        // ✅  Apply combined ColorMatrix to a copy of the bitmap
+        // ✅  Apply combined ColorMatrix
         // ─────────────────────────────────────────────
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         paint.colorFilter = ColorMatrixColorFilter(cm)
@@ -116,60 +104,107 @@ object ImageAdjustmentHelper {
         Canvas(filtered).drawBitmap(base, 0f, 0f, paint)
         base.recycle()
 
-        // ─────────────────────────────────────────────
-        // Per-pixel passes (can't be done with ColorMatrix)
-        // ─────────────────────────────────────────────
         var result = filtered
 
-        // 5️⃣  VIBRANCE  (-100 → +100)
-        //     Boosts muted (low-saturation) colors strongly,
-        //     while protecting already-vivid colors from over-saturation.
-        //     Unlike Saturation, it is non-linear and skin-tone aware.
+        // 5️⃣  VIBRANCE
         if (element.hasColor && values.vibrance != 0f) {
             result = applyVibrance(result, values.vibrance)
         }
 
-        // 7️⃣  SHADOWS  (-100 → +100)
-        //     Targets only DARK pixels (luminance < 0.5).
-        //     Positive → lift shadows (reveal detail in dark areas).
-        //     Negative → crush shadows (make darks even darker).
+        // 7️⃣  SHADOWS
         if (element.hasLight && values.shadows != 0f) {
             result = applyShadows(result, values.shadows)
         }
 
-        // 8️⃣  HIGHLIGHTS  (-100 → +100)
-        //     Targets only BRIGHT pixels (luminance > 0.5).
-        //     Negative → recover highlights (pull back blown-out brights).
-        //     Positive → push highlights even brighter.
+        // 8️⃣  HIGHLIGHTS
         if (element.hasLight && values.highlights != 0f) {
             result = applyHighlights(result, values.highlights)
         }
 
-        // 9️⃣  CLARITY  (-100 → +100) — mid-tone contrast / micro-contrast
+        // 9️⃣  CLARITY
         if (element.hasDetail && values.clarity != 0f) {
             result = applyClarity(result, values.clarity)
         }
 
-        // 🔟  FADE  (0 → 100) — white overlay fade (film-style)
-        //     Blends a white layer on top at increasing opacity.
-        //     0 = no fade, 100 = fully white.
+        // 🔟  FADE
         if (element.hasDetail && values.fade > 0f) {
             result = applyFade(result, values.fade)
         }
 
-        // 1️⃣1️⃣  SHARPNESS  (0 → 5) — unsharp mask
+        // 1️⃣1️⃣  SHARPNESS
         if (element.hasDetail && values.sharpness > 0f) {
             result = applySharpnessFallback(result, values.sharpness)
         }
 
-        // 1️⃣2️⃣  BLUR  (0 → 25)
+        // 1️⃣2️⃣  BLUR
         if (element.hasBlur && element.blurValue > 0f) {
             result = applyGaussianBlurWithPadding(
                 context, result, element.blurValue.coerceIn(0f, 25f)
             )
         }
 
+        // 1️⃣3️⃣  FEATHER  (0 → 100)
+        //     Fades the edges of the bitmap to transparent using a radial alpha gradient.
+        //     0 = no feathering, 100 = very heavy edge fade (nearly invisible at edges).
+        if (element.hasFeather && element.featherRadius > 0f) {
+            result = applyFeather(result, element.featherRadius)
+        }
+
         return result
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // FEATHER — radial alpha vignette that fades bitmap edges to transparent
+    //   radius 0   = no fade
+    //   radius 100 = very wide edge fade (almost the full image is faded)
+    //
+    //   Strategy:
+    //     • We compute an "inner keep radius" as a fraction of the half-diagonal.
+    //       At featherRadius=0 the inner radius equals the half-diagonal (no fade).
+    //       At featherRadius=100 the inner radius shrinks to 0 (maximum fade).
+    //     • A RadialGradient going from opaque (center) to transparent (outer) is
+    //       drawn on top of the image using PorterDuff.Mode.DST_IN, which uses the
+    //       gradient alpha as a mask — preserving opaque pixels where alpha=255 and
+    //       erasing pixels where alpha=0.
+    // ─────────────────────────────────────────────────────────────────────────
+    private fun applyFeather(src: Bitmap, featherRadius: Float): Bitmap {
+        val w = src.width
+        val h = src.height
+
+        // Work on a mutable ARGB_8888 copy so we can blend transparency
+        val out = src.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas = Canvas(out)
+
+        val cx = w / 2f
+        val cy = h / 2f
+        val halfDiag = sqrt((cx * cx + cy * cy).toDouble()).toFloat()
+
+        // strength 0..1 from featherRadius 0..100
+        val strength = (featherRadius / 100f).coerceIn(0f, 1f)
+
+        // outer radius of the gradient = half-diagonal (reaches corners)
+        val outerRadius = halfDiag
+
+        // inner radius shrinks as strength grows; at strength=1 it's 0
+        // clamp to at least 1px to avoid zero-radius gradient crash
+        val innerRadius = (halfDiag * (1f - strength)).coerceAtLeast(1f)
+
+        val gradient = RadialGradient(
+            cx, cy,
+            outerRadius,
+            intArrayOf(Color.BLACK, Color.BLACK, Color.TRANSPARENT),
+            floatArrayOf(0f, innerRadius / outerRadius, 1f),
+            Shader.TileMode.CLAMP
+        )
+
+        val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = gradient
+            xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_IN)
+        }
+
+        canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), maskPaint)
+
+        return out
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -181,7 +216,6 @@ object ImageAdjustmentHelper {
         val pixels = IntArray(w * h)
         src.getPixels(pixels, 0, w, 0, 0, w, h)
 
-        // vibrance: -100 … +100 → strength: -1 … +1
         val strength = vibrance / 100f
 
         for (i in pixels.indices) {
@@ -191,19 +225,17 @@ object ImageAdjustmentHelper {
             val g = Color.green(px) / 255f
             val b = Color.blue(px) / 255f
 
-            // Current saturation via max-min heuristic
             val maxC = max(r, max(g, b))
             val minC = min(r, min(g, b))
-            val currentSat = if (maxC > 0f) (maxC - minC) / maxC else 0f
+            val sat = if (maxC == 0f) 0f else (maxC - minC) / maxC
 
-            // Boost is larger for muted colors, smaller for vivid ones
-            val boost = strength * (1f - currentSat)
+            // Boost low-saturation colors more than high-saturation ones
+            val boost = strength * (1f - sat)
 
-            // Desaturate toward luminance, then boost by boost amount
-            val lum = 0.299f * r + 0.587f * g + 0.114f * b
-            val nr = (lum + (r - lum) * (1f + boost)).coerceIn(0f, 1f)
-            val ng = (lum + (g - lum) * (1f + boost)).coerceIn(0f, 1f)
-            val nb = (lum + (b - lum) * (1f + boost)).coerceIn(0f, 1f)
+            val gray = 0.299f * r + 0.587f * g + 0.114f * b
+            val nr = (r + (r - gray) * boost).coerceIn(0f, 1f)
+            val ng = (g + (g - gray) * boost).coerceIn(0f, 1f)
+            val nb = (b + (b - gray) * boost).coerceIn(0f, 1f)
 
             pixels[i] = Color.argb(a, (nr * 255).roundToInt(), (ng * 255).roundToInt(), (nb * 255).roundToInt())
         }
@@ -214,7 +246,7 @@ object ImageAdjustmentHelper {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // SHADOWS — brighten or darken only dark-toned pixels
+    // SHADOWS  (-100 → +100)  — lifts or crushes dark pixels
     // ─────────────────────────────────────────────────────────────────────────
     private fun applyShadows(src: Bitmap, shadows: Float): Bitmap {
         val w = src.width
@@ -222,8 +254,7 @@ object ImageAdjustmentHelper {
         val pixels = IntArray(w * h)
         src.getPixels(pixels, 0, w, 0, 0, w, h)
 
-        // shadows: -100 … +100 → shift: -100 … +100 in 0-255 space
-        val shift = shadows   // positive = lift, negative = crush
+        val shift = shadows / 255f  // -100..+100 → ~-0.39..+0.39
 
         for (i in pixels.indices) {
             val px = pixels[i]
@@ -231,13 +262,12 @@ object ImageAdjustmentHelper {
             val r = Color.red(px) / 255f
             val g = Color.green(px) / 255f
             val b = Color.blue(px) / 255f
-
-            // Luminance-based weight: 1.0 at black, 0.0 at white
             val lum = 0.299f * r + 0.587f * g + 0.114f * b
-            // Only affect pixels below midpoint; weight falls off toward bright areas
+
+            // Weight: full effect at lum=0, zero effect at lum=0.5+
             val weight = (1f - lum * 2f).coerceIn(0f, 1f)
 
-            val adjust = (shift * weight) / 255f
+            val adjust = shift * weight
             val nr = (r + adjust).coerceIn(0f, 1f)
             val ng = (g + adjust).coerceIn(0f, 1f)
             val nb = (b + adjust).coerceIn(0f, 1f)
@@ -251,7 +281,7 @@ object ImageAdjustmentHelper {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // HIGHLIGHTS — brighten or darken only bright-toned pixels
+    // HIGHLIGHTS  (-100 → +100)  — recovers or boosts bright pixels
     // ─────────────────────────────────────────────────────────────────────────
     private fun applyHighlights(src: Bitmap, highlights: Float): Bitmap {
         val w = src.width
@@ -259,7 +289,7 @@ object ImageAdjustmentHelper {
         val pixels = IntArray(w * h)
         src.getPixels(pixels, 0, w, 0, 0, w, h)
 
-        val shift = highlights   // positive = push brighter, negative = recover/pull back
+        val shift = highlights / 255f
 
         for (i in pixels.indices) {
             val px = pixels[i]
@@ -267,9 +297,8 @@ object ImageAdjustmentHelper {
             val r = Color.red(px) / 255f
             val g = Color.green(px) / 255f
             val b = Color.blue(px) / 255f
-
-            // Weight: 1.0 at white, 0.0 at black — only affects bright pixels
             val lum = 0.299f * r + 0.587f * g + 0.114f * b
+
             val weight = ((lum * 2f) - 1f).coerceIn(0f, 1f)
 
             val adjust = (shift * weight) / 255f
@@ -289,8 +318,6 @@ object ImageAdjustmentHelper {
     // CLARITY — mid-tone micro-contrast (local contrast boost)
     // ─────────────────────────────────────────────────────────────────────────
     private fun applyClarity(src: Bitmap, clarity: Float): Bitmap {
-        // Clarity = sharpening weighted toward mid-tones
-        // We use unsharp mask but only apply it strongly to mid-tones
         val w = src.width
         val h = src.height
         val pixels = IntArray(w * h)
@@ -308,10 +335,8 @@ object ImageAdjustmentHelper {
                 val b = Color.blue(px) / 255f
                 val lum = 0.299f * r + 0.587f * g + 0.114f * b
 
-                // Mid-tone weight: peaks at 0.5 luminance, falls off at 0 and 1
                 val midWeight = 1f - (2f * lum - 1f) * (2f * lum - 1f)
 
-                // Simple local contrast: difference from neighbourhood average
                 var rAvg = 0f; var gAvg = 0f; var bAvg = 0f
                 for (dy in -1..1) for (dx in -1..1) {
                     val n = pixels[(y + dy) * w + (x + dx)]
@@ -327,7 +352,6 @@ object ImageAdjustmentHelper {
                 out[y * w + x] = Color.argb(a, (nr * 255).roundToInt(), (ng * 255).roundToInt(), (nb * 255).roundToInt())
             }
         }
-        // Copy border pixels unchanged
         for (x in 0 until w) { out[x] = pixels[x]; out[(h - 1) * w + x] = pixels[(h - 1) * w + x] }
         for (y in 0 until h) { out[y * w] = pixels[y * w]; out[y * w + w - 1] = pixels[y * w + w - 1] }
 
@@ -338,7 +362,6 @@ object ImageAdjustmentHelper {
 
     // ─────────────────────────────────────────────────────────────────────────
     // FADE — white overlay (film-style fade to white)
-    //   0 = no change, 100 = fully white
     // ─────────────────────────────────────────────────────────────────────────
     private fun applyFade(src: Bitmap, fade: Float): Bitmap {
         val alpha = ((fade / 100f) * 255f).roundToInt().coerceIn(0, 255)
@@ -391,7 +414,6 @@ object ImageAdjustmentHelper {
                 )
             }
         }
-        // Copy border pixels unchanged
         for (x in 0 until w) { out[x] = pixels[x]; out[(h - 1) * w + x] = pixels[(h - 1) * w + x] }
         for (y in 0 until h) { out[y * w] = pixels[y * w]; out[y * w + w - 1] = pixels[y * w + w - 1] }
 

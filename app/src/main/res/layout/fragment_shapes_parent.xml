@@ -221,7 +221,7 @@
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/selectedThumbnails"
             android:layout_width="0dp"
-            android:layout_height="52dp"
+            android:layout_height="60dp"
             android:layout_marginTop="8dp"
             android:orientation="horizontal"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"

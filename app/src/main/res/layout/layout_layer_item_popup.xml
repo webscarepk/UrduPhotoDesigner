@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
@@ -7,22 +8,40 @@
     android:layout_height="wrap_content">
 
     <TextView
+        android:id="@+id/visibility"
         android:layout_height="wrap_content"
         android:layout_width="match_parent"
         style="@style/PopupItemStyle"
         android:text="@string/hide"
         android:paddingHorizontal="15dp"
         android:paddingVertical="8dp"
-        android:id="@+id/visibility"
         app:drawableEndCompat="@drawable/ic_hide_pass"
-        app:drawableTint="@color/black"/>
+        app:drawableTint="@color/black" />
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@color/contrast"/>
+        android:background="@color/contrast" />
+
+    <!-- Rename option — tap opens an inline EditText dialog -->
+    <TextView
+        android:id="@+id/actionRename"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        style="@style/PopupItemStyle"
+        android:text="@string/rename"
+        android:paddingHorizontal="15dp"
+        android:paddingVertical="8dp"
+        app:drawableEndCompat="@drawable/ic_edit"
+        app:drawableTint="@color/black" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/contrast" />
 
     <TextView
+        android:id="@+id/actionDelete"
         android:layout_height="wrap_content"
         android:layout_width="match_parent"
         style="@style/PopupItemStyle"
@@ -31,6 +50,6 @@
         android:paddingVertical="8dp"
         app:drawableEndCompat="@drawable/ic_delete"
         app:drawableTint="@android:color/holo_red_dark"
-        android:textColor="@android:color/holo_red_dark"
-        android:id="@+id/actionDelete" />
+        android:textColor="@android:color/holo_red_dark" />
+
 </LinearLayout>

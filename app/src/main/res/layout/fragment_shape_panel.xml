@@ -124,7 +124,6 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
                 tools:itemCount="100"
                 tools:listitem="@layout/layout_color_item" />
         </androidx.constraintlayout.widget.ConstraintLayout>
@@ -189,11 +188,10 @@
         android:visibility="gone"
         android:id="@+id/cornerPane"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
         android:layout_marginHorizontal="10dp">
 
 

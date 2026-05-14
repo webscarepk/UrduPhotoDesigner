@@ -18,6 +18,7 @@ class EffectsPagerAdapter(
             1 -> OverlayColorListFragment.newInstance()
             2 -> BlurFragment.newInstance()
             3 -> ImageStrokeFragment.newInstance()
+            4 -> FeatherFragment.newInstance()
             else -> ShadowsFragment()
         }
     }

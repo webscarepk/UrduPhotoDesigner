@@ -190,6 +190,8 @@
     <string name="see_all">See all</string>
     <string name="duplicate">Duplicate</string>
     <string name="rename">Rename</string>
+    <string name="rename_layer">Rename Layer</string>
+    <string name="layer_name_hint">Layer name</string>
     <string name="browse_by_size">Browse by Size</string>
     <string name="my_files">Assets</string>
     <string name="search_projects_files_and_assets">Search projects, files and assets</string>

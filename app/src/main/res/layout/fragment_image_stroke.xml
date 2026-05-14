@@ -86,7 +86,6 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
                 tools:itemCount="100"
                 tools:listitem="@layout/layout_color_item" />
         </androidx.constraintlayout.widget.ConstraintLayout>

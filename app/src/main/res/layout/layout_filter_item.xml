@@ -21,8 +21,8 @@
 
         <ImageView
             android:id="@+id/filterPreview"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:contentDescription="@string/filter_preview" />
 
     </com.google.android.material.card.MaterialCardView>

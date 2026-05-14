@@ -75,7 +75,7 @@ class ShapeAdapter(
         val canvas = Canvas(bitmap)
         val paint  = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color       = context.getColor(R.color.black)
-            strokeWidth = size * 0.05f   // proportional stroke — looks consistent at all sizes
+            strokeWidth = size * 0.025f  // 2.5% — thinner, looks cleaner at thumbnail sizes
             style       = Paint.Style.STROKE
         }
         // PAD controls how much empty space surrounds the shape.

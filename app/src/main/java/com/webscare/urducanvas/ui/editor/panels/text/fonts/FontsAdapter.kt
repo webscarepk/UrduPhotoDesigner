@@ -23,8 +23,8 @@ import com.webscare.urducanvas.databinding.LayoutFontItemBinding
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class FontsAdapter(
-    private val onFontSelected: (com.webscare.urducanvas.data.model.FontEntity, Boolean) -> Unit
-) : androidx.recyclerview.widget.ListAdapter<com.webscare.urducanvas.data.model.FontEntity, FontsAdapter.FontViewHolder>(DiffCallback()) {
+    private val onFontSelected: (FontEntity, Boolean) -> Unit
+) : ListAdapter<FontEntity, FontsAdapter.FontViewHolder>(DiffCallback()) {
 
     var selectedFontId: String? = null
         set(value) {
@@ -55,7 +55,7 @@ class FontsAdapter(
     inner class FontViewHolder(private val binding: LayoutFontItemBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(font: com.webscare.urducanvas.data.model.FontEntity) {
+        fun bind(font: FontEntity) {
             val isSelected = font.id.toString() == selectedFontId
 
             binding.shimmerLayout.startShimmer()
@@ -150,11 +150,11 @@ class FontsAdapter(
         return q.endsWith(".svg")
     }
 
-    class DiffCallback : DiffUtil.ItemCallback<com.webscare.urducanvas.data.model.FontEntity>() {
-        override fun areItemsTheSame(oldItem: com.webscare.urducanvas.data.model.FontEntity, newItem: com.webscare.urducanvas.data.model.FontEntity) =
+    class DiffCallback : DiffUtil.ItemCallback<FontEntity>() {
+        override fun areItemsTheSame(oldItem: FontEntity, newItem: FontEntity) =
             oldItem.id == newItem.id
 
-        override fun areContentsTheSame(oldItem: com.webscare.urducanvas.data.model.FontEntity, newItem: com.webscare.urducanvas.data.model.FontEntity) =
+        override fun areContentsTheSame(oldItem: FontEntity, newItem: FontEntity) =
             oldItem == newItem
     }
 }

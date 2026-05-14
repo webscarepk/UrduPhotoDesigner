@@ -9,30 +9,20 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.ElementType
+import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.utils.Utils.addPressEffectWithLongClick
 import com.webscare.urducanvas.databinding.LayoutLayersItemBinding
 
-/**
- * Adapter for the layers list. Shows each CanvasElement with icon, title, lock badge, selection highlight,
- * and a "more options" overflow icon.
- *
- * Callbacks:
- *  - onLockToggle(element): when lock icon tapped.
- *  - onMoreOptions(element, anchorView): when overflow (more) icon tapped.
- *  - onItemClick(element): single-tap on row.
- *  - onItemLongClick(element): long-press on row (to enter multi-select).
- */
 class LayersAdapter(
-    private val onLockToggle: (element: com.webscare.urducanvas.common.canvas.model.CanvasElement) -> Unit,
-    private val onMoreOptions: (element: com.webscare.urducanvas.common.canvas.model.CanvasElement, anchorView: View) -> Unit,
-    private val onItemClick: (element: com.webscare.urducanvas.common.canvas.model.CanvasElement) -> Unit,
-    private val onItemLongClick: (element: com.webscare.urducanvas.common.canvas.model.CanvasElement) -> Unit,
-    private val onStartDrag: (RecyclerView.ViewHolder) -> Unit
+    private val onLockToggle:   (element: CanvasElement) -> Unit,
+    private val onMoreOptions:  (element: CanvasElement, anchorView: View) -> Unit,
+    private val onItemClick:    (element: CanvasElement) -> Unit,
+    private val onItemLongClick:(element: CanvasElement) -> Unit,
+    private val onStartDrag:    (RecyclerView.ViewHolder) -> Unit
 ) : RecyclerView.Adapter<LayersAdapter.CanvasElementViewHolder>() {
 
-    private val elements =
-        mutableListOf<com.webscare.urducanvas.common.canvas.model.CanvasElement>()
+    private val elements      = mutableListOf<CanvasElement>()
     private var inSelectionMode = false
 
     fun setSelectionMode(enabled: Boolean) {
@@ -42,15 +32,13 @@ class LayersAdapter(
         }
     }
 
-    fun submitList(newElements: List<com.webscare.urducanvas.common.canvas.model.CanvasElement>) {
+    fun submitList(newElements: List<CanvasElement>) {
         elements.clear()
         elements.addAll(newElements)
         notifyDataSetChanged()
     }
 
-    fun currentList(): List<com.webscare.urducanvas.common.canvas.model.CanvasElement> {
-        return elements
-    }
+    fun currentList(): List<CanvasElement> = elements
 
     fun moveItem(from: Int, to: Int) {
         if (from !in elements.indices || to !in elements.indices) return
@@ -59,7 +47,7 @@ class LayersAdapter(
         notifyItemMoved(from, to)
     }
 
-    fun getItems(): List<com.webscare.urducanvas.common.canvas.model.CanvasElement> = elements
+    fun getItems(): List<CanvasElement> = elements
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CanvasElementViewHolder {
         val binding = LayoutLayersItemBinding.inflate(
@@ -79,93 +67,81 @@ class LayersAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         @SuppressLint("ClickableViewAccessibility")
-        fun bind(element: com.webscare.urducanvas.common.canvas.model.CanvasElement) {
+        fun bind(element: CanvasElement) {
             binding.apply {
-                // Title: for TEXT use element.text, for IMAGE show "Sticker" or another label
-                title.text = when (element.type) {
-                    ElementType.TEXT -> element.text ?: "Text"
-                    ElementType.IMAGE -> "Image"
-                    ElementType.STICKER -> "Sticker"
-                    ElementType.DRAW -> "Brush"
-                    ElementType.SHAPE -> element.shapeType?.displayName
-                    else -> "Background"
+
+                // ── Title ─────────────────────────────────────────────────
+                // customName takes priority — set via the Rename popup.
+                // Falls back to type-based default name.
+                title.text = element.customName ?: when (element.type) {
+                    ElementType.TEXT       -> element.text ?: "Text"
+                    ElementType.IMAGE      -> "Image"
+                    ElementType.STICKER    -> "Sticker"
+                    ElementType.DRAW       -> "Brush"
+                    ElementType.SHAPE      -> element.shapeType?.displayName ?: "Shape"
+                    else                   -> "Background"
                 }
 
-                // Icon based on type
-                image.setImageResource(
-                    when (element.type) {
-                        ElementType.TEXT -> R.drawable.ic_text_layer
-                        ElementType.IMAGE -> R.drawable.ic_image_layer
-                        ElementType.STICKER -> R.drawable.ic_sticker
-                        ElementType.DRAW -> R.drawable.ic_pen
-                        ElementType.SHAPE -> R.drawable.ic_shapes
-                        else -> R.drawable.ic_stickers
-                    }
-                )
+                // ── Icon ──────────────────────────────────────────────────
+                image.setImageResource(when (element.type) {
+                    ElementType.TEXT    -> R.drawable.ic_text_layer
+                    ElementType.IMAGE   -> R.drawable.ic_image_layer
+                    ElementType.STICKER -> R.drawable.ic_sticker
+                    ElementType.DRAW    -> R.drawable.ic_pen
+                    ElementType.SHAPE   -> R.drawable.ic_shapes
+                    else                -> R.drawable.ic_stickers
+                })
 
+                // ── Selection highlight ───────────────────────────────────
                 if (element.isSelected) {
                     if (inSelectionMode) {
-                        binding.root.setCardBackgroundColor(
-                            ContextCompat.getColor(binding.root.context, R.color.contrast)
+                        root.setCardBackgroundColor(
+                            ContextCompat.getColor(root.context, R.color.contrast)
                         )
-                        binding.root.strokeWidth = 0
+                        root.strokeWidth = 0
                     } else {
-                        // Single selection → stroke highlight
-                        binding.root.setCardBackgroundColor(
-                            ContextCompat.getColor(
-                                binding.root.context, R.color.white
-                            )
+                        root.setCardBackgroundColor(
+                            ContextCompat.getColor(root.context, R.color.white)
                         )
-                        binding.root.strokeWidth = 2
-                        binding.root.strokeColor =
-                            ContextCompat.getColor(binding.root.context, R.color.appColor)
+                        root.strokeWidth = 2
+                        root.strokeColor = ContextCompat.getColor(root.context, R.color.appColor)
                     }
                 } else {
-                    binding.root.setCardBackgroundColor(Color.TRANSPARENT)
-                    binding.root.strokeWidth = 0
+                    root.setCardBackgroundColor(Color.TRANSPARENT)
+                    root.strokeWidth = 0
                 }
 
-
+                // ── Icon visibility ───────────────────────────────────────
+                val hideDragOrOptions = element.isLocked
                 if (inSelectionMode) {
-                    // hide per-item icons in multi-select
-                    lock.visibility = View.GONE
+                    lock.visibility    = View.GONE
                     options.visibility = View.GONE
-                    // drag handle only on selected items
-                    drag.visibility = if (element.isSelected) View.VISIBLE else View.GONE
+                    drag.visibility    = if (element.isSelected) View.VISIBLE else View.GONE
                 } else {
-                    // normal mode: show icons based on locked state
-                    lock.visibility = View.VISIBLE
-                    options.visibility = View.VISIBLE
-                    drag.visibility = if (element.isLocked) View.GONE else View.VISIBLE
+                    lock.visibility    = View.VISIBLE
+                    options.visibility = if (hideDragOrOptions) View.GONE else View.VISIBLE
+                    drag.visibility    = if (hideDragOrOptions) View.GONE else View.VISIBLE
                 }
 
-                // Lock icon
+                // ── Lock icon ─────────────────────────────────────────────
                 lock.setImageResource(
                     if (element.isLocked) R.drawable.ic_lock else R.drawable.ic_unlock
                 )
 
-                val hideDragOrOptions = element.isLocked
-
-                binding.drag.visibility = if (hideDragOrOptions) View.GONE else View.VISIBLE
-                binding.options.visibility = if (hideDragOrOptions) View.GONE else View.VISIBLE
-
-                // Click listeners:
+                // ── Click listeners ───────────────────────────────────────
                 lock.addPressEffect {
                     element.isLocked = !element.isLocked
                     onLockToggle(element)
                 }
-                options.setOnClickListener { v ->
-                    onMoreOptions(element, v)
-                }
+                options.setOnClickListener { v -> onMoreOptions(element, v) }
                 drag.setOnTouchListener { _, _ ->
                     onStartDrag(this@CanvasElementViewHolder)
                     false
                 }
-                root.addPressEffectWithLongClick(onClick = {
-                    onItemClick(element)
-                }, onLongClick = {
-                    onItemLongClick(element)
-                })
+                root.addPressEffectWithLongClick(
+                    onClick    = { onItemClick(element) },
+                    onLongClick = { onItemLongClick(element) }
+                )
             }
         }
     }

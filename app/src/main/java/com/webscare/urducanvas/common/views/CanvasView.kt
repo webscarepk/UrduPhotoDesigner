@@ -2680,12 +2680,12 @@ class CanvasView @JvmOverloads constructor(
     private fun drawElementOverlays(canvas: Canvas, showOverlays: Boolean = true) {
         if (showOverlays && selectedElements.isNotEmpty()) {
             val desiredScreenStrokeWidth = 2f
-            val localSpaceStrokeWidth = desiredScreenStrokeWidth / scale // Scale stroke width
-
             val dashLengthOnScreen = 10f
             val gapLengthOnScreen = 10f
-            val localDashLength = dashLengthOnScreen / scale
-            val localGapLength = gapLengthOnScreen / scale
+
+            val localSpaceStrokeWidth = desiredScreenStrokeWidth / (scale * overallScale)
+            val localDashLength = dashLengthOnScreen / (scale * overallScale)
+            val localGapLength  = gapLengthOnScreen  / (scale * overallScale)
 
             val boxPaint = Paint().apply {
                 color = Color.GRAY
@@ -2752,8 +2752,8 @@ class CanvasView @JvmOverloads constructor(
                 canvas.drawText(rotationValue, cx, textY, rotationTextPaint)
             }
             if (selectedElements.any { !it.isLocked }) {
-                val localIconDrawWidth = desiredIconScreenSizePx / scale
-                val localIconDrawHeight = desiredIconScreenSizePx / scale
+                val localIconDrawWidth  = desiredIconScreenSizePx / (scale * overallScale)
+                val localIconDrawHeight = desiredIconScreenSizePx / (scale * overallScale)
 
                 val iconMap = mutableMapOf<String, Pair<Float, Float>>()
 
@@ -2840,9 +2840,7 @@ class CanvasView @JvmOverloads constructor(
 
                                     val topCenter = floatArrayOf(bounds.centerX(), bounds.top)
                                     val fixedHandleLengthPx = 80f
-                                    val rotateIcon = floatArrayOf(
-                                        bounds.centerX(), bounds.top - (fixedHandleLengthPx / scale)
-                                    )
+                                    val rotateIcon = floatArrayOf(bounds.centerX(), bounds.top - (fixedHandleLengthPx / (scale * overallScale)))
 
                                     matrix.mapPoints(topCenter)
                                     matrix.mapPoints(rotateIcon)
@@ -2869,9 +2867,7 @@ class CanvasView @JvmOverloads constructor(
                                     val topCenter = floatArrayOf(centerX, topY)
 
                                     val fixedHandleLengthPx = 80f
-                                    val rotateIcon = floatArrayOf(
-                                        centerX, topY - (fixedHandleLengthPx / scale)
-                                    )
+                                    val rotateIcon = floatArrayOf(centerX, topY - (fixedHandleLengthPx / (scale * overallScale)))
 
                                     topCenter to rotateIcon
                                 }
@@ -2888,16 +2884,13 @@ class CanvasView @JvmOverloads constructor(
 
                                 // --- Step 2: place handle directly above the box (fixed distance in screen px) ---
                                 val fixedHandleLengthPx = 80f
-                                val rotateIcon = floatArrayOf(
-                                    pivotX, topY - (fixedHandleLengthPx / scale)
-                                )
+                                val rotateIcon = floatArrayOf(pivotX, topY - (fixedHandleLengthPx / (scale * overallScale)))
 
                                 topCenter to rotateIcon
                             }
 
-                            rotateLinePaint.strokeWidth = 4f / scale
-                            rotateLinePaint.pathEffect =
-                                DashPathEffect(floatArrayOf(10f / scale, 10f / scale), 0f)
+                            rotateLinePaint.strokeWidth = 4f / (scale * overallScale)
+                            rotateLinePaint.pathEffect = DashPathEffect(floatArrayOf(10f / (scale * overallScale), 10f / (scale * overallScale)), 0f)
                             val linePaint = rotateLinePaint
 
                             canvas.drawLine(
@@ -4454,8 +4447,8 @@ class CanvasView @JvmOverloads constructor(
                                 val scaleFactor = newPinchDistance / initialPinchDistance
                                 selectedElements.filter { !it.isLocked }.forEach { element ->
                                     val newScale = (initialScale * scaleFactor).coerceIn(
-                                        0.1f, 5f
-                                    ) // Apply to initial scale
+                                        0.1f, 100f
+                                    )
                                     element.scale = newScale
                                     onElementChanged?.invoke(element)
                                 }
