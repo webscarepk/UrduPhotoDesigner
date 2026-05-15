@@ -5,16 +5,21 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewpager2.widget.ViewPager2
+import com.webscare.urducanvas.common.canvas.enums.PanelType
 import com.webscare.urducanvas.databinding.FragmentFontsBinding
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class FontsFragment : androidx.fragment.app.Fragment() {
+
     private var _binding: FragmentFontsBinding? = null
     private val binding get() = _binding!!
 
@@ -25,12 +30,14 @@ class FontsFragment : androidx.fragment.app.Fragment() {
     private lateinit var languages: ArrayList<com.webscare.urducanvas.data.model.FontLanguages>
     private lateinit var pagerAdapter: FontsPagerAdapter
 
-    // chosen category per language — populated from CanvasViewModel on view creation
     private val chosenCategoryByLang = mutableMapOf<String, String?>()
-
-    // True while we are rebuilding the languages list from a DB emission,
-    // so that pager callbacks don't fire competing deliverFilter calls.
     private var isRebuilding = false
+    private var isPanelExpanded = false
+
+    // ── The language that is "active" in the left panel ──────────────────────
+    // Collapsed: whichever the user last tapped / ViewPager scrolled to
+    // Expanded : single-select radio; defaults to Urdu (or first available)
+    private var activeLangInExpanded: String = "Urdu"
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -42,8 +49,6 @@ class FontsFragment : androidx.fragment.app.Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Restore map from persisted state so chosenCategoryByLang is ready
-        // before the first localFonts emission builds the language list.
         val saved = canvasViewModel.getFontPanelState()
         if (saved.selectedCategory != null) {
             chosenCategoryByLang[saved.selectedLanguage] = saved.selectedCategory
@@ -51,7 +56,82 @@ class FontsFragment : androidx.fragment.app.Fragment() {
 
         setupRecyclerViews()
         initObservers()
+        observePanelExpanded()
     }
+
+    // ── Panel expansion ───────────────────────────────────────────────────────
+
+    private fun observePanelExpanded() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.expandedPanel
+                    .map { it == PanelType.FONTS }
+                    .collect { expanded -> applyExpansion(expanded) }
+            }
+        }
+    }
+
+    private fun applyExpansion(expanded: Boolean) {
+        if (isPanelExpanded == expanded) return
+        isPanelExpanded = expanded
+        adapter.isExpandedMode = expanded          // ← tell adapter which mode we're in
+
+        if (_binding == null || languages.isEmpty()) return
+
+        if (expanded) {
+            binding.viewPager.orientation = ViewPager2.ORIENTATION_HORIZONTAL
+            expandWithRadioDefault()
+        } else {
+            binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
+            collapseToSingleLanguage()
+        }
+
+        for (i in languages.indices) {
+            (childFragmentManager.findFragmentByTag("f$i") as? FontsListFragment)
+                ?.onPanelExpanded(expanded)
+        }
+    }
+
+    // ── Expanded: single-select, default = Urdu (or first non-All lang) ──────
+
+    private fun expandWithRadioDefault() {
+        // Pick the default: prefer "Urdu", fall back to first real language, then "All"
+        val preferred = languages.firstOrNull {
+            it.name.equals("Urdu", ignoreCase = true)
+        }?.name
+            ?: languages.firstOrNull { it.name != "All" && it.name != "Imported" }?.name
+            ?: "All"
+
+        activeLangInExpanded = preferred
+
+        val updated = languages.map { it.copy(is_selected = it.name == preferred) }
+        languages.clear()
+        languages.addAll(updated)
+        adapter.submitList(ArrayList(languages))
+
+        val targetIdx = languages.indexOfFirst { it.is_selected }.coerceAtLeast(0)
+        if (binding.viewPager.currentItem != targetIdx) {
+            binding.viewPager.setCurrentItem(targetIdx, false)
+        }
+        deliverFilterSafe(preferred, chosenCategoryByLang[preferred])
+    }
+
+    private fun collapseToSingleLanguage() {
+        val saved = canvasViewModel.getFontPanelState()
+        val activeLang = saved.selectedLanguage.ifBlank { "All" }
+        val updated = languages.map { it.copy(is_selected = it.name == activeLang) }
+        languages.clear()
+        languages.addAll(updated)
+        adapter.submitList(ArrayList(languages))
+
+        val targetIdx = languages.indexOfFirst { it.is_selected }.coerceAtLeast(0)
+        if (binding.viewPager.currentItem != targetIdx) {
+            binding.viewPager.setCurrentItem(targetIdx, false)
+        }
+        deliverFilterSafe(activeLang, chosenCategoryByLang[activeLang])
+    }
+
+    // ── Setup ─────────────────────────────────────────────────────────────────
 
     private fun setupRecyclerViews() {
         languages = ArrayList()
@@ -59,16 +139,25 @@ class FontsFragment : androidx.fragment.app.Fragment() {
         adapter = FontLanguagesAdapter(
             onLanguageExpanded = { lang, collapse ->
                 if (isRebuilding) return@FontLanguagesAdapter
-                if (collapse) {
-                    // User tapped an already-expanded language to collapse it
-                    collapseLanguage(lang)
-                    deliverFilter(lang, chosenCategoryByLang[lang])
-                } else {
-                    // User expanded a new language
-                    expandOnly(lang)
-                    // Do NOT clear the saved category — user may have one saved
+                if (isPanelExpanded) {
+                    // Expanded mode: radio-select the tapped language
+                    activeLangInExpanded = lang
+                    val targetIdx = languages.indexOfFirst { it.name == lang }
+                    if (targetIdx >= 0 && binding.viewPager.currentItem != targetIdx) {
+                        binding.viewPager.setCurrentItem(targetIdx, false)
+                    }
                     saveCurrentState()
                     deliverFilter(lang, chosenCategoryByLang[lang])
+                } else {
+                    // Collapsed mode: original toggle behaviour
+                    if (collapse) {
+                        collapseLanguage(lang)
+                        deliverFilter(lang, chosenCategoryByLang[lang])
+                    } else {
+                        expandOnly(lang)
+                        saveCurrentState()
+                        deliverFilter(lang, chosenCategoryByLang[lang])
+                    }
                 }
             },
             onCategorySelected = { lang, category ->
@@ -79,6 +168,7 @@ class FontsFragment : androidx.fragment.app.Fragment() {
                 deliverFilter(lang, category)
             }
         )
+        adapter.isExpandedMode = isPanelExpanded
         binding.languages.adapter = adapter
 
         binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
@@ -89,12 +179,23 @@ class FontsFragment : androidx.fragment.app.Fragment() {
             override fun onPageSelected(position: Int) {
                 if (isRebuilding) return
                 languages.getOrNull(position)?.let { row ->
-                    expandOnly(row.name)
+                    if (isPanelExpanded) {
+                        // In expanded mode, sync left panel selection to pager
+                        if (activeLangInExpanded != row.name) {
+                            activeLangInExpanded = row.name
+                            val updated = languages.map { it.copy(is_selected = it.name == row.name) }
+                            languages.clear(); languages.addAll(updated)
+                            adapter.submitList(ArrayList(languages))
+                        }
+                    } else {
+                        expandOnly(row.name)
+                    }
                     binding.languages.smoothScrollToPosition(position)
                     saveCurrentState()
-                    // Deliver with the existing saved category for this language
                     deliverFilterSafe(row.name, chosenCategoryByLang[row.name])
                 }
+                val frag = childFragmentManager.findFragmentByTag("f$position") as? FontsListFragment
+                frag?.onPanelExpanded(isPanelExpanded)
             }
         })
     }
@@ -110,42 +211,50 @@ class FontsFragment : androidx.fragment.app.Fragment() {
                     .sortedWith(
                         compareBy<Map.Entry<String, List<com.webscare.urducanvas.data.model.FontEntity>>> { entry ->
                             when (entry.key.lowercase()) {
-                                "urdu" -> 0
+                                "urdu"    -> 0
                                 "english" -> 1
-                                else -> 2
+                                else      -> 2
                             }
                         }.thenBy { entry -> entry.key.lowercase() }
                     )
                     .mapIndexed { idx, (lang, list) ->
                         val savedCatForLang = chosenCategoryByLang[lang]
-                        val cats = list.map { it.font_category.ifBlank { "Uncategorized" } }
+                        val cats = list
+                            .map { it.font_category.ifBlank { "Uncategorized" } }
                             .distinct()
-                            .sortedWith(categoryComparator(lang))
+                            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it })
                             .map { catName ->
-                                _root_ide_package_.com.webscare.urducanvas.data.model.FontCategory(
-                                    name = catName,
+                                com.webscare.urducanvas.data.model.FontCategory(
+                                    name       = catName,
                                     isSelected = catName.equals(savedCatForLang, true)
                                 )
                             }
 
-                        // Preserve expansion state from the live list (not from saved state,
-                        // because the user may have changed it since last save).
-                        val wasSelected = languages.firstOrNull { it.name == lang }?.is_selected ?: false
+                        val wasSelected = if (isPanelExpanded) {
+                            lang == activeLangInExpanded
+                        } else {
+                            languages.firstOrNull { it.name == lang }?.is_selected ?: false
+                        }
 
-                        _root_ide_package_.com.webscare.urducanvas.data.model.FontLanguages(
-                            id = idx + 1,
-                            name = lang,
+                        com.webscare.urducanvas.data.model.FontLanguages(
+                            id          = idx + 1,
+                            name        = lang,
                             is_selected = wasSelected,
-                            categories = cats
+                            categories  = cats
                         )
                     }
 
-                val allSelected = languages.firstOrNull { it.name == "All" }?.is_selected ?: false
-                val allRow = _root_ide_package_.com.webscare.urducanvas.data.model.FontLanguages(
-                    id = 0,
-                    name = "All",
+                val allSelected = if (isPanelExpanded) {
+                    "All" == activeLangInExpanded
+                } else {
+                    languages.firstOrNull { it.name == "All" }?.is_selected ?: false
+                }
+
+                val allRow = com.webscare.urducanvas.data.model.FontLanguages(
+                    id          = 0,
+                    name        = "All",
                     is_selected = allSelected,
-                    categories = emptyList()
+                    categories  = emptyList()
                 )
 
                 val incoming = arrayListOf(allRow).apply { addAll(langRows) }
@@ -155,21 +264,30 @@ class FontsFragment : androidx.fragment.app.Fragment() {
                 languages.addAll(incoming)
 
                 if (isFirstLoad) {
-                    // First population after view creation — restore saved selection.
-                    val saved = canvasViewModel.getFontPanelState()
+                    val saved     = canvasViewModel.getFontPanelState()
                     val savedLang = saved.selectedLanguage
-                    val savedCat = saved.selectedCategory
+                    val savedCat  = saved.selectedCategory
 
-                    // Ensure map is populated
                     if (savedCat != null) chosenCategoryByLang[savedLang] = savedCat
 
+                    // On first load in expanded mode, default to Urdu
+                    val expandedDefault = if (isPanelExpanded) {
+                        languages.firstOrNull { it.name.equals("Urdu", true) }?.name
+                            ?: languages.firstOrNull { it.name != "All" }?.name
+                            ?: "All"
+                    } else null
+
                     val restored = languages.map { row ->
-                        val shouldExpand = row.name == savedLang
+                        val shouldExpand = when {
+                            isPanelExpanded -> row.name == (expandedDefault ?: activeLangInExpanded)
+                            else            -> row.name == savedLang
+                        }
                         val restoredCats = row.categories.map { cat ->
                             cat.copy(isSelected = savedCat != null && cat.name.equals(savedCat, true))
                         }
                         row.copy(is_selected = shouldExpand, categories = restoredCats)
                     }
+                    if (expandedDefault != null) activeLangInExpanded = expandedDefault
                     languages.clear()
                     languages.addAll(restored)
                 }
@@ -177,71 +295,62 @@ class FontsFragment : androidx.fragment.app.Fragment() {
                 adapter.submitList(ArrayList(languages))
                 pagerAdapter.updateCategories(languages)
 
-                // Move pager to the selected language page
-                val targetIdx = languages.indexOfFirst { it.is_selected }
-                    .let { if (it == -1) 0 else it }
-
+                val targetIdx = languages.indexOfFirst { it.is_selected }.coerceAtLeast(0)
                 if (binding.viewPager.currentItem != targetIdx) {
-                    // setCurrentItem will trigger onPageSelected → deliverFilterSafe
                     binding.viewPager.setCurrentItem(targetIdx, false)
                 } else {
-                    // Pager is already on the right page but onPageSelected won't fire,
-                    // so we must push the filter ourselves — deferred so the pager's
-                    // fragment has time to attach.
                     val langName = languages.getOrNull(targetIdx)?.name ?: "All"
                     deliverFilterSafe(langName, chosenCategoryByLang[langName])
                 }
 
                 isRebuilding = false
-            }
-        }
-    }
 
-    /**
-     * Posts deliverFilter on the next frame so ViewPager2 has time to create/attach
-     * the target FontsListFragment before we try to call applyFilter on it.
-     * Falls back to a second post if the fragment still isn't ready (e.g. first cold start).
-     */
-    private fun deliverFilterSafe(lang: String, category: String?) {
-        // First attempt after current frame
-        binding.viewPager.post {
-            if (!tryDeliverFilter(lang, category)) {
-                // Fragment not attached yet — try once more on the next frame
-                binding.viewPager.post {
-                    tryDeliverFilter(lang, category)
+                if (isPanelExpanded) {
+                    expandWithRadioDefault()
+                    for (i in languages.indices) {
+                        (childFragmentManager.findFragmentByTag("f$i") as? FontsListFragment)
+                            ?.onPanelExpanded(true)
+                    }
                 }
             }
         }
     }
 
-    /** Returns true if the fragment was found and filter was delivered. */
+    // ── Filter delivery ───────────────────────────────────────────────────────
+
+    private fun deliverFilterSafe(lang: String, category: String?) {
+        binding.viewPager.post {
+            if (!tryDeliverFilter(lang, category)) {
+                binding.viewPager.post { tryDeliverFilter(lang, category) }
+            }
+        }
+    }
+
     private fun tryDeliverFilter(lang: String, category: String?): Boolean {
-        val current = binding.viewPager.currentItem
-        val tag = "f$current"
-        val fragment = childFragmentManager.findFragmentByTag(tag) as? FontsListFragment
+        val current  = binding.viewPager.currentItem
+        val fragment = childFragmentManager.findFragmentByTag("f$current") as? FontsListFragment
         fragment?.applyFilter(language = lang, category = category)
         return fragment != null
     }
 
-    // Keep the synchronous version for immediate user-driven interactions
-    // (category tap, language tap) where the fragment is guaranteed to exist.
     private fun deliverFilter(lang: String, category: String?) {
         val current = binding.viewPager.currentItem
-        val tag = "f$current"
-        (childFragmentManager.findFragmentByTag(tag) as? FontsListFragment)
+        (childFragmentManager.findFragmentByTag("f$current") as? FontsListFragment)
             ?.applyFilter(language = lang, category = category)
     }
 
+    // ── State helpers ─────────────────────────────────────────────────────────
+
     private fun saveCurrentState() {
-        val activeLang = languages.firstOrNull { it.is_selected }?.name ?: "All"
-        val activeCat = chosenCategoryByLang[activeLang]
+        val activeLang = if (isPanelExpanded) activeLangInExpanded
+        else languages.firstOrNull { it.is_selected }?.name ?: "All"
+        val activeCat  = chosenCategoryByLang[activeLang]
         canvasViewModel.saveFontPanelState(language = activeLang, category = activeCat)
     }
 
     private fun collapseLanguage(lang: String) {
         val updated = languages.map { it.copy(is_selected = false) }
-        languages.clear()
-        languages.addAll(updated)
+        languages.clear(); languages.addAll(updated)
         adapter.submitList(ArrayList(languages))
     }
 
@@ -250,15 +359,14 @@ class FontsFragment : androidx.fragment.app.Fragment() {
             if (it.name == lang) it.copy(is_selected = true)
             else it.copy(is_selected = false)
         }
-        languages.clear()
-        languages.addAll(updated)
+        languages.clear(); languages.addAll(updated)
         adapter.submitList(ArrayList(languages))
     }
 
     private fun markCategoryUi(lang: String, categoryOrNull: String?) {
         val pos = languages.indexOfFirst { it.name == lang }
         if (pos == -1) return
-        val row = languages[pos]
+        val row     = languages[pos]
         val newCats = row.categories.map {
             it.copy(isSelected = it.name.equals(categoryOrNull, true))
         }
@@ -270,37 +378,6 @@ class FontsFragment : androidx.fragment.app.Fragment() {
         saveCurrentState()
         super.onDestroyView()
         _binding = null
-    }
-
-    /**
-     * Returns a comparator that sorts category names in the predefined display order
-     * for the given language. Categories not in the list are appended alphabetically at the end.
-     */
-    private fun categoryComparator(language: String): Comparator<String> {
-        val order = when (language.lowercase()) {
-            "urdu" -> listOf(
-                "Nastaleeq", "Thin", "Bold", "Round", "Modern", "Regular",
-                "Wide", "Condensed", "Italic", "Decorated", "Handwriting",
-                "Outline", "Dotted", "Tech", "Quran"
-            )
-            "english" -> listOf(
-                "Regular", "Bold", "Thin", "Script", "Rounded", "Wide"
-            )
-            else -> emptyList()
-        }
-
-        val indexMap = order.mapIndexed { idx, name -> name.lowercase() to idx }.toMap()
-
-        return Comparator { a, b ->
-            val idxA = indexMap[a.lowercase()]
-            val idxB = indexMap[b.lowercase()]
-            when {
-                idxA != null && idxB != null -> idxA - idxB  // both in list → follow order
-                idxA != null -> -1                            // a is in list, b is not → a first
-                idxB != null -> 1                             // b is in list, a is not → b first
-                else -> a.compareTo(b, ignoreCase = true)     // neither in list → alphabetical
-            }
-        }
     }
 
     companion object {

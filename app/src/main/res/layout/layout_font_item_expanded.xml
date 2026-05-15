@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Expanded font item — used by FontsAdapter when isExpanded=true.
+    Sits inside a GridLayoutManager(spanCount=3, VERTICAL), so the
+    RecyclerView divides screen width into 3 equal columns automatically.
+    Setting width/height to match_parent lets each cell fill its column
+    and be square-ish, giving a bigger preview than the collapsed 58dp item.
+-->
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/fontCard"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="4dp"
+    app:cardBackgroundColor="@color/selection"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="0dp">
+
+    <!--
+        SquareFrameLayout makes the card height equal its width, giving a
+        1:1 square cell regardless of screen width — same pattern as the
+        expanded emoji item (item_emoji_expanded.xml).
+        If you don't have SquareFrameLayout, replace with a plain FrameLayout
+        and set a fixed height (e.g. 100dp).
+    -->
+    <com.webscare.urducanvas.common.views.SquareFrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.facebook.shimmer.ShimmerFrameLayout
+            android:id="@+id/shimmerLayout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:shimmer_auto_start="true"
+            app:shimmer_base_alpha="0.5"
+            app:shimmer_base_color="@color/contrast"
+            app:shimmer_colored="true"
+            app:shimmer_duration="700"
+            app:shimmer_highlight_alpha="1.0"
+            app:shimmer_repeat_delay="0">
+
+            <ImageView
+                android:id="@+id/font"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/contrast"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_launcher_background" />
+
+        </com.facebook.shimmer.ShimmerFrameLayout>
+
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/loading"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="end|bottom"
+            android:layout_margin="5dp"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/white"
+            android:padding="3dp"
+            android:visibility="gone"
+            app:lottie_autoPlay="true"
+            app:lottie_loop="true"
+            app:lottie_rawRes="@raw/loading_gray" />
+
+        <ImageView
+            android:id="@+id/isPremium"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_gravity="top|end"
+            android:src="@drawable/ic_premium_icon"
+            android:visibility="visible" />
+
+        <ImageView
+            android:id="@+id/download"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="end|bottom"
+            android:layout_margin="5dp"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/white"
+            android:padding="3dp"
+            android:src="@drawable/ic_download"
+            android:visibility="gone"
+            app:tint="@color/appColor" />
+
+    </com.webscare.urducanvas.common.views.SquareFrameLayout>
+
+</com.google.android.material.card.MaterialCardView>

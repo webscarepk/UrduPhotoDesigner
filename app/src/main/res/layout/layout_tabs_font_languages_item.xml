@@ -1,12 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+<!--
+    Root has android:id="@+id/tabRoot" so FontLanguagesAdapter can swap
+    bg_lang_selected_border (left blue bar) vs transparent in expanded mode.
+-->
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/tabRoot">
+    android:id="@+id/tabRoot"
+    android:backgroundTint="@color/contrast"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
 
     <TextView
+        android:id="@+id/tabTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="@string/all"
@@ -18,26 +25,25 @@
         android:background="@drawable/button_bg_small"
         android:backgroundTint="@android:color/transparent"
         app:drawableEndCompat="@drawable/ic_dropdown"
+        android:drawablePadding="@dimen/_10sdp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/rvCategories"
-        android:drawablePadding="@dimen/_10sdp"
-        android:id="@+id/tabTitle"/>
+        app:layout_constraintBottom_toTopOf="@id/rvCategories" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvCategories"
         android:layout_width="0dp"
-        android:layout_marginStart="5dp"
         android:layout_height="wrap_content"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        android:orientation="vertical"
+        android:layout_marginStart="5dp"
         android:layout_marginEnd="12dp"
+        android:orientation="vertical"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         tools:listitem="@layout/layout_tabs_item"
         tools:itemCount="3"
         app:layout_constraintTop_toBottomOf="@id/tabTitle"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="@id/tabTitle"
-        app:layout_constraintEnd_toEndOf="@id/tabTitle"/>
+        app:layout_constraintEnd_toEndOf="@id/tabTitle" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

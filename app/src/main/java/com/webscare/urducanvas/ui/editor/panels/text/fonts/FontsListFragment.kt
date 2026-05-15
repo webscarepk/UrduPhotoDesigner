@@ -9,6 +9,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.snackbar.Snackbar
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
@@ -22,8 +23,8 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class FontsListFragment : androidx.fragment.app.Fragment() {
+
     private var _binding: FragmentFontsListBinding? = null
-    // Every access goes through this helper — returns null if the view is gone
     private val safeBinding get() = _binding
 
     private val mainViewModel: MainViewModel by activityViewModels()
@@ -31,16 +32,12 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
 
     private lateinit var fontsAdapter: FontsAdapter
     private var fontEntity: com.webscare.urducanvas.data.model.FontEntity? = null
-
-    // The ID of the most recently tapped font. Only this font will be applied
-    // when its download completes — earlier downloads are ignored.
     private var lastRequestedFontId: Int? = null
 
     private var currentLanguage: String? = null
     private var currentCategory: String? = null
-
-    // Set before the next submitList so we scroll to the downloaded font
     private var pendingScrollToFontId: String? = null
+    private var isPanelExpanded = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,18 +57,15 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         setupRecyclerViews()
         initObservers()
 
-        // Self-restore: apply the saved category for this page's language without
-        // waiting for FontsFragment to call applyFilter (it may arrive late).
         val saved = viewModel.getFontPanelState()
         val myLang = currentLanguage ?: "All"
         if (saved.selectedLanguage == myLang) {
             currentCategory = saved.selectedCategory
         }
-        // Trigger an immediate bind with restored state
         rebindLatest()
     }
 
-    // ── Public API called by FontsFragment ───────────────────────────────────
+    // ── Public API ────────────────────────────────────────────────────────────
 
     fun applyFilter(language: String, category: String?) {
         currentLanguage = language
@@ -79,7 +73,36 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         view?.post { rebindLatest() }
     }
 
-    // ── Filtering ────────────────────────────────────────────────────────────
+    /**
+     * Called by FontsFragment when the panel expands or collapses.
+     * Mirrors ImagesListFragment.onPanelExpanded exactly:
+     *   Collapsed → GridLayoutManager(spanCount=3, HORIZONTAL) — horizontal strip
+     *   Expanded  → GridLayoutManager(spanCount=3, VERTICAL)   — vertical grid
+     * Only the orientation changes; spanCount stays 3 in both states.
+     */
+    fun onPanelExpanded(expanded: Boolean) {
+        if (isPanelExpanded == expanded) return
+        isPanelExpanded = expanded
+        if (_binding == null) return
+
+        val rv = safeBinding?.englishRV ?: return
+        rv.recycledViewPool.clear()
+
+        fontsAdapter.isExpanded = expanded
+        rv.layoutManager = buildLayoutManager(expanded)
+
+        if (expanded) rv.scrollToPosition(0)
+    }
+
+    private fun buildLayoutManager(expanded: Boolean): GridLayoutManager =
+        GridLayoutManager(
+            requireContext(),
+            if (expanded) 3 else 2,
+            if (expanded) GridLayoutManager.VERTICAL else GridLayoutManager.HORIZONTAL,
+            false
+        )
+
+    // ── Filtering ─────────────────────────────────────────────────────────────
 
     private fun buildFilteredList(
         fonts: List<com.webscare.urducanvas.data.model.FontEntity>,
@@ -88,12 +111,12 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         val query = queryRaw.trim().lowercase()
 
         val byLanguage = when (val lang = currentLanguage ?: "All") {
-            "All" -> fonts
+            "All"      -> fonts
             "Imported" -> fonts.filter {
                 it.font_language.equals("Imported", true) &&
                         it.font_category.equals("Imported", true)
             }
-            else -> fonts.filter { it.font_language.equals(lang, ignoreCase = true) }
+            else       -> fonts.filter { it.font_language.equals(lang, ignoreCase = true) }
         }
 
         val byCategory = when (val cat = currentCategory) {
@@ -115,14 +138,14 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         }
 
         return if (currentCategory == null && currentLanguage == "All") {
-            val urdu = filtered.filter { it.font_language.equals("Urdu", true) }
+            val urdu    = filtered.filter { it.font_language.equals("Urdu", true) }
                 .sortedBy { it.font_name.lowercase() }
             val english = filtered.filter { it.font_language.equals("English", true) }
                 .sortedBy { it.font_name.lowercase() }
-            val merged = mutableListOf<com.webscare.urducanvas.data.model.FontEntity>()
+            val merged  = mutableListOf<com.webscare.urducanvas.data.model.FontEntity>()
             val maxSize = maxOf(urdu.size, english.size)
             for (i in 0 until maxSize) {
-                if (i < urdu.size) merged.add(urdu[i])
+                if (i < urdu.size)    merged.add(urdu[i])
                 if (i < english.size) merged.add(english[i])
             }
             merged
@@ -131,31 +154,25 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    /**
-     * Submit list while preserving scroll position.
-     * All binding accesses inside the commit callback are guarded with safeBinding
-     * because DiffUtil runs async — the view may be destroyed before it finishes.
-     */
     private fun submitWithScrollPreservation(
         newList: List<com.webscare.urducanvas.data.model.FontEntity>
     ) {
-        // Capture scroll state NOW (on main thread, binding is valid here)
-        val lm = safeBinding?.englishRV?.layoutManager as? LinearLayoutManager
-        val savedIndex = lm?.findFirstVisibleItemPosition()?.takeIf { it >= 0 } ?: 0
-        val savedOffset = lm?.findViewByPosition(savedIndex)?.top ?: 0
-        val scrollTarget = pendingScrollToFontId  // capture before async callback
+        // Capture scroll state before async DiffUtil starts
+        val lm           = safeBinding?.englishRV?.layoutManager as? LinearLayoutManager
+        val savedIndex   = lm?.findFirstVisibleItemPosition()?.takeIf { it >= 0 } ?: 0
+        val savedOffset  = lm?.findViewByPosition(savedIndex)?.top ?: 0
+        val scrollTarget = pendingScrollToFontId
 
         fontsAdapter.submitList(newList) {
-            // ← This lambda is called from AsyncListDiffer after DiffUtil finishes.
-            //   The fragment may have been detached/destroyed by then.
-            val b = safeBinding ?: return@submitList  // fragment view is gone, bail out
+            val b = safeBinding ?: return@submitList
 
             if (scrollTarget != null) {
                 val pos = newList.indexOfFirst { it.id.toString() == scrollTarget }
                 if (pos >= 0) {
                     b.englishRV.post {
-                        // Guard again — another frame may have passed
                         safeBinding ?: return@post
+                        // Works for both LinearLayoutManager and GridLayoutManager
+                        // (GridLayoutManager extends LinearLayoutManager)
                         (b.englishRV.layoutManager as? LinearLayoutManager)
                             ?.scrollToPositionWithOffset(pos, 0)
                     }
@@ -177,13 +194,16 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         submitWithScrollPreservation(buildFilteredList(fonts, query))
     }
 
-    // ── Setup ────────────────────────────────────────────────────────────────
+    // ── Setup ─────────────────────────────────────────────────────────────────
 
     private fun setupRecyclerViews() {
         fontsAdapter = FontsAdapter { font, isDownloaded ->
             handleFontSelection(font, isDownloaded)
         }
-        _binding!!.englishRV.adapter = fontsAdapter
+        val rv = _binding!!.englishRV
+        // Default collapsed state → horizontal 3-row grid (matches buildLayoutManager)
+        rv.layoutManager = buildLayoutManager(isPanelExpanded)
+        rv.adapter = fontsAdapter
     }
 
     private fun handleFontSelection(
@@ -196,11 +216,10 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         }
 
         fontEntity = font
-        lastRequestedFontId = font.id  // always track the latest tap
+        lastRequestedFontId = font.id
 
-        // Optimistic UI: show spinner without losing scroll position
-        val b = safeBinding ?: return
-        val lm = b.englishRV.layoutManager as? LinearLayoutManager
+        val b          = safeBinding ?: return
+        val lm         = b.englishRV.layoutManager as? LinearLayoutManager
         val savedIndex = lm?.findFirstVisibleItemPosition()?.takeIf { it >= 0 } ?: 0
         val savedOffset = lm?.findViewByPosition(savedIndex)?.top ?: 0
 
@@ -217,7 +236,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         mainViewModel.downloadFont(font)
     }
 
-    // ── Observers ────────────────────────────────────────────────────────────
+    // ── Observers ─────────────────────────────────────────────────────────────
 
     private fun initObservers() {
         viewLifecycleOwner.lifecycleScope.launch {
@@ -242,21 +261,17 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
                         }
 
                         is FontDownloadState.SuccessWithTypeface -> {
-                            Log.d("FONT_DEBUG", "SUCCESS observed id=${state.fontEntity.id} lastRequested=$lastRequestedFontId")
                             val completedFont = state.fontEntity
+                            Log.d("FONT_DEBUG", "SUCCESS id=${completedFont.id} lastRequested=$lastRequestedFontId")
 
                             if (completedFont.id == lastRequestedFontId) {
-                                // This is the font the user last tapped — apply it and clean up
-                                fontEntity = completedFont
+                                fontEntity                  = completedFont
                                 fontsAdapter.selectedFontId = completedFont.id.toString()
-                                pendingScrollToFontId = completedFont.id.toString()
+                                pendingScrollToFontId       = completedFont.id.toString()
                                 viewModel.setFont(completedFont)
-                                lastRequestedFontId = null
+                                lastRequestedFontId         = null
                                 mainViewModel.clearFontDownloadState()
                             }
-                            // If it's NOT the last-requested font, do nothing —
-                            // don't clear state (would wipe the pending last font),
-                            // don't apply (user already moved on to a newer tap).
                         }
 
                         is FontDownloadState.Error -> {
@@ -264,9 +279,9 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
                             view?.let {
                                 Snackbar.make(it, "Download failed!", Snackbar.LENGTH_SHORT).show()
                             }
-                            fontEntity = null
+                            fontEntity            = null
                             pendingScrollToFontId = null
-                            lastRequestedFontId = null
+                            lastRequestedFontId   = null
                             mainViewModel.clearFontDownloadState()
                         }
 
@@ -294,10 +309,8 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
     companion object {
         private const val ARG_FONT_LANGUAGE = "font_language"
 
-        fun newInstance(fontLanguage: String): FontsListFragment {
-            return FontsListFragment().also {
-                it.arguments = Bundle().apply { putString(ARG_FONT_LANGUAGE, fontLanguage) }
-            }
+        fun newInstance(fontLanguage: String) = FontsListFragment().also {
+            it.arguments = Bundle().apply { putString(ARG_FONT_LANGUAGE, fontLanguage) }
         }
     }
 }

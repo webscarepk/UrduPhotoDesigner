@@ -84,6 +84,10 @@ class ImportedFontsBottomSheet : BottomSheetDialogFragment() {
         binding.importFont.addPressEffect {
             pickFont.launch("*/*")  // same as TextFragment
         }
+
+        binding.back.addPressEffect {
+            dismiss()
+        }
     }
 
     // ── Observers ────────────────────────────────────────────────────────────

@@ -20,11 +20,24 @@ import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.databinding.LayoutFontItemBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.databinding.LayoutFontItemExpandedBinding
 
 class FontsAdapter(
     private val onFontSelected: (FontEntity, Boolean) -> Unit
 ) : ListAdapter<FontEntity, FontsAdapter.FontViewHolder>(DiffCallback()) {
+
+    companion object {
+        const val TYPE_COLLAPSED = 0
+        const val TYPE_EXPANDED  = 1
+    }
+
+    // FIX 2: toggle between collapsed (horizontal grid 2 rows) and expanded (vertical grid 3 cols)
+    var isExpanded: Boolean = false
+        set(value) {
+            if (field == value) return
+            field = value
+            notifyDataSetChanged()
+        }
 
     var selectedFontId: String? = null
         set(value) {
@@ -42,112 +55,175 @@ class FontsAdapter(
             }
         }
 
+    override fun getItemViewType(position: Int): Int =
+        if (isExpanded) TYPE_EXPANDED else TYPE_COLLAPSED
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FontViewHolder {
-        val binding =
-            LayoutFontItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return FontViewHolder(binding)
+        val inflater = LayoutInflater.from(parent.context)
+        return if (viewType == TYPE_EXPANDED) {
+            FontViewHolder.Expanded(
+                LayoutFontItemExpandedBinding.inflate(inflater, parent, false),
+                onFontSelected
+            )
+        } else {
+            FontViewHolder.Collapsed(
+                LayoutFontItemBinding.inflate(inflater, parent, false),
+                onFontSelected
+            )
+        }
     }
 
     override fun onBindViewHolder(holder: FontViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        holder.bind(getItem(position), selectedFontId)
     }
 
-    inner class FontViewHolder(private val binding: LayoutFontItemBinding) :
-        RecyclerView.ViewHolder(binding.root) {
+    // ── ViewHolder hierarchy ──────────────────────────────────────────────────
 
-        fun bind(font: FontEntity) {
-            val isSelected = font.id.toString() == selectedFontId
+    sealed class FontViewHolder(
+        itemView: View,
+        private val onFontSelected: (FontEntity, Boolean) -> Unit
+    ) : RecyclerView.ViewHolder(itemView) {
 
-            binding.shimmerLayout.startShimmer()
-            binding.root.strokeWidth = if (isSelected) 2 else 0
-            binding.root.strokeColor = ContextCompat.getColor(
-                binding.root.context,
-                R.color.appColor
-            )
+        abstract fun bind(font: FontEntity, selectedFontId: String?)
 
-            binding.isPremium.isVisible = font.is_premium && !font.is_subscribed
-            // Download UI
-            binding.download.visibility =
-                if (font.is_downloaded || font.is_downloading) View.GONE else View.VISIBLE
+        protected fun loadImage(
+            font: FontEntity,
+            imageView: android.widget.ImageView,
+            shimmer: com.facebook.shimmer.ShimmerFrameLayout
+        ) {
+            shimmer.startShimmer()
 
-            binding.loading.visibility = if (font.is_downloading) View.VISIBLE else View.GONE
-//            binding.progressBar.visibility = if (font.is_downloading) View.VISIBLE else View.GONE
-
-            binding.root.addPressEffect {
-                selectedFontId = font.id.toString()
-                if (font.is_downloaded) {
-                    onFontSelected(font, true)
-                } else {
-                    onFontSelected(font, false)
-                }
-            }
-
-            // Check if the font_image is not empty and image_url is empty
             if (font.image_url.isEmpty()) {
-                if (font.font_image?.isNotEmpty() == true){
-                    Glide.with(itemView.context)
+                if (font.font_image?.isNotEmpty() == true) {
+                    Glide.with(imageView.context)
                         .load(font.font_image)
-                        .into(binding.font)
-                    binding.shimmerLayout.hideShimmer()
-                }else{
-                    binding.font.setImageResource(R.drawable.ic_font_thumbnail)
-                    binding.shimmerLayout.hideShimmer()
+                        .into(imageView)
+                    shimmer.hideShimmer()
+                } else {
+                    imageView.setImageResource(R.drawable.ic_font_thumbnail)
+                    shimmer.hideShimmer()
                 }
             } else {
-                // Load font preview using Glide (from image_url)
                 val url = Constants.BASE_URL_GLIDE + font.image_url
                 if (isSvgUrl(url)) {
-                    Glide.with(binding.root.context)
+                    Glide.with(imageView.context)
                         .`as`(PictureDrawable::class.java)
                         .load(url)
                         .diskCacheStrategy(DiskCacheStrategy.DATA)
                         .listener(object : RequestListener<PictureDrawable> {
                             override fun onLoadFailed(
-                                e: GlideException?, model: Any?, target: Target<PictureDrawable>, isFirstResource: Boolean
-                            ) = false.also { binding.shimmerLayout.hideShimmer() }
+                                e: GlideException?, model: Any?,
+                                target: Target<PictureDrawable>, isFirstResource: Boolean
+                            ) = false.also { shimmer.hideShimmer() }
 
                             override fun onResourceReady(
-                                resource: PictureDrawable,
-                                model: Any,
+                                resource: PictureDrawable, model: Any,
                                 target: Target<PictureDrawable>?,
-                                dataSource: DataSource,
-                                isFirstResource: Boolean
-                            ) = false.also { binding.shimmerLayout.hideShimmer() }
+                                dataSource: DataSource, isFirstResource: Boolean
+                            ) = false.also { shimmer.hideShimmer() }
                         })
-                        .into(binding.font)
-
-                }else{
-                    Glide.with(binding.root.context)
+                        .into(imageView)
+                } else {
+                    Glide.with(imageView.context)
                         .load(url)
                         .diskCacheStrategy(DiskCacheStrategy.ALL)
                         .thumbnail(0.1f)
                         .listener(object : RequestListener<android.graphics.drawable.Drawable> {
                             override fun onLoadFailed(
-                                e: GlideException?, model: Any?, target: Target<android.graphics.drawable.Drawable>,
+                                e: GlideException?, model: Any?,
+                                target: Target<android.graphics.drawable.Drawable>,
                                 isFirstResource: Boolean
                             ): Boolean {
-                                binding.shimmerLayout.hideShimmer()
-                                return false
+                                shimmer.hideShimmer(); return false
                             }
 
                             override fun onResourceReady(
                                 resource: android.graphics.drawable.Drawable, model: Any,
-                                target: Target<android.graphics.drawable.Drawable>?, dataSource: DataSource,
-                                isFirstResource: Boolean
+                                target: Target<android.graphics.drawable.Drawable>?,
+                                dataSource: DataSource, isFirstResource: Boolean
                             ): Boolean {
-                                binding.shimmerLayout.hideShimmer()
-                                return false
+                                shimmer.hideShimmer(); return false
                             }
                         })
-                        .into(binding.font)
+                        .into(imageView)
                 }
             }
         }
-    }
 
-    private fun isSvgUrl(raw: String): Boolean {
-        val q = raw.substringBefore('#').substringBefore('?').lowercase()
-        return q.endsWith(".svg")
+        private fun isSvgUrl(raw: String): Boolean {
+            val q = raw.substringBefore('#').substringBefore('?').lowercase()
+            return q.endsWith(".svg")
+        }
+
+        // ── Collapsed item (58dp × 58dp, used in horizontal GridLayoutManager spanCount=2) ──
+
+        class Collapsed(
+            private val binding: LayoutFontItemBinding,
+            onFontSelected: (FontEntity, Boolean) -> Unit
+        ) : FontViewHolder(binding.root, onFontSelected) {
+
+            private val onFontSelectedRef = onFontSelected
+
+            override fun bind(font: FontEntity, selectedFontId: String?) {
+                val isSelected = font.id.toString() == selectedFontId
+
+                binding.root.strokeWidth = if (isSelected) 2 else 0
+                binding.root.strokeColor = ContextCompat.getColor(
+                    binding.root.context, R.color.appColor
+                )
+
+                binding.isPremium.isVisible = font.is_premium && !font.is_subscribed
+                binding.download.visibility =
+                    if (font.is_downloaded || font.is_downloading) View.GONE else View.VISIBLE
+                binding.loading.visibility =
+                    if (font.is_downloading) View.VISIBLE else View.GONE
+
+                binding.root.addPressEffect {
+                    if (font.is_downloaded) {
+                        onFontSelectedRef(font, true)
+                    } else {
+                        onFontSelectedRef(font, false)
+                    }
+                }
+
+                loadImage(font, binding.font, binding.shimmerLayout)
+            }
+        }
+
+        // ── Expanded item (match_parent width in vertical GridLayoutManager spanCount=3) ──
+
+        class Expanded(
+            private val binding: LayoutFontItemExpandedBinding,
+            onFontSelected: (FontEntity, Boolean) -> Unit
+        ) : FontViewHolder(binding.root, onFontSelected) {
+
+            private val onFontSelectedRef = onFontSelected
+
+            override fun bind(font: FontEntity, selectedFontId: String?) {
+                val isSelected = font.id.toString() == selectedFontId
+
+                binding.root.strokeWidth = if (isSelected) 2 else 0
+                binding.root.strokeColor = ContextCompat.getColor(
+                    binding.root.context, R.color.appColor
+                )
+
+                binding.isPremium.isVisible = font.is_premium && !font.is_subscribed
+                binding.download.visibility =
+                    if (font.is_downloaded || font.is_downloading) View.GONE else View.VISIBLE
+                binding.loading.visibility =
+                    if (font.is_downloading) View.VISIBLE else View.GONE
+
+                binding.root.addPressEffect {
+                    if (font.is_downloaded) {
+                        onFontSelectedRef(font, true)
+                    } else {
+                        onFontSelectedRef(font, false)
+                    }
+                }
+
+                loadImage(font, binding.font, binding.shimmerLayout)
+            }
+        }
     }
 
     class DiffCallback : DiffUtil.ItemCallback<FontEntity>() {

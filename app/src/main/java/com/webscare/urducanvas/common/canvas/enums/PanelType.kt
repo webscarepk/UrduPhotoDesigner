@@ -4,5 +4,7 @@ enum class PanelType {
     OBJECTS,
     IMAGES,
     SHAPES,
-    LAYERS
+    LAYERS,
+    FONTS,
+    DRAW
 }
