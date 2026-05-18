@@ -461,7 +461,6 @@
         android:visibility="visible"
         app:defaultNavHost="false"
         android:translationZ="6dp"
-        android:background="@drawable/bottom_sheet_bg"
         app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

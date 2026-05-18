@@ -234,16 +234,23 @@ class EditorFragment : Fragment() {
             try {
                 val filePath =
                     ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                        ?: return@launch
+
+                val rawBitmap = ImageProcessor.filePathToBitmap(filePath) ?: return@launch
+
+                // Consistent with every other image entry point in the app:
+                // User explicitly picked this image as a canvas element — preserve full
+                // quality up to the GPU hard limit (24 MP / 4899 px per side).
+                // CanvasView's display-proxy system handles render performance transparently.
+                val bitmap = ImageProcessor.downsampleIfNeeded(
+                    rawBitmap, GPU_SAFE_MAX_PX, GPU_SAFE_MAX_PX
+                )
 
                 withContext(Dispatchers.Main) {
-                    viewModel.addSticker(
-                        ImageProcessor.filePathToBitmap(filePath!!),
-                        requireActivity(),
-                        ElementType.IMAGE
-                    )
+                    viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE)
                 }
             } catch (e: Exception) {
-                Log.e("ImagesFragment", "Failed to import image", e)
+                Log.e("EditorFragment", "Failed to import image", e)
             }
         }
     }
@@ -485,85 +492,94 @@ class EditorFragment : Fragment() {
         }
     }
 
-    private fun saveOnExitSafe(
+    private suspend fun saveOnExitSafe(
         options: ExportOptions,
         exportBitmap: Bitmap,
-        exportJson: String,
+        exportJsonFile: File,
         exportImage: Boolean,
         canvasSize: CanvasSize
-    ) {
+    ) = withContext(Dispatchers.IO) {
         try {
-            lifecycleScope.launch(Dispatchers.IO) {
-                // ---- Save Image ----
-                if (exportImage) {
-                    ImageProcessor.saveBitmapToFile(exportBitmap, imagePath)
-                    withContext(Dispatchers.Main) {
-                        updateExportDialog(96, "Image saved")
-                    }
+            // ---- Save thumbnail image ------------------------------------------------
+            if (exportImage) {
+                File(imagePath).outputStream().use { out ->
+                    exportBitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
                 }
-
-                // ---- Save JSON ----
-                File(jsonPath).writeText(exportJson)
-                Log.d(TAG, "saveOnExitSafe: $jsonPath")
-                Log.d("ImagePath", "bind: $imagePath")
-                withContext(Dispatchers.Main) {
-                    updateExportDialog(97, "JSON saved")
-                }
-                val jsonSizeBytes = exportJson.toByteArray(Charsets.UTF_8).size
-                // ---- Calculate file size ----
-                val fileSizeMB = (estimateBitmapSize(
-                    exportBitmap, options.format.format!!, options.quality.quality
-                ) + jsonSizeBytes) / (1024.0 * 1024.0)
-
-                val exportDate =
-                    SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
-                val fileBaseName = viewModel.buildProjectFileName()
-                val fileName = "$fileBaseName"
-                // ---- Prepare model ----
-                if (exportModel == null) {
-                    exportModel = ExportResult(
-                        imagePath = imagePath,
-                        jsonPath = jsonPath,
-                        fileName = fileName,
-                        fileSizeMB = fileSizeMB,
-                        resolution = options.resolution.label,
-                        format = options.format.name,
-                        quality = options.quality.label,
-                        canvasSize = canvasSize,
-                        exportDate = exportDate,
-                        updatedDate = exportDate,
-                    )
-                } else {
-                    if (exportModel!!.imagePath.startsWith("/storage")) {
-                        exportModel!!.imagePath = imagePath
-                    }
-
-                    exportModel!!.canvasSize = canvasSize
-                    exportModel!!.fileSizeMB = fileSizeMB
-                    exportModel!!.updatedDate = exportDate
-                }
-
-                // ---- Save to DB ----
-                val id = mainViewModel.insertExportResult(exportModel!!)
-                exportModel!!.id = id
-
-                withContext(Dispatchers.Main) {
-                    viewModel.setExportResult(exportModel!!)
-                    updateExportDialog(99, "Database updated")
-                    updateExportDialog(100, "Saved successfully")
-                }
+                withContext(Dispatchers.Main) { updateExportDialog(96, "Image saved") }
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Background save failed: ${e.message}")
-        }
-    }
 
-    private fun estimateBitmapSize(
-        bitmap: Bitmap, format: Bitmap.CompressFormat, quality: Int
-    ): Long {
-        val stream = java.io.ByteArrayOutputStream()
-        bitmap.compress(format, quality, stream)
-        return stream.size().toLong()
+            // ---- Atomic JSON copy: temp file → .tmp → rename to final path ----------
+            // Stream-copy the temp file to a sibling .tmp, then rename atomically.
+            // Using try/finally guarantees the temp file is always cleaned up, even if
+            // the copy fails. The rename is atomic on Android (same FS partition) so the
+            // reader never sees a partial write.
+            val tmpDest = File("$jsonPath.tmp")
+            try {
+                if (!exportJsonFile.exists()) {
+                    Log.e(TAG, "saveOnExitSafe: temp JSON missing: ${exportJsonFile.path}")
+                } else {
+                    exportJsonFile.inputStream().use { src ->
+                        tmpDest.outputStream().use { dst ->
+                            src.copyTo(dst, bufferSize = 8 * 1024)
+                        }
+                    }
+                    if (tmpDest.length() >= 4L) {
+                        tmpDest.renameTo(File(jsonPath))
+                    } else {
+                        Log.e(TAG, "saveOnExitSafe: tmp too small, keeping old JSON")
+                        tmpDest.delete()
+                    }
+                }
+            } finally {
+                exportJsonFile.delete()   // always delete the source temp file
+            }
+            Log.d(TAG, "saveOnExitSafe: wrote $jsonPath")
+            withContext(Dispatchers.Main) { updateExportDialog(97, "JSON saved") }
+
+            // ---- File size ----------------------------------------------------------
+            val imageSizeBytes = if (exportImage) File(imagePath).length() else 0L
+            val jsonSizeBytes = File(jsonPath).length()   // read from final destination
+            val fileSizeMB = (imageSizeBytes + jsonSizeBytes) / (1024.0 * 1024.0)
+
+            val exportDate = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
+            val fileName = viewModel.buildProjectFileName()
+
+            // ---- Prepare model ------------------------------------------------------
+            if (exportModel == null) {
+                exportModel = ExportResult(
+                    imagePath = imagePath,
+                    jsonPath = jsonPath,
+                    fileName = fileName,
+                    fileSizeMB = fileSizeMB,
+                    resolution = options.resolution.label,
+                    format = options.format.name,
+                    quality = options.quality.label,
+                    canvasSize = canvasSize,
+                    exportDate = exportDate,
+                    updatedDate = exportDate,
+                )
+            } else {
+                if (exportModel!!.imagePath.startsWith("/storage")) {
+                    exportModel!!.imagePath = imagePath
+                }
+                exportModel!!.canvasSize = canvasSize
+                exportModel!!.fileSizeMB = fileSizeMB
+                exportModel!!.updatedDate = exportDate
+            }
+
+            // ---- Save to DB ---------------------------------------------------------
+            val id = mainViewModel.insertExportResult(exportModel!!)
+            exportModel!!.id = id
+
+            withContext(Dispatchers.Main) {
+                viewModel.setExportResult(exportModel!!)
+                updateExportDialog(99, "Database updated")
+                updateExportDialog(100, "Saved successfully")
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "saveOnExitSafe failed: ${e.message}", e)
+        }
     }
 
     private fun observeViewModel() {
@@ -1515,11 +1531,11 @@ class EditorFragment : Fragment() {
         val canvasSize = viewModel.canvasSize.value ?: return
 
         lifecycleScope.launch {
-            val (bitmap, json) = withContext(Dispatchers.Default) {
-                sizedCanvasView.exportCanvasThumbnail { _, _ -> }
+            val (thumbnailBitmap, jsonFile) = withContext(Dispatchers.Default) {
+                sizedCanvasView.exportCanvasThumbnailBitmap { _, _ -> }
             }
             withContext(Dispatchers.IO) {
-                saveOnExitSafe(options, bitmap, json, false, canvasSize)
+                saveOnExitSafe(options, thumbnailBitmap, jsonFile, false, canvasSize)
             }
         }
     }
@@ -1537,8 +1553,11 @@ class EditorFragment : Fragment() {
         showExportProgressDialog()
 
         lifecycleScope.launch {
-            val (bitmap, json) = withContext(Dispatchers.Default) {
-                sizedCanvasView.exportCanvasThumbnail { percent, stage ->
+            // exportCanvasThumbnailBitmap returns Pair<Bitmap, File>.
+            // The File is a temp JSON file written via bufferedWriter — the JSON is never
+            // held as a String in RAM. saveOnExitSafe stream-copies it to the final path.
+            val (thumbnailBitmap, jsonFile) = withContext(Dispatchers.Default) {
+                sizedCanvasView.exportCanvasThumbnailBitmap { percent, stage ->
                     lifecycleScope.launch(Dispatchers.Main) {
                         updateExportDialog(percent, stage)
                     }
@@ -1548,7 +1567,7 @@ class EditorFragment : Fragment() {
                 updateExportDialog(97, "Saving files...")
             }
             withContext(Dispatchers.IO) {
-                saveOnExitSafe(options, bitmap, json, true, canvasSize)
+                saveOnExitSafe(options, thumbnailBitmap, jsonFile, true, canvasSize)
             }
             withContext(Dispatchers.Main) {
                 updateExportDialog(100, "Saved successfully")
@@ -1727,5 +1746,12 @@ class EditorFragment : Fragment() {
         if (!BuildConfig.DEBUG) {
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
+    }
+
+    companion object {
+        // GPU hard limit: 24 MP (ARGB_8888 @ 4 bytes/px = 96 MB).
+        // Applied to every image entering the canvas — CanvasView's display-proxy
+        // handles render performance, this just prevents hard OOM crashes.
+        private const val GPU_SAFE_MAX_PX = 4899
     }
 }

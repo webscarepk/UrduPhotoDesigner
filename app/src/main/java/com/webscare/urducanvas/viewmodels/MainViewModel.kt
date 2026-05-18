@@ -325,6 +325,8 @@ class MainViewModel @Inject constructor(
     var lastObjectsTabCategory: String? = null
     var lastShapesTabCategory: String? = null
     var lastImagesTabCategory: String? = null
+    var lastFontsLanguage: String = "All"
+    var lastFontsCategory: String? = null
 
     // Debounced, distinct stream for UI filtering
     val queryDebounced = rawQuery.map { it.trim() }.distinctUntilChanged()

@@ -45,7 +45,10 @@ class TextFragment : Fragment() {
     private val mainViewModel: MainViewModel by activityViewModels()
 
     private var currentTabPosition = 0
-    private var isPanelExpanded = false
+
+    // ── Convenience: single source of truth lives in mainViewModel ───────────
+    private val isPanelExpanded: Boolean
+        get() = mainViewModel.isPanelExpanded(PanelType.FONTS)
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -90,40 +93,33 @@ class TextFragment : Fragment() {
         }
     }
 
-    // ── Panel expansion ───────────────────────────────────────────────────────
+    // ── Panel expansion — single source of truth: mainViewModel ──────────────
 
     private fun observePanelExpanded() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.expandedPanel
                     .map { it == PanelType.FONTS }
-                    .collect { expanded ->
-                        isPanelExpanded = expanded
-                        applyExpandedUi(expanded)
-                        // FontsFragment self-observes mainViewModel.expandedPanel —
-                        // no need to call fontsFragment()?.onPanelExpanded(expanded) here
-                    }
+                    .collect { expanded -> applyExpandedUi(expanded) }
             }
         }
     }
 
     private fun applyExpandedUi(expanded: Boolean) {
-        // FIX 1: panelTitle and closePanel only visible in expanded state
         binding.panelTitle.isVisible = expanded
         binding.closePanel.isVisible = expanded
 
         if (expanded) {
             binding.searchIcon.isVisible = false
-            // Search row: visible only on Font tab
-            binding.searchRow.isVisible = (currentTabPosition == 0)
+            binding.searchRow.isVisible  = (currentTabPosition == 0)
         } else {
-            // Collapsed: searchIcon visible on Font tab
             binding.searchIcon.isVisible = (currentTabPosition == 0)
             binding.searchRow.isVisible  = false
-            // Clear search state
             binding.searchBar.text?.clear()
             mainViewModel.setQuery("")
         }
+        // FontsFragment (page 0 of the inner ViewPager) observes the same flow
+        // — no need to call into it from here.
     }
 
     // ── Observers ─────────────────────────────────────────────────────────────
@@ -175,20 +171,19 @@ class TextFragment : Fragment() {
             }
         })
 
-        // closePanel is now only visible when expanded, but wiring stays the same
         binding.closePanel.addPressEffect {
             mainViewModel.collapsePanel()
         }
 
         binding.addText.addPressEffect {
             viewModel.addText(requireActivity().getString(R.string.dummyText), requireActivity())
+            mainViewModel.collapsePanel()
         }
         binding.addFont.addPressEffect {
             ImportedFontsBottomSheet.newInstance()
                 .show(childFragmentManager, ImportedFontsBottomSheet.TAG)
         }
 
-        // Collapsed: search icon opens inline search bar
         binding.searchIcon.addPressEffect {
             binding.searchIcon.isVisible = false
             binding.searchBar.isVisible  = true

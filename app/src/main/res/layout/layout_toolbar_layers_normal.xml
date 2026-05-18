@@ -14,20 +14,10 @@
         android:text="@string/layers"
         android:textColor="@color/black"
         android:fontFamily="@font/bold"
-        android:textSize="14sp"
+        android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
-
-    <TextView
-        android:id="@+id/subTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/drag_to_rearrange"
-        android:textColor="@color/gray"
-        android:textSize="12sp"
-        android:fontFamily="@font/regular"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/title"/>
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
     <TextView
         android:id="@+id/canvasSizeBtn"
@@ -43,5 +33,22 @@
         android:gravity="center"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintEnd_toStartOf="@id/closePanel" />
+
+    <!-- Shown only when panel is expanded -->
+    <ImageView
+        android:id="@+id/closePanel"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:padding="8dp"
+        android:visibility="gone"
+        android:background="@drawable/button_bg_round"
+        android:backgroundTint="@color/contrast"
+        app:tint="@color/black"
+        android:src="@drawable/ic_close"
+        android:layout_marginStart="10dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

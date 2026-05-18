@@ -61,25 +61,31 @@ class HomeFragment : androidx.fragment.app.Fragment() {
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri?.let {
-                val inputStream = requireContext().contentResolver.openInputStream(it)
-                val bitmap = BitmapFactory.decodeStream(inputStream)
-                inputStream?.close()
+                // Decode off the main thread — BitmapFactory.decodeStream can block for
+                // several seconds on large photos and would ANR if called here directly.
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val rawBitmap = requireContext().contentResolver.openInputStream(it)
+                        ?.use { stream -> android.graphics.BitmapFactory.decodeStream(stream) }
+                        ?: return@launch
 
-                val widthVal = bitmap.width.toFloat()
-                val heightVal = bitmap.height.toFloat()
+                    // Apply GPU hard limit — same cap used by every other image entry point.
+                    val bitmap = com.webscare.urducanvas.common.utils.ImageProcessor
+                        .downsampleIfNeeded(rawBitmap, GPU_SAFE_MAX_PX, GPU_SAFE_MAX_PX)
 
-                val canvasSize =
-                    CanvasSize(
-                        id = 0,"From Image", widthVal, heightVal
-                    )
+                    val widthVal = bitmap.width.toFloat()
+                    val heightVal = bitmap.height.toFloat()
 
-                viewModel.clearCanvas()
-                viewModel.setCanvasSize(canvasSize)
-                viewModel.setCanvasBackgroundImage(bitmap, requireActivity())
-                val editorNavOptions = NavOptions.Builder().setLaunchSingleTop(true)
-                    .setPopUpTo(R.id.editorFragment, inclusive = true) // 🔥 this line is key
-                    .build()
-                findNavController().navigate(R.id.editorFragment, null, editorNavOptions)
+                    withContext(Dispatchers.Main) {
+                        val canvasSize = CanvasSize(id = 0, "From Image", widthVal, heightVal)
+                        viewModel.clearCanvas()
+                        viewModel.setCanvasSize(canvasSize)
+                        viewModel.setCanvasBackgroundImage(bitmap, requireActivity())
+                        val editorNavOptions = NavOptions.Builder().setLaunchSingleTop(true)
+                            .setPopUpTo(R.id.editorFragment, inclusive = true)
+                            .build()
+                        findNavController().navigate(R.id.editorFragment, null, editorNavOptions)
+                    }
+                }
             }
         }
 
@@ -593,5 +599,12 @@ class HomeFragment : androidx.fragment.app.Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    companion object {
+        // GPU hard limit: 24 MP (ARGB_8888 @ 4 bytes/px = 96 MB).
+        // Applied to every image entering the canvas — CanvasView's display-proxy
+        // handles render performance, this just prevents hard OOM crashes.
+        private const val GPU_SAFE_MAX_PX = 4899
     }
 }

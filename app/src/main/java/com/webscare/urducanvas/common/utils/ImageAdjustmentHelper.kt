@@ -7,8 +7,6 @@ import android.graphics.Color
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
-import android.graphics.RadialGradient
-import android.graphics.Shader
 import android.renderscript.Allocation
 import android.renderscript.Element
 import android.renderscript.RenderScript
@@ -18,7 +16,6 @@ import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
-import kotlin.math.sqrt
 
 object ImageAdjustmentHelper {
 
@@ -143,68 +140,90 @@ object ImageAdjustmentHelper {
             )
         }
 
-        // 1️⃣3️⃣  FEATHER  (0 → 100)
-        //     Fades the edges of the bitmap to transparent using a radial alpha gradient.
-        //     0 = no feathering, 100 = very heavy edge fade (nearly invisible at edges).
+        // 1️⃣3️⃣  FEATHER
         if (element.hasFeather && element.featherRadius > 0f) {
-            result = applyFeather(result, element.featherRadius)
+            result = applyFeather(result, element.featherRadius, element.featherWidth)
         }
 
         return result
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // FEATHER — radial alpha vignette that fades bitmap edges to transparent
-    //   radius 0   = no fade
-    //   radius 100 = very wide edge fade (almost the full image is faded)
+    // FEATHER — fades each edge of the bitmap to fully transparent.
     //
-    //   Strategy:
-    //     • We compute an "inner keep radius" as a fraction of the half-diagonal.
-    //       At featherRadius=0 the inner radius equals the half-diagonal (no fade).
-    //       At featherRadius=100 the inner radius shrinks to 0 (maximum fade).
-    //     • A RadialGradient going from opaque (center) to transparent (outer) is
-    //       drawn on top of the image using PorterDuff.Mode.DST_IN, which uses the
-    //       gradient alpha as a mask — preserving opaque pixels where alpha=255 and
-    //       erasing pixels where alpha=0.
+    //   featherRadius (0–100): how far INWARD from the edge the fade zone extends.
+    //     0  = feather band starts right at the very edge (ultra-thin, barely visible)
+    //     50 = feather band extends 50% of the image half-dimension inward
+    //     100 = feather band reaches the center (entire image fades)
+    //
+    //   featherWidth (0–100): how gradual the transition is within the fade zone.
+    //     0  = sharp linear ramp — you see the gradient band clearly
+    //     100 = smooth cubic ease-in — very soft, photographic look
+    //
+    //   Algorithm: per-pixel alpha multiplication using four independent edge ramps.
+    //   Each pixel's alpha = originalAlpha * leftRamp * rightRamp * topRamp * bottomRamp
+    //   where each ramp goes from 0 (at the very edge) to 1 (at the inner boundary).
+    //   This handles rectangular images correctly — the fade is uniform along each edge,
+    //   unlike a radial gradient which produces oval feathering on non-square images.
     // ─────────────────────────────────────────────────────────────────────────
-    private fun applyFeather(src: Bitmap, featherRadius: Float): Bitmap {
+    private fun applyFeather(src: Bitmap, featherRadius: Float, featherWidth: Float = 50f): Bitmap {
         val w = src.width
         val h = src.height
+        if (w == 0 || h == 0) return src
 
-        // Work on a mutable ARGB_8888 copy so we can blend transparency
-        val out = src.copy(Bitmap.Config.ARGB_8888, true)
-        val canvas = Canvas(out)
+        // How far inward the fade zone extends (in pixels) for each axis
+        // featherRadius=100 → bandW = w/2 (reaches center), bandH = h/2
+        val bandW = (w / 2f) * (featherRadius / 100f)
+        val bandH = (h / 2f) * (featherRadius / 100f)
 
-        val cx = w / 2f
-        val cy = h / 2f
-        val halfDiag = sqrt((cx * cx + cy * cy).toDouble()).toFloat()
+        // Smoothing exponent: featherWidth=0 → exponent=1 (linear), =100 → exponent=4 (very soft)
+        val exponent = 1f + (featherWidth / 100f) * 3f
 
-        // strength 0..1 from featherRadius 0..100
-        val strength = (featherRadius / 100f).coerceIn(0f, 1f)
+        val pixels = IntArray(w * h)
+        src.getPixels(pixels, 0, w, 0, 0, w, h)
 
-        // outer radius of the gradient = half-diagonal (reaches corners)
-        val outerRadius = halfDiag
+        for (y in 0 until h) {
+            // Top and bottom ramps: 0 at edge, 1 at bandH depth, stay 1 beyond
+            val topRamp: Float = if (bandH <= 0f) 1f else {
+                val t = (y / bandH).coerceIn(0f, 1f)
+                smoothStep(t, exponent)
+            }
+            val bottomRamp: Float = if (bandH <= 0f) 1f else {
+                val t = ((h - 1 - y) / bandH).coerceIn(0f, 1f)
+                smoothStep(t, exponent)
+            }
+            val vertRamp = topRamp * bottomRamp
 
-        // inner radius shrinks as strength grows; at strength=1 it's 0
-        // clamp to at least 1px to avoid zero-radius gradient crash
-        val innerRadius = (halfDiag * (1f - strength)).coerceAtLeast(1f)
+            for (x in 0 until w) {
+                val leftRamp: Float = if (bandW <= 0f) 1f else {
+                    val t = (x / bandW).coerceIn(0f, 1f)
+                    smoothStep(t, exponent)
+                }
+                val rightRamp: Float = if (bandW <= 0f) 1f else {
+                    val t = ((w - 1 - x) / bandW).coerceIn(0f, 1f)
+                    smoothStep(t, exponent)
+                }
 
-        val gradient = RadialGradient(
-            cx, cy,
-            outerRadius,
-            intArrayOf(Color.BLACK, Color.BLACK, Color.TRANSPARENT),
-            floatArrayOf(0f, innerRadius / outerRadius, 1f),
-            Shader.TileMode.CLAMP
-        )
-
-        val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            shader = gradient
-            xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_IN)
+                val alphaMult = vertRamp * leftRamp * rightRamp
+                val px = pixels[y * w + x]
+                val origAlpha = Color.alpha(px)
+                val newAlpha = (origAlpha * alphaMult).roundToInt().coerceIn(0, 255)
+                pixels[y * w + x] = Color.argb(newAlpha, Color.red(px), Color.green(px), Color.blue(px))
+            }
         }
 
-        canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), maskPaint)
-
+        val out = src.copy(Bitmap.Config.ARGB_8888, true)
+        out.setPixels(pixels, 0, w, 0, 0, w, h)
         return out
+    }
+
+    // Smooth ramp: t=0 → 0.0 (transparent), t=1 → 1.0 (opaque)
+    // exponent > 1 adds ease-in curve for softer appearance
+    private fun smoothStep(t: Float, exponent: Float): Float {
+        // Cubic smooth: 3t²-2t³ gives a nicer S-curve than linear
+        val smooth = t * t * (3f - 2f * t)
+        // Apply exponent for extra softness (featherWidth control)
+        return Math.pow(smooth.toDouble(), exponent.toDouble()).toFloat().coerceIn(0f, 1f)
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -229,7 +248,6 @@ object ImageAdjustmentHelper {
             val minC = min(r, min(g, b))
             val sat = if (maxC == 0f) 0f else (maxC - minC) / maxC
 
-            // Boost low-saturation colors more than high-saturation ones
             val boost = strength * (1f - sat)
 
             val gray = 0.299f * r + 0.587f * g + 0.114f * b
@@ -246,7 +264,7 @@ object ImageAdjustmentHelper {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // SHADOWS  (-100 → +100)  — lifts or crushes dark pixels
+    // SHADOWS  (-100 → +100)
     // ─────────────────────────────────────────────────────────────────────────
     private fun applyShadows(src: Bitmap, shadows: Float): Bitmap {
         val w = src.width
@@ -254,7 +272,7 @@ object ImageAdjustmentHelper {
         val pixels = IntArray(w * h)
         src.getPixels(pixels, 0, w, 0, 0, w, h)
 
-        val shift = shadows / 255f  // -100..+100 → ~-0.39..+0.39
+        val shift = shadows / 255f
 
         for (i in pixels.indices) {
             val px = pixels[i]
@@ -264,7 +282,6 @@ object ImageAdjustmentHelper {
             val b = Color.blue(px) / 255f
             val lum = 0.299f * r + 0.587f * g + 0.114f * b
 
-            // Weight: full effect at lum=0, zero effect at lum=0.5+
             val weight = (1f - lum * 2f).coerceIn(0f, 1f)
 
             val adjust = shift * weight
@@ -281,7 +298,7 @@ object ImageAdjustmentHelper {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // HIGHLIGHTS  (-100 → +100)  — recovers or boosts bright pixels
+    // HIGHLIGHTS  (-100 → +100)
     // ─────────────────────────────────────────────────────────────────────────
     private fun applyHighlights(src: Bitmap, highlights: Float): Bitmap {
         val w = src.width
@@ -315,7 +332,7 @@ object ImageAdjustmentHelper {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // CLARITY — mid-tone micro-contrast (local contrast boost)
+    // CLARITY — mid-tone micro-contrast
     // ─────────────────────────────────────────────────────────────────────────
     private fun applyClarity(src: Bitmap, clarity: Float): Bitmap {
         val w = src.width
@@ -361,7 +378,7 @@ object ImageAdjustmentHelper {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // FADE — white overlay (film-style fade to white)
+    // FADE — white overlay
     // ─────────────────────────────────────────────────────────────────────────
     private fun applyFade(src: Bitmap, fade: Float): Bitmap {
         val alpha = ((fade / 100f) * 255f).roundToInt().coerceIn(0, 255)
@@ -376,7 +393,7 @@ object ImageAdjustmentHelper {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // SHARPNESS — unsharp mask (convolution kernel)
+    // SHARPNESS — unsharp mask
     // ─────────────────────────────────────────────────────────────────────────
     private fun applySharpnessFallback(src: Bitmap, sharpness: Float): Bitmap {
         if (sharpness <= 0f) return src

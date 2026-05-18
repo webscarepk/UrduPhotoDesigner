@@ -231,15 +231,16 @@ class FilesListFragment : Fragment() {
                                 ?: return@launch
                         val rawBitmap = ImageProcessor.filePathToBitmap(filePath) ?: return@launch
 
-                        // We don't know which canvas this will be used on, so cap at the
-                        // GPU hard limit (4899px / 24 MP) — safe for any canvas size.
+                        // Cap at GPU hard limit only — the user will likely set this as a full-canvas
+                        // background, so preserve every pixel we can up to 24 MP.
                         val bitmap =
                             downsampleIfNeeded(rawBitmap, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)
 
-                        // Write the downsampled bitmap back to the temp file
+                        // Write back at maximum JPEG quality (100) — stored on disk once,
+                        // CanvasView's display-proxy handles render-time downscaling.
                         val outFile = File(filePath)
                         outFile.outputStream()
-                            .use { bitmap.compress(Bitmap.CompressFormat.JPEG, 95, it) }
+                            .use { bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it) }
 
                         val exportDate =
                             SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
@@ -373,19 +374,27 @@ class FilesListFragment : Fragment() {
             }
 
             is ImageEntity -> {
-                val bitmap = BitmapFactory.decodeFile(item.bitmapData)
+                val rawBitmap = BitmapFactory.decodeFile(item.bitmapData)
 
-                bitmap?.let {
-                    val widthVal = it.width.toFloat()
-                    val heightVal = it.height.toFloat()
+                rawBitmap?.let { bmp ->
+                    // Use canvas-relative sizing: 2× canvas ensures sharpness when zoomed in,
+                    // bounded by the GPU hard limit so we never crash.
+                    val canvasW = canvasViewModel.canvasSize.value?.width ?: bmp.width.toFloat()
+                    val canvasH = canvasViewModel.canvasSize.value?.height ?: bmp.height.toFloat()
+                    val maxW = (canvasW * 2).toInt().coerceIn(1024, MAX_IMAGE_DIMENSION)
+                    val maxH = (canvasH * 2).toInt().coerceIn(1024, MAX_IMAGE_DIMENSION)
+                    val bitmap = downsampleIfNeeded(bmp, maxW, maxH)
+
+                    val widthVal = bitmap.width.toFloat()
+                    val heightVal = bitmap.height.toFloat()
 
                     val canvasSize = CanvasSize(
-                        id = 0,"From Image", widthVal, heightVal
+                        id = 0, "From Image", widthVal, heightVal
                     )
 
                     canvasViewModel.clearCanvas()
                     canvasViewModel.setCanvasSize(canvasSize)
-                    canvasViewModel.setCanvasBackgroundImage(it, requireActivity())
+                    canvasViewModel.setCanvasBackgroundImage(bitmap, requireActivity())
                     view?.post {
                         findNavController().navigate(R.id.editorFragment, bundle, navOptions)
                     }
@@ -586,15 +595,19 @@ class FilesListFragment : Fragment() {
         val ext = when (format) {
             Bitmap.CompressFormat.PNG -> "png"
             Bitmap.CompressFormat.JPEG -> "jpg"
-            Bitmap.CompressFormat.WEBP -> "webp"
-            else -> "png"
+            else -> "webp"
         }
 
         val mimeType = when (format) {
             Bitmap.CompressFormat.PNG -> "image/png"
             Bitmap.CompressFormat.JPEG -> "image/jpeg"
-            Bitmap.CompressFormat.WEBP -> "image/webp"
-            else -> "image/png"
+            else -> "image/webp"
+        }
+
+        // Quality: PNG is lossless (quality param ignored), JPEG/WEBP use max.
+        val quality = when (format) {
+            Bitmap.CompressFormat.JPEG -> 100
+            else -> 100 // PNG: ignored; WEBP lossless: 100 = best compression
         }
 
         val filename = "${fileName}_${System.currentTimeMillis()}.$ext"
@@ -613,7 +626,7 @@ class FilesListFragment : Fragment() {
 
         uri?.let {
             resolver.openOutputStream(it)?.use { stream ->
-                bitmap.compress(format, 100, stream)
+                bitmap.compress(format, quality, stream)
             }
             Snackbar.make(requireView(), "Exported to Gallery", Snackbar.LENGTH_SHORT).show()
         } ?: run {

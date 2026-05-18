@@ -9,10 +9,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewpager2.widget.ViewPager2
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.PanelType
 import com.webscare.urducanvas.databinding.FragmentFontsBinding
 import com.webscare.urducanvas.viewmodels.MainViewModel
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -32,12 +32,15 @@ class FontsFragment : androidx.fragment.app.Fragment() {
 
     private val chosenCategoryByLang = mutableMapOf<String, String?>()
     private var isRebuilding = false
-    private var isPanelExpanded = false
 
     // ── The language that is "active" in the left panel ──────────────────────
-    // Collapsed: whichever the user last tapped / ViewPager scrolled to
-    // Expanded : single-select radio; defaults to Urdu (or first available)
     private var activeLangInExpanded: String = "Urdu"
+
+    // ── Convenience: is the fonts panel currently expanded? ──────────────────
+    // Single source of truth is mainViewModel.expandedPanel; this is just a
+    // cached read so we don't call the StateFlow in synchronous helpers.
+    private val isPanelExpanded: Boolean
+        get() = mainViewModel.isPanelExpanded(PanelType.FONTS)
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -49,17 +52,23 @@ class FontsFragment : androidx.fragment.app.Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val saved = canvasViewModel.getFontPanelState()
-        if (saved.selectedCategory != null) {
-            chosenCategoryByLang[saved.selectedLanguage] = saved.selectedCategory
-        }
+        // Restore persisted language/category from ViewModel (survives rotation)
+        val savedLang = mainViewModel.lastFontsLanguage
+        val savedCat  = mainViewModel.lastFontsCategory
+        if (savedCat != null) chosenCategoryByLang[savedLang] = savedCat
 
         setupRecyclerViews()
-        initObservers()
         observePanelExpanded()
+        initObservers()
     }
 
-    // ── Panel expansion ───────────────────────────────────────────────────────
+    override fun onDestroyView() {
+        persistCurrentState()
+        super.onDestroyView()
+        _binding = null
+    }
+
+    // ── Panel expansion — SINGLE source of truth: mainViewModel ──────────────
 
     private fun observePanelExpanded() {
         viewLifecycleOwner.lifecycleScope.launch {
@@ -71,12 +80,15 @@ class FontsFragment : androidx.fragment.app.Fragment() {
         }
     }
 
+    /**
+     * Called whenever expandedPanel changes.  FontsListFragment instances now
+     * observe the same flow themselves, so we only need to handle the
+     * left-panel (FontLanguagesAdapter) and ViewPager orientation here.
+     */
     private fun applyExpansion(expanded: Boolean) {
-        if (isPanelExpanded == expanded) return
-        isPanelExpanded = expanded
-        adapter.isExpandedMode = expanded          // ← tell adapter which mode we're in
-
         if (_binding == null || languages.isEmpty()) return
+
+        adapter.isExpandedMode = expanded
 
         if (expanded) {
             binding.viewPager.orientation = ViewPager2.ORIENTATION_HORIZONTAL
@@ -85,17 +97,13 @@ class FontsFragment : androidx.fragment.app.Fragment() {
             binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
             collapseToSingleLanguage()
         }
-
-        for (i in languages.indices) {
-            (childFragmentManager.findFragmentByTag("f$i") as? FontsListFragment)
-                ?.onPanelExpanded(expanded)
-        }
+        // FontsListFragment instances observe mainViewModel.expandedPanel
+        // themselves — no need to call onPanelExpanded() manually here.
     }
 
-    // ── Expanded: single-select, default = Urdu (or first non-All lang) ──────
+    // ── Expanded: single-select, default = Urdu ───────────────────────────────
 
     private fun expandWithRadioDefault() {
-        // Pick the default: prefer "Urdu", fall back to first real language, then "All"
         val preferred = languages.firstOrNull {
             it.name.equals("Urdu", ignoreCase = true)
         }?.name
@@ -117,8 +125,7 @@ class FontsFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun collapseToSingleLanguage() {
-        val saved = canvasViewModel.getFontPanelState()
-        val activeLang = saved.selectedLanguage.ifBlank { "All" }
+        val activeLang = mainViewModel.lastFontsLanguage.ifBlank { "All" }
         val updated = languages.map { it.copy(is_selected = it.name == activeLang) }
         languages.clear()
         languages.addAll(updated)
@@ -140,22 +147,20 @@ class FontsFragment : androidx.fragment.app.Fragment() {
             onLanguageExpanded = { lang, collapse ->
                 if (isRebuilding) return@FontLanguagesAdapter
                 if (isPanelExpanded) {
-                    // Expanded mode: radio-select the tapped language
                     activeLangInExpanded = lang
                     val targetIdx = languages.indexOfFirst { it.name == lang }
                     if (targetIdx >= 0 && binding.viewPager.currentItem != targetIdx) {
                         binding.viewPager.setCurrentItem(targetIdx, false)
                     }
-                    saveCurrentState()
+                    persistCurrentState()
                     deliverFilter(lang, chosenCategoryByLang[lang])
                 } else {
-                    // Collapsed mode: original toggle behaviour
                     if (collapse) {
-                        collapseLanguage(lang)
+                        collapseLanguage()
                         deliverFilter(lang, chosenCategoryByLang[lang])
                     } else {
                         expandOnly(lang)
-                        saveCurrentState()
+                        persistCurrentState()
                         deliverFilter(lang, chosenCategoryByLang[lang])
                     }
                 }
@@ -164,7 +169,7 @@ class FontsFragment : androidx.fragment.app.Fragment() {
                 if (isRebuilding) return@FontLanguagesAdapter
                 chosenCategoryByLang[lang] = category
                 markCategoryUi(lang, category)
-                saveCurrentState()
+                persistCurrentState()
                 deliverFilter(lang, category)
             }
         )
@@ -180,7 +185,6 @@ class FontsFragment : androidx.fragment.app.Fragment() {
                 if (isRebuilding) return
                 languages.getOrNull(position)?.let { row ->
                     if (isPanelExpanded) {
-                        // In expanded mode, sync left panel selection to pager
                         if (activeLangInExpanded != row.name) {
                             activeLangInExpanded = row.name
                             val updated = languages.map { it.copy(is_selected = it.name == row.name) }
@@ -191,11 +195,9 @@ class FontsFragment : androidx.fragment.app.Fragment() {
                         expandOnly(row.name)
                     }
                     binding.languages.smoothScrollToPosition(position)
-                    saveCurrentState()
+                    persistCurrentState()
                     deliverFilterSafe(row.name, chosenCategoryByLang[row.name])
                 }
-                val frag = childFragmentManager.findFragmentByTag("f$position") as? FontsListFragment
-                frag?.onPanelExpanded(isPanelExpanded)
             }
         })
     }
@@ -264,13 +266,11 @@ class FontsFragment : androidx.fragment.app.Fragment() {
                 languages.addAll(incoming)
 
                 if (isFirstLoad) {
-                    val saved     = canvasViewModel.getFontPanelState()
-                    val savedLang = saved.selectedLanguage
-                    val savedCat  = saved.selectedCategory
+                    val savedLang = mainViewModel.lastFontsLanguage
+                    val savedCat  = mainViewModel.lastFontsCategory
 
                     if (savedCat != null) chosenCategoryByLang[savedLang] = savedCat
 
-                    // On first load in expanded mode, default to Urdu
                     val expandedDefault = if (isPanelExpanded) {
                         languages.firstOrNull { it.name.equals("Urdu", true) }?.name
                             ?: languages.firstOrNull { it.name != "All" }?.name
@@ -307,10 +307,8 @@ class FontsFragment : androidx.fragment.app.Fragment() {
 
                 if (isPanelExpanded) {
                     expandWithRadioDefault()
-                    for (i in languages.indices) {
-                        (childFragmentManager.findFragmentByTag("f$i") as? FontsListFragment)
-                            ?.onPanelExpanded(true)
-                    }
+                    // FontsListFragment instances observe the flow themselves;
+                    // no manual onPanelExpanded() loop needed here.
                 }
             }
         }
@@ -328,27 +326,34 @@ class FontsFragment : androidx.fragment.app.Fragment() {
 
     private fun tryDeliverFilter(lang: String, category: String?): Boolean {
         val current  = binding.viewPager.currentItem
-        val fragment = childFragmentManager.findFragmentByTag("f$current") as? FontsListFragment
+        val fragment = childFragmentManager.findFragmentByTag("f${pagerAdapter.getItemId(current)}") as? FontsListFragment
         fragment?.applyFilter(language = lang, category = category)
         return fragment != null
     }
 
     private fun deliverFilter(lang: String, category: String?) {
         val current = binding.viewPager.currentItem
-        (childFragmentManager.findFragmentByTag("f$current") as? FontsListFragment)
+        (childFragmentManager.findFragmentByTag("f${pagerAdapter.getItemId(current)}") as? FontsListFragment)
             ?.applyFilter(language = lang, category = category)
     }
 
-    // ── State helpers ─────────────────────────────────────────────────────────
+    // ── State persistence to ViewModel (survives rotation / re-creation) ──────
 
-    private fun saveCurrentState() {
+    private fun persistCurrentState() {
         val activeLang = if (isPanelExpanded) activeLangInExpanded
         else languages.firstOrNull { it.is_selected }?.name ?: "All"
         val activeCat  = chosenCategoryByLang[activeLang]
+
+        mainViewModel.lastFontsLanguage = activeLang
+        mainViewModel.lastFontsCategory = activeCat
+
+        // Also keep CanvasViewModel in sync for font-apply logic
         canvasViewModel.saveFontPanelState(language = activeLang, category = activeCat)
     }
 
-    private fun collapseLanguage(lang: String) {
+    // ── Left-panel UI helpers ─────────────────────────────────────────────────
+
+    private fun collapseLanguage() {
         val updated = languages.map { it.copy(is_selected = false) }
         languages.clear(); languages.addAll(updated)
         adapter.submitList(ArrayList(languages))
@@ -372,12 +377,6 @@ class FontsFragment : androidx.fragment.app.Fragment() {
         }
         languages[pos] = row.copy(categories = newCats)
         adapter.submitList(ArrayList(languages))
-    }
-
-    override fun onDestroyView() {
-        saveCurrentState()
-        super.onDestroyView()
-        _binding = null
     }
 
     companion object {

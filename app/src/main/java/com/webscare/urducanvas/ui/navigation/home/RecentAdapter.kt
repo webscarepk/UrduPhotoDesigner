@@ -55,10 +55,12 @@ class RecentAdapter(
             val file = File(item.imagePath)
             Glide.with(binding.thumbnail)
                 .load(file)
+                // Use file modification time as cache key — thumbnail updates when project is
+                // re-saved, but is served from disk cache on every other bind. This eliminates
+                // the per-bind decode that was causing HeapTaskDaemon thrash in the ANR log.
                 .signature(ObjectKey(file.lastModified()))
-                .diskCacheStrategy(DiskCacheStrategy.NONE)
-                .skipMemoryCache(true)
-                .thumbnail(0.1f)
+                .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+                .thumbnail(0.2f)
                 .into(binding.thumbnail)
 
             binding.title.text = item.fileName

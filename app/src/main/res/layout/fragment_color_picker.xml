@@ -31,7 +31,7 @@
     <com.webscare.urducanvas.common.views.ColorPickerBar
         android:id="@+id/seekbarHue"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="50dp"
         android:splitTrack="false"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -57,12 +57,11 @@
     <com.webscare.urducanvas.common.views.ColorPickerBar
         android:id="@+id/seekbarAlpha"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="50dp"
         android:splitTrack="false"
-        app:layout_constraintStart_toEndOf="@id/colorCode"
         android:layout_marginStart="10dp"
+        app:layout_constraintStart_toEndOf="@id/colorCode"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/seekbarHue"/>
 
 

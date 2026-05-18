@@ -96,8 +96,8 @@ class ImagesFragment : Fragment() {
         tabs.addAll(initial.tabs)
 
         currentTabIndex = mainViewModel.lastImagesTabCategory?.let { savedCategory ->
-                tabs.indexOf(savedCategory).takeIf { it >= 0 }
-            } ?: 0
+            tabs.indexOf(savedCategory).takeIf { it >= 0 }
+        } ?: 0
 
         if (tabs.isNotEmpty()) {
             rebuildTabLayout(selectIndex = currentTabIndex)
@@ -174,11 +174,11 @@ class ImagesFragment : Fragment() {
                 mainViewModel.expandedPanel
                     .map { it == PanelType.IMAGES }
                     .collect { expanded ->
-                    applyExpandedUi(expanded)
-                    for ((_, fragment) in fragmentCache) {
-                        fragment.onPanelExpanded(expanded)
+                        applyExpandedUi(expanded)
+                        for ((_, fragment) in fragmentCache) {
+                            fragment.onPanelExpanded(expanded)
+                        }
                     }
-                }
             }
         }
     }
@@ -307,8 +307,20 @@ class ImagesFragment : Fragment() {
                 } else {
                     val bitmap = withContext(Dispatchers.IO) {
                         runCatching {
-                            Glide.with(requireActivity()).asBitmap().load(entity.bitmapData ?: url)
+                            val raw = Glide.with(requireActivity()).asBitmap()
+                                .load(entity.bitmapData ?: url)
                                 .diskCacheStrategy(DiskCacheStrategy.ALL).submit().get()
+                            if (isBackground) {
+                                // Backgrounds: canvas-relative downscale
+                                val canvasW = viewModel.canvasSize.value?.width ?: raw.width.toFloat()
+                                val canvasH = viewModel.canvasSize.value?.height ?: raw.height.toFloat()
+                                val maxW = (canvasW * 2).toInt().coerceIn(1024, GPU_SAFE_MAX_PX)
+                                val maxH = (canvasH * 2).toInt().coerceIn(1024, GPU_SAFE_MAX_PX)
+                                downsampleIfNeeded(raw, maxW, maxH)
+                            } else {
+                                // Regular images: GPU cap only, preserve full quality
+                                downsampleIfNeeded(raw, GPU_SAFE_MAX_PX, GPU_SAFE_MAX_PX)
+                            }
                         }.getOrNull()
                     }
                     bitmap?.let {
@@ -347,12 +359,12 @@ class ImagesFragment : Fragment() {
         }
 
         childFragmentManager.beginTransaction().setReorderingAllowed(true).apply {
-                for (f in childFragmentManager.fragments) {
-                    if (f !== target && !f.isHidden) hide(f)
-                }
-                if (!target.isAdded) add(R.id.fragmentContainer, target, category)
-                else if (target.isHidden) show(target)
-            }.commitNow()
+            for (f in childFragmentManager.fragments) {
+                if (f !== target && !f.isHidden) hide(f)
+            }
+            if (!target.isAdded) add(R.id.fragmentContainer, target, category)
+            else if (target.isHidden) show(target)
+        }.commitNow()
 
         currentFragment = target
         target.onPanelExpanded(mainViewModel.isPanelExpanded(PanelType.IMAGES))
@@ -643,18 +655,27 @@ class ImagesFragment : Fragment() {
                     ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
                         ?: return@launch
                 val rawBitmap = ImageProcessor.filePathToBitmap(filePath) ?: return@launch
-                val canvasW = viewModel.canvasSize.value?.width ?: rawBitmap.width.toFloat()
-                val canvasH = viewModel.canvasSize.value?.height ?: rawBitmap.height.toFloat()
-                val maxW = (canvasW * 2).toInt().coerceAtLeast(1024)
-                val maxH = (canvasH * 2).toInt().coerceAtLeast(1024)
-                val bitmap = downsampleIfNeeded(rawBitmap, maxW, maxH)
+
+                val currentCategory = tabs.getOrNull(currentTabIndex).orEmpty()
+                val isBackground = currentCategory.equals("Backgrounds", ignoreCase = true) ||
+                        currentCategory.equals("My Backgrounds", ignoreCase = true)
+
+                val bitmap = if (isBackground) {
+                    // Backgrounds fill the whole canvas — downsample to 2× canvas size so
+                    // they look sharp even when zoomed in, but don't waste RAM beyond that.
+                    val canvasW = viewModel.canvasSize.value?.width ?: rawBitmap.width.toFloat()
+                    val canvasH = viewModel.canvasSize.value?.height ?: rawBitmap.height.toFloat()
+                    val maxW = (canvasW * 2).toInt().coerceIn(1024, GPU_SAFE_MAX_PX)
+                    val maxH = (canvasH * 2).toInt().coerceIn(1024, GPU_SAFE_MAX_PX)
+                    downsampleIfNeeded(rawBitmap, maxW, maxH)
+                } else {
+                    // Regular image element: user chose it intentionally — keep full quality
+                    // up to the GPU hard limit. CanvasView's display-proxy handles rendering perf.
+                    downsampleIfNeeded(rawBitmap, GPU_SAFE_MAX_PX, GPU_SAFE_MAX_PX)
+                }
+
                 withContext(Dispatchers.Main) {
-                    val currentCategory = tabs.getOrNull(currentTabIndex).orEmpty()
-                    if (currentCategory.equals(
-                            "Backgrounds",
-                            ignoreCase = true
-                        ) || currentCategory.equals("My Backgrounds", ignoreCase = true)
-                    ) {
+                    if (isBackground) {
                         viewModel.ensureBackgroundElement(requireActivity())
                         viewModel.setCanvasBackgroundImage(bitmap, requireActivity())
                     } else {
@@ -665,5 +686,12 @@ class ImagesFragment : Fragment() {
                 Log.e("ImagesFragment", "Failed to import image", e)
             }
         }
+    }
+
+    companion object {
+        // GPU hard limit: 24 MP (ARGB_8888 @ 4 bytes = 96 MB).
+        // Applied to every image entering the canvas to prevent hard crashes.
+        // CanvasView's display-proxy system keeps rendering smooth regardless.
+        private const val GPU_SAFE_MAX_PX = 4899
     }
 }

@@ -179,6 +179,7 @@ class ShapesListFragment : Fragment() {
                     } else if (bitmap != null) {
                         viewModel.addSticker(bitmap.trimTransparentEdges(), requireActivity(), ElementType.IMAGE, entity.is_premium)
                     }
+                    if (mainViewModel.isPanelExpanded(PanelType.SHAPES)) mainViewModel.togglePanel(PanelType.SHAPES)
                 },
                 onLongPress = { entity ->
                     mainViewModel.toggleShapesSelection(entity.id)

@@ -17,6 +17,7 @@ import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
@@ -123,9 +124,8 @@ class LayersFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.expandedPanel
                     .map { it == PanelType.LAYERS }
-                    .collect { _ ->
-                        // No visual changes needed — EditorFragment drives the animation.
-                        // Reserved for future use (e.g. show/hide column count toggle).
+                    .collect { expanded ->
+                        normalToolbar.closePanel.isVisible = expanded
                     }
             }
         }
@@ -145,8 +145,11 @@ class LayersFragment : Fragment() {
         normalToolbar.root.visibility    = View.VISIBLE
         selectionToolbar.root.visibility = View.GONE
 
-        normalToolbar.title.text    = getString(R.string.layers)
-        normalToolbar.subTitle.text = getString(R.string.drag_to_rearrange)
+        normalToolbar.title.text = getString(R.string.layers)
+
+        normalToolbar.closePanel.addPressEffect {
+            mainViewModel.collapsePanel()
+        }
 
         normalToolbar.canvasSizeBtn.addPressEffect {
             CreateFragment.newResizeInstance().show(parentFragmentManager, "resize_canvas")

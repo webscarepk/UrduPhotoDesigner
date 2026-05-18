@@ -149,6 +149,8 @@ data class CanvasElement(
 
     @SerializedName("featherRadius") var featherRadius: Float = 0f,
 
+    @SerializedName("featherWidth") var featherWidth: Float = 50f,
+
     @SerializedName("blendType") var blendType: BlendType = BlendType.NORMAL,
 
     @SerializedName("isVisible") var isVisible: Boolean = true,
@@ -243,7 +245,17 @@ data class CanvasElement(
                     ?: svgDrawable?.picture?.width?.toFloat()?.takeIf { it > 0 }
                     ?: 0f
             } else {
-                bitmap?.width?.toFloat() ?: 0f
+                // ── Prefer logicalContentWidth over bitmap.width ──────────────
+                // bitmap.width changes after JPEG encode/decode: bitmapToBase64
+                // downsamples a 4000px image to ~1920px. After undo/reload, the
+                // decoded bitmap is smaller, so draw rect shrinks and visual size
+                // drops even though element.scale is correct.
+                // logicalContentWidth stores the ORIGINAL pixel dimensions set
+                // at add-time (serialized to JSON), so it survives encode/decode
+                // and keeps visual size consistent across undo/redo/reload.
+                logicalContentWidth.takeIf { it > 0 }
+                    ?: bitmap?.width?.toFloat()
+                    ?: 0f
             }
         }
     }
@@ -268,7 +280,11 @@ data class CanvasElement(
                     ?: svgDrawable?.picture?.height?.toFloat()?.takeIf { it > 0 }
                     ?: 0f
             } else {
-                bitmap?.height?.toFloat() ?: 0f
+                // ── Prefer logicalContentHeight over bitmap.height ────────────
+                // Same reason as getLocalContentWidth above.
+                logicalContentHeight.takeIf { it > 0 }
+                    ?: bitmap?.height?.toFloat()
+                    ?: 0f
             }
         }
     }
@@ -371,7 +387,7 @@ data class CanvasElement(
                 scale * if (isFlippedX) -1f else 1f, scale * if (isFlippedY) -1f else 1f
             )
 
-            // ✅ Rotate around the element’s true local center (0,0)
+            // ✅ Rotate around the element's true local center (0,0)
             if (normalizedRotation != 0f) postRotate(normalizedRotation)
 
             // ✅ Move into world space
@@ -429,9 +445,6 @@ data class CanvasElement(
 
         if (!hasValidStroke) return RectF(0f, 0f, 0f, 0f)
 
-        // Strokes are in absolute canvas coordinates, element sits at x=0 y=0
-        // Shift bounds to be centered around element origin for consistent
-        // hit testing and selection outline rendering
         val centerX = (minX + maxX) / 2f
         val centerY = (minY + maxY) / 2f
         val halfW = (maxX - minX) / 2f

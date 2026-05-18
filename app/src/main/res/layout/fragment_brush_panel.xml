@@ -9,314 +9,325 @@
     tools:context=".ui.editor.panels.draw.brush.BrushPanelFragment">
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/mainContainer"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/previewCard"
-        android:layout_marginHorizontal="10dp"
-        android:visibility="gone"
-        android:id="@+id/sizePane">
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/thicknessCard"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="3dp"
-            android:visibility="visible"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/hardnessCard"
-            app:layout_constraintStart_toStartOf="parent">
-
-            <TextView
-                android:id="@+id/thicknessTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:fontFamily="@font/medium"
-                android:text="@string/thickness"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/thickness"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/edit_bg_stroke"
-                android:fontFamily="@font/regular"
-                android:paddingHorizontal="6dp"
-                android:paddingVertical="4dp"
-                android:text="10"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintBottom_toBottomOf="@id/thicknessTitle"
-                app:layout_constraintStart_toEndOf="@id/thicknessTitle"
-                app:layout_constraintTop_toTopOf="@id/thicknessTitle" />
-
-            <SeekBar
-                android:progressBackgroundTint="@color/light_gray"
-                android:id="@+id/thicknessBar"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:indeterminateTint="@color/appColor"
-                android:progress="20"
-                android:progressTint="@color/appColor"
-                android:thumbTint="@color/appColor"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/thickness" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
+        app:layout_constraintBottom_toTopOf="@id/previewCard">
 
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/hardnessCard"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="3dp"
-            android:visibility="visible"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toEndOf="@id/thicknessCard"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <TextView
-                android:id="@+id/hardnessTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:fontFamily="@font/medium"
-                android:text="@string/hardness"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/hardness"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/edit_bg_stroke"
-                android:fontFamily="@font/regular"
-                android:paddingHorizontal="6dp"
-                android:paddingVertical="4dp"
-                android:text="10"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintBottom_toBottomOf="@id/hardnessTitle"
-                app:layout_constraintStart_toEndOf="@id/hardnessTitle"
-                app:layout_constraintTop_toTopOf="@id/hardnessTitle" />
-
-            <SeekBar
-                android:progressBackgroundTint="@color/light_gray"
-                android:id="@+id/hardnessBar"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:indeterminateTint="@color/appColor"
-                android:progress="20"
-                android:progressTint="@color/appColor"
-                android:thumbTint="@color/appColor"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/hardness" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/previewCard"
-        android:layout_marginHorizontal="10dp"
-        android:visibility="gone"
-        android:id="@+id/stylePane">
-
-       <androidx.constraintlayout.widget.ConstraintLayout
-           android:layout_width="0dp"
-           android:layout_height="wrap_content"
-           app:layout_constraintBottom_toBottomOf="parent"
-           app:layout_constraintStart_toStartOf="parent"
-           app:layout_constraintEnd_toEndOf="parent"
-           app:layout_constraintTop_toTopOf="parent">
-
-           <ImageView
-               android:layout_width="35dp"
-               android:layout_height="35dp"
-               android:background="@drawable/button_bg"
-               android:backgroundTint="@color/contrast"
-               android:src="@drawable/ic_pen"
-               android:id="@+id/pen"
-               android:padding="10dp"
-               app:layout_constraintStart_toEndOf="@id/highlighter"
-               app:layout_constraintEnd_toEndOf="parent"
-               app:layout_constraintTop_toTopOf="parent"
-               app:layout_constraintBottom_toBottomOf="parent"
-               app:tint="@color/gray"/>
-
-           <ImageView
-               android:layout_width="35dp"
-               android:layout_height="35dp"
-               android:background="@drawable/button_bg"
-               android:backgroundTint="@color/contrast"
-               android:src="@drawable/ic_pencil"
-               android:id="@+id/pencil"
-               app:layout_constraintStart_toEndOf="@id/brush"
-               app:layout_constraintEnd_toStartOf="@id/marker"
-               app:layout_constraintTop_toTopOf="parent"
-               app:layout_constraintBottom_toBottomOf="parent"
-               android:padding="10dp"
-               app:tint="@color/gray"/>
-
-           <ImageView
-               android:layout_width="35dp"
-               android:layout_height="35dp"
-               android:background="@drawable/button_bg"
-               android:backgroundTint="@color/contrast"
-               android:src="@drawable/ic_marker"
-               android:id="@+id/marker"
-               app:layout_constraintStart_toEndOf="@id/pencil"
-               app:layout_constraintEnd_toStartOf="@id/highlighter"
-               app:layout_constraintTop_toTopOf="parent"
-               app:layout_constraintBottom_toBottomOf="parent"
-               android:padding="10dp"
-               app:tint="@color/gray"/>
-
-           <ImageView
-               android:layout_width="35dp"
-               android:layout_height="35dp"
-               android:background="@drawable/button_bg"
-               android:backgroundTint="@color/contrast"
-               android:src="@drawable/ic_highlighter"
-               android:id="@+id/highlighter"
-               app:layout_constraintStart_toEndOf="@id/marker"
-               app:layout_constraintEnd_toStartOf="@id/pen"
-               app:layout_constraintTop_toTopOf="parent"
-               app:layout_constraintBottom_toBottomOf="parent"
-               android:padding="10dp"
-               app:tint="@color/gray"/>
-
-           <ImageView
-               android:layout_width="35dp"
-               android:layout_height="35dp"
-               android:background="@drawable/button_bg"
-               android:backgroundTint="@color/contrast"
-               android:src="@drawable/ic_brush"
-               android:id="@+id/brush"
-               app:layout_constraintEnd_toStartOf="@id/pencil"
-               app:layout_constraintStart_toStartOf="parent"
-               app:layout_constraintTop_toTopOf="parent"
-               app:layout_constraintBottom_toBottomOf="parent"
-               android:padding="10dp"
-               app:tint="@color/gray"/>
-       </androidx.constraintlayout.widget.ConstraintLayout>
-
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/previewCard"
-        android:layout_marginHorizontal="10dp"
-        android:visibility="gone"
-        android:id="@+id/colorPane">
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/toolbar"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:padding="1dp"
-            android:background="@drawable/button_bg_small"
-            android:backgroundTint="@color/contrast"
-            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
-
-            <TextView
-                android:id="@+id/solid"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_marginHorizontal="10dp"
+            android:visibility="gone"
+            android:id="@+id/sizePane">
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/thicknessCard"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:background="@drawable/button_bg_small"
-                android:backgroundTint="@color/white"
-                android:fontFamily="@font/medium"
-                android:gravity="center"
-                android:paddingVertical="3dp"
-                android:text="@string/solid"
-                android:textColor="@color/black"
-                android:textSize="12sp"
+                android:layout_marginBottom="3dp"
+                android:visibility="visible"
+                app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/gradient"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintEnd_toStartOf="@id/hardnessCard"
+                app:layout_constraintStart_toStartOf="parent">
 
-            <TextView
-                android:id="@+id/gradient"
+                <TextView
+                    android:id="@+id/thicknessTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:fontFamily="@font/medium"
+                    android:text="@string/thickness"
+                    android:textColor="@color/black"
+                    android:textSize="12sp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/thickness"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/edit_bg_stroke"
+                    android:fontFamily="@font/regular"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="4dp"
+                    android:text="10"
+                    android:textColor="@color/black"
+                    android:textSize="12sp"
+                    app:layout_constraintBottom_toBottomOf="@id/thicknessTitle"
+                    app:layout_constraintStart_toEndOf="@id/thicknessTitle"
+                    app:layout_constraintTop_toTopOf="@id/thicknessTitle" />
+
+                <SeekBar
+                    android:progressBackgroundTint="@color/light_gray"
+                    android:id="@+id/thicknessBar"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:indeterminateTint="@color/appColor"
+                    android:progress="20"
+                    android:progressTint="@color/appColor"
+                    android:thumbTint="@color/appColor"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/thickness" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/hardnessCard"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="3dp"
+                android:visibility="visible"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toEndOf="@id/thicknessCard"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <TextView
+                    android:id="@+id/hardnessTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:fontFamily="@font/medium"
+                    android:text="@string/hardness"
+                    android:textColor="@color/black"
+                    android:textSize="12sp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/hardness"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/edit_bg_stroke"
+                    android:fontFamily="@font/regular"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="4dp"
+                    android:text="10"
+                    android:textColor="@color/black"
+                    android:textSize="12sp"
+                    app:layout_constraintBottom_toBottomOf="@id/hardnessTitle"
+                    app:layout_constraintStart_toEndOf="@id/hardnessTitle"
+                    app:layout_constraintTop_toTopOf="@id/hardnessTitle" />
+
+                <SeekBar
+                    android:progressBackgroundTint="@color/light_gray"
+                    android:id="@+id/hardnessBar"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:indeterminateTint="@color/appColor"
+                    android:progress="20"
+                    android:progressTint="@color/appColor"
+                    android:thumbTint="@color/appColor"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/hardness" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_marginHorizontal="10dp"
+            android:visibility="gone"
+            android:id="@+id/stylePane">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <ImageView
+                    android:layout_width="35dp"
+                    android:layout_height="35dp"
+                    android:background="@drawable/button_bg"
+                    android:backgroundTint="@color/contrast"
+                    android:src="@drawable/ic_pen"
+                    android:id="@+id/pen"
+                    android:padding="10dp"
+                    app:layout_constraintStart_toEndOf="@id/highlighter"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:tint="@color/gray"/>
+
+                <ImageView
+                    android:layout_width="35dp"
+                    android:layout_height="35dp"
+                    android:background="@drawable/button_bg"
+                    android:backgroundTint="@color/contrast"
+                    android:src="@drawable/ic_pencil"
+                    android:id="@+id/pencil"
+                    app:layout_constraintStart_toEndOf="@id/brush"
+                    app:layout_constraintEnd_toStartOf="@id/marker"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:padding="10dp"
+                    app:tint="@color/gray"/>
+
+                <ImageView
+                    android:layout_width="35dp"
+                    android:layout_height="35dp"
+                    android:background="@drawable/button_bg"
+                    android:backgroundTint="@color/contrast"
+                    android:src="@drawable/ic_marker"
+                    android:id="@+id/marker"
+                    app:layout_constraintStart_toEndOf="@id/pencil"
+                    app:layout_constraintEnd_toStartOf="@id/highlighter"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:padding="10dp"
+                    app:tint="@color/gray"/>
+
+                <ImageView
+                    android:layout_width="35dp"
+                    android:layout_height="35dp"
+                    android:background="@drawable/button_bg"
+                    android:backgroundTint="@color/contrast"
+                    android:src="@drawable/ic_highlighter"
+                    android:id="@+id/highlighter"
+                    app:layout_constraintStart_toEndOf="@id/marker"
+                    app:layout_constraintEnd_toStartOf="@id/pen"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:padding="10dp"
+                    app:tint="@color/gray"/>
+
+                <ImageView
+                    android:layout_width="35dp"
+                    android:layout_height="35dp"
+                    android:background="@drawable/button_bg"
+                    android:backgroundTint="@color/contrast"
+                    android:src="@drawable/ic_brush"
+                    android:id="@+id/brush"
+                    app:layout_constraintEnd_toStartOf="@id/pencil"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:padding="10dp"
+                    app:tint="@color/gray"/>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_marginHorizontal="10dp"
+            android:visibility="gone"
+            android:id="@+id/colorPane">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/toolbar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:padding="1dp"
                 android:background="@drawable/button_bg_small"
                 android:backgroundTint="@color/contrast"
-                android:fontFamily="@font/medium"
-                android:gravity="center"
-                android:paddingVertical="3dp"
-                android:text="@string/gradient"
-                android:textColor="@color/black"
-                android:textSize="12sp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <TextView
+                    android:id="@+id/solid"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/white"
+                    android:fontFamily="@font/medium"
+                    android:gravity="center"
+                    android:paddingVertical="3dp"
+                    android:text="@string/solid"
+                    android:textColor="@color/black"
+                    android:textSize="12sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/gradient"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/gradient"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/contrast"
+                    android:fontFamily="@font/medium"
+                    android:gravity="center"
+                    android:paddingVertical="3dp"
+                    android:text="@string/gradient"
+                    android:textColor="@color/black"
+                    android:textSize="12sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/solid"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/views"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@id/solid"
-                app:layout_constraintTop_toTopOf="parent" />
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/views"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_marginTop="6dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/toolbar">
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/colors"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-                app:spanCount="2"
-                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                tools:itemCount="100"
-                tools:listitem="@layout/layout_color_item" />
+                app:layout_constraintTop_toBottomOf="@id/toolbar">
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/gradients"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:visibility="gone"
-                app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-                app:spanCount="2"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                tools:itemCount="100"
-                tools:listitem="@layout/layout_color_item" />
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/colors"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                    app:spanCount="2"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    tools:itemCount="100"
+                    tools:listitem="@layout/layout_color_item" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/gradients"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:visibility="gone"
+                    app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                    app:spanCount="2"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    tools:itemCount="100"
+                    tools:listitem="@layout/layout_color_item" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
         </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
@@ -329,9 +340,9 @@
         android:background="@drawable/button_bg_small"
         android:backgroundTint="@color/contrast"
         android:padding="5dp"
+        app:layout_constraintTop_toBottomOf="@+id/mainContainer"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent">
+        app:layout_constraintEnd_toEndOf="parent">
 
         <ImageView
             android:id="@+id/brushPreview"

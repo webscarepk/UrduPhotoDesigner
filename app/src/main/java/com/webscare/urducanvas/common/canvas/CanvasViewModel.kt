@@ -247,6 +247,9 @@ class CanvasViewModel @Inject constructor(
     private val _featherRadius = MutableLiveData(0f)
     val featherRadius: LiveData<Float> = _featherRadius
 
+    private val _featherWidth = MutableLiveData(50f)
+    val featherWidth: LiveData<Float> = _featherWidth
+
     private val _shadows = MutableLiveData(0f)
     val shadows: LiveData<Float> = _shadows
 
@@ -532,8 +535,12 @@ class CanvasViewModel @Inject constructor(
     fun addImageInsideShape(bitmap: Bitmap, context: Context, isPremium: Boolean = false) {
         updateSelectedShape { element ->
             if (element.type == ElementType.SHAPE) {
+                // Only update bitmap — logicalContentWidth/Height and scale stay
+                // as the user set them on the shape, preserving its visual size.
                 element.copy(
-                    context = context, bitmap = bitmap, isPremium = isPremium  // ✅ ADD
+                    context = context,
+                    bitmap = bitmap,
+                    isPremium = isPremium
                 )
             } else {
                 element
@@ -615,35 +622,44 @@ class CanvasViewModel @Inject constructor(
         context: Context,
         isPremium: Boolean = false
     ) {
-        // Get the properties from the shape and apply them to the image element
+        // ── Why scale is reset to 1f ──────────────────────────────────────────
+        // SHAPE draws at: logicalContentWidth * scale  (canvas units)
+        // IMAGE draws at: bitmap.width * scale         (canvas units)
+        //
+        // The image had scale=0.26 (small fraction because bitmap.width=4000).
+        // If we keep scale=0.26 with logicalContentWidth=300, the shape draws at
+        // 300 * 0.26 = 78 canvas units — tiny.
+        //
+        // A fresh shape (addShapeElement) always starts at scale=1f, logicalContentWidth=150.
+        // That draws at 150 * 1 = 150 canvas units — a sensible default size.
+        //
+        // By resetting scale=1f here, the masked shape appears at the same size
+        // as a freshly-created shape — no surprise size change, no need to resize.
         val updatedElement = imageElement.copy(
             id = imageElement.id,
             context = context,
-            type = ElementType.SHAPE,  // Change the type to SHAPE
-            shapeType = shapeType,  // Apply the selected shape
-            shapeHasStroke = _shapeStrokeEnabled.value
-                ?: true,  // Retain stroke properties from current shape
-            shapeHasFill = _shapeFillEnabled.value
-                ?: true,  // Retain fill properties from current shape
+            type = ElementType.SHAPE,
+            shapeType = shapeType,
+            shapeHasStroke = _shapeStrokeEnabled.value ?: true,
+            shapeHasFill = _shapeFillEnabled.value ?: true,
             shapeStrokeWidth = _shapeStrokeWidth.value ?: 1f,
             shapeCornerRadius = _shapeCornerRadius.value ?: 0f,
             shapeStrokeColor = _shapeStrokeColor.value ?: Color.BLACK,
             shapeFillColor = _shapeFillColor.value ?: Color.BLACK,
             shapeStrokeGradient = _shapeStrokeGradient.value,
             shapeFillGradient = _shapeFillGradient.value,
-            x = imageElement.x,  // Keep the original x position
-            y = imageElement.y,  // Keep the original y position
-            scale = imageElement.scale,  // Retain scale
-            rotation = imageElement.rotation,  // Retain rotation
-            zIndex = imageElement.zIndex,  // Retain zIndex
-            isSelected = true,  // Make sure the new shape is selected
-            logicalContentWidth = 300f,
+            x = imageElement.x,
+            y = imageElement.y,
+            scale = 1f,               // ← reset: shape uses logicalContentWidth as canvas units
+            rotation = imageElement.rotation,
+            zIndex = imageElement.zIndex,
+            isSelected = true,
+            logicalContentWidth = 300f,   // draws at 300 * 1f = 300 canvas units
             logicalContentHeight = 300f,
             isPremium = isPremium
         )
 
         updateCanvasElement(updatedElement)
-
         _isMaskingMode.value = false
     }
 
@@ -947,6 +963,31 @@ class CanvasViewModel @Inject constructor(
         notifyUndoRedoChanged()
     }
 
+    fun setFeatherWidth(value: Float) {
+        _featherWidth.value = value
+        val currentList = _canvasElements.value ?: return
+        val updatedList = currentList.map { element ->
+            if (element.isSelected) {
+                val old = element.copy(context = null, bitmap = null)
+                element.featherWidth = value
+                element.isAdjustmentDirty = true
+                element.cachedAdjustedBitmap?.recycle()
+                element.cachedAdjustedBitmap = null
+                _canvasActions.push(
+                    CanvasAction.UpdateElement(
+                        elementId = element.id,
+                        newElement = element.copy(context = null, bitmap = null),
+                        oldElement = old
+                    )
+                )
+                element
+            } else element
+        }
+        _canvasElements.value = updatedList
+        _redoStack.clear()
+        notifyUndoRedoChanged()
+    }
+
     private fun updateSelectedElementValue(updateBlock: (CanvasElement) -> Unit) {
         val currentList = _canvasElements.value ?: return
         val updatedList = currentList.map {
@@ -1038,7 +1079,8 @@ class CanvasViewModel @Inject constructor(
         _sharpness.value = 0f
         _clarity.value = 0f
         _fade.value = 0f
-         _featherRadius.value = 0f
+        _featherRadius.value = 0f
+        _featherWidth.value = 50f
 
         updateSelectedElementAdjustments { AdjustmentValues() }
     }
@@ -3610,6 +3652,77 @@ class CanvasViewModel @Inject constructor(
         return restored
     }
 
+    /**
+     * Background-thread-safe version of restoreWithContext.
+     * Called during loadTemplateFromJsonFile where ALL bitmap decoding must happen
+     * on Dispatchers.Default — never on the main thread — to avoid ANR.
+     *
+     * Identical logic to restoreWithContext; kept separate so the intent is explicit
+     * and safe to call from any coroutine context.
+     */
+    private fun CanvasElement.restoreWithContextBackground(context: Context?): CanvasElement {
+        val restored = this.copy(context = context).apply {
+            updatePaintProperties()
+            when (type) {
+                ElementType.TEXT -> {
+                    paint.typeface = applyTypefaceFromFontList(context)
+                }
+
+                ElementType.IMAGE -> {
+                    // base64ToBitmap = PNG decode — intentionally on background thread
+                    bitmapData?.let { data ->
+                        bitmap = ImageProcessor.base64ToBitmap(data)
+                    }
+                }
+
+                ElementType.STICKER -> {
+                    if (svgData != null) {
+                        try {
+                            val svg = com.caverock.androidsvg.SVG.getFromString(svgData)
+                            svgDrawable =
+                                android.graphics.drawable.PictureDrawable(svg.renderToPicture())
+                                    .trimTransparentEdges()
+                            bitmap = null
+                        } catch (e: Exception) {
+                            bitmapData?.let { data ->
+                                bitmap = ImageProcessor.base64ToBitmap(data)
+                            }
+                        }
+                    } else {
+                        bitmapData?.let { data ->
+                            bitmap = ImageProcessor.base64ToBitmap(data)
+                        }
+                    }
+                }
+
+                ElementType.SHAPE -> {
+                    bitmapData?.let { data ->
+                        bitmap = ImageProcessor.base64ToBitmap(data)
+                    }
+                }
+
+                ElementType.BACKGROUND -> {
+                    bitmapData?.let { data ->
+                        bitmap = ImageProcessor.base64ToBitmap(data)
+                    }
+                }
+
+                ElementType.DRAW -> {
+                    if (drawStrokes.isNullOrEmpty()) {
+                        bitmapData?.let { data ->
+                            bitmap = ImageProcessor.base64ToBitmap(data)
+                        }
+                    } else {
+                        drawStrokes?.forEach { stroke -> stroke.restorePath() }
+                    }
+                }
+
+                else -> { /* no extra work */ }
+            }
+        }
+        return restored
+    }
+
     // Adjust applyTypefaceFromFontList to accept context param:
     private fun CanvasElement.applyTypefaceFromFontList(context: Context?): Typeface {
         return fontId?.let { id ->
@@ -3976,6 +4089,7 @@ class CanvasViewModel @Inject constructor(
         _fade.value = adj.fade
         _sharpness.value = adj.sharpness
         _featherRadius.value = element.featherRadius
+        _featherWidth.value = element.featherWidth
     }
 
     fun clearCanvas() {
@@ -4029,35 +4143,41 @@ class CanvasViewModel @Inject constructor(
                     return@launch
                 }
 
-                CanvasElement::class.java.declaredFields.forEach {
-                    Log.e("FIELDS", it.name)
-                }
-
                 _loadingStage.postValue("Parsing JSON" to 30)
-                val jsonContent = jsonFile.readText()
-                val elements = gson.fromJson(jsonContent, Array<CanvasElement>::class.java).toList()
+                // Stream the JSON file directly into Gson — never load it as a String.
+                // readText() on a large project file (many images stored as base64) can
+                // allocate 50–250 MB as a single String, causing the ANR/OOM on load.
+                val elements: List<CanvasElement> = jsonFile.bufferedReader().use { reader ->
+                    gson.fromJson(reader, Array<CanvasElement>::class.java).toList()
+                }
 
                 val requiredFontIds =
                     elements.filter { it.type == ElementType.TEXT }.mapNotNull { it.fontId }
                         .distinct()
 
                 _loadingStage.postValue("Preparing fonts" to 40)
-
                 fontGate.ensureFonts(requiredFontIds)
 
                 _loadingStage.postValue("Fonts ready" to 55)
 
-
+                // ── Hydrate elements — all heavy work stays on Dispatchers.Default ──────
+                // base64ToBitmap is PNG decode and can take hundreds of ms per image.
+                // Doing it here (background thread) instead of on the main thread is what
+                // prevents the ANR.
                 _loadingStage.postValue("Hydrating elements" to 60)
-                val hydratedElements = elements.map { raw ->
-                    val fixed =
-                        if (raw.adjustments == null) raw.copy(adjustments = AdjustmentValues()) else raw
-                    fixed.copy(context = context).apply {
+
+                val hydratedElements = elements.mapIndexed { index, raw ->
+                    val fixed = if (raw.adjustments == null) raw.copy(adjustments = AdjustmentValues()) else raw
+                    val element = fixed.copy(context = context).apply {
                         if (type == ElementType.DRAW && !drawStrokes.isNullOrEmpty()) {
                             drawStrokes?.forEach { stroke -> stroke.restorePath() }
                         }
-                    }.restoreWithContext(context)
+                    }
+                    // Decode bitmap on background thread — this is the expensive step
+                    element.restoreWithContextBackground(context)
                 }
+
+                _loadingStage.postValue("Applying fonts" to 70)
 
                 val currentFonts = _localFonts.value
                 val hydratedWithFonts = hydratedElements.map { element ->
@@ -4076,30 +4196,33 @@ class CanvasViewModel @Inject constructor(
                     element
                 }
 
+                // ── Decode background bitmap on background thread ──────────────────────
+                _loadingStage.postValue("Loading background" to 80)
+
+                val bgElement = if (elements.isNotEmpty() && elements[0].type == ElementType.BACKGROUND) {
+                    elements[0]
+                } else null
+
+                val bgBitmap = bgElement?.bitmapData?.let { data ->
+                    ImageProcessor.base64ToBitmap(data) // ← background thread, not main
+                }
+
+                // ── Only switch to Main for LiveData writes — zero heavy work here ────
                 _loadingStage.postValue("Applying to canvas" to 90)
                 withContext(Dispatchers.Main) {
 
-                    if (elements.isNotEmpty() && elements[0].type == ElementType.BACKGROUND) {
-                        val bg = elements[0]
+                    if (bgElement != null) {
+                        _backgroundColor.value = bgElement.backgroundColor
+                        _backgroundGradient.value = bgElement.fillGradient
 
-                        _backgroundColor.value = bg.backgroundColor
-                        _backgroundGradient.value = bg.fillGradient
-
-                        if (bg.bitmapData != null) {
-                            val bitmap = ImageProcessor.base64ToBitmap(bg.bitmapData!!)
-//                            val bitmap = ImageProcessor.filePathToBitmap(bg.bitmapData!!)
-                            if (bitmap != null) {
-                                _backgroundImage.value = bitmap
-                            } else {
-                                Log.e(
-                                    "CanvasViewModel",
-                                    "Bitmap decoding failed for path: ${bg.bitmapData}"
-                                )
-                            }
+                        if (bgBitmap != null) {
+                            _backgroundImage.value = bgBitmap
+                        } else if (bgElement.bitmapData != null) {
+                            Log.e("CanvasViewModel", "Bitmap decoding failed for background")
                         }
 
                         if (_backgroundGradient.value == null && _backgroundImage.value == null) {
-                            _backgroundColor.value = bg.backgroundColor ?: Color.WHITE
+                            _backgroundColor.value = bgElement.backgroundColor ?: Color.WHITE
                         }
                     }
 
@@ -4115,14 +4238,10 @@ class CanvasViewModel @Inject constructor(
                             }
                     }
 
-                    val selected =
-                        hydratedWithFonts.find { it.isSelected && it.type != ElementType.TEXT }
+                    // Bitmaps are already decoded — just wire up adjustment LiveData for
+                    // the selected element. No more base64ToBitmap calls on the main thread.
+                    val selected = hydratedWithFonts.find { it.isSelected && it.type != ElementType.TEXT }
                     selected?.let {
-                        if (it.bitmapData != null) {
-                            it.bitmap = ImageProcessor.base64ToBitmap(it.bitmapData!!)
-//                            it.bitmap = ImageProcessor.filePathToBitmap(it.bitmapData!!)
-                        }
-
                         _currentFont.postValue(_localFonts.value.find { font -> font.id.toString() == it.fontId })
                         _brightness.postValue(it.adjustments.brightness)
                         _contrast.postValue(it.adjustments.contrast)

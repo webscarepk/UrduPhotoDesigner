@@ -6,7 +6,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".ui.editor.panels.adjustments.effects.FeatherFragment">
 
-    <!-- Feather -->
+    <!-- Feather (radius — how far inward from edges the fade zone extends) -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/featherCard"
         android:visibility="visible"
@@ -62,6 +62,62 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <!-- Softness (featherWidth — how gradual/smooth the fade transition is) -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/softnessCard"
+        android:visibility="visible"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/featherCard"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/softnessTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Softness"
+            android:fontFamily="@font/medium"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:textSize="12sp"
+            android:layout_marginStart="12dp"
+            android:textColor="@color/black"/>
+
+        <TextView
+            android:id="@+id/softnessSize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="50"
+            android:fontFamily="@font/regular"
+            app:layout_constraintTop_toTopOf="@id/softnessTitle"
+            app:layout_constraintBottom_toBottomOf="@id/softnessTitle"
+            app:layout_constraintStart_toEndOf="@id/softnessTitle"
+            android:textSize="12sp"
+            android:background="@drawable/edit_bg_stroke"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="4dp"
+            android:textColor="@color/black"
+            android:layout_marginStart="6dp"/>
+
+        <SeekBar
+            android:progressBackgroundTint="@color/light_gray"
+            android:id="@+id/softness"
+            android:layout_marginTop="3dp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/softnessSize"
+            android:thumbTint="@color/appColor"
+            android:indeterminateTint="@color/appColor"
+            android:progressTint="@color/appColor"
+            android:progress="50"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
     <!-- Opacity -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/opacityCard"
@@ -70,7 +126,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/featherCard"
+        app:layout_constraintTop_toBottomOf="@id/softnessCard"
         app:layout_constraintEnd_toEndOf="parent">
 
         <TextView

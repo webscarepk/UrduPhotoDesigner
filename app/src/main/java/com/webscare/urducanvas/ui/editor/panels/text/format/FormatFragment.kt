@@ -14,12 +14,12 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class FormatFragment : androidx.fragment.app.Fragment() {
+class FormatFragment : Fragment() {
     private var _binding: FragmentFormatBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var tabs: ArrayList<com.webscare.urducanvas.data.model.PanelTabs>
-    private lateinit var adapter: com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter
+    private lateinit var tabs: ArrayList<PanelTabs>
+    private lateinit var adapter: PanelTabsAdapter
     private lateinit var pagerAdapter: FormatPagerAdapter
 
     override fun onCreateView(
@@ -40,7 +40,7 @@ class FormatFragment : androidx.fragment.app.Fragment() {
     private fun setupRecyclerViews() {
         tabs = ArrayList()
         adapter =
-            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter { tab ->
+            PanelTabsAdapter { tab ->
                 handleFontSelection(tab)
             }
         binding.categories.adapter = adapter
@@ -64,28 +64,28 @@ class FormatFragment : androidx.fragment.app.Fragment() {
     private fun initObservers() {
         lifecycleScope.launch {
             tabs.add(
-                _root_ide_package_.com.webscare.urducanvas.data.model.PanelTabs(
+                PanelTabs(
                     0,
                     "Spacing",
                     true
                 )
             )
             tabs.add(
-                _root_ide_package_.com.webscare.urducanvas.data.model.PanelTabs(
+                PanelTabs(
                     1,
                     "Casing",
                     false
                 )
             )
             tabs.add(
-                _root_ide_package_.com.webscare.urducanvas.data.model.PanelTabs(
+                PanelTabs(
                     2,
                     "Decoration",
                     false
                 )
             )
             tabs.add(
-                _root_ide_package_.com.webscare.urducanvas.data.model.PanelTabs(
+                PanelTabs(
                     3,
                     "Alignment",
                     false
@@ -97,7 +97,7 @@ class FormatFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    private fun handleFontSelection(selectedCategory: com.webscare.urducanvas.data.model.PanelTabs?) {
+    private fun handleFontSelection(selectedCategory: PanelTabs?) {
         selectedCategory?.let { tab ->
             val selectedIndex = tabs.indexOfFirst { it.tab_name == tab.tab_name }
 

@@ -66,7 +66,7 @@
     <string name="shadow_y">Shadow Y</string>
     <string name="line_spacing">Line Spacing</string>
     <string name="letter_spacing">Letter Spacing</string>
-    <string name="paragraph_indentation">Paragraph Indentation</string>
+    <string name="paragraph_indentation">Paragraph Indent</string>
     <string name="list_style">List Style</string>
     <string name="solid">Solid</string>
     <string name="gradient">Gradient</string>
@@ -346,6 +346,8 @@
     <string name="imported_fonts">Imported Fonts</string>
     <string name="done">Done</string>
     <string name="hint_shape_update">Tap a shape to change the selected one. Deselect first to add a new shape.</string>
+    <string name="typography">Typography</string>
+    <string name="brush">Brush</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>

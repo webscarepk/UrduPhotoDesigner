@@ -38,9 +38,12 @@
     <!-- Close button -->
     <ImageView
         android:id="@+id/back"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:padding="12dp"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:padding="8dp"
+        android:background="@drawable/button_bg_round"
+        android:backgroundTint="@color/contrast"
+        app:tint="@color/black"
         android:src="@drawable/ic_close"
         app:layout_constraintTop_toTopOf="@id/title"
         app:layout_constraintBottom_toBottomOf="@id/title"

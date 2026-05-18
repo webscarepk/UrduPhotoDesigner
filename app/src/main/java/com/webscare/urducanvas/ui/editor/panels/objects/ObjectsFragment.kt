@@ -171,11 +171,11 @@ class ObjectsFragment : Fragment() {
                 mainViewModel.expandedPanel
                     .map { it == PanelType.OBJECTS }
                     .collect { expanded ->
-                    applyExpandedUi(expanded)
-                    for ((_, fragment) in fragmentCache) {
-                        fragment.onPanelExpanded(expanded)
+                        applyExpandedUi(expanded)
+                        for ((_, fragment) in fragmentCache) {
+                            fragment.onPanelExpanded(expanded)
+                        }
                     }
-                }
             }
         }
     }
@@ -318,10 +318,12 @@ class ObjectsFragment : Fragment() {
                     val source: Any = entity.bitmapData ?: url
                     val bitmap = withContext(Dispatchers.IO) {
                         runCatching {
-                            com.bumptech.glide.Glide.with(requireActivity()).asBitmap()
+                            val raw = com.bumptech.glide.Glide.with(requireActivity()).asBitmap()
                                 .load(source)
                                 .diskCacheStrategy(com.bumptech.glide.load.engine.DiskCacheStrategy.ALL)
                                 .submit().get()
+                            // Apply GPU hard-limit only — preserve full detail for stickers/objects
+                            downsampleIfNeeded(raw, GPU_SAFE_MAX_PX, GPU_SAFE_MAX_PX)
                         }.getOrNull()
                     }
                     bitmap?.let {
@@ -656,11 +658,13 @@ class ObjectsFragment : Fragment() {
                 val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)
                     ?.absolutePath ?: return@launch
                 val rawBitmap = ImageProcessor.filePathToBitmap(filePath) ?: return@launch
-                val canvasW = viewModel.canvasSize.value?.width ?: rawBitmap.width.toFloat()
-                val canvasH = viewModel.canvasSize.value?.height ?: rawBitmap.height.toFloat()
-                val maxW = (canvasW * 2).toInt().coerceAtLeast(1024)
-                val maxH = (canvasH * 2).toInt().coerceAtLeast(1024)
-                val bitmap = downsampleIfNeeded(rawBitmap, maxW, maxH)
+
+                // Objects panel: user explicitly chose this image as a sticker/element.
+                // Preserve as much detail as possible — only apply the GPU hard-limit cap
+                // (24 MP / 4899 px per side) to prevent a hard crash. No canvas-relative
+                // downscale here; CanvasView's display-proxy system handles rendering perf.
+                val bitmap = downsampleIfNeeded(rawBitmap, GPU_SAFE_MAX_PX, GPU_SAFE_MAX_PX)
+
                 withContext(Dispatchers.Main) {
                     viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE)
                 }
@@ -675,5 +679,10 @@ class ObjectsFragment : Fragment() {
             "Emoticons", "Animals", "Nature", "Food", "Sports",
             "Transport", "Objects", "Alchemy", "Shapes", "Arrows", "Letters", "Flags"
         )
+
+        // GPU hard limit: 24 MP (ARGB_8888 @ 4 bytes/px = 96 MB). Applied everywhere an
+        // image enters the canvas, so we never crash regardless of source resolution.
+        // CanvasView's display-proxy system keeps rendering smooth even at this size.
+        private const val GPU_SAFE_MAX_PX = 4899
     }
 }

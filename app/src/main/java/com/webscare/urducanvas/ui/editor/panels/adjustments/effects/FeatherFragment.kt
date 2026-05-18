@@ -35,7 +35,7 @@ class FeatherFragment : Fragment() {
 
     private fun initSeekBars() {
 
-        // ── Feather ──────────────────────────────────────────────────────────
+        // ── Feather (radius — how far inward the fade extends) ───────────────
         binding.feather.apply {
             max = 100
             progress = 0
@@ -55,10 +55,25 @@ class FeatherFragment : Fragment() {
             })
         }
 
+        // ── Softness (featherWidth — how gradual the fade transition is) ─────
+        // 0 = linear ramp (hard edge visible), 100 = very smooth cubic ease-in
+        binding.softness.apply {
+            max = 100
+            progress = 50
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
+                    binding.softnessSize.text = progress.toString()
+                    if (fromUser) {
+                        viewModel.setFeatherWidth(progress.toFloat())
+                    }
+                }
+
+                override fun onStartTrackingTouch(sb: SeekBar) {}
+                override fun onStopTrackingTouch(sb: SeekBar) {}
+            })
+        }
+
         // ── Opacity ──────────────────────────────────────────────────────────
-        // Uses the same viewModel.setOpacity() / viewModel.opacity path as EditorFragment,
-        // so opacity is shared state — moving this slider updates the element's paintAlpha
-        // exactly the same way the top toolbar opacity control does.
         binding.opacity.apply {
             max = 255
             progress = 255
@@ -78,13 +93,22 @@ class FeatherFragment : Fragment() {
 
     private fun initObservers() {
 
-        // ── Feather ──────────────────────────────────────────────────────────
+        // ── Feather radius ────────────────────────────────────────────────────
         viewModel.featherRadius.observe(viewLifecycleOwner) { value ->
             val safeValue = value?.toInt() ?: 0
             if (binding.feather.progress != safeValue) {
                 binding.feather.progress = safeValue
             }
             binding.featherSize.text = safeValue.toString()
+        }
+
+        // ── Feather softness ─────────────────────────────────────────────────
+        viewModel.featherWidth.observe(viewLifecycleOwner) { value ->
+            val safeValue = value?.toInt() ?: 50
+            if (binding.softness.progress != safeValue) {
+                binding.softness.progress = safeValue
+            }
+            binding.softnessSize.text = safeValue.toString()
         }
 
         // ── Opacity ──────────────────────────────────────────────────────────
