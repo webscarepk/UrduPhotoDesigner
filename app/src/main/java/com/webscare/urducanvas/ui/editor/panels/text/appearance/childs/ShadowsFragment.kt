@@ -12,12 +12,12 @@ import androidx.fragment.app.activityViewModels
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.PickerTarget
-import com.webscare.urducanvas.common.utils.ColorPickerDialog
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.databinding.FragmentShadowsBinding
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment
 import dagger.hilt.android.AndroidEntryPoint
+import kotlin.math.roundToInt
 
 @AndroidEntryPoint
 class ShadowsFragment : Fragment() {
@@ -37,121 +37,103 @@ class ShadowsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         initSeekBars()
         setupRecyclerView()
         initObservers()
     }
 
     private fun setupRecyclerView() {
-        colorsAdapter =
-            ColorsAdapter(
-                Constants.shadowColorList,
-                { color ->
-                    val selectedColor = color.colorCode.toColorInt()
-                    val dx = viewModel.shadowDx.value ?: 0f
-                    val dy = viewModel.shadowDy.value ?: 0f
-                    viewModel.setTextShadow(true, selectedColor, dx, dy)
-                },
-                {
-                    val dx = viewModel.shadowDx.value ?: 0f
-                    val dy = viewModel.shadowDy.value ?: 0f
-                    viewModel.setTextShadow(false, android.R.color.transparent, dx, dy)
-                },
-                {
-                    viewModel.startPicking(PickerTarget.COLOR_PICKER_SHADOW)
-                    childFragmentManager
-                        .beginTransaction()
-                        .replace(
-                            R.id.shadowsFragment,
-                            ColorPickerFragment()
-                        )
-                        .addToBackStack(null)
-                        .commit()
-                },
-                {
-                    viewModel.startPicking(PickerTarget.EYE_DROPPER_SHADOW)
-                })
-
-        binding.colors.apply {
-            adapter = colorsAdapter
-        }
+        colorsAdapter = ColorsAdapter(
+            Constants.shadowColorList,
+            { color ->
+                val selectedColor = color.colorCode.toColorInt()
+                val dx = viewModel.shadowDx.value ?: 0f
+                val dy = viewModel.shadowDy.value ?: 0f
+                viewModel.setTextShadow(true, selectedColor, dx, dy)
+            },
+            {
+                val dx = viewModel.shadowDx.value ?: 0f
+                val dy = viewModel.shadowDy.value ?: 0f
+                viewModel.setTextShadow(false, android.R.color.transparent, dx, dy)
+            },
+            {
+                viewModel.startPicking(PickerTarget.COLOR_PICKER_SHADOW)
+                childFragmentManager.beginTransaction()
+                    .replace(R.id.shadowsFragment, ColorPickerFragment())
+                    .addToBackStack(null)
+                    .commit()
+            },
+            { viewModel.startPicking(PickerTarget.EYE_DROPPER_SHADOW) }
+        )
+        binding.colors.adapter = colorsAdapter
     }
 
     private fun initSeekBars() {
-        // Shadow DX SeekBar
+
+        // ── ANGLE (replaces Shadow X) ─────────────────────────────────────────
+        // 0–360°. ViewModel converts to dx/dy internally via setShadowAngle().
+        // Canvas and serialization still use dx/dy — existing templates unaffected.
         binding.shadowX.apply {
-            
-            max = 50
+            max = 360
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                    if (fromUser) {
-                        binding.shadowXSize.text = "$progress"
-                        val color = viewModel.shadowColor.value ?: Color.BLACK
-                        val dy = viewModel.shadowDy.value ?: 0f
-                        viewModel.setTextShadow(true, color, progress.toFloat(), dy)
-                    }
+                    if (!fromUser) return
+                    binding.shadowXSize.text = "${progress}°"
+                    viewModel.setShadowAngle(progress.toFloat())
                 }
-
                 override fun onStartTrackingTouch(sb: SeekBar) {}
                 override fun onStopTrackingTouch(sb: SeekBar) {}
             })
         }
 
-        // Shadow DY SeekBar
+        // ── DISTANCE (replaces Shadow Y) ──────────────────────────────────────
+        // 0–100px. ViewModel converts to dx/dy internally via setShadowDistance().
         binding.shadowY.apply {
-            
-            max = 50
+            max = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                    if (fromUser) {
-                        binding.shadowYSize.text = "$progress"
-                        val color = viewModel.shadowColor.value ?: Color.BLACK
-                        val dx = viewModel.shadowDx.value ?: 0f
-                        viewModel.setTextShadow(true, color, dx, progress.toFloat())
-                    }
+                    if (!fromUser) return
+                    binding.shadowYSize.text = "$progress"
+                    viewModel.setShadowDistance(progress.toFloat())
                 }
-
                 override fun onStartTrackingTouch(sb: SeekBar) {}
                 override fun onStopTrackingTouch(sb: SeekBar) {}
             })
         }
 
+        // ── OPACITY ───────────────────────────────────────────────────────────
         binding.opacity.apply {
             min = 1
             max = 255
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                    if (fromUser) {
-                        binding.opacitySize.text = "$progress"
-                        val color = viewModel.shadowColor.value ?: Color.BLACK
-                        val dx = viewModel.shadowDx.value ?: 0f
-                        val dy = viewModel.shadowDy.value ?: 0f
-                        viewModel.setShadowOpacity(progress)
-                        viewModel.setTextShadow(true, color, dx, dy)
-                    }
+                    if (!fromUser) return
+                    binding.opacitySize.text = "$progress"
+                    val color = viewModel.shadowColor.value ?: Color.BLACK
+                    val dx = viewModel.shadowDx.value ?: 0f
+                    val dy = viewModel.shadowDy.value ?: 0f
+                    viewModel.setShadowOpacity(progress)
+                    viewModel.setTextShadow(true, color, dx, dy)
                 }
-
                 override fun onStartTrackingTouch(sb: SeekBar) {}
                 override fun onStopTrackingTouch(sb: SeekBar) {}
             })
         }
 
+        // ── RADIUS ────────────────────────────────────────────────────────────
         binding.radius.apply {
             min = 1
             max = 50
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                    if (fromUser) {
-                        binding.radiusSize.text = "$progress"
-                        val color = viewModel.shadowColor.value ?: Color.BLACK
-                        val dx = viewModel.shadowDx.value ?: 0f
-                        val dy = viewModel.shadowDy.value ?: 0f
-                        viewModel.setShadowRadius(progress.toFloat())
-                        viewModel.setTextShadow(true, color, dx, dy)
-                    }
+                    if (!fromUser) return
+                    binding.radiusSize.text = "$progress"
+                    val color = viewModel.shadowColor.value ?: Color.BLACK
+                    val dx = viewModel.shadowDx.value ?: 0f
+                    val dy = viewModel.shadowDy.value ?: 0f
+                    viewModel.setShadowRadius(progress.toFloat())
+                    viewModel.setTextShadow(true, color, dx, dy)
                 }
-
                 override fun onStartTrackingTouch(sb: SeekBar) {}
                 override fun onStopTrackingTouch(sb: SeekBar) {}
             })
@@ -163,14 +145,18 @@ class ShadowsFragment : Fragment() {
             colorsAdapter.selectedColor = color ?: Color.BLACK
         }
 
-        viewModel.shadowDx.observe(viewLifecycleOwner) { dx ->
-            binding.shadowXSize.text = "${dx?.toInt() ?: 0}"
-            binding.shadowX.progress = dx?.toInt() ?: 0
+        // Angle seekbar (was shadowX)
+        viewModel.shadowAngle.observe(viewLifecycleOwner) { angle ->
+            val safeAngle = angle?.roundToInt() ?: 135
+            binding.shadowXSize.text = "${safeAngle}°"
+            if (binding.shadowX.progress != safeAngle) binding.shadowX.progress = safeAngle
         }
 
-        viewModel.shadowDy.observe(viewLifecycleOwner) { dy ->
-            binding.shadowYSize.text = "${dy?.toInt() ?: 0}"
-            binding.shadowY.progress = dy?.toInt() ?: 0
+        // Distance seekbar (was shadowY)
+        viewModel.shadowDistance.observe(viewLifecycleOwner) { dist ->
+            val safeDist = dist?.roundToInt() ?: 21
+            binding.shadowYSize.text = "$safeDist"
+            if (binding.shadowY.progress != safeDist) binding.shadowY.progress = safeDist
         }
 
         viewModel.shadowOpacity.observe(viewLifecycleOwner) { opacity ->
@@ -195,10 +181,6 @@ class ShadowsFragment : Fragment() {
     }
 
     companion object {
-
-        fun newInstance(): ShadowsFragment {
-            val fragment = ShadowsFragment()
-            return fragment
-        }
+        fun newInstance() = ShadowsFragment()
     }
 }

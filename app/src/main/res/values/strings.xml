@@ -49,6 +49,7 @@
     <string name="edit">Edit</string>
     <string name="_0_0">0.0</string>
     <string name="layers">Layers</string>
+    <string name="layer_properties">Layer Properties</string>
     <string name="opacity">Opacity</string>
     <string name="urdu_fonts">Urdu Fonts</string>
     <string name="english_fonts">English Fonts</string>
@@ -348,6 +349,7 @@
     <string name="hint_shape_update">Tap a shape to change the selected one. Deselect first to add a new shape.</string>
     <string name="typography">Typography</string>
     <string name="brush">Brush</string>
+    <string name="distance">Distance</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>

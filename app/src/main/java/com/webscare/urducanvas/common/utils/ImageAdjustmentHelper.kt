@@ -140,12 +140,21 @@ object ImageAdjustmentHelper {
             )
         }
 
-        // 1️⃣3️⃣  FEATHER
-        if (element.hasFeather && element.featherRadius > 0f) {
-            result = applyFeather(result, element.featherRadius, element.featherWidth)
-        }
+        // NOTE: Feather edge-fading is NOT applied here during normal rendering.
+        // It is applied in real-time on the canvas in CanvasView via drawFeatherMask(),
+        // which uses four LinearGradient strips with DST_IN compositing — pure GPU,
+        // zero pixel loops, instant live preview on every seekbar frame.
+        // For export, call applyFeatherForExport() separately on the final bitmap.
 
         return result
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // FEATHER FOR EXPORT — called on the final composed bitmap during export only.
+    // Live preview uses drawFeatherMask() in CanvasView (GPU, zero CPU cost).
+    // ─────────────────────────────────────────────────────────────────────────
+    fun applyFeatherForExport(src: Bitmap, featherRadius: Float, featherWidth: Float = 50f): Bitmap {
+        return applyFeather(src, featherRadius, featherWidth)
     }
 
     // ─────────────────────────────────────────────────────────────────────────

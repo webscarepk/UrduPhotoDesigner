@@ -160,6 +160,14 @@ class CanvasViewModel @Inject constructor(
     private val _shadowDy = MutableLiveData(1f)
     val shadowDy: LiveData<Float> = _shadowDy
 
+    // UI-facing angle/distance — derived from dx/dy on load, converted back on save.
+    // shadowDx and shadowDy remain the source of truth for canvas drawing and serialization.
+    private val _shadowAngle = MutableLiveData(135f)   // degrees, 0–360
+    val shadowAngle: LiveData<Float> = _shadowAngle
+
+    private val _shadowDistance = MutableLiveData(21f) // pixels, 0–100
+    val shadowDistance: LiveData<Float> = _shadowDistance
+
     private val _shadowRadius = MutableLiveData(8f)
     val shadowRadius: LiveData<Float> = _shadowRadius
 
@@ -932,9 +940,21 @@ class CanvasViewModel @Inject constructor(
 
     fun setBlur(value: Float) {
         _blur.value = value
-        updateSelectedElementValue { element ->
-            element.blurValue = value
+        val currentList = _canvasElements.value ?: return
+        val updatedList = currentList.map { element ->
+            if (element.isSelected) {
+                element.blurValue = value
+                // hasBlur must stay consistent with blurValue so blur doesn't vanish
+                // when the element is redrawn after a move/resize gesture.
+                element.hasBlur = value > 0f
+                // Invalidate the adjustment cache so the new blur is applied on next draw.
+                element.isAdjustmentDirty = true
+                element.cachedAdjustedBitmap?.recycle()
+                element.cachedAdjustedBitmap = null
+                element
+            } else element
         }
+        _canvasElements.value = updatedList
     }
 
     fun setFeather(value: Float) {
@@ -945,9 +965,8 @@ class CanvasViewModel @Inject constructor(
                 val old = element.copy(context = null, bitmap = null)
                 element.featherRadius = value
                 element.hasFeather = value > 0f
-                element.isAdjustmentDirty = true
-                element.cachedAdjustedBitmap?.recycle()
-                element.cachedAdjustedBitmap = null
+                // Feather is composited on the GPU in CanvasView — no pixel processing,
+                // no adjustment cache to invalidate. Just push the value and redraw.
                 _canvasActions.push(
                     CanvasAction.UpdateElement(
                         elementId = element.id,
@@ -970,9 +989,8 @@ class CanvasViewModel @Inject constructor(
             if (element.isSelected) {
                 val old = element.copy(context = null, bitmap = null)
                 element.featherWidth = value
-                element.isAdjustmentDirty = true
-                element.cachedAdjustedBitmap?.recycle()
-                element.cachedAdjustedBitmap = null
+                if (element.featherRadius > 0f) element.hasFeather = true
+                // Feather softness is GPU compositing — no cache to clear, just redraw.
                 _canvasActions.push(
                     CanvasAction.UpdateElement(
                         elementId = element.id,
@@ -2403,7 +2421,13 @@ class CanvasViewModel @Inject constructor(
                     _clarity.value = adj.clarity
                     _fade.value = adj.fade
                     _featherRadius.value = firstImage.featherRadius
+                    _featherWidth.value = firstImage.featherWidth
                 }
+                // Always sync blur/opacity state so UI reflects the element's current values
+                _blur.value = firstImage.blurValue
+                _blurValue.value = firstImage.blurValue
+                _hasBlur.value = firstImage.hasBlur
+                _opacity.value = firstImage.paintAlpha
             }
 
             firstDraw != null -> {
@@ -2460,6 +2484,9 @@ class CanvasViewModel @Inject constructor(
             _shadowDy.value = textElement.shadowDy
             _shadowRadius.value = textElement.shadowRadius
             _shadowOpacity.value = textElement.shadowOpacity
+            val (angle, dist) = dxDyToAngleDistance(textElement.shadowDx, textElement.shadowDy)
+            _shadowAngle.value = angle
+            _shadowDistance.value = dist
 
             // 🟡 Border
             _hasBorder.value = textElement.hasStroke
@@ -2553,6 +2580,32 @@ class CanvasViewModel @Inject constructor(
         _shadowDy.value = element.shadowDy
         _shadowRadius.value = element.shadowRadius
         _shadowOpacity.value = element.shadowOpacity
+
+        // Derive UI angle/distance from the stored dx/dy so existing templates
+        // show sensible values in the new seekbars without any data migration.
+        val (angle, distance) = dxDyToAngleDistance(element.shadowDx, element.shadowDy)
+        _shadowAngle.value = angle
+        _shadowDistance.value = distance
+    }
+
+    // Convert UI angle (0–360°) + distance (0–100px) → shadowDx / shadowDy.
+    // Angle 0° = right, 90° = down, 180° = left, 270° = up (standard CSS convention).
+    private fun angleDistanceToDxDy(angleDeg: Float, distance: Float): Pair<Float, Float> {
+        val rad = Math.toRadians(angleDeg.toDouble())
+        val dx = (Math.cos(rad) * distance).toFloat()
+        val dy = (Math.sin(rad) * distance).toFloat()
+        return dx to dy
+    }
+
+    // Convert existing dx/dy back to angle + distance for display in the UI.
+    private fun dxDyToAngleDistance(dx: Float, dy: Float): Pair<Float, Float> {
+        val distance = Math.hypot(dx.toDouble(), dy.toDouble()).toFloat()
+        val angleDeg = if (distance < 0.001f) 135f else {
+            var deg = Math.toDegrees(Math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
+            if (deg < 0f) deg += 360f
+            deg
+        }
+        return angleDeg to distance
     }
 
     fun disableFeature(type: String) {
@@ -2671,6 +2724,11 @@ class CanvasViewModel @Inject constructor(
             _shadowDy.value = element.shadowDy
             _shadowOpacity.value = element.shadowOpacity
             _shadowColor.value = element.shadowColor
+
+            // Sync UI angle/distance to match preset dx/dy (135°, ~21px)
+            val (angle, dist) = dxDyToAngleDistance(element.shadowDx, element.shadowDy)
+            _shadowAngle.value = angle
+            _shadowDistance.value = dist
         }
     }
 
@@ -3219,6 +3277,45 @@ class CanvasViewModel @Inject constructor(
         _shadowDy.value = dy
         _hasShadow.value = enabled
         applyChangesToSelectedTextElements()
+    }
+
+    // Called from the Angle seekbar (0–360°). Converts to dx/dy and applies.
+    fun setShadowAngle(angleDeg: Float) {
+        _shadowAngle.value = angleDeg
+        val distance = _shadowDistance.value ?: 21f
+        val (dx, dy) = angleDistanceToDxDy(angleDeg, distance)
+        _shadowDx.value = dx
+        _shadowDy.value = dy
+        // Apply to whichever element type is selected
+        val element = _selectedElements.value?.firstOrNull()
+        if (element != null) {
+            when (element.type) {
+                ElementType.TEXT -> applyChangesToSelectedTextElements()
+                else -> setImageShadow(
+                    true, element.shadowColor, dx, dy,
+                    element.shadowRadius, element.shadowOpacity, pushToUndo = false
+                )
+            }
+        }
+    }
+
+    // Called from the Distance seekbar (0–100px). Converts to dx/dy and applies.
+    fun setShadowDistance(distance: Float) {
+        _shadowDistance.value = distance
+        val angle = _shadowAngle.value ?: 135f
+        val (dx, dy) = angleDistanceToDxDy(angle, distance)
+        _shadowDx.value = dx
+        _shadowDy.value = dy
+        val element = _selectedElements.value?.firstOrNull()
+        if (element != null) {
+            when (element.type) {
+                ElementType.TEXT -> applyChangesToSelectedTextElements()
+                else -> setImageShadow(
+                    true, element.shadowColor, dx, dy,
+                    element.shadowRadius, element.shadowOpacity, pushToUndo = false
+                )
+            }
+        }
     }
 
     fun setShadowRadius(radius: Float) {

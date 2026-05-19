@@ -2633,6 +2633,12 @@ class CanvasView @JvmOverloads constructor(
                                         canvas.drawRect(bl, bt, br, bb, overlayPaint)
                                     }
 
+                                    // ── Feather: soft edge fade, instant GPU, no pixel loops ────────
+                                    if (element.hasFeather && element.featherRadius > 0f) {
+                                        drawFeatherMask(canvas, bl, bt, br, bb,
+                                            element.featherRadius, element.featherWidth)
+                                    }
+
                                     canvas.restore()
                                     finalBitmap.recycle()
                                 } else {
@@ -2666,6 +2672,12 @@ class CanvasView @JvmOverloads constructor(
                                                     color = element.overlayColor
                                                 }
                                             })
+                                    }
+
+                                    // ── Feather: soft edge fade, instant GPU, no pixel loops ────────
+                                    if (element.hasFeather && element.featherRadius > 0f) {
+                                        drawFeatherMask(canvas, left, top, left + w, top + h,
+                                            element.featherRadius, element.featherWidth)
                                     }
 
                                     canvas.restore()
@@ -2827,6 +2839,12 @@ class CanvasView @JvmOverloads constructor(
                                         overlayPaint.color = element.overlayColor
                                     }
                                     canvas.drawRect(left, top, left + w, top + h, overlayPaint)
+                                }
+
+                                // ── Feather: soft edge fade, instant GPU, no pixel loops ────────────
+                                if (element.hasFeather && element.featherRadius > 0f) {
+                                    drawFeatherMask(canvas, left, top, left + w, top + h,
+                                        element.featherRadius, element.featherWidth)
                                 }
                             }
 
@@ -3202,18 +3220,10 @@ class CanvasView @JvmOverloads constructor(
             canvas.withSave {
 
                 val finalBitmap: Bitmap =
-                    if (element.isAdjustmentDirty || element.cachedAdjustedBitmap == null || element.cachedAdjustedBitmap!!.isRecycled) {
-                        val r = ImageAdjustmentHelper.applyAllAdjustments(
-                            element.context!!,
-                            bmp,
-                            element
-                        )
-                        element.cachedAdjustedBitmap?.recycle()
-                        element.cachedAdjustedBitmap = r
-                        element.isAdjustmentDirty = false
-                        r
+                    if (element.hasLight || element.hasColor || element.hasDetail || element.hasBlur) {
+                        resolveAdjustedBitmapAsync(element, bmp)
                     } else {
-                        element.cachedAdjustedBitmap!!
+                        bmp
                     }
 
                 val srcW = finalBitmap.width.toFloat()
@@ -3340,6 +3350,13 @@ class CanvasView @JvmOverloads constructor(
                     )
 
                     overlayPaint.xfermode = null
+                }
+
+                // ── Feather: soft edge fade drawn on canvas — instant, no pixel loops ─
+                if (element.hasFeather && element.featherRadius > 0f) {
+                    drawFeatherMask(canvas,
+                        localRect.left, localRect.top, localRect.right, localRect.bottom,
+                        element.featherRadius, element.featherWidth)
                 }
 
                 canvas.restore()
@@ -3576,6 +3593,85 @@ class CanvasView @JvmOverloads constructor(
                 drawRect(0f, 0f, w, h, reusableBgPaint)
             }
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // drawFeatherMask — true rectangular edge feathering.
+    //
+    // Builds a 128×128 alpha mask where each pixel's alpha = product of four
+    // independent edge ramps (top × bottom × left × right). Drawn scaled to
+    // the image rect with DST_IN — correct rectangular feathering on all edges.
+    //
+    //   featherRadius (0–100) — seekbar value: how far inward the fade extends.
+    //     Mapped with a square-root curve so low values (1–20) are immediately
+    //     visible and the full range feels evenly distributed.
+    //
+    //   featherWidth (0–100)  — seekbar value: softness / transition smoothness.
+    //     0  = hard linear ramp (sharp transition band).
+    //     100 = very gradual smooth ease (photographic soft fade).
+    //     Mapped to exponent 1.0 → 8.0 for a wide, perceptible range.
+    // ─────────────────────────────────────────────────────────────────────────
+    private fun drawFeatherMask(
+        canvas: Canvas,
+        left: Float, top: Float, right: Float, bottom: Float,
+        featherRadius: Float, featherWidth: Float
+    ) {
+        if (featherRadius <= 0f) return
+        val w = right - left
+        val h = bottom - top
+        if (w <= 0f || h <= 0f) return
+
+        val maskW = 128
+        val maskH = 128
+
+        // Square-root mapping: makes small seekbar values immediately visible.
+        // seekbar=1  → fraction≈0.10  (10% of half-width fades)
+        // seekbar=25 → fraction≈0.50  (50%)
+        // seekbar=100→ fraction=1.00  (reaches center)
+        val fraction = Math.sqrt((featherRadius / 100.0)).toFloat().coerceIn(0f, 1f)
+        val bandX = (maskW / 2f) * fraction
+        val bandY = (maskH / 2f) * fraction
+
+        // Softness exponent: HIGH exponent = steep crisp ramp, LOW exponent = gradual soft fade.
+        // So we INVERT the softness mapping: softness=0 → exponent=8.0 (hard crisp edge),
+        // softness=100 → exponent=1.0 (very gradual smooth fade).
+        val exponent = 1.0 + ((100f - featherWidth) / 100.0) * 7.0
+
+        val pixels = IntArray(maskW * maskH)
+        for (py in 0 until maskH) {
+            val topRamp = if (bandY <= 0f) 1f else
+                smoothStep((py / bandY).coerceIn(0f, 1f), exponent)
+            val botRamp = if (bandY <= 0f) 1f else
+                smoothStep(((maskH - 1 - py) / bandY).coerceIn(0f, 1f), exponent)
+            val vRamp = topRamp * botRamp
+
+            for (px in 0 until maskW) {
+                val leftRamp = if (bandX <= 0f) 1f else
+                    smoothStep((px / bandX).coerceIn(0f, 1f), exponent)
+                val rightRamp = if (bandX <= 0f) 1f else
+                    smoothStep(((maskW - 1 - px) / bandX).coerceIn(0f, 1f), exponent)
+                val alpha = (vRamp * leftRamp * rightRamp * 255f).toInt().coerceIn(0, 255)
+                pixels[py * maskW + px] = Color.argb(alpha, 0, 0, 0)
+            }
+        }
+
+        val maskBmp = Bitmap.createBitmap(maskW, maskH, Bitmap.Config.ARGB_8888)
+        maskBmp.setPixels(pixels, 0, maskW, 0, 0, maskW, maskH)
+
+        val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            isFilterBitmap = true
+            xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+        }
+        canvas.drawBitmap(maskBmp, null, RectF(left, top, right, bottom), maskPaint)
+        maskBmp.recycle()
+        maskPaint.xfermode = null
+    }
+
+    private fun smoothStep(t: Float, exponent: Double): Float {
+        // Cubic Hermite S-curve, then raise to exponent for softness control.
+        // t=0 → 0.0 (transparent edge), t=1 → 1.0 (fully opaque interior).
+        val smooth = t * t * (3f - 2f * t)
+        return Math.pow(smooth.toDouble(), exponent).toFloat().coerceIn(0f, 1f)
     }
 
     // ─────────────────────────────────────────────────────────────────────────
