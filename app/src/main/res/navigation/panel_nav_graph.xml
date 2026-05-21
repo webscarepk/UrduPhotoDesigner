@@ -60,4 +60,10 @@
         android:name="com.webscare.urducanvas.ui.editor.panels.shape.ShapeFragment"
         android:label="fragment_shape"
         tools:layout="@layout/fragment_shape" />
+
+    <fragment
+        android:id="@+id/textAdjustmentsFragment"
+        android:name="com.webscare.urducanvas.ui.editor.panels.text.TextAdjustmentsFragment"
+        android:label="fragment_text_adjustments"
+        tools:layout="@layout/fragment_text_adjustments" />
 </navigation>

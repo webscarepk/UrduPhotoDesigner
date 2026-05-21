@@ -18,8 +18,15 @@ class FontCategoriesAdapter(
 
     private val items = mutableListOf<com.webscare.urducanvas.data.model.FontCategory>()
 
+    private var selectedCategory: String? = null
+
     fun submit(newItems: List<com.webscare.urducanvas.data.model.FontCategory>) {
         items.clear(); items.addAll(newItems); notifyDataSetChanged()
+    }
+
+    fun setSelectedCategory(category: String?) {
+        selectedCategory = category
+        notifyDataSetChanged()
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
@@ -37,16 +44,21 @@ class FontCategoriesAdapter(
                 if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
             }
             binding.tabTitle.text = displayName
-            if (row.isSelected) {
-                binding.tabTitle.setTextColor(
-                    ContextCompat.getColor(binding.root.context, R.color.black)
+
+            // Selected = black, unselected = gray
+            val isSelected = row.name.equals(selectedCategory, ignoreCase = true)
+            binding.tabTitle.setTextColor(
+                ContextCompat.getColor(
+                    binding.root.context,
+                    if (isSelected) R.color.black else R.color.gray
                 )
-            } else {
-                binding.tabTitle.setTextColor(
-                    ContextCompat.getColor(binding.root.context, R.color.gray)
-                )
+            )
+
+            binding.tabTitle.addPressEffect {
+                selectedCategory = row.name
+                notifyDataSetChanged()
+                onCategoryClick(row.name)
             }
-            binding.tabTitle.addPressEffect { onCategoryClick(row.name) }
         }
     }
 }

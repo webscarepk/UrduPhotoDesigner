@@ -19,8 +19,6 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -36,7 +34,6 @@ import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.canvas.enums.PanelType
-import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.ImageProcessor.downsampleIfNeeded
 import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
@@ -44,15 +41,16 @@ import com.webscare.urducanvas.common.utils.SvgLoader
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.ImagesData
 import com.webscare.urducanvas.databinding.FragmentImagesBinding
+import com.webscare.urducanvas.ui.editor.EditorFragment
 import com.webscare.urducanvas.ui.editor.panels.objects.SelectedItem
 import com.webscare.urducanvas.ui.editor.panels.objects.ThumbnailAdapter
 import com.webscare.urducanvas.viewmodels.MainViewModel
+import com.webscare.urducanvas.viewmodels.PexelsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.abs
 
 @AndroidEntryPoint
 class ImagesFragment : Fragment() {
@@ -62,7 +60,9 @@ class ImagesFragment : Fragment() {
 
     private val mainViewModel: MainViewModel by activityViewModels()
     private val viewModel: CanvasViewModel by activityViewModels()
+    private val pexelsViewModel: PexelsViewModel by activityViewModels()
 
+    // Fragment type is now Fragment (not ImagesListFragment) to hold both types
     private val fragmentCache = LinkedHashMap<String, ImagesListFragment>()
     private val tabs = mutableListOf<String>()
     private var currentTabIndex = 0
@@ -122,8 +122,8 @@ class ImagesFragment : Fragment() {
             onDeselect = { item ->
                 when (item) {
                     is SelectedItem.Image -> mainViewModel.toggleImagesSelection(item.entity.id)
-                    is SelectedItem.Emoji -> { /* images panel has no emoji selection */ }
-                    is SelectedItem.Shape -> { /* images panel has no shape selection */ }
+                    is SelectedItem.Emoji -> {}
+                    is SelectedItem.Shape -> {}
                 }
             })
         binding.selectedThumbnails.apply {
@@ -139,41 +139,26 @@ class ImagesFragment : Fragment() {
 
     @SuppressLint("ClickableViewAccessibility")
     private fun attachDragHandleSwipe() {
-        val thresholdPx = 30 * resources.displayMetrics.density
-        var startY = 0f
-
-        binding.dragHandle.setOnTouchListener { _, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    startY = event.rawY; true
-                }
-
-                MotionEvent.ACTION_UP -> {
-                    val dy = startY - event.rawY
-                    if (abs(dy) >= thresholdPx) {
-                        when {
-                            dy > 0 && !mainViewModel.isPanelExpanded(PanelType.IMAGES) -> mainViewModel.togglePanel(PanelType.IMAGES)
-
-                            dy < 0 && mainViewModel.isPanelExpanded(PanelType.IMAGES) -> mainViewModel.togglePanel(PanelType.IMAGES)
-                        }
-                    }
-                    true
-                }
-
-                MotionEvent.ACTION_CANCEL -> true
-                else -> false
+        // Walk up the fragment hierarchy to find EditorFragment.
+        // panelNavHost hosts our fragment, EditorFragment hosts panelNavHost.
+        var f: Fragment? = this
+        while (f != null) {
+            if (f is EditorFragment) {
+                f.attachDragHandle(binding.dragHandle)
+                return
             }
+            f = f.parentFragment
         }
     }
 
     // ── Panel expansion ───────────────────────────────────────────────────────
 
     private fun observePanelExpanded() {
+
+        // ── 1. Final settled state: swap layout manager, update headers ─────────
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                mainViewModel.expandedPanel
-                    .map { it == PanelType.IMAGES }
-                    .collect { expanded ->
+                mainViewModel.expandedPanel.map { it == PanelType.IMAGES }.collect { expanded ->
                         applyExpandedUi(expanded)
                         for ((_, fragment) in fragmentCache) {
                             fragment.onPanelExpanded(expanded)
@@ -181,33 +166,108 @@ class ImagesFragment : Fragment() {
                     }
             }
         }
+
+        // ── 2. Live slide offset: drives smooth crossfade every frame ───────────
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.panelSlideOffset.collect { offset ->
+                    applySlideOffset(offset)
+                }
+            }
+        }
+    }
+
+    /**
+     * Driven every frame by PanelSheetBehavior during drag + spring settle.
+     * Only alpha/scale — zero layout passes, zero flicker.
+     */
+    private fun applySlideOffset(offset: Float) {
+        if (_binding == null) return
+
+        // ── Header crossfade ────────────────────────────────────────────────────
+        // Collapsed header: visible from 0→0.4, invisible after
+        val collapsedAlpha = (1f - offset / 0.4f).coerceIn(0f, 1f)
+        // Expanded header: invisible until 0.3, fully visible at 1.0
+        val expandedAlpha = ((offset - 0.3f) / 0.7f).coerceIn(0f, 1f)
+
+        binding.headerCollapsed.alpha = collapsedAlpha
+        binding.headerExpanded.alpha = expandedAlpha
+
+        // Use INVISIBLE not GONE — GONE causes layout shifts that jerk the RecyclerView
+        binding.headerCollapsed.visibility =
+            if (collapsedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+        binding.headerExpanded.visibility = if (expandedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+
+        // Tab layout mirrors header
+        val isSearchActive = currentQuery.isNotBlank()
+        if (!isSearchActive) {
+            binding.tabLayout.alpha = collapsedAlpha
+            binding.tabLayoutExpanded.alpha = expandedAlpha
+            binding.tabLayout.visibility = if (collapsedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+            binding.tabLayoutExpanded.visibility =
+                if (expandedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+        }
+
+        val effectiveExpanded = offset >= 0.75f
+        for ((_, fragment) in fragmentCache) {
+            fragment.onPanelExpandedSmooth(effectiveExpanded)
+        }
     }
 
     private fun applyExpandedUi(expanded: Boolean) {
         binding.headerCollapsed.isVisible = !expanded
         binding.headerExpanded.isVisible = expanded
-        binding.tabLayoutExpanded.isVisible = expanded
 
-        // Re-anchor fragmentContainer top constraint
-        val lp = binding.fragmentContainer.layoutParams
-                as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+        // Keep correct search header visible when expanding/collapsing during active search
+        val isSearchActive = currentQuery.isNotBlank()
+        val headerText = if (isSearchActive) "Results for '${currentQuery}'" else ""
+
+        // Collapsed views
+        binding.tabLayout.isVisible = !expanded && !isSearchActive
+        binding.searchResultsHeader.isVisible = !expanded && isSearchActive
+        if (!expanded && isSearchActive) binding.searchResultsHeader.text = headerText
+
+        // Expanded views
+        binding.tabLayoutExpanded.isVisible = expanded && !isSearchActive
+        binding.searchResultsHeaderExpanded.isVisible = expanded && isSearchActive
+        if (expanded && isSearchActive) binding.searchResultsHeaderExpanded.text = headerText
+
+        val lp =
+            binding.fragmentContainer.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
         lp.topToBottom = if (expanded) R.id.tabLayoutExpanded else R.id.headerCollapsed
-        lp.topToTop    = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+        lp.topToTop = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
         binding.fragmentContainer.layoutParams = lp
 
         if (expanded) {
+            // Restore current query in expanded bar
             binding.searchBarExpanded.setText(currentQuery)
             binding.searchBarExpanded.setSelection(
                 binding.searchBarExpanded.text?.length ?: 0
             )
             updateExpandedSearchCross(currentQuery)
         } else {
+            // Collapsed — hide keyboard, clear focus, clear search
+            hideKeyboard()
+            binding.searchBarExpanded.clearFocus()
             binding.searchBarExpanded.text?.clear()
-            if (currentQuery.isBlank()) {
-                binding.searchBar.isVisible = false
-                binding.searchIcon.isVisible = true
+            if (currentQuery.isNotBlank()) {
+                applySearch("")
+                pexelsViewModel.clearSearch()
             }
         }
+
+        binding.headerCollapsed.alpha = if (!expanded) 1f else 0f
+        binding.headerExpanded.alpha = if (expanded) 1f else 0f
+        binding.headerCollapsed.visibility = if (!expanded) View.VISIBLE else View.INVISIBLE
+        binding.headerExpanded.visibility = if (expanded) View.VISIBLE else View.INVISIBLE
+        if (currentQuery.isBlank()) {
+            binding.tabLayout.alpha = if (!expanded) 1f else 0f
+            binding.tabLayoutExpanded.alpha = if (expanded) 1f else 0f
+            binding.tabLayout.visibility = if (!expanded) View.VISIBLE else View.INVISIBLE
+            binding.tabLayoutExpanded.visibility = if (expanded) View.VISIBLE else View.INVISIBLE
+        }
+        binding.dragHandle.scaleX = 1f
+        binding.dragHandle.scaleY = 1f
     }
 
     // ── Selection toolbar ─────────────────────────────────────────────────────
@@ -221,7 +281,6 @@ class ImagesFragment : Fragment() {
             isVisible = false
         }
 
-        // Show/hide toolbar
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.isInImagesMultiSelectMode.collect { inMode ->
@@ -245,7 +304,6 @@ class ImagesFragment : Fragment() {
             }
         }
 
-        // Update count + thumbnails
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.selectedImagesIds.collect { selectedIds ->
@@ -285,56 +343,39 @@ class ImagesFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             toAdd.forEach { entity ->
-                val url = Constants.BASE_URL_GLIDE + entity.file_url
+                // resolveUrl() handles both Pexels (full URL) and own images (needs base prefix)
+                val url = resolveUrl(entity)
                 val isSvg = entity.file_name.endsWith(".svg", ignoreCase = true)
 
-                val isBackground = entity.parent_category.equals("Backgrounds", ignoreCase = true)
-
+                // Always add as image element — never as background
                 if (isSvg) {
                     val result = withContext(Dispatchers.IO) {
                         SvgLoader.resolve(url, entity.bitmapData)
                     }
                     result?.let { (drawable, xml) ->
-                        if (isBackground) {
-                            viewModel.ensureBackgroundElement(requireActivity())
-                            viewModel.setCanvasBackgroundImage(null, requireActivity())
-                        } else {
-                            viewModel.addSvgSticker(
-                                drawable.trimTransparentEdges(), xml, requireActivity(), entity.is_premium
-                            )
-                        }
+                        viewModel.addSvgSticker(
+                            drawable.trimTransparentEdges(),
+                            xml,
+                            requireActivity(),
+                            entity.is_premium
+                        )
                     }
                 } else {
                     val bitmap = withContext(Dispatchers.IO) {
                         runCatching {
                             val raw = Glide.with(requireActivity()).asBitmap()
-                                .load(entity.bitmapData ?: url)
+                                .load(entity.bitmapData ?: url).centerCrop()
                                 .diskCacheStrategy(DiskCacheStrategy.ALL).submit().get()
-                            if (isBackground) {
-                                // Backgrounds: canvas-relative downscale
-                                val canvasW = viewModel.canvasSize.value?.width ?: raw.width.toFloat()
-                                val canvasH = viewModel.canvasSize.value?.height ?: raw.height.toFloat()
-                                val maxW = (canvasW * 2).toInt().coerceIn(1024, GPU_SAFE_MAX_PX)
-                                val maxH = (canvasH * 2).toInt().coerceIn(1024, GPU_SAFE_MAX_PX)
-                                downsampleIfNeeded(raw, maxW, maxH)
-                            } else {
-                                // Regular images: GPU cap only, preserve full quality
-                                downsampleIfNeeded(raw, GPU_SAFE_MAX_PX, GPU_SAFE_MAX_PX)
-                            }
+                            downsampleIfNeeded(raw, GPU_SAFE_MAX_PX, GPU_SAFE_MAX_PX)
                         }.getOrNull()
                     }
                     bitmap?.let {
-                        if (isBackground) {
-                            viewModel.ensureBackgroundElement(requireActivity())
-                            viewModel.setCanvasBackgroundImage(it, requireActivity())
-                        } else {
-                            viewModel.addSticker(
-                                it.trimTransparentEdges(),
-                                requireActivity(),
-                                ElementType.IMAGE,
-                                entity.is_premium
-                            )
-                        }
+                        viewModel.addSticker(
+                            it.trimTransparentEdges(),
+                            requireActivity(),
+                            ElementType.IMAGE,
+                            entity.is_premium
+                        )
                     }
                 }
             }
@@ -404,7 +445,6 @@ class ImagesFragment : Fragment() {
                 val pos = tab?.position ?: return
                 tab.view.animate().scaleX(1f).scaleY(1f).setDuration(100)
                     .setInterpolator(OvershootInterpolator(1.2f)).start()
-                // Sync both tab layouts
                 val other =
                     if (tab.parent == binding.tabLayout) binding.tabLayoutExpanded else binding.tabLayout
                 if (other.selectedTabPosition != pos) other.getTabAt(pos)?.select()
@@ -457,29 +497,52 @@ class ImagesFragment : Fragment() {
 
     private fun applySearch(query: String) {
         currentQuery = query
-        for ((_, fragment) in fragmentCache) fragment.updateFilter(query)
 
-        if (query.isBlank()) {
-            showAllTabs(); return
+        // ── Search UI: hide tabs, show results header ─────────────────────────
+        // Both headers (collapsed + expanded) match the height of their respective
+        // tab layouts exactly — RecyclerView never shifts position.
+        val isExpanded = mainViewModel.isPanelExpanded(PanelType.IMAGES)
+        val headerText = if (query.isNotBlank()) "Results for '${query}'" else ""
+
+        // Search only happens in expanded mode now — collapsed has no search bar
+        if (query.isNotBlank()) {
+            binding.tabLayoutExpanded.isVisible = false
+            binding.searchResultsHeaderExpanded.isVisible = isExpanded
+            if (isExpanded) binding.searchResultsHeaderExpanded.text = headerText
+            // Also hide collapsed tab layout so header is consistent
+            binding.tabLayout.isVisible = false
+            binding.searchResultsHeader.isVisible = false  // not used anymore
+        } else {
+            binding.tabLayout.isVisible = true
+            binding.searchResultsHeader.isVisible = false
+            binding.tabLayoutExpanded.isVisible = isExpanded
+            binding.searchResultsHeaderExpanded.isVisible = false
+            showAllTabs()
         }
 
-        val data = mainViewModel.imagesData.value
-        listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
-            val tabStrip = tl.getChildAt(0) as? ViewGroup ?: return@forEach
-            for (i in tabs.indices) {
-                val category = tabs[i]
-                val hasResults = when {
-                    category.equals(
-                        "Recents",
-                        ignoreCase = true
-                    ) -> data.recents.any { it.matchesQuery(query) }
+        val currentCategory = tabs.getOrNull(currentTabIndex).orEmpty()
+        val isOnRecents = currentCategory.equals("Recents", ignoreCase = true)
 
-                    else -> data.imagesByCategory[category].orEmpty().any { it.matchesQuery(query) }
-                }
-                tabStrip.getChildAt(i)?.isVisible = hasResults
+        // Broadcast filter to all non-Pexels fragments.
+        // When on Recents: still filter ALL tabs — results appear across all tabs
+        // rather than being limited to the small recents list.
+        for ((cat, fragment) in fragmentCache.toMap()) {
+            if (!pexelsViewModel.isPexelsTab(cat)) fragment.updateFilter(query)
+        }
+
+        // Pexels tabs: local Room search (text change = no API cost)
+        // If on Recents, pick the first Pexels tab as the active search tab
+        if (query.isNotBlank()) {
+            val searchTab = if (isOnRecents) {
+                tabs.firstOrNull { pexelsViewModel.isPexelsTab(it) } ?: currentCategory
+            } else currentCategory
+            pexelsViewModel.searchLocal(query, fromTab = searchTab)
+        } else {
+            pexelsViewModel.clearSearch()
+            for ((cat, fragment) in fragmentCache.toMap()) {
+                if (pexelsViewModel.isPexelsTab(cat)) fragment.updateFilter("")
             }
         }
-        jumpToFirstVisibleTab()
     }
 
     private fun onTabFilterResult(category: String, hasResults: Boolean) {
@@ -506,12 +569,26 @@ class ImagesFragment : Fragment() {
         }
     }
 
+    /** Called when user presses IME search button — triggers API call if needed. */
+    private fun submitSearch(query: String) {
+        if (query.isBlank()) return
+        val currentCategory = tabs.getOrNull(currentTabIndex).orEmpty()
+        val isOnRecents = currentCategory.equals("Recents", ignoreCase = true)
+        val searchTab = if (isOnRecents) {
+            tabs.firstOrNull { pexelsViewModel.isPexelsTab(it) } ?: currentCategory
+        } else currentCategory
+        pexelsViewModel.submitSearch(query, fromTab = searchTab)
+    }
+
     private fun showAllTabs() {
         listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
             val tabStrip = tl.getChildAt(0) as? ViewGroup ?: return@forEach
             for (i in 0 until tabStrip.childCount) tabStrip.getChildAt(i)?.isVisible = true
         }
     }
+
+    // ── Dispatch helpers — handles both fragment types cleanly ────────────────
+
 
     // ── Events ────────────────────────────────────────────────────────────────
 
@@ -524,65 +601,16 @@ class ImagesFragment : Fragment() {
         binding.cancelSelection.addPressEffect { mainViewModel.clearImagesSelection() }
         binding.doneSelection.addPressEffect { addAllSelectedToCanvas() }
 
+        // Search icon in collapsed mode: expand panel → focus expanded search bar → keyboard
+        // No search bar shown in collapsed mode at all — cleaner UX
         binding.searchIcon.addPressEffect {
-            binding.searchIcon.isVisible = false
-            binding.searchBar.isVisible = true
-            binding.searchBar.requestFocus()
-            binding.searchBar.setSelection(binding.searchBar.text?.length ?: 0)
-            showKeyboard(binding.searchBar)
-        }
-
-        binding.searchBar.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus && currentQuery.isBlank()) {
-                binding.searchIcon.isVisible = true
-                binding.searchBar.isVisible = false
+            mainViewModel.togglePanel(PanelType.IMAGES)   // expand
+            // Post so the expanded header is visible before we focus
+            binding.root.post {
+                binding.searchBarExpanded.requestFocus()
+                binding.searchBarExpanded.setSelection(binding.searchBarExpanded.text?.length ?: 0)
+                showKeyboard(binding.searchBarExpanded)
             }
-        }
-
-        binding.searchBar.imeOptions = EditorInfo.IME_ACTION_SEARCH
-        binding.searchBar.setRawInputType(InputType.TYPE_CLASS_TEXT)
-
-        binding.searchBar.setOnEditorActionListener { _, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                applySearch(binding.searchBar.text.toString())
-                hideKeyboard()
-                binding.searchBar.isVisible = false
-                binding.searchIcon.isVisible = true
-                true
-            } else false
-        }
-
-        binding.searchBar.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun afterTextChanged(s: Editable?) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                binding.searchBar.setCompoundDrawablesWithIntrinsicBounds(
-                    null,
-                    null,
-                    if (!s.isNullOrEmpty()) ContextCompat.getDrawable(
-                        requireActivity(),
-                        R.drawable.ic_close
-                    )
-                    else null,
-                    null
-                )
-                applySearch(s?.toString().orEmpty())
-            }
-        })
-
-        binding.searchBar.setOnTouchListener { _, event ->
-            if (event.action == MotionEvent.ACTION_UP) {
-                val dr = binding.searchBar.compoundDrawables[2]
-                if (dr != null && event.x >= binding.searchBar.width - binding.searchBar.paddingRight - dr.bounds.width()) {
-                    binding.searchBar.text.clear()
-                    applySearch("")
-                    hideKeyboard()
-                    binding.searchBar.isVisible = false
-                    binding.searchIcon.isVisible = true
-                    return@setOnTouchListener true
-                }
-            }
-            false
         }
 
         binding.searchBarExpanded.imeOptions = EditorInfo.IME_ACTION_SEARCH
@@ -590,8 +618,11 @@ class ImagesFragment : Fragment() {
 
         binding.searchBarExpanded.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                applySearch(binding.searchBarExpanded.text.toString())
-                hideKeyboard(); true
+                val q = binding.searchBarExpanded.text.toString()
+                applySearch(q)
+                submitSearch(q)   // triggers API call if local results < 5
+                hideKeyboard()
+                true
             } else false
         }
 
@@ -607,15 +638,10 @@ class ImagesFragment : Fragment() {
         binding.searchBarExpanded.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_UP) {
                 val dr = binding.searchBarExpanded.compoundDrawables[2]
-                if (dr != null && event.x >= binding.searchBarExpanded.width -
-                    binding.searchBarExpanded.paddingRight - dr.bounds.width()
-                ) {
-                    // Clear text + search
+                if (dr != null && event.x >= binding.searchBarExpanded.width - binding.searchBarExpanded.paddingRight - dr.bounds.width()) {
                     binding.searchBarExpanded.text.clear()
                     applySearch("")
-                    // Remove the cross drawable immediately
                     updateExpandedSearchCross("")
-                    // Dismiss keyboard and remove focus
                     hideKeyboard()
                     binding.searchBarExpanded.clearFocus()
                     return@setOnTouchListener true
@@ -644,7 +670,6 @@ class ImagesFragment : Fragment() {
     private fun hideKeyboard() {
         requireContext().getSystemService(InputMethodManager::class.java)
             ?.hideSoftInputFromWindow(binding.root.windowToken, 0)
-        binding.searchBar.clearFocus()
         binding.searchBarExpanded.clearFocus()
     }
 
@@ -656,31 +681,12 @@ class ImagesFragment : Fragment() {
                         ?: return@launch
                 val rawBitmap = ImageProcessor.filePathToBitmap(filePath) ?: return@launch
 
-                val currentCategory = tabs.getOrNull(currentTabIndex).orEmpty()
-                val isBackground = currentCategory.equals("Backgrounds", ignoreCase = true) ||
-                        currentCategory.equals("My Backgrounds", ignoreCase = true)
-
-                val bitmap = if (isBackground) {
-                    // Backgrounds fill the whole canvas — downsample to 2× canvas size so
-                    // they look sharp even when zoomed in, but don't waste RAM beyond that.
-                    val canvasW = viewModel.canvasSize.value?.width ?: rawBitmap.width.toFloat()
-                    val canvasH = viewModel.canvasSize.value?.height ?: rawBitmap.height.toFloat()
-                    val maxW = (canvasW * 2).toInt().coerceIn(1024, GPU_SAFE_MAX_PX)
-                    val maxH = (canvasH * 2).toInt().coerceIn(1024, GPU_SAFE_MAX_PX)
-                    downsampleIfNeeded(rawBitmap, maxW, maxH)
-                } else {
-                    // Regular image element: user chose it intentionally — keep full quality
-                    // up to the GPU hard limit. CanvasView's display-proxy handles rendering perf.
-                    downsampleIfNeeded(rawBitmap, GPU_SAFE_MAX_PX, GPU_SAFE_MAX_PX)
-                }
+                tabs.getOrNull(currentTabIndex).orEmpty()
+                // User picked image from gallery — always add as image element
+                val bitmap = downsampleIfNeeded(rawBitmap, GPU_SAFE_MAX_PX, GPU_SAFE_MAX_PX)
 
                 withContext(Dispatchers.Main) {
-                    if (isBackground) {
-                        viewModel.ensureBackgroundElement(requireActivity())
-                        viewModel.setCanvasBackgroundImage(bitmap, requireActivity())
-                    } else {
-                        viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE)
-                    }
+                    viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE)
                 }
             } catch (e: Exception) {
                 Log.e("ImagesFragment", "Failed to import image", e)
@@ -689,9 +695,6 @@ class ImagesFragment : Fragment() {
     }
 
     companion object {
-        // GPU hard limit: 24 MP (ARGB_8888 @ 4 bytes = 96 MB).
-        // Applied to every image entering the canvas to prevent hard crashes.
-        // CanvasView's display-proxy system keeps rendering smooth regardless.
         private const val GPU_SAFE_MAX_PX = 4899
     }
 }

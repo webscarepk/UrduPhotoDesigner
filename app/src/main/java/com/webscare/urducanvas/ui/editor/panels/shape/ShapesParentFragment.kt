@@ -187,11 +187,8 @@ class ShapesParentFragment : Fragment() {
             binding.searchBarExpanded.setSelection(binding.searchBarExpanded.text?.length ?: 0)
             updateExpandedSearchCross(currentQuery)
         } else {
+            hideKeyboard()
             binding.searchBarExpanded.text?.clear()
-            if (currentQuery.isBlank()) {
-                binding.searchBar.isVisible  = false
-                binding.searchIcon.isVisible = true
-            }
         }
     }
 
@@ -504,64 +501,19 @@ class ShapesParentFragment : Fragment() {
         binding.cancelSelection.addPressEffect { mainViewModel.clearShapesSelection() }
         binding.doneSelection.addPressEffect   { addAllSelectedToCanvas() }
 
-        // ── Collapsed search ─────────────────────────────────────────────
+        // Search icon — expands panel, focuses expanded search bar + opens keyboard
         binding.searchIcon.addPressEffect {
-            binding.searchIcon.isVisible = false
-            binding.searchBar.isVisible  = true
-            binding.searchBar.requestFocus()
-            binding.searchBar.setSelection(binding.searchBar.text?.length ?: 0)
-            showKeyboard(binding.searchBar)
-        }
-
-        binding.searchBar.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus && currentQuery.isBlank()) {
-                binding.searchIcon.isVisible = true
-                binding.searchBar.isVisible  = false
+            if (!mainViewModel.isPanelExpanded(PanelType.SHAPES)) {
+                mainViewModel.togglePanel(PanelType.SHAPES)
             }
-        }
-
-        binding.searchBar.imeOptions = EditorInfo.IME_ACTION_SEARCH
-        binding.searchBar.setRawInputType(InputType.TYPE_CLASS_TEXT)
-
-        binding.searchBar.setOnEditorActionListener { _, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                applySearch(binding.searchBar.text.toString())
-                hideKeyboard()
-                binding.searchBar.isVisible  = false
-                binding.searchIcon.isVisible = true
-                true
-            } else false
-        }
-
-        binding.searchBar.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun afterTextChanged(s: Editable?) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                binding.searchBar.setCompoundDrawablesWithIntrinsicBounds(
-                    null, null,
-                    if (!s.isNullOrEmpty())
-                        ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close)
-                    else null, null
+            binding.root.post {
+                if (_binding == null) return@post
+                binding.searchBarExpanded.requestFocus()
+                binding.searchBarExpanded.setSelection(
+                    binding.searchBarExpanded.text?.length ?: 0
                 )
-                applySearch(s?.toString().orEmpty())
+                showKeyboard(binding.searchBarExpanded)
             }
-        })
-
-        binding.searchBar.setOnTouchListener { _, event ->
-            if (event.action == MotionEvent.ACTION_UP) {
-                val dr = binding.searchBar.compoundDrawables[2]
-                if (dr != null && event.x >= binding.searchBar.width -
-                    binding.searchBar.paddingRight - dr.bounds.width()
-                ) {
-                    binding.searchBar.text.clear()
-                    applySearch("")
-                    hideKeyboard()
-                    binding.searchBar.isVisible  = false
-                    binding.searchIcon.isVisible = true
-                    return@setOnTouchListener true
-                }
-            }
-            false
         }
 
         // ── Expanded search ──────────────────────────────────────────────
@@ -618,7 +570,6 @@ class ShapesParentFragment : Fragment() {
     private fun hideKeyboard() {
         requireContext().getSystemService(InputMethodManager::class.java)
             ?.hideSoftInputFromWindow(binding.root.windowToken, 0)
-        binding.searchBar.clearFocus()
         binding.searchBarExpanded.clearFocus()
     }
 }

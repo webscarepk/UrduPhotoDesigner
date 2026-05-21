@@ -8,7 +8,7 @@ import com.webscare.urducanvas.ui.editor.panels.text.appearance.AppearanceFragme
 import com.webscare.urducanvas.ui.editor.panels.text.fonts.FontsFragment
 import com.webscare.urducanvas.ui.editor.panels.text.format.FormatFragment
 
-class TextPagerAdapter(
+class TextAdjustmentsPagerAdapter(
     fragmentManager: FragmentManager,
     lifecycle: Lifecycle,
     private val tabs: List<String>
@@ -18,12 +18,10 @@ class TextPagerAdapter(
 
     override fun createFragment(position: Int): Fragment {
         return when (tabs[position]) {
-            "Font" -> FontsFragment.Companion.newInstance()
-            "Appearance" -> AppearanceFragment.Companion.newInstance()
-            "Format" -> FormatFragment.Companion.newInstance()
-            "Style" -> FormatFragment.Companion.newInstance()
-            else -> FontsFragment.Companion.newInstance()
+            "Font"       -> FontsFragment.newInstance(standaloneMode = true)
+            "Appearance" -> AppearanceFragment.newInstance()
+            "Format"     -> FormatFragment.newInstance()
+            else         -> FontsFragment.newInstance(standaloneMode = true)
         }
     }
-
 }

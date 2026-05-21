@@ -29,6 +29,7 @@ import com.webscare.urducanvas.databinding.ActivityMainBinding
 import com.webscare.urducanvas.di.BillingManager
 import com.webscare.urducanvas.di.UpdateManager
 import com.webscare.urducanvas.viewmodels.MainViewModel
+import com.webscare.urducanvas.viewmodels.PexelsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -73,6 +74,13 @@ class MainActivity : AppCompatActivity() {
     @Inject lateinit var updateManager: UpdateManager
 
     private val mainViewModel: MainViewModel by viewModels()
+
+    // Creating PexelsViewModel here ensures Hilt constructs it on app start,
+    // so seedPexelsCategories() fires immediately — same lifecycle as MainViewModel.
+    // The actual seeding now lives in MainViewModel.seedPexelsCategories() which
+    // is called from MainViewModel.init, so this just keeps the VM alive.
+    @Suppress("unused")
+    private val pexelsViewModel: PexelsViewModel by viewModels()
 
     // ──────────────────────────────────────────────────────────
     // Lifecycle

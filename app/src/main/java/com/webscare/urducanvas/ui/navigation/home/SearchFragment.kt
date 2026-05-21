@@ -256,7 +256,7 @@ class SearchFragment : Fragment() {
                 }
 
                 val filteredFonts = fonts.filter { f ->
-                    q.isNotEmpty() && f.font_name.lowercase().contains(q)
+                    q.isNotEmpty() && f.font_name!!.lowercase().contains(q)
                 }
 
                 val filteredFiles = exports.filter { e ->

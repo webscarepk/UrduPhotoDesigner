@@ -6,28 +6,26 @@ import com.webscare.urducanvas.data.model.FontLanguages
 
 class FontsPagerAdapter(
     fragment: Fragment,
-    private var categories: List<FontLanguages>
+    categories: List<FontLanguages>,
+    private val standaloneMode: Boolean = false
 ) : FragmentStateAdapter(fragment) {
+
+    var categories: List<FontLanguages> = categories
+        private set
 
     override fun getItemCount() = categories.size
 
     override fun createFragment(position: Int): Fragment {
-        return FontsListFragment.newInstance(categories[position].name)
+        return FontsListFragment.newInstance(
+            fontLanguage  = categories[position].name,
+            standaloneMode = standaloneMode
+        )
     }
 
     /**
      * Update the category list with surgical notifications.
-     *
-     * Key insight: a font download only changes `is_downloaded`/`is_downloading` on a
-     * FontEntity inside Room — it does NOT change the language names or their count.
-     * In that case the page structure is identical and we must NOT call any notify*,
-     * because even notifyItemRangeChanged causes ViewPager2 to rebind/recreate the
-     * visible page (flicker + scroll reset).
-     *
-     * We only notify when the actual page structure changes:
-     *   - a new language appeared  → notifyItemRangeInserted
-     *   - a language was removed   → notifyItemRangeRemoved
-     *   - a language was renamed   → notifyItemRangeChanged for that slot only
+     * Only notifies when page structure actually changes — avoids unnecessary
+     * ViewPager2 rebinds (flicker + scroll reset) on font download state changes.
      */
     fun updateCategories(newCategories: List<FontLanguages>) {
         val oldCategories = categories
@@ -39,19 +37,15 @@ class FontsPagerAdapter(
         when {
             newSize == oldSize -> {
                 for (i in 0 until newSize) {
-                    if (oldCategories[i].id != newCategories[i].id ||
+                    if (oldCategories[i].id   != newCategories[i].id ||
                         oldCategories[i].name != newCategories[i].name
                     ) {
                         notifyItemChanged(i)
                     }
                 }
             }
-            newSize > oldSize -> {
-                notifyItemRangeInserted(oldSize, newSize - oldSize)
-            }
-            else -> {
-                notifyItemRangeRemoved(newSize, oldSize - newSize)
-            }
+            newSize > oldSize -> notifyItemRangeInserted(oldSize, newSize - oldSize)
+            else              -> notifyItemRangeRemoved(newSize, oldSize - newSize)
         }
     }
 

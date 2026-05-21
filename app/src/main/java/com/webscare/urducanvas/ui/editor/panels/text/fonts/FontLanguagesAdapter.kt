@@ -45,9 +45,11 @@ class FontLanguagesAdapter(
         private val binding: LayoutTabsFontLanguagesItemBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        private val catAdapter = FontCategoriesAdapter { cat ->
+        private val catAdapter: FontCategoriesAdapter = FontCategoriesAdapter { cat ->
             val pos = adapterPosition
             if (pos == RecyclerView.NO_POSITION) return@FontCategoriesAdapter
+            // setSelectedCategory called after init — no recursive reference
+            (binding.rvCategories.adapter as? FontCategoriesAdapter)?.setSelectedCategory(cat)
             onCategorySelected(fonts[pos].name, cat)
         }
 
@@ -77,6 +79,12 @@ class FontLanguagesAdapter(
                     onLanguageExpanded(row.name, false)           // false = "expand/select"
                 } else {
                     // Original toggle behaviour (collapsed panel)
+                    // Reset category selection when language row toggles
+                    if (row.is_selected) {
+                        // collapsing — clear selected category
+                        (binding.rvCategories.adapter as? FontCategoriesAdapter)
+                            ?.setSelectedCategory(null)
+                    }
                     row.is_selected = !row.is_selected
                     notifyItemChanged(pos)
                     onLanguageExpanded(row.name, !row.is_selected)

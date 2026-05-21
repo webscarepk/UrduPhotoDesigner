@@ -20,6 +20,7 @@ import com.webscare.urducanvas.common.utils.ShapeRenderUtils.drawShape
 import com.webscare.urducanvas.common.utils.SvgLoader
 import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.databinding.LayoutThumbnailItemBinding
+import com.webscare.urducanvas.ui.editor.panels.images.resolveUrl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -84,7 +85,8 @@ class ThumbnailAdapter(
         }
 
         private fun loadImage(entity: ImageEntity) {
-            val url   = Constants.BASE_URL_GLIDE + entity.file_url
+            // resolveUrl() handles both Pexels (full URL) and own images (needs base prefix)
+            val url   = resolveUrl(entity)
             val isSvg = entity.file_name.endsWith(".svg", ignoreCase = true)
             if (isSvg) {
                 SvgLoader.load(url, binding.thumbImage, scope, entity.bitmapData) { _, _ -> }
@@ -105,7 +107,6 @@ class ThumbnailAdapter(
         }
 
         private fun loadShape(shape: ShapeType) {
-            // Render shape bitmap off main thread — same as ShapeAdapter pre-rendering
             scope.launch {
                 val bmp = withContext(Dispatchers.Default) { renderShapeThumbnail(shape) }
                 binding.thumbImage.setImageBitmap(bmp)
@@ -130,7 +131,6 @@ class ThumbnailAdapter(
             val bitmap = createBitmap(size, size)
             val canvas = Canvas(bitmap)
             val paint  = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                // Use a visible color for thumbnail context (dark on light)
                 color       = android.graphics.Color.parseColor("#333333")
                 strokeWidth = size * 0.045f
                 style       = Paint.Style.STROKE

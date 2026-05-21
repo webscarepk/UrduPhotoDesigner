@@ -39,6 +39,7 @@ import androidx.constraintlayout.widget.Guideline
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.doOnLayout
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
@@ -59,6 +60,7 @@ import com.webscare.urducanvas.common.canvas.enums.BlendType
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.canvas.enums.HAlign
 import com.webscare.urducanvas.common.canvas.enums.MultiAlignMode
+import com.webscare.urducanvas.common.canvas.enums.PanelType
 import com.webscare.urducanvas.common.canvas.enums.PickerTarget
 import com.webscare.urducanvas.common.canvas.enums.UnitType
 import com.webscare.urducanvas.common.canvas.enums.VAlign
@@ -128,7 +130,9 @@ class EditorFragment : Fragment() {
     private var fabInitialTouchX = 0f
     private var fabInitialTouchY = 0f
     private var fabMargin = 0
-    private var panelAnimator: ValueAnimator? = null
+
+    private var panelSheet: PanelSheetBehavior? = null
+    private var uiFullyInitialized = false
 
     private val pickImage =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -159,60 +163,60 @@ class EditorFragment : Fragment() {
             insets
         }
 
-        viewLifecycleOwner.lifecycleScope.launch {
-            val navHostFragment =
-                childFragmentManager.findFragmentById(R.id.panelNavHost) as NavHostFragment
-            _navController = navHostFragment.navController
+        val navHostFragment =
+            childFragmentManager.findFragmentById(R.id.panelNavHost) as NavHostFragment
+        _navController = navHostFragment.navController
 
-            binding.bottomNavigation.setupWithNavController(navController)
+        binding.bottomNavigation.setupWithNavController(navController)
 
-            _navController?.addOnDestinationChangedListener { _, destination, _ ->
+        _navController?.addOnDestinationChangedListener { _, destination, _ ->
 
-                // Hide bottom nav for adjustments
-                binding.bottomNavigation.isVisible =
-                    destination.id != R.id.adjustmentsParentFragment && destination.id != R.id.shapeFragment
+            // Hide bottom nav for adjustments
+            binding.bottomNavigation.isVisible =
+                destination.id != R.id.adjustmentsParentFragment &&
+                        destination.id != R.id.shapeFragment &&
+                        destination.id != R.id.textAdjustmentsFragment
 
-                when (destination.id) {
+            when (destination.id) {
 
-                    R.id.textFragment -> {
-                        binding.bottomNavigation.selectedItemId = R.id.nav_text
-                        currentPanelItemId = R.id.nav_text
-                        binding.panelNavHost.visibility = View.VISIBLE
-                    }
+                R.id.textFragment -> {
+                    binding.bottomNavigation.selectedItemId = R.id.nav_text
+                    currentPanelItemId = R.id.nav_text
+                    binding.panelNavHost.visibility = View.VISIBLE
+                }
 
-                    R.id.objectsFragment -> {
-                        binding.bottomNavigation.selectedItemId = R.id.nav_stickers
-                        currentPanelItemId = R.id.nav_stickers
-                        binding.panelNavHost.visibility = View.VISIBLE
-                    }
+                R.id.objectsFragment -> {
+                    binding.bottomNavigation.selectedItemId = R.id.nav_stickers
+                    currentPanelItemId = R.id.nav_stickers
+                    binding.panelNavHost.visibility = View.VISIBLE
+                }
 
-                    R.id.drawFragment -> {
-                        binding.bottomNavigation.selectedItemId = R.id.nav_draw
-                        currentPanelItemId = R.id.nav_draw
-                        binding.panelNavHost.visibility = View.VISIBLE
-                    }
+                R.id.drawFragment -> {
+                    binding.bottomNavigation.selectedItemId = R.id.nav_draw
+                    currentPanelItemId = R.id.nav_draw
+                    binding.panelNavHost.visibility = View.VISIBLE
+                }
 
-                    R.id.imagesFragment -> {
-                        binding.bottomNavigation.selectedItemId = R.id.nav_images
-                        currentPanelItemId = R.id.nav_images
-                        binding.panelNavHost.visibility = View.VISIBLE
-                    }
+                R.id.imagesFragment -> {
+                    binding.bottomNavigation.selectedItemId = R.id.nav_images
+                    currentPanelItemId = R.id.nav_images
+                    binding.panelNavHost.visibility = View.VISIBLE
+                }
 
-                    R.id.layersFragment -> {
-                        binding.bottomNavigation.selectedItemId = R.id.nav_layers
-                        currentPanelItemId = R.id.nav_layers
-                        binding.panelNavHost.visibility = View.VISIBLE
-                    }
+                R.id.layersFragment -> {
+                    binding.bottomNavigation.selectedItemId = R.id.nav_layers
+                    currentPanelItemId = R.id.nav_layers
+                    binding.panelNavHost.visibility = View.VISIBLE
+                }
 
-                    R.id.shapesParentFragment -> {
-                        binding.bottomNavigation.selectedItemId = R.id.nav_shapes
-                        currentPanelItemId = R.id.nav_shapes
-                        binding.panelNavHost.visibility = View.VISIBLE
-                    }
+                R.id.shapesParentFragment -> {
+                    binding.bottomNavigation.selectedItemId = R.id.nav_shapes
+                    currentPanelItemId = R.id.nav_shapes
+                    binding.panelNavHost.visibility = View.VISIBLE
+                }
 
-                    else -> {
-                        currentPanelItemId = null
-                    }
+                else -> {
+                    currentPanelItemId = null
                 }
             }
         }
@@ -225,7 +229,24 @@ class EditorFragment : Fragment() {
         jsonPath = File(requireContext().filesDir, jsonFileName).absolutePath
         imagePath = File(requireContext().filesDir, imageFileName).absolutePath
         fabMargin = 8.dpToPx(requireContext())
+        // FIX: Reset on every onViewCreated — view is being recreated so UI needs full re-init.
+        uiFullyInitialized = false
         viewModel.clearLoading()
+
+        // ── Update all callback references to point at this (fresh) fragment instance.
+        // Must happen before observeViewModel() so that any LiveData re-delivery
+        // that fires synchronously already sees the live lambdas.
+        rewireCanvasCallbacks()
+
+        // ── Eagerly re-attach the CanvasView so the container is never blank between
+        // onViewCreated and the canvasSize observer firing.
+        viewModel.getCanvasView()?.let { existing ->
+            if (existing.parent !== binding.canvasContainer) {
+                (existing.parent as? ViewGroup)?.removeView(existing)
+                binding.canvasContainer.addView(existing)
+            }
+        }
+
         observeViewModel()
     }
 
@@ -596,8 +617,14 @@ class EditorFragment : Fragment() {
             if (size != null) {
                 canvasSize = size
 
-                if (!::sizedCanvasView.isInitialized) {
-                    // First time — full setup
+                if (!uiFullyInitialized) {
+                    // FIX: Use uiFullyInitialized instead of ::sizedCanvasView.isInitialized.
+                    // sizedCanvasView survives view destruction (it lives on the fragment
+                    // instance, not the view). On return from BgRemovalFragment the view is
+                    // recreated but isInitialized is still true, so all setup was skipped —
+                    // bottom nav dead, no click listeners, no observers. Now we always run full
+                    // setup on every new view creation, regardless of prior sizedCanvasView state.
+                    uiFullyInitialized = true
                     initBottomNavigation()
                     initCanvas(size.width.toInt(), size.height.toInt())
                     initUIControls()
@@ -605,7 +632,7 @@ class EditorFragment : Fragment() {
                     observeAfterCanvasReady()
                     if (exportModel == null) autoSaveSilent()
                 } else {
-                    // Resize only — just update canvas dimensions
+                    // Canvas size changed (e.g. user resized canvas) — update dimensions only.
                     sizedCanvasView.resizeCanvas(size.width.toInt(), size.height.toInt())
                     autoSaveSilent()
                 }
@@ -651,7 +678,11 @@ class EditorFragment : Fragment() {
                     binding.canvasContainer.invalidate()
                     scheduleJsonSave()
                 }
-                val panelDestinations = listOf(R.id.adjustmentsParentFragment, R.id.shapeFragment)
+                val panelDestinations = listOf(
+                    R.id.adjustmentsParentFragment,
+                    R.id.shapeFragment,
+                    R.id.textAdjustmentsFragment   // ← ADD THIS
+                )
                 val currentDest = navController.currentDestination?.id
                 if (currentDest != null && currentDest in panelDestinations) {
                     val hasSelection = elements?.any { it.isSelected } == true
@@ -827,7 +858,7 @@ class EditorFragment : Fragment() {
                 newSelection.size == 1 && first != null -> {
                     when (first.type) {
 
-                        ElementType.TEXT -> R.id.textFragment
+                        ElementType.TEXT -> R.id.textAdjustmentsFragment
 
                         ElementType.IMAGE, ElementType.STICKER, ElementType.BACKGROUND -> R.id.adjustmentsParentFragment
 
@@ -847,7 +878,8 @@ class EditorFragment : Fragment() {
 
             val panelDestinations = listOf(
                 R.id.adjustmentsParentFragment,
-                R.id.shapeFragment
+                R.id.shapeFragment,
+                R.id.textAdjustmentsFragment
             )
 
             if (targetDestination == null) {
@@ -876,13 +908,22 @@ class EditorFragment : Fragment() {
                         Canvas(bmp).also { svg.draw(it) }
                         BitmapCache.put(element.id, bmp)
                     }
-                } else if (targetDestination == R.id.textFragment || targetDestination == R.id.shapesParentFragment) {
+                } else if (targetDestination == R.id.textAdjustmentsFragment || targetDestination == R.id.shapesParentFragment) {
                     if (!(targetDestination == R.id.shapesParentFragment && shapeJustAdded)) {
                         viewModel.openAppearanceTab()
                     }
                 }
 
-                val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
+                if (currentDest != null
+                    && currentDest in panelDestinations
+                    && currentDest != targetDestination
+                ) {
+                    navController.popBackStack(currentDest, true)
+                }
+
+                val navOptions = NavOptions.Builder()
+                    .setLaunchSingleTop(true)
+                    .build()
 
                 if (targetDestination == R.id.shapesParentFragment) {
                     shapeJustAdded = false
@@ -896,7 +937,13 @@ class EditorFragment : Fragment() {
 
     private fun List<CanvasElement>.sameSelectionAs(other: List<CanvasElement>): Boolean {
         if (size != other.size) return false
-        return this.map { it.id } == other.map { it.id }
+        // FIX: Comparing only IDs was not enough. After applyMaskToSelected the element
+        // ID stays the same but the bitmap changes. The observer would early-return thinking
+        // nothing changed, so canvasManager.syncElements never ran and the old image stayed
+        // on screen. Now also compare bitmapData so a mask change triggers a proper re-sync.
+        return this.zip(other).all { (a, b) ->
+            a.id == b.id && a.bitmapData == b.bitmapData
+        }
     }
 
     // 👇 new helper
@@ -974,77 +1021,51 @@ class EditorFragment : Fragment() {
         }
     }
 
+    // ── Stable callback holder ────────────────────────────────────────────────
+    // CanvasView lives in the ViewModel across fragment destruction. Callbacks
+    // that reference binding / navController / lifecycleScope / viewLifecycleOwner
+    // become stale when the fragment is recreated. We route those through these
+    // fragment-level vars and update them in rewireCanvasCallbacks() every
+    // onViewCreated. Callbacks that only touch viewModel (activityViewModels —
+    // survives recreation) are passed as plain lambdas directly to CanvasView
+    // and never need updating.
+    private var cbOnEditTextRequested : (CanvasElement) -> Unit = {}
+    private var cbOnElementSelected   : (List<CanvasElement>) -> Unit = {}
+    private var cbOnRequestOpenLayers : () -> Unit = {}
+
+    /** Call on every onViewCreated to point all fragment-state callbacks at the live instance. */
+    private fun rewireCanvasCallbacks() {
+        cbOnEditTextRequested = { element -> handleEditTextRequested(element) }
+        cbOnElementSelected   = { elements ->
+            selectionFromUserInteraction = true
+            viewModel.onCanvasSelectionChanged(elements)
+        }
+        cbOnRequestOpenLayers = { handleRequestOpenLayers() }
+    }
+
     /** Attach/restore CanvasView inside container */
     private fun initCanvas(widthPx: Int, heightPx: Int) {
         val existing = viewModel.getCanvasView()
         if (existing != null) {
             sizedCanvasView = existing
             sizedCanvasView.resizeCanvas(widthPx, heightPx)
-            (sizedCanvasView.parent as? ViewGroup)?.removeView(sizedCanvasView)
-            binding.canvasContainer.addView(sizedCanvasView)
+            // Re-parent only if needed — eager re-attach in onViewCreated may
+            // have already done this; guard against double-add crash.
+            if (sizedCanvasView.parent !== binding.canvasContainer) {
+                (sizedCanvasView.parent as? ViewGroup)?.removeView(sizedCanvasView)
+                binding.canvasContainer.addView(sizedCanvasView)
+            }
+            // canvasCallbacks was already updated by rewireCanvasCallbacks() in
+            // onViewCreated — nothing more to do here for the existing view.
         } else {
+            // First creation: callbacks that only use viewModel (activityViewModels, survives
+            // recreation) are passed inline. The three that touch binding / navController /
+            // lifecycleScope are forwarded through cb* vars updated every onViewCreated.
             sizedCanvasView = CanvasView(
                 requireContext(),
                 canvasWidth = widthPx,
                 canvasHeight = heightPx,
-                onEditTextRequested = { element ->
-                    if (!isAdded || view == null || !viewLifecycleOwner.lifecycle.currentState.isAtLeast(
-                            Lifecycle.State.STARTED
-                        )
-                    ) {
-                        return@CanvasView
-                    }
-                    viewLifecycleOwner.lifecycleScope.launch {
-                        try {
-                            when (element.type) {
-
-                                ElementType.IMAGE, ElementType.BACKGROUND, ElementType.STICKER -> {
-                                    val selected =
-                                        viewModel.canvasElements.value?.find { it.id == element.id }
-                                    selected?.let {
-                                        val key = it.id
-                                        BitmapCache.put(
-                                            key, it.bitmap!!
-                                        )
-                                        val bundle = Bundle().apply { putString("elementId", key) }
-
-                                        val navOptions =
-                                            NavOptions.Builder().setLaunchSingleTop(true)
-                                                .setPopUpTo(
-                                                    R.id.adjustmentsParentFragment, inclusive = true
-                                                ).build()
-
-                                        navController.navigate(
-                                            R.id.adjustmentsParentFragment, bundle, navOptions
-                                        )
-                                    }
-                                }
-
-                                ElementType.DRAW, ElementType.SHAPE -> {
-                                    if (element.type == ElementType.SHAPE) {
-                                        val navOptions =
-                                            NavOptions.Builder().setLaunchSingleTop(true).build()
-                                        navController.navigate(R.id.shapeFragment, null, navOptions)
-                                    } else {
-                                        // ElementType.DRAW
-                                        val bundle = Bundle().apply { putInt("startPage", 0) }
-                                        val navOptions =
-                                            NavOptions.Builder().setLaunchSingleTop(true).build()
-                                        navController.navigate(
-                                            R.id.drawFragment, bundle, navOptions
-                                        )
-                                    }
-                                }
-
-                                else -> {
-                                    showTextEditDialog(element)
-                                }
-                            }
-                        } catch (e: Exception) {
-                            Log.e("EditorFragment", "Navigation failed: ${e.message}")
-                        }
-                    }
-                },
+                onEditTextRequested = { element -> cbOnEditTextRequested(element) },
                 onElementChanged = { canvasElement ->
                     viewModel.canvasElements.value?.find { it.id == canvasElement.id }?.let {
                         viewModel.updateElement(canvasElement)
@@ -1057,10 +1078,7 @@ class EditorFragment : Fragment() {
                         viewModel.markChanged()
                     }
                 },
-                onElementSelected = { elements ->
-                    selectionFromUserInteraction = true
-                    viewModel.onCanvasSelectionChanged(elements)
-                },
+                onElementSelected = { elements -> cbOnElementSelected(elements) },
                 onEndBatchUpdate = { elementId ->
                     viewModel.endBatchUpdate(elementId)
                     viewModel.markChanged()
@@ -1075,36 +1093,70 @@ class EditorFragment : Fragment() {
                     viewModel.stopPicking()
                     viewModel.markChanged()
                 },
-                onRequestOpenLayers = {
-                    requireActivity().runOnUiThread {
-                        if (!isAdded || view == null || !viewLifecycleOwner.lifecycle.currentState.isAtLeast(
-                                Lifecycle.State.STARTED
-                            )
-                        ) {
-                            return@runOnUiThread
-                        }
-                        viewModel.enterSelectionMode()
-                        binding.bottomNavigation.selectedItemId = R.id.nav_layers
-                        navController.navigate(R.id.layersFragment)
-                        currentPanelItemId = R.id.nav_layers
-                        binding.panelNavHost.visibility = View.VISIBLE
-                    }
-                },
-                onExitSelectionMode = {
-                    viewModel.exitSelectionMode()
-                },
-                onStrokeCompleted = { stroke ->
-                    viewModel.notifyDrawStrokeAdded(stroke)
-                },
-                onZoomChanged = { zoom ->
-                    viewModel.setZoomLevel(zoom)
-                }).apply {
+                onRequestOpenLayers = { cbOnRequestOpenLayers() },
+                onExitSelectionMode = { viewModel.exitSelectionMode() },
+                onStrokeCompleted = { stroke -> viewModel.notifyDrawStrokeAdded(stroke) },
+                onZoomChanged = { zoom -> viewModel.setZoomLevel(zoom) }
+            ).apply {
                 binding.canvasContainer.addView(this)
             }
             viewModel.setCanvasView(sizedCanvasView)
         }
 
         canvasManager = CanvasManager(sizedCanvasView)
+    }
+
+    /** Handles double-tap / edit requests from the canvas. */
+    private fun handleEditTextRequested(element: CanvasElement) {
+        if (!isAdded || view == null ||
+            !viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+        ) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                when (element.type) {
+                    ElementType.IMAGE, ElementType.BACKGROUND, ElementType.STICKER -> {
+                        val selected = viewModel.canvasElements.value?.find { it.id == element.id }
+                        selected?.let {
+                            val key = it.id
+                            BitmapCache.put(key, it.bitmap!!)
+                            val bundle = Bundle().apply { putString("elementId", key) }
+                            val navOptions = NavOptions.Builder()
+                                .setLaunchSingleTop(true)
+                                .setPopUpTo(R.id.adjustmentsParentFragment, inclusive = true)
+                                .build()
+                            navController.navigate(R.id.adjustmentsParentFragment, bundle, navOptions)
+                        }
+                    }
+                    ElementType.DRAW, ElementType.SHAPE -> {
+                        if (element.type == ElementType.SHAPE) {
+                            val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
+                            navController.navigate(R.id.shapeFragment, null, navOptions)
+                        } else {
+                            val bundle = Bundle().apply { putInt("startPage", 0) }
+                            val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
+                            navController.navigate(R.id.drawFragment, bundle, navOptions)
+                        }
+                    }
+                    else -> showTextEditDialog(element)
+                }
+            } catch (e: Exception) {
+                Log.e("EditorFragment", "Navigation failed: ${e.message}")
+            }
+        }
+    }
+
+    /** Opens the layers panel — called from the canvas long-press callback. */
+    private fun handleRequestOpenLayers() {
+        requireActivity().runOnUiThread {
+            if (!isAdded || view == null ||
+                !viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+            ) return@runOnUiThread
+            viewModel.enterSelectionMode()
+            binding.bottomNavigation.selectedItemId = R.id.nav_layers
+            navController.navigate(R.id.layersFragment)
+            currentPanelItemId = R.id.nav_layers
+            binding.panelNavHost.visibility = View.VISIBLE
+        }
     }
 
     /** Setup bottom navigation with navHost */
@@ -1315,6 +1367,8 @@ class EditorFragment : Fragment() {
                 findNavController().navigate(R.id.exportFragment)
             }
         }
+
+        initPanelSheet()
     }
 
     private fun colorOf(@ColorRes colorRes: Int): Int {
@@ -1683,59 +1737,98 @@ class EditorFragment : Fragment() {
         }
     }
 
-    private fun expandPanel(expanded: Boolean) {
+    private fun initPanelSheet() {
         val root = binding.root as? ConstraintLayout ?: return
-        val guideline = root.findViewById<Guideline>(R.id.centerGuide) ?: return
+        val guideline = root.findViewById<Guideline>(R.id.centerExpandableGuide) ?: return
 
-        // Cancel any in-progress animation immediately
-        panelAnimator?.cancel()
+        root.doOnLayout {
+            val rootHeight   = root.height
+            if (rootHeight == 0) return@doOnLayout
 
-        val rootHeight = root.height
-        if (rootHeight == 0) {
-            // Layout not measured yet — apply instantly without animation
-            applyGuidelinePercent(guideline, if (expanded) 0.01f else 0.65f)
-            return
-        }
+            val collapsedPx = (rootHeight * 0.65f).toInt()   // resting position
 
-        // Convert percent targets to pixel positions
-        // guideBegin = distance from top of root in pixels
-        val collapsedPx = (rootHeight * 0.65f).toInt()
-        val expandedPx = (rootHeight * 0.01f).toInt()
+            // expandedPx = just below the header bottom edge
+            val headerLoc = IntArray(2); binding.header.getLocationInWindow(headerLoc)
+            val rootLoc   = IntArray(2); root.getLocationInWindow(rootLoc)
+            val expandedPx = (headerLoc[1] - rootLoc[1]) + binding.header.height + 4.dpToPx(requireContext())
 
-        val currentParams = guideline.layoutParams as ConstraintLayout.LayoutParams
-        val startPx = currentParams.guideBegin.takeIf { it >= 0 }
-            ?: (rootHeight * if (expanded) 0.65f else 0.01f).toInt()
-        val endPx = if (expanded) expandedPx else collapsedPx
-
-        if (startPx == endPx) return
-
-        panelAnimator = ValueAnimator.ofInt(startPx, endPx).apply {
-            duration = 320
-            interpolator = DecelerateInterpolator(1.8f)
-
-            addUpdateListener { anim ->
-                val px = anim.animatedValue as Int
-                val lp = guideline.layoutParams as ConstraintLayout.LayoutParams
-                lp.guideBegin = px
-                lp.guidePercent = -1f   // disable percent mode — use absolute px
-                lp.guideEnd = -1
-                guideline.layoutParams = lp
-            }
-
-            start()
+            panelSheet = PanelSheetBehavior(
+                root            = root,
+                guideline       = guideline,
+                dragHandleView  = binding.panelNavHost,   // placeholder; panels override via attachDragHandle()
+                collapsedPx     = collapsedPx,
+                expandedPx      = expandedPx,
+                onSlide         = { offset ->
+                    mainViewModel.setPanelSlideOffset(offset)
+                },
+                onStateSettled  = { expanded ->
+                    // Sync ViewModel so panels react
+                    if (!expanded && mainViewModel.expandedPanel.value != null) {
+                        mainViewModel.collapsePanel()
+                    }
+                    // Expansion is set by attachDragHandle's onStateSettled which knows panel type.
+                    // If no panel has registered yet, collapse is the only action needed here.
+                }
+            )
+            // Don't call attach() here — the real handle comes via attachDragHandle()
         }
     }
 
-    /**
-     * Sets guideline position by percent without animation.
-     * Used when layout isn't measured yet (rootHeight == 0).
-     */
-    private fun applyGuidelinePercent(guideline: Guideline, percent: Float) {
-        val lp = guideline.layoutParams as ConstraintLayout.LayoutParams
-        lp.guidePercent = percent
-        lp.guideBegin = -1
-        lp.guideEnd = -1
-        guideline.layoutParams = lp
+    /** Called by child panels to hand their drag handle to the sheet behavior. */
+    fun attachDragHandle(handleView: View) {
+        // Sheet may not exist yet if layout hasn't run — post it
+        binding.root.post {
+            val root = binding.root as? ConstraintLayout ?: return@post
+            val guideline = root.findViewById<Guideline>(R.id.centerExpandableGuide) ?: return@post
+            val rootHeight = root.height.takeIf { it > 0 } ?: return@post
+
+            val collapsedPx = (rootHeight * 0.65f).toInt()
+
+            val headerLoc = IntArray(2); binding.header.getLocationInWindow(headerLoc)
+            val rootLoc   = IntArray(2); root.getLocationInWindow(rootLoc)
+            val expandedPx = (headerLoc[1] - rootLoc[1]) + binding.header.height + 4.dpToPx(requireContext())
+
+            val dest = _navController?.currentDestination?.id
+            val panelType = when (dest) {
+                R.id.imagesFragment       -> PanelType.IMAGES
+                R.id.objectsFragment      -> PanelType.OBJECTS
+                R.id.shapesParentFragment -> PanelType.SHAPES
+                R.id.textFragment         -> PanelType.FONTS
+                R.id.drawFragment         -> PanelType.DRAW
+                R.id.layersFragment       -> PanelType.LAYERS
+                else                      -> null
+            }
+
+            panelSheet = PanelSheetBehavior(
+                root            = root,
+                guideline       = guideline,
+                dragHandleView  = handleView,
+                collapsedPx     = collapsedPx,
+                expandedPx      = expandedPx,
+                onSlide         = { offset ->
+                    mainViewModel.setPanelSlideOffset(offset)
+                },
+                onStateSettled  = { expanded ->
+                    if (expanded) {
+                        panelType?.let { mainViewModel.setPanelExpandedType(it) }
+                    } else {
+                        mainViewModel.collapsePanel()
+                    }
+                }
+            )
+            panelSheet!!.attach()
+        }
+    }
+
+    private fun expandPanel(expanded: Boolean) {
+        val sheet = panelSheet
+        if (sheet == null) {
+            // Sheet not ready — re-try after layout
+            binding.root.post { expandPanel(expanded) }
+            return
+        }
+        if (sheet.isCurrentlyExpanded() == expanded) return
+        sheet.snapTo(expanded)
     }
 
     override fun onDestroyView() {

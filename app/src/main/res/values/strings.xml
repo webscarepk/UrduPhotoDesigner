@@ -45,7 +45,9 @@
     <string name="text">Text</string>
     <string name="backgrounds">Backgrounds</string>
     <string name="images">Images</string>
+    <string name="media">Media</string>
     <string name="objects">Objects</string>
+    <string name="elements">Elements</string>
     <string name="edit">Edit</string>
     <string name="_0_0">0.0</string>
     <string name="layers">Layers</string>

@@ -58,6 +58,7 @@ import com.webscare.urducanvas.domain.usecase.GetFontsUseCase
 import com.webscare.urducanvas.viewmodels.FontGate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -421,6 +422,12 @@ class CanvasViewModel @Inject constructor(
 
     private val _canvasView = MutableLiveData<CanvasView?>()
     val canvasView: LiveData<CanvasView?> = _canvasView
+
+    // Emits once when applyMaskToSelected finishes committing to LiveData.
+    // BgRemovalFragment (or EditorFragment) observes this to know the safe
+    // moment to call navigateUp() — after the data is committed, not before.
+    private val _maskAppliedEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val maskAppliedEvent = _maskAppliedEvent
 
     fun toggleGrid() {
         _isGridEnabled.value = !(_isGridEnabled.value ?: false)
@@ -2321,40 +2328,57 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun applyMaskToSelected(maskedBitmap: Bitmap) {
+        // Encoding bitmapToBase64 is expensive — run on Default, update LiveData on Main.
         val currentList = canvasElements.value ?: return
         val selected = currentList.firstOrNull {
-            it.isSelected && (it.type == ElementType.IMAGE || it.type == ElementType.STICKER || it.type == ElementType.SHAPE || it.type == ElementType.BACKGROUND)
+            it.isSelected && (it.type == ElementType.IMAGE || it.type == ElementType.STICKER
+                    || it.type == ElementType.SHAPE || it.type == ElementType.BACKGROUND)
         } ?: return
 
         val context = selected.context ?: return
 
-        val oldCopy = selected.copy(
-            context = null, bitmap = null
-        )
+        viewModelScope.launch {
+            // --- background thread: encode (can take 1-3s on large bitmaps) ---
+            val newBitmapData = withContext(Dispatchers.Default) {
+                ImageProcessor.bitmapToBase64(maskedBitmap)
+            }
 
-        val newBitmapData = ImageProcessor.bitmapToBase64(maskedBitmap)
+            // --- main thread: commit to LiveData atomically ---
+            val oldCopy = selected.copy(context = null, bitmap = null)
 
-        val newElement = selected.copy(
-            context = context, bitmap = maskedBitmap, bitmapData = newBitmapData
-        ).apply {
-            updatePaintProperties()
-        }
+            val newElement = selected.copy(
+                context = context,
+                bitmap = maskedBitmap,
+                bitmapData = newBitmapData
+            ).apply { updatePaintProperties() }
 
-        _canvasActions.push(
-            CanvasAction.UpdateElement(
-                elementId = selected.id,
-                newElement = newElement.copy(context = null, bitmap = null),
-                oldElement = oldCopy
+            _canvasActions.push(
+                CanvasAction.UpdateElement(
+                    elementId = selected.id,
+                    newElement = newElement.copy(context = null, bitmap = null),
+                    oldElement = oldCopy
+                )
             )
-        )
+            _redoStack.clear()
 
-        _redoStack.clear()
+            // Update canvasElements — this triggers canvasManager.syncElements in EditorFragment.
+            _canvasElements.value = currentList.map {
+                if (it.id == selected.id) newElement else it
+            }
 
-        _canvasElements.value = currentList.map {
-            if (it.id == selected.id) newElement else it
+            // Update selectedElements so the selectedElements observer re-fires with
+            // the updated bitmapData (sameSelectionAs compares bitmapData, not just IDs).
+            _selectedElements.value = _canvasElements.value?.filter { it.isSelected }
+                ?: emptyList()
+
+            notifyUndoRedoChanged()
+
+            // Signal completion — EditorFragment (or BgRemovalFragment) observes this
+            // and calls navigateUp() only AFTER the data is committed to LiveData.
+            // Without this, navigateUp() was called synchronously in onMaskConfirmed
+            // before this coroutine ran, so the fragment was gone before the canvas updated.
+            _maskAppliedEvent.tryEmit(Unit)
         }
-
-        notifyUndoRedoChanged()
     }
 
     private fun getTypefaceForElement(element: CanvasElement, context: Context?): Typeface {

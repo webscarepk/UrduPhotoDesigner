@@ -26,10 +26,27 @@
             android:id="@+id/backgrounds"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:clipToPadding="false"
             tools:itemCount="100"
             tools:listitem="@layout/layout_images_item" />
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <!-- Pagination loading indicator — shown at bottom while next page loads -->
+    <com.airbnb.lottie.LottieAnimationView
+        android:id="@+id/paginationLoader"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:visibility="gone"
+        android:background="@drawable/button_bg_round"
+        android:padding="5dp"
+        app:lottie_rawRes="@raw/loading_gray"
+        app:lottie_autoPlay="true"
+        app:lottie_loop="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="8dp" />
 
     <LinearLayout
         android:id="@+id/noEmojis"

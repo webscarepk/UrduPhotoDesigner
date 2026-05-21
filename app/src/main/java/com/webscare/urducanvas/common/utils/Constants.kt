@@ -5,12 +5,17 @@ import com.webscare.urducanvas.common.canvas.model.ColorItem
 import com.webscare.urducanvas.common.canvas.model.EmojiMeta
 import java.util.Locale
 
+
 object Constants {
 
     const val BASE_URL = "https://dashboard.urdufonts.com/api/"
     const val X_API_KEY = "21|kxJ7qhe4kjxjhfzQs4JWG34Pv8DeuIy0ZACTFe7Y5672dc67"
     const val BASE_URL_GLIDE = "https://dashboard.urdufonts.com/"
     const val BASE_URL_DOWNLOAD = "https://dashboard.urdufonts.com"
+
+    const val PEXELS_BASE_URL = "https://api.pexels.com/"
+    const val PEXELS_API_KEY = "YUm6Jh5M8TEmXCi8UTIIZ0UbrByP5xWj8IFVoqkVy93mpihh4fQOYJxg"
+    const val PEXELS_ID_OFFSET = 10_000_000
     private val EMOTICONS = 0x1F600..0x1F64F
     private val SUPP_EMOTICONS = 0x1F910..0x1F91F
     private val ANIMAL_FACES = 0x1F400..0x1F43F

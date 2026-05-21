@@ -9,23 +9,26 @@ import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class ImagesRepoImpl @Inject constructor(
-    private val appDatabase: com.webscare.urducanvas.data.local.AppDatabase
-) : com.webscare.urducanvas.domain.repo.ImagesRepo {
+    private val appDatabase: AppDatabase
+) : ImagesRepo {
 
-    override fun fetchImages(): Flow<List<com.webscare.urducanvas.data.model.ImageEntity>> {
+    override fun fetchImages(): Flow<List<ImageEntity>> {
         return appDatabase.imagesDao().getAllImages()
     }
 
-    override suspend fun insertImages(imageEntity: com.webscare.urducanvas.data.model.ImageEntity) {
+    override suspend fun insertImages(imageEntity: ImageEntity) {
         appDatabase.imagesDao().insertImage(imageEntity)
     }
 
-    override suspend fun updateImage(imageEntity: com.webscare.urducanvas.data.model.ImageEntity) {
+    override suspend fun updateImage(imageEntity: ImageEntity) {
         appDatabase.imagesDao().update(imageEntity)
     }
 
-    override suspend fun deleteImages(imageEntity: com.webscare.urducanvas.data.model.ImageEntity) {
+    override suspend fun deleteImages(imageEntity: ImageEntity) {
         appDatabase.imagesDao().delete(imageEntity)
     }
-}
 
+    override suspend fun markAsRecent(id: Int) {
+        appDatabase.imagesDao().markAsRecent(id)
+    }
+}

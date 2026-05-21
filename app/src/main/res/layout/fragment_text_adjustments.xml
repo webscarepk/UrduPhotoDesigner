@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@drawable/panel_bg"
+    tools:context=".ui.editor.panels.text.TextAdjustmentsFragment">
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/topGuide"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.01"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/startGuide"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.02"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/endGuide"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.98"/>
+
+    <!-- ── Row 1: back + title ── -->
+    <ImageView
+        android:id="@+id/back"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:background="@drawable/button_bg_round"
+        android:backgroundTint="@color/white"
+        android:padding="7dp"
+        android:layout_marginTop="10dp"
+        android:src="@drawable/ic_back"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintTop_toBottomOf="@id/topGuide"/>
+
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/bold"
+        android:layout_marginStart="10dp"
+        android:text="@string/layer_properties"
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="@id/back"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
+        app:layout_constraintStart_toEndOf="@id/back"
+        app:layout_constraintTop_toTopOf="@id/back"/>
+
+    <!-- ── Row 2: [TabLayout scrollable →→→] [searchIcon | searchBar] ── -->
+    <!-- Single LinearLayout row — TabLayout fills available space,
+         searchIcon sits at end, searchBar replaces it when tapped    -->
+    <LinearLayout
+        android:id="@+id/toolbarRow"
+        android:layout_width="0dp"
+        android:layout_height="38dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:layout_marginTop="4dp"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintTop_toBottomOf="@id/back">
+
+        <!-- Search icon — visible by default at end of row -->
+        <ImageView
+            android:id="@+id/searchIcon"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="center_vertical"
+            android:background="@drawable/button_bg_small"
+            android:backgroundTint="@color/contrast"
+            android:padding="8dp"
+            android:src="@drawable/ic_search"
+            app:tint="@color/gray"/>
+
+        <!-- Search bar — gone by default, ~100dp wide, shown on searchIcon tap.
+             No weight — fixed width so TabLayout keeps most of the space.     -->
+        <EditText
+            android:id="@+id/searchBar"
+            android:layout_width="100dp"
+            android:layout_height="30dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/button_bg_small"
+            android:backgroundTint="@color/contrast"
+            android:drawablePadding="4dp"
+            android:fontFamily="@font/regular"
+            android:hint="@string/search_here"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:maxLines="1"
+            android:paddingHorizontal="8dp"
+            android:singleLine="true"
+            android:textColor="@color/black"
+            android:textColorHint="@android:color/darker_gray"
+            android:textSize="11sp"
+            android:visibility="gone"/>
+
+        <!-- Scrollable TabLayout — takes all space except the search widget -->
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabLayout"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            app:tabGravity="start"
+            app:tabIndicatorAnimationMode="elastic"
+            app:tabIndicatorColor="@color/appColor"
+            app:tabIndicatorFullWidth="false"
+            app:tabIndicatorHeight="1dp"
+            app:tabMode="scrollable"
+            app:tabPadding="0dp"
+            app:tabRippleColor="@color/contrast"
+            app:tabSelectedTextColor="@color/appColor"
+            app:tabTextColor="@color/black"/>
+
+    </LinearLayout>
+
+    <!-- ViewPager2 — fills remaining space below the toolbar row -->
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/viewPager"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="4dp"
+        android:saveEnabled="false"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
+        app:layout_constraintTop_toBottomOf="@id/toolbarRow"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

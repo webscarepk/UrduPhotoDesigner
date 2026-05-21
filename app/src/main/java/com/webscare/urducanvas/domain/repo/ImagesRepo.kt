@@ -8,4 +8,5 @@ interface ImagesRepo {
     suspend fun insertImages(imageEntity: ImageEntity)
     suspend fun updateImage(imageEntity: ImageEntity)
     suspend fun deleteImages(imageEntity: ImageEntity)
+    suspend fun markAsRecent(id: Int)
 }

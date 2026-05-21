@@ -477,7 +477,7 @@ class FilesListFragment : Fragment() {
                     lifecycleScope.launch {
                         val bitmap = BitmapFactory.decodeFile(item.font_image)
                         if (bitmap != null) {
-                            exportToGallery(bitmap, item.font_name, Bitmap.CompressFormat.PNG)
+                            exportToGallery(bitmap, item.font_name!!, Bitmap.CompressFormat.PNG)
                         } else {
                             Snackbar.make(
                                 requireView(), "Could not load image", Snackbar.LENGTH_SHORT
@@ -683,7 +683,7 @@ class FilesListFragment : Fragment() {
                         val q = query.trim().lowercase()
 
                         val filteredFonts = fonts.filter {
-                            it.font_category == "Imported" && (q.isEmpty() || it.font_name.lowercase()
+                            it.font_category == "Imported" && (q.isEmpty() || it.font_name!!.lowercase()
                                 .contains(q))
                         }
 
@@ -731,7 +731,7 @@ class FilesListFragment : Fragment() {
                     ) { fonts, query ->
                         val q = query.trim().lowercase()
                         fonts.filter {
-                            it.font_category == "Imported" && (q.isEmpty() || it.font_name.lowercase()
+                            it.font_category == "Imported" && (q.isEmpty() || it.font_name!!.lowercase()
                                 .contains(q))
                         }
                     }.collect { list ->

@@ -8,6 +8,7 @@ data class FontLanguages(
 )
 
 data class FontCategory(
+    val id: Int,
     val name: String,
     val isSelected: Boolean = false
 )

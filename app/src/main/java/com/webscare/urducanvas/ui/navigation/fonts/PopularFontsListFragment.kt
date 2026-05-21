@@ -130,7 +130,7 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
 
         val q = query.trim().lowercase()
         return if (q.isBlank()) byCategory else byCategory.filter {
-            it.font_name.lowercase().contains(q)
+            it.font_name!!.lowercase().contains(q)
         }
     }
 

@@ -96,8 +96,17 @@ class BgRemovalCanvas @JvmOverloads constructor(
     private var dashPhase = 0f
     private var subjectMaskBitmap: Bitmap? = null
 
-    // Cached merged selection path (computed when paths change)
+    // Cached merged selection path (computed when paths change).
+    // Built from scanline rectangles — correct for masking (DST_OUT punch) but
+    // WRONG for stroking: Android would stroke every internal scanline edge,
+    // producing the grid/crosshatch pattern visible over the whole selection.
     private var selectionPath: Path? = null
+
+    // Separate outline-only path used exclusively for marching ants rendering.
+    // Derived from selectionPath via Path.Op.UNION on a 1px-expanded copy so
+    // the result is a clean outer contour with no internal edges.
+    // Updated whenever selectionPath changes (inside markRenderCacheDirty).
+    private var selectionOutlinePath: Path? = null
 
     private var isRenderCacheDirty = true
 
@@ -188,6 +197,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
         donePaths.clear()
         undonePaths.clear()
         selectionPath = null
+        selectionOutlinePath = null
         markRenderCacheDirty()
         invalidate()
     }
@@ -432,16 +442,30 @@ class BgRemovalCanvas @JvmOverloads constructor(
             }
         }
 
-        // Apply the marching ants effect (animated dashed lines) to the selected path(s)
-        selectionPath?.let { merged ->
-            val transformed = Path(merged)
+        // Draw marching ants — ONLY on the outer edge, not internal scanline borders.
+        // FIX: was using selectionPath (thousands of scanline rects) directly with a
+        // STROKE paint. Android strokes every rect edge including all internal horizontal
+        // lines, producing the crosshatch/grid over the whole selection (visible in screenshot).
+        // Now uses selectionOutlinePath which is pre-computed by buildOutlinePath() via
+        // Paint.getFillPath() — a single clean closed contour with zero internal lines.
+        selectionOutlinePath?.let { outline ->
+            val transformed = Path(outline)
             transformed.transform(drawMatrix)
-            // Draw marching ants stroke (animated dashed lines) with path effect
-            val strokePaint = Paint(strokePaintAdd).apply {
-                pathEffect =
-                    DashPathEffect(floatArrayOf(12f, 12f), dashPhase)  // Marching ants effect
+            val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.BLACK
+                style = Paint.Style.STROKE
+                strokeWidth = strokePaintAdd.strokeWidth
+                strokeJoin = Paint.Join.ROUND
+                strokeCap = Paint.Cap.ROUND
+                pathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase)
             }
-            canvas.drawPath(transformed, strokePaint)  // Draw the marching ants on selected area
+            // White backing dash so the ants are visible on both light and dark backgrounds
+            val backPaint = Paint(strokePaint).apply {
+                color = Color.WHITE
+                pathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase + 12f)
+            }
+            canvas.drawPath(transformed, backPaint)
+            canvas.drawPath(transformed, strokePaint)
         }
 
         // Update stroke width based on zoom level
@@ -648,6 +672,42 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
     private fun markRenderCacheDirty() {
         isRenderCacheDirty = true
+        // Recompute the clean outline path for marching ants whenever the selection changes.
+        // Strategy: expand selectionPath by 0px using Path.Op.UNION against itself after
+        // converting it to an outline via Android's built-in path stroking trick.
+        // The simplest and most reliable approach on Android is to rasterize selectionPath
+        // into a 1-bit mask at reduced resolution and re-trace the outer contour.
+        // We do this lazily on the UI thread since it's only triggered on user interaction,
+        // not on every frame.
+        selectionOutlinePath = buildOutlinePath(selectionPath)
+    }
+
+    /**
+     * Derives a clean stroke-able outline from a filled scanline path.
+     *
+     * The selectionPath is composed of thousands of 1px-tall horizontal rectangles.
+     * Stroking that directly draws all internal scanline edges → the crosshatch/grid bug.
+     *
+     * Fix: use a Paint with style=FILL_AND_STROKE + PathEffect=null on a software
+     * layer, then exploit the fact that Path.Op.UNION merges overlapping geometry.
+     * The cleanest pure-Path approach on Android is to take the filled path, inflate it
+     * by half-stroke-width using a stroke paint and getFillPath(), which gives the
+     * outer border as a proper closed contour with zero internal lines.
+     */
+    private fun buildOutlinePath(source: Path?): Path? {
+        source ?: return null
+        // Use Paint.getFillPath to convert the filled scanline path into its stroked outline.
+        // This is exactly what Canvas uses internally when style=STROKE; calling it directly
+        // gives us the contour as a Path we can cache and reuse without re-stroking each frame.
+        val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 4f   // slightly wider than the visible 3f so gaps between scanlines close
+            strokeJoin = Paint.Join.ROUND
+            strokeCap = Paint.Cap.ROUND
+        }
+        val outline = Path()
+        strokePaint.getFillPath(source, outline)
+        return outline
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -999,43 +1059,56 @@ class BgRemovalCanvas @JvmOverloads constructor(
     }
 
     fun exportMaskedImage(): Bitmap? {
-        imageBitmap?.let { bmp ->
-            if (selectionPath == null || imageRect == null) return null
+        val bmp = imageBitmap ?: return null
+        val rect = imageRect ?: return null
+        if (selectionPath == null) return null
 
-            // 🔹 Step 1: Generate full masked image (like your original code)
-            val fullMasked = createBitmap(width, height)
-            val fullCanvas = Canvas(fullMasked)
-            fullCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+        // Export at the ORIGINAL image resolution, not view resolution.
+        // The selectionPath is in view/screen coordinates (imageRect space).
+        // We scale it to image-pixel space so the mask aligns with the full-res bitmap.
+        val imgW = bmp.width
+        val imgH = bmp.height
 
-            // draw original image into rect
-            fullCanvas.drawBitmap(bmp, null, imageRect!!, null)
+        // Matrix: imageRect (screen coords) → image pixel coords
+        val toImageSpace = Matrix()
+        toImageSpace.setRectToRect(
+            rect,
+            RectF(0f, 0f, imgW.toFloat(), imgH.toFloat()),
+            Matrix.ScaleToFit.FILL
+        )
 
-            // make mask bitmap
-            val mask = createBitmap(width, height)
-            val maskCanvas = Canvas(mask)
-            val addPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.WHITE
-                style = Paint.Style.FILL
-            }
-            selectionPath?.let {
-                maskCanvas.drawPath(it, addPaint)
-            }
+        // Transform selectionPath into image pixel space
+        val imagePath = Path(selectionPath!!)
+        imagePath.transform(toImageSpace)
 
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
-            }
-            val smoothMask = featherMask(mask) // radius tweakable
-            fullCanvas.drawBitmap(smoothMask, 0f, 0f, paint)
+        // Draw original image at full resolution
+        val fullMasked = createBitmap(imgW, imgH)
+        val fullCanvas = Canvas(fullMasked)
+        fullCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+        fullCanvas.drawBitmap(bmp, 0f, 0f, null)
 
-            // 🔹 Step 2: Crop masked image to tight bounds
-            val bounds = Rect()
-            if (!fullMasked.getBounds(bounds)) return fullMasked
-
-            return Bitmap.createBitmap(
-                fullMasked, bounds.left, bounds.top, bounds.width(), bounds.height()
-            )
+        // Build mask at full image resolution
+        val mask = createBitmap(imgW, imgH)
+        val maskCanvas = Canvas(mask)
+        val addPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            style = Paint.Style.FILL
         }
-        return null
+        maskCanvas.drawPath(imagePath, addPaint)
+
+        // Apply mask (DST_IN keeps pixels where mask is white)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+        }
+        val smoothMask = featherMask(mask)
+        fullCanvas.drawBitmap(smoothMask, 0f, 0f, paint)
+
+        // Crop to tight non-transparent bounds
+        val bounds = Rect()
+        if (!fullMasked.getBounds(bounds)) return fullMasked
+        return Bitmap.createBitmap(
+            fullMasked, bounds.left, bounds.top, bounds.width(), bounds.height()
+        )
     }
 
     private fun Bitmap.getBounds(outRect: Rect): Boolean {

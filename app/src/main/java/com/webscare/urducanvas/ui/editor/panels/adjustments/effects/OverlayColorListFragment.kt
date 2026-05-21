@@ -92,7 +92,7 @@ class OverlayColorListFragment : Fragment() {
                     viewModel.startPicking(PickerTarget.EYE_DROPPER_OVERLAY)
                 })
         binding.colors.apply {
-            layoutManager = GridLayoutManager(requireContext(), 3, GridLayoutManager.HORIZONTAL, false)
+            layoutManager = GridLayoutManager(requireContext(), 4, GridLayoutManager.HORIZONTAL, false)
             adapter = colorsAdapter
         }
 
@@ -142,7 +142,7 @@ class OverlayColorListFragment : Fragment() {
                 }
             )
         binding.gradients.apply {
-            layoutManager = GridLayoutManager(requireContext(), 3, GridLayoutManager.HORIZONTAL, false)
+            layoutManager = GridLayoutManager(requireContext(), 4, GridLayoutManager.HORIZONTAL, false)
             adapter = gradientsAdapter
         }
 

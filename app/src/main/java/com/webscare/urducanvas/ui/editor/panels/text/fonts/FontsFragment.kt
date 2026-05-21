@@ -4,13 +4,16 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.viewpager2.widget.ViewPager2
-import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.PanelType
+import com.webscare.urducanvas.data.model.FontCategory
+import com.webscare.urducanvas.data.model.FontLanguages
 import com.webscare.urducanvas.databinding.FragmentFontsBinding
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -18,29 +21,27 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class FontsFragment : androidx.fragment.app.Fragment() {
+class FontsFragment : Fragment() {
 
     private var _binding: FragmentFontsBinding? = null
     private val binding get() = _binding!!
 
     private val mainViewModel: MainViewModel by activityViewModels()
-    private val canvasViewModel: CanvasViewModel by activityViewModels()
 
-    private lateinit var adapter: FontLanguagesAdapter
-    private lateinit var languages: ArrayList<com.webscare.urducanvas.data.model.FontLanguages>
+    private lateinit var languagesAdapter: FontLanguagesAdapter
     private lateinit var pagerAdapter: FontsPagerAdapter
 
-    private val chosenCategoryByLang = mutableMapOf<String, String?>()
-    private var isRebuilding = false
+    private var standaloneMode: Boolean = false
+    private var selectedLanguage: String = "All"
 
-    // ── The language that is "active" in the left panel ──────────────────────
-    private var activeLangInExpanded: String = "Urdu"
+    // Pending category to apply once the pager settles on the correct page
+    private var pendingCategory: String? = null
+    private var pendingLanguage: String? = null
 
-    // ── Convenience: is the fonts panel currently expanded? ──────────────────
-    // Single source of truth is mainViewModel.expandedPanel; this is just a
-    // cached read so we don't call the StateFlow in synchronous helpers.
-    private val isPanelExpanded: Boolean
-        get() = mainViewModel.isPanelExpanded(PanelType.FONTS)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        standaloneMode = arguments?.getBoolean(ARG_STANDALONE_MODE, false) ?: false
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -51,335 +52,220 @@ class FontsFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        // Restore persisted language/category from ViewModel (survives rotation)
-        val savedLang = mainViewModel.lastFontsLanguage
-        val savedCat  = mainViewModel.lastFontsCategory
-        if (savedCat != null) chosenCategoryByLang[savedLang] = savedCat
-
-        setupRecyclerViews()
-        observePanelExpanded()
-        initObservers()
+        setupLanguagesRecyclerView()
+        setupViewPager()
+        observeExpansion()
+        observeLocalFontsForLanguages()
     }
 
-    override fun onDestroyView() {
-        persistCurrentState()
-        super.onDestroyView()
-        _binding = null
-    }
+    // ── Language side list ────────────────────────────────────────────────────
 
-    // ── Panel expansion — SINGLE source of truth: mainViewModel ──────────────
-
-    private fun observePanelExpanded() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                mainViewModel.expandedPanel
-                    .map { it == PanelType.FONTS }
-                    .collect { expanded -> applyExpansion(expanded) }
-            }
-        }
-    }
-
-    /**
-     * Called whenever expandedPanel changes.  FontsListFragment instances now
-     * observe the same flow themselves, so we only need to handle the
-     * left-panel (FontLanguagesAdapter) and ViewPager orientation here.
-     */
-    private fun applyExpansion(expanded: Boolean) {
-        if (_binding == null || languages.isEmpty()) return
-
-        adapter.isExpandedMode = expanded
-
-        if (expanded) {
-            binding.viewPager.orientation = ViewPager2.ORIENTATION_HORIZONTAL
-            expandWithRadioDefault()
-        } else {
-            binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
-            collapseToSingleLanguage()
-        }
-        // FontsListFragment instances observe mainViewModel.expandedPanel
-        // themselves — no need to call onPanelExpanded() manually here.
-    }
-
-    // ── Expanded: single-select, default = Urdu ───────────────────────────────
-
-    private fun expandWithRadioDefault() {
-        val preferred = languages.firstOrNull {
-            it.name.equals("Urdu", ignoreCase = true)
-        }?.name
-            ?: languages.firstOrNull { it.name != "All" && it.name != "Imported" }?.name
-            ?: "All"
-
-        activeLangInExpanded = preferred
-
-        val updated = languages.map { it.copy(is_selected = it.name == preferred) }
-        languages.clear()
-        languages.addAll(updated)
-        adapter.submitList(ArrayList(languages))
-
-        val targetIdx = languages.indexOfFirst { it.is_selected }.coerceAtLeast(0)
-        if (binding.viewPager.currentItem != targetIdx) {
-            binding.viewPager.setCurrentItem(targetIdx, false)
-        }
-        deliverFilterSafe(preferred, chosenCategoryByLang[preferred])
-    }
-
-    private fun collapseToSingleLanguage() {
-        val activeLang = mainViewModel.lastFontsLanguage.ifBlank { "All" }
-        val updated = languages.map { it.copy(is_selected = it.name == activeLang) }
-        languages.clear()
-        languages.addAll(updated)
-        adapter.submitList(ArrayList(languages))
-
-        val targetIdx = languages.indexOfFirst { it.is_selected }.coerceAtLeast(0)
-        if (binding.viewPager.currentItem != targetIdx) {
-            binding.viewPager.setCurrentItem(targetIdx, false)
-        }
-        deliverFilterSafe(activeLang, chosenCategoryByLang[activeLang])
-    }
-
-    // ── Setup ─────────────────────────────────────────────────────────────────
-
-    private fun setupRecyclerViews() {
-        languages = ArrayList()
-
-        adapter = FontLanguagesAdapter(
-            onLanguageExpanded = { lang, collapse ->
-                if (isRebuilding) return@FontLanguagesAdapter
-                if (isPanelExpanded) {
-                    activeLangInExpanded = lang
-                    val targetIdx = languages.indexOfFirst { it.name == lang }
-                    if (targetIdx >= 0 && binding.viewPager.currentItem != targetIdx) {
-                        binding.viewPager.setCurrentItem(targetIdx, false)
-                    }
-                    persistCurrentState()
-                    deliverFilter(lang, chosenCategoryByLang[lang])
-                } else {
-                    if (collapse) {
-                        collapseLanguage()
-                        deliverFilter(lang, chosenCategoryByLang[lang])
-                    } else {
-                        expandOnly(lang)
-                        persistCurrentState()
-                        deliverFilter(lang, chosenCategoryByLang[lang])
-                    }
+    private fun setupLanguagesRecyclerView() {
+        languagesAdapter = FontLanguagesAdapter(
+            onLanguageExpanded = { language, collapse ->
+                val position = pagerAdapter.categories.indexOfFirst { it.name == language }
+                if (position >= 0) {
+                    selectedLanguage = language
+                    // No animation — instant so currentItem is immediately correct
+                    binding.viewPager.setCurrentItem(position, false)
                 }
             },
-            onCategorySelected = { lang, category ->
-                if (isRebuilding) return@FontLanguagesAdapter
-                chosenCategoryByLang[lang] = category
-                markCategoryUi(lang, category)
-                persistCurrentState()
-                deliverFilter(lang, category)
+            onCategorySelected = { language, category ->
+                val position = pagerAdapter.categories.indexOfFirst { it.name == language }
+                if (position >= 0) {
+                    selectedLanguage = language
+
+                    if (binding.viewPager.currentItem == position) {
+                        // Already on the right page — apply filter directly, no pager move needed
+                        applyFilterToPage(position, language, category)
+                    } else {
+                        // Store as pending — will be applied in onPageSelected once pager settles
+                        pendingLanguage  = language
+                        pendingCategory  = category
+                        // No animation — instant so onPageSelected fires synchronously
+                        binding.viewPager.setCurrentItem(position, false)
+                    }
+                }
             }
         )
-        adapter.isExpandedMode = isPanelExpanded
-        binding.languages.adapter = adapter
 
-        binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
-        pagerAdapter = FontsPagerAdapter(this@FontsFragment, languages)
+        binding.languages.layoutManager =
+            LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
+        binding.languages.adapter = languagesAdapter
+    }
+
+    // ── ViewPager ─────────────────────────────────────────────────────────────
+
+    private fun setupViewPager() {
+        pagerAdapter = FontsPagerAdapter(this, emptyList(), standaloneMode)
         binding.viewPager.adapter = pagerAdapter
+        binding.viewPager.isUserInputEnabled = false
 
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
-                if (isRebuilding) return
-                languages.getOrNull(position)?.let { row ->
-                    if (isPanelExpanded) {
-                        if (activeLangInExpanded != row.name) {
-                            activeLangInExpanded = row.name
-                            val updated = languages.map { it.copy(is_selected = it.name == row.name) }
-                            languages.clear(); languages.addAll(updated)
-                            adapter.submitList(ArrayList(languages))
-                        }
-                    } else {
-                        expandOnly(row.name)
-                    }
-                    binding.languages.smoothScrollToPosition(position)
-                    persistCurrentState()
-                    deliverFilterSafe(row.name, chosenCategoryByLang[row.name])
+                super.onPageSelected(position)
+
+                // Keep language side-list in sync
+                val currentCategories = pagerAdapter.categories
+                val updated = currentCategories.mapIndexed { i, lang ->
+                    lang.copy(is_selected = i == position)
+                }
+                selectedLanguage = currentCategories.getOrNull(position)?.name ?: "All"
+                languagesAdapter.submitList(updated)
+
+                // Apply any pending category filter now that the page has settled
+                val lang = pendingLanguage
+                val cat  = pendingCategory
+                if (lang != null) {
+                    applyFilterToPage(position, lang, cat)
+                    pendingLanguage = null
+                    pendingCategory = null
                 }
             }
         })
     }
 
-    private fun initObservers() {
+    // ── Apply filter to the FontsListFragment at the given pager position ─────
+
+    private fun applyFilterToPage(position: Int, language: String, category: String?) {
+        // FragmentStateAdapter tags fragments as "f{itemId}" where itemId = getItemId(position)
+        // FontsPagerAdapter.getItemId returns categories[position].id.toLong()
+        val itemId   = pagerAdapter.categories.getOrNull(position)?.id?.toLong() ?: return
+        val tag      = "f$itemId"
+        val fragment = childFragmentManager.findFragmentByTag(tag) as? FontsListFragment
+
+        if (fragment != null) {
+            fragment.applyFilter(language, category)
+        } else {
+            // Fragment not yet created — retry after ViewPager2 inflates it
+            binding.viewPager.post {
+                if (_binding == null) return@post
+                val f = childFragmentManager.findFragmentByTag("f$itemId") as? FontsListFragment
+                f?.applyFilter(language, category)
+            }
+        }
+    }
+
+    // ── Expansion observer ────────────────────────────────────────────────────
+
+    private fun observeExpansion() {
         viewLifecycleOwner.lifecycleScope.launch {
-            mainViewModel.localFonts.collect { fonts ->
-                isRebuilding = true
-
-                val grouped = fonts.groupBy { it.font_language.ifBlank { "Unknown" } }
-
-                val langRows = grouped.entries
-                    .sortedWith(
-                        compareBy<Map.Entry<String, List<com.webscare.urducanvas.data.model.FontEntity>>> { entry ->
-                            when (entry.key.lowercase()) {
-                                "urdu"    -> 0
-                                "english" -> 1
-                                else      -> 2
-                            }
-                        }.thenBy { entry -> entry.key.lowercase() }
-                    )
-                    .mapIndexed { idx, (lang, list) ->
-                        val savedCatForLang = chosenCategoryByLang[lang]
-                        val cats = list
-                            .map { it.font_category.ifBlank { "Uncategorized" } }
-                            .distinct()
-                            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it })
-                            .map { catName ->
-                                com.webscare.urducanvas.data.model.FontCategory(
-                                    name       = catName,
-                                    isSelected = catName.equals(savedCatForLang, true)
-                                )
-                            }
-
-                        val wasSelected = if (isPanelExpanded) {
-                            lang == activeLangInExpanded
-                        } else {
-                            languages.firstOrNull { it.name == lang }?.is_selected ?: false
-                        }
-
-                        com.webscare.urducanvas.data.model.FontLanguages(
-                            id          = idx + 1,
-                            name        = lang,
-                            is_selected = wasSelected,
-                            categories  = cats
-                        )
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.expandedPanel
+                    .map { it == PanelType.FONTS }
+                    .collect { expanded ->
+                        languagesAdapter.isExpandedMode = expanded
+                        languagesAdapter.notifyDataSetChanged()
                     }
+            }
+        }
+    }
 
-                val allSelected = if (isPanelExpanded) {
-                    "All" == activeLangInExpanded
-                } else {
-                    languages.firstOrNull { it.name == "All" }?.is_selected ?: false
-                }
+    // ── Derive FontLanguages from localFonts ──────────────────────────────────
 
-                val allRow = com.webscare.urducanvas.data.model.FontLanguages(
-                    id          = 0,
-                    name        = "All",
-                    is_selected = allSelected,
-                    categories  = emptyList()
+    private fun observeLocalFontsForLanguages() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                kotlinx.coroutines.flow.combine(
+                    mainViewModel.localFonts,
+                    mainViewModel.recentFonts
+                ) { fonts, _ -> fonts }
+                    .collect { fonts ->
+                        val languages = buildFontLanguages(fonts)
+                        languagesAdapter.submitList(languages)
+                        pagerAdapter.updateCategories(languages)
+                    }
+            }
+        }
+    }
+
+    private fun buildFontLanguages(
+        fonts: List<com.webscare.urducanvas.data.model.FontEntity>
+    ): List<FontLanguages> {
+        val byLanguage = fonts
+            .filter { it.font_language.isNotBlank() }
+            .groupBy { it.font_language.trim() }
+
+        val result = mutableListOf<FontLanguages>()
+
+        result.add(
+            FontLanguages(
+                id         = 0,
+                name       = "All",
+                categories = emptyList(),
+                is_selected = selectedLanguage == "All"
+            )
+        )
+
+        // "Recents" tab — only shown when there are recently used fonts
+        val recentFonts = mainViewModel.recentFonts.value
+        if (recentFonts.isNotEmpty()) {
+            result.add(
+                FontLanguages(
+                    id          = -1,
+                    name        = "Recents",
+                    categories  = emptyList(),
+                    is_selected = selectedLanguage == "Recents"
                 )
+            )
+        }
 
-                val incoming = arrayListOf(allRow).apply { addAll(langRows) }
+        // Preferred order: Urdu first, then English, then rest alphabetically
+        val preferredOrder  = listOf("Urdu", "English")
+        val allLangs        = byLanguage.keys.filter { !it.equals("Imported", ignoreCase = true) }
+        val preferred       = preferredOrder.filter { p -> allLangs.any { it.equals(p, ignoreCase = true) } }
+        val rest            = allLangs.filter { l -> preferredOrder.none { it.equals(l, ignoreCase = true) } }.sorted()
+        val orderedLanguages = preferred + rest
 
-                val isFirstLoad = languages.isEmpty()
-                languages.clear()
-                languages.addAll(incoming)
-
-                if (isFirstLoad) {
-                    val savedLang = mainViewModel.lastFontsLanguage
-                    val savedCat  = mainViewModel.lastFontsCategory
-
-                    if (savedCat != null) chosenCategoryByLang[savedLang] = savedCat
-
-                    val expandedDefault = if (isPanelExpanded) {
-                        languages.firstOrNull { it.name.equals("Urdu", true) }?.name
-                            ?: languages.firstOrNull { it.name != "All" }?.name
-                            ?: "All"
-                    } else null
-
-                    val restored = languages.map { row ->
-                        val shouldExpand = when {
-                            isPanelExpanded -> row.name == (expandedDefault ?: activeLangInExpanded)
-                            else            -> row.name == savedLang
-                        }
-                        val restoredCats = row.categories.map { cat ->
-                            cat.copy(isSelected = savedCat != null && cat.name.equals(savedCat, true))
-                        }
-                        row.copy(is_selected = shouldExpand, categories = restoredCats)
-                    }
-                    if (expandedDefault != null) activeLangInExpanded = expandedDefault
-                    languages.clear()
-                    languages.addAll(restored)
+        orderedLanguages.forEachIndexed { index, langName ->
+            val fontsForLang = byLanguage[langName] ?: return@forEachIndexed
+            val categories = fontsForLang
+                .map { it.font_category.trim() }
+                .filter { it.isNotBlank() }
+                .distinct()
+                .sorted()
+                .mapIndexed { catIndex, catName ->
+                    FontCategory(id = catIndex, name = catName, isSelected = false)
                 }
 
-                adapter.submitList(ArrayList(languages))
-                pagerAdapter.updateCategories(languages)
-
-                val targetIdx = languages.indexOfFirst { it.is_selected }.coerceAtLeast(0)
-                if (binding.viewPager.currentItem != targetIdx) {
-                    binding.viewPager.setCurrentItem(targetIdx, false)
-                } else {
-                    val langName = languages.getOrNull(targetIdx)?.name ?: "All"
-                    deliverFilterSafe(langName, chosenCategoryByLang[langName])
-                }
-
-                isRebuilding = false
-
-                if (isPanelExpanded) {
-                    expandWithRadioDefault()
-                    // FontsListFragment instances observe the flow themselves;
-                    // no manual onPanelExpanded() loop needed here.
-                }
-            }
+            result.add(
+                FontLanguages(
+                    id          = index + 1,
+                    name        = langName,
+                    categories  = categories,
+                    is_selected = selectedLanguage == langName
+                )
+            )
         }
-    }
 
-    // ── Filter delivery ───────────────────────────────────────────────────────
-
-    private fun deliverFilterSafe(lang: String, category: String?) {
-        binding.viewPager.post {
-            if (!tryDeliverFilter(lang, category)) {
-                binding.viewPager.post { tryDeliverFilter(lang, category) }
-            }
+        if (byLanguage.keys.any { it.equals("Imported", ignoreCase = true) }) {
+            result.add(
+                FontLanguages(
+                    id          = result.size,
+                    name        = "Imported",
+                    categories  = emptyList(),
+                    is_selected = selectedLanguage == "Imported"
+                )
+            )
         }
+
+        return result
     }
 
-    private fun tryDeliverFilter(lang: String, category: String?): Boolean {
-        val current  = binding.viewPager.currentItem
-        val fragment = childFragmentManager.findFragmentByTag("f${pagerAdapter.getItemId(current)}") as? FontsListFragment
-        fragment?.applyFilter(language = lang, category = category)
-        return fragment != null
-    }
-
-    private fun deliverFilter(lang: String, category: String?) {
-        val current = binding.viewPager.currentItem
-        (childFragmentManager.findFragmentByTag("f${pagerAdapter.getItemId(current)}") as? FontsListFragment)
-            ?.applyFilter(language = lang, category = category)
-    }
-
-    // ── State persistence to ViewModel (survives rotation / re-creation) ──────
-
-    private fun persistCurrentState() {
-        val activeLang = if (isPanelExpanded) activeLangInExpanded
-        else languages.firstOrNull { it.is_selected }?.name ?: "All"
-        val activeCat  = chosenCategoryByLang[activeLang]
-
-        mainViewModel.lastFontsLanguage = activeLang
-        mainViewModel.lastFontsCategory = activeCat
-
-        // Also keep CanvasViewModel in sync for font-apply logic
-        canvasViewModel.saveFontPanelState(language = activeLang, category = activeCat)
-    }
-
-    // ── Left-panel UI helpers ─────────────────────────────────────────────────
-
-    private fun collapseLanguage() {
-        val updated = languages.map { it.copy(is_selected = false) }
-        languages.clear(); languages.addAll(updated)
-        adapter.submitList(ArrayList(languages))
-    }
-
-    private fun expandOnly(lang: String) {
-        val updated = languages.map {
-            if (it.name == lang) it.copy(is_selected = true)
-            else it.copy(is_selected = false)
-        }
-        languages.clear(); languages.addAll(updated)
-        adapter.submitList(ArrayList(languages))
-    }
-
-    private fun markCategoryUi(lang: String, categoryOrNull: String?) {
-        val pos = languages.indexOfFirst { it.name == lang }
-        if (pos == -1) return
-        val row     = languages[pos]
-        val newCats = row.categories.map {
-            it.copy(isSelected = it.name.equals(categoryOrNull, true))
-        }
-        languages[pos] = row.copy(categories = newCats)
-        adapter.submitList(ArrayList(languages))
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
     companion object {
-        fun newInstance(): FontsFragment = FontsFragment()
+        private const val ARG_STANDALONE_MODE = "standalone_mode"
+
+        fun newInstance(standaloneMode: Boolean = false): FontsFragment {
+            return FontsFragment().also {
+                it.arguments = Bundle().apply {
+                    putBoolean(ARG_STANDALONE_MODE, standaloneMode)
+                }
+            }
+        }
     }
 }

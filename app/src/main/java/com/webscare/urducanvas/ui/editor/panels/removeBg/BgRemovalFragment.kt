@@ -5,6 +5,7 @@ import android.animation.ValueAnimator
 import android.app.Dialog
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -14,9 +15,10 @@ import android.widget.ImageView
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
 import androidx.core.view.isVisible
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
@@ -28,13 +30,15 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.segmentation.subject.SubjectSegmentation
 import com.google.mlkit.vision.segmentation.subject.SubjectSegmenter
 import com.google.mlkit.vision.segmentation.subject.SubjectSegmenterOptions
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.getValue
 
 class BgRemovalFragment : androidx.fragment.app.Fragment() {
+
+    companion object {
+        private const val TAG = "BgRemovalFragment"
+    }
 
     private var _binding: FragmentBgRemovalBinding? = null
     private val binding get() = _binding!!
@@ -55,7 +59,7 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
         "Almost ready, preparing final result…"
     )
     private var messageIndex = 0
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    private val viewModel: CanvasViewModel by activityViewModels()
     private var preview = true
 
     private var originalBitmap: Bitmap? = null
@@ -73,18 +77,27 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentBgRemovalBinding.inflate(inflater, container, false)
-
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         setupImage()
         imageCallbacks()
         setEvents()
+        binding.imageCanvas.setActionMode(BgRemovalCanvas.ActionMode.ADD)
 
-        binding.imageCanvas.setActionMode(_root_ide_package_.com.webscare.urducanvas.common.views.BgRemovalCanvas.ActionMode.ADD)
+        // Observe maskAppliedEvent HERE (not in EditorFragment) so we control
+        // dialog dismiss + navigation in one place, in the right order.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.maskAppliedEvent.collect {
+                    // Data is committed — dismiss dialog then navigate back immediately.
+                    dismissLoadingDialog()
+                    if (isAdded) findNavController().navigateUp()
+                }
+            }
+        }
     }
 
     private fun showLoadingDialog() {
@@ -96,19 +109,15 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
             setCancelable(false)
             window?.setBackgroundDrawableResource(android.R.color.transparent)
             val params = window?.attributes
-            params?.width = (resources.displayMetrics.widthPixels * 0.8).toInt() // 80% width
+            params?.width = (resources.displayMetrics.widthPixels * 0.8).toInt()
             params?.height = ViewGroup.LayoutParams.WRAP_CONTENT
             window?.attributes = params
-
             window?.setGravity(Gravity.CENTER)
             show()
         }
-
-        // start animated progress loop
         startProgressLoop()
         startIconRotation()
 
-        // start rotating messages
         lifecycleScope.launch {
             while (loadingDialog?.isShowing == true) {
                 dialogBinding?.subtitle?.text = loadingMessages[messageIndex]
@@ -117,7 +126,7 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
                 dialogBinding?.cancel?.isVisible = true
                 dialogBinding?.cancel?.addPressEffect { binding.imageCanvas.cancelProcessing() }
                 messageIndex = (messageIndex + 1) % loadingMessages.size
-                kotlinx.coroutines.delay(2000) // change text every 2s
+                kotlinx.coroutines.delay(2000)
             }
         }
     }
@@ -145,15 +154,8 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    private fun stopProgressLoop() {
-        progressAnimator?.cancel()
-        progressAnimator = null
-    }
-
-    private fun stopIconRotation() {
-        rotationAnimator?.cancel()
-        rotationAnimator = null
-    }
+    private fun stopProgressLoop() { progressAnimator?.cancel(); progressAnimator = null }
+    private fun stopIconRotation() { rotationAnimator?.cancel(); rotationAnimator = null }
 
     private fun dismissLoadingDialog() {
         stopProgressLoop()
@@ -165,54 +167,31 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
 
     private fun setEvents() {
         binding.addIcon.addPressEffect {
-            binding.imageCanvas.setActionMode(_root_ide_package_.com.webscare.urducanvas.common.views.BgRemovalCanvas.ActionMode.ADD)
+            binding.imageCanvas.setActionMode(BgRemovalCanvas.ActionMode.ADD)
         }
         binding.removeIcon.addPressEffect {
-            binding.imageCanvas.setActionMode(_root_ide_package_.com.webscare.urducanvas.common.views.BgRemovalCanvas.ActionMode.REMOVE)
+            binding.imageCanvas.setActionMode(BgRemovalCanvas.ActionMode.REMOVE)
         }
 
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             toggleMiniToolbar(true)
-
             when (item.itemId) {
-                R.id.nav_lasso -> {
-                    binding.imageCanvas.setToolMode(_root_ide_package_.com.webscare.urducanvas.common.views.BgRemovalCanvas.ToolMode.BRUSH)
-                    true
-                }
-
-                R.id.nav_rect -> {
-                    binding.imageCanvas.setToolMode(_root_ide_package_.com.webscare.urducanvas.common.views.BgRemovalCanvas.ToolMode.RECTANGLE)
-                    true
-                }
-
-                R.id.nav_circle -> {
-                    binding.imageCanvas.setToolMode(_root_ide_package_.com.webscare.urducanvas.common.views.BgRemovalCanvas.ToolMode.ELLIPSE)
-                    true
-                }
-
-                R.id.nav_magic_wand -> {
-                    binding.imageCanvas.setToolMode(_root_ide_package_.com.webscare.urducanvas.common.views.BgRemovalCanvas.ToolMode.MAGIC_WAND)
-                    true
-                }
-
+                R.id.nav_lasso -> { binding.imageCanvas.setToolMode(BgRemovalCanvas.ToolMode.BRUSH); true }
+                R.id.nav_rect -> { binding.imageCanvas.setToolMode(BgRemovalCanvas.ToolMode.RECTANGLE); true }
+                R.id.nav_circle -> { binding.imageCanvas.setToolMode(BgRemovalCanvas.ToolMode.ELLIPSE); true }
+                R.id.nav_magic_wand -> { binding.imageCanvas.setToolMode(BgRemovalCanvas.ToolMode.MAGIC_WAND); true }
                 R.id.nav_subject -> {
-                    originalBitmap?.let { bmp ->
-                        runSubjectSegmentation(bmp)
-                    }
+                    val bmp = originalBitmap
+                    if (bmp != null) runSubjectSegmentation(bmp)
+                    else Log.e(TAG, "nav_subject: originalBitmap is null")
                     true
                 }
-
                 else -> false
             }
         }
 
-        binding.invertIcon.addPressEffect {
-            binding.imageCanvas.invertSelection()
-        }
-
-        binding.clearIcon.addPressEffect {
-            binding.imageCanvas.clearSelection()
-        }
+        binding.invertIcon.addPressEffect { binding.imageCanvas.invertSelection() }
+        binding.clearIcon.addPressEffect { binding.imageCanvas.clearSelection() }
 
         binding.previewIcon.addPressEffect {
             if (!preview) {
@@ -229,7 +208,7 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
 
         binding.handIcon.addPressEffect {
             if (binding.imageCanvas.getToolMode() == null) {
-                binding.imageCanvas.setToolMode(_root_ide_package_.com.webscare.urducanvas.common.views.BgRemovalCanvas.ToolMode.BRUSH)
+                binding.imageCanvas.setToolMode(BgRemovalCanvas.ToolMode.BRUSH)
                 setIconSelected(binding.handIcon, false)
             } else {
                 binding.imageCanvas.setToolMode(null)
@@ -240,6 +219,10 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
         binding.back.addPressEffect { findNavController().navigateUp() }
 
         binding.done.addPressEffect {
+            // Show a saving indicator while we encode the bitmap off-thread.
+            // Navigation back to EditorFragment happens via EditorFragment observing
+            // viewModel.maskAppliedEvent — AFTER the data is committed to LiveData.
+            // DO NOT call navigateUp() here — that was the race condition bug.
             binding.imageCanvas.confirmMask()
         }
 
@@ -249,37 +232,35 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
 
     private fun imageCallbacks() {
         binding.imageCanvas.onProcessingChanged = { isProcessing ->
-            if (isProcessing) {
-                showLoadingDialog()
-            } else {
-                dismissLoadingDialog()
-            }
+            if (isProcessing) showLoadingDialog() else dismissLoadingDialog()
         }
 
-
         binding.imageCanvas.onToolModeChanged = { mode ->
-            // sync bottom nav / icons
             when (mode) {
-                _root_ide_package_.com.webscare.urducanvas.common.views.BgRemovalCanvas.ToolMode.BRUSH -> setIconSelected(binding.handIcon, false)
+                BgRemovalCanvas.ToolMode.BRUSH -> setIconSelected(binding.handIcon, false)
                 null -> setIconSelected(binding.handIcon, true)
-                else -> { /* other modes */
-                }
+                else -> {}
             }
         }
 
         binding.imageCanvas.onActionModeChanged = { mode ->
-            // update add/remove buttons tint
-            setActionIconSelected(binding.addIcon, mode == _root_ide_package_.com.webscare.urducanvas.common.views.BgRemovalCanvas.ActionMode.ADD)
-            setActionIconSelected(binding.removeIcon, mode == _root_ide_package_.com.webscare.urducanvas.common.views.BgRemovalCanvas.ActionMode.REMOVE)
+            setActionIconSelected(binding.addIcon, mode == BgRemovalCanvas.ActionMode.ADD)
+            setActionIconSelected(binding.removeIcon, mode == BgRemovalCanvas.ActionMode.REMOVE)
         }
 
         binding.imageCanvas.onPreviewChanged = { enabled ->
             setIconSelected(binding.previewIcon, enabled)
         }
 
+        // onMaskConfirmed: hand bitmap to ViewModel, show a brief loading state.
+        // Navigation happens in the maskAppliedEvent collector above (in onViewCreated),
+        // which fires AFTER the encode coroutine commits data — dismiss dialog → navigateUp().
         binding.imageCanvas.onMaskConfirmed = { maskedBitmap ->
+            Log.d(TAG, "onMaskConfirmed: ${maskedBitmap.width}x${maskedBitmap.height}")
+            showLoadingDialog()           // brief spinner while encoding on background thread
             viewModel.applyMaskToSelected(maskedBitmap)
-            findNavController().navigateUp()
+            // navigateUp() is NOT called here — the maskAppliedEvent collector handles it
+            // AFTER the data is committed, so EditorFragment always sees the new bitmap.
         }
     }
 
@@ -288,10 +269,7 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
             binding.miniToolbar.apply {
                 visibility = View.VISIBLE
                 translationY = height.toFloat()
-                animate()
-                    .translationY(0f)
-                    .setDuration(250)
-                    .start()
+                animate().translationY(0f).setDuration(250).start()
             }
         } else if (!show && binding.miniToolbar.isVisible) {
             binding.miniToolbar.animate()
@@ -303,70 +281,61 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun setupImage() {
-
         binding.bottomNavigation.selectedItemId = R.id.nav_lasso
 
         val selected = viewModel.selectedElements.value?.firstOrNull()
         val bitmap = selected?.bitmap
-        originalBitmap = bitmap?.copy(Bitmap.Config.ARGB_8888, true)
-        brushMaskBitmap = bitmap?.let { createBitmap(it.width, bitmap.height) }
+        if (bitmap == null) {
+            Log.e(TAG, "setupImage: no bitmap available from selected element")
+            return
+        }
+        originalBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+        brushMaskBitmap = createBitmap(bitmap.width, bitmap.height)
         binding.imageCanvas.setImage(originalBitmap!!)
+        Log.d(TAG, "setupImage: loaded ${bitmap.width}x${bitmap.height} bitmap")
     }
 
     private fun setIconSelected(view: ImageView, selected: Boolean) {
         if (selected) {
-            view.backgroundTintList =
-                ContextCompat.getColorStateList(requireContext(), R.color.appColor)
-            view.imageTintList =
-                ContextCompat.getColorStateList(requireContext(), R.color.white)
+            view.backgroundTintList = ContextCompat.getColorStateList(requireContext(), R.color.appColor)
+            view.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.white)
         } else {
-            view.backgroundTintList =
-                ContextCompat.getColorStateList(requireContext(), R.color.contrast)
-            view.imageTintList =
-                ContextCompat.getColorStateList(requireContext(), R.color.black)
+            view.backgroundTintList = ContextCompat.getColorStateList(requireContext(), R.color.contrast)
+            view.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.black)
         }
     }
 
     private fun setActionIconSelected(view: ImageView, selected: Boolean) {
         if (selected) {
-            view.backgroundTintList =
-                ContextCompat.getColorStateList(requireContext(), R.color.appColor)
-            view.imageTintList =
-                ContextCompat.getColorStateList(requireContext(), R.color.appColor)
+            view.backgroundTintList = ContextCompat.getColorStateList(requireContext(), R.color.appColor)
+            view.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.appColor)
         } else {
-            view.backgroundTintList =
-                ContextCompat.getColorStateList(requireContext(), R.color.light_gray)
-            view.imageTintList =
-                ContextCompat.getColorStateList(requireContext(), R.color.light_gray)
+            view.backgroundTintList = ContextCompat.getColorStateList(requireContext(), R.color.light_gray)
+            view.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.light_gray)
         }
     }
 
     private fun runSubjectSegmentation(bitmap: Bitmap) {
+        Log.d(TAG, "runSubjectSegmentation: ${bitmap.width}x${bitmap.height}")
         showLoadingDialog()
-
         val image = InputImage.fromBitmap(bitmap, 0)
-
         subjectSegmenter.process(image)
             .addOnSuccessListener { result ->
                 val maskBuffer = result.foregroundConfidenceMask
                 val maskBitmap = result.foregroundBitmap
-
+                Log.d(TAG, "MLKit success — maskBuffer=${maskBuffer != null} maskBitmap=${maskBitmap?.width}x${maskBitmap?.height}")
                 if (maskBuffer != null) {
-                    lifecycleScope.launch(Dispatchers.Default) {
-                        val width = maskBitmap?.width ?: bitmap.width
-                        val height = maskBitmap?.height ?: bitmap.height
-
-                        withContext(Dispatchers.Main) {
-                            binding.imageCanvas.applyGeneratedMask(maskBuffer, width, height)
-                            showLoadingDialog()
-                        }
-                    }
+                    val width = maskBitmap?.width ?: bitmap.width
+                    val height = maskBitmap?.height ?: bitmap.height
+                    dismissLoadingDialog() // hand off to canvas processing flow
+                    binding.imageCanvas.applyGeneratedMask(maskBuffer, width, height)
                 } else {
+                    Log.w(TAG, "maskBuffer is null — no subject detected")
                     dismissLoadingDialog()
                 }
             }
             .addOnFailureListener { e ->
-                e.printStackTrace()
+                Log.e(TAG, "MLKit failed: ${e.javaClass.simpleName}: ${e.message}", e)
                 dismissLoadingDialog()
             }
     }

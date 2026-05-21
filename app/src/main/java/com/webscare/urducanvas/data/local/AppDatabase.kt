@@ -9,14 +9,15 @@ import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.data.model.GradientEntity
 import com.webscare.urducanvas.data.model.ImageEntity
+import com.webscare.urducanvas.data.model.StockPhotoMeta
 import com.webscare.urducanvas.data.model.TemplateEntity
 import com.webscare.urducanvas.data.model.TrendEntity
 import com.webscare.urducanvas.data.model.TrendTemplateCrossRef
 
 @androidx.room.Database(
     entities = [FontEntity::class, ImageEntity::class, GradientEntity::class, ExportResult::class, TemplateEntity::class, TrendEntity::class,
-        TrendTemplateCrossRef::class, CanvasSizeEntity::class],
-    version = 2
+        TrendTemplateCrossRef::class, CanvasSizeEntity::class, StockPhotoMeta::class],
+    version = 3
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -28,6 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun allTemplatesDao(): AllTemplatesDao
     abstract fun trendDao(): TrendDao
     abstract fun canvasSizeDao(): CanvasSizeDao
+    abstract fun stockPhotoMetaDao(): StockPhotoMetaDao
 
     companion object {
         @Volatile

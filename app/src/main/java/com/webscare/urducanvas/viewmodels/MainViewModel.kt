@@ -30,6 +30,7 @@ import com.webscare.urducanvas.data.model.TemplatesResponse
 import com.webscare.urducanvas.data.model.TrendResponse
 import com.webscare.urducanvas.di.BillingManager
 import com.webscare.urducanvas.domain.repo.DownloadRepo
+import com.webscare.urducanvas.domain.repo.ImagesRepo
 import com.webscare.urducanvas.domain.usecase.DeleteFontsUseCase
 import com.webscare.urducanvas.domain.usecase.DeleteGradientUseCase
 import com.webscare.urducanvas.domain.usecase.DeleteImagesUseCase
@@ -56,6 +57,8 @@ import com.webscare.urducanvas.domain.usecase.UpdateFontsUseCase
 import com.webscare.urducanvas.domain.usecase.UpdateGradientUseCase
 import com.webscare.urducanvas.domain.usecase.UpdateImagesUseCase
 import com.webscare.urducanvas.domain.usecase.UpdateTemplatesUseCase
+import com.webscare.urducanvas.domain.repo.PexelsRepo
+import com.webscare.urducanvas.common.utils.PexelsCategories
 import com.webscare.urducanvas.ui.editor.panels.objects.ObjectsFragment
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -102,6 +105,8 @@ class MainViewModel @Inject constructor(
     private val billingManager: BillingManager,
     private val fetchAPICanvasSizesUseCase: FetchAPICanvasSizesUseCase,
     private val getCanvasSizesUseCase: GetCanvasSizesUseCase,
+    private val pexelsRepo: PexelsRepo,
+    private val imagesRepo: ImagesRepo,
 ) : ViewModel() {
 
     private val _selectedImageIds = MutableStateFlow<Set<Int>>(emptySet())
@@ -115,6 +120,9 @@ class MainViewModel @Inject constructor(
 
     private val _expandedPanel = MutableStateFlow<PanelType?>(null)
     val expandedPanel: StateFlow<PanelType?> = _expandedPanel.asStateFlow()
+
+    private val _panelSlideOffset = MutableStateFlow(0f)
+    val panelSlideOffset: StateFlow<Float> = _panelSlideOffset.asStateFlow()
 
     private val _selectedImagesIds = MutableStateFlow<Set<Int>>(emptySet())
     val selectedImagesIds: StateFlow<Set<Int>> = _selectedImagesIds.asStateFlow()
@@ -223,13 +231,24 @@ class MainViewModel @Inject constructor(
 
     private fun buildImagesData(images: List<ImageEntity>): ImagesData {
         val recents = ArrayList<ImageEntity>()
-        val byCategory = HashMap<String, MutableList<ImageEntity>>()
+        // LinkedHashMap preserves insertion order — images come from Room ORDER BY id DESC
+        // so within each category, newer (paginated) images are at the front consistently.
+        // This prevents DiffUtil from seeing order changes and animating items around.
+        val byCategory = LinkedHashMap<String, MutableList<ImageEntity>>()
 
         for (img in images) {
             val parent = img.parent_category ?: continue
             if (!parent.equals("Images", ignoreCase = true) &&
                 !parent.equals("Backgrounds", ignoreCase = true)
             ) continue
+
+            // Skip Pexels search result images from tab bucketing — they must NOT
+            // appear as tabs. BUT still add them to recents if marked recent.
+            if (img.id >= Constants.PEXELS_ID_OFFSET &&
+                img.category.trim() !in PexelsCategories.ALL_TAB_NAMES) {
+                if (img.is_recent) recents.add(img)   // still shows in Recents tab
+                continue
+            }
 
             val tabName = when {
                 img.category.equals("Images Imported", ignoreCase = true)      -> "My Images"
@@ -242,16 +261,44 @@ class MainViewModel @Inject constructor(
         }
 
         val specialTabs = setOf("My Images", "My Backgrounds")
+        val pexelsTabNames = PexelsCategories.ALL_TAB_NAMES.toHashSet()
 
         val imageTabs = byCategory.keys
-            .filter { it !in specialTabs }
+            .filter { it !in specialTabs && it !in pexelsTabNames }
             .filter { tab -> byCategory[tab]?.any { it.parent_category.equals("Images", ignoreCase = true) } == true }
             .sorted()
 
         val backgroundTabs = byCategory.keys
-            .filter { it !in specialTabs }
+            .filter { it !in specialTabs && it !in pexelsTabNames }
             .filter { tab -> byCategory[tab]?.any { it.parent_category.equals("Backgrounds", ignoreCase = true) } == true }
             .sorted()
+
+        // Pexels category tabs — preserve PexelsCategories definition order (stable, no jumps).
+        // Subcategories with < MIN_IMAGES_FOR_OWN_TAB images are collapsed into "Others".
+        val othersImages = mutableListOf<ImageEntity>()
+        val pexelsTabs = mutableListOf<String>()
+
+        for (tabName in PexelsCategories.ALL_TAB_NAMES) {
+            val images = byCategory[tabName] ?: continue
+            if (images.size >= PexelsCategories.MIN_IMAGES_FOR_OWN_TAB) {
+                pexelsTabs.add(tabName)
+            } else if (images.isNotEmpty()) {
+                // Too few — merge into "Others"
+                othersImages.addAll(images)
+            }
+        }
+
+        // Build the "Others" bucket if it has content
+        if (othersImages.isNotEmpty()) {
+            byCategory[PexelsCategories.OTHERS_TAB] =
+                (byCategory[PexelsCategories.OTHERS_TAB] ?: mutableListOf<ImageEntity>().also {
+                    byCategory[PexelsCategories.OTHERS_TAB] = it
+                }).apply { addAll(othersImages) } as MutableList<ImageEntity>
+        }
+
+        // No search result tabs — search results are shown inline in the adapter overlay.
+        // We still save search results to Room for fast repeat searches, but we don't
+        // create permanent tabs for them — that would clutter the tab layout.
 
         val tabs = buildList {
             if (recents.isNotEmpty()) add("Recents")
@@ -259,6 +306,11 @@ class MainViewModel @Inject constructor(
             if (byCategory.containsKey("My Images")) add("My Images")
             addAll(backgroundTabs)
             if (byCategory.containsKey("My Backgrounds")) add("My Backgrounds")
+            addAll(pexelsTabs)   // Main Pexels category tabs
+            // "Others" goes last if it has enough images
+            if ((byCategory[PexelsCategories.OTHERS_TAB]?.size ?: 0) >= PexelsCategories.MIN_IMAGES_FOR_OWN_TAB) {
+                add(PexelsCategories.OTHERS_TAB)
+            }
         }
 
         return ImagesData(tabs, byCategory, recents)
@@ -320,6 +372,26 @@ class MainViewModel @Inject constructor(
     private val _rawQuery = MutableStateFlow("")
     val rawQuery: StateFlow<String> = _rawQuery.asStateFlow()
 
+    // ── Recent fonts — in-memory ordered list (most-recent first, max 20) ─────
+    private val _recentFontIds = MutableStateFlow<List<Int>>(emptyList())
+    val recentFontIds: StateFlow<List<Int>> = _recentFontIds.asStateFlow()
+
+    /** Derived: recentFonts ordered by recency, joined from localFonts */
+    val recentFonts: StateFlow<List<FontEntity>> =
+        combine(_recentFontIds, _localFonts) { ids, fonts ->
+            val byId = fonts.associateBy { it.id }
+            ids.mapNotNull { byId[it] }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /** Call whenever a font is successfully selected/applied. */
+    fun recordRecentFont(fontId: Int) {
+        val current = _recentFontIds.value.toMutableList()
+        current.remove(fontId)          // remove duplicate if already present
+        current.add(0, fontId)          // insert at front (most recent)
+        if (current.size > 20) current.subList(20, current.size).clear()
+        _recentFontIds.value = current
+    }
+
     // Persists which Objects tab the user last had open.
     // Stored here (in ViewModel) so it survives ObjectsFragment recreation.
     var lastObjectsTabCategory: String? = null
@@ -327,6 +399,9 @@ class MainViewModel @Inject constructor(
     var lastImagesTabCategory: String? = null
     var lastFontsLanguage: String = "All"
     var lastFontsCategory: String? = null
+    var lastFontsInCategoryMode: Boolean = false
+    var lastFontsScrollIndex: Int = 0
+    var lastFontsScrollOffset: Int = 0
 
     // Debounced, distinct stream for UI filtering
     val queryDebounced = rawQuery.map { it.trim() }.distinctUntilChanged()
@@ -349,6 +424,7 @@ class MainViewModel @Inject constructor(
             fetchAndStoreTemplatesFromApi()
             fetchAndStoreTrendsFromApi()
             fetchAndStoreCanvasSizesFromApi()
+            seedPexelsCategories()
         }
         observeLocalCanvasSizes()
         observeLocalFonts()
@@ -631,28 +707,65 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun fetchAndStoreCanvasSizesFromApi() {
+    // ── Pexels — seed all super-queries in parallel on first launch ───────────
+    // Mirrors fetchAndStoreImagesFromApi() in pattern: fires in init, saves to
+    // Room, Room observer in buildImagesData() picks tabs up automatically.
+    // On return visits: invalidateIfStale() skips the network call if cache < 24h.
+    private fun seedPexelsCategories() {
+        // Only seed SEED_ON_LAUNCH categories — lazy tabs load on first tap via PexelsViewModel
         viewModelScope.launch {
-            fetchAPICanvasSizesUseCase().collect { response ->
-                when (response) {
-                    is Response.Loading -> { /* not part of home UI */ }
-
-                    is Response.Success -> { /* Room observer picks it up */ }
-
-                    is Response.Error -> {
-                        // silently fail — Room already has data from last successful fetch
-                        Log.w("MainViewModel", "Canvas sizes fetch failed: ${response.message}")
+            PexelsCategories.SEED_ON_LAUNCH.forEach { superQuery ->
+                launch {  // parallel — one coroutine per super-query
+                    pexelsRepo.invalidateIfStale(superQuery.query)
+                    pexelsRepo.loadNextPage(superQuery.query).collect { response ->
+                        when (response) {
+                            is Response.Error -> Log.w("MainViewModel", "Pexels seed failed for '${superQuery.query}': ${response.message}")
+                            else -> { /* Room observer picks up inserts automatically */ }
+                        }
                     }
-
-                    else -> {}
                 }
             }
         }
     }
 
+    fun fetchAndStoreCanvasSizesFromApi() {        viewModelScope.launch {
+        fetchAPICanvasSizesUseCase().collect { response ->
+            when (response) {
+                is Response.Loading -> { /* not part of home UI */ }
+
+                is Response.Success -> { /* Room observer picks it up */ }
+
+                is Response.Error -> {
+                    // silently fail — Room already has data from last successful fetch
+                    Log.w("MainViewModel", "Canvas sizes fetch failed: ${response.message}")
+                }
+
+                else -> {}
+            }
+        }
+    }
+    }
+
     fun insertImage(imageEntity: ImageEntity) {
         viewModelScope.launch {
             insertImagesUseCase.insertSingleImage(imageEntity)
+        }
+    }
+
+    /**
+     * Upsert a Pexels image — INSERT OR REPLACE so is_recent = true
+     * is saved even when the image comes from a search result overlay
+     * where the Room row may not yet exist or needs updating.
+     */
+    fun upsertPexelsImage(imageEntity: ImageEntity) {
+        viewModelScope.launch {
+            // insertImages uses OnConflictStrategy.REPLACE — works as upsert
+            insertImagesUseCase.invoke(
+                com.webscare.urducanvas.data.model.ImageResponse(
+                    message = "",
+                    image   = listOf(imageEntity)
+                )
+            )
         }
     }
 
@@ -862,6 +975,17 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Marks any image as recent by its id using a direct SQL UPDATE.
+     * Works for ALL image types including Pexels search results saved
+     * under unknown categories that updateImage() can't handle.
+     */
+    fun markImageAsRecent(imageId: Int) {
+        viewModelScope.launch {
+            imagesRepo.markAsRecent(imageId)
+        }
+    }
+
     fun updateFont(font: FontEntity) {
         viewModelScope.launch {
             updateFontsUseCase.invoke(font)
@@ -950,6 +1074,11 @@ class MainViewModel @Inject constructor(
     fun clearShapesSelection() {
         _selectedShapesIds.value = emptySet()
     }
+
+    fun setPanelSlideOffset(offset: Float) { _panelSlideOffset.value = offset }
+
+    /** Sets the expanded panel type directly (used by sheet behavior on settle). */
+    fun setPanelExpandedType(panel: PanelType) { _expandedPanel.value = panel }
 
     fun isPanelExpanded(panel: PanelType): Boolean = _expandedPanel.value == panel
     fun togglePanel(panel: PanelType) {

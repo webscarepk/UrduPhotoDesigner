@@ -44,9 +44,17 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
     private var savedScrollIndex: Int = 0
     private var savedScrollOffset: Int = 0
 
+    /**
+     * Passed down from FontsFragment via arguments.
+     * When true, selecting a font does NOT collapse the sliding panel
+     * because we're inside the text adjustment panel, not the asset browser.
+     */
+    private var standaloneMode: Boolean = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         currentLanguage = arguments?.getString(ARG_FONT_LANGUAGE) ?: "All"
+        standaloneMode  = arguments?.getBoolean(ARG_STANDALONE_MODE, false) ?: false
         currentCategory = null
     }
 
@@ -60,7 +68,6 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
-        // Single source of truth: observe expansion from ViewModel
         observeExpansion()
         observeFontData()
         observeDownloadStates()
@@ -75,7 +82,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         view?.post { rebindLatest() }
     }
 
-    // ── Scroll save / restore (mirrors ImagesListFragment) ────────────────────
+    // ── Scroll save / restore ─────────────────────────────────────────────────
 
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
@@ -103,11 +110,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    // ── Single-source expansion observer ─────────────────────────────────────
-    //
-    // Exactly mirrors ImagesListFragment.onPanelExpanded but driven by the
-    // ViewModel flow instead of a direct call, so there is no local flag and
-    // no race between FontsFragment wiring and ViewPager2 fragment tags.
+    // ── Expansion observer ────────────────────────────────────────────────────
 
     private fun observeExpansion() {
         viewLifecycleOwner.lifecycleScope.launch {
@@ -130,7 +133,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
     private fun buildLayoutManager(expanded: Boolean): GridLayoutManager =
         GridLayoutManager(
             requireContext(),
-            if (expanded) 3 else 2,
+            2,
             if (expanded) GridLayoutManager.VERTICAL else GridLayoutManager.HORIZONTAL,
             false
         )
@@ -142,6 +145,23 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         queryRaw: String
     ): List<com.webscare.urducanvas.data.model.FontEntity> {
         val query = queryRaw.trim().lowercase()
+
+        // "Recents" language — show recently used fonts in recency order
+        if (currentLanguage == "Recents") {
+            val recent = mainViewModel.recentFonts.value
+            return if (query.isEmpty()) recent else {
+                val tokens = query.split(Regex("\\s+")).filter { it.isNotEmpty() }
+                recent.filter { f ->
+                    val haystack = buildString {
+                        append(f.font_name); append(' ')
+                        append(f.file_name); append(' ')
+                        append(f.font_category); append(' ')
+                        append(f.alt_text ?: "")
+                    }.lowercase()
+                    tokens.all { it in haystack }
+                }
+            }
+        }
 
         val byLanguage = when (val lang = currentLanguage ?: "All") {
             "All"      -> fonts
@@ -172,9 +192,9 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
 
         return if (currentCategory == null && currentLanguage == "All") {
             val urdu    = filtered.filter { it.font_language.equals("Urdu", true) }
-                .sortedBy { it.font_name.lowercase() }
+                .sortedBy { it.font_name?.lowercase() }
             val english = filtered.filter { it.font_language.equals("English", true) }
-                .sortedBy { it.font_name.lowercase() }
+                .sortedBy { it.font_name?.lowercase() }
             val merged  = mutableListOf<com.webscare.urducanvas.data.model.FontEntity>()
             val maxSize = maxOf(urdu.size, english.size)
             for (i in 0 until maxSize) {
@@ -183,7 +203,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
             }
             merged
         } else {
-            filtered.sortedBy { it.font_name.lowercase() }
+            filtered.sortedBy { it.font_name?.lowercase() }
         }
     }
 
@@ -241,8 +261,13 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         isDownloaded: Boolean
     ) {
         if (isDownloaded) {
+            mainViewModel.recordRecentFont(font.id)
             viewModel.setFont(font)
-            mainViewModel.collapsePanel()
+            // Only collapse the bottom panel if we're in asset-browser mode.
+            // In standalone/adjustment mode the panel collapse is irrelevant.
+            if (!standaloneMode) {
+                mainViewModel.collapsePanel()
+            }
             return
         }
 
@@ -274,8 +299,9 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 combine(
                     mainViewModel.localFonts,
-                    mainViewModel.queryDebounced.onStart { emit("") }
-                ) { fonts, queryRaw ->
+                    mainViewModel.queryDebounced.onStart { emit("") },
+                    mainViewModel.recentFonts
+                ) { fonts, queryRaw, _ ->
                     buildFilteredList(fonts, queryRaw)
                 }.collect { finalList ->
                     submitWithScrollPreservation(finalList)
@@ -297,10 +323,14 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
                             Log.d("FONT_DEBUG", "SUCCESS id=${completedFont.id} lastRequested=$lastRequestedFontId")
                             if (completedFont.id == lastRequestedFontId) {
                                 fontEntity                  = completedFont
+                                mainViewModel.recordRecentFont(completedFont.id)
                                 fontsAdapter.selectedFontId = completedFont.id.toString()
                                 pendingScrollToFontId       = completedFont.id.toString()
                                 viewModel.setFont(completedFont)
-                                mainViewModel.collapsePanel()
+                                // Collapse only in asset-browser mode
+                                if (!standaloneMode) {
+                                    mainViewModel.collapsePanel()
+                                }
                                 lastRequestedFontId         = null
                                 mainViewModel.clearFontDownloadState()
                             }
@@ -334,10 +364,15 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
     }
 
     companion object {
-        private const val ARG_FONT_LANGUAGE = "font_language"
+        private const val ARG_FONT_LANGUAGE   = "font_language"
+        private const val ARG_STANDALONE_MODE = "standalone_mode"
 
-        fun newInstance(fontLanguage: String) = FontsListFragment().also {
-            it.arguments = Bundle().apply { putString(ARG_FONT_LANGUAGE, fontLanguage) }
-        }
+        fun newInstance(fontLanguage: String, standaloneMode: Boolean = false) =
+            FontsListFragment().also {
+                it.arguments = Bundle().apply {
+                    putString(ARG_FONT_LANGUAGE, fontLanguage)
+                    putBoolean(ARG_STANDALONE_MODE, standaloneMode)
+                }
+            }
     }
 }

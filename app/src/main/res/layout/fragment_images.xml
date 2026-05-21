@@ -66,24 +66,21 @@
             android:src="@drawable/ic_search"
             android:layout_gravity="center_vertical" />
 
-        <EditText
-            android:id="@+id/searchBar"
-            android:visibility="gone"
+        <!-- Search results header — same height as tabLayout (38dp).
+             Shown instead of tabLayout when search is active.
+             RecyclerView position never shifts. -->
+        <TextView
+            android:id="@+id/searchResultsHeader"
             android:layout_width="0dp"
-            android:layout_height="30dp"
+            android:layout_height="38dp"
             android:layout_weight="1"
-            android:textColor="@color/black"
-            android:fontFamily="@font/regular"
+            android:visibility="gone"
+            android:gravity="center_vertical"
+            android:paddingStart="4dp"
+            android:text="Search Results"
+            android:fontFamily="@font/bold"
             android:textSize="12sp"
-            android:maxLines="1"
-            android:singleLine="true"
-            android:layout_gravity="center_vertical"
-            android:background="@drawable/button_bg_small"
-            android:paddingHorizontal="12dp"
-            android:drawablePadding="6dp"
-            android:textColorHint="@android:color/darker_gray"
-            android:backgroundTint="@color/contrast"
-            android:hint="@string/search_here" />
+            android:textColor="@color/black" />
 
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tabLayout"
@@ -117,7 +114,7 @@
             android:id="@+id/panelTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="@string/images"
+            android:text="@string/media"
             android:fontFamily="@font/bold"
             android:textSize="16sp"
             android:textColor="@color/black"
@@ -192,6 +189,23 @@
         app:tabSelectedTextColor="@color/appColor"
         app:tabTextColor="@color/black"
         app:tabRippleColor="@color/contrast"
+        app:layout_constraintTop_toBottomOf="@id/headerExpanded"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintEnd_toStartOf="@id/endGuide" />
+
+    <!-- Search results header for expanded state — same height as tabLayoutExpanded (36dp).
+         Shown instead of tabLayoutExpanded when search is active in expanded mode. -->
+    <TextView
+        android:id="@+id/searchResultsHeaderExpanded"
+        android:layout_width="0dp"
+        android:layout_height="36dp"
+        android:visibility="gone"
+        android:gravity="center_vertical"
+        android:paddingStart="4dp"
+        android:text="Search Results"
+        android:fontFamily="@font/bold"
+        android:textSize="12sp"
+        android:textColor="@color/black"
         app:layout_constraintTop_toBottomOf="@id/headerExpanded"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide" />

@@ -55,25 +55,6 @@
             android:layout_gravity="center_vertical"
             android:layout_marginEnd="@dimen/_5sdp" />
 
-        <EditText
-            android:id="@+id/searchBar"
-            android:visibility="gone"
-            android:layout_width="0dp"
-            android:layout_height="30dp"
-            android:layout_weight="1"
-            android:textColor="@color/black"
-            android:fontFamily="@font/regular"
-            android:textSize="12sp"
-            android:maxLines="1"
-            android:singleLine="true"
-            android:layout_gravity="center_vertical"
-            android:background="@drawable/button_bg_small"
-            android:paddingHorizontal="12dp"
-            android:drawablePadding="6dp"
-            android:textColorHint="@android:color/darker_gray"
-            android:backgroundTint="@color/contrast"
-            android:hint="@string/search_here" />
-
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tabLayout"
             android:layout_width="match_parent"
