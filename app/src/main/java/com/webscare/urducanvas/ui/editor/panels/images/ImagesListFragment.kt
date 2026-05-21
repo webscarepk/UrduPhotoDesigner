@@ -96,7 +96,6 @@ class ImagesListFragment : Fragment() {
         observePexelsSearch()
         observePaginationAppend()
         observePaginationLoader()
-        // Fire lazy load if this is a lazy Pexels tab
         pexelsViewModel.loadTabGroupIfNeeded(category)
     }
 
@@ -297,6 +296,10 @@ class ImagesListFragment : Fragment() {
         if (_binding == null) return
         if (isPanelExpanded == effectiveExpanded) return   // already in right state
         isPanelExpanded = effectiveExpanded
+
+        // Keep swipeRefresh in sync — onPanelExpanded will early-return if isPanelExpanded
+        // is already set by the time the spring settles, so we must set it here too.
+        binding.swipeRefresh.isEnabled = effectiveExpanded
 
         binding.backgrounds.recycledViewPool.clear()
         binding.backgrounds.layoutManager = buildLayoutManager(effectiveExpanded)

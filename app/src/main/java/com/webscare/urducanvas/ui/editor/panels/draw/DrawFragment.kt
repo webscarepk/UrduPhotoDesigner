@@ -1,9 +1,7 @@
 package com.webscare.urducanvas.ui.editor.panels.draw
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
@@ -18,13 +16,13 @@ import com.webscare.urducanvas.common.canvas.enums.PanelType
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.PanelTabs
 import com.webscare.urducanvas.databinding.FragmentDrawBinding
+import com.webscare.urducanvas.ui.editor.EditorFragment
 import com.webscare.urducanvas.ui.editor.panels.draw.brush.BrushPagerAdapter
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 
 @AndroidEntryPoint
 class DrawFragment : Fragment() {
@@ -112,6 +110,7 @@ class DrawFragment : Fragment() {
     // ── Panel expansion ───────────────────────────────────────────────────────
 
     private fun observePanelExpanded() {
+        // ── 1. Final settled state: update headers ──────────────────────────────
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.expandedPanel
@@ -122,6 +121,37 @@ class DrawFragment : Fragment() {
                     }
             }
         }
+
+        // ── 2. Live slide offset: drives smooth crossfade every frame ───────────
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.panelSlideOffset.collect { offset ->
+                    applySlideOffset(offset)
+                }
+            }
+        }
+    }
+
+    /**
+     * Driven every frame by PanelSheetBehavior during drag + spring settle.
+     * Only alpha/visibility — zero layout passes, zero flicker.
+     */
+    private fun applySlideOffset(offset: Float) {
+        if (_binding == null) return
+
+        // Collapsed header: fully visible at 0, fades out by 0.4
+        val collapsedAlpha = (1f - offset / 0.4f).coerceIn(0f, 1f)
+        // Expanded header: invisible until 0.3, fully visible at 1.0
+        val expandedAlpha  = ((offset - 0.3f) / 0.7f).coerceIn(0f, 1f)
+
+        binding.headerCollapsed.alpha = collapsedAlpha
+        binding.headerExpanded.alpha  = expandedAlpha
+
+        // INVISIBLE not GONE — GONE causes layout shifts
+        binding.headerCollapsed.visibility =
+            if (collapsedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+        binding.headerExpanded.visibility =
+            if (expandedAlpha > 0f) View.VISIBLE else View.INVISIBLE
     }
 
     private fun setupEvents() {
@@ -142,29 +172,16 @@ class DrawFragment : Fragment() {
 
     // ── Drag handle ───────────────────────────────────────────────────────────
 
-    @SuppressLint("ClickableViewAccessibility")
     private fun attachDragHandleSwipe() {
-        val thresholdPx = 30 * resources.displayMetrics.density
-        var startY = 0f
-
-        binding.dragHandle.setOnTouchListener { _, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> { startY = event.rawY; true }
-                MotionEvent.ACTION_UP -> {
-                    val dy = startY - event.rawY
-                    if (abs(dy) >= thresholdPx) {
-                        when {
-                            dy > 0 && !mainViewModel.isPanelExpanded(PanelType.DRAW) ->
-                                mainViewModel.togglePanel(PanelType.DRAW)
-                            dy < 0 && mainViewModel.isPanelExpanded(PanelType.DRAW) ->
-                                mainViewModel.togglePanel(PanelType.DRAW)
-                        }
-                    }
-                    true
-                }
-                MotionEvent.ACTION_CANCEL -> true
-                else -> false
+        // Walk up the fragment hierarchy to find EditorFragment and hand it our
+        // drag handle so PanelSheetBehavior drives the guideline directly.
+        var f: Fragment? = this
+        while (f != null) {
+            if (f is EditorFragment) {
+                f.attachDragHandle(binding.dragHandle)
+                return
             }
+            f = f.parentFragment
         }
     }
 

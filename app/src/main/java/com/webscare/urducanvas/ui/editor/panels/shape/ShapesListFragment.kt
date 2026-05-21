@@ -227,6 +227,19 @@ class ShapesListFragment : Fragment() {
         if (expanded) binding.objects.scrollToPosition(0)
     }
 
+    fun onPanelExpandedSmooth(effectiveExpanded: Boolean) {
+        if (_binding == null) return
+        if (isPanelExpanded == effectiveExpanded) return   // already in right state
+        isPanelExpanded = effectiveExpanded
+
+        binding.objects.recycledViewPool.clear()
+        binding.objects.layoutManager = buildLayoutManager(effectiveExpanded)
+        imagesAdapter?.isExpanded = effectiveExpanded
+
+        val bottomPadding = if (effectiveExpanded) (64 * resources.displayMetrics.density).toInt() else 0
+        binding.objects.setPadding(0, 0, 0, bottomPadding)
+    }
+
     private fun buildLayoutManager(expanded: Boolean): GridLayoutManager =
         GridLayoutManager(
             requireContext(), 3,

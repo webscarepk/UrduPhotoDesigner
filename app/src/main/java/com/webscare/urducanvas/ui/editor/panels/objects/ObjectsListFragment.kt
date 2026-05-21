@@ -366,6 +366,30 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
         if (expanded) binding.objects.scrollToPosition(0)
     }
 
+    /**
+     * Called during drag at the 0.75f threshold so the layout manager switches
+     * WHILE the spring is still animating — the user never sees a static jump.
+     * Guards against double-switching with the same isPanelExpanded flag.
+     */
+    fun onPanelExpandedSmooth(effectiveExpanded: Boolean) {
+        if (_binding == null) return
+        if (isPanelExpanded == effectiveExpanded) return   // already in right state
+        isPanelExpanded = effectiveExpanded
+
+        // Gate swipe refresh here too — without this it stays enabled/disabled
+        // from the last settled state and can fire in the wrong panel position.
+        binding.swipeRefresh?.isEnabled = effectiveExpanded
+
+        binding.objects.recycledViewPool.clear()
+        binding.objects.layoutManager = buildLayoutManager(effectiveExpanded)
+
+        if (isBaseTab(category)) {
+            emojiAdapter?.isExpanded = effectiveExpanded
+        } else {
+            imagesAdapter?.isExpanded = effectiveExpanded
+        }
+    }
+
     fun addSelectedEmojisToCanvas() {
         if (!isBaseTab(category)) return
         val selectedChars = mainViewModel.selectedEmojiChars.value

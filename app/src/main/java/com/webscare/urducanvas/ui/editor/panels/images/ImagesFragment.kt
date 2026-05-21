@@ -42,8 +42,6 @@ import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.ImagesData
 import com.webscare.urducanvas.databinding.FragmentImagesBinding
 import com.webscare.urducanvas.ui.editor.EditorFragment
-import com.webscare.urducanvas.ui.editor.panels.objects.SelectedItem
-import com.webscare.urducanvas.ui.editor.panels.objects.ThumbnailAdapter
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import com.webscare.urducanvas.viewmodels.PexelsViewModel
 import dagger.hilt.android.AndroidEntryPoint

@@ -1,6 +1,5 @@
 package com.webscare.urducanvas.ui.editor.panels.layers
 
-import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.app.Dialog
 import android.os.Bundle
@@ -8,7 +7,6 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.Gravity
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -36,6 +34,7 @@ import com.webscare.urducanvas.databinding.LayoutLayerItemPopupBinding
 import com.webscare.urducanvas.databinding.LayoutToolbarLayersNormalBinding
 import com.webscare.urducanvas.databinding.LayoutToolbarLayersSelectionBinding
 import com.webscare.urducanvas.ui.creation.CreateFragment
+import com.webscare.urducanvas.ui.editor.EditorFragment
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -43,7 +42,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.abs
 
 @AndroidEntryPoint
 class LayersFragment : Fragment() {
@@ -84,29 +82,16 @@ class LayersFragment : Fragment() {
     // Same pattern as every other panel. Swipe up → expand, swipe down → collapse.
     // Layers panel is different: no tabs, no search — just drag handle + toolbar.
 
-    @SuppressLint("ClickableViewAccessibility")
     private fun attachDragHandleSwipe() {
-        val thresholdPx = 30 * resources.displayMetrics.density
-        var startY = 0f
-
-        binding.dragHandle.setOnTouchListener { _, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> { startY = event.rawY; true }
-                MotionEvent.ACTION_UP -> {
-                    val dy = startY - event.rawY
-                    if (abs(dy) >= thresholdPx) {
-                        when {
-                            dy > 0 && !mainViewModel.isPanelExpanded(PanelType.LAYERS) ->
-                                mainViewModel.togglePanel(PanelType.LAYERS)
-                            dy < 0 && mainViewModel.isPanelExpanded(PanelType.LAYERS) ->
-                                mainViewModel.togglePanel(PanelType.LAYERS)
-                        }
-                    }
-                    true
-                }
-                MotionEvent.ACTION_CANCEL -> true
-                else -> false
+        // Walk up the fragment hierarchy to find EditorFragment and hand it our
+        // drag handle so PanelSheetBehavior drives the guideline directly.
+        var f: Fragment? = this
+        while (f != null) {
+            if (f is EditorFragment) {
+                f.attachDragHandle(binding.dragHandle)
+                return
             }
+            f = f.parentFragment
         }
     }
 
@@ -120,6 +105,7 @@ class LayersFragment : Fragment() {
     // collapses layers automatically via the single expandedPanel StateFlow).
 
     private fun observePanelExpanded() {
+        // ── 1. Final settled state ──────────────────────────────────────────────
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.expandedPanel
@@ -129,6 +115,27 @@ class LayersFragment : Fragment() {
                     }
             }
         }
+
+        // ── 2. Live slide offset: drives smooth crossfade every frame ───────────
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.panelSlideOffset.collect { offset ->
+                    applySlideOffset(offset)
+                }
+            }
+        }
+    }
+
+    /**
+     * Driven every frame by PanelSheetBehavior during drag + spring settle.
+     * Layers has no collapsed/expanded header pair to crossfade — the close
+     * button is handled by the settled-state observer above. If a header pair
+     * is ever added to the layers layout, apply the same alpha crossfade
+     * pattern used in all other panels here.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    private fun applySlideOffset(offset: Float) {
+        // No per-frame visual work needed for Layers currently.
     }
 
     // ── Toolbar ───────────────────────────────────────────────────────────────

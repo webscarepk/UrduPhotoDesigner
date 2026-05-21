@@ -2,7 +2,6 @@ package com.webscare.urducanvas.ui.editor.panels.shape
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.InputType
@@ -17,8 +16,6 @@ import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
-import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -37,17 +34,16 @@ import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
 import com.webscare.urducanvas.common.utils.SvgLoader
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.data.model.ShapesData
 import com.webscare.urducanvas.databinding.FragmentShapesParentBinding
-import com.webscare.urducanvas.ui.editor.panels.objects.SelectedItem
-import com.webscare.urducanvas.ui.editor.panels.objects.ThumbnailAdapter
+import com.webscare.urducanvas.ui.editor.EditorFragment
+import com.webscare.urducanvas.ui.editor.panels.images.SelectedItem
+import com.webscare.urducanvas.ui.editor.panels.images.ThumbnailAdapter
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.abs
 
 @AndroidEntryPoint
 class ShapesParentFragment : Fragment() {
@@ -86,9 +82,9 @@ class ShapesParentFragment : Fragment() {
         tabs.add(ShapesListFragment.VECTORS_TAB)
         tabs.addAll(initial.tabs.filter { it != ShapesListFragment.VECTORS_TAB })
 
-        currentTabIndex = mainViewModel.lastShapesTabCategory
-            ?.let { saved -> tabs.indexOf(saved).takeIf { it >= 0 } }
-            ?: 0
+        currentTabIndex = mainViewModel.lastShapesTabCategory?.let { saved ->
+            tabs.indexOf(saved).takeIf { it >= 0 }
+        } ?: 0
 
         if (tabs.isNotEmpty()) {
             rebuildTabLayout(selectIndex = currentTabIndex)
@@ -114,10 +110,10 @@ class ShapesParentFragment : Fragment() {
                 if (item is SelectedItem.Image) {
                     mainViewModel.toggleShapesSelection(item.entity.id)
                 }
-            }
-        )
+            })
         binding.selectedThumbnails.apply {
-            layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+            layoutManager =
+                LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
             adapter = thumbnailAdapter
             isNestedScrollingEnabled = false
         }
@@ -125,61 +121,100 @@ class ShapesParentFragment : Fragment() {
 
     // ── Drag handle ───────────────────────────────────────────────────────────
 
-    @SuppressLint("ClickableViewAccessibility")
     private fun attachDragHandleSwipe() {
-        val thresholdPx = 30 * resources.displayMetrics.density
-        var startY = 0f
-
-        binding.dragHandle.setOnTouchListener { _, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> { startY = event.rawY; true }
-                MotionEvent.ACTION_UP -> {
-                    val dy = startY - event.rawY
-                    if (abs(dy) >= thresholdPx) {
-                        when {
-                            dy > 0 && !mainViewModel.isPanelExpanded(PanelType.SHAPES) ->
-                                mainViewModel.togglePanel(PanelType.SHAPES)
-                            dy < 0 && mainViewModel.isPanelExpanded(PanelType.SHAPES) ->
-                                mainViewModel.togglePanel(PanelType.SHAPES)
-                        }
-                    }
-                    true
-                }
-                MotionEvent.ACTION_CANCEL -> true
-                else -> false
+        // Walk up the fragment hierarchy to find EditorFragment and hand it our
+        // drag handle so PanelSheetBehavior drives the guideline directly.
+        var f: Fragment? = this
+        while (f != null) {
+            if (f is EditorFragment) {
+                f.attachDragHandle(binding.dragHandle)
+                return
             }
+            f = f.parentFragment
         }
     }
 
     // ── Panel expansion ───────────────────────────────────────────────────────
 
     private fun observePanelExpanded() {
+        // ── 1. Final settled state: swap layout manager, update headers ─────────
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                mainViewModel.expandedPanel
-                    .collect { panel ->
-                        val expanded = panel == PanelType.SHAPES
-                        applyExpandedUi(expanded)
-                        for ((_, fragment) in fragmentCache) {
-                            when (fragment) {
-                                is ShapesListFragment  -> fragment.onPanelExpanded(expanded)
-                                is VectorsTabFragment  -> fragment.onPanelExpanded(expanded)
-                            }
+                mainViewModel.expandedPanel.collect { panel ->
+                    val expanded = panel == PanelType.SHAPES
+                    applyExpandedUi(expanded)
+                    for ((_, fragment) in fragmentCache) {
+                        when (fragment) {
+                            is ShapesListFragment -> fragment.onPanelExpanded(expanded)
+                            is VectorsTabFragment -> fragment.onPanelExpanded(expanded)
                         }
                     }
+                }
+            }
+        }
+
+        // ── 2. Live slide offset: drives smooth crossfade every frame ───────────
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.panelSlideOffset.collect { offset ->
+                    applySlideOffset(offset)
+                }
+            }
+        }
+    }
+
+    /**
+     * Driven every frame by PanelSheetBehavior during drag + spring settle.
+     * Only alpha/visibility — zero layout passes, zero flicker.
+     */
+    private fun applySlideOffset(offset: Float) {
+        if (_binding == null) return
+
+        // Collapsed header: fully visible at 0, fades out by 0.4
+        val collapsedAlpha = (1f - offset / 0.4f).coerceIn(0f, 1f)
+        // Expanded header: invisible until 0.3, fully visible at 1.0
+        val expandedAlpha  = ((offset - 0.3f) / 0.7f).coerceIn(0f, 1f)
+
+        binding.headerCollapsed.alpha = collapsedAlpha
+        binding.headerExpanded.alpha  = expandedAlpha
+
+        // INVISIBLE not GONE — GONE causes layout shifts that jerk the RecyclerView
+        binding.headerCollapsed.visibility =
+            if (collapsedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+        binding.headerExpanded.visibility =
+            if (expandedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+
+        // Tab layouts mirror their respective headers
+        val isSearchActive = currentQuery.isNotBlank()
+        if (!isSearchActive) {
+            binding.tabLayout.alpha         = collapsedAlpha
+            binding.tabLayoutExpanded.alpha = expandedAlpha
+            binding.tabLayout.visibility =
+                if (collapsedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+            binding.tabLayoutExpanded.visibility =
+                if (expandedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+        }
+
+        // Switch child RecyclerView layout managers at 75 % of travel —
+        // while the spring is still in motion so the user never sees a jump.
+        val effectiveExpanded = offset >= 0.75f
+        for ((_, fragment) in fragmentCache) {
+            when (fragment) {
+                is ShapesListFragment -> fragment.onPanelExpandedSmooth(effectiveExpanded)
+                is VectorsTabFragment -> fragment.onPanelExpandedSmooth(effectiveExpanded)
             }
         }
     }
 
     private fun applyExpandedUi(expanded: Boolean) {
-        binding.headerCollapsed.isVisible   = !expanded
-        binding.headerExpanded.isVisible    = expanded
+        binding.headerCollapsed.isVisible = !expanded
+        binding.headerExpanded.isVisible = expanded
         binding.tabLayoutExpanded.isVisible = expanded
 
-        val lp = binding.fragmentContainer.layoutParams
-                as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+        val lp =
+            binding.fragmentContainer.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
         lp.topToBottom = if (expanded) R.id.tabLayoutExpanded else R.id.headerCollapsed
-        lp.topToTop    = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+        lp.topToTop = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
         binding.fragmentContainer.layoutParams = lp
 
         if (expanded) {
@@ -198,9 +233,9 @@ class ShapesParentFragment : Fragment() {
         val slideDistance = 200 * resources.displayMetrics.density
 
         binding.selectionToolbar.apply {
-            alpha        = 0f
+            alpha = 0f
             translationY = slideDistance
-            isVisible    = false
+            isVisible = false
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -209,18 +244,13 @@ class ShapesParentFragment : Fragment() {
                     if (_binding == null) return@collect
                     if (inMode) {
                         binding.selectionToolbar.isVisible = true
-                        binding.selectionToolbar.animate()
-                            .alpha(1f).translationY(0f)
-                            .setDuration(240)
-                            .setInterpolator(DecelerateInterpolator(1.5f))
-                            .start()
+                        binding.selectionToolbar.animate().alpha(1f).translationY(0f)
+                            .setDuration(240).setInterpolator(DecelerateInterpolator(1.5f)).start()
                     } else {
-                        val endY = binding.selectionToolbar.height
-                            .takeIf { it > 0 }?.toFloat() ?: slideDistance
-                        binding.selectionToolbar.animate()
-                            .alpha(0f).translationY(endY)
-                            .setDuration(180)
-                            .setInterpolator(AccelerateInterpolator(1.5f))
+                        val endY = binding.selectionToolbar.height.takeIf { it > 0 }?.toFloat()
+                            ?: slideDistance
+                        binding.selectionToolbar.animate().alpha(0f).translationY(endY)
+                            .setDuration(180).setInterpolator(AccelerateInterpolator(1.5f))
                             .withEndAction {
                                 if (_binding == null) return@withEndAction
                                 binding.selectionToolbar.isVisible = false
@@ -237,8 +267,8 @@ class ShapesParentFragment : Fragment() {
                     if (_binding == null) return@collect
                     val count = selectedIds.size
                     binding.selectionCount.text = when (count) {
-                        0    -> ""
-                        1    -> "1 selected"
+                        0 -> ""
+                        1 -> "1 selected"
                         else -> "$count selected"
                     }
 
@@ -247,9 +277,7 @@ class ShapesParentFragment : Fragment() {
                         addAll(data.recents)
                         data.imagesByCategory.values.forEach { addAll(it) }
                     }
-                    val selected = allImages
-                        .filter { it.id in selectedIds }
-                        .distinctBy { it.id }
+                    val selected = allImages.filter { it.id in selectedIds }.distinctBy { it.id }
                         .map { SelectedItem.Image(it) }
 
                     thumbnailAdapter?.submitList(selected)
@@ -261,9 +289,9 @@ class ShapesParentFragment : Fragment() {
     // ── Done — add all selected to canvas ─────────────────────────────────────
 
     private fun addAllSelectedToCanvas() {
-        val data        = mainViewModel.shapesData.value
+        val data = mainViewModel.shapesData.value
         val selectedIds = mainViewModel.selectedShapesIds.value
-        val allImages   = buildList {
+        val allImages = buildList {
             addAll(data.recents)
             data.imagesByCategory.values.forEach { addAll(it) }
         }
@@ -271,7 +299,7 @@ class ShapesParentFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             toAdd.forEach { entity ->
-                val url   = Constants.BASE_URL_GLIDE + entity.file_url
+                val url = Constants.BASE_URL_GLIDE + entity.file_url
                 val isSvg = entity.file_name.endsWith(".svg", ignoreCase = true)
 
                 if (isSvg) {
@@ -280,22 +308,23 @@ class ShapesParentFragment : Fragment() {
                     }
                     result?.let { (drawable, xml) ->
                         viewModel.addSvgSticker(
-                            drawable.trimTransparentEdges(), xml,
-                            requireActivity(), entity.is_premium
+                            drawable.trimTransparentEdges(),
+                            xml,
+                            requireActivity(),
+                            entity.is_premium
                         )
                     }
                 } else {
                     val bitmap = withContext(Dispatchers.IO) {
                         runCatching {
-                            Glide.with(requireActivity()).asBitmap()
-                                .load(entity.bitmapData ?: url)
-                                .diskCacheStrategy(DiskCacheStrategy.ALL)
-                                .submit().get()
+                            Glide.with(requireActivity()).asBitmap().load(entity.bitmapData ?: url)
+                                .diskCacheStrategy(DiskCacheStrategy.ALL).submit().get()
                         }.getOrNull()
                     }
                     bitmap?.let {
                         viewModel.addSticker(
-                            it.trimTransparentEdges(), requireActivity(),
+                            it.trimTransparentEdges(),
+                            requireActivity(),
                             com.webscare.urducanvas.common.canvas.enums.ElementType.IMAGE,
                             entity.is_premium
                         )
@@ -328,16 +357,13 @@ class ShapesParentFragment : Fragment() {
             }
         }
 
-        childFragmentManager.beginTransaction()
-            .setReorderingAllowed(true)
-            .apply {
-                for (f in childFragmentManager.fragments) {
-                    if (f !== target && !f.isHidden) hide(f)
-                }
-                if (!target.isAdded) add(R.id.fragmentContainer, target, category)
-                else if (target.isHidden) show(target)
+        childFragmentManager.beginTransaction().setReorderingAllowed(true).apply {
+            for (f in childFragmentManager.fragments) {
+                if (f !== target && !f.isHidden) hide(f)
             }
-            .commitNow()
+            if (!target.isAdded) add(R.id.fragmentContainer, target, category)
+            else if (target.isHidden) show(target)
+        }.commitNow()
 
         val expanded = mainViewModel.isPanelExpanded(PanelType.SHAPES)
         when (target) {
@@ -356,8 +382,7 @@ class ShapesParentFragment : Fragment() {
             if (tabs.isEmpty()) return@forEach
             tabs.forEach { category ->
                 val tab = tl.newTab()
-                val tabView = LayoutInflater.from(context)
-                    .inflate(R.layout.custom_tab, tl, false)
+                val tabView = LayoutInflater.from(context).inflate(R.layout.custom_tab, tl, false)
                 tabView.findViewById<TextView>(R.id.tabTitle).text = category
                 tab.customView = tabView
                 tl.addTab(tab, false)
@@ -382,14 +407,16 @@ class ShapesParentFragment : Fragment() {
                 val pos = tab?.position ?: return
                 tab.view.animate().scaleX(1f).scaleY(1f).setDuration(100)
                     .setInterpolator(OvershootInterpolator(1.2f)).start()
-                val other = if (tab.parent == binding.tabLayout)
-                    binding.tabLayoutExpanded else binding.tabLayout
+                val other =
+                    if (tab.parent == binding.tabLayout) binding.tabLayoutExpanded else binding.tabLayout
                 if (other.selectedTabPosition != pos) other.getTabAt(pos)?.select()
                 showTab(pos)
             }
+
             override fun onTabUnselected(tab: TabLayout.Tab?) {
                 tab?.view?.animate()?.scaleX(0.9f)?.scaleY(0.9f)?.setDuration(100)?.start()
             }
+
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         }
 
@@ -413,15 +440,14 @@ class ShapesParentFragment : Fragment() {
         lastShapesData = data
 
         val newApiTabs = data.tabs.filter { it != ShapesListFragment.VECTORS_TAB }
-        val newTabs    = mutableListOf(ShapesListFragment.VECTORS_TAB) + newApiTabs
+        val newTabs = mutableListOf(ShapesListFragment.VECTORS_TAB) + newApiTabs
 
         if (newTabs != tabs) {
             val currentCategory = tabs.getOrNull(currentTabIndex)
             tabs.clear()
             tabs.addAll(newTabs)
             if (tabs.isEmpty()) return
-            val newIndex = currentCategory?.let { tabs.indexOf(it) }
-                ?.takeIf { it >= 0 } ?: 0
+            val newIndex = currentCategory?.let { tabs.indexOf(it) }?.takeIf { it >= 0 } ?: 0
             currentTabIndex = newIndex
             rebuildTabLayout(selectIndex = newIndex)
             showTab(newIndex)
@@ -445,7 +471,9 @@ class ShapesParentFragment : Fragment() {
             }
         }
 
-        if (query.isBlank()) { showAllTabs(); return }
+        if (query.isBlank()) {
+            showAllTabs(); return
+        }
 
         val data = mainViewModel.shapesData.value
         listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
@@ -467,7 +495,7 @@ class ShapesParentFragment : Fragment() {
         val i = tabs.indexOf(category).takeIf { it >= 0 } ?: return
         listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
             val tabStrip = tl.getChildAt(0) as? ViewGroup ?: return@forEach
-            val tabView  = tabStrip.getChildAt(i) ?: return@forEach
+            val tabView = tabStrip.getChildAt(i) ?: return@forEach
             if (tabView.isVisible == hasResults) return@forEach
             tabView.isVisible = hasResults
         }
@@ -499,7 +527,7 @@ class ShapesParentFragment : Fragment() {
     private fun setEvents() {
         binding.closeExpanded.addPressEffect { mainViewModel.togglePanel(PanelType.SHAPES) }
         binding.cancelSelection.addPressEffect { mainViewModel.clearShapesSelection() }
-        binding.doneSelection.addPressEffect   { addAllSelectedToCanvas() }
+        binding.doneSelection.addPressEffect { addAllSelectedToCanvas() }
 
         // Search icon — expands panel, focuses expanded search bar + opens keyboard
         binding.searchIcon.addPressEffect {
@@ -539,9 +567,7 @@ class ShapesParentFragment : Fragment() {
         binding.searchBarExpanded.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_UP) {
                 val dr = binding.searchBarExpanded.compoundDrawables[2]
-                if (dr != null && event.x >= binding.searchBarExpanded.width -
-                    binding.searchBarExpanded.paddingRight - dr.bounds.width()
-                ) {
+                if (dr != null && event.x >= binding.searchBarExpanded.width - binding.searchBarExpanded.paddingRight - dr.bounds.width()) {
                     binding.searchBarExpanded.text.clear()
                     applySearch("")
                     updateExpandedSearchCross("")
@@ -556,14 +582,17 @@ class ShapesParentFragment : Fragment() {
 
     private fun updateExpandedSearchCross(text: String) {
         binding.searchBarExpanded.setCompoundDrawablesWithIntrinsicBounds(
-            null, null,
+            null,
+            null,
             if (text.isNotEmpty()) ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close)
-            else null, null
+            else null,
+            null
         )
     }
 
     private fun showKeyboard(v: View) {
-        val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        val imm =
+            requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.showSoftInput(v, InputMethodManager.SHOW_IMPLICIT)
     }
 

@@ -32,6 +32,7 @@ import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.databinding.FragmentTextBinding
+import com.webscare.urducanvas.ui.editor.EditorFragment
 import com.webscare.urducanvas.ui.editor.panels.text.fonts.FontsAdapter
 import com.webscare.urducanvas.ui.editor.panels.text.fonts.imported.ImportedFontsBottomSheet
 import com.webscare.urducanvas.viewmodels.MainViewModel
@@ -661,12 +662,64 @@ class TextFragment : Fragment() {
     // ─────────────────────────────────────────────────────────────────────────
 
     private fun observePanelExpanded() {
+        // ── 1. Final settled state: swap layout manager, update headers ─────────
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.expandedPanel
                     .map { it == PanelType.FONTS }
                     .collect { expanded -> applyExpandedUi(expanded) }
             }
+        }
+
+        // ── 2. Live slide offset: drives smooth crossfade every frame ───────────
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.panelSlideOffset.collect { offset ->
+                    applySlideOffset(offset)
+                }
+            }
+        }
+    }
+
+    /**
+     * Driven every frame by PanelSheetBehavior during drag + spring settle.
+     * Only alpha/visibility — zero layout passes, zero flicker.
+     */
+    private fun applySlideOffset(offset: Float) {
+        if (_binding == null) return
+
+        // Collapsed header: fully visible at 0, fades out by 0.4
+        val collapsedAlpha = (1f - offset / 0.4f).coerceIn(0f, 1f)
+        // Expanded header: invisible until 0.3, fully visible at 1.0
+        val expandedAlpha  = ((offset - 0.3f) / 0.7f).coerceIn(0f, 1f)
+
+        binding.headerCollapsed.alpha = collapsedAlpha
+        binding.headerExpanded.alpha  = expandedAlpha
+
+        // INVISIBLE not GONE — GONE causes layout shifts that jerk the RecyclerView
+        binding.headerCollapsed.visibility =
+            if (collapsedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+        binding.headerExpanded.visibility =
+            if (expandedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+
+        // Tab layouts mirror their respective headers
+        val isSearchActive = currentQuery.isNotBlank()
+        if (!isSearchActive) {
+            binding.tabLayout.alpha         = collapsedAlpha
+            binding.tabLayoutExpanded.alpha = expandedAlpha
+            binding.tabLayout.visibility =
+                if (collapsedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+            binding.tabLayoutExpanded.visibility =
+                if (expandedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+        }
+
+        // Switch the RecyclerView layout manager at 75 % of travel —
+        // while the spring is still in motion so the user never sees a jump.
+        val effectiveExpanded = offset >= 0.75f
+        if (fontsAdapter.isExpanded != effectiveExpanded) {
+            binding.fontsRV.recycledViewPool.clear()
+            fontsAdapter.isExpanded       = effectiveExpanded
+            binding.fontsRV.layoutManager = buildLayoutManager(effectiveExpanded)
         }
     }
 
@@ -710,29 +763,16 @@ class TextFragment : Fragment() {
     // Drag handle
     // ─────────────────────────────────────────────────────────────────────────
 
-    @SuppressLint("ClickableViewAccessibility")
     private fun attachDragHandleSwipe() {
-        val thresholdPx = 30 * resources.displayMetrics.density
-        var startY = 0f
-
-        binding.dragHandle.setOnTouchListener { _, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN   -> { startY = event.rawY; true }
-                MotionEvent.ACTION_UP     -> {
-                    val dy = startY - event.rawY
-                    if (abs(dy) >= thresholdPx) {
-                        when {
-                            dy > 0 && !isPanelExpanded ->
-                                mainViewModel.togglePanel(PanelType.FONTS)
-                            dy < 0 && isPanelExpanded  ->
-                                mainViewModel.togglePanel(PanelType.FONTS)
-                        }
-                    }
-                    true
-                }
-                MotionEvent.ACTION_CANCEL -> true
-                else -> false
+        // Walk up the fragment hierarchy to find EditorFragment and hand it our
+        // drag handle so PanelSheetBehavior drives the guideline directly.
+        var f: Fragment? = this
+        while (f != null) {
+            if (f is EditorFragment) {
+                f.attachDragHandle(binding.dragHandle)
+                return
             }
+            f = f.parentFragment
         }
     }
 

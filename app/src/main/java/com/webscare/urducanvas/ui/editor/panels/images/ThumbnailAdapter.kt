@@ -1,4 +1,4 @@
-package com.webscare.urducanvas.ui.editor.panels.objects
+package com.webscare.urducanvas.ui.editor.panels.images
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -12,7 +12,6 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.ShapeType
 import com.webscare.urducanvas.common.canvas.model.EmojiMeta
 import com.webscare.urducanvas.common.utils.Constants
@@ -20,7 +19,6 @@ import com.webscare.urducanvas.common.utils.ShapeRenderUtils.drawShape
 import com.webscare.urducanvas.common.utils.SvgLoader
 import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.databinding.LayoutThumbnailItemBinding
-import com.webscare.urducanvas.ui.editor.panels.images.resolveUrl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
