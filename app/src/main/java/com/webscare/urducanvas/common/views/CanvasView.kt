@@ -49,6 +49,7 @@ import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.BlendType
 import com.webscare.urducanvas.common.canvas.enums.BrushStyle
 import com.webscare.urducanvas.common.canvas.enums.ElementType
+import com.webscare.urducanvas.common.canvas.enums.FeatherDirection
 import com.webscare.urducanvas.common.canvas.enums.GradientType
 import com.webscare.urducanvas.common.canvas.enums.HAlign
 import com.webscare.urducanvas.common.canvas.enums.LabelShape
@@ -91,6 +92,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sign
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 class CanvasView @JvmOverloads constructor(
     context: Context,
@@ -2636,7 +2638,7 @@ class CanvasView @JvmOverloads constructor(
                                     // ── Feather: soft edge fade, instant GPU, no pixel loops ────────
                                     if (element.hasFeather && element.featherRadius > 0f) {
                                         drawFeatherMask(canvas, bl, bt, br, bb,
-                                            element.featherRadius, element.featherWidth)
+                                            element.featherRadius, element.featherWidth, element.featherDirection!!)
                                     }
 
                                     canvas.restore()
@@ -2677,7 +2679,7 @@ class CanvasView @JvmOverloads constructor(
                                     // ── Feather: soft edge fade, instant GPU, no pixel loops ────────
                                     if (element.hasFeather && element.featherRadius > 0f) {
                                         drawFeatherMask(canvas, left, top, left + w, top + h,
-                                            element.featherRadius, element.featherWidth)
+                                            element.featherRadius, element.featherWidth, element.featherDirection!!)
                                     }
 
                                     canvas.restore()
@@ -2844,7 +2846,7 @@ class CanvasView @JvmOverloads constructor(
                                 // ── Feather: soft edge fade, instant GPU, no pixel loops ────────────
                                 if (element.hasFeather && element.featherRadius > 0f) {
                                     drawFeatherMask(canvas, left, top, left + w, top + h,
-                                        element.featherRadius, element.featherWidth)
+                                        element.featherRadius, element.featherWidth, element.featherDirection!!)
                                 }
                             }
 
@@ -3356,7 +3358,7 @@ class CanvasView @JvmOverloads constructor(
                 if (element.hasFeather && element.featherRadius > 0f) {
                     drawFeatherMask(canvas,
                         localRect.left, localRect.top, localRect.right, localRect.bottom,
-                        element.featherRadius, element.featherWidth)
+                        element.featherRadius, element.featherWidth, element.featherDirection!!)
                 }
 
                 canvas.restore()
@@ -3614,7 +3616,8 @@ class CanvasView @JvmOverloads constructor(
     private fun drawFeatherMask(
         canvas: Canvas,
         left: Float, top: Float, right: Float, bottom: Float,
-        featherRadius: Float, featherWidth: Float
+        featherRadius: Float, featherWidth: Float,
+        direction: FeatherDirection = FeatherDirection.ALL
     ) {
         if (featherRadius <= 0f) return
         val w = right - left
@@ -3624,32 +3627,26 @@ class CanvasView @JvmOverloads constructor(
         val maskW = 128
         val maskH = 128
 
-        // Square-root mapping: makes small seekbar values immediately visible.
-        // seekbar=1  → fraction≈0.10  (10% of half-width fades)
-        // seekbar=25 → fraction≈0.50  (50%)
-        // seekbar=100→ fraction=1.00  (reaches center)
-        val fraction = Math.sqrt((featherRadius / 100.0)).toFloat().coerceIn(0f, 1f)
+        val fraction = sqrt((featherRadius / 100.0)).toFloat().coerceIn(0f, 1f)
         val bandX = (maskW / 2f) * fraction
         val bandY = (maskH / 2f) * fraction
-
-        // Softness exponent: HIGH exponent = steep crisp ramp, LOW exponent = gradual soft fade.
-        // So we INVERT the softness mapping: softness=0 → exponent=8.0 (hard crisp edge),
-        // softness=100 → exponent=1.0 (very gradual smooth fade).
         val exponent = 1.0 + ((100f - featherWidth) / 100.0) * 7.0
+
+        // Which edges are active
+        val doTop    = direction == FeatherDirection.ALL || direction == FeatherDirection.TOP
+        val doBottom = direction == FeatherDirection.ALL || direction == FeatherDirection.BOTTOM
+        val doLeft   = direction == FeatherDirection.ALL || direction == FeatherDirection.LEFT
+        val doRight  = direction == FeatherDirection.ALL || direction == FeatherDirection.RIGHT
 
         val pixels = IntArray(maskW * maskH)
         for (py in 0 until maskH) {
-            val topRamp = if (bandY <= 0f) 1f else
-                smoothStep((py / bandY).coerceIn(0f, 1f), exponent)
-            val botRamp = if (bandY <= 0f) 1f else
-                smoothStep(((maskH - 1 - py) / bandY).coerceIn(0f, 1f), exponent)
+            val topRamp    = if (doTop    && bandY > 0f) smoothStep((py / bandY).coerceIn(0f, 1f), exponent) else 1f
+            val botRamp    = if (doBottom && bandY > 0f) smoothStep(((maskH - 1 - py) / bandY).coerceIn(0f, 1f), exponent) else 1f
             val vRamp = topRamp * botRamp
 
             for (px in 0 until maskW) {
-                val leftRamp = if (bandX <= 0f) 1f else
-                    smoothStep((px / bandX).coerceIn(0f, 1f), exponent)
-                val rightRamp = if (bandX <= 0f) 1f else
-                    smoothStep(((maskW - 1 - px) / bandX).coerceIn(0f, 1f), exponent)
+                val leftRamp  = if (doLeft  && bandX > 0f) smoothStep((px / bandX).coerceIn(0f, 1f), exponent) else 1f
+                val rightRamp = if (doRight && bandX > 0f) smoothStep(((maskW - 1 - px) / bandX).coerceIn(0f, 1f), exponent) else 1f
                 val alpha = (vRamp * leftRamp * rightRamp * 255f).toInt().coerceIn(0, 255)
                 pixels[py * maskW + px] = Color.argb(alpha, 0, 0, 0)
             }
@@ -3657,7 +3654,6 @@ class CanvasView @JvmOverloads constructor(
 
         val maskBmp = Bitmap.createBitmap(maskW, maskH, Bitmap.Config.ARGB_8888)
         maskBmp.setPixels(pixels, 0, maskW, 0, 0, maskW, maskH)
-
         val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             isFilterBitmap = true
             xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)

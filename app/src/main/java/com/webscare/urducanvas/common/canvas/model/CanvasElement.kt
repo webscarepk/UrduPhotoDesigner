@@ -12,6 +12,7 @@ import android.text.TextPaint
 import com.google.gson.annotations.SerializedName
 import com.webscare.urducanvas.common.canvas.enums.BlendType
 import com.webscare.urducanvas.common.canvas.enums.ElementType
+import com.webscare.urducanvas.common.canvas.enums.FeatherDirection
 import com.webscare.urducanvas.common.canvas.enums.LabelShape
 import com.webscare.urducanvas.common.canvas.enums.LetterCasing
 import com.webscare.urducanvas.common.canvas.enums.ListStyle
@@ -150,6 +151,9 @@ data class CanvasElement(
     @SerializedName("featherRadius") var featherRadius: Float = 0f,
 
     @SerializedName("featherWidth") var featherWidth: Float = 50f,
+
+    @SerializedName("featherDirection")
+    var featherDirection: FeatherDirection? = FeatherDirection.ALL,
 
     @SerializedName("blendType") var blendType: BlendType = BlendType.NORMAL,
 

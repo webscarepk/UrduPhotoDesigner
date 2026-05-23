@@ -137,12 +137,22 @@ class ImagesFragment : Fragment() {
 
     @SuppressLint("ClickableViewAccessibility")
     private fun attachDragHandleSwipe() {
-        // Walk up the fragment hierarchy to find EditorFragment.
-        // panelNavHost hosts our fragment, EditorFragment hosts panelNavHost.
+        // Walk up the fragment hierarchy to find EditorFragment and hand it our
+        // drag handle so PanelSheetBehavior drives the guideline directly.
         var f: Fragment? = this
         while (f != null) {
             if (f is EditorFragment) {
                 f.attachDragHandle(binding.dragHandle)
+
+                // Also register the top-toolbar areas (collapsed + expanded headers)
+                // so swiping down on the toolbar collapses the panel — same gesture
+                // as dragging the handle.
+                binding.root.post {
+                    (f as EditorFragment).panelSheetBehavior()?.let { sheet ->
+                        sheet.attachAdditionalHandle(binding.headerCollapsed)
+                        sheet.attachAdditionalHandle(binding.headerExpanded)
+                    }
+                }
                 return
             }
             f = f.parentFragment

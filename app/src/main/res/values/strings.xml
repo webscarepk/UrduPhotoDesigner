@@ -352,6 +352,14 @@
     <string name="typography">Typography</string>
     <string name="brush">Brush</string>
     <string name="distance">Distance</string>
+    <string name="feather_direction">Feather Direction</string>
+    <string name="left">Left</string>
+    <string name="right">Right</string>
+    <string name="top">Top</string>
+    <string name="bottom">Bottom</string>
+    <string name="join_whatsapp_channel">Join WhatsApp Channel</string>
+    <string name="general">General</string>
+    <string name="feedback">Feedback</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>

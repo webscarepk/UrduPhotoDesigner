@@ -1,8 +1,10 @@
 package com.webscare.urducanvas.ui.editor.panels.text.fonts
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
@@ -16,12 +18,14 @@ import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.PanelType
 import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
 import com.webscare.urducanvas.databinding.FragmentFontsListBinding
+import com.webscare.urducanvas.ui.editor.EditorFragment
+import com.webscare.urducanvas.ui.editor.PanelSheetBehavior
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 @AndroidEntryPoint
 class FontsListFragment : androidx.fragment.app.Fragment() {
@@ -40,15 +44,9 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
     private var currentCategory: String? = null
     private var pendingScrollToFontId: String? = null
 
-    // ── Scroll preservation across hide/show ──────────────────────────────────
     private var savedScrollIndex: Int = 0
     private var savedScrollOffset: Int = 0
 
-    /**
-     * Passed down from FontsFragment via arguments.
-     * When true, selecting a font does NOT collapse the sliding panel
-     * because we're inside the text adjustment panel, not the asset browser.
-     */
     private var standaloneMode: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,13 +66,12 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
+        setupSwipeToExpand()   // ← swipe-up on RV to expand panel
         observeExpansion()
         observeFontData()
         observeDownloadStates()
         observeCurrentFont()
     }
-
-    // ── Called by FontsFragment when language / category filter changes ────────
 
     fun applyFilter(language: String, category: String?) {
         currentLanguage = language
@@ -82,12 +79,9 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         view?.post { rebindLatest() }
     }
 
-    // ── Scroll save / restore ─────────────────────────────────────────────────
-
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
-        if (hidden) saveScrollPos()
-        else restoreScrollPos()
+        if (hidden) saveScrollPos() else restoreScrollPos()
     }
 
     override fun onDestroyView() {
@@ -110,14 +104,94 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         }
     }
 
+    // ── Swipe-up on englishRV to expand panel ─────────────────────────────────
+    //
+    // The RV is HORIZONTAL in collapsed mode so any upward vertical swipe is
+    // free to drive the panel — no vertical scroll competes with it.
+    //
+    // We pass downY (from ACTION_DOWN) as the anchor to externalDragBegin so
+    // every pixel of finger movement counts from the very start — not just
+    // from after the slop threshold.
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupSwipeToExpand() {
+        val slop = 8f * resources.displayMetrics.density
+
+        var downX = 0f
+        var downY = 0f
+        var trackingPanel = false
+        var decided = false
+
+        _binding?.englishRV?.setOnTouchListener { _, event ->
+            // Panel already expanded — let the vertical RV scroll normally
+            if (mainViewModel.isPanelExpanded(PanelType.FONTS)) return@setOnTouchListener false
+
+            val sheet = findPanelSheet() ?: return@setOnTouchListener false
+
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    downX = event.rawX
+                    downY = event.rawY
+                    trackingPanel = false
+                    decided = false
+                    false   // let RV see DOWN
+                }
+
+                MotionEvent.ACTION_MOVE -> {
+                    val dy = event.rawY - downY   // negative = finger moving up
+                    val dx = event.rawX - downX
+
+                    if (!decided) {
+                        if (abs(dy) < slop && abs(dx) < slop) return@setOnTouchListener false
+
+                        // Upward swipe that's more vertical than horizontal → take over
+                        if (dy < 0f && abs(dy) > abs(dx)) {
+                            trackingPanel = true
+                            sheet.externalDragBegin(downRawY = downY, currentRawY = event.rawY)
+                            // Cancel RV's own touch tracking (stops horizontal scroll)
+                            val cancel = MotionEvent.obtain(event).also { c ->
+                                c.action = MotionEvent.ACTION_CANCEL
+                            }
+                            _binding?.englishRV?.dispatchTouchEvent(cancel)
+                            cancel.recycle()
+                            // Prevent SwipeRefreshLayout / any parent from intercepting
+                            _binding?.englishRV?.parent?.requestDisallowInterceptTouchEvent(true)
+                        }
+                        decided = true
+                    }
+
+                    if (trackingPanel) { sheet.externalDragBy(event.rawY); true } else false
+                }
+
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    val was = trackingPanel
+                    if (was) sheet.externalDragEnd()
+                    trackingPanel = false
+                    decided = false
+                    was
+                }
+
+                else -> false
+            }
+        }
+    }
+
+    private fun findPanelSheet(): PanelSheetBehavior? {
+        var f: androidx.fragment.app.Fragment? = this
+        while (f != null) {
+            if (f is EditorFragment) return f.panelSheetBehavior()
+            f = f.parentFragment
+        }
+        return null
+    }
+
     // ── Expansion observer ────────────────────────────────────────────────────
 
     private fun observeExpansion() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.expandedPanel
-                    .map { it == PanelType.FONTS }
-                    .collect { expanded -> applyExpansion(expanded) }
+                    .collect { expanded -> applyExpansion(expanded == PanelType.FONTS) }
             }
         }
     }
@@ -146,7 +220,6 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
     ): List<com.webscare.urducanvas.data.model.FontEntity> {
         val query = queryRaw.trim().lowercase()
 
-        // "Recents" language — show recently used fonts in recency order
         if (currentLanguage == "Recents") {
             val recent = mainViewModel.recentFonts.value
             return if (query.isEmpty()) recent else {
@@ -263,11 +336,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         if (isDownloaded) {
             mainViewModel.recordRecentFont(font.id)
             viewModel.setFont(font)
-            // Only collapse the bottom panel if we're in asset-browser mode.
-            // In standalone/adjustment mode the panel collapse is irrelevant.
-            if (!standaloneMode) {
-                mainViewModel.collapsePanel()
-            }
+            if (!standaloneMode) mainViewModel.collapsePanel()
             return
         }
 
@@ -327,10 +396,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
                                 fontsAdapter.selectedFontId = completedFont.id.toString()
                                 pendingScrollToFontId       = completedFont.id.toString()
                                 viewModel.setFont(completedFont)
-                                // Collapse only in asset-browser mode
-                                if (!standaloneMode) {
-                                    mainViewModel.collapsePanel()
-                                }
+                                if (!standaloneMode) mainViewModel.collapsePanel()
                                 lastRequestedFontId         = null
                                 mainViewModel.clearFontDownloadState()
                             }

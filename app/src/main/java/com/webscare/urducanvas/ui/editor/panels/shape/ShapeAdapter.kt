@@ -81,9 +81,8 @@ class ShapeAdapter(
         // PAD controls how much empty space surrounds the shape.
         // 0.32f = shape occupies the middle 36% of the bitmap side.
         val pad    = size * PAD
-        val radius = (size - 2 * pad) * 0.22f
         val rect   = RectF(pad, pad, size - pad, size - pad)
-        drawShape(canvas, paint, shape, rect, if (shape == ShapeType.RECTANGLE) 0f else radius)
+        drawShape(canvas, paint, shape, rect, 0f)
         return bitmap
     }
 

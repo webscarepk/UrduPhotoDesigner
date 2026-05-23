@@ -174,9 +174,6 @@ class VectorsTabFragment : Fragment() {
         binding.objects.recycledViewPool.clear()
         binding.objects.layoutManager = buildLayoutManager(effectiveExpanded)
         shapesAdapter?.isExpanded = effectiveExpanded
-
-        val bottomPadding = if (effectiveExpanded) (64 * resources.displayMetrics.density).toInt() else 0
-        binding.objects.setPadding(0, 0, 0, bottomPadding)
     }
 
     fun onPanelExpanded(expanded: Boolean) {

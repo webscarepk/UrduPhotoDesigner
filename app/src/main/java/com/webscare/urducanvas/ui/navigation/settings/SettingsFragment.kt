@@ -104,6 +104,10 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
             openUrl("https://play.google.com/store/apps/details?id=${requireContext().packageName}")
         }
 
+        binding.whatsappChannel.addPressEffect {
+            openUrl("https://whatsapp.com/channel/0029Vb79Ac14IBhIMZYyvj0Y")
+        }
+
         binding.improve.addPressEffect {
             openEmail(
                 to = "support@urducanvas.com",

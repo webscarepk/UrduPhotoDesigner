@@ -22,6 +22,7 @@ import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.BlendType
 import com.webscare.urducanvas.common.canvas.enums.BrushStyle
 import com.webscare.urducanvas.common.canvas.enums.ElementType
+import com.webscare.urducanvas.common.canvas.enums.FeatherDirection
 import com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget
 import com.webscare.urducanvas.common.canvas.enums.GradientType
 import com.webscare.urducanvas.common.canvas.enums.LabelShape
@@ -256,6 +257,8 @@ class CanvasViewModel @Inject constructor(
     private val _featherRadius = MutableLiveData(0f)
     val featherRadius: LiveData<Float> = _featherRadius
 
+    private val _featherDirection = MutableLiveData<FeatherDirection>(FeatherDirection.ALL)
+    val featherDirection: LiveData<FeatherDirection> = _featherDirection
     private val _featherWidth = MutableLiveData(50f)
     val featherWidth: LiveData<Float> = _featherWidth
 
@@ -962,6 +965,28 @@ class CanvasViewModel @Inject constructor(
             } else element
         }
         _canvasElements.value = updatedList
+    }
+
+    fun setFeatherDirection(direction: FeatherDirection) {
+        _featherDirection.value = direction
+        val currentList = _canvasElements.value ?: return
+        val updatedList = currentList.map { element ->
+            if (element.isSelected) {
+                val old = element.copy(context = null, bitmap = null)
+                element.featherDirection = direction
+                _canvasActions.push(
+                    CanvasAction.UpdateElement(
+                        elementId = element.id,
+                        newElement = element.copy(context = null, bitmap = null),
+                        oldElement = old
+                    )
+                )
+                element
+            } else element
+        }
+        _canvasElements.value = updatedList
+        _redoStack.clear()
+        notifyUndoRedoChanged()
     }
 
     fun setFeather(value: Float) {

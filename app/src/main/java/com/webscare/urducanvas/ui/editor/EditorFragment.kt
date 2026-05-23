@@ -299,8 +299,10 @@ class EditorFragment : Fragment() {
         }
 
         binding.addShapes.addPressEffect {
-            shapeJustAdded = true
+            shapeJustAdded = false   // ← was true, change to false so observer allows navigation
             viewModel.addShapeElement()
+            val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
+            navController.navigate(R.id.shapesParentFragment, null, navOptions)
             toggleFabMenu(false)
         }
 
@@ -608,7 +610,12 @@ class EditorFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.expandedPanel.collect { panel ->
-                    expandPanel(panel != null)
+                    val expanded = panel != null
+                    expandPanel(expanded)
+                    // When any panel is expanded full-screen, block touches from
+                    // reaching the canvas behind it. Handled here once for every
+                    // panel type rather than in each panel fragment.
+                    setPanelTouchBlocked(expanded)
                 }
             }
         }
@@ -1747,10 +1754,7 @@ class EditorFragment : Fragment() {
 
             val collapsedPx = (rootHeight * 0.65f).toInt()   // resting position
 
-            // expandedPx = just below the header bottom edge
-            val headerLoc = IntArray(2); binding.header.getLocationInWindow(headerLoc)
-            val rootLoc   = IntArray(2); root.getLocationInWindow(rootLoc)
-            val expandedPx = (headerLoc[1] - rootLoc[1]) + binding.header.height + 4.dpToPx(requireContext())
+            val expandedPx = 0
 
             panelSheet = PanelSheetBehavior(
                 root            = root,
@@ -1760,6 +1764,8 @@ class EditorFragment : Fragment() {
                 expandedPx      = expandedPx,
                 onSlide         = { offset ->
                     mainViewModel.setPanelSlideOffset(offset)
+                    binding.fabContainer.alpha = 1f - offset
+                    binding.fabContainer.visibility = if (offset >= 1f) View.GONE else View.VISIBLE
                 },
                 onStateSettled  = { expanded ->
                     // Sync ViewModel so panels react
@@ -1784,9 +1790,7 @@ class EditorFragment : Fragment() {
 
             val collapsedPx = (rootHeight * 0.65f).toInt()
 
-            val headerLoc = IntArray(2); binding.header.getLocationInWindow(headerLoc)
-            val rootLoc   = IntArray(2); root.getLocationInWindow(rootLoc)
-            val expandedPx = (headerLoc[1] - rootLoc[1]) + binding.header.height + 4.dpToPx(requireContext())
+            val expandedPx = 0
 
             val dest = _navController?.currentDestination?.id
             val panelType = when (dest) {
@@ -1807,6 +1811,8 @@ class EditorFragment : Fragment() {
                 expandedPx      = expandedPx,
                 onSlide         = { offset ->
                     mainViewModel.setPanelSlideOffset(offset)
+                    binding.fabContainer.alpha = 1f - offset
+                    binding.fabContainer.visibility = if (offset >= 1f) View.GONE else View.VISIBLE
                 },
                 onStateSettled  = { expanded ->
                     if (expanded) {
@@ -1829,6 +1835,30 @@ class EditorFragment : Fragment() {
         }
         if (sheet.isCurrentlyExpanded() == expanded) return
         sheet.snapTo(expanded)
+    }
+
+    /** For panels that want to forward gestures (e.g. swipe-up on RV at top). */
+    fun panelSheetBehavior(): PanelSheetBehavior? = panelSheet
+
+    /**
+     * Block all touches from reaching the canvas while a panel is expanded
+     * full-screen. Centralized here so every panel fragment doesn't have to
+     * reimplement it.
+     *
+     * `panelNavHost` is the container that holds every panel (fonts, images,
+     * shapes, etc.). When expanded, we set a no-op touch listener on it so any
+     * touch that bubbles up unhandled — taps on gaps, drags on empty regions —
+     * is swallowed by the panel itself and never reaches the canvas behind.
+     * Children of the panel (RV scroll, button taps, search input, drag handle)
+     * keep working because they consume their own touches before the bubble.
+     */
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setPanelTouchBlocked(blocked: Boolean) {
+        if (blocked) {
+            binding.panelNavHost.setOnTouchListener { _, _ -> true }
+        } else {
+            binding.panelNavHost.setOnTouchListener(null)
+        }
     }
 
     override fun onDestroyView() {

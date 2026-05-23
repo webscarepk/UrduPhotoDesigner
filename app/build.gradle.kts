@@ -17,8 +17,8 @@ android {
         applicationId = "com.webscare.urducanvas"
         minSdk = 24
         targetSdk = 36
-        versionCode = 14
-        versionName = "1.1.4"
+        versionCode = 16
+        versionName = "1.1.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         setProperty("archivesBaseName", "UrduCanvas - V$versionCode($versionName)")

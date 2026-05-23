@@ -112,16 +112,8 @@ class ShapeFragment : Fragment() {
 
     private fun handleUserTap(selected: AdjustmentPanelTabs) {
         when (selected.tab_name) {
-            "Fill" -> {
-                val new = !isFillEnabled
-                if (!new && !isStrokeEnabled) viewModel.toggleFillEnabled(true)
-                else viewModel.toggleFillEnabled(new)
-            }
-            "Stroke" -> {
-                val new = !isStrokeEnabled
-                if (!new && !isFillEnabled) viewModel.toggleStrokeEnabled(true)
-                else viewModel.toggleStrokeEnabled(new)
-            }
+            "Fill"   -> viewModel.toggleFillEnabled(!isFillEnabled)
+            "Stroke" -> viewModel.toggleStrokeEnabled(!isStrokeEnabled)
             "Corner" -> viewModel.toggleCornerEnabled(!isCornerEnabled)
             "Mask"   -> {
                 val element = viewModel.selectedElements.value?.firstOrNull()

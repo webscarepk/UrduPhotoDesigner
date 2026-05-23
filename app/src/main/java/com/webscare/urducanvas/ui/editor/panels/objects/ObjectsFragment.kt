@@ -148,6 +148,16 @@ class ObjectsFragment : Fragment() {
         while (f != null) {
             if (f is EditorFragment) {
                 f.attachDragHandle(binding.dragHandle)
+
+                // Also register the top-toolbar areas (collapsed + expanded headers)
+                // so swiping down on the toolbar collapses the panel — same gesture
+                // as dragging the handle.
+                binding.root.post {
+                    (f as EditorFragment).panelSheetBehavior()?.let { sheet ->
+                        sheet.attachAdditionalHandle(binding.headerCollapsed)
+                        sheet.attachAdditionalHandle(binding.headerExpanded)
+                    }
+                }
                 return
             }
             f = f.parentFragment

@@ -52,6 +52,16 @@
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide">
 
+        <TextView
+            android:id="@+id/panelTitleCollapsed"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/brush"
+            android:fontFamily="@font/bold"
+            android:textSize="16sp"
+            android:textColor="@color/black" />
+
         <ImageView
             android:id="@+id/reset"
             android:layout_width="28dp"

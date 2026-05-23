@@ -1,6 +1,8 @@
 package com.webscare.urducanvas
 
+import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
@@ -388,6 +390,12 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateManager.onResume(this)
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        val config = Configuration(newBase.resources.configuration)
+        config.fontScale = 1.0f
+        super.attachBaseContext(newBase.createConfigurationContext(config))
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

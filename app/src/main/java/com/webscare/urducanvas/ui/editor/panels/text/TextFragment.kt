@@ -41,7 +41,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 
 @AndroidEntryPoint
 class TextFragment : Fragment() {
@@ -73,8 +72,10 @@ class TextFragment : Fragment() {
 
     // Prevents re-entrant listener calls when syncing collapsed ↔ expanded tabs
     private var tabListenerAttached = false
+
     // Held so we can clearOnTabSelectedListeners() before re-adding on tab rebuild
     private var tabListener: TabLayout.OnTabSelectedListener? = null
+
     // Re-entrance guard: prevents the sync call from triggering a second full handler run
     private var isSyncingTabs = false
 
@@ -108,6 +109,7 @@ class TextFragment : Fragment() {
         observeFontData()
         observeDownloadStates()
         observeCurrentFont()
+
     }
 
     // Reads persisted tab/scroll state from ViewModel back into local fields.
@@ -116,7 +118,7 @@ class TextFragment : Fragment() {
     private fun restoreTabState() {
         selectedLanguage = mainViewModel.lastFontsLanguage
         selectedCategory = mainViewModel.lastFontsCategory
-        inCategoryMode   = mainViewModel.lastFontsInCategoryMode
+        inCategoryMode = mainViewModel.lastFontsInCategoryMode
         // scroll is restored inside submitFonts() using lastFontsScrollIndex/Offset
     }
 
@@ -170,7 +172,7 @@ class TextFragment : Fragment() {
     // ─────────────────────────────────────────────────────────────────────────
 
     private fun showLanguageTabs() {
-        inCategoryMode      = false
+        inCategoryMode = false
         tabListenerAttached = false
         // Remove old listener before rebuilding to prevent double-fire
         clearTabListeners()
@@ -178,9 +180,8 @@ class TextFragment : Fragment() {
         listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
             tl.removeAllTabs()
             languageList.forEach { lang ->
-                val tab     = tl.newTab()
-                val tabView = LayoutInflater.from(context)
-                    .inflate(R.layout.custom_tab, tl, false)
+                val tab = tl.newTab()
+                val tabView = LayoutInflater.from(context).inflate(R.layout.custom_tab, tl, false)
                 tabView.findViewById<TextView>(R.id.tabTitle).text = lang
                 tab.customView = tabView
                 tl.addTab(tab, false)
@@ -202,7 +203,7 @@ class TextFragment : Fragment() {
     // ─────────────────────────────────────────────────────────────────────────
 
     private fun showCategoryTabs(categories: List<String>) {
-        inCategoryMode      = true
+        inCategoryMode = true
         tabListenerAttached = false
         // Remove old listener before rebuilding to prevent double-fire
         clearTabListeners()
@@ -225,9 +226,8 @@ class TextFragment : Fragment() {
             tl.removeAllTabs()
 
             // Tab 0 — pinned language label, acts as "you are here" + tap-back
-            val pinnedTab  = tl.newTab()
-            val pinnedView = LayoutInflater.from(context)
-                .inflate(R.layout.custom_tab, tl, false)
+            val pinnedTab = tl.newTab()
+            val pinnedView = LayoutInflater.from(context).inflate(R.layout.custom_tab, tl, false)
             pinnedView.findViewById<TextView>(R.id.tabTitle).apply {
                 text = selectedLanguage
                 setTextColor(ContextCompat.getColor(requireContext(), R.color.appColor))
@@ -237,9 +237,8 @@ class TextFragment : Fragment() {
 
             // Tab 1 = "All", Tab 2+ = individual categories
             allCategories.forEach { cat ->
-                val tab     = tl.newTab()
-                val tabView = LayoutInflater.from(context)
-                    .inflate(R.layout.custom_tab, tl, false)
+                val tab = tl.newTab()
+                val tabView = LayoutInflater.from(context).inflate(R.layout.custom_tab, tl, false)
                 tabView.findViewById<TextView>(R.id.tabTitle).text = cat
                 tab.customView = tabView
                 tl.addTab(tab, false)
@@ -282,8 +281,8 @@ class TextFragment : Fragment() {
                 val pos = tab?.position ?: return
 
                 // Sync the other TabLayout (collapsed ↔ expanded)
-                val other = if (tab.parent == binding.tabLayout)
-                    binding.tabLayoutExpanded else binding.tabLayout
+                val other =
+                    if (tab.parent == binding.tabLayout) binding.tabLayoutExpanded else binding.tabLayout
                 if (other.selectedTabPosition != pos) {
                     isSyncingTabs = true
                     other.getTabAt(pos)?.select()
@@ -295,21 +294,22 @@ class TextFragment : Fragment() {
                     if (pos == 0) {
                         selectedCategory = null
                         // Persist: back to language mode
-                        mainViewModel.lastFontsCategory       = null
+                        mainViewModel.lastFontsCategory = null
                         mainViewModel.lastFontsInCategoryMode = false
                         showLanguageTabs()
                         rebindFonts()
                         return
                     }
 
-                    val cat = (tab.customView?.findViewById<TextView>(R.id.tabTitle))
-                        ?.text?.toString() ?: return
+                    val cat =
+                        (tab.customView?.findViewById<TextView>(R.id.tabTitle))?.text?.toString()
+                            ?: return
 
                     // pos 1 = "All" tab → null means no category filter
                     selectedCategory = if (cat == "All") null else cat
 
                     // Persist category selection
-                    mainViewModel.lastFontsCategory       = selectedCategory
+                    mainViewModel.lastFontsCategory = selectedCategory
                     mainViewModel.lastFontsInCategoryMode = true
 
                     tab.view.animate().scaleX(1f).scaleY(1f).setDuration(100)
@@ -318,8 +318,9 @@ class TextFragment : Fragment() {
                     rebindFonts()
                 } else {
                     // LANGUAGE mode
-                    val lang = (tab.customView?.findViewById<TextView>(R.id.tabTitle))
-                        ?.text?.toString() ?: return
+                    val lang =
+                        (tab.customView?.findViewById<TextView>(R.id.tabTitle))?.text?.toString()
+                            ?: return
                     selectedLanguage = lang
                     selectedCategory = null
 
@@ -327,11 +328,12 @@ class TextFragment : Fragment() {
                         .setInterpolator(OvershootInterpolator(1.2f)).start()
 
                     val cats = languageCategoryMap[lang] ?: emptyList()
-                    val hasCats = cats.isNotEmpty() && lang != "All" && lang != "Recents" && lang != "Imported"
+                    val hasCats =
+                        cats.isNotEmpty() && lang != "All" && lang != "Recents" && lang != "Imported"
 
                     // Persist language selection
-                    mainViewModel.lastFontsLanguage       = lang
-                    mainViewModel.lastFontsCategory       = null
+                    mainViewModel.lastFontsLanguage = lang
+                    mainViewModel.lastFontsCategory = null
                     mainViewModel.lastFontsInCategoryMode = hasCats
 
                     if (hasCats) showCategoryTabs(cats)
@@ -352,7 +354,7 @@ class TextFragment : Fragment() {
                 if (inCategoryMode && tab?.position == 0) {
                     selectedCategory = null
                     // Persist: back to language mode
-                    mainViewModel.lastFontsCategory       = null
+                    mainViewModel.lastFontsCategory = null
                     mainViewModel.lastFontsInCategoryMode = false
                     showLanguageTabs()
                     rebindFonts()
@@ -361,8 +363,9 @@ class TextFragment : Fragment() {
                 // In language mode: reselecting a language that has categories
                 // drops into category mode (user tapped the same language again)
                 if (!inCategoryMode) {
-                    val lang = (tab?.customView?.findViewById<TextView>(R.id.tabTitle))
-                        ?.text?.toString() ?: return
+                    val lang =
+                        (tab?.customView?.findViewById<TextView>(R.id.tabTitle))?.text?.toString()
+                            ?: return
                     val cats = languageCategoryMap[lang] ?: emptyList()
                     if (cats.isNotEmpty() && lang != "All" && lang != "Recents" && lang != "Imported") {
                         mainViewModel.lastFontsInCategoryMode = true
@@ -419,11 +422,14 @@ class TextFragment : Fragment() {
         }
 
         val byLanguage = when (selectedLanguage) {
-            "All"      -> fonts
+            "All" -> fonts
             "Imported" -> fonts.filter {
-                it.font_language.equals("Imported", true) &&
-                        it.font_category.equals("Imported", true)
+                it.font_language.equals("Imported", true) && it.font_category.equals(
+                    "Imported",
+                    true
+                )
             }
+
             else -> fonts.filter {
                 it.font_language.equals(selectedLanguage, ignoreCase = true)
             }
@@ -438,8 +444,8 @@ class TextFragment : Fragment() {
             val tokens = q.split(Regex("\\s+")).filter { it.isNotEmpty() }
             byCategory.filter { f ->
                 val hay = buildString {
-                    append(f.font_name);     append(' ')
-                    append(f.file_name);     append(' ')
+                    append(f.font_name); append(' ')
+                    append(f.file_name); append(' ')
                     append(f.font_category); append(' ')
                     append(f.alt_text ?: "")
                 }.lowercase()
@@ -449,14 +455,14 @@ class TextFragment : Fragment() {
 
         // "All" tab — interleave Urdu + English for visual variety
         return if (selectedLanguage == "All" && selectedCategory == null) {
-            val urdu    = filtered.filter { it.font_language.equals("Urdu", true) }
+            val urdu = filtered.filter { it.font_language.equals("Urdu", true) }
                 .sortedBy { it.font_name?.lowercase() }
             val english = filtered.filter { it.font_language.equals("English", true) }
                 .sortedBy { it.font_name?.lowercase() }
-            val merged  = mutableListOf<FontEntity>()
-            val max     = maxOf(urdu.size, english.size)
+            val merged = mutableListOf<FontEntity>()
+            val max = maxOf(urdu.size, english.size)
             for (i in 0 until max) {
-                if (i < urdu.size)    merged.add(urdu[i])
+                if (i < urdu.size) merged.add(urdu[i])
                 if (i < english.size) merged.add(english[i])
             }
             merged
@@ -471,14 +477,14 @@ class TextFragment : Fragment() {
     }
 
     private fun submitFonts(list: List<FontEntity>) {
-        val lm       = binding.fontsRV.layoutManager as? LinearLayoutManager
+        val lm = binding.fontsRV.layoutManager as? LinearLayoutManager
         val savedIdx = lm?.findFirstVisibleItemPosition()?.takeIf { it >= 0 } ?: 0
         val savedOff = lm?.findViewByPosition(savedIdx)?.top ?: 0
         val scrollTo = pendingScrollToFontId
 
         // Persist scroll position so it survives fragment recreation
         if (savedIdx > 0) {
-            mainViewModel.lastFontsScrollIndex  = savedIdx
+            mainViewModel.lastFontsScrollIndex = savedIdx
             mainViewModel.lastFontsScrollOffset = savedOff
         }
 
@@ -488,19 +494,23 @@ class TextFragment : Fragment() {
                 val pos = list.indexOfFirst { it.id.toString() == scrollTo }
                 if (pos >= 0) binding.fontsRV.post {
                     if (_binding == null) return@post
-                    (binding.fontsRV.layoutManager as? LinearLayoutManager)
-                        ?.scrollToPositionWithOffset(pos, 0)
+                    (binding.fontsRV.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(
+                            pos,
+                            0
+                        )
                 }
                 if (pendingScrollToFontId == scrollTo) pendingScrollToFontId = null
             } else {
                 // Prefer live scroll position; fall back to ViewModel-persisted value
                 // on first load after recreation (when savedIdx is still 0)
                 val restoreIdx = if (savedIdx > 0) savedIdx else mainViewModel.lastFontsScrollIndex
-                val restoreOff = if (savedIdx > 0) savedOff  else mainViewModel.lastFontsScrollOffset
+                val restoreOff = if (savedIdx > 0) savedOff else mainViewModel.lastFontsScrollOffset
                 binding.fontsRV.post {
                     if (_binding == null) return@post
-                    (binding.fontsRV.layoutManager as? LinearLayoutManager)
-                        ?.scrollToPositionWithOffset(restoreIdx, restoreOff)
+                    (binding.fontsRV.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(
+                            restoreIdx,
+                            restoreOff
+                        )
                 }
             }
         }
@@ -517,10 +527,10 @@ class TextFragment : Fragment() {
             mainViewModel.collapsePanel()
             return
         }
-        pendingFontEntity   = font
+        pendingFontEntity = font
         lastRequestedFontId = font.id
 
-        val lm       = binding.fontsRV.layoutManager as? LinearLayoutManager
+        val lm = binding.fontsRV.layoutManager as? LinearLayoutManager
         val savedIdx = lm?.findFirstVisibleItemPosition()?.takeIf { it >= 0 } ?: 0
         val savedOff = lm?.findViewByPosition(savedIdx)?.top ?: 0
 
@@ -531,8 +541,10 @@ class TextFragment : Fragment() {
             if (_binding == null) return@submitList
             binding.fontsRV.post {
                 if (_binding == null) return@post
-                (binding.fontsRV.layoutManager as? LinearLayoutManager)
-                    ?.scrollToPositionWithOffset(savedIdx, savedOff)
+                (binding.fontsRV.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(
+                        savedIdx,
+                        savedOff
+                    )
             }
         }
         mainViewModel.downloadFont(font)
@@ -549,11 +561,10 @@ class TextFragment : Fragment() {
                     mainViewModel.localFonts,
                     mainViewModel.queryDebounced.onStart { emit("") },
                     mainViewModel.recentFonts
-                ) { fonts, query, _ -> Pair(fonts, query) }
-                    .collect { (fonts, query) ->
-                        currentQuery        = query
+                ) { fonts, query, _ -> Pair(fonts, query) }.collect { (fonts, query) ->
+                        currentQuery = query
                         languageCategoryMap = buildLanguageCategoryMap(fonts)
-                        languageList        = buildLanguageList(fonts)
+                        languageList = buildLanguageList(fonts)
 
                         // Only rebuild tabs if still in language mode.
                         // If we restored inCategoryMode = true from ViewModel,
@@ -576,18 +587,16 @@ class TextFragment : Fragment() {
     private fun buildLanguageList(fonts: List<FontEntity>): List<String> {
         // Preferred display order — Urdu first, then English, then anything else alphabetically
         val preferredOrder = listOf("Urdu", "English")
-        val allLangs = fonts
-            .map { it.font_language.trim() }
-            .filter { it.isNotBlank() && !it.equals("Imported", ignoreCase = true) }
-            .distinct()
+        val allLangs = fonts.map { it.font_language.trim() }
+            .filter { it.isNotBlank() && !it.equals("Imported", ignoreCase = true) }.distinct()
         val preferred = preferredOrder.filter { pref ->
             allLangs.any { it.equals(pref, ignoreCase = true) }
         }
-        val rest = allLangs
-            .filter { lang -> preferredOrder.none { it.equals(lang, ignoreCase = true) } }
-            .sorted()
+        val rest =
+            allLangs.filter { lang -> preferredOrder.none { it.equals(lang, ignoreCase = true) } }
+                .sorted()
         val hasImported = fonts.any { it.font_language.equals("Imported", ignoreCase = true) }
-        val hasRecents  = mainViewModel.recentFonts.value.isNotEmpty()
+        val hasRecents = mainViewModel.recentFonts.value.isNotEmpty()
         return buildList {
             add("All")
             if (hasRecents) add("Recents")
@@ -599,16 +608,15 @@ class TextFragment : Fragment() {
 
     /** language → sorted distinct category list; "All", "Recents", and "Imported" → empty */
     private fun buildLanguageCategoryMap(fonts: List<FontEntity>): Map<String, List<String>> {
-        val map = mutableMapOf("All" to emptyList<String>(), "Recents" to emptyList(), "Imported" to emptyList())
-        fonts.groupBy { it.font_language.trim() }
-            .filter { (lang, _) ->
+        val map = mutableMapOf(
+            "All" to emptyList<String>(), "Recents" to emptyList(), "Imported" to emptyList()
+        )
+        fonts.groupBy { it.font_language.trim() }.filter { (lang, _) ->
                 lang.isNotBlank() && !lang.equals("Imported", ignoreCase = true)
-            }
-            .forEach { (lang, langFonts) ->
-                map[lang] = langFonts
-                    .map { it.font_category.trim() }
-                    .filter { it.isNotBlank() }
-                    .distinct().sorted()
+            }.forEach { (lang, langFonts) ->
+                map[lang] =
+                    langFonts.map { it.font_category.trim() }.filter { it.isNotBlank() }.distinct()
+                        .sorted()
             }
         return map
     }
@@ -623,22 +631,24 @@ class TextFragment : Fragment() {
                             if (done.id == lastRequestedFontId) {
                                 mainViewModel.recordRecentFont(done.id)
                                 fontsAdapter.selectedFontId = done.id.toString()
-                                pendingScrollToFontId       = done.id.toString()
+                                pendingScrollToFontId = done.id.toString()
                                 viewModel.setFont(done)
                                 mainViewModel.collapsePanel()
                                 lastRequestedFontId = null
-                                pendingFontEntity   = null
+                                pendingFontEntity = null
                                 mainViewModel.clearFontDownloadState()
                             }
                         }
+
                         is FontDownloadState.Error -> {
                             view?.let {
                                 Snackbar.make(it, "Download failed!", Snackbar.LENGTH_SHORT).show()
                             }
-                            pendingFontEntity   = null
+                            pendingFontEntity = null
                             lastRequestedFontId = null
                             mainViewModel.clearFontDownloadState()
                         }
+
                         else -> {
                             pendingFontEntity?.let { font ->
                                 if (font.is_downloaded) viewModel.setFont(font)
@@ -665,8 +675,7 @@ class TextFragment : Fragment() {
         // ── 1. Final settled state: swap layout manager, update headers ─────────
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                mainViewModel.expandedPanel
-                    .map { it == PanelType.FONTS }
+                mainViewModel.expandedPanel.map { it == PanelType.FONTS }
                     .collect { expanded -> applyExpandedUi(expanded) }
             }
         }
@@ -691,26 +700,23 @@ class TextFragment : Fragment() {
         // Collapsed header: fully visible at 0, fades out by 0.4
         val collapsedAlpha = (1f - offset / 0.4f).coerceIn(0f, 1f)
         // Expanded header: invisible until 0.3, fully visible at 1.0
-        val expandedAlpha  = ((offset - 0.3f) / 0.7f).coerceIn(0f, 1f)
+        val expandedAlpha = ((offset - 0.3f) / 0.7f).coerceIn(0f, 1f)
 
         binding.headerCollapsed.alpha = collapsedAlpha
-        binding.headerExpanded.alpha  = expandedAlpha
+        binding.headerExpanded.alpha = expandedAlpha
 
         // INVISIBLE not GONE — GONE causes layout shifts that jerk the RecyclerView
-        binding.headerCollapsed.visibility =
-            if (collapsedAlpha > 0f) View.VISIBLE else View.INVISIBLE
-        binding.headerExpanded.visibility =
-            if (expandedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+        binding.headerCollapsed.visibility = if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
+        binding.headerExpanded.visibility = if (expandedAlpha > 0f) View.VISIBLE else View.GONE
 
         // Tab layouts mirror their respective headers
         val isSearchActive = currentQuery.isNotBlank()
         if (!isSearchActive) {
-            binding.tabLayout.alpha         = collapsedAlpha
+            binding.tabLayout.alpha = collapsedAlpha
             binding.tabLayoutExpanded.alpha = expandedAlpha
-            binding.tabLayout.visibility =
-                if (collapsedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+            binding.tabLayout.visibility = if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
             binding.tabLayoutExpanded.visibility =
-                if (expandedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+                if (expandedAlpha > 0f) View.VISIBLE else View.GONE
         }
 
         // Switch the RecyclerView layout manager at 75 % of travel —
@@ -718,22 +724,22 @@ class TextFragment : Fragment() {
         val effectiveExpanded = offset >= 0.75f
         if (fontsAdapter.isExpanded != effectiveExpanded) {
             binding.fontsRV.recycledViewPool.clear()
-            fontsAdapter.isExpanded       = effectiveExpanded
+            fontsAdapter.isExpanded = effectiveExpanded
             binding.fontsRV.layoutManager = buildLayoutManager(effectiveExpanded)
         }
     }
 
     private fun applyExpandedUi(expanded: Boolean) {
-        binding.headerCollapsed.isVisible    = !expanded
-        binding.headerExpanded.isVisible     =  expanded
-        binding.tabLayoutExpanded.isVisible  =  expanded
+        binding.headerCollapsed.isVisible = !expanded
+        binding.headerExpanded.isVisible = expanded
+        binding.tabLayoutExpanded.isVisible = expanded
 
         // Enable swipe-to-shuffle only in expanded state
         binding.swipeRefresh.isEnabled = expanded
 
         // Switch grid layout
         binding.fontsRV.recycledViewPool.clear()
-        fontsAdapter.isExpanded       = expanded
+        fontsAdapter.isExpanded = expanded
         binding.fontsRV.layoutManager = buildLayoutManager(expanded)
 
         if (expanded) {
@@ -753,8 +759,8 @@ class TextFragment : Fragment() {
 
             // Persist current tab state to ViewModel so it survives
             // any future fragment recreation after collapse
-            mainViewModel.lastFontsLanguage       = selectedLanguage
-            mainViewModel.lastFontsCategory       = selectedCategory
+            mainViewModel.lastFontsLanguage = selectedLanguage
+            mainViewModel.lastFontsCategory = selectedCategory
             mainViewModel.lastFontsInCategoryMode = inCategoryMode
         }
     }
@@ -770,6 +776,16 @@ class TextFragment : Fragment() {
         while (f != null) {
             if (f is EditorFragment) {
                 f.attachDragHandle(binding.dragHandle)
+
+                // Also register the top-toolbar areas (collapsed + expanded headers)
+                // so swiping down on the toolbar collapses the panel — same gesture
+                // as dragging the handle.
+                binding.root.post {
+                    (f as EditorFragment).panelSheetBehavior()?.let { sheet ->
+                        sheet.attachAdditionalHandle(binding.headerCollapsed)
+                        sheet.attachAdditionalHandle(binding.headerExpanded)
+                    }
+                }
                 return
             }
             f = f.parentFragment
@@ -843,9 +859,7 @@ class TextFragment : Fragment() {
         binding.searchBarExpanded.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_UP) {
                 val dr = binding.searchBarExpanded.compoundDrawables[2]
-                if (dr != null && event.x >= binding.searchBarExpanded.width -
-                    binding.searchBarExpanded.paddingRight - dr.bounds.width()
-                ) {
+                if (dr != null && event.x >= binding.searchBarExpanded.width - binding.searchBarExpanded.paddingRight - dr.bounds.width()) {
                     binding.searchBarExpanded.text.clear()
                     applySearch("")
                     updateExpandedSearchCross("")
@@ -857,7 +871,6 @@ class TextFragment : Fragment() {
             false
         }
 
-        setupSwipeToExpand()
     }
 
     private fun applySearch(query: String) {
@@ -868,32 +881,12 @@ class TextFragment : Fragment() {
 
     private fun updateExpandedSearchCross(text: String) {
         binding.searchBarExpanded.setCompoundDrawablesWithIntrinsicBounds(
-            null, null,
-            if (text.isNotEmpty())
-                ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close)
-            else null, null
+            null,
+            null,
+            if (text.isNotEmpty()) ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close)
+            else null,
+            null
         )
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    private fun setupSwipeToExpand() {
-        val thresholdPx = 40 * resources.displayMetrics.density
-        var startY = 0f; var startX = 0f
-
-        binding.fontsRV.setOnTouchListener { _, event ->
-            if (isPanelExpanded) return@setOnTouchListener false
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> { startY = event.rawY; startX = event.rawX; false }
-                MotionEvent.ACTION_UP   -> {
-                    val dy = startY - event.rawY
-                    val dx = abs(startX - event.rawX)
-                    if (dy > thresholdPx && dy > dx * 1.5f) {
-                        mainViewModel.togglePanel(PanelType.FONTS); true
-                    } else false
-                }
-                else -> false
-            }
-        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -901,8 +894,10 @@ class TextFragment : Fragment() {
     // ─────────────────────────────────────────────────────────────────────────
 
     private fun showKeyboard(v: View) {
-        (requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
-            .showSoftInput(v, InputMethodManager.SHOW_IMPLICIT)
+        (requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).showSoftInput(
+                v,
+                InputMethodManager.SHOW_IMPLICIT
+            )
     }
 
     private fun hideKeyboard() {

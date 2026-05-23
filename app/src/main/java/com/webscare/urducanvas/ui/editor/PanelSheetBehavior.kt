@@ -11,30 +11,15 @@ import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
 import kotlin.math.abs
 
-/**
- * PanelSheetBehavior
- *
- * Drives the panel by moving centerGuide.guideBegin in pixels every frame.
- * This means the ConstraintLayout resizes the panel height in real time —
- * the panel grows/shrinks as the user drags. No translationY, no clipping.
- *
- * Collapsed : guideBegin = collapsedPx  (65% of screen height)
- * Expanded  : guideBegin = expandedPx   (just below editor header)
- *
- * [onSlide]        — 0f..1f every frame, used for header crossfade etc.
- * [onStateSettled] — true/false when spring finishes snapping.
- */
 class PanelSheetBehavior(
     private val root: ConstraintLayout,
     private val guideline: Guideline,
     private val dragHandleView: View,
-    private val collapsedPx: Int,   // guideBegin when collapsed
-    private val expandedPx: Int,    // guideBegin when expanded (smaller number = higher up)
+    private val collapsedPx: Int,
+    private val expandedPx: Int,
     private val onSlide: (Float) -> Unit,
     private val onStateSettled: (expanded: Boolean) -> Unit
 ) {
-    // ── State ─────────────────────────────────────────────────────────────────
-
     private var isExpanded = false
     private var springAnim: SpringAnimation? = null
     private var velocityTracker: VelocityTracker? = null
@@ -42,7 +27,13 @@ class PanelSheetBehavior(
     private var dragStartGuideBegin = 0
     private var isDragging = false
 
-    // ── Guideline access ──────────────────────────────────────────────────────
+    private var extDragStartRawY = 0f
+    private var extDragStartGuideBegin = 0
+    private var extDragLastY = 0f
+    private var extDragVelocity = 0f
+    private var extDragLastT = 0L
+
+    // ── Guideline ─────────────────────────────────────────────────────────────
 
     private var currentGuideBegin: Int
         get() {
@@ -51,11 +42,10 @@ class PanelSheetBehavior(
         }
         set(value) {
             val lp = guideline.layoutParams as ConstraintLayout.LayoutParams
-            lp.guideBegin  = value
-            lp.guidePercent = -1f   // switch to absolute mode, disable percent
-            lp.guideEnd    = -1
+            lp.guideBegin   = value
+            lp.guidePercent = -1f
+            lp.guideEnd     = -1
             guideline.layoutParams = lp
-            // ConstraintLayout will re-measure panel height automatically
             emitSlide(value)
         }
 
@@ -69,7 +59,7 @@ class PanelSheetBehavior(
 
     // ── Spring ────────────────────────────────────────────────────────────────
 
-    private fun springTo(targetPx: Int) {
+    private fun springTo(targetPx: Int, startVelocity: Float = 0f) {
         springAnim?.cancel()
         val startPx = currentGuideBegin
         if (startPx == targetPx) {
@@ -77,25 +67,19 @@ class PanelSheetBehavior(
             onStateSettled(isExpanded)
             return
         }
-
         val holder = FloatValueHolder(startPx.toFloat())
         springAnim = SpringAnimation(holder).apply {
             setStartValue(startPx.toFloat())
-            // Velocity: finger moving up (negative rawY delta) = guideBegin decreasing
-            // VelocityTracker gives px/sec in screen coords — invert for guide direction
-            velocityTracker?.computeCurrentVelocity(1000)
-            val vy = velocityTracker?.yVelocity ?: 0f
-            setStartVelocity(vy)   // positive vy = drag down = guide increases = collapse
-
+            setStartVelocity(startVelocity)
             spring = SpringForce(targetPx.toFloat()).apply {
-                stiffness    = SpringForce.STIFFNESS_MEDIUM        // 300 — snappy
-                dampingRatio = SpringForce.DAMPING_RATIO_LOW_BOUNCY // slight overshoot
+                stiffness    = SpringForce.STIFFNESS_MEDIUM
+                dampingRatio = SpringForce.DAMPING_RATIO_NO_BOUNCY
             }
             addUpdateListener { _, value, _ ->
                 currentGuideBegin = value.toInt().coerceIn(expandedPx, collapsedPx)
             }
             addEndListener { _, _, _, _ ->
-                currentGuideBegin = targetPx   // land exactly
+                currentGuideBegin = targetPx
                 isExpanded = targetPx == expandedPx
                 onStateSettled(isExpanded)
                 releaseVelocityTracker()
@@ -104,16 +88,62 @@ class PanelSheetBehavior(
         }
     }
 
-    // ── Touch ─────────────────────────────────────────────────────────────────
+    // ── Snap decision ─────────────────────────────────────────────────────────
+    //
+    // Key insight: progress = 0 means fully collapsed, 1 means fully expanded.
+    //
+    // When EXPANDING (isExpanded == false): snap expanded if progress > 0.15
+    //   → drag only 15% of travel up = commits
+    //
+    // When COLLAPSING (isExpanded == true): snap collapsed if progress < 0.85
+    //   → drag only 15% of travel down = commits  (NOT 85% down!)
+    //
+    // This makes both directions equally easy with a short drag.
+    // No fling/velocity check — position only.
+
+    private fun shouldSnapExpanded(): Boolean {
+        val travel = (collapsedPx - expandedPx).toFloat()
+        if (travel <= 0f) return isExpanded
+        val progress = ((collapsedPx - currentGuideBegin) / travel).coerceIn(0f, 1f)
+        return if (isExpanded) {
+            progress > 0.85f   // already expanded: stay expanded unless dragged 15%+ down
+        } else {
+            progress > 0.15f   // collapsed: expand if dragged 15%+ up
+        }
+    }
+
+    // ── Drag handle touch ─────────────────────────────────────────────────────
 
     @SuppressLint("ClickableViewAccessibility")
     fun attach() {
         dragHandleView.setOnTouchListener { _, event -> onTouch(event) }
+
+        root.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    val panelTop = getPanelTopY()
+                    if (event.rawY in panelTop..(panelTop + DRAG_ZONE_PX)) {
+                        onTouch(event)
+                    } else false
+                }
+                MotionEvent.ACTION_MOVE,
+                MotionEvent.ACTION_UP,
+                MotionEvent.ACTION_CANCEL -> {
+                    if (velocityTracker != null) onTouch(event) else false
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun getPanelTopY(): Float {
+        val loc = IntArray(2)
+        root.getLocationInWindow(loc)
+        return (loc[1] + currentGuideBegin).toFloat()
     }
 
     private fun onTouch(event: MotionEvent): Boolean {
         when (event.actionMasked) {
-
             MotionEvent.ACTION_DOWN -> {
                 springAnim?.cancel()
                 dragStartRawY       = event.rawY
@@ -122,37 +152,55 @@ class PanelSheetBehavior(
                 acquireVelocityTracker(event)
                 return true
             }
-
             MotionEvent.ACTION_MOVE -> {
                 velocityTracker?.addMovement(event)
-                val dy = event.rawY - dragStartRawY   // positive = finger moving down
-
-                if (!isDragging && abs(dy) < 8f) return true
+                val dy = event.rawY - dragStartRawY
+                if (!isDragging && abs(dy) < 4f) return true
                 isDragging = true
-
-                // Dragging up (dy < 0) → guideBegin decreases → panel top moves up → panel grows
-                val raw = dragStartGuideBegin + dy.toInt()
-                currentGuideBegin = raw.coerceIn(expandedPx, collapsedPx)
+                currentGuideBegin = (dragStartGuideBegin + dy.toInt()).coerceIn(expandedPx, collapsedPx)
                 return true
             }
-
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                velocityTracker?.computeCurrentVelocity(1000)
-                val vy = velocityTracker?.yVelocity ?: 0f   // positive = moving down
-
-                val snapExpanded = when {
-                    !isDragging           -> !isExpanded          // tap = toggle
-                    vy < -600f            -> true                 // fast fling up
-                    vy >  600f            -> false                // fast fling down
-                    else                  -> currentGuideBegin < (collapsedPx + expandedPx) / 2
-                }
-
-                springTo(if (snapExpanded) expandedPx else collapsedPx)
+                val expand = if (!isDragging) !isExpanded else shouldSnapExpanded()
+                springTo(if (expand) expandedPx else collapsedPx)
                 isDragging = false
                 return true
             }
         }
         return false
+    }
+
+    // ── External drag API (called from FontsListFragment RV swipe) ────────────
+
+    // downRawY  = rawY at ACTION_DOWN — anchor so slop distance isn't wasted
+    // currentRawY = rawY right now at takeover moment
+    fun externalDragBegin(downRawY: Float, currentRawY: Float = downRawY) {
+        springAnim?.cancel()
+        extDragStartRawY       = downRawY
+        extDragStartGuideBegin = currentGuideBegin
+        dragStartRawY          = downRawY          // used by shouldSnapExpanded via currentGuideBegin
+        dragStartGuideBegin    = extDragStartGuideBegin
+        extDragLastY           = currentRawY
+        extDragLastT           = System.nanoTime()
+        extDragVelocity        = 0f
+    }
+
+    fun externalDragBy(rawY: Float) {
+        val now = System.nanoTime()
+        val dt  = (now - extDragLastT) / 1_000_000_000f
+        if (dt > 0f) {
+            val instant = (rawY - extDragLastY) / dt
+            extDragVelocity = extDragVelocity * 0.6f + instant * 0.4f
+        }
+        extDragLastY = rawY
+        extDragLastT = now
+        val dy = rawY - extDragStartRawY
+        currentGuideBegin = (extDragStartGuideBegin + dy.toInt()).coerceIn(expandedPx, collapsedPx)
+    }
+
+    fun externalDragEnd() {
+        val expand = shouldSnapExpanded()
+        springTo(if (expand) expandedPx else collapsedPx, startVelocity = extDragVelocity)
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -169,6 +217,16 @@ class PanelSheetBehavior(
         }
     }
 
+    /**
+     * Register an additional view as a drag handle.
+     * Useful for top-toolbars / header areas that should also drag the panel.
+     * Safe to call multiple times with different views.
+     */
+    @SuppressLint("ClickableViewAccessibility")
+    fun attachAdditionalHandle(view: View) {
+        view.setOnTouchListener { _, event -> onTouch(event) }
+    }
+
     fun isCurrentlyExpanded() = isExpanded
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -182,5 +240,9 @@ class PanelSheetBehavior(
     private fun releaseVelocityTracker() {
         velocityTracker?.recycle()
         velocityTracker = null
+    }
+
+    companion object {
+        private const val DRAG_ZONE_PX = 200
     }
 }
