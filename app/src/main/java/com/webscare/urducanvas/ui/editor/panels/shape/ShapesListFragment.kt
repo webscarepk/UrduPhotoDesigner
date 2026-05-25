@@ -205,26 +205,20 @@ class ShapesListFragment : Fragment() {
     // ── Panel expand/collapse ─────────────────────────────────────────────────
 
     fun onPanelExpanded(expanded: Boolean) {
+        // This is only called for cleanup on collapse now — the layout manager
+        // was already switched by onPanelExpandedSmooth() at 75% of travel.
+        // Swapping it again here would cause a remeasure jerk on an already-correct RV.
+        if (expanded) return   // onPanelExpandedSmooth handled it; nothing extra needed
+
         if (isPanelExpanded == expanded) return
         isPanelExpanded = expanded
         if (_binding == null) return
 
-        if (!expanded) {
-            mainViewModel.clearShapesSelection()
-            prevSelectedIds = emptySet()
-            prevWasInMode   = false
-            imagesAdapter?.clearSelectionShadow()
-        }
-
-        binding.swipeRefresh?.isEnabled = expanded
-        binding.objects.layoutManager = buildLayoutManager(expanded)
-        imagesAdapter?.isExpanded = expanded
-
-        val currentMode = mainViewModel.isInShapesMultiSelectMode.value
-        imagesAdapter?.isInMultiSelectMode = currentMode
-        if (currentMode) imagesAdapter?.applyModeToAll()
-
-        if (expanded) binding.objects.scrollToPosition(0)
+        mainViewModel.clearShapesSelection()
+        prevSelectedIds = emptySet()
+        prevWasInMode   = false
+        imagesAdapter?.clearSelectionShadow()
+        binding.swipeRefresh?.isEnabled = false
     }
 
     fun onPanelExpandedSmooth(effectiveExpanded: Boolean) {

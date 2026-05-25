@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".ui.editor.panels.layers.LayersFragment"
-    android:background="@color/white">
+    android:background="@drawable/panel_bg">
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/topGuide"
@@ -25,14 +25,14 @@
         android:id="@+id/startGuide"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.01"
+        app:layout_constraintGuide_percent="0.04"
         android:orientation="vertical" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/endGuide"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.99"
+        app:layout_constraintGuide_percent="0.96"
         android:orientation="vertical" />
 
     <!-- Drag handle — same pattern as all other panels -->

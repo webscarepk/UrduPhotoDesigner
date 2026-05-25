@@ -7,6 +7,15 @@
     android:background="@color/contrast"
     tools:context=".ui.editor.EditorFragment">
 
+    <View
+        android:id="@+id/dimOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#000000"
+        android:alpha="0"
+        android:translationZ="7dp"
+        android:clickable="true" />
+
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/topGuide"
         android:layout_width="wrap_content"
@@ -321,7 +330,7 @@
         android:orientation="vertical"
         android:outlineSpotShadowColor="@color/shadowColor"
         android:padding="6dp"
-        android:translationZ="5dp"
+        android:translationZ="7dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@id/canvasContainer"
         app:layout_constraintStart_toStartOf="parent"
@@ -467,7 +476,7 @@
         android:elevation="0dp"
         android:visibility="visible"
         app:defaultNavHost="false"
-        android:translationZ="6dp"
+        android:translationZ="8dp"
         android:background="@android:color/transparent"
         app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
         app:layout_constraintEnd_toEndOf="parent"

@@ -89,6 +89,7 @@ class ImagesFragment : Fragment() {
         attachDragHandleSwipe()
         setupThumbnailStrip()
 
+
         val initial = mainViewModel.imagesData.value
         tabs.clear()
         tabs.addAll(initial.tabs)
@@ -163,15 +164,17 @@ class ImagesFragment : Fragment() {
 
     private fun observePanelExpanded() {
 
-        // ── 1. Final settled state: swap layout manager, update headers ─────────
+        // ── 1. Final settled state: update headers only — do NOT touch child RVs ──
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.expandedPanel.map { it == PanelType.IMAGES }.collect { expanded ->
-                        applyExpandedUi(expanded)
-                        for ((_, fragment) in fragmentCache) {
-                            fragment.onPanelExpanded(expanded)
-                        }
+                    applyExpandedUi(expanded)
+                    // Only handle selection clear on collapse — do NOT swap RV layout
+                    // managers here; onPanelExpandedSmooth already did that at 75%.
+                    if (!expanded) {
+                        for ((_, fragment) in fragmentCache) fragment.onPanelExpanded(false)
                     }
+                }
             }
         }
 
@@ -192,28 +195,20 @@ class ImagesFragment : Fragment() {
     private fun applySlideOffset(offset: Float) {
         if (_binding == null) return
 
-        // ── Header crossfade ────────────────────────────────────────────────────
-        // Collapsed header: visible from 0→0.4, invisible after
         val collapsedAlpha = (1f - offset / 0.4f).coerceIn(0f, 1f)
-        // Expanded header: invisible until 0.3, fully visible at 1.0
-        val expandedAlpha = ((offset - 0.3f) / 0.7f).coerceIn(0f, 1f)
+        val expandedAlpha  = ((offset - 0.3f) / 0.7f).coerceIn(0f, 1f)
 
         binding.headerCollapsed.alpha = collapsedAlpha
-        binding.headerExpanded.alpha = expandedAlpha
+        binding.headerExpanded.alpha  = expandedAlpha
+        binding.headerCollapsed.visibility = if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
+        binding.headerExpanded.visibility  = if (expandedAlpha  > 0f) View.VISIBLE else View.GONE
 
-        // Use INVISIBLE not GONE — GONE causes layout shifts that jerk the RecyclerView
-        binding.headerCollapsed.visibility =
-            if (collapsedAlpha > 0f) View.VISIBLE else View.INVISIBLE
-        binding.headerExpanded.visibility = if (expandedAlpha > 0f) View.VISIBLE else View.INVISIBLE
-
-        // Tab layout mirrors header
         val isSearchActive = currentQuery.isNotBlank()
         if (!isSearchActive) {
-            binding.tabLayout.alpha = collapsedAlpha
-            binding.tabLayoutExpanded.alpha = expandedAlpha
-            binding.tabLayout.visibility = if (collapsedAlpha > 0f) View.VISIBLE else View.INVISIBLE
-            binding.tabLayoutExpanded.visibility =
-                if (expandedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+            binding.tabLayout.alpha          = collapsedAlpha
+            binding.tabLayoutExpanded.alpha  = expandedAlpha
+            binding.tabLayout.visibility     = if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
+            binding.tabLayoutExpanded.visibility = if (expandedAlpha > 0f) View.VISIBLE else View.GONE
         }
 
         val effectiveExpanded = offset >= 0.75f
@@ -223,38 +218,32 @@ class ImagesFragment : Fragment() {
     }
 
     private fun applyExpandedUi(expanded: Boolean) {
-        binding.headerCollapsed.isVisible = !expanded
-        binding.headerExpanded.isVisible = expanded
 
-        // Keep correct search header visible when expanding/collapsing during active search
+        // Snap headers/tabs to final state
+        binding.headerCollapsed.alpha      = if (!expanded) 1f else 0f
+        binding.headerExpanded.alpha       = if (expanded)  1f else 0f
+        binding.headerCollapsed.visibility = if (!expanded) View.VISIBLE else View.GONE
+        binding.headerExpanded.visibility  = if (expanded)  View.VISIBLE else View.GONE
+        binding.tabLayout.alpha            = if (!expanded) 1f else 0f
+        binding.tabLayoutExpanded.alpha    = if (expanded)  1f else 0f
+        binding.tabLayout.visibility       = if (!expanded) View.VISIBLE else View.GONE
+        binding.tabLayoutExpanded.visibility = if (expanded) View.VISIBLE else View.GONE
+
+        // Images-specific: search results header swap
         val isSearchActive = currentQuery.isNotBlank()
         val headerText = if (isSearchActive) "Results for '${currentQuery}'" else ""
-
-        // Collapsed views
         binding.tabLayout.isVisible = !expanded && !isSearchActive
         binding.searchResultsHeader.isVisible = !expanded && isSearchActive
         if (!expanded && isSearchActive) binding.searchResultsHeader.text = headerText
-
-        // Expanded views
         binding.tabLayoutExpanded.isVisible = expanded && !isSearchActive
         binding.searchResultsHeaderExpanded.isVisible = expanded && isSearchActive
         if (expanded && isSearchActive) binding.searchResultsHeaderExpanded.text = headerText
 
-        val lp =
-            binding.fragmentContainer.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
-        lp.topToBottom = if (expanded) R.id.tabLayoutExpanded else R.id.headerCollapsed
-        lp.topToTop = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
-        binding.fragmentContainer.layoutParams = lp
-
         if (expanded) {
-            // Restore current query in expanded bar
             binding.searchBarExpanded.setText(currentQuery)
-            binding.searchBarExpanded.setSelection(
-                binding.searchBarExpanded.text?.length ?: 0
-            )
+            binding.searchBarExpanded.setSelection(binding.searchBarExpanded.text?.length ?: 0)
             updateExpandedSearchCross(currentQuery)
         } else {
-            // Collapsed — hide keyboard, clear focus, clear search
             hideKeyboard()
             binding.searchBarExpanded.clearFocus()
             binding.searchBarExpanded.text?.clear()
@@ -264,16 +253,6 @@ class ImagesFragment : Fragment() {
             }
         }
 
-        binding.headerCollapsed.alpha = if (!expanded) 1f else 0f
-        binding.headerExpanded.alpha = if (expanded) 1f else 0f
-        binding.headerCollapsed.visibility = if (!expanded) View.VISIBLE else View.INVISIBLE
-        binding.headerExpanded.visibility = if (expanded) View.VISIBLE else View.INVISIBLE
-        if (currentQuery.isBlank()) {
-            binding.tabLayout.alpha = if (!expanded) 1f else 0f
-            binding.tabLayoutExpanded.alpha = if (expanded) 1f else 0f
-            binding.tabLayout.visibility = if (!expanded) View.VISIBLE else View.INVISIBLE
-            binding.tabLayoutExpanded.visibility = if (expanded) View.VISIBLE else View.INVISIBLE
-        }
         binding.dragHandle.scaleX = 1f
         binding.dragHandle.scaleY = 1f
     }

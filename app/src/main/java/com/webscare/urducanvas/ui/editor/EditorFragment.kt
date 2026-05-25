@@ -1774,7 +1774,8 @@ class EditorFragment : Fragment() {
                     }
                     // Expansion is set by attachDragHandle's onStateSettled which knows panel type.
                     // If no panel has registered yet, collapse is the only action needed here.
-                }
+                },
+                dimView = binding.dimOverlay
             )
             // Don't call attach() here — the real handle comes via attachDragHandle()
         }
@@ -1820,7 +1821,8 @@ class EditorFragment : Fragment() {
                     } else {
                         mainViewModel.collapsePanel()
                     }
-                }
+                },
+                dimView = binding.dimOverlay
             )
             panelSheet!!.attach()
         }

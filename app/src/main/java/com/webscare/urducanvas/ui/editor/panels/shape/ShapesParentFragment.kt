@@ -73,6 +73,7 @@ class ShapesParentFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+
         setEvents()
         attachDragHandleSwipe()
         setupThumbnailStrip()
@@ -147,16 +148,20 @@ class ShapesParentFragment : Fragment() {
     // ── Panel expansion ───────────────────────────────────────────────────────
 
     private fun observePanelExpanded() {
-        // ── 1. Final settled state: swap layout manager, update headers ─────────
+        // ── 1. Final settled state: update headers only — do NOT touch child RVs ──
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.expandedPanel.collect { panel ->
                     val expanded = panel == PanelType.SHAPES
                     applyExpandedUi(expanded)
-                    for ((_, fragment) in fragmentCache) {
-                        when (fragment) {
-                            is ShapesListFragment -> fragment.onPanelExpanded(expanded)
-                            is VectorsTabFragment -> fragment.onPanelExpanded(expanded)
+                    // Do NOT call fragment.onPanelExpanded() here —
+                    // onPanelExpandedSmooth() already switched the layout manager
+                    // at 75% while the spring was still moving. Calling onPanelExpanded()
+                    // again now re-swaps it on an already-correct RV, causing the jerk.
+                    // Only handle selection clear on collapse:
+                    if (!expanded) {
+                        for ((_, fragment) in fragmentCache) {
+                            if (fragment is ShapesListFragment) fragment.onPanelExpanded(false)
                         }
                     }
                 }
@@ -188,11 +193,11 @@ class ShapesParentFragment : Fragment() {
         binding.headerCollapsed.alpha = collapsedAlpha
         binding.headerExpanded.alpha  = expandedAlpha
 
-        // INVISIBLE not GONE — GONE causes layout shifts that jerk the RecyclerView
+        // GONE when fully hidden (takes no space), INVISIBLE only mid-fade
         binding.headerCollapsed.visibility =
-            if (collapsedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+            if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
         binding.headerExpanded.visibility =
-            if (expandedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+            if (expandedAlpha > 0f) View.VISIBLE else View.GONE
 
         // Tab layouts mirror their respective headers
         val isSearchActive = currentQuery.isNotBlank()
@@ -200,10 +205,11 @@ class ShapesParentFragment : Fragment() {
             binding.tabLayout.alpha         = collapsedAlpha
             binding.tabLayoutExpanded.alpha = expandedAlpha
             binding.tabLayout.visibility =
-                if (collapsedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+                if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
             binding.tabLayoutExpanded.visibility =
-                if (expandedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+                if (expandedAlpha > 0f) View.VISIBLE else View.GONE
         }
+
 
         // Switch child RecyclerView layout managers at 75 % of travel —
         // while the spring is still in motion so the user never sees a jump.
@@ -217,15 +223,17 @@ class ShapesParentFragment : Fragment() {
     }
 
     private fun applyExpandedUi(expanded: Boolean) {
-        binding.headerCollapsed.isVisible = !expanded
-        binding.headerExpanded.isVisible = expanded
-        binding.tabLayoutExpanded.isVisible = expanded
 
-        val lp =
-            binding.fragmentContainer.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
-        lp.topToBottom = if (expanded) R.id.tabLayoutExpanded else R.id.headerCollapsed
-        lp.topToTop = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
-        binding.fragmentContainer.layoutParams = lp
+        // Snap headers/tabs to final state
+        binding.headerCollapsed.alpha      = if (!expanded) 1f else 0f
+        binding.headerExpanded.alpha       = if (expanded)  1f else 0f
+        binding.headerCollapsed.visibility = if (!expanded) View.VISIBLE else View.GONE
+        binding.headerExpanded.visibility  = if (expanded)  View.VISIBLE else View.GONE
+        binding.tabLayout.alpha            = if (!expanded) 1f else 0f
+        binding.tabLayoutExpanded.alpha    = if (expanded)  1f else 0f
+        binding.tabLayout.visibility       = if (!expanded) View.VISIBLE else View.GONE
+        binding.tabLayoutExpanded.visibility = if (expanded) View.VISIBLE else View.GONE
+
 
         if (expanded) {
             binding.searchBarExpanded.setText(currentQuery)

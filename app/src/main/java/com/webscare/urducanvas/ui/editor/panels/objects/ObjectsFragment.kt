@@ -92,6 +92,7 @@ class ObjectsFragment : Fragment() {
         attachDragHandleSwipe()
         setupThumbnailStrip()
 
+
         val initial = mainViewModel.objectsData.value
         tabs.clear()
         tabs.addAll(initial.tabs)
@@ -167,15 +168,17 @@ class ObjectsFragment : Fragment() {
     // ── Observe expanded state ────────────────────────────────────────────────
 
     private fun observePanelExpanded() {
-        // ── 1. Final settled state: swap layout manager, update headers ─────────
+        // ── 1. Final settled state: update headers only — do NOT touch child RVs ──
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.expandedPanel
                     .map { it == PanelType.OBJECTS }
                     .collect { expanded ->
                         applyExpandedUi(expanded)
-                        for ((_, fragment) in fragmentCache) {
-                            fragment.onPanelExpanded(expanded)
+                        // Only handle selection clear on collapse — do NOT swap RV layout
+                        // managers here; onPanelExpandedSmooth already did that at 75%.
+                        if (!expanded) {
+                            for ((_, fragment) in fragmentCache) fragment.onPanelExpanded(false)
                         }
                     }
             }
@@ -206,11 +209,11 @@ class ObjectsFragment : Fragment() {
         binding.headerCollapsed.alpha = collapsedAlpha
         binding.headerExpanded.alpha  = expandedAlpha
 
-        // INVISIBLE not GONE — GONE causes layout shifts that jerk the RecyclerView
+        // GONE when fully hidden (takes no space), INVISIBLE only mid-fade
         binding.headerCollapsed.visibility =
-            if (collapsedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+            if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
         binding.headerExpanded.visibility =
-            if (expandedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+            if (expandedAlpha > 0f) View.VISIBLE else View.GONE
 
         // Tab layouts mirror their respective headers
         val isSearchActive = currentQuery.isNotBlank()
@@ -218,10 +221,11 @@ class ObjectsFragment : Fragment() {
             binding.tabLayout.alpha         = collapsedAlpha
             binding.tabLayoutExpanded.alpha = expandedAlpha
             binding.tabLayout.visibility =
-                if (collapsedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+                if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
             binding.tabLayoutExpanded.visibility =
-                if (expandedAlpha > 0f) View.VISIBLE else View.INVISIBLE
+                if (expandedAlpha > 0f) View.VISIBLE else View.GONE
         }
+
 
         // Switch child RecyclerView layout managers at 75 % of travel —
         // while the spring is still in motion so the user never sees a jump.
@@ -232,15 +236,7 @@ class ObjectsFragment : Fragment() {
     }
 
     private fun applyExpandedUi(expanded: Boolean) {
-        binding.headerCollapsed.isVisible   = !expanded
-        binding.headerExpanded.isVisible    = expanded
-        binding.tabLayoutExpanded.isVisible = expanded
-
-        val lp = binding.fragmentContainer.layoutParams
-                as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
-        lp.topToBottom = if (expanded) R.id.tabLayoutExpanded else R.id.headerCollapsed
-        lp.topToTop    = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
-        binding.fragmentContainer.layoutParams = lp
+        applySlideOffset(if (expanded) 1f else 0f)
 
         if (expanded) {
             binding.searchBarExpanded.setText(currentQuery)

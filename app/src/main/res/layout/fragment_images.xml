@@ -11,17 +11,16 @@
         android:id="@+id/startGuide"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.02"
+        app:layout_constraintGuide_percent="0.04"
         android:orientation="vertical" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/endGuide"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.98"
+        app:layout_constraintGuide_percent="0.96"
         android:orientation="vertical" />
 
-    <!-- Drag handle — swipe up = expand, swipe down = collapse -->
     <ImageView
         android:id="@+id/dragHandle"
         android:layout_width="@dimen/_100sdp"
@@ -66,9 +65,6 @@
             android:src="@drawable/ic_search"
             android:layout_gravity="center_vertical" />
 
-        <!-- Search results header — same height as tabLayout (38dp).
-             Shown instead of tabLayout when search is active.
-             RecyclerView position never shifts. -->
         <TextView
             android:id="@+id/searchResultsHeader"
             android:layout_width="0dp"
@@ -109,7 +105,6 @@
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintTop_toBottomOf="@id/dragHandle">
 
-        <!-- Panel title -->
         <TextView
             android:id="@+id/panelTitle"
             android:layout_width="0dp"
@@ -122,7 +117,6 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toStartOf="@id/addImageExpanded" />
 
-        <!-- Add image button -->
         <ImageView
             android:id="@+id/addImageExpanded"
             android:layout_width="28dp"
@@ -136,7 +130,6 @@
             app:layout_constraintEnd_toStartOf="@id/closeExpanded"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Close button -->
         <ImageView
             android:id="@+id/closeExpanded"
             android:layout_width="28dp"
@@ -149,7 +142,6 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Search bar (second row) -->
         <EditText
             android:id="@+id/searchBarExpanded"
             android:layout_width="0dp"
@@ -169,7 +161,6 @@
             app:layout_constraintTop_toBottomOf="@id/closeExpanded"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
-
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- Tab layout for expanded state -->
@@ -193,8 +184,6 @@
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide" />
 
-    <!-- Search results header for expanded state — same height as tabLayoutExpanded (36dp).
-         Shown instead of tabLayoutExpanded when search is active in expanded mode. -->
     <TextView
         android:id="@+id/searchResultsHeaderExpanded"
         android:layout_width="0dp"
@@ -210,16 +199,27 @@
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintEnd_toStartOf="@id/endGuide" />
 
-    <!-- Content area -->
+    <!--
+        BARRIER — always at the bottom of whichever header/tab is currently visible.
+        fragmentContainer never needs its constraints changed in code.
+    -->
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/headerBarrier"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:barrierDirection="bottom"
+        app:constraint_referenced_ids="headerCollapsed,headerExpanded,tabLayoutExpanded,searchResultsHeaderExpanded" />
+
+    <!-- Content area — permanently anchored to the barrier -->
     <FrameLayout
         android:id="@+id/fragmentContainer"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="6dp"
-        app:layout_constraintTop_toBottomOf="@id/headerCollapsed"
+        app:layout_constraintTop_toBottomOf="@id/headerBarrier"
         app:layout_constraintBottom_toTopOf="@id/selectionToolbar"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
-        app:layout_constraintEnd_toStartOf="@id/endGuide" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
     <!-- ═══ SELECTION TOOLBAR ════════════════════════════════════════════════ -->
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -285,7 +285,6 @@
             app:layout_constraintTop_toBottomOf="@id/selectionCount"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
-
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

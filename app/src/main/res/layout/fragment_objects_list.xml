@@ -23,6 +23,8 @@
             android:layout_marginTop="6dp"
             app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
             tools:itemCount="100"
+            android:paddingHorizontal="15dp"
+            android:clipToPadding="false"
             android:orientation="horizontal"
             app:spanCount="3"
             tools:listitem="@layout/layout_images_item" />

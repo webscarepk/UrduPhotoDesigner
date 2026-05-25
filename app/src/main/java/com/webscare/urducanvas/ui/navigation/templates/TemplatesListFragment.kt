@@ -424,7 +424,7 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
                             .filterIsInstance<HomeRow.TrendRow>()
                             .firstOrNull { it.title.equals(currentTrend, true) }
                             ?.templates?.map { it.id }?.toSet() ?: emptySet()
-                        all.filter { it.id in ids && it.subcategory.trim().equals(currentSubcategory!!.trim(), true) }
+                        all.filter { it.id in ids && it.subcategory?.trim()!!.equals(currentSubcategory!!.trim(), true) }
                     }
 
                     !currentTrend.isNullOrBlank() -> {
@@ -443,7 +443,7 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
 
                 val subcats = buildList {
                     add("All")
-                    addAll(baseTemplates.map { it.subcategory.trim() }
+                    addAll(baseTemplates.map { it.subcategory?.trim()!! }
                         .filter { it.isNotEmpty() }.distinct().sorted())
                 }
 

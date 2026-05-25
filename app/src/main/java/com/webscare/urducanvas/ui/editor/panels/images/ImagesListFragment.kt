@@ -258,33 +258,20 @@ class ImagesListFragment : Fragment() {
     // ── Panel expand/collapse ─────────────────────────────────────────────────
 
     fun onPanelExpanded(expanded: Boolean) {
+        // This is only called for cleanup on collapse now — the layout manager
+        // was already switched by onPanelExpandedSmooth() at 75% of travel.
+        // Swapping it again here would cause a remeasure jerk on an already-correct RV.
+        if (expanded) return   // onPanelExpandedSmooth handled it; nothing extra needed
+
         if (isPanelExpanded == expanded) return
         isPanelExpanded = expanded
-
         if (_binding == null) return
 
-        if (!expanded) {
-            mainViewModel.clearImagesSelection()
-            prevSelectedIds = emptySet()
-            prevWasInMode   = false
-            imagesAdapter?.clearSelectionShadow()
-        }
-
-        binding.swipeRefresh.isEnabled = expanded
-        binding.backgrounds.recycledViewPool.clear()
-        binding.backgrounds.layoutManager = buildLayoutManager(expanded)
-        imagesAdapter?.isExpanded = expanded
-
-        // Only reserve bottom space for the pagination Lottie in expanded (vertical) mode.
-        // In collapsed (horizontal) mode paddingBottom shrinks effective RV height.
-        val bottomPadding = if (expanded) (64 * resources.displayMetrics.density).toInt() else 0
-        binding.backgrounds.setPadding(0, 0, 0, bottomPadding)
-
-        val currentMode = mainViewModel.isInImagesMultiSelectMode.value
-        imagesAdapter?.isInMultiSelectMode = currentMode
-        if (currentMode) imagesAdapter?.applyModeToAll()
-
-        if (expanded) binding.backgrounds.scrollToPosition(0)
+        mainViewModel.clearImagesSelection()
+        prevSelectedIds = emptySet()
+        prevWasInMode   = false
+        imagesAdapter?.clearSelectionShadow()
+        binding.swipeRefresh.isEnabled = false
     }
 
     /**

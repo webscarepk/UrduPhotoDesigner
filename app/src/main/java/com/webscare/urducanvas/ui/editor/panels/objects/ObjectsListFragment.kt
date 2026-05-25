@@ -334,36 +334,25 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
     // ── Panel expand/collapse ─────────────────────────────────────────────────
 
     fun onPanelExpanded(expanded: Boolean) {
+        // This is only called for cleanup on collapse now — the layout manager
+        // was already switched by onPanelExpandedSmooth() at 75% of travel.
+        // Swapping it again here would cause a remeasure jerk on an already-correct RV.
+        if (expanded) return   // onPanelExpandedSmooth handled it; nothing extra needed
+
         if (isPanelExpanded == expanded) return
         isPanelExpanded = expanded
-
         if (_binding == null) return
 
-        if (!expanded) {
-            mainViewModel.clearImageSelection()
-            mainViewModel.clearEmojiSelection()
-            prevSelectedIds        = emptySet()
-            prevWasInMode          = false
-            prevSelectedEmojiChars = emptySet()
-            prevEmojiWasInMode     = false
-            imagesAdapter?.clearSelectionShadow()
-            emojiAdapter?.clearSelectionShadow()
-        }
+        mainViewModel.clearImageSelection()
+        mainViewModel.clearEmojiSelection()
+        prevSelectedIds        = emptySet()
+        prevWasInMode          = false
+        prevSelectedEmojiChars = emptySet()
+        prevEmojiWasInMode     = false
+        imagesAdapter?.clearSelectionShadow()
+        emojiAdapter?.clearSelectionShadow()
 
-        binding.swipeRefresh?.isEnabled = expanded
-        binding.objects.recycledViewPool.clear()
-        binding.objects.layoutManager = buildLayoutManager(expanded)
-
-        if (isBaseTab(category)) {
-            emojiAdapter?.isExpanded = expanded
-        } else {
-            imagesAdapter?.isExpanded = expanded
-            val currentMode = mainViewModel.isInMultiSelectMode.value
-            imagesAdapter?.isInMultiSelectMode = currentMode
-            if (currentMode) imagesAdapter?.applyModeToAll()
-        }
-
-        if (expanded) binding.objects.scrollToPosition(0)
+        binding.swipeRefresh?.isEnabled = false
     }
 
     /**

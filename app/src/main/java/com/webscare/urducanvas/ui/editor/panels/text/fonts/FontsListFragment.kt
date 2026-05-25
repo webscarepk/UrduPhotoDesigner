@@ -197,11 +197,15 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun applyExpansion(expanded: Boolean) {
+        // On expand: onPanelExpandedSmooth (called via applySlideOffset at 75%)
+        // already switched the layout manager while the spring was still moving.
+        // Swapping it again here causes a remeasure jerk on an already-correct RV.
+        // Only act on collapse to reset state.
+        if (expanded) return
         val rv = safeBinding?.englishRV ?: return
         rv.recycledViewPool.clear()
-        fontsAdapter.isExpanded = expanded
-        rv.layoutManager = buildLayoutManager(expanded)
-        if (expanded) rv.scrollToPosition(0)
+        fontsAdapter.isExpanded = false
+        rv.layoutManager = buildLayoutManager(false)
     }
 
     private fun buildLayoutManager(expanded: Boolean): GridLayoutManager =

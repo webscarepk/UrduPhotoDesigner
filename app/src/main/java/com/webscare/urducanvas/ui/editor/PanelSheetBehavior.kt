@@ -11,15 +11,41 @@ import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
 import kotlin.math.abs
 
+/**
+ * PanelSheetBehavior  — smooth single-spring edition
+ *
+ * Changes vs original:
+ *  1. 90 % height cap  — expandedPx clamped internally; pass any value from caller.
+ *  2. Smooth bouncy spring — ONE spring with DAMPING_RATIO_MEDIUM_BOUNCY + a boosted
+ *     launch velocity drives the overshoot naturally. No two-phase chaining → no jerk.
+ *  3. Dim overlay — pass a dimView; its alpha tracks slide offset automatically.
+ *     Tapping the dim overlay collapses the panel.
+ */
 class PanelSheetBehavior(
     private val root: ConstraintLayout,
     private val guideline: Guideline,
     private val dragHandleView: View,
     private val collapsedPx: Int,
-    private val expandedPx: Int,
+    expandedPx: Int,                   // raw value — clamped to 90 % internally
     private val onSlide: (Float) -> Unit,
-    private val onStateSettled: (expanded: Boolean) -> Unit
+    private val onStateSettled: (expanded: Boolean) -> Unit,
+    /** Optional full-screen dim view placed behind the panel. Pass null to skip. */
+    private val dimView: View? = null
 ) {
+
+    // ── Height cap ────────────────────────────────────────────────────────────
+
+    private val screenHeight: Int = root.context.resources.displayMetrics.heightPixels
+
+    // guideBegin is distance-from-top, so "taller panel" = smaller guideBegin.
+    // Cap: panel top must be at least 10 % from top → guideBegin >= screenHeight * 0.10
+    private val expandedPx: Int = maxOf(
+        expandedPx,
+        (screenHeight * (1f - MAX_EXPANDED_FRACTION)).toInt()
+    )
+
+    // ── State ─────────────────────────────────────────────────────────────────
+
     private var isExpanded = false
     private var springAnim: SpringAnimation? = null
     private var velocityTracker: VelocityTracker? = null
@@ -55,30 +81,64 @@ class PanelSheetBehavior(
             ((collapsedPx - guideBegin) / travel).coerceIn(0f, 1f)
         else 0f
         onSlide(offset)
+        updateDim(offset)
+    }
+
+    // ── Dim overlay ───────────────────────────────────────────────────────────
+
+    private fun updateDim(slideOffset: Float) {
+        dimView ?: return
+        val alpha = (slideOffset * MAX_DIM_ALPHA).coerceIn(0f, MAX_DIM_ALPHA)
+        dimView.alpha      = alpha
+        dimView.isClickable = alpha > 0.01f
     }
 
     // ── Spring ────────────────────────────────────────────────────────────────
+    //
+    // Single-spring bounce: instead of two chained animations (which cause a
+    // visible jerk at the hand-off), we launch ONE spring with:
+    //   • DAMPING_RATIO_MEDIUM_BOUNCY  → spring naturally overshoots and returns
+    //   • a boosted start velocity in the travel direction → controls overshoot depth
+    //
+    // The spring's equilibrium IS the resting target (expandedPx / collapsedPx),
+    // so it always settles exactly there — no second phase needed.
 
     private fun springTo(targetPx: Int, startVelocity: Float = 0f) {
         springAnim?.cancel()
+
         val startPx = currentGuideBegin
-        if (startPx == targetPx) {
-            isExpanded = targetPx == expandedPx
-            onStateSettled(isExpanded)
-            return
+
+        // Boost velocity so the spring naturally overshoots ~5 % of screen height.
+        // If the caller already supplies fling velocity we blend it in; otherwise
+        // we synthesise a minimum launch speed that guarantees a visible bounce.
+        val travelPx   = (targetPx - startPx).toFloat()           // signed
+        val minBoost   = screenHeight * OVERSHOOT_VELOCITY_FACTOR  // px/s
+        val launchV = when {
+            // If fling velocity is in the right direction and fast enough, use it
+            startVelocity != 0f && (startVelocity * travelPx > 0f) &&
+                    abs(startVelocity) > minBoost -> startVelocity
+            // Otherwise give it our minimum boost in the correct direction
+            travelPx != 0f -> minBoost * (if (travelPx > 0f) 1f else -1f)
+            else -> 0f
         }
+
         val holder = FloatValueHolder(startPx.toFloat())
         springAnim = SpringAnimation(holder).apply {
             setStartValue(startPx.toFloat())
-            setStartVelocity(startVelocity)
+            setStartVelocity(launchV)
             spring = SpringForce(targetPx.toFloat()).apply {
-                stiffness    = SpringForce.STIFFNESS_MEDIUM
-                dampingRatio = SpringForce.DAMPING_RATIO_NO_BOUNCY
+                stiffness    = SpringForce.STIFFNESS_LOW       // slower, lazier travel
+                dampingRatio = SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY  // gentle single overshoot
             }
             addUpdateListener { _, value, _ ->
-                currentGuideBegin = value.toInt().coerceIn(expandedPx, collapsedPx)
+                // Allow spring to travel slightly past bounds so overshoot is visible,
+                // but hard-clamp at a small extra margin to avoid layout weirdness.
+                val clampMin = expandedPx   - (screenHeight * OVERSHOOT_CLAMP_MARGIN).toInt()
+                val clampMax = collapsedPx  + (screenHeight * OVERSHOOT_CLAMP_MARGIN).toInt()
+                currentGuideBegin = value.toInt().coerceIn(clampMin, clampMax)
             }
             addEndListener { _, _, _, _ ->
+                // Snap exactly to target when settled
                 currentGuideBegin = targetPx
                 isExpanded = targetPx == expandedPx
                 onStateSettled(isExpanded)
@@ -89,30 +149,15 @@ class PanelSheetBehavior(
     }
 
     // ── Snap decision ─────────────────────────────────────────────────────────
-    //
-    // Key insight: progress = 0 means fully collapsed, 1 means fully expanded.
-    //
-    // When EXPANDING (isExpanded == false): snap expanded if progress > 0.15
-    //   → drag only 15% of travel up = commits
-    //
-    // When COLLAPSING (isExpanded == true): snap collapsed if progress < 0.85
-    //   → drag only 15% of travel down = commits  (NOT 85% down!)
-    //
-    // This makes both directions equally easy with a short drag.
-    // No fling/velocity check — position only.
 
     private fun shouldSnapExpanded(): Boolean {
         val travel = (collapsedPx - expandedPx).toFloat()
         if (travel <= 0f) return isExpanded
         val progress = ((collapsedPx - currentGuideBegin) / travel).coerceIn(0f, 1f)
-        return if (isExpanded) {
-            progress > 0.85f   // already expanded: stay expanded unless dragged 15%+ down
-        } else {
-            progress > 0.15f   // collapsed: expand if dragged 15%+ up
-        }
+        return if (isExpanded) progress > 0.85f else progress > 0.15f
     }
 
-    // ── Drag handle touch ─────────────────────────────────────────────────────
+    // ── Attach ────────────────────────────────────────────────────────────────
 
     @SuppressLint("ClickableViewAccessibility")
     fun attach() {
@@ -134,6 +179,10 @@ class PanelSheetBehavior(
                 else -> false
             }
         }
+
+        dimView?.setOnClickListener {
+            if (isExpanded) snapTo(expanded = false)
+        }
     }
 
     private fun getPanelTopY(): Float {
@@ -141,6 +190,8 @@ class PanelSheetBehavior(
         root.getLocationInWindow(loc)
         return (loc[1] + currentGuideBegin).toFloat()
     }
+
+    // ── Touch ─────────────────────────────────────────────────────────────────
 
     private fun onTouch(event: MotionEvent): Boolean {
         when (event.actionMasked) {
@@ -161,8 +212,13 @@ class PanelSheetBehavior(
                 return true
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                val expand = if (!isDragging) !isExpanded else shouldSnapExpanded()
-                springTo(if (expand) expandedPx else collapsedPx)
+                velocityTracker?.computeCurrentVelocity(1000)
+                val flingV = velocityTracker?.yVelocity ?: 0f
+                val snapExpand = if (!isDragging) !isExpanded else shouldSnapExpanded()
+                springTo(
+                    targetPx      = if (snapExpand) expandedPx else collapsedPx,
+                    startVelocity = flingV
+                )
                 isDragging = false
                 return true
             }
@@ -170,15 +226,13 @@ class PanelSheetBehavior(
         return false
     }
 
-    // ── External drag API (called from FontsListFragment RV swipe) ────────────
+    // ── External drag API ─────────────────────────────────────────────────────
 
-    // downRawY  = rawY at ACTION_DOWN — anchor so slop distance isn't wasted
-    // currentRawY = rawY right now at takeover moment
     fun externalDragBegin(downRawY: Float, currentRawY: Float = downRawY) {
         springAnim?.cancel()
         extDragStartRawY       = downRawY
         extDragStartGuideBegin = currentGuideBegin
-        dragStartRawY          = downRawY          // used by shouldSnapExpanded via currentGuideBegin
+        dragStartRawY          = downRawY
         dragStartGuideBegin    = extDragStartGuideBegin
         extDragLastY           = currentRawY
         extDragLastT           = System.nanoTime()
@@ -200,7 +254,10 @@ class PanelSheetBehavior(
 
     fun externalDragEnd() {
         val expand = shouldSnapExpanded()
-        springTo(if (expand) expandedPx else collapsedPx, startVelocity = extDragVelocity)
+        springTo(
+            targetPx      = if (expand) expandedPx else collapsedPx,
+            startVelocity = extDragVelocity
+        )
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -217,11 +274,6 @@ class PanelSheetBehavior(
         }
     }
 
-    /**
-     * Register an additional view as a drag handle.
-     * Useful for top-toolbars / header areas that should also drag the panel.
-     * Safe to call multiple times with different views.
-     */
     @SuppressLint("ClickableViewAccessibility")
     fun attachAdditionalHandle(view: View) {
         view.setOnTouchListener { _, event -> onTouch(event) }
@@ -244,5 +296,25 @@ class PanelSheetBehavior(
 
     companion object {
         private const val DRAG_ZONE_PX = 200
+
+        /** Panel never exceeds this fraction of screen height when expanded */
+        private const val MAX_EXPANDED_FRACTION = 0.90f
+
+        /**
+         * Minimum launch velocity as a fraction of screen height per second.
+         * Drives the spring past the target so it overshoots ~5 % before bouncing back.
+         * Increase for a more dramatic bounce, decrease for subtler feel.
+         */
+        private const val OVERSHOOT_VELOCITY_FACTOR = 1.5f   // 1.5 × screenHeight px/s
+
+        /**
+         * How far past the hard resting bounds the spring is allowed to travel
+         * during the overshoot, as a fraction of screen height.
+         * Keeps the panel from going completely off-screen.
+         */
+        private const val OVERSHOOT_CLAMP_MARGIN = 0.06f     // 6 % of screen height
+
+        /** Maximum alpha of the dim overlay at full expansion */
+        const val MAX_DIM_ALPHA = 0.45f
     }
 }

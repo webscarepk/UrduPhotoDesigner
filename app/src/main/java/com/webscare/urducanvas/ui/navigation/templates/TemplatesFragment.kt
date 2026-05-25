@@ -257,7 +257,7 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
     private fun buildSubcategoryChips(templates: List<TemplateEntity>) {
         val subcats = buildList {
             add("All")
-            addAll(templates.map { it.subcategory.trim() }.filter { it.isNotEmpty() }.distinct().sorted())
+            addAll(templates.map { it.subcategory?.trim()!! }.filter { it.isNotEmpty() }.distinct().sorted())
         }
         renderSubcategoryChips(subcats)
     }
@@ -327,7 +327,7 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
             && activeSize == null && activePrice.equals("All", true)
         ) {
             listMode = ListMode.SECTIONS; switchToSections()
-            val rows = filtered.groupBy { it.subcategory.trim().ifEmpty { "Others" } }
+            val rows = filtered.groupBy { it.subcategory?.trim()!!.ifEmpty { "Others" } }
                 .map { (title, templates) ->
                     HomeRow.CategoryRow(title, templates.distinctBy { it.id }.take(10))
                 }
@@ -345,7 +345,7 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
         source: List<TemplateEntity>, subcategory: String, query: String, size: CanvasSize?, price: String
     ): List<TemplateEntity> {
         val bySub = if (subcategory.equals("All", true)) source
-        else source.filter { it.subcategory.trim().equals(subcategory, true) }
+        else source.filter { it.subcategory?.trim()!!.equals(subcategory, true) }
         val q = query.trim().lowercase()
         val byQuery = if (q.isBlank()) bySub else bySub.filter { it.matchesQuery(q) }
         val bySize = size?.let { s -> byQuery.filter { it.matchesSize(s) } } ?: byQuery
