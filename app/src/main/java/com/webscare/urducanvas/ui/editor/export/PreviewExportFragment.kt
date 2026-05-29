@@ -5,6 +5,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.webscare.urducanvas.common.utils.ImageProcessor
@@ -33,17 +34,12 @@ class PreviewExportFragment : Fragment() {
             return
         }
 
-        Log.d("PreviewExportFragment", "Loading image from $imagePath")
-
         val bitmap = ImageProcessor.filePathToBitmap(imagePath)
-        Log.d("PreviewExportFragment", "Bitmap = $bitmap, size = ${bitmap?.width}x${bitmap?.height}")
         if (bitmap != null) {
             binding.zoomableImage.setImageBitmap(bitmap)
         } else {
             Log.e("PreviewExportFragment", "Failed to decode bitmap from $imagePath")
         }
-
-        binding.back.addPressEffect { findNavController().navigateUp() }
 
         binding.zoomableImage.onDismissProgress = { progress ->
             binding.scrim.alpha = 1f - progress
@@ -52,11 +48,25 @@ class PreviewExportFragment : Fragment() {
         binding.zoomableImage.onDismiss = {
             findNavController().navigateUp()
         }
+
+        binding.back.addPressEffect {
+            binding.zoomableImage.triggerDismiss()
+        }
+
+        requireActivity().onBackPressedDispatcher.addCallback(
+            viewLifecycleOwner,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    binding.zoomableImage.triggerDismiss()
+                }
+            }
+        )
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         binding.zoomableImage.onDismiss = null
+        binding.zoomableImage.onDismissProgress = null
         _binding = null
     }
 }

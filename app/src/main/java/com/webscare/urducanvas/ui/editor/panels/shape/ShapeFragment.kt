@@ -155,6 +155,11 @@ class ShapeFragment : Fragment() {
     // ── Observers ─────────────────────────────────────────────────────────────
 
     private fun initObservers() {
+
+        viewModel.pagingLocked.observe(viewLifecycleOwner) { locked ->
+            binding.viewPager.isUserInputEnabled = !locked
+        }
+
         viewModel.shapeFillEnabled.observe(viewLifecycleOwner) {
             isFillEnabled = it; updateTabsFromState()
         }

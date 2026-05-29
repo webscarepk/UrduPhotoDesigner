@@ -89,8 +89,20 @@ class PanelSheetBehavior(
     private fun updateDim(slideOffset: Float) {
         dimView ?: return
         val alpha = (slideOffset * MAX_DIM_ALPHA).coerceIn(0f, MAX_DIM_ALPHA)
-        dimView.alpha      = alpha
-        dimView.isClickable = alpha > 0.01f
+        dimView.alpha = alpha
+
+        // CRITICAL: use visibility, not just isClickable.
+        // A View with alpha=0 but isClickable=true still intercepts all touches because
+        // it has non-zero bounds and sits above the canvas in Z order (translationZ="7dp").
+        // INVISIBLE removes it from touch dispatch entirely. VISIBLE re-adds it so the
+        // tap-to-collapse gesture works while the panel is open.
+        if (alpha > 0.01f) {
+            dimView.visibility  = View.VISIBLE
+            dimView.isClickable = true
+        } else {
+            dimView.visibility  = View.INVISIBLE
+            dimView.isClickable = false
+        }
     }
 
     // ── Spring ────────────────────────────────────────────────────────────────
@@ -141,6 +153,10 @@ class PanelSheetBehavior(
                 // Snap exactly to target when settled
                 currentGuideBegin = targetPx
                 isExpanded = targetPx == expandedPx
+                // Hard-reset the dim when collapsing — the overshoot bounce can leave
+                // alpha briefly above 0.01f, which would keep the overlay VISIBLE and
+                // intercepting touches even after the spring finishes.
+                if (!isExpanded) updateDim(0f)
                 onStateSettled(isExpanded)
                 releaseVelocityTracker()
             }
@@ -268,6 +284,10 @@ class PanelSheetBehavior(
             springAnim?.cancel()
             currentGuideBegin = target
             isExpanded = expanded
+            // updateDim is normally driven by emitSlide → onSlide, but when snapping
+            // immediately we set guideBegin directly without going through emitSlide,
+            // so we must update the dim manually to guarantee the overlay is hidden.
+            updateDim(if (expanded) 1f else 0f)
             onStateSettled(expanded)
         } else {
             springTo(target)

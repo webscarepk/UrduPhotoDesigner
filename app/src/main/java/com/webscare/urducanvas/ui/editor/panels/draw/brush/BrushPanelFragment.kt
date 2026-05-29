@@ -87,12 +87,14 @@ class BrushPanelFragment : Fragment() {
         }
 
         binding.thicknessBar.apply {
-            min = 1
-            max = 100
+            // SeekBar.setMin() was added in API 26 — calling it on API 25 (Android 7.1)
+            // throws NoSuchMethodError. Keep min=0 (the default) and add +1 offset when
+            // reading/writing so the effective range is still 1–100.
+            max = 99   // 0..99 on the bar → displayed as 1..100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                    val thickness = progress.toFloat()
-                    binding.thickness.text = progress.toString()
+                    val thickness = (progress + 1).toFloat()   // offset: bar 0 → thickness 1
+                    binding.thickness.text = (progress + 1).toString()
                     if (fromUser) {
                         viewModel.setBrushThickness(thickness)
                     }
@@ -104,7 +106,7 @@ class BrushPanelFragment : Fragment() {
         }
 
         binding.hardnessBar.apply {
-            
+
             max = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
@@ -146,7 +148,7 @@ class BrushPanelFragment : Fragment() {
             )
         }
 
-        val stroke = _root_ide_package_.com.webscare.urducanvas.common.canvas.model.StrokeData(
+        val stroke = com.webscare.urducanvas.common.canvas.model.StrokeData(
             path = path,
             color = viewModel.brushColor.value ?: Color.BLACK,
             thickness = viewModel.brushThickness.value ?: 20f,
@@ -236,9 +238,9 @@ class BrushPanelFragment : Fragment() {
         }
 
         viewModel.brushThickness.observe(viewLifecycleOwner) { thickness ->
-            val progressValue = thickness.toInt()
+            val progressValue = (thickness.toInt() - 1).coerceIn(0, 99)  // reverse the +1 offset
             binding.thicknessBar.progress = progressValue
-            binding.thickness.text = progressValue.toString()
+            binding.thickness.text = thickness.toInt().toString()
             animatePreview()
         }
 
@@ -302,7 +304,7 @@ class BrushPanelFragment : Fragment() {
 
     private fun setupRecyclerView() {
         colorsAdapter =
-            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter(
+            com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter(
                 Constants.colorList,
                 onColorSelected = { color ->
                     val selectedColor = color.colorCode.toColorInt()
@@ -334,22 +336,22 @@ class BrushPanelFragment : Fragment() {
                 viewModel.setGradient(item)
                 viewModel.setPagingLocked(true)
                 childFragmentManager.beginTransaction().replace(
-                        R.id.brushPanel, GradientEditorFragment().apply {
-                                arguments = Bundle().apply {
-                                    putBoolean("IS_EDIT", true)
-                                }
-                            }).addToBackStack(null).commit()
+                    R.id.brushPanel, GradientEditorFragment().apply {
+                        arguments = Bundle().apply {
+                            putBoolean("IS_EDIT", true)
+                        }
+                    }).addToBackStack(null).commit()
             }, onNoneSelected = {
                 viewModel.setBrushGradient(null)
             }, onGradientPickerClicked = {
                 viewModel.startPickingGradient(GradientPickerTarget.DRAW_STROKE)
                 viewModel.setPagingLocked(true)
                 childFragmentManager.beginTransaction().replace(
-                        R.id.brushPanel, GradientEditorFragment().apply {
-                                arguments = Bundle().apply {
-                                    putBoolean("IS_EDIT", false)
-                                }
-                            }).addToBackStack(null).commit()
+                    R.id.brushPanel, GradientEditorFragment().apply {
+                        arguments = Bundle().apply {
+                            putBoolean("IS_EDIT", false)
+                        }
+                    }).addToBackStack(null).commit()
             })
 
         binding.colors.apply {

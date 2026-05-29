@@ -113,7 +113,7 @@ class ColorPickerBar @JvmOverloads constructor(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        when (event.action) {
+        when (event.actionMasked) {
             MotionEvent.ACTION_DOWN,
             MotionEvent.ACTION_MOVE -> {
                 val x = event.x.coerceIn(barPadding, width - barPadding)
@@ -126,7 +126,11 @@ class ColorPickerBar @JvmOverloads constructor(
                 return true
             }
         }
-        return super.onTouchEvent(event)
+        // Consume all other events (e.g. ACTION_POINTER_DOWN/UP) — never call
+        // super.onTouchEvent for a View that handles its own touch stream, as the
+        // framework would attempt to recycle a TouchTarget that was already recycled,
+        // throwing IllegalStateException: already recycled once on Android 15.
+        return true
     }
 
     /**

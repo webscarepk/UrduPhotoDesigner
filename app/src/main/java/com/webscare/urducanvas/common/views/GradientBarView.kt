@@ -4,11 +4,12 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
-import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Shader
+import android.os.Handler
+import android.os.Looper
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.ViewConfiguration
@@ -16,15 +17,43 @@ import androidx.annotation.ColorInt
 import androidx.core.graphics.withSave
 import com.webscare.urducanvas.common.canvas.model.GradientItem
 import kotlin.math.abs
-import kotlin.math.cos
 import kotlin.math.hypot
-import kotlin.math.sin
 
+/**
+ * GradientBarView — a horizontal color-stop editor.
+ *
+ * Design contract
+ * ───────────────
+ * • The bar ALWAYS shows a simple left→right linear gradient of the current
+ *   stops/positions.  Angle, scale and center from GradientItem are intentionally
+ *   ignored here — they only matter on the final canvas.  This gives the user a
+ *   clean, readable strip to drag stops on regardless of the output orientation.
+ *
+ * • Each stop thumb is drawn as a circle whose FILL colour is exactly the stop
+ *   colour, and whose CENTER is positioned exactly at the pixel that corresponds
+ *   to that stop's position on the bar.  There is no visual offset.
+ *
+ * • Drag is smooth: positions are updated on every ACTION_MOVE frame and the
+ *   shader is rebuilt in-place (no allocation on the hot path after the first
+ *   build for a given size).
+ *
+ * • Long-press on a stop fires onStopRemoveRequested (caller decides min-count
+ *   guard).  Tap on empty bar area fires onStopAdded with the interpolated colour.
+ *
+ * Callbacks
+ * ─────────
+ *   onStopSelected(index)                   — tap on existing stop
+ *   onStopAdded(index, color, position)     — tap on empty bar area
+ *   onStopMoved(index, newPosition)         — drag of existing stop
+ *   onStopRemoveRequested(index)            — long-press on existing stop
+ */
 class GradientBarView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyle: Int = 0
 ) : android.view.View(context, attrs, defStyle) {
+
+    // ── Public data binding ───────────────────────────────────────────────────
 
     var gradientItem: GradientItem = GradientItem()
         set(value) {
@@ -37,87 +66,130 @@ class GradientBarView @JvmOverloads constructor(
     private var colors    = mutableListOf<Int>()
     private var positions = mutableListOf<Float>()
 
-    var onStopSelected: ((index: Int) -> Unit)?                         = null
-    var onStopAdded:    ((index: Int, color: Int, pos: Float) -> Unit)? = null
-    var onStopMoved:    ((index: Int, newPos: Float) -> Unit)?          = null
-    var onStopRemoved:  ((index: Int) -> Unit)?                         = null
+    // ── Callbacks ─────────────────────────────────────────────────────────────
+
+    var onStopSelected:        ((index: Int) -> Unit)?                         = null
+    var onStopAdded:           ((index: Int, color: Int, pos: Float) -> Unit)? = null
+    var onStopMoved:           ((index: Int, newPos: Float) -> Unit)?          = null
+    var onStopRemoveRequested: ((index: Int) -> Unit)?                         = null
+
+    // ── Metrics ───────────────────────────────────────────────────────────────
+
+    private val dp  = resources.displayMetrics.density
+    private val handleRadius    = dp * 11f
+    private val barCornerRadius = dp * 18f
+    /** Horizontal padding so handles at 0 and 1 don't clip at the edges. */
+    private val barPaddingH     = handleRadius + dp * 2f
+    private val barPaddingV     = dp * 4f
+    private val strokeWidth     = dp * 2f
 
     // ── Paints ────────────────────────────────────────────────────────────────
 
-    // barPaint carries the gradient shader — NEVER cleared between frames
+    /** Carries the gradient shader — rebuilt only when data/size changes. */
     private val barPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
     }
-    // handleFillPaint is always solid — never touches barPaint
-    private val handleFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+
+    /** Solid fill for each handle — colour set per-stop in onDraw. */
+    private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
     }
-    private val handleStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+
+    /** Stroke ring for each handle. */
+    private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style       = Paint.Style.STROKE
-        strokeWidth = resources.displayMetrics.density * 2
+        strokeWidth = this@GradientBarView.strokeWidth
     }
 
-    private val handleRadius    = resources.displayMetrics.density * 10
-    private val barCornerRadius = resources.displayMetrics.density * 18
-    private val barPadding      = resources.displayMetrics.density
-    private val extraInset      = handleRadius / 2.5f
+    /** Slightly larger outer ring to separate overlapping stops. */
+    private val outerRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style       = Paint.Style.STROKE
+        strokeWidth = dp * 1.5f
+        color       = Color.argb(60, 0, 0, 0)
+    }
 
-    private var activeHandle  = -1
-    private var pendingHandle = -1
-    private var pendingAdd    = false
-    private var downX = 0f
-    private var downY = 0f
-    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+    // ── Geometry helpers ──────────────────────────────────────────────────────
 
-    // ── Geometry ──────────────────────────────────────────────────────────────
+    private val barRect get() = RectF(
+        barPaddingH,
+        barPaddingV,
+        width  - barPaddingH,
+        height - barPaddingV
+    )
 
-    private val barRect    get() = RectF(barPadding, barPadding, width - barPadding, height - barPadding)
-    private val minHandleX get() = barPadding + handleRadius + extraInset
-    private val maxHandleX get() = width - barPadding - handleRadius - extraInset
-    private val effWidth   get() = maxHandleX - minHandleX
+    /** Left pixel that maps to position 0. */
+    private val trackStart get() = barPaddingH
+    /** Right pixel that maps to position 1. */
+    private val trackEnd   get() = width - barPaddingH
+    private val trackWidth get() = trackEnd - trackStart
 
-    private fun posToX(pos: Float) = minHandleX + pos.coerceIn(0f, 1f) * effWidth
-    private fun xToPos(x: Float)   = (x.coerceIn(minHandleX, maxHandleX) - minHandleX) / effWidth
+    /** Map a normalised [0,1] position to a canvas X coordinate. */
+    private fun posToX(pos: Float) = trackStart + pos.coerceIn(0f, 1f) * trackWidth
 
-    // ── Shader rebuild (never called from onDraw) ─────────────────────────────
+    /** Map a canvas X coordinate to a normalised [0,1] position. */
+    private fun xToPos(x: Float) =
+        ((x - trackStart) / trackWidth).coerceIn(0f, 1f)
+
+    // ── Touch state ───────────────────────────────────────────────────────────
+
+    private val touchSlop      = ViewConfiguration.get(context).scaledTouchSlop
+    private val longPressMs    = ViewConfiguration.getLongPressTimeout().toLong()
+    private val handler        = Handler(Looper.getMainLooper())
+
+    private var activeHandle   = -1   // handle being dragged right now
+    private var pendingHandle  = -1   // handle candidate on ACTION_DOWN
+    private var pendingAdd     = false
+    private var dragging       = false
+    private var downX          = 0f
+    private var downY          = 0f
+
+    private val longPressRunnable = Runnable {
+        if (pendingHandle >= 0 && !dragging) {
+            onStopRemoveRequested?.invoke(pendingHandle)
+            performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+            activeHandle  = -1
+            pendingHandle = -1
+            pendingAdd    = false
+        }
+    }
+
+    // ── Shader rebuild ────────────────────────────────────────────────────────
 
     /**
-     * Rebuilds barPaint's shader using the LINEAR gradient math from CanvasView,
-     * respecting angle, scale, centerX/centerY, colors and positions.
-     * Called only when data changes — NOT from onDraw.
+     * Builds a simple LEFT → RIGHT linear gradient from the current stops.
+     *
+     * The gradient bar is a colour-stop editor: angle/scale/center from
+     * GradientItem are intentionally NOT applied here — they only affect the
+     * final canvas render, not this UI widget.
      */
     private fun rebuildShader() {
         val w = width.toFloat()
         val h = height.toFloat()
-        if (w <= 0f || h <= 0f) {
-            // onSizeChanged will retry once the view is measured
-            return
-        }
+        if (w <= 0f || h <= 0f || colors.isEmpty()) return
 
+        // Ensure we always have valid sorted data before building the shader.
         val c = colors.toIntArray()
         val p = positions.toFloatArray()
-        val item = gradientItem
 
-        val theta   = Math.toRadians(item.angle.toDouble())
-        val halfLen = hypot(w, h) * item.scale / 2f
-        val dx      = (cos(theta) * halfLen).toFloat()
-        val dy      = (sin(theta) * halfLen).toFloat()
-
-        val shader = LinearGradient(-dx, -dy, dx, dy, c, p, Shader.TileMode.CLAMP)
-        val matrix = Matrix().apply {
-            postTranslate(w * item.centerX, h * item.centerY)
-        }
-        shader.setLocalMatrix(matrix)
-
-        barPaint.shader = shader
-        // Request one redraw — onDraw will NOT call rebuildShader again
+        barPaint.shader = LinearGradient(
+            trackStart, 0f, trackEnd, 0f,
+            c, p,
+            Shader.TileMode.CLAMP
+        )
         invalidate()
     }
 
-    /** Public alias kept for callers in GradientEditorFragment. */
+    /** Called by external code after the item's colors/positions change. */
     fun invalidateShader() = rebuildShader()
 
-    // ── Size change ───────────────────────────────────────────────────────────
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        // Software layer is required for LinearGradient with Matrix on some GPU paths.
+        setLayerType(LAYER_TYPE_SOFTWARE, null)
+        rebuildShader()
+    }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
@@ -132,24 +204,36 @@ class GradientBarView @JvmOverloads constructor(
         val rect = barRect
         val cy   = height / 2f
 
-        // 1. Draw gradient bar clipped to rounded rect — uses barPaint (has shader)
+        // 1 ── Gradient bar clipped to rounded rect
         canvas.withSave {
-            clipPath(Path().apply {
+            val clip = Path().apply {
                 addRoundRect(rect, barCornerRadius, barCornerRadius, Path.Direction.CW)
-            })
-            canvas.drawRoundRect(rect, barCornerRadius, barCornerRadius, barPaint)
+            }
+            clipPath(clip)
+            drawRoundRect(rect, barCornerRadius, barCornerRadius, barPaint)
         }
 
-        // 2. Draw stop handles — uses handleFillPaint / handleStrokePaint (always solid)
+        // 2 ── Stop handles
+        //
+        // The handle CENTRE is at posToX(pos), which is the exact pixel on the
+        // gradient that corresponds to that stop.  The fill colour is the stop
+        // colour.  No offset.  No shadow displacement.  Just a circle whose
+        // mathematical centre is the stop pixel.
         positions.forEachIndexed { i, pos ->
             val cx = posToX(pos)
-            handleFillPaint.color   = colors[i]
-            handleStrokePaint.color = if (isColorDark(colors[i])) Color.WHITE else Color.BLACK
-            canvas.drawCircle(cx, cy, handleRadius, handleFillPaint)
-            canvas.drawCircle(cx, cy, handleRadius, handleStrokePaint)
-        }
 
-        // ⚠️  Do NOT call rebuildShader() here — that was the flicker cause
+            // Outer separation ring (semi-transparent dark) — helps legibility
+            // when two handles are close together.
+            canvas.drawCircle(cx, cy, handleRadius + strokeWidth, outerRingPaint)
+
+            // Solid fill with the exact stop colour
+            fillPaint.color = colors[i]
+            canvas.drawCircle(cx, cy, handleRadius, fillPaint)
+
+            // Contrasting stroke so white/black handles stay visible on the bar
+            strokePaint.color = if (isColorDark(colors[i])) Color.WHITE else Color.BLACK
+            canvas.drawCircle(cx, cy, handleRadius, strokePaint)
+        }
     }
 
     // ── Touch ─────────────────────────────────────────────────────────────────
@@ -157,93 +241,126 @@ class GradientBarView @JvmOverloads constructor(
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         val rawX = ev.x
         val rawY = ev.y
-        val pos  = xToPos(rawX)
         val cy   = height / 2f
 
         when (ev.actionMasked) {
-            MotionEvent.ACTION_DOWN -> {
-                downX = rawX
-                downY = rawY
 
-                val hitRadius = resources.displayMetrics.density * 24
+            MotionEvent.ACTION_DOWN -> {
+                downX    = rawX
+                downY    = rawY
+                dragging = false
+
+                val hitRadius = handleRadius * 2.2f   // generous tap area
                 pendingHandle = positions.indexOfFirst { p ->
                     val hx = posToX(p)
                     val dx = rawX - hx
                     val dy = rawY - cy
-                    dx * dx + dy * dy <= hitRadius * hitRadius
+                    hypot(dx, dy) <= hitRadius
                 }
 
                 if (pendingHandle >= 0) {
                     activeHandle = pendingHandle
                     pendingAdd   = false
+                    // Schedule long-press detection for removal
+                    handler.postDelayed(longPressRunnable, longPressMs)
                 } else {
-                    val barTop    = barPadding
-                    val barBottom = height - barPadding
-                    pendingAdd = rawY in (barTop - hitRadius)..(barBottom + hitRadius)
+                    val expandedTop    = barRect.top    - handleRadius
+                    val expandedBottom = barRect.bottom + handleRadius
+                    pendingAdd = rawY in expandedTop..expandedBottom
+                    activeHandle = -1
                 }
                 return true
             }
 
             MotionEvent.ACTION_MOVE -> {
-                if (activeHandle >= 0) {
-                    if (abs(rawX - downX) > touchSlop || abs(rawY - downY) > touchSlop) {
-                        val lower = if (activeHandle > 0) positions[activeHandle - 1] else 0f
-                        val upper = if (activeHandle < positions.lastIndex) positions[activeHandle + 1] else 1f
-                        val clamped = pos.coerceIn(lower + 0.001f, upper - 0.001f)
+                val movedX = abs(rawX - downX)
+                val movedY = abs(rawY - downY)
 
-                        if (abs(clamped - positions[activeHandle]) > 0.001f) {
-                            positions[activeHandle] = clamped
-                            gradientItem.positions   = positions.toList()
-                            // Rebuild shader immediately — smooth real-time drag
-                            rebuildShader()
-                            onStopMoved?.invoke(activeHandle, clamped)
-                        }
-                        pendingAdd = false
-                        return true
-                    }
-                } else if (pendingAdd) {
-                    if (abs(rawX - downX) > touchSlop || abs(rawY - downY) > touchSlop) {
-                        pendingAdd = false
-                    }
+                if (!dragging && (movedX > touchSlop || movedY > touchSlop)) {
+                    dragging = true
+                    // Cancel long-press once drag starts
+                    handler.removeCallbacks(longPressRunnable)
+                    if (activeHandle >= 0) pendingAdd = false
+                    else activeHandle = -1
+                }
+
+                if (dragging && activeHandle >= 0) {
+                    val newPos = xToPos(rawX)
+
+                    // Clamp between neighbouring stops with a tiny gap
+                    val lower = if (activeHandle > 0)
+                        positions[activeHandle - 1] + 0.001f else 0f
+                    val upper = if (activeHandle < positions.lastIndex)
+                        positions[activeHandle + 1] - 0.001f else 1f
+
+                    val clamped = newPos.coerceIn(lower, upper)
+
+                    positions[activeHandle] = clamped
+                    gradientItem.positions  = positions.toList()
+
+                    // Rebuild shader in-place — smooth per-frame update
+                    rebuildShader()
+                    onStopMoved?.invoke(activeHandle, clamped)
+                    return true
                 }
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                if (activeHandle >= 0) {
-                    if (pendingHandle == activeHandle
-                        && abs(rawX - downX) <= touchSlop
-                        && abs(rawY - downY) <= touchSlop
-                    ) {
-                        onStopSelected?.invoke(activeHandle)
-                        invalidate()
+                handler.removeCallbacks(longPressRunnable)
+
+                val wasTap = abs(rawX - downX) <= touchSlop &&
+                        abs(rawY - downY) <= touchSlop
+
+                if (ev.actionMasked == MotionEvent.ACTION_UP) {
+                    when {
+                        // Tap on existing handle → select
+                        wasTap && pendingHandle >= 0 && !dragging -> {
+                            onStopSelected?.invoke(pendingHandle)
+                            invalidate()
+                        }
+
+                        // Tap on empty bar → add new stop
+                        wasTap && pendingAdd && activeHandle < 0 && !dragging -> {
+                            val pos     = xToPos(rawX)
+                            val idx     = positions.indexOfFirst { it > pos }
+                                .takeIf { it >= 0 } ?: positions.size
+                            val sampled = sampleColorAt(pos)
+                            onStopAdded?.invoke(idx, sampled, pos)
+                            // The caller will push a new GradientItem which triggers
+                            // the setter → rebuildShader automatically.
+                        }
                     }
-                } else if (pendingAdd) {
-                    if (abs(rawX - downX) <= touchSlop && abs(rawY - downY) <= touchSlop) {
-                        val idx     = positions.indexOfFirst { it > pos }.takeIf { it >= 0 } ?: positions.size
-                        val sampled = sampleColorAt(pos)
-                        onStopAdded?.invoke(idx, sampled, pos)
-                        // ViewModel will set gradientItem → setter → rebuildShader
-                    }
-                    pendingAdd    = false
-                    activeHandle  = -1
-                    pendingHandle = -1
-                    return true
                 }
+
                 activeHandle  = -1
                 pendingHandle = -1
                 pendingAdd    = false
+                dragging      = false
+                return true
             }
         }
-        return super.onTouchEvent(ev)
+        return true
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    /**
+     * Linearly interpolates the gradient colour at the given normalised [pos].
+     * Used when inserting a new stop so it blends seamlessly into the existing
+     * gradient.
+     */
     private fun sampleColorAt(pos: Float): Int {
+        if (positions.isEmpty()) return Color.BLACK
+        if (positions.size == 1) return colors[0]
+
         val i = positions.indexOfLast { it <= pos }.coerceAtLeast(0)
-        if (i == positions.lastIndex) return colors.last()
-        val t = (pos - positions[i]) / (positions[i + 1] - positions[i])
-        fun lerp(a: Int, b: Int) = (a + ((b - a) * t)).toInt()
+        if (i >= positions.lastIndex) return colors.last()
+
+        val t = (pos - positions[i]) / (positions[i + 1] - positions[i]).let {
+            if (it == 0f) return colors[i] else it
+        }
+
+        fun lerp(a: Int, b: Int) = (a + (b - a) * t).toInt()
         return Color.argb(
             lerp(Color.alpha(colors[i]), Color.alpha(colors[i + 1])),
             lerp(Color.red(colors[i]),   Color.red(colors[i + 1])),
@@ -253,13 +370,11 @@ class GradientBarView @JvmOverloads constructor(
     }
 
     private fun isColorDark(@ColorInt color: Int): Boolean {
-        val luminance = 0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)
+        val r = Color.red(color)
+        val g = Color.green(color)
+        val b = Color.blue(color)
+        // Relative luminance (sRGB)
+        val luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
         return luminance < 128
-    }
-
-    override fun onAttachedToWindow() {
-        super.onAttachedToWindow()
-        setLayerType(LAYER_TYPE_SOFTWARE, null)
-        rebuildShader()
     }
 }

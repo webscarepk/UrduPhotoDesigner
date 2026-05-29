@@ -2,7 +2,6 @@ package com.webscare.urducanvas.ui.navigation.templates
 
 import android.graphics.Bitmap
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isVisible
@@ -20,11 +19,10 @@ import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.ProgressUi
 import com.webscare.urducanvas.data.model.TemplateEntity
 import com.webscare.urducanvas.databinding.LayoutTemplateItemBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class TemplatesAdapter(
-    private val onTemplateSelected: (com.webscare.urducanvas.data.model.TemplateEntity, Boolean) -> Unit
-) : androidx.recyclerview.widget.ListAdapter<com.webscare.urducanvas.data.model.TemplateEntity, TemplatesAdapter.VH>(Diff()) {
+    private val onTemplateSelected: (TemplateEntity, Boolean) -> Unit
+) : ListAdapter<TemplateEntity, TemplatesAdapter.VH>(Diff()) {
 
     init {
         setHasStableIds(true)
@@ -46,23 +44,22 @@ class TemplatesAdapter(
         holder.bind(getItem(position))
     }
 
-    private fun onItemClick(item: com.webscare.urducanvas.data.model.TemplateEntity) {
+    private fun onItemClick(item: TemplateEntity) {
         onTemplateSelected(item, item.is_downloaded)
     }
 
     override fun onBindViewHolder(holder: VH, position: Int, payloads: MutableList<Any>) {
         if (payloads.isNotEmpty()) {
-            val state = payloads.firstOrNull() as? com.webscare.urducanvas.data.model.ProgressUi
+            val state = payloads.firstOrNull() as? ProgressUi
             if (state != null) {
                 holder.applyProgress(state)
-
                 return
             }
         }
         super.onBindViewHolder(holder, position, payloads)
     }
 
-    fun updateProgress(templateId: Int, state: com.webscare.urducanvas.data.model.ProgressUi) {
+    fun updateProgress(templateId: Int, state: ProgressUi) {
         val idx = currentList.indexOfFirst { it.id == templateId }
         if (idx != -1) {
             notifyItemChanged(idx, state)
@@ -71,17 +68,16 @@ class TemplatesAdapter(
 
     class VH(
         private val binding: LayoutTemplateItemBinding,
-        private val onClick: (com.webscare.urducanvas.data.model.TemplateEntity) -> Unit
+        private val onClick: (TemplateEntity) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(item: com.webscare.urducanvas.data.model.TemplateEntity) {
+        fun bind(item: TemplateEntity) {
 
             val width = item.canvas_width
             val height = item.canvas_height
 
             if (width > 0 && height > 0) {
                 val ratio = "$width:$height"
-
                 val params = binding.imageContainer.layoutParams as ConstraintLayout.LayoutParams
                 params.dimensionRatio = ratio
                 binding.imageContainer.layoutParams = params
@@ -89,16 +85,16 @@ class TemplatesAdapter(
 
             binding.isPremium.isVisible = item.is_premium && !item.is_subscribed
 
+            // ✅ FIX: Use the already-bound `item` directly instead of re-indexing
+            // currentList via bindingAdapterPosition. bindingAdapterPosition returns -1
+            // when the view is recycled/detached, which caused IndexOutOfBoundsException
+            // when the press animation callback fired after the view was detached.
             binding.download.addPressEffect {
-                val currentItem = (bindingAdapter as TemplatesAdapter)
-                    .currentList[bindingAdapterPosition]
-                onClick(currentItem)
+                onClick(item)
             }
 
             binding.fontCard.addPressEffect {
-                val currentItem = (bindingAdapter as TemplatesAdapter)
-                    .currentList[bindingAdapterPosition]
-                onClick(currentItem)
+                onClick(item)
             }
 
             val url = Constants.BASE_URL_GLIDE + item.thumbnail_url
@@ -130,20 +126,19 @@ class TemplatesAdapter(
             }
         }
 
-        fun applyProgress(state: com.webscare.urducanvas.data.model.ProgressUi) {
+        fun applyProgress(state: ProgressUi) {
             binding.apply {
                 val downloading = state.isDownloading && !state.isDownloaded
-
                 loading.isVisible = downloading
-                binding.download.isVisible = !(downloading || state.isDownloaded)
+                download.isVisible = !(downloading || state.isDownloaded)
             }
         }
     }
 
-    private class Diff : DiffUtil.ItemCallback<com.webscare.urducanvas.data.model.TemplateEntity>() {
-        override fun areItemsTheSame(o: com.webscare.urducanvas.data.model.TemplateEntity, n: com.webscare.urducanvas.data.model.TemplateEntity) = o.id == n.id
+    private class Diff : DiffUtil.ItemCallback<TemplateEntity>() {
+        override fun areItemsTheSame(o: TemplateEntity, n: TemplateEntity) = o.id == n.id
 
-        override fun areContentsTheSame(o: com.webscare.urducanvas.data.model.TemplateEntity, n: com.webscare.urducanvas.data.model.TemplateEntity): Boolean {
+        override fun areContentsTheSame(o: TemplateEntity, n: TemplateEntity): Boolean {
             return o.id == n.id &&
                     o.is_downloaded == n.is_downloaded &&
                     o.is_downloading == n.is_downloading &&
@@ -151,11 +146,11 @@ class TemplatesAdapter(
         }
 
         // Payload generator to prevent full rebind
-        override fun getChangePayload(oldItem: com.webscare.urducanvas.data.model.TemplateEntity, newItem: com.webscare.urducanvas.data.model.TemplateEntity): Any? {
+        override fun getChangePayload(oldItem: TemplateEntity, newItem: TemplateEntity): Any? {
             if (oldItem.download_progress != newItem.download_progress ||
                 oldItem.is_downloading != newItem.is_downloading ||
                 oldItem.is_downloaded != newItem.is_downloaded) {
-                return _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
+                return ProgressUi(
                     newItem.download_progress,
                     newItem.is_downloading,
                     newItem.is_downloaded

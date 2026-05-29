@@ -7,7 +7,9 @@ import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewpager2.widget.ViewPager2
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.data.model.PanelTabs
@@ -18,14 +20,14 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class AppearanceFragment : androidx.fragment.app.Fragment() {
+class AppearanceFragment : Fragment() {
     private var _binding: FragmentAppearanceBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var tabs: ArrayList<com.webscare.urducanvas.data.model.PanelTabs>
-    private lateinit var adapter: com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter
-    private lateinit var pagerAdapter: com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.AppearancePagerAdapter
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    private lateinit var tabs: ArrayList<PanelTabs>
+    private lateinit var adapter: PanelTabsAdapter
+    private lateinit var pagerAdapter: AppearancePagerAdapter
+    private val viewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -45,7 +47,7 @@ class AppearanceFragment : androidx.fragment.app.Fragment() {
     private fun setupRecyclerViews() {
         tabs = ArrayList()
         adapter =
-            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter { tab ->
+            PanelTabsAdapter { tab ->
                 handleAppearanceTabSelection(tab)
             }
         binding.categories.adapter = adapter
@@ -76,60 +78,32 @@ class AppearanceFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun initObservers() {
-        lifecycleScope.launch {
-            tabs.add(
-                _root_ide_package_.com.webscare.urducanvas.data.model.PanelTabs(
-                    0,
-                    "Kasheeda",
-                    true
-                )
-            )
-            tabs.add(
-                _root_ide_package_.com.webscare.urducanvas.data.model.PanelTabs(
-                    1,
-                    "Fill",
-                    false
-                )
-            )
-            tabs.add(
-                _root_ide_package_.com.webscare.urducanvas.data.model.PanelTabs(
-                    2,
-                    "Stroke",
-                    false
-                )
-            )
-            tabs.add(
-                _root_ide_package_.com.webscare.urducanvas.data.model.PanelTabs(
-                    3,
-                    "Shadow",
-                    false
-                )
-            )
-            tabs.add(
-                _root_ide_package_.com.webscare.urducanvas.data.model.PanelTabs(
-                    4,
-                    "Label",
-                    false
-                )
-            )
-            tabs.add(
-                _root_ide_package_.com.webscare.urducanvas.data.model.PanelTabs(
-                    5,
-                    "Effect",
-                    false
-                )
-            )
+        // CRITICAL: use viewLifecycleOwner.lifecycleScope, NOT bare lifecycleScope.
+        // The bare fragment lifecycleScope survives view destruction and can re-emit
+        // during Activity.onStart while FragmentMaxLifecycleEnforcer is mid-commitNow(),
+        // which causes "FragmentManager is already executing transactions".
+        // repeatOnLifecycle(STARTED) ensures the block only runs when the view is
+        // fully started — never during a transitional FragmentManager state.
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                tabs.add(PanelTabs(0, "Kasheeda", true))
+                tabs.add(PanelTabs(1, "Fill",     false))
+                tabs.add(PanelTabs(2, "Stroke",   false))
+                tabs.add(PanelTabs(3, "Shadow",   false))
+                tabs.add(PanelTabs(4, "Label",    false))
+                tabs.add(PanelTabs(5, "Effect",   false))
 
-            adapter.submitList(ArrayList(tabs))
-            handleAppearanceTabSelection(tabs.firstOrNull())
+                adapter.submitList(ArrayList(tabs))
+                handleAppearanceTabSelection(tabs.firstOrNull())
+            }
         }
 
-        viewModel.pagingLocked.observe(viewLifecycleOwner){ lock ->
+        viewModel.pagingLocked.observe(viewLifecycleOwner) { lock ->
             binding.viewPager.isUserInputEnabled = !lock
         }
     }
 
-    private fun handleAppearanceTabSelection(selectedCategory: com.webscare.urducanvas.data.model.PanelTabs?) {
+    private fun handleAppearanceTabSelection(selectedCategory: PanelTabs?) {
         selectedCategory?.let { tab ->
             val selectedIndex = tabs.indexOfFirst { it.tab_name == tab.tab_name }
 

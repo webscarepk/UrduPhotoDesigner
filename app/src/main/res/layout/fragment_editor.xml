@@ -7,14 +7,26 @@
     android:background="@color/contrast"
     tools:context=".ui.editor.EditorFragment">
 
+    <!--
+        dimOverlay — sits behind the panel, fades in when panel expands.
+
+        CRITICAL touch-blocking notes:
+        • android:visibility="invisible"  — starts INVISIBLE, not GONE and not VISIBLE.
+          INVISIBLE keeps layout space but removes the view from the touch dispatch tree.
+          VISIBLE with alpha=0 still intercepts all touches because the view has non-zero
+          bounds and translationZ="7dp" puts it above the canvas — that was the root cause
+          of canvas touches being swallowed after the panel collapsed.
+        • android:clickable is intentionally absent (defaults to false) — PanelSheetBehavior
+          sets isClickable=true only while the overlay is visible (alpha > 0.01).
+    -->
     <View
         android:id="@+id/dimOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#000000"
         android:alpha="0"
-        android:translationZ="7dp"
-        android:clickable="true" />
+        android:visibility="invisible"
+        android:translationZ="7dp" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/topGuide"
@@ -152,7 +164,6 @@
                 app:layout_constraintTop_toBottomOf="@id/addImage"
                 app:tint="@color/gray" />
 
-            <!-- BOTTOM -->
             <ImageView
                 android:id="@+id/addDraw"
                 android:layout_width="30dp"
@@ -455,7 +466,6 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Top-only shadow strip — sits in the gap between canvas and panel -->
     <View
         android:id="@+id/panelTopShadow"
         android:layout_width="0dp"
@@ -467,7 +477,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toTopOf="@id/panelNavHost" />
 
-    <!-- Panel — zero elevation, shadow handled by the View above -->
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/panelNavHost"
         android:name="androidx.navigation.fragment.NavHostFragment"

@@ -86,8 +86,14 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
 
         elementId?.let {
             adapter = EffectsPagerAdapter(
-                requireActivity().supportFragmentManager,
-                lifecycle,
+                // childFragmentManager — scoped to this Fragment's view, NOT the Activity.
+                // Using requireActivity().supportFragmentManager causes FragmentMaxLifecycleEnforcer
+                // to call commitNow() on the Activity FM while Activity.onStart is already
+                // dispatching its own transaction → "FragmentManager already executing transactions".
+                // viewLifecycleOwner.lifecycle — tied to the view lifetime, not the Fragment
+                // instance lifetime, so the adapter is torn down with the view on back-stack.
+                childFragmentManager,
+                viewLifecycleOwner.lifecycle,
                 tabs, it
             )
             viewModel.populateAdjustmentsFromElement(it)

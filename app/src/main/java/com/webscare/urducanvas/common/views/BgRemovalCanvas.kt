@@ -713,7 +713,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val scaleHandled = scaleDetector.onTouchEvent(event)
 
-        if (event.pointerCount >= 2) {
+        if (event.pointerCount >= 2 || event.actionMasked == MotionEvent.ACTION_POINTER_UP) {
             // Hide the magnifier during zooming
             if (showMagnifier) {
                 animateMagnifier(false) // Fade out magnifier when zooming starts
@@ -743,7 +743,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
         // ✅ Pan Mode
         if (toolMode == null && event.pointerCount == 1) {
-            if (event.action == MotionEvent.ACTION_MOVE && event.historySize > 0) {
+            if (event.actionMasked == MotionEvent.ACTION_MOVE && event.historySize > 0) {
                 val dx = event.x - event.getHistoricalX(0)
                 val dy = event.y - event.getHistoricalY(0)
                 drawMatrix.postTranslate(dx, dy)

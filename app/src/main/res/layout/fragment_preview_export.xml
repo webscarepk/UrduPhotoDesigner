@@ -8,15 +8,15 @@
     tools:context=".ui.editor.export.PreviewExportFragment">
 
     <!--
-        Scrim: sits behind the image, fades out as the user drags down.
-        In your Fragment:
-            zoomableImageView.onDismissProgress = { p -> binding.scrim.alpha = 1f - p }
-        Black background is revealed/hidden here — NOT on the root view.
+        Scrim: starts fully opaque, fades to transparent as user drags down.
+        Keep alpha="1" here — the Fragment sets it via onDismissProgress.
+        Background color is whatever you want revealed-behind to contrast against.
     -->
     <View
         android:id="@+id/scrim"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:alpha="1"
         android:background="@color/contrast" />
 
     <androidx.constraintlayout.widget.Guideline
@@ -55,6 +55,11 @@
         android:scaleType="matrix"
         android:src="@drawable/ic_launcher_background" />
 
+    <!--
+        Back button sits on top of everything.
+        Its alpha is intentionally NOT tied to onDismissProgress —
+        it stays visible so the user can always tap it during a drag.
+    -->
     <ImageView
         android:id="@+id/back"
         android:layout_width="32dp"

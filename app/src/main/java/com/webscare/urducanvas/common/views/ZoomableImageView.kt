@@ -62,8 +62,17 @@ class ZoomableImageView @JvmOverloads constructor(
      */
     var onDismiss: (() -> Unit)? = null
 
+    /**
+     * Programmatically trigger the same dismiss animation that a swipe-down fires.
+     * Call from a back button or the system back press handler so the user always
+     * gets the morph-out animation instead of a hard navigate.
+     */
+    fun triggerDismiss() {
+        if (!isDismissing) animateDismiss()
+    }
+
     // 35% of view height to commit dismiss
-    private val dismissThreshold get() = height * 0.35f
+    private val dismissThreshold get() = height * 0.1f
 
     // True once the finger has moved enough downward to enter dismiss mode
     private var isDismissing = false
@@ -172,7 +181,7 @@ class ZoomableImageView @JvmOverloads constructor(
                 // Accumulate silently until we cross the slop threshold (8px).
                 // Once crossed, commit to dismiss mode and stop touching the matrix.
                 dismissDragY += dy
-                if (dismissDragY > 8f) {
+                if (dismissDragY > 3f) {
                     isDismissing = true
                     // Hard-freeze the matrix so it never gets reassigned again
                     // during this gesture — this is what eliminates the flicker.

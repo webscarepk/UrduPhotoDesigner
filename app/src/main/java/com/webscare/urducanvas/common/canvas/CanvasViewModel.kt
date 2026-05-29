@@ -1577,9 +1577,9 @@ class CanvasViewModel @Inject constructor(
                 gradientItem
             ) else setFillGradient(null)
 
-            GradientPickerTarget.OVERLAY -> if (gradientItem != null) setFillGradient(
+            GradientPickerTarget.OVERLAY -> if (gradientItem != null) setElementOverlayGradient(
                 gradientItem
-            ) else setFillGradient(null)
+            ) else setElementOverlayGradient(null)
 
             GradientPickerTarget.IMAGE_STROKE -> if (gradientItem != null) setImageStrokeGradient(
                 gradientItem, _borderWidth.value ?: 1f
@@ -1618,6 +1618,7 @@ class CanvasViewModel @Inject constructor(
 
             applyAction(action, true)
             notifyUndoRedoChanged()
+            notifyCanvasUpdated()
         }
     }
 
@@ -2894,6 +2895,7 @@ class CanvasViewModel @Inject constructor(
 
             notifyUndoRedoChanged()
             applyAction(action, true)
+            notifyCanvasUpdated()
         }
     }
 
@@ -3945,13 +3947,24 @@ class CanvasViewModel @Inject constructor(
             }
 
             is CanvasAction.SetOverlayGradient -> {
-                val el = findElementById(action.elementId)
-                if (isRedo) {
-                    el?.overlayGradient = action.newGradient
-                } else {
-                    el?.overlayGradient = action.oldGradient
-                }
+            val targetGradient = if (isRedo) action.newGradient else action.oldGradient
+            val currentList = _canvasElements.value.orEmpty()
+            _canvasElements.value = currentList.map { element ->
+                if (element.id == action.elementId) {
+                    element.overlayGradient = targetGradient
+                    if (targetGradient != null) {
+                        element.overlayColor = android.graphics.Color.TRANSPARENT
+                        if (element.overlayOpacity == 0) element.overlayOpacity = 255
+                        element.hasOverlay = true
+                    } else {
+                        element.hasOverlay =
+                            element.overlayOpacity > 0 &&
+                            element.overlayColor != android.graphics.Color.TRANSPARENT
+                    }
+                    element
+                } else element
             }
+        }
 
             is CanvasAction.SetImageShadow -> {
                 val el = findElementById(action.elementId)

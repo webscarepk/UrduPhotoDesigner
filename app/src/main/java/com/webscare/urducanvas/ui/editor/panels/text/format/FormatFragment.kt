@@ -5,7 +5,9 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewpager2.widget.ViewPager2
 import com.webscare.urducanvas.data.model.PanelTabs
 import com.webscare.urducanvas.databinding.FragmentFormatBinding
@@ -62,38 +64,20 @@ class FormatFragment : Fragment() {
     }
 
     private fun initObservers() {
-        lifecycleScope.launch {
-            tabs.add(
-                PanelTabs(
-                    0,
-                    "Spacing",
-                    true
-                )
-            )
-            tabs.add(
-                PanelTabs(
-                    1,
-                    "Casing",
-                    false
-                )
-            )
-            tabs.add(
-                PanelTabs(
-                    2,
-                    "Decoration",
-                    false
-                )
-            )
-            tabs.add(
-                PanelTabs(
-                    3,
-                    "Alignment",
-                    false
-                )
-            )
+        // CRITICAL: viewLifecycleOwner.lifecycleScope + repeatOnLifecycle(STARTED).
+        // Same reason as AppearanceFragment — bare lifecycleScope survives view
+        // destruction and can call setCurrentItem() / submitList() while
+        // FragmentMaxLifecycleEnforcer is mid-commitNow() → crash.
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                tabs.add(PanelTabs(0, "Spacing",    true))
+                tabs.add(PanelTabs(1, "Casing",     false))
+                tabs.add(PanelTabs(2, "Decoration", false))
+                tabs.add(PanelTabs(3, "Alignment",  false))
 
-            adapter.submitList(ArrayList(tabs))
-            handleFontSelection(tabs.firstOrNull()) // Select "All" by default
+                adapter.submitList(ArrayList(tabs))
+                handleFontSelection(tabs.firstOrNull())
+            }
         }
     }
 

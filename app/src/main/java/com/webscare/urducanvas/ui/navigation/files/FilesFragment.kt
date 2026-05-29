@@ -12,7 +12,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.viewpager2.widget.ViewPager2
 import com.webscare.urducanvas.R
@@ -29,12 +31,12 @@ import kotlinx.coroutines.launch
 import kotlin.getValue
 
 @AndroidEntryPoint
-class FilesFragment : androidx.fragment.app.Fragment() {
+class FilesFragment : Fragment() {
     private var _binding: FragmentFilesBinding? = null
     private val binding get() = _binding!!
     private var tabs = emptyList<String>()
-    private val viewModel: com.webscare.urducanvas.viewmodels.FiltersViewModel by activityViewModels()
-    private val canvasViewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    private val viewModel: FiltersViewModel by activityViewModels()
+    private val canvasViewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -52,12 +54,17 @@ class FilesFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun initObservers() {
-        lifecycleScope.launch {
-            viewModel.isGrid.collect { isGrid ->
-                if (isGrid) {
-                    binding.listStyle.setImageResource(R.drawable.ic_list_view)
-                } else {
-                    binding.listStyle.setImageResource(R.drawable.ic_grid_view)
+        // viewLifecycleOwner.lifecycleScope + repeatOnLifecycle(STARTED) ensures this
+        // coroutine is cancelled when the view is destroyed and only re-starts once the
+        // view is fully STARTED — never during a mid-transaction FragmentManager state.
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.isGrid.collect { isGrid ->
+                    if (isGrid) {
+                        binding.listStyle.setImageResource(R.drawable.ic_list_view)
+                    } else {
+                        binding.listStyle.setImageResource(R.drawable.ic_grid_view)
+                    }
                 }
             }
         }
@@ -67,8 +74,10 @@ class FilesFragment : androidx.fragment.app.Fragment() {
         tabs = listOf("All", "Projects", "Fonts", "Stickers", "Backgrounds")
 
         val adapter = FilesPagerAdapter(
-            requireActivity().supportFragmentManager,
-            lifecycle,
+            // childFragmentManager scoped to this fragment's view — never the Activity FM.
+            // viewLifecycleOwner.lifecycle tears the adapter down with the view.
+            childFragmentManager,
+            viewLifecycleOwner.lifecycle,
             tabs
         )
         binding.viewPager.adapter = adapter

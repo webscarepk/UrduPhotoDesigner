@@ -61,9 +61,13 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
     private fun setEvents() {
         // childFragmentManager so FontsFragment can find FontsListFragment
         // via childFragmentManager tag lookup inside notifyVisiblePageFilter()
+        // viewLifecycleOwner.lifecycle — NOT bare fragment lifecycle. The bare lifecycle
+        // outlives the view; passing it to FragmentStateAdapter means
+        // FragmentMaxLifecycleEnforcer can fire commitNow() during Activity.onStart
+        // while the FM is already executing → "FragmentManager already executing transactions".
         adapter = TextAdjustmentsPagerAdapter(
             childFragmentManager,
-            lifecycle,
+            viewLifecycleOwner.lifecycle,
             tabs
         )
         adapter.stateRestorationPolicy =

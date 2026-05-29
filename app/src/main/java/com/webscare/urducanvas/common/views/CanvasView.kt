@@ -2860,28 +2860,36 @@ class CanvasView @JvmOverloads constructor(
         canvas.restore()
         drawElementOverlays(canvas, showOverlays)
 
+        // colorPickerBitmap is built asynchronously after enableColorPicker() is called.
+        // It is legitimately null for the first few frames while the coroutine renders it,
+        // AND it is null again immediately after disableColorPicker() recycles it.
+        // Guard every access — never use !! on a nullable Bitmap.
         if (showOverlays && isColorPickerMode) {
             val halfIcon = desiredPickerIconSizePx
+            val bmp = colorPickerBitmap
 
-            val px = pickerX.roundToInt().coerceIn(0, colorPickerBitmap?.width!! - 1)
-            val py = pickerY.roundToInt().coerceIn(0, colorPickerBitmap?.height!! - 1)
-            val pixelColor = colorPickerBitmap?.getPixel(px, py)
-            val dark = pixelColor?.let { isColorDark(it) }
+            if (bmp != null && !bmp.isRecycled) {
+                val px = pickerX.roundToInt().coerceIn(0, bmp.width - 1)
+                val py = pickerY.roundToInt().coerceIn(0, bmp.height - 1)
+                val pixelColor = bmp.getPixel(px, py)
+                val dark = isColorDark(pixelColor)
 
-            canvas.drawCircle(
-                pickerX, pickerY - halfIcon * 3, halfIcon + 20f, Paint().apply {
-                    color = pixelColor!!
-                    style = Paint.Style.FILL
-                    isAntiAlias = true
-                })
+                canvas.drawCircle(
+                    pickerX, pickerY - halfIcon * 3, halfIcon + 20f, Paint().apply {
+                        color = pixelColor
+                        style = Paint.Style.FILL
+                        isAntiAlias = true
+                    })
 
-            canvas.drawCircle(
-                pickerX, pickerY - halfIcon * 3, halfIcon + 20f, Paint().apply {
-                    color = if (dark!!) Color.WHITE else Color.BLACK
-                    style = Paint.Style.STROKE
-                    strokeWidth = 4f
-                })
+                canvas.drawCircle(
+                    pickerX, pickerY - halfIcon * 3, halfIcon + 20f, Paint().apply {
+                        color = if (dark) Color.WHITE else Color.BLACK
+                        style = Paint.Style.STROKE
+                        strokeWidth = 4f
+                    })
+            }
 
+            // Crosshair cursor drawn regardless of whether the bitmap is ready yet
             canvas.drawCircle(
                 pickerX, pickerY, halfIcon / 4, Paint().apply {
                     color = Color.BLACK
@@ -4418,11 +4426,13 @@ class CanvasView @JvmOverloads constructor(
 
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     if (isDraggingPicker) {
-
-                        val px = pickerX.roundToInt().coerceIn(0, colorPickerBitmap?.width!! - 1)
-                        val py = pickerY.roundToInt().coerceIn(0, colorPickerBitmap?.height!! - 1)
-                        val color = colorPickerBitmap?.getPixel(px, py)
-                        color?.let { onColorPicked?.invoke(it) }
+                        val bmp = colorPickerBitmap
+                        if (bmp != null && !bmp.isRecycled) {
+                            val px = pickerX.roundToInt().coerceIn(0, bmp.width - 1)
+                            val py = pickerY.roundToInt().coerceIn(0, bmp.height - 1)
+                            val color = bmp.getPixel(px, py)
+                            onColorPicked?.invoke(color)
+                        }
                         isDraggingPicker = false
                         invalidate()
                     }
@@ -5049,7 +5059,21 @@ class CanvasView @JvmOverloads constructor(
                 return true
             }
 
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP, MotionEvent.ACTION_CANCEL -> {
+            MotionEvent.ACTION_POINTER_UP -> {
+                // A second (or later) finger lifted — only reset pinch state.
+                // Do NOT run the full ACTION_UP logic here; doing so causes the
+                // framework to recycle the same TouchTarget twice, which throws
+                // IllegalStateException: already recycled once on Android 15.
+                if (currentMode == Mode.CANVAS_PAN || currentMode == Mode.MULTI_TOUCH) {
+                    initialPinchDistance = 0f
+                    initialPinchAngle = 0f
+                    initialOverallScale = overallScale
+                }
+                invalidate()
+                return true
+            }
+
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 showVerticalGuide = false
                 showHorizontalGuide = false
                 showRotationVerticalGuide = false // Reset rotation guides on ACTION_UP

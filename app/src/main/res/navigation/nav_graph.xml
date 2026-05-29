@@ -91,6 +91,7 @@
         android:id="@+id/previewExportFragment"
         android:name="com.webscare.urducanvas.ui.editor.export.PreviewExportFragment"
         android:label="fragment_preview_export"
+        android:theme="@style/Theme.TransparentFragment"
         tools:layout="@layout/fragment_preview_export" />
     <fragment
         android:id="@+id/bgRemovalFragment"

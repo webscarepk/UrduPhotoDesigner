@@ -1790,8 +1790,14 @@ class EditorFragment : Fragment() {
             val rootHeight = root.height.takeIf { it > 0 } ?: return@post
 
             val collapsedPx = (rootHeight * 0.65f).toInt()
-
             val expandedPx = 0
+
+            // Cancel any in-flight spring from the previous instance before replacing it.
+            // Also hard-reset the dimOverlay so a stale half-expanded state from the old
+            // PanelSheetBehavior instance never keeps blocking canvas touches.
+            panelSheet?.snapTo(expanded = false, immediate = true)
+            binding.dimOverlay.visibility  = View.INVISIBLE
+            binding.dimOverlay.isClickable = false
 
             val dest = _navController?.currentDestination?.id
             val panelType = when (dest) {
@@ -1860,6 +1866,15 @@ class EditorFragment : Fragment() {
             binding.panelNavHost.setOnTouchListener { _, _ -> true }
         } else {
             binding.panelNavHost.setOnTouchListener(null)
+            // Safety net: guarantee the dimOverlay is invisible and non-intercepting
+            // whenever the panel collapses, regardless of whether PanelSheetBehavior's
+            // spring endListener already reset it. Rapid expand→collapse gestures can
+            // leave the overlay visible/clickable if the spring settles before the
+            // expandedPanel Flow emits the null (collapsed) state.
+            if (_binding != null) {
+                binding.dimOverlay.visibility  = View.INVISIBLE
+                binding.dimOverlay.isClickable = false
+            }
         }
     }
 

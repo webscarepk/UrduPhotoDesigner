@@ -237,7 +237,7 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <androidx.core.widget.NestedScrollView
+    <com.webscare.urducanvas.common.views.SpringNestedScrollView
         android:id="@+id/contentScroll"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -474,7 +474,7 @@
                 android:clipToPadding="false"/>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
-    </androidx.core.widget.NestedScrollView>
+    </com.webscare.urducanvas.common.views.SpringNestedScrollView>
 
 
     <!-- Loading skeleton (shown during initial fetch) -->

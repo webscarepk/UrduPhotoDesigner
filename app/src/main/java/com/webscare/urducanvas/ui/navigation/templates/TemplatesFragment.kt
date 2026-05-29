@@ -257,7 +257,7 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
     private fun buildSubcategoryChips(templates: List<TemplateEntity>) {
         val subcats = buildList {
             add("All")
-            addAll(templates.map { it.subcategory?.trim()!! }.filter { it.isNotEmpty() }.distinct().sorted())
+            addAll(templates.mapNotNull { it.subcategory?.trim()?.takeIf { s -> s.isNotEmpty() } }.distinct().sorted())
         }
         renderSubcategoryChips(subcats)
     }
@@ -298,22 +298,55 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
 
     // ─── Filter Panel ─────────────────────────────────────────────────────────
 
-    // binding.categoryChips is the LinearLayout panel — same toggle logic as before
     private fun toggleFilterPanel() {
-        val panel = binding.categoryChips
-        val bar = binding.searchBar
+        val panel   = binding.categoryChips
+        val bar     = binding.searchBar
+        val overlay = binding.topFadeOverlay
+        val root    = binding.root
+
         if (!filterPanelVisible) {
+            // searchBar and its sibling filters button must sit ABOVE the panel
+            bar.bringToFront()
+            binding.filters.bringToFront()
+            bar.translationZ     = resources.getDimension(com.intuit.sdp.R.dimen._2sdp)
+            binding.filters.translationZ = resources.getDimension(com.intuit.sdp.R.dimen._2sdp)
+            // gradient overlay must NOT cover the chips panel
+            overlay.translationZ = 0f
+            panel.translationZ   = 1f
+
+            root.clipChildren  = false
+            root.clipToPadding = false
+
             panel.isVisible = true
             panel.doOnPreDraw {
-                bar.bringToFront()
-                bar.elevation = resources.getDimension(com.intuit.sdp.R.dimen._2sdp)
-                panel.elevation = resources.getDimension(com.intuit.sdp.R.dimen._1sdp)
-                panel.translationY = -panel.height.toFloat(); panel.alpha = 0f
-                panel.animate().translationY(0f).alpha(1f).setDuration(200).start()
+                // panel.top is its natural Y position (below searchBar).
+                // We want the panel to start with its BOTTOM edge sitting exactly
+                // at bar.bottom — i.e. fully tucked behind the search bar.
+                // Offset needed = -(panel.top - bar.bottom + panel.height)
+                val startY = -(panel.top - bar.bottom + panel.height).toFloat()
+                panel.translationY = startY
+                panel.animate()
+                    .translationY(0f)
+                    .setDuration(300)
+                    .setInterpolator(android.view.animation.DecelerateInterpolator(2.2f))
+                    .start()
             }
         } else {
-            panel.animate().translationY(-panel.height.toFloat()).alpha(0f).setDuration(180)
-                .withEndAction { panel.isGone = true }.start()
+            panel.doOnPreDraw {
+                val endY = -(panel.top - bar.bottom + panel.height).toFloat()
+                panel.animate()
+                    .translationY(endY)
+                    .setDuration(240)
+                    .setInterpolator(android.view.animation.AccelerateInterpolator(2f))
+                    .withEndAction {
+                        panel.isGone      = true
+                        panel.translationY = 0f
+                        overlay.translationZ = resources.getDimension(com.intuit.sdp.R.dimen._2sdp)
+                        root.clipChildren  = true
+                        root.clipToPadding = true
+                    }
+                    .start()
+            }
         }
         filterPanelVisible = !filterPanelVisible
     }
@@ -327,7 +360,7 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
             && activeSize == null && activePrice.equals("All", true)
         ) {
             listMode = ListMode.SECTIONS; switchToSections()
-            val rows = filtered.groupBy { it.subcategory?.trim()!!.ifEmpty { "Others" } }
+            val rows = filtered.groupBy { it.subcategory?.trim()?.ifEmpty { "Others" } ?: "Others" }
                 .map { (title, templates) ->
                     HomeRow.CategoryRow(title, templates.distinctBy { it.id }.take(10))
                 }
@@ -345,7 +378,7 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
         source: List<TemplateEntity>, subcategory: String, query: String, size: CanvasSize?, price: String
     ): List<TemplateEntity> {
         val bySub = if (subcategory.equals("All", true)) source
-        else source.filter { it.subcategory?.trim()!!.equals(subcategory, true) }
+        else source.filter { it.subcategory?.trim().orEmpty().equals(subcategory, true) }
         val q = query.trim().lowercase()
         val byQuery = if (q.isBlank()) bySub else bySub.filter { it.matchesQuery(q) }
         val bySize = size?.let { s -> byQuery.filter { it.matchesSize(s) } } ?: byQuery

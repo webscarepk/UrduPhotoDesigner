@@ -8,6 +8,8 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.viewpager2.widget.ViewPager2
@@ -37,36 +39,45 @@ class PopularFontsFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         setEvents()
         initObservers()
     }
 
     private fun initObservers() {
-        lifecycleScope.launch {
-            viewModel.isGrid.collect { isGrid ->
-                if (isGrid) {
-                    binding.listStyle.setImageResource(R.drawable.ic_list_view)
-                } else {
-                    binding.listStyle.setImageResource(R.drawable.ic_grid_view)
-                }
-            }
-        }
-
-        lifecycleScope.launch {
-            mainViewModel.localFonts.collect { allFonts ->
-                val categories = buildList {
-                    add("All")
-                    addAll(allFonts.map { it.font_category.trim() }
-                        .filter { it.isNotEmpty() && !it.equals("Imported", true) }.distinct()
-                        .sorted())
+        // Use viewLifecycleOwner.lifecycleScope + repeatOnLifecycle so coroutines
+        // are cancelled automatically when the view is destroyed, preventing
+        // NullPointerException from accessing _binding after onDestroyView.
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    viewModel.isGrid.collect { isGrid ->
+                        if (isGrid) {
+                            binding.listStyle.setImageResource(R.drawable.ic_list_view)
+                        } else {
+                            binding.listStyle.setImageResource(R.drawable.ic_grid_view)
+                        }
+                    }
                 }
 
-                tabs = categories
-                if (pagerAdapter == null) {
-                    setupTabsAndPager()
-                } else {
-                    pagerAdapter?.updateTabs(categories)
+                launch {
+                    mainViewModel.localFonts.collect { allFonts ->
+                        val categories = buildList {
+                            add("All")
+                            addAll(
+                                allFonts.map { it.font_category.trim() }
+                                    .filter { it.isNotEmpty() && !it.equals("Imported", true) }
+                                    .distinct()
+                                    .sorted()
+                            )
+                        }
+
+                        tabs = categories
+                        if (pagerAdapter == null) {
+                            setupTabsAndPager()
+                        } else {
+                            pagerAdapter?.updateTabs(categories)
+                        }
+                    }
                 }
             }
         }
@@ -74,7 +85,9 @@ class PopularFontsFragment : androidx.fragment.app.Fragment() {
 
     private fun setupTabsAndPager() {
         pagerAdapter = PopularFontsPagerAdapter(
-            requireActivity().supportFragmentManager, lifecycle, tabs
+            // childFragmentManager + viewLifecycleOwner.lifecycle — never the Activity FM
+            // or bare fragment lifecycle. See FilesFragment for full explanation.
+            childFragmentManager, viewLifecycleOwner.lifecycle, tabs
         )
         binding.viewPager.adapter = pagerAdapter
 
@@ -110,16 +123,12 @@ class PopularFontsFragment : androidx.fragment.app.Fragment() {
 
             if (i == selectedPosition) {
                 root?.setCardBackgroundColor(
-                    ContextCompat.getColor(
-                        requireContext(), R.color.appColor
-                    )
+                    ContextCompat.getColor(requireContext(), R.color.appColor)
                 )
                 text?.setTextColor(ContextCompat.getColor(requireContext(), R.color.whiteText))
             } else {
                 root?.setCardBackgroundColor(
-                    ContextCompat.getColor(
-                        requireContext(), R.color.contrast
-                    )
+                    ContextCompat.getColor(requireContext(), R.color.contrast)
                 )
                 text?.setTextColor(ContextCompat.getColor(requireContext(), R.color.gray))
             }

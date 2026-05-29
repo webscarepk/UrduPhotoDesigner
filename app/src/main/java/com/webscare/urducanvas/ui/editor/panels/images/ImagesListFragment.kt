@@ -293,7 +293,15 @@ class ImagesListFragment : Fragment() {
         imagesAdapter?.isExpanded = effectiveExpanded
 
         val bottomPadding = if (effectiveExpanded) (64 * resources.displayMetrics.density).toInt() else 0
-        binding.backgrounds.setPadding(0, 0, 0, bottomPadding)
+        // Use preserved left/right instead of 0 — setPadding(0,0,0,x) silently zeros out
+        // the paddingHorizontal="15dp" set in XML, causing horizontal padding to disappear
+        // after every expand/collapse cycle.
+        binding.backgrounds.setPadding(
+            binding.backgrounds.paddingLeft,
+            binding.backgrounds.paddingTop,
+            binding.backgrounds.paddingRight,
+            bottomPadding
+        )
     }
 
     private fun buildLayoutManager(expanded: Boolean): GridLayoutManager =
@@ -319,10 +327,6 @@ class ImagesListFragment : Fragment() {
         val isPexels = PexelsCategories.isPexelsTab(category)
 
         if (isPexels && paginatedIds.isNotEmpty()) {
-            // Items were already appended directly via observePaginationAppend.
-            // Only update categoryImages reference — do NOT call submitList again.
-            // Calling submitList here would cause DiffUtil to see the full new list
-            // and potentially reorder items, causing the jump.
             categoryImages = slice
             return
         }
