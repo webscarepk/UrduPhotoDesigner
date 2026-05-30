@@ -209,6 +209,11 @@ data class CanvasElement(
 
     @SerializedName("isSubscribed") var isSubscribed: Boolean = false,
 
+    // ── Grouping ──────────────────────────────────────────────────────────────
+    // Only meaningful when type == ElementType.GROUP.
+    // Controls whether child rows are visible in the layers panel.
+    @SerializedName("isGroupCollapsed") var isGroupCollapsed: Boolean = false,
+
     ) : Serializable {
 
     @field:Transient var cachedAdjustedBitmap: Bitmap? = null

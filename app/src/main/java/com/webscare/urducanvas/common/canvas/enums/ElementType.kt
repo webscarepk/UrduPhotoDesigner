@@ -18,5 +18,8 @@ enum class ElementType {
     DRAW,
 
     @SerializedName("Shape")
-    SHAPE
+    SHAPE,
+
+    @SerializedName("Group")
+    GROUP
 }

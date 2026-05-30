@@ -1355,24 +1355,55 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun selectElementForGrouping() {
-        if (_selectedElements.value?.isNotEmpty() == true) {
-            val newGroupId = UUID.randomUUID().toString()
-            _currentGroupId.value = newGroupId
-            _selectedElements.value?.forEach { element ->
-                element.groupId = newGroupId
-            }
-            _canvasElements.value = _canvasElements.value
-        }
+        val selected = _selectedElements.value ?: return
+        if (selected.isEmpty()) return
+
+        val newGroupId = UUID.randomUUID().toString()
+        _currentGroupId.value = newGroupId
+
+        // ── 1. Tag every selected element with the new groupId ────────────────
+        selected.forEach { element -> element.groupId = newGroupId }
+
+        // ── 2. Build the GROUP sentinel element ───────────────────────────────
+        // The sentinel sits in canvasElements as a first-class entry.
+        // It has no visual on the canvas — CanvasView already skips unknown
+        // types in its draw loop. Its zIndex is set to the highest zIndex
+        // among the selected children so it sorts above them in the layers list.
+        val highestZ = selected.maxOf { it.zIndex }
+        val groupSentinel = CanvasElement(
+            type       = ElementType.GROUP,
+            id         = newGroupId,          // sentinel id == groupId of children
+            customName = "Group",
+            zIndex     = highestZ,
+            isSelected = false,
+            groupId    = null,                // sentinels never belong to another group
+            isGroupCollapsed = false
+        )
+
+        // ── 3. Insert sentinel and refresh canvas elements ────────────────────
+        val current = _canvasElements.value?.toMutableList() ?: mutableListOf()
+        current.add(groupSentinel)
+        _canvasElements.value = current
     }
 
     fun ungroupElements() {
         val selected = _selectedElements.value ?: return
         if (selected.isEmpty()) return
-        val idsToUngroup = selected.map { it.id }.toSet()
-        _canvasElements.value = _canvasElements.value?.map { element ->
-            if (idsToUngroup.contains(element.id)) {
-                element.copy(groupId = null)
-            } else element
+
+        // Collect all groupIds that are being dissolved.
+        // Works whether the user selected children or the sentinel itself.
+        val groupIdsToDissolve = selected.mapNotNull { it.groupId }.toSet() +
+                selected.filter { it.type == ElementType.GROUP }.map { it.id }.toSet()
+
+        _canvasElements.value = _canvasElements.value?.mapNotNull { element ->
+            when {
+                // Remove the GROUP sentinel(s)
+                element.type == ElementType.GROUP && groupIdsToDissolve.contains(element.id) -> null
+                // Clear groupId from children
+                element.groupId != null && groupIdsToDissolve.contains(element.groupId) ->
+                    element.copy(groupId = null)
+                else -> element
+            }
         }
         _selectedElements.value = emptyList()
         _currentGroupId.value = null
@@ -2430,7 +2461,20 @@ class CanvasViewModel @Inject constructor(
         val currentElements = _canvasElements.value?.toMutableList() ?: mutableListOf()
         val context = currentElements.firstOrNull()?.context
 
-        val selectedIds = selectedListFromCanvas.map { it.id }.toSet()
+        // If all incoming elements share a groupId, select their GROUP sentinel instead
+        // so the selection count stays at 1 and toolbar treats it as a group unit.
+        val commonGroupId = selectedListFromCanvas
+            .mapNotNull { it.groupId }
+            .distinct()
+            .singleOrNull()
+            ?.takeIf { gid -> selectedListFromCanvas.all { it.groupId == gid } }
+
+        val selectedIds: Set<String> = if (commonGroupId != null) {
+            // Whole group selected -- mark sentinel selected, not children
+            setOf(commonGroupId)
+        } else {
+            selectedListFromCanvas.map { it.id }.toSet()
+        }
 
         val updatedList = currentElements.map { element ->
             val updated =
@@ -2607,7 +2651,10 @@ class CanvasViewModel @Inject constructor(
 
     private fun refreshSelectedElements() {
         val currentList = _canvasElements.value ?: emptyList()
-        // Filter the elements currently marked isSelected == true
+        // Surface whatever is marked isSelected.
+        // GROUP sentinels are included as-is -- they represent their group as 1 unit.
+        // CanvasView.syncElements expands sentinel -> children for bounds/transforms.
+        // ViewModel consumers (toolbar, layers panel) see the sentinel as 1 item.
         _selectedElements.value = currentList.filter { it.isSelected }
     }
 
@@ -3566,6 +3613,22 @@ class CanvasViewModel @Inject constructor(
         notifyUndoRedoChanged()
     }
 
+    // Locks or unlocks the GROUP sentinel and all its children together.
+    // Called from GroupHeaderViewHolder lock button and the popup menu.
+    fun toggleGroupLock(groupId: String) {
+        val currentList = _canvasElements.value ?: return
+        val sentinel = currentList.firstOrNull { it.id == groupId && it.type == ElementType.GROUP } ?: return
+        val newLockState = !sentinel.isLocked
+        _canvasElements.value = currentList.map { element ->
+            if (element.id == groupId || element.groupId == groupId) {
+                element.copy(isLocked = newLockState).apply {
+                    if (type == ElementType.TEXT) paint.typeface = applyTypefaceFromFontList()
+                }
+            } else element
+        }
+        refreshSelectedElements()
+    }
+
     fun toggleVisibilityOnSelected() {
         val currentList = _canvasElements.value ?: return
         // Gather selected IDs
@@ -3658,16 +3721,22 @@ class CanvasViewModel @Inject constructor(
         val toRemove = currentList.filter { it.isSelected }
         if (toRemove.isEmpty()) return
 
-        // Push a grouped action for undo if desired; here we push each individually:
-        toRemove.forEach { elem ->
+        // Also collect children of any selected GROUP sentinels
+        val selectedGroupIds = toRemove.filter { it.type == ElementType.GROUP }.map { it.id }.toSet()
+        val childrenOfGroups = if (selectedGroupIds.isNotEmpty())
+            currentList.filter { it.groupId != null && it.groupId in selectedGroupIds }
+        else emptyList()
+        val allToRemove = (toRemove + childrenOfGroups).distinctBy { it.id }
+
+        allToRemove.forEach { elem ->
             val element = elem.copy(context = null, bitmap = null)
             element.paint.typeface = element.applyTypefaceFromFontList()
             _canvasActions.push(CanvasAction.RemoveElement(element))
         }
         _redoStack.clear()
 
-        // Remove them all in one filter:
-        _canvasElements.value = currentList.filter { !it.isSelected }
+        val removeIds = allToRemove.map { it.id }.toSet()
+        _canvasElements.value = currentList.filter { it.id !in removeIds }
         refreshSelectedElements()
         selectedElement = null
         notifyUndoRedoChanged()
@@ -3675,16 +3744,19 @@ class CanvasViewModel @Inject constructor(
 
     fun removeElement(element: CanvasElement) {
         val currentList = _canvasElements.value ?: emptyList()
-        if (currentList.any { it.id == element.id }) { // Check by ID in case it's a copy
+        if (currentList.any { it.id == element.id }) {
             val newElement = element.copy(context = null, bitmap = null)
             newElement.paint.typeface = newElement.applyTypefaceFromFontList()
-            _canvasActions.push(
-                CanvasAction.RemoveElement(
-                    newElement
-                )
-            ) // Push a copy for undo, without transient data
+            _canvasActions.push(CanvasAction.RemoveElement(newElement))
             _redoStack.clear()
-            _canvasElements.value = currentList.filter { it.id != element.id }
+            // If deleting a GROUP sentinel, also delete all its children.
+            // 'Delete group' means delete everything in it, not ungroup.
+            val idsToRemove = if (element.type == ElementType.GROUP) {
+                setOf(element.id) + currentList.filter { it.groupId == element.id }.map { it.id }.toSet()
+            } else {
+                setOf(element.id)
+            }
+            _canvasElements.value = currentList.filter { it.id !in idsToRemove }
             if (element.type == ElementType.BACKGROUND) {
                 _backgroundImage.value = null
             }
@@ -3947,24 +4019,24 @@ class CanvasViewModel @Inject constructor(
             }
 
             is CanvasAction.SetOverlayGradient -> {
-            val targetGradient = if (isRedo) action.newGradient else action.oldGradient
-            val currentList = _canvasElements.value.orEmpty()
-            _canvasElements.value = currentList.map { element ->
-                if (element.id == action.elementId) {
-                    element.overlayGradient = targetGradient
-                    if (targetGradient != null) {
-                        element.overlayColor = android.graphics.Color.TRANSPARENT
-                        if (element.overlayOpacity == 0) element.overlayOpacity = 255
-                        element.hasOverlay = true
-                    } else {
-                        element.hasOverlay =
-                            element.overlayOpacity > 0 &&
-                            element.overlayColor != android.graphics.Color.TRANSPARENT
-                    }
-                    element
-                } else element
+                val targetGradient = if (isRedo) action.newGradient else action.oldGradient
+                val currentList = _canvasElements.value.orEmpty()
+                _canvasElements.value = currentList.map { element ->
+                    if (element.id == action.elementId) {
+                        element.overlayGradient = targetGradient
+                        if (targetGradient != null) {
+                            element.overlayColor = android.graphics.Color.TRANSPARENT
+                            if (element.overlayOpacity == 0) element.overlayOpacity = 255
+                            element.hasOverlay = true
+                        } else {
+                            element.hasOverlay =
+                                element.overlayOpacity > 0 &&
+                                        element.overlayColor != android.graphics.Color.TRANSPARENT
+                        }
+                        element
+                    } else element
+                }
             }
-        }
 
             is CanvasAction.SetImageShadow -> {
                 val el = findElementById(action.elementId)

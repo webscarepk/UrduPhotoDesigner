@@ -25,6 +25,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.canvas.enums.PanelType
 import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import com.webscare.urducanvas.common.utils.DialogUtils
@@ -78,21 +79,12 @@ class LayersFragment : Fragment() {
     }
 
     // ── Drag handle ───────────────────────────────────────────────────────────
-    //
-    // Same pattern as every other panel. Swipe up → expand, swipe down → collapse.
-    // Layers panel is different: no tabs, no search — just drag handle + toolbar.
 
     private fun attachDragHandleSwipe() {
-        // Walk up the fragment hierarchy to find EditorFragment and hand it our
-        // drag handle so PanelSheetBehavior drives the guideline directly.
         var f: Fragment? = this
         while (f != null) {
             if (f is EditorFragment) {
                 f.attachDragHandle(binding.dragHandle)
-
-                // Also register the top-toolbar areas (collapsed + expanded headers)
-                // so swiping down on the toolbar collapses the panel — same gesture
-                // as dragging the handle.
                 binding.root.post {
                     (f as EditorFragment).panelSheetBehavior()?.let { sheet ->
                         sheet.attachAdditionalHandle(binding.toolBarContainer)
@@ -105,16 +97,8 @@ class LayersFragment : Fragment() {
     }
 
     // ── Panel expansion observer ──────────────────────────────────────────────
-    //
-    // Layers doesn't need to change any internal UI when expanded/collapsed —
-    // the EditorFragment handles the centerGuide animation which resizes
-    // panelNavHost. The layers list naturally fills whatever height it gets.
-    //
-    // We observe just to keep state in sync (e.g. another panel expanding
-    // collapses layers automatically via the single expandedPanel StateFlow).
 
     private fun observePanelExpanded() {
-        // ── 1. Final settled state ──────────────────────────────────────────────
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.expandedPanel
@@ -125,7 +109,6 @@ class LayersFragment : Fragment() {
             }
         }
 
-        // ── 2. Live slide offset: drives smooth crossfade every frame ───────────
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.panelSlideOffset.collect { offset ->
@@ -135,13 +118,6 @@ class LayersFragment : Fragment() {
         }
     }
 
-    /**
-     * Driven every frame by PanelSheetBehavior during drag + spring settle.
-     * Layers has no collapsed/expanded header pair to crossfade — the close
-     * button is handled by the settled-state observer above. If a header pair
-     * is ever added to the layers layout, apply the same alpha crossfade
-     * pattern used in all other panels here.
-     */
     @Suppress("UNUSED_PARAMETER")
     private fun applySlideOffset(offset: Float) {
         // No per-frame visual work needed for Layers currently.
@@ -214,11 +190,18 @@ class LayersFragment : Fragment() {
 
     private fun setupRecyclerView() {
         adapter = LayersAdapter(
-            onLockToggle   = { element -> viewModel.updateElement(element) },
-            onMoreOptions  = { element, anchor -> showItemPopupMenu(element, anchor) },
-            onItemClick    = { element -> handleItemClick(element) },
-            onItemLongClick = { element -> handleItemLongClick(element) },
-            onStartDrag    = { holder -> itemTouchHelper.startDrag(holder) }
+            onLockToggle        = { element ->
+                if (element.type == ElementType.GROUP) viewModel.toggleGroupLock(element.id)
+                else viewModel.updateElement(element)
+            },
+            onMoreOptions       = { element, anchor -> showItemPopupMenu(element, anchor) },
+            onItemClick         = { element -> handleItemClick(element) },
+            onItemLongClick     = { element -> handleItemLongClick(element) },
+            onStartDrag         = { holder -> itemTouchHelper.startDrag(holder) },
+            // Tapping a GROUP header row selects its children on canvas
+            onGroupHeaderClick  = { element -> handleGroupHeaderClick(element) },
+            // Chevron tap toggles collapse state
+            onToggleCollapse    = { element -> handleToggleCollapse(element) }
         )
         binding.layers.adapter = adapter
 
@@ -230,7 +213,22 @@ class LayersFragment : Fragment() {
                 viewHolder: RecyclerView.ViewHolder,
                 target: RecyclerView.ViewHolder
             ): Boolean {
-                adapter.moveItem(viewHolder.adapterPosition, target.adapterPosition)
+                val fromPos = viewHolder.adapterPosition
+                val toPos   = target.adapterPosition
+                // ── Block child rows from being dragged outside their group ───
+                // A child may only move to another position that also belongs to
+                // the same group (between its GroupHeader and the last sibling).
+                // Standalone items and GroupHeaders can move freely.
+                val movingItem  = adapter.currentList().getOrNull(fromPos)
+                val targetItem  = adapter.currentList().getOrNull(toPos)
+                if (movingItem != null && movingItem.groupId != null) {
+                    // Only allow movement within the same group
+                    if (targetItem?.groupId != movingItem.groupId &&
+                        targetItem?.id != movingItem.groupId) {
+                        return false
+                    }
+                }
+                adapter.moveItem(fromPos, toPos)
                 return true
             }
 
@@ -252,8 +250,9 @@ class LayersFragment : Fragment() {
     private fun observeViewModel() {
         viewModel.canvasElements.observe(viewLifecycleOwner) { elements ->
             CoroutineScope(Dispatchers.IO).launch {
-                val sorted = elements.sortedBy { it.zIndex }.reversed()
-                withContext(Dispatchers.Main) { adapter.submitList(sorted) }
+                val sorted      = elements.sortedBy { it.zIndex }.reversed()
+                val displayList = buildDisplayList(sorted)
+                withContext(Dispatchers.Main) { adapter.submitList(displayList) }
             }
         }
 
@@ -275,6 +274,88 @@ class LayersFragment : Fragment() {
             size ?: return@observe
             normalToolbar.canvasSizeBtn.text =
                 "${size.width.toInt()} × ${size.height.toInt()}"
+        }
+    }
+
+    // ── Display list builder ──────────────────────────────────────────────────
+    //
+    // Converts the flat CanvasElement list (sorted by zIndex desc) into a
+    // DisplayItem list that the adapter understands:
+    //
+    //   GroupHeader(groupA)        ← the GROUP sentinel
+    //     Child(textElement)       ← shown only when !groupA.isGroupCollapsed
+    //     Child(imageElement)
+    //   Standalone(shapeElement)   ← no group
+    //   Standalone(background)
+    //
+    // GROUP sentinel elements are placed as GroupHeader rows.
+    // Their children (elements whose groupId == sentinel.id) are inserted
+    // immediately after, indented, unless the group is collapsed.
+    // Elements with a groupId but no matching sentinel are rendered as
+    // Standalone (orphan guard — handles stale data).
+
+    private fun buildDisplayList(sortedElements: List<CanvasElement>): List<DisplayItem> {
+        val result         = mutableListOf<DisplayItem>()
+        // Map groupId → children for quick lookup
+        val childrenByGroup: Map<String, List<CanvasElement>> =
+            sortedElements
+                .filter { it.groupId != null && it.type != ElementType.GROUP }
+                .groupBy { it.groupId!! }
+        // Collect all valid group sentinel ids
+        val sentinelIds = sortedElements
+            .filter { it.type == ElementType.GROUP }
+            .map { it.id }
+            .toSet()
+
+        for (element in sortedElements) {
+            when {
+                // ── GROUP sentinel → GroupHeader row ──────────────────────────
+                element.type == ElementType.GROUP -> {
+                    result.add(DisplayItem.GroupHeader(element))
+                    // Append children unless collapsed
+                    if (!element.isGroupCollapsed) {
+                        childrenByGroup[element.id]?.forEach { child ->
+                            result.add(DisplayItem.Child(child))
+                        }
+                    }
+                }
+                // ── Child element → skip here, already inserted above ─────────
+                element.groupId != null && sentinelIds.contains(element.groupId) -> {
+                    // Already appended under its GroupHeader — skip.
+                    // (Children whose sentinel doesn't exist fall through to Standalone below.)
+                }
+                // ── Orphan child (no sentinel found) or standalone ────────────
+                else -> result.add(DisplayItem.Standalone(element))
+            }
+        }
+        return result
+    }
+
+    // ── Group header handlers ─────────────────────────────────────────────────
+
+    private fun handleGroupHeaderClick(element: CanvasElement) {
+        if (viewModel.inSelectionMode.value == true) {
+            // In selection mode the GROUP sentinel is the selectable unit -- 1 item, not N
+            val current = viewModel.canvasElements.value?.toMutableList() ?: return
+            val target  = current.find { it.id == element.id } ?: return
+            target.isSelected = !target.isSelected
+            viewModel.setSelectedElements(current.filter { it.isSelected })
+            if ((viewModel.selectedElements.value?.size ?: 0) == 0) viewModel.exitSelectionMode()
+        } else {
+            // Normal mode -- select the sentinel; refreshSelectedElements will surface children
+            viewModel.setSelectedElements(listOf(element))
+        }
+    }
+
+    private fun handleToggleCollapse(element: CanvasElement) {
+        element.isGroupCollapsed = !element.isGroupCollapsed
+        // Trigger a list refresh so buildDisplayList re-runs
+        viewModel.canvasElements.value?.let { elements ->
+            CoroutineScope(Dispatchers.IO).launch {
+                val sorted      = elements.sortedBy { it.zIndex }.reversed()
+                val displayList = buildDisplayList(sorted)
+                withContext(Dispatchers.Main) { adapter.submitList(displayList) }
+            }
         }
     }
 
@@ -355,7 +436,7 @@ class LayersFragment : Fragment() {
             LinearLayout.LayoutParams.WRAP_CONTENT,
             true
         ).apply {
-            elevation       = 2f
+            elevation          = 2f
             isOutsideTouchable = true
         }
 
@@ -369,12 +450,27 @@ class LayersFragment : Fragment() {
         }
 
         // ── Rename ────────────────────────────────────────────────────────
-        // Shows a simple AlertDialog with an EditText.
-        // Writes the new name into element.customName (add this field to
-        // CanvasElement if not present) and calls updateElement().
         popupBinding.actionRename.addPressEffect {
             popupWindow.dismiss()
             showRenameDialog(element)
+        }
+
+        // ── Ungroup (only shown for GROUP sentinel rows) ───────────────────
+        // If this popup is triggered from a GroupHeader, offer Ungroup directly.
+        if (element.type == ElementType.GROUP) {
+            popupBinding.actionUngroup.visibility  = View.VISIBLE
+            popupBinding.ungroupDivider.visibility = View.VISIBLE
+            popupBinding.actionUngroup.addPressEffect {
+                val children = viewModel.canvasElements.value
+                    ?.filter { it.groupId == element.id }
+                    ?: emptyList()
+                viewModel.setSelectedElements(children + element)
+                viewModel.ungroupElements()
+                popupWindow.dismiss()
+            }
+        } else {
+            popupBinding.actionUngroup.visibility  = View.GONE
+            popupBinding.ungroupDivider.visibility = View.GONE
         }
 
         // ── Delete ────────────────────────────────────────────────────────
@@ -415,14 +511,6 @@ class LayersFragment : Fragment() {
     }
 
     // ── Rename dialog ─────────────────────────────────────────────────────────
-    //
-    // A minimal AlertDialog with an EditText pre-filled with the current name.
-    // On confirm: sets element.customName = newName, calls updateElement().
-    //
-    // If CanvasElement doesn't yet have a `customName` field, add:
-    //   var customName: String? = null
-    // to your CanvasElement data class. The LayersAdapter reads it via
-    // element.customName ?: <default name by type>.
 
     private fun showRenameDialog(element: CanvasElement) {
         val dialog = Dialog(requireContext())
@@ -445,7 +533,6 @@ class LayersFragment : Fragment() {
                 if (newName.isNotEmpty()) {
                     element.customName = newName
                     viewModel.updateElement(element)
-                    // Force adapter to refresh this item
                     val pos = adapter.currentList().indexOfFirst { it.id == element.id }
                     if (pos != -1) adapter.notifyItemChanged(pos)
                 }
@@ -453,28 +540,25 @@ class LayersFragment : Fragment() {
 
             override fun afterTextChanged(s: Editable?) {}
         })
-        // Set dialog window attributes for no dim background
         dialog.window?.apply {
-            setBackgroundDrawableResource(android.R.color.transparent) // Make background transparent
-            setDimAmount(0f) // No dim
+            setBackgroundDrawableResource(android.R.color.transparent)
+            setDimAmount(0f)
             setGravity(Gravity.BOTTOM)
-            // You might want to adjust width/height if the layout doesn't fill as expected
             setLayout(
                 WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT
             )
         }
-        // Show the dialog
         dialog.show()
     }
 
     private fun defaultNameFor(element: CanvasElement): String = when (element.type) {
-        com.webscare.urducanvas.common.canvas.enums.ElementType.TEXT       -> element.text ?: "Text"
-        com.webscare.urducanvas.common.canvas.enums.ElementType.IMAGE      -> "Image"
-        com.webscare.urducanvas.common.canvas.enums.ElementType.STICKER    -> "Sticker"
-        com.webscare.urducanvas.common.canvas.enums.ElementType.DRAW       -> "Brush"
-        com.webscare.urducanvas.common.canvas.enums.ElementType.SHAPE      ->
-            element.shapeType?.displayName ?: "Shape"
-        else                                                                -> "Background"
+        ElementType.TEXT       -> element.text ?: "Text"
+        ElementType.IMAGE      -> "Image"
+        ElementType.STICKER    -> "Sticker"
+        ElementType.DRAW       -> "Brush"
+        ElementType.SHAPE      -> element.shapeType?.displayName ?: "Shape"
+        ElementType.GROUP      -> element.customName ?: "Group"
+        else                   -> "Background"
     }
 
     override fun onDestroyView() {

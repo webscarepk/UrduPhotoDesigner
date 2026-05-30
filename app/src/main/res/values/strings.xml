@@ -360,6 +360,7 @@
     <string name="join_whatsapp_channel">Join WhatsApp Channel</string>
     <string name="general">General</string>
     <string name="feedback">Feedback</string>
+    <string name="ungroup">Ungroup</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>

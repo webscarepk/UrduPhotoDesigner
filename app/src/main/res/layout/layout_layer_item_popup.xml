@@ -23,7 +23,6 @@
         android:layout_height="1dp"
         android:background="@color/contrast" />
 
-    <!-- Rename option — tap opens an inline EditText dialog -->
     <TextView
         android:id="@+id/actionRename"
         android:layout_height="wrap_content"
@@ -39,6 +38,27 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="@color/contrast" />
+
+    <!-- Ungroup option — only visible when the row is a GROUP sentinel.
+         Hidden (View.GONE) for all regular layer rows. -->
+    <TextView
+        android:id="@+id/actionUngroup"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        style="@style/PopupItemStyle"
+        android:text="@string/ungroup"
+        android:paddingHorizontal="15dp"
+        android:paddingVertical="8dp"
+        android:visibility="gone"
+        app:drawableEndCompat="@drawable/ic_un_group"
+        app:drawableTint="@color/black" />
+
+    <View
+        android:id="@+id/ungroupDivider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/contrast"
+        android:visibility="gone" />
 
     <TextView
         android:id="@+id/actionDelete"

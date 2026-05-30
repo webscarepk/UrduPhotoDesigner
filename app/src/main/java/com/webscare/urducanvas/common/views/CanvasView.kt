@@ -450,6 +450,41 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
+    /**
+     * Called from LayersFragment when the user double-taps a group header or
+     * taps a child row while the group is selected. Puts CanvasView into
+     * GROUP_EDIT mode for that group, selecting [focusChildId] if provided.
+     */
+    fun enterGroupEdit(groupId: String, focusChildId: String? = null) {
+        activeGroupId = groupId
+        currentMode   = Mode.GROUP_EDIT
+        canvasElements.forEach { it.isSelected = false }
+        selectedElements.clear()
+        val target = if (focusChildId != null)
+            canvasElements.firstOrNull { it.id == focusChildId && it.groupId == groupId }
+        else
+            canvasElements.filter { it.groupId == groupId }.maxByOrNull { it.zIndex }
+        target?.let {
+            it.isSelected = true
+            selectedElements.add(it)
+            onElementSelected?.invoke(selectedElements)
+        }
+        invalidate()
+    }
+
+    /** Exits GROUP_EDIT mode, clears selection. */
+    fun exitGroupEdit() {
+        activeGroupId = null
+        currentMode   = Mode.NONE
+        canvasElements.forEach { it.isSelected = false }
+        selectedElements.clear()
+        onElementSelected?.invoke(emptyList())
+        invalidate()
+    }
+
+    /** Returns the groupId currently being edited, or null. */
+    fun getActiveGroupId(): String? = activeGroupId
+
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
 
@@ -692,6 +727,39 @@ class CanvasView @JvmOverloads constructor(
     }
 
     /**
+     * Resolves which CanvasElements go into CanvasView.selectedElements.
+     * Rule: GROUP sentinels never enter selectedElements (zero geometry).
+     * When a sentinel has isSelected=true its children are added instead.
+     * Regular selected non-group elements pass through unchanged.
+     */
+    private fun resolveSelectedForCanvas(elements: List<CanvasElement>): List<CanvasElement> {
+        val result = mutableListOf<CanvasElement>()
+        val selectedGroupIds = elements
+            .filter { it.isSelected && it.type == ElementType.GROUP }
+            .map { it.id }.toSet()
+        for (el in elements) {
+            when {
+                el.type == ElementType.GROUP -> {
+                    if (el.isSelected) {
+                        // Expand: add children so bounds/handles work on real geometry
+                        elements.filter { it.groupId == el.id }.forEach { child ->
+                            if (result.none { r -> r.id == child.id }) result.add(child)
+                        }
+                    }
+                    // Sentinel itself never enters selectedElements
+                }
+                el.groupId != null && el.groupId in selectedGroupIds -> {
+                    // Child of a selected group -- may already be added above; avoid double-add
+                    if (result.none { r -> r.id == el.id }) result.add(el)
+                }
+                el.isSelected -> result.add(el)
+                else -> { /* not selected */ }
+            }
+        }
+        return result
+    }
+
+    /**
      * Syncs the canvas elements with a new list from the ViewModel.
      * Updates the internal `selectedElements` list based on the `isSelected` flag of incoming elements.
      */
@@ -702,16 +770,15 @@ class CanvasView @JvmOverloads constructor(
         selectedElements.clear()
         if (newElements.size > oldSize) {
             val newcomer = canvasElements.last()
-
-            if (newcomer.type != ElementType.BACKGROUND) {
+            if (newcomer.type != ElementType.BACKGROUND && newcomer.type != ElementType.GROUP) {
                 canvasElements.forEach { it.isSelected = false }
                 newcomer.isSelected = (newcomer.type != ElementType.DRAW)
                 selectedElements.add(newcomer)
             } else {
-                selectedElements.addAll(canvasElements.filter { it.isSelected })
+                selectedElements.addAll(resolveSelectedForCanvas(canvasElements.toList()))
             }
         } else {
-            selectedElements.addAll(canvasElements.filter { it.isSelected })
+            selectedElements.addAll(resolveSelectedForCanvas(canvasElements.toList()))
         }
         invalidate()
     }
@@ -722,14 +789,15 @@ class CanvasView @JvmOverloads constructor(
      */
     /** Returns an axis-aligned bounding box that covers all rotated elements */
     private fun getCombinedSelectedBounds(): RectF {
-        if (selectedElements.isEmpty()) return RectF()
+        val drawableSelected = selectedElements.filter { it.type != ElementType.GROUP }
+        if (drawableSelected.isEmpty()) return RectF()
 
         var minX = Float.MAX_VALUE
         var minY = Float.MAX_VALUE
         var maxX = Float.MIN_VALUE
         var maxY = Float.MIN_VALUE
 
-        selectedElements.forEach { element ->
+        drawableSelected.forEach { element ->
             val corners = element.getRotatedCorners()
             for (i in corners.indices step 2) {
                 val x = corners[i]
@@ -804,8 +872,12 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private fun removeSelectedElement() {
-        // Remove all selected elements
-        val elementsToRemove = selectedElements.toList()
+        // Remove all selected elements + any GROUP sentinels that own them
+        val groupIds = selectedElements.mapNotNull { it.groupId }.toSet()
+        val sentinelsToRemove = canvasElements.filter {
+            it.type == ElementType.GROUP && groupIds.contains(it.id)
+        }
+        val elementsToRemove = (selectedElements.toList() + sentinelsToRemove).distinctBy { it.id }
         elementsToRemove.forEach { element ->
             canvasElements.remove(element)
             onElementRemoved?.invoke(element) // Notify ViewModel to remove for each
@@ -1651,8 +1723,23 @@ class CanvasView @JvmOverloads constructor(
                     }
                 } else {
                     drawCanvasShadow(this)
-                    // 🔵 Normal render when not drawing
-                    drawCanvasElements(this)
+                    if (currentMode == Mode.GROUP_EDIT && activeGroupId != null) {
+                        // Isolation mode (Illustrator/Photoshop style):
+                        // 1. Draw all elements at reduced opacity
+                        // 2. Draw white overlay at 50% to wash out non-group content
+                        // 3. Draw only the active group's children at full opacity on top
+                        drawCanvasElements(this, showOverlays = false)
+                        drawRect(
+                            0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat(),
+                            Paint().apply { color = android.graphics.Color.argb(140, 255, 255, 255); style = Paint.Style.FILL }
+                        )
+                        // Re-draw group children at full opacity on top
+                        val groupChildIds = canvasElements.filter { it.groupId == activeGroupId }.map { it.id }.toSet()
+                        drawCanvasElements(this, showOverlays = true, showCheckerboard = false, isolatedIds = groupChildIds)
+                    } else {
+                        // Normal render
+                        drawCanvasElements(this)
+                    }
                 }
             }
         }
@@ -2254,7 +2341,12 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private fun drawCanvasElements(
-        canvas: Canvas, showOverlays: Boolean = true, showCheckerboard: Boolean = true
+        canvas: Canvas,
+        showOverlays: Boolean = true,
+        showCheckerboard: Boolean = true,
+        // When non-null, only elements whose id is in this set are drawn.
+        // Used by GROUP_EDIT isolation mode to re-draw only the active group at full opacity.
+        isolatedIds: Set<String>? = null
     ) {
         canvas.save()
         val clipRect = RectF(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat())
@@ -2267,6 +2359,10 @@ class CanvasView @JvmOverloads constructor(
         // Draw all elements
         canvasElements.forEach { element ->
             if (!element.isVisible) return@forEach
+            // GROUP sentinels are structural only -- no visual, skip immediately
+            if (element.type == ElementType.GROUP) return@forEach
+            // Isolation mode: only draw elements in the isolated set
+            if (isolatedIds != null && element.id !in isolatedIds) return@forEach
 
             if (element.type == ElementType.BACKGROUND) {
                 drawBackgroundElement(canvas, element)
@@ -2583,7 +2679,8 @@ class CanvasView @JvmOverloads constructor(
                                 if (finalBitmap != null) {
                                     // Only use saveLayer when compositing is actually required
                                     val needsLayer =
-                                        element.hasOverlay && element.overlayOpacity > 0
+                                        (element.hasOverlay && element.overlayOpacity > 0) ||
+                                                (element.hasFeather && element.featherRadius > 0f)
                                     if (needsLayer) canvas.saveLayer(bl, bt, br, bb, null)
                                     else canvas.save()
 
@@ -2848,6 +2945,7 @@ class CanvasView @JvmOverloads constructor(
                                     drawFeatherMask(canvas, left, top, left + w, top + h,
                                         element.featherRadius, element.featherWidth, element.featherDirection!!)
                                 }
+                                canvas.restore()  // restore saveLayer opened above for feather compositing
                             }
 
                             if (needsOpacityLayer) canvas.restore()
@@ -4196,7 +4294,8 @@ class CanvasView @JvmOverloads constructor(
             val (x, y) = screenToCanvas(e.x, e.y)
 
             val touchedElement =
-                canvasElements.filter { !it.isLocked }.sortedByDescending { it.zIndex }
+                canvasElements.filter { !it.isLocked && it.type != ElementType.GROUP }
+                    .sortedByDescending { it.zIndex }
                     .firstOrNull { element ->
                         val matrix = Matrix()
                         matrix.postTranslate(-element.x, -element.y)
@@ -4223,15 +4322,15 @@ class CanvasView @JvmOverloads constructor(
             }
             if (touchedElement?.groupId != null) {
                 activeGroupId = touchedElement.groupId
-
-                canvasElements.forEach {
-                    it.isSelected = (it.groupId == activeGroupId)
-                }
+                // Enter GROUP_EDIT and immediately select the tapped child --
+                // don't select all children, just the one that was double-tapped.
+                canvasElements.forEach { it.isSelected = false }
                 selectedElements.clear()
-                selectedElements.addAll(canvasElements.filter { it.isSelected })
-
+                touchedElement.isSelected = true
+                selectedElements.add(touchedElement)
                 currentMode = Mode.GROUP_EDIT
                 onElementSelected?.invoke(selectedElements)
+                onEditTextRequested?.invoke(touchedElement)
                 invalidate()
                 return true
             } else if (touchedElement != null) {
@@ -4256,33 +4355,40 @@ class CanvasView @JvmOverloads constructor(
                 .sortedByDescending { it.zIndex }.firstOrNull { it.containsPoint(x, y) }
 
             if (touchedElement != null && touchedElement.type != ElementType.BACKGROUND) {
+                // Resolve grouped child -> its children for canvas bounds,
+                // but mark the sentinel selected so ViewModel counts it as 1.
+                val groupId   = touchedElement.groupId
+                val sentinel  = if (groupId != null)
+                    canvasElements.firstOrNull { it.type == ElementType.GROUP && it.id == groupId }
+                else null
+                val canvasItems: List<CanvasElement> = if (sentinel != null)
+                    canvasElements.filter { it.groupId == groupId }  // children for bounds
+                else listOf(touchedElement)
+
                 if (!inSelectionMode) {
-                    // 🔹 First long-press → enter selection mode
                     inSelectionMode = true
                     clearSelection()
-                    touchedElement.isSelected = true
-                    selectedElements.add(touchedElement)
-                    if (inSelectionMode) {
-                        vibrateSoft()
-                    }
-                    // 🔹 Tell UI to open Layers in selection mode
+                    canvasItems.forEach { it.isSelected = true; selectedElements.add(it) }
+                    sentinel?.isSelected = true   // mark sentinel for ViewModel only
+                    vibrateSoft()
                     onRequestOpenLayers?.invoke()
                 } else {
-                    // 🔹 Already in selection mode → toggle this element
-                    if (touchedElement.isSelected) {
-                        touchedElement.isSelected = false
-                        selectedElements.remove(touchedElement)
+                    val alreadySelected = canvasItems.all { it.isSelected }
+                    if (alreadySelected) {
+                        canvasItems.forEach { it.isSelected = false; selectedElements.remove(it) }
+                        sentinel?.isSelected = false
                         if (selectedElements.isEmpty()) {
                             inSelectionMode = false
                             onExitSelectionMode?.invoke()
                         }
                     } else {
-                        touchedElement.isSelected = true
-                        selectedElements.add(touchedElement)
+                        canvasItems.forEach { if (!it.isSelected) { it.isSelected = true; selectedElements.add(it) } }
+                        sentinel?.isSelected = true
                     }
                 }
-
-                onElementSelected?.invoke(selectedElements)
+                // Report sentinel (or real element) to ViewModel so count = 1 per group
+                val reportList = if (sentinel != null) listOf(sentinel) else selectedElements.toList()
+                onElementSelected?.invoke(reportList)
                 invalidate()
             }
         }
@@ -4473,8 +4579,33 @@ class CanvasView @JvmOverloads constructor(
                 showRotationHorizontalGuide = false
 
                 if (currentMode == Mode.GROUP_EDIT && activeGroupId != null) {
-                    val hitChild =
-                        canvasElements.filter { it.groupId == activeGroupId && !it.isLocked }
+                    // Check if the tap is within the combined bounds of the group
+                    val groupChildren = canvasElements.filter { it.groupId == activeGroupId }
+                    val groupBounds = run {
+                        var minX = Float.MAX_VALUE; var minY = Float.MAX_VALUE
+                        var maxX = -Float.MAX_VALUE; var maxY = -Float.MAX_VALUE
+                        groupChildren.forEach { el ->
+                            el.getRotatedCorners().toList().chunked(2).forEach { (cx, cy) ->
+                                if (cx < minX) minX = cx; if (cx > maxX) maxX = cx
+                                if (cy < minY) minY = cy; if (cy > maxY) maxY = cy
+                            }
+                        }
+                        RectF(minX, minY, maxX, maxY)
+                    }
+
+                    val tapInsideGroup = groupBounds.contains(x, y)
+
+                    if (!tapInsideGroup) {
+                        // Tap outside group bounds -- exit GROUP_EDIT completely
+                        currentMode = Mode.NONE
+                        activeGroupId = null
+                        canvasElements.forEach { it.isSelected = false }
+                        selectedElements.clear()
+                        onElementSelected?.invoke(selectedElements)
+                        // Don't return -- let the tap fall through to select whatever is there
+                    } else {
+                        // Tap inside group -- select the hit child and drag it
+                        val hitChild = groupChildren.filter { !it.isLocked }
                             .sortedByDescending { it.zIndex }.firstOrNull { element ->
                                 val matrix = Matrix().apply {
                                     postTranslate(-element.x, -element.y)
@@ -4482,34 +4613,41 @@ class CanvasView @JvmOverloads constructor(
                                     postScale(1f / element.scale, 1f / element.scale)
                                 }
                                 val pt = floatArrayOf(x, y).also { matrix.mapPoints(it) }
-                                RectF(
-                                    -element.getLocalContentWidth() / 2f,
-                                    -element.getLocalContentHeight() / 2f,
-                                    element.getLocalContentWidth() / 2f,
-                                    element.getLocalContentHeight() / 2f
-                                ).contains(pt[0], pt[1])
+                                element.getTightTextBounds().contains(pt[0], pt[1])
                             }
 
-                    if (hitChild != null) {
-                        activeGroupId = null
-                        currentMode = Mode.DRAG
-
-                        canvasElements.forEach { it.isSelected = false }
-                        selectedElements.clear()
-                        hitChild.isSelected = true
-                        selectedElements.add(hitChild)
-                        onElementSelected?.invoke(selectedElements)
-
-                        touchStartX = x
-                        touchStartY = y
-                        invalidate()
-                        return true
-                    } else {
-                        currentMode = Mode.NONE
-                        activeGroupId = null
-                        canvasElements.forEach { it.isSelected = false }
-                        selectedElements.clear()
-                        onElementSelected?.invoke(selectedElements)
+                        if (hitChild != null) {
+                            // Stay in GROUP_EDIT, switch selection to this child
+                            canvasElements.forEach { it.isSelected = false }
+                            selectedElements.clear()
+                            hitChild.isSelected = true
+                            selectedElements.add(hitChild)
+                            lastTouchedElement = hitChild
+                            currentMode = Mode.DRAG
+                            touchStartX = x
+                            touchStartY = y
+                            onElementSelected?.invoke(selectedElements)
+                            onStartBatchUpdate?.invoke(hitChild.id, "drag")
+                            invalidate()
+                            return true
+                        } else {
+                            // Tapped inside group area but missed all children --
+                            // select all children for bounds, mark sentinel for ViewModel
+                            val sentinel = canvasElements.firstOrNull {
+                                it.type == ElementType.GROUP && it.id == activeGroupId
+                            }
+                            canvasElements.forEach { it.isSelected = false }
+                            selectedElements.clear()
+                            groupChildren.forEach { it.isSelected = true; selectedElements.add(it) }
+                            sentinel?.isSelected = true  // mark for ViewModel only
+                            currentMode = Mode.DRAG
+                            touchStartX = x
+                            touchStartY = y
+                            val report = if (sentinel != null) listOf(sentinel) else selectedElements.toList()
+                            onElementSelected?.invoke(report)
+                            invalidate()
+                            return true
+                        }
                     }
                 }
 
@@ -4613,7 +4751,8 @@ class CanvasView @JvmOverloads constructor(
 
                 // 2. If no icon was touched, check for element touch (single or multi-selection)
                 val touchedElement =
-                    canvasElements.filter { !it.isLocked }.sortedByDescending { it.zIndex }
+                    canvasElements.filter { !it.isLocked && it.type != ElementType.GROUP }
+                        .sortedByDescending { it.zIndex }
                         .firstOrNull { element ->
                             val matrix = Matrix()
                             matrix.postTranslate(-element.x, -element.y)
@@ -4630,18 +4769,38 @@ class CanvasView @JvmOverloads constructor(
                 if (touchedElement != null && !isPanMode) {
 
                     if (touchedElement.groupId != null) {
-                        val groupMembers =
-                            canvasElements.filter { it.groupId == touchedElement.groupId }
-                        canvasElements.forEach { it.isSelected = false }
-                        selectedElements.clear()
-                        groupMembers.forEach { element ->
-                            element.isSelected = true
-                            selectedElements.add(element)
+                        val gid = touchedElement.groupId!!
+                        // If this exact child is already the only selected element
+                        // (e.g. selected from the layers panel), drag just that child.
+                        // Otherwise select the whole group and drag it as one unit.
+                        val isChildAlreadySelectedAlone =
+                            selectedElements.size == 1 &&
+                                    selectedElements.first().id == touchedElement.id
+
+                        if (isChildAlreadySelectedAlone) {
+                            // Child was individually selected -- drag only it
+                            lastTouchedElement = touchedElement
+                            touchStartX = x
+                            touchStartY = y
+                            currentMode = Mode.DRAG
+                        } else {
+                            // Fresh tap on group child -- select whole group
+                            val groupMembers = canvasElements.filter { it.groupId == gid }
+                            val sentinel = canvasElements.firstOrNull {
+                                it.type == ElementType.GROUP && it.id == gid
+                            }
+                            canvasElements.forEach { it.isSelected = false }
+                            selectedElements.clear()
+                            groupMembers.forEach { element ->
+                                element.isSelected = true
+                                selectedElements.add(element)
+                            }
+                            sentinel?.isSelected = true
+                            touchStartX = x
+                            touchStartY = y
+                            currentMode = Mode.DRAG
+                            vibrateSoft()
                         }
-                        touchStartX = x
-                        touchStartY = y
-                        currentMode = Mode.DRAG
-                        vibrateSoft()
                     } else {
                         if (inSelectionMode) {
                             if (touchedElement.isSelected) {
@@ -4676,7 +4835,15 @@ class CanvasView @JvmOverloads constructor(
                         }
                     }
                     onStartBatchUpdate?.invoke(touchedElement.id, "drag")
-                    onElementSelected?.invoke(selectedElements)
+                    // Report sentinel to ViewModel when a group is selected,
+                    // so it sees 1 unit not N children.
+                    val reportForSelection = if (touchedElement.groupId != null) {
+                        val sent = canvasElements.firstOrNull {
+                            it.type == ElementType.GROUP && it.id == touchedElement.groupId
+                        }
+                        if (sent != null) listOf(sent) else selectedElements.toList()
+                    } else selectedElements.toList()
+                    onElementSelected?.invoke(reportForSelection)
                     invalidate()
                     return true
                 } else {
