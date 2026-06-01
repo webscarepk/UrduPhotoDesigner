@@ -39,8 +39,7 @@
         android:layout_height="1dp"
         android:background="@color/contrast" />
 
-    <!-- Ungroup option — only visible when the row is a GROUP sentinel.
-         Hidden (View.GONE) for all regular layer rows. -->
+    <!-- Ungroup — only visible when the row is a GROUP sentinel -->
     <TextView
         android:id="@+id/actionUngroup"
         android:layout_height="wrap_content"

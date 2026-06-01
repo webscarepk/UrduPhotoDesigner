@@ -22,6 +22,14 @@ sealed class DisplayItem {
     data class Standalone(val element: CanvasElement) : DisplayItem()
 }
 
+// Extension to get the CanvasElement from any DisplayItem
+val DisplayItem.element: CanvasElement
+    get() = when (this) {
+        is DisplayItem.GroupHeader -> element
+        is DisplayItem.Child       -> element
+        is DisplayItem.Standalone  -> element
+    }
+
 class LayersAdapter(
     private val onLockToggle:       (element: CanvasElement) -> Unit,
     private val onMoreOptions:      (element: CanvasElement, anchorView: View) -> Unit,
@@ -53,13 +61,11 @@ class LayersAdapter(
         notifyDataSetChanged()
     }
 
-    fun currentList(): List<CanvasElement> = items.map { item ->
-        when (item) {
-            is DisplayItem.GroupHeader -> item.element
-            is DisplayItem.Child       -> item.element
-            is DisplayItem.Standalone  -> item.element
-        }
-    }
+    // Returns CanvasElement list mapped from current display items (for external callers).
+    fun currentList(): List<CanvasElement> = items.map { it.element }
+
+    // Returns the raw DisplayItem at a position — used by drag callback for type-safe checks.
+    fun getDisplayItemAt(position: Int): DisplayItem? = items.getOrNull(position)
 
     fun moveItem(from: Int, to: Int) {
         if (from !in items.indices || to !in items.indices) return
@@ -68,13 +74,36 @@ class LayersAdapter(
         notifyItemMoved(from, to)
     }
 
-    fun getItems(): List<CanvasElement> = items.map { item ->
-        when (item) {
-            is DisplayItem.GroupHeader -> item.element
-            is DisplayItem.Child       -> item.element
-            is DisplayItem.Standalone  -> item.element
+    /**
+     * Replaces the DisplayItem at [position] with a re-typed version.
+     * Used during drag to convert a Standalone→Child (join group) or Child→Standalone (leave group).
+     * [newGroupId] is the groupId to assign when joining; null when leaving.
+     */
+    fun retypeItem(position: Int, asChild: Boolean, newGroupId: String?) {
+        val current = items.getOrNull(position) ?: return
+        val element = current.element
+        // Mutate the element's groupId so applyLayerReorder reads the correct value at clearView.
+        // Do NOT call notifyItemChanged here — calling any notify during an active drag
+        // causes ItemTouchHelper to lose its ViewHolder reference, which leaves a ghost
+        // copy of the item stuck on screen until the panel is reopened.
+        // The visual rebind happens naturally after clearView fires and the ViewModel
+        // pushes a new canvasElements list → buildDisplayList → submitList.
+        val newItem = if (asChild) {
+            element.groupId = newGroupId
+            DisplayItem.Child(element)
+        } else {
+            element.groupId = null
+            DisplayItem.Standalone(element)
         }
+        items[position] = newItem
+        // intentionally no notifyItemChanged — see comment above
     }
+
+    // Returns all CanvasElements in current display order (collapsed children excluded).
+    fun getItems(): List<CanvasElement> = items.map { it.element }
+
+    // Returns the raw DisplayItem list — used by clearView to resolve groupId mutations.
+    fun getDisplayItems(): List<DisplayItem> = items.toList()
 
     override fun getItemViewType(position: Int): Int =
         if (items[position] is DisplayItem.GroupHeader) TYPE_GROUP_HEADER else TYPE_ITEM
@@ -98,9 +127,9 @@ class LayersAdapter(
             is DisplayItem.GroupHeader -> (holder as GroupHeaderViewHolder).bind(displayItem.element)
             is DisplayItem.Child       -> (holder as ItemViewHolder).bind(
                 displayItem.element,
-                isChild   = true,
-                isFirst   = position == 0 || items[position - 1] is DisplayItem.GroupHeader,
-                isLast    = position == items.size - 1 || items[position + 1] !is DisplayItem.Child
+                isChild = true,
+                isFirst = position == 0 || items[position - 1] is DisplayItem.GroupHeader,
+                isLast  = position == items.size - 1 || items[position + 1] !is DisplayItem.Child
             )
             is DisplayItem.Standalone  -> (holder as ItemViewHolder).bind(
                 displayItem.element, isChild = false, isFirst = false, isLast = false
@@ -127,8 +156,7 @@ class LayersAdapter(
                 badge.visibility = if (childCount > 0) View.VISIBLE else View.GONE
 
                 chevron.setImageResource(
-                    if (element.isGroupCollapsed) R.drawable.ic_next
-                    else R.drawable.ic_down
+                    if (element.isGroupCollapsed) R.drawable.ic_next else R.drawable.ic_down
                 )
 
                 // ── Lock icon ─────────────────────────────────────────────────
@@ -161,14 +189,6 @@ class LayersAdapter(
     }
 
     // ── Item ViewHolder ───────────────────────────────────────────────────────
-    //
-    // isChild = true: element is inside a group.
-    //   - left indent applied
-    //   - card background transparent so children visually sit inside the
-    //     group container drawn by the GroupHeader card
-    //   - left accent border drawn via a colored left-side divider view (done in XML)
-    // isFirst / isLast: used to round corners on first and last child rows
-    //   to give the "single container" look.
 
     inner class ItemViewHolder(
         private val binding: LayoutLayersItemBinding
@@ -185,14 +205,15 @@ class LayersAdapter(
                     ?.let { lp -> lp.marginStart = indentPx; drag.layoutParams = lp }
 
                 if (isChild) {
-                    // Flat background — sits inside the visual group container
                     root.setCardBackgroundColor(
                         ContextCompat.getColor(root.context, R.color.contrast)
                     )
                     root.strokeWidth = 0
-                    // Remove bottom margin on non-last children so rows are flush
                     (root.layoutParams as? ViewGroup.MarginLayoutParams)
-                        ?.let { lp -> lp.bottomMargin = if (isLast) 3.dpToPx(root.context) else 0; root.layoutParams = lp }
+                        ?.let { lp ->
+                            lp.bottomMargin = if (isLast) 3.dpToPx(root.context) else 0
+                            root.layoutParams = lp
+                        }
                     root.radius = when {
                         isFirst && isLast -> 6f.dpToPx(root.context)
                         isFirst           -> 0f

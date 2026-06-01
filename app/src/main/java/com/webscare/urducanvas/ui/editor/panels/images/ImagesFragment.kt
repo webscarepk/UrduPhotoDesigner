@@ -395,7 +395,9 @@ class ImagesFragment : Fragment() {
         }.commitNow()
 
         currentFragment = target
-        target.onPanelExpanded(mainViewModel.isPanelExpanded(PanelType.IMAGES))
+        val isExpanded = mainViewModel.isPanelExpanded(PanelType.IMAGES)
+        target.onPanelExpandedSmooth(isExpanded)
+        target.onPanelExpanded(isExpanded)
     }
 
     // ── TabLayout ─────────────────────────────────────────────────────────────

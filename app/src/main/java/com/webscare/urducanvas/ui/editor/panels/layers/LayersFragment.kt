@@ -1,6 +1,5 @@
 package com.webscare.urducanvas.ui.editor.panels.layers
 
-import android.app.AlertDialog
 import android.app.Dialog
 import android.os.Bundle
 import android.text.Editable
@@ -13,7 +12,6 @@ import android.view.WindowManager
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.PopupWindow
-import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -68,7 +66,7 @@ class LayersFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        normalToolbar   = LayoutToolbarLayersNormalBinding.bind(binding.toolbarNormalInclude.root)
+        normalToolbar    = LayoutToolbarLayersNormalBinding.bind(binding.toolbarNormalInclude.root)
         selectionToolbar = LayoutToolbarLayersSelectionBinding.bind(binding.toolbarSelectionInclude.root)
 
         setupRecyclerView()
@@ -86,9 +84,8 @@ class LayersFragment : Fragment() {
             if (f is EditorFragment) {
                 f.attachDragHandle(binding.dragHandle)
                 binding.root.post {
-                    (f as EditorFragment).panelSheetBehavior()?.let { sheet ->
-                        sheet.attachAdditionalHandle(binding.toolBarContainer)
-                    }
+                    (f as EditorFragment).panelSheetBehavior()
+                        ?.attachAdditionalHandle(binding.toolBarContainer)
                 }
                 return
             }
@@ -146,6 +143,7 @@ class LayersFragment : Fragment() {
         normalToolbar.canvasSizeBtn.addPressEffect {
             CreateFragment.newResizeInstance().show(parentFragmentManager, "resize_canvas")
         }
+
     }
 
     private fun showSelectionToolbar() {
@@ -165,8 +163,15 @@ class LayersFragment : Fragment() {
 
         selectionToolbar.group.addPressEffect {
             val selected = viewModel.selectedElements.value.orEmpty()
-            if (selected.any { it.groupId != null }) viewModel.ungroupElements()
-            else viewModel.selectElementForGrouping()
+            val groupIds = selected.mapNotNull { it.groupId }.toSet()
+            // Ungroup only when every selected element belongs to the same single group
+            // (i.e. user selected the whole group and wants to dissolve it).
+            // In every other case (mix of standalone + grouped, or elements from different
+            // groups) we merge everything into one new group — Photoshop / Illustrator style.
+            val allSameSingleGroup = groupIds.size == 1 &&
+                    selected.all { it.groupId == groupIds.first() || it.type == ElementType.GROUP }
+            if (allSameSingleGroup) viewModel.ungroupElements()
+            else viewModel.mergeIntoGroup()
             updateSelectionToolbar()
         }
 
@@ -198,9 +203,7 @@ class LayersFragment : Fragment() {
             onItemClick         = { element -> handleItemClick(element) },
             onItemLongClick     = { element -> handleItemLongClick(element) },
             onStartDrag         = { holder -> itemTouchHelper.startDrag(holder) },
-            // Tapping a GROUP header row selects its children on canvas
             onGroupHeaderClick  = { element -> handleGroupHeaderClick(element) },
-            // Chevron tap toggles collapse state
             onToggleCollapse    = { element -> handleToggleCollapse(element) }
         )
         binding.layers.adapter = adapter
@@ -213,28 +216,78 @@ class LayersFragment : Fragment() {
                 viewHolder: RecyclerView.ViewHolder,
                 target: RecyclerView.ViewHolder
             ): Boolean {
-                val fromPos = viewHolder.adapterPosition
-                val toPos   = target.adapterPosition
-                // ── Block child rows from being dragged outside their group ───
-                // A child may only move to another position that also belongs to
-                // the same group (between its GroupHeader and the last sibling).
-                // Standalone items and GroupHeaders can move freely.
-                val movingItem  = adapter.currentList().getOrNull(fromPos)
-                val targetItem  = adapter.currentList().getOrNull(toPos)
-                if (movingItem != null && movingItem.groupId != null) {
-                    // Only allow movement within the same group
-                    if (targetItem?.groupId != movingItem.groupId &&
-                        targetItem?.id != movingItem.groupId) {
-                        return false
+                val fromPos = viewHolder.bindingAdapterPosition
+                val toPos   = target.bindingAdapterPosition
+                if (fromPos == RecyclerView.NO_ID.toInt() || toPos == RecyclerView.NO_ID.toInt()) return false
+
+                val movingItem = adapter.getDisplayItemAt(fromPos) ?: return false
+                val targetItem = adapter.getDisplayItemAt(toPos)
+
+                when (movingItem) {
+
+                    // ── GroupHeader: moves as a single unit ───────────────────────
+                    // Blocked from landing on any Child row.
+                    is DisplayItem.GroupHeader -> {
+                        if (targetItem is DisplayItem.Child) return false
+                    }
+
+                    // ── Child: retype to Standalone as soon as it leaves group territory
+                    is DisplayItem.Child -> {
+                        val myGroupId = movingItem.element.groupId
+                        when (targetItem) {
+                            // Same-group sibling → reorder, keep as Child
+                            is DisplayItem.Child -> {
+                                if (targetItem.element.groupId != myGroupId) return false
+                            }
+                            // Own GroupHeader → still in group boundary, keep as Child
+                            is DisplayItem.GroupHeader -> {
+                                if (targetItem.element.id == myGroupId) {
+                                    // Moving above own header → EXIT group immediately
+                                    adapter.retypeItem(fromPos, asChild = false, newGroupId = null)
+                                } else {
+                                    // Different group header → EXIT group, don't enter other group
+                                    adapter.retypeItem(fromPos, asChild = false, newGroupId = null)
+                                }
+                            }
+                            // Standalone territory → EXIT group
+                            is DisplayItem.Standalone, null -> {
+                                adapter.retypeItem(fromPos, asChild = false, newGroupId = null)
+                            }
+                        }
+                    }
+
+                    // ── Standalone: can only join a group by landing ON the GroupHeader row
+                    is DisplayItem.Standalone -> {
+                        when (targetItem) {
+                            // Landing ON GroupHeader → join that group
+                            is DisplayItem.GroupHeader -> {
+                                adapter.retypeItem(
+                                    fromPos,
+                                    asChild = true,
+                                    newGroupId = targetItem.element.id
+                                )
+                            }
+                            // Can't land inside a group's children — blocked
+                            is DisplayItem.Child -> return false
+                            // Standalone ↔ Standalone reorder — allowed
+                            else -> { /* no change */ }
+                        }
                     }
                 }
+
                 adapter.moveItem(fromPos, toPos)
                 return true
             }
 
-            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+            override fun clearView(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder
+            ) {
                 super.clearView(recyclerView, viewHolder)
-                viewModel.updateCanvasElementsOrderAndZIndex(adapter.getItems().reversed())
+                // Pass the current display-item list (in display order, top→bottom)
+                // to the ViewModel. It resolves groupId changes, cleans up empty
+                // sentinels, and assigns z-indices — all in one place.
+                viewModel.applyLayerReorder(adapter.getDisplayItems())
             }
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) = Unit
@@ -275,33 +328,29 @@ class LayersFragment : Fragment() {
             normalToolbar.canvasSizeBtn.text =
                 "${size.width.toInt()} × ${size.height.toInt()}"
         }
+
+
     }
 
     // ── Display list builder ──────────────────────────────────────────────────
     //
     // Converts the flat CanvasElement list (sorted by zIndex desc) into a
-    // DisplayItem list that the adapter understands:
+    // DisplayItem list the adapter understands:
     //
-    //   GroupHeader(groupA)        ← the GROUP sentinel
-    //     Child(textElement)       ← shown only when !groupA.isGroupCollapsed
+    //   GroupHeader(groupA)       ← GROUP sentinel
+    //     Child(textElement)      ← only when !groupA.isGroupCollapsed
     //     Child(imageElement)
-    //   Standalone(shapeElement)   ← no group
+    //   Standalone(shapeElement)  ← no group
     //   Standalone(background)
     //
-    // GROUP sentinel elements are placed as GroupHeader rows.
-    // Their children (elements whose groupId == sentinel.id) are inserted
-    // immediately after, indented, unless the group is collapsed.
-    // Elements with a groupId but no matching sentinel are rendered as
-    // Standalone (orphan guard — handles stale data).
+    // Elements with a groupId but no matching sentinel → Standalone (orphan guard).
 
     private fun buildDisplayList(sortedElements: List<CanvasElement>): List<DisplayItem> {
-        val result         = mutableListOf<DisplayItem>()
-        // Map groupId → children for quick lookup
+        val result = mutableListOf<DisplayItem>()
         val childrenByGroup: Map<String, List<CanvasElement>> =
             sortedElements
                 .filter { it.groupId != null && it.type != ElementType.GROUP }
                 .groupBy { it.groupId!! }
-        // Collect all valid group sentinel ids
         val sentinelIds = sortedElements
             .filter { it.type == ElementType.GROUP }
             .map { it.id }
@@ -309,22 +358,17 @@ class LayersFragment : Fragment() {
 
         for (element in sortedElements) {
             when {
-                // ── GROUP sentinel → GroupHeader row ──────────────────────────
                 element.type == ElementType.GROUP -> {
                     result.add(DisplayItem.GroupHeader(element))
-                    // Append children unless collapsed
                     if (!element.isGroupCollapsed) {
                         childrenByGroup[element.id]?.forEach { child ->
                             result.add(DisplayItem.Child(child))
                         }
                     }
                 }
-                // ── Child element → skip here, already inserted above ─────────
                 element.groupId != null && sentinelIds.contains(element.groupId) -> {
-                    // Already appended under its GroupHeader — skip.
-                    // (Children whose sentinel doesn't exist fall through to Standalone below.)
+                    // Already inserted under its GroupHeader — skip.
                 }
-                // ── Orphan child (no sentinel found) or standalone ────────────
                 else -> result.add(DisplayItem.Standalone(element))
             }
         }
@@ -335,21 +379,18 @@ class LayersFragment : Fragment() {
 
     private fun handleGroupHeaderClick(element: CanvasElement) {
         if (viewModel.inSelectionMode.value == true) {
-            // In selection mode the GROUP sentinel is the selectable unit -- 1 item, not N
             val current = viewModel.canvasElements.value?.toMutableList() ?: return
             val target  = current.find { it.id == element.id } ?: return
             target.isSelected = !target.isSelected
             viewModel.setSelectedElements(current.filter { it.isSelected })
             if ((viewModel.selectedElements.value?.size ?: 0) == 0) viewModel.exitSelectionMode()
         } else {
-            // Normal mode -- select the sentinel; refreshSelectedElements will surface children
             viewModel.setSelectedElements(listOf(element))
         }
     }
 
     private fun handleToggleCollapse(element: CanvasElement) {
         element.isGroupCollapsed = !element.isGroupCollapsed
-        // Trigger a list refresh so buildDisplayList re-runs
         viewModel.canvasElements.value?.let { elements ->
             CoroutineScope(Dispatchers.IO).launch {
                 val sorted      = elements.sortedBy { it.zIndex }.reversed()
@@ -394,7 +435,6 @@ class LayersFragment : Fragment() {
         selectionToolbar.title.text = getString(R.string.selected_n_layers, count)
 
         val allLocked  = selected.isNotEmpty() && selected.all { it.isLocked }
-        val allVisible = selected.isNotEmpty() && selected.all { it.isVisible }
         val allHidden  = selected.isNotEmpty() && selected.all { !it.isVisible }
         val anyGrouped = selected.any { it.groupId != null }
 
@@ -455,8 +495,7 @@ class LayersFragment : Fragment() {
             showRenameDialog(element)
         }
 
-        // ── Ungroup (only shown for GROUP sentinel rows) ───────────────────
-        // If this popup is triggered from a GroupHeader, offer Ungroup directly.
+        // ── Ungroup — only visible for GROUP sentinel rows ──────────────────
         if (element.type == ElementType.GROUP) {
             popupBinding.actionUngroup.visibility  = View.VISIBLE
             popupBinding.ungroupDivider.visibility = View.VISIBLE
@@ -527,7 +566,6 @@ class LayersFragment : Fragment() {
 
         editText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 val newName = editText.text.toString().trim()
                 if (newName.isNotEmpty()) {
@@ -537,7 +575,6 @@ class LayersFragment : Fragment() {
                     if (pos != -1) adapter.notifyItemChanged(pos)
                 }
             }
-
             override fun afterTextChanged(s: Editable?) {}
         })
         dialog.window?.apply {
@@ -552,13 +589,13 @@ class LayersFragment : Fragment() {
     }
 
     private fun defaultNameFor(element: CanvasElement): String = when (element.type) {
-        ElementType.TEXT       -> element.text ?: "Text"
-        ElementType.IMAGE      -> "Image"
-        ElementType.STICKER    -> "Sticker"
-        ElementType.DRAW       -> "Brush"
-        ElementType.SHAPE      -> element.shapeType?.displayName ?: "Shape"
-        ElementType.GROUP      -> element.customName ?: "Group"
-        else                   -> "Background"
+        ElementType.TEXT    -> element.text ?: "Text"
+        ElementType.IMAGE   -> "Image"
+        ElementType.STICKER -> "Sticker"
+        ElementType.DRAW    -> "Brush"
+        ElementType.SHAPE   -> element.shapeType?.displayName ?: "Shape"
+        ElementType.GROUP   -> element.customName ?: "Group"
+        else                -> "Background"
     }
 
     override fun onDestroyView() {

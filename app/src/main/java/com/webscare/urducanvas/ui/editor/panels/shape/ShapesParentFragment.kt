@@ -385,8 +385,14 @@ class ShapesParentFragment : Fragment() {
 
         val expanded = mainViewModel.isPanelExpanded(PanelType.SHAPES)
         when (target) {
-            is ShapesListFragment -> target.onPanelExpanded(expanded)
-            is VectorsTabFragment -> target.onPanelExpanded(expanded)
+            is ShapesListFragment -> {
+                target.onPanelExpandedSmooth(expanded)
+                target.onPanelExpanded(expanded)
+            }
+            is VectorsTabFragment -> {
+                target.onPanelExpandedSmooth(expanded)
+                target.onPanelExpanded(expanded)
+            }
         }
     }
 

@@ -419,7 +419,9 @@ class ObjectsFragment : Fragment() {
             .commitNow()
 
         currentFragment = target
-        target.onPanelExpanded(mainViewModel.isPanelExpanded(PanelType.OBJECTS))
+        val isExpanded = mainViewModel.isPanelExpanded(PanelType.OBJECTS)
+        target.onPanelExpandedSmooth(isExpanded)
+        target.onPanelExpanded(isExpanded)
     }
 
     // ── TabLayout ─────────────────────────────────────────────────────────────

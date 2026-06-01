@@ -134,6 +134,16 @@ class EditorFragment : Fragment() {
     private var panelSheet: PanelSheetBehavior? = null
     private var uiFullyInitialized = false
 
+    // Fragments that open on element selection are NOT expandable — the sheet
+    // must be locked collapsed while any of these destinations is active.
+    private val nonExpandableDestinations = setOf(
+        R.id.adjustmentsParentFragment,
+        R.id.shapeFragment,
+        R.id.textAdjustmentsFragment
+    )
+    private var isPanelExpandable = true
+    private var currentDragHandle: View? = null  // stored so we can block/restore touch
+
     private val pickImage =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             uri?.let { handlePickedUri(it) }
@@ -176,6 +186,23 @@ class EditorFragment : Fragment() {
                 destination.id != R.id.adjustmentsParentFragment &&
                         destination.id != R.id.shapeFragment &&
                         destination.id != R.id.textAdjustmentsFragment
+
+            // Lock the panel sheet collapsed for adjustment panels (non-expandable).
+            // When the user navigates back to an expandable panel, attachDragHandle()
+            // is called by that panel which resets the sheet and re-enables expanding.
+            val isNonExpandable = destination.id in nonExpandableDestinations
+            if (isPanelExpandable != !isNonExpandable) {
+                isPanelExpandable = !isNonExpandable
+                if (!isPanelExpandable) {
+                    // Snap to collapsed immediately — no spring animation, no user drag
+                    panelSheet?.snapTo(expanded = false, immediate = true)
+                    // Block touch on the drag handle so user can't swipe up manually
+                    currentDragHandle?.setOnTouchListener { _, _ -> true }
+                } else {
+                    // Restore touch on the drag handle
+                    currentDragHandle?.setOnTouchListener(null)
+                }
+            }
 
             when (destination.id) {
 
@@ -814,6 +841,17 @@ class EditorFragment : Fragment() {
             sizedCanvasView.setPanMode(enabled)
         }
 
+        // ── Canvas pan lock — top-bar button + CanvasView ────────────────────────
+        viewModel.isCanvasPanLocked.observe(viewLifecycleOwner) { locked ->
+            if (::sizedCanvasView.isInitialized) {
+                sizedCanvasView.setCanvasPanLocked(locked)
+            }
+            updateToggleButton(binding.canvasPanLock, locked)
+            binding.canvasPanLock.setImageResource(
+                if (locked) R.drawable.ic_lock else R.drawable.ic_unlock
+            )
+        }
+
         viewModel.zoomLevel.observe(viewLifecycleOwner) { zoom ->
             sizedCanvasView.setZoomLevel(zoom)
         }
@@ -1367,6 +1405,10 @@ class EditorFragment : Fragment() {
             viewModel.togglePanMode()
         }
 
+        binding.canvasPanLock.addPressEffect {
+            viewModel.toggleCanvasPanLock()
+        }
+
         binding.done.addPressEffect {
             viewModel.setCanvasView(sizedCanvasView)
             sizedCanvasView.clearSelection()
@@ -1783,6 +1825,10 @@ class EditorFragment : Fragment() {
 
     /** Called by child panels to hand their drag handle to the sheet behavior. */
     fun attachDragHandle(handleView: View) {
+        // Called only by expandable panel fragments — restore expandable state.
+        isPanelExpandable = true
+        currentDragHandle = handleView
+        handleView.setOnTouchListener(null)  // ensure any block is cleared
         // Sheet may not exist yet if layout hasn't run — post it
         binding.root.post {
             val root = binding.root as? ConstraintLayout ?: return@post
@@ -1835,6 +1881,8 @@ class EditorFragment : Fragment() {
     }
 
     private fun expandPanel(expanded: Boolean) {
+        // Never expand when the current destination doesn't support it.
+        if (expanded && !isPanelExpandable) return
         val sheet = panelSheet
         if (sheet == null) {
             // Sheet not ready — re-try after layout
@@ -1875,7 +1923,7 @@ class EditorFragment : Fragment() {
                 binding.dimOverlay.visibility  = View.INVISIBLE
                 binding.dimOverlay.isClickable = false
             }
-        }
+        } 
     }
 
     override fun onDestroyView() {

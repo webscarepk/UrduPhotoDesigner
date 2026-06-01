@@ -365,6 +365,12 @@ class CanvasViewModel @Inject constructor(
     private val _isPanMode = MutableLiveData(false)
     val isPanMode: LiveData<Boolean> get() = _isPanMode
 
+    // ── Canvas pan lock ────────────────────────────────────────────────────────
+    // When true, canvas pan and pinch-to-zoom gestures are suppressed.
+    // Observed by EditorFragment → forwarded to CanvasView.setCanvasPanLocked().
+    private val _isCanvasPanLocked = MutableLiveData(false)
+    val isCanvasPanLocked: LiveData<Boolean> get() = _isCanvasPanLocked
+
     // ── Zoom level (1.0f = 100%) ─────────────────────────────────
     private val _zoomLevel = MutableLiveData(1.0f)
     val zoomLevel: LiveData<Float> get() = _zoomLevel
@@ -442,6 +448,11 @@ class CanvasViewModel @Inject constructor(
 
     fun togglePanMode() {
         _isPanMode.value = !(_isPanMode.value ?: false)
+    }
+
+    /** Toggle canvas pan/zoom lock. When locked, two-finger zoom and single-finger canvas pan are blocked. */
+    fun toggleCanvasPanLock() {
+        _isCanvasPanLocked.value = !(_isCanvasPanLocked.value ?: false)
     }
 
     private val zoomMin = 0.5f
@@ -1409,6 +1420,175 @@ class CanvasViewModel @Inject constructor(
         _currentGroupId.value = null
     }
 
+    // ── Photoshop-style merge/group ──────────────────────────────────────────
+    // Called when the selection toolbar group button is tapped and the selection
+    // is NOT a single uniform group (i.e. we should merge, not ungroup).
+    // Handles all cases:
+    //   - Pure standalones → new group
+    //   - Mix of standalones + existing group children → new group absorbs all
+    //   - Two group sentinels selected → nested flat merge into one new group
+    fun mergeIntoGroup() {
+        val selected = _selectedElements.value ?: return
+        if (selected.size < 2) return
+
+        val current = _canvasElements.value?.toMutableList() ?: return
+        val newGroupId = UUID.randomUUID().toString()
+
+        // Collect every real (non-sentinel) element that is selected or
+        // belongs to a selected GROUP sentinel.
+        val selectedGroupIds = selected
+            .filter { it.type == ElementType.GROUP }
+            .map { it.id }.toSet()
+
+        val membersToMerge = current.filter { el ->
+            el.type != ElementType.GROUP &&
+                    (el.isSelected || (el.groupId != null && el.groupId in selectedGroupIds))
+        }
+
+        if (membersToMerge.isEmpty()) return
+
+        // Remove old sentinels whose entire membership is being absorbed.
+        // A sentinel is removed if all its children are moving into the new group.
+        val oldSentinelIdsToRemove = selectedGroupIds.filter { gid ->
+            val allChildren = current.filter { it.groupId == gid }
+            allChildren.isNotEmpty() && allChildren.all { child ->
+                membersToMerge.any { it.id == child.id }
+            }
+        }.toSet()
+
+        val highestZ = membersToMerge.maxOf { it.zIndex }
+        val newSentinel = CanvasElement(
+            type     = ElementType.GROUP,
+            id       = newGroupId,
+            customName = "Group",
+            zIndex   = highestZ,
+            isSelected = false,
+            groupId  = null,
+            isGroupCollapsed = false
+        )
+
+        val updated = current.mapNotNull { el ->
+            when {
+                // Drop absorbed old sentinels
+                el.type == ElementType.GROUP && el.id in oldSentinelIdsToRemove -> null
+                // Re-assign members to new group
+                membersToMerge.any { m -> m.id == el.id } -> el.copy(groupId = newGroupId)
+                else -> el
+            }
+        }.toMutableList()
+        updated.add(newSentinel)
+
+        _canvasElements.value = updated
+        _selectedElements.value = emptyList()
+        _currentGroupId.value = newGroupId
+    }
+
+    // ── Apply drag-reorder from the layers panel ──────────────────────────────
+    // Receives the current DisplayItem list (top→bottom as shown in the RV).
+    // Resolves groupId mutations caused by cross-boundary drags:
+    //   - Child moved outside its group  → groupId = null (becomes standalone)
+    //   - Standalone moved inside a group → groupId = that group's id
+    //   - GroupHeader moved               → its children stay attached (no groupId change)
+    // After resolving memberships, auto-removes any sentinel left with 0 children,
+    // then assigns fresh z-indices (top of list = highest z).
+    fun applyLayerReorder(displayItems: List<com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem>) {
+        val oldList = _canvasElements.value ?: return
+
+        // Resolve groupId from DisplayItem type — onMove already mutated types correctly:
+        //   Child     → el.groupId is correct (set by retypeItem or unchanged within group)
+        //   Standalone → el.groupId is null (cleared by retypeItem when exiting group)
+        //   GroupHeader → always null (sentinel has no parent group)
+        // No position scanning needed.
+
+        // Local helper: extract CanvasElement from any DisplayItem type
+        fun elementOf(di: com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem): CanvasElement = when (di) {
+            is com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem.GroupHeader -> di.element
+            is com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem.Child       -> di.element
+            is com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem.Standalone  -> di.element
+        }
+
+        val resolvedGroupIdMap = mutableMapOf<String, String?>()
+        for (item in displayItems) {
+            val el = elementOf(item)
+            resolvedGroupIdMap[el.id] = when (item) {
+                is com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem.Child -> el.groupId
+                else -> null
+            }
+        }
+
+        // Step 3: Build full ordered list including collapsed children.
+        // Collapsed children are absent from displayItems; re-insert them under their sentinel.
+        val displayIds = displayItems.map { elementOf(it).id }.toSet()
+
+        val collapsedByGroup = oldList
+            .filter { it.groupId != null && it.id !in displayIds }
+            .groupBy { it.groupId!! }
+
+        val fullOrderedList = mutableListOf<CanvasElement>()
+        for (item in displayItems) {
+            val el = elementOf(item)
+            // Apply resolved groupId
+            val newGid = resolvedGroupIdMap[el.id]
+            fullOrderedList.add(if (newGid != el.groupId) el.copy(groupId = newGid) else el)
+
+            // Re-insert collapsed children right after their sentinel
+            if (item is com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem.GroupHeader) {
+                collapsedByGroup[el.id]?.sortedByDescending { it.zIndex }?.forEach { child ->
+                    fullOrderedList.add(child)
+                }
+            }
+        }
+
+        // Step 4: Auto-remove sentinels that now have 0 children.
+        val memberCountBySentinel = fullOrderedList
+            .filter { it.groupId != null }
+            .groupingBy { it.groupId!! }
+            .eachCount()
+
+        val finalList = fullOrderedList.filter { el ->
+            if (el.type == ElementType.GROUP) (memberCountBySentinel[el.id] ?: 0) > 0
+            else true
+        }
+
+        // Step 5: Assign z-indices. Top of panel = highest z.
+        val total = finalList.size
+        val context = oldList.firstOrNull()?.context
+        val updatedList = finalList.mapIndexed { index, el ->
+            val newZ = total - 1 - index
+            val copied = el.copy(zIndex = newZ, context = context ?: el.context)
+            if (copied.type == ElementType.TEXT && copied.fontId != null) {
+                val font = localFonts.value.find { it.id.toString() == copied.fontId }
+                if (font?.file_path?.isNotBlank() == true) {
+                    try { copied.paint.typeface = Typeface.createFromFile(font.file_path) }
+                    catch (e: Exception) {
+                        copied.paint.typeface = context?.let {
+                            ResourcesCompat.getFont(it, R.font.default_canvas)
+                        } ?: Typeface.DEFAULT
+                    }
+                } else {
+                    copied.paint.typeface = context?.let {
+                        ResourcesCompat.getFont(it, R.font.default_canvas)
+                    } ?: Typeface.DEFAULT
+                }
+            } else {
+                copied.paint.typeface = context?.let {
+                    ResourcesCompat.getFont(it, R.font.default_canvas)
+                } ?: Typeface.DEFAULT
+            }
+            copied
+        }
+
+        _canvasActions.push(
+            CanvasAction.UpdateCanvasElementsOrder(
+                oldList.map { it.copy(context = null, bitmap = null) },
+                updatedList.map { it.copy(context = null, bitmap = null) }
+            )
+        )
+        _redoStack.clear()
+        _canvasElements.value = updatedList
+        notifyUndoRedoChanged()
+    }
+
     private fun insertAt(
         item: GradientItem, newEntry: Pair<Float, Int>
     ): Pair<List<Int>, List<Float>> {
@@ -2072,35 +2252,60 @@ class CanvasViewModel @Inject constructor(
         val selected = currentList.filter { it.isSelected }
         if (selected.isEmpty()) return
 
-        // Compute a group offset. For simplicity, offset all copies by +20f in x and y.
         val offsetX = 20f
         val offsetY = 20f
 
-        // Prepare list of copied elements
-        val copiedElements = selected.map { element ->
-            val newId = UUID.randomUUID().toString()
+        // Collect GROUP sentinel ids among the selection so we can include their children.
+        val selectedGroupIds = selected
+            .filter { it.type == ElementType.GROUP }
+            .map { it.id }.toSet()
+
+        // Build the full set to copy: selected items + any children of selected groups
+        // that are not already directly selected (avoids duplicates).
+        val selectedIds = selected.map { it.id }.toSet()
+        val groupChildren = if (selectedGroupIds.isNotEmpty()) {
+            currentList.filter { el ->
+                el.type != ElementType.GROUP &&
+                        el.groupId != null &&
+                        el.groupId in selectedGroupIds &&
+                        el.id !in selectedIds
+            }
+        } else emptyList()
+
+        val allToCopy = selected + groupChildren
+
+        // Map old element id → new element id so children can reference the new sentinel id.
+        val idRemapSentinels = selectedGroupIds.associateWith { UUID.randomUUID().toString() }
+
+        val copiedElements = allToCopy.map { element ->
+            val newId = if (element.type == ElementType.GROUP && element.id in idRemapSentinels)
+                idRemapSentinels[element.id]!!
+            else UUID.randomUUID().toString()
+
+            // Remap groupId: if the element's groupId points to a copied sentinel, use the new id
+            val newGroupId = element.groupId?.let { idRemapSentinels[it] } ?: run {
+                // If a selected non-group element has no groupId (standalone), keep null
+                if (element.type != ElementType.GROUP) null else null
+            }
+
             val copied = element.copy(
                 id = newId,
-                // Deselect copies by default:
-                isSelected = false, groupId = null,
-                // Offset position:
-                x = element.x + offsetX, y = element.y + offsetY
+                isSelected = false,
+                groupId = newGroupId,
+                x = if (element.type != ElementType.GROUP) element.x + offsetX else element.x,
+                y = if (element.type != ElementType.GROUP) element.y + offsetY else element.y
             )
-            // Re-apply paint/typeface if needed:
             copied.paint.typeface = copied.applyTypefaceFromFontList()
             copied
         }
 
-        // Add all copies to the canvas
         _canvasElements.value = currentList + copiedElements
 
-        // Push undo actions: you can push individually, or if you have a grouped action type, push once.
-        // Here, pushing individually:
         copiedElements.forEach { copied ->
-            if (copied.type == ElementType.TEXT) {
-                _canvasActions.push(CanvasAction.AddText(copied.text, copied))
-            } else {
-                _canvasActions.push(CanvasAction.AddSticker(copied))
+            when {
+                copied.type == ElementType.GROUP -> { /* sentinel — no undo action needed separately */ }
+                copied.type == ElementType.TEXT -> _canvasActions.push(CanvasAction.AddText(copied.text, copied))
+                else -> _canvasActions.push(CanvasAction.AddSticker(copied))
             }
         }
         _redoStack.clear()
@@ -2292,11 +2497,37 @@ class CanvasViewModel @Inject constructor(
     fun updateCanvasElementsOrderAndZIndex(reorderedList: List<CanvasElement>) {
         val oldList = _canvasElements.value ?: emptyList()
 
-        // Create a new list with updated zIndex based on their position in the reorderedList
-        val updatedList = reorderedList.mapIndexed { index, element ->
-            // Pass context to ensure paint re-initialization can use it
-            val copiedElement = element.copy(zIndex = index, context = element.context)
-            // Re-apply font for text elements
+        // ── Expand reorderedList to include collapsed children ────────────────
+        // reorderedList contains only the items visible in the RecyclerView.
+        // Children of COLLAPSED groups are absent — we re-insert them beneath
+        // their GROUP sentinel so their z-indices are always updated correctly.
+        val reorderedIds = reorderedList.map { it.id }.toSet()
+
+        // Collapsed children: present in canvasElements but absent from reorderedList
+        val collapsedChildrenByGroup: Map<String, List<CanvasElement>> =
+            oldList
+                .filter { it.groupId != null && it.id !in reorderedIds }
+                .groupBy { it.groupId!! }
+
+        // Build the full ordered list: after each GROUP sentinel inject its
+        // collapsed children (preserving their relative old z-index order so
+        // internal ordering survives collapse/expand cycles).
+        val fullOrderedList = mutableListOf<CanvasElement>()
+        for (element in reorderedList) {
+            fullOrderedList.add(element)
+            if (element.type == ElementType.GROUP) {
+                val collapsed = collapsedChildrenByGroup[element.id]
+                    ?.sortedByDescending { it.zIndex }
+                    ?: emptyList()
+                fullOrderedList.addAll(collapsed)
+            }
+        }
+
+        // ── Assign z-indices: position 0 (top of layers panel) = highest z ──
+        val totalCount = fullOrderedList.size
+        val updatedList = fullOrderedList.mapIndexed { index, element ->
+            val newZ = totalCount - 1 - index
+            val copiedElement = element.copy(zIndex = newZ, context = element.context)
             if (copiedElement.type == ElementType.TEXT && copiedElement.fontId != null) {
                 val font = localFonts.value.find { it.id.toString() == copiedElement.fontId }
                 if (font != null && font.file_path?.isNotBlank() == true) {
@@ -2305,23 +2536,17 @@ class CanvasViewModel @Inject constructor(
                     } catch (e: Exception) {
                         println("Error re-applying typeface in updateCanvasElementsOrderAndZIndex: ${font.file_path}. Error: ${e.message}")
                         copiedElement.paint.typeface = copiedElement.context?.let {
-                            ResourcesCompat.getFont(
-                                it, R.font.default_canvas
-                            )
+                            ResourcesCompat.getFont(it, R.font.default_canvas)
                         } ?: Typeface.DEFAULT
                     }
                 } else {
                     copiedElement.paint.typeface = copiedElement.context?.let {
-                        ResourcesCompat.getFont(
-                            it, R.font.default_canvas
-                        )
+                        ResourcesCompat.getFont(it, R.font.default_canvas)
                     } ?: Typeface.DEFAULT
                 }
             } else {
                 copiedElement.paint.typeface = copiedElement.context?.let {
-                    ResourcesCompat.getFont(
-                        it, R.font.default_canvas
-                    )
+                    ResourcesCompat.getFont(it, R.font.default_canvas)
                 } ?: Typeface.DEFAULT
             }
             copiedElement
@@ -2329,12 +2554,9 @@ class CanvasViewModel @Inject constructor(
 
         _canvasActions.push(
             CanvasAction.UpdateCanvasElementsOrder(
-                oldList.map {
-                    it.copy(
-                        context = null, bitmap = null
-                    )
-                }, // Store copies without transient data
-                updatedList.map { it.copy(context = null, bitmap = null) })
+                oldList.map { it.copy(context = null, bitmap = null) },
+                updatedList.map { it.copy(context = null, bitmap = null) }
+            )
         )
         _redoStack.clear()
         _canvasElements.value = updatedList
@@ -2461,17 +2683,24 @@ class CanvasViewModel @Inject constructor(
         val currentElements = _canvasElements.value?.toMutableList() ?: mutableListOf()
         val context = currentElements.firstOrNull()?.context
 
-        // If all incoming elements share a groupId, select their GROUP sentinel instead
-        // so the selection count stays at 1 and toolbar treats it as a group unit.
+        // Decide whether to collapse a group selection to its sentinel.
+        // Rules:
+        //   - Single child selected alone (e.g. tapped from layers panel or individually
+        //     selected) → keep the child selected, do NOT collapse to sentinel.
+        //     This preserves individual drag/edit on that child.
+        //   - All children of a group selected together → collapse to sentinel so the
+        //     whole group moves as one unit.
         val commonGroupId = selectedListFromCanvas
             .mapNotNull { it.groupId }
             .distinct()
             .singleOrNull()
             ?.takeIf { gid -> selectedListFromCanvas.all { it.groupId == gid } }
 
-        val selectedIds: Set<String> = if (commonGroupId != null) {
-            // Whole group selected -- mark sentinel selected, not children
-            setOf(commonGroupId)
+        val collapseToSentinel = commonGroupId != null && selectedListFromCanvas.size > 1
+
+        val selectedIds: Set<String> = if (collapseToSentinel) {
+            // Whole group selected — mark sentinel selected, not children
+            setOf(commonGroupId!!)
         } else {
             selectedListFromCanvas.map { it.id }.toSet()
         }
