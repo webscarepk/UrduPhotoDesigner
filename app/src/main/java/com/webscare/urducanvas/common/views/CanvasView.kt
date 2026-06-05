@@ -2669,7 +2669,7 @@ class CanvasView @JvmOverloads constructor(
                                     val dstBottom = dstTop + entry.bitmap.height * entry.scaleY
 
                                     canvas.save()
-                                    canvas.drawBitmap(
+                                    if (!entry.bitmap.isRecycled) canvas.drawBitmap(
                                         entry.bitmap,
                                         null,
                                         RectF(dstLeft, dstTop, dstRight, dstBottom),
@@ -2754,7 +2754,7 @@ class CanvasView @JvmOverloads constructor(
                                     reusableDrawPaint.colorFilter = colorFilterFor(element.imageFilter)
 
                                     reusableRectF.set(bl, bt, br, bb)
-                                    when (element.imageFilter) {
+                                    if (!finalBitmap.isRecycled) when (element.imageFilter) {
                                         ImageFilter.SoftBlur -> {
                                             reusableDrawPaint.maskFilter =
                                                 BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
@@ -2799,11 +2799,12 @@ class CanvasView @JvmOverloads constructor(
                                     // ── Feather: soft edge fade, instant GPU, no pixel loops ────────
                                     if (element.hasFeather && element.featherRadius > 0f) {
                                         drawFeatherMask(canvas, bl, bt, br, bb,
-                                            element.featherRadius, element.featherWidth, element.featherDirection!!)
+                                            element.featherRadius, element.featherWidth, element.featherDirection ?: FeatherDirection.ALL)
                                     }
 
                                     canvas.restore()
-                                    finalBitmap.recycle()
+                                    // Do NOT recycle finalBitmap here -- it IS element.bitmap, cached across
+                                    // frames and read concurrently by the export thread.
                                 } else {
                                     // ── Pure vector path — no adjustments, no filters ────────────────
                                     drawable.setBounds(
@@ -2840,7 +2841,7 @@ class CanvasView @JvmOverloads constructor(
                                     // ── Feather: soft edge fade, instant GPU, no pixel loops ────────
                                     if (element.hasFeather && element.featherRadius > 0f) {
                                         drawFeatherMask(canvas, left, top, left + w, top + h,
-                                            element.featherRadius, element.featherWidth, element.featherDirection!!)
+                                            element.featherRadius, element.featherWidth, element.featherDirection ?: FeatherDirection.ALL)
                                     }
 
                                     canvas.restore()
@@ -2904,7 +2905,9 @@ class CanvasView @JvmOverloads constructor(
                                         val dx = (strokeWidth * cos(rad)).toFloat()
                                         val dy = (strokeWidth * sin(rad)).toFloat()
                                         reusableRectF.set(left + dx, top + dy, left + dx + w, top + dy + h)
-                                        canvas.drawBitmap(strokeAlpha, null, reusableRectF, reusableStrokePaint)
+                                        if (!strokeAlpha.isRecycled) {
+                                            canvas.drawBitmap(strokeAlpha, null, reusableRectF, reusableStrokePaint)
+                                        }
                                     }
                                     canvas.restore()
                                 }
@@ -2958,7 +2961,9 @@ class CanvasView @JvmOverloads constructor(
                                     reusableRectF.set(dstLeft, dstTop, dstLeft + entry.bitmap.width, dstTop + entry.bitmap.height)
 
                                     canvas.save()
-                                    canvas.drawBitmap(entry.bitmap, null, reusableRectF, reusableDrawPaint)
+                                    if (!entry.bitmap.isRecycled) {
+                                        canvas.drawBitmap(entry.bitmap, null, reusableRectF, reusableDrawPaint)
+                                    }
                                     canvas.restore()
                                 }
 
@@ -2971,23 +2976,25 @@ class CanvasView @JvmOverloads constructor(
 
                                 // Draw display-resolution proxy — same visual result, fraction of GPU work
                                 reusableRectF.set(left, top, left + w, top + h)
-                                when (element.imageFilter) {
-                                    ImageFilter.SoftBlur -> {
-                                        reusableDrawPaint.maskFilter = BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
-                                        canvas.drawBitmap(displayBmp, null, reusableRectF, reusableDrawPaint)
-                                    }
-
-                                    ImageFilter.Glow -> {
-                                        canvas.drawBitmap(displayBmp, null, reusableRectF, element.paint)
-                                        val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                                            color = Color.argb(180, 255, 255, 200)
-                                            maskFilter = BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
+                                if (!displayBmp.isRecycled) {
+                                    when (element.imageFilter) {
+                                        ImageFilter.SoftBlur -> {
+                                            reusableDrawPaint.maskFilter = BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
+                                            canvas.drawBitmap(displayBmp, null, reusableRectF, reusableDrawPaint)
                                         }
-                                        canvas.drawBitmap(displayBmp, null, reusableRectF, glowPaint)
-                                    }
 
-                                    else -> {
-                                        canvas.drawBitmap(displayBmp, null, reusableRectF, reusableDrawPaint)
+                                        ImageFilter.Glow -> {
+                                            canvas.drawBitmap(displayBmp, null, reusableRectF, element.paint)
+                                            val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                                                color = Color.argb(180, 255, 255, 200)
+                                                maskFilter = BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
+                                            }
+                                            canvas.drawBitmap(displayBmp, null, reusableRectF, glowPaint)
+                                        }
+
+                                        else -> {
+                                            canvas.drawBitmap(displayBmp, null, reusableRectF, reusableDrawPaint)
+                                        }
                                     }
                                 }
 
@@ -3007,7 +3014,7 @@ class CanvasView @JvmOverloads constructor(
                                 // ── Feather: soft edge fade, instant GPU, no pixel loops ────────────
                                 if (element.hasFeather && element.featherRadius > 0f) {
                                     drawFeatherMask(canvas, left, top, left + w, top + h,
-                                        element.featherRadius, element.featherWidth, element.featherDirection!!)
+                                        element.featherRadius, element.featherWidth, element.featherDirection ?: FeatherDirection.ALL)
                                 }
                                 canvas.restore()  // restore saveLayer opened above for feather compositing
                             }
@@ -3528,7 +3535,7 @@ class CanvasView @JvmOverloads constructor(
                 if (element.hasFeather && element.featherRadius > 0f) {
                     drawFeatherMask(canvas,
                         localRect.left, localRect.top, localRect.right, localRect.bottom,
-                        element.featherRadius, element.featherWidth, element.featherDirection!!)
+                        element.featherRadius, element.featherWidth, element.featherDirection ?: FeatherDirection.ALL)
                 }
 
                 canvas.restore()
@@ -3689,20 +3696,20 @@ class CanvasView @JvmOverloads constructor(
                 when (e.imageFilter) {
                     ImageFilter.SoftBlur -> {
                         reusableBgPaint.maskFilter = BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
-                        drawBitmap(displayBmp, null, dstRect, reusableBgPaint)
+                        if (!displayBmp.isRecycled) drawBitmap(displayBmp, null, dstRect, reusableBgPaint)
                     }
 
                     ImageFilter.Glow -> {
-                        drawBitmap(displayBmp, null, dstRect, reusableBgPaint)
+                        if (!displayBmp.isRecycled) drawBitmap(displayBmp, null, dstRect, reusableBgPaint)
                         val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                             color = Color.argb(180, 255, 255, 200)
                             maskFilter = BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
                         }
-                        drawBitmap(displayBmp, null, dstRect, glowPaint)
+                        if (!displayBmp.isRecycled) drawBitmap(displayBmp, null, dstRect, glowPaint)
                     }
 
                     else -> {
-                        drawBitmap(displayBmp, null, dstRect, reusableBgPaint)
+                        if (!displayBmp.isRecycled) drawBitmap(displayBmp, null, dstRect, reusableBgPaint)
                     }
                 }
                 if (e.hasOverlay && e.overlayOpacity > 0) {
@@ -3866,7 +3873,10 @@ class CanvasView @JvmOverloads constructor(
                     element.context ?: return@launch, rawBitmap, element
                 )
                 withContext(Dispatchers.Main) {
-                    element.cachedAdjustedBitmap?.recycle()
+                    // Do NOT recycle the old cachedAdjustedBitmap immediately — the export
+                    // pipeline runs on a background thread and may be mid-draw with a reference
+                    // to the old bitmap. Recycling here causes "Canvas: trying to use a recycled
+                    // bitmap" crashes. Let the old bitmap become unreachable and be GC'd instead.
                     element.cachedAdjustedBitmap = result
                     element.isAdjustmentDirty = false
                     // Invalidate display cache so next frame resamples from the fresh adjusted bitmap
@@ -3910,7 +3920,9 @@ class CanvasView @JvmOverloads constructor(
 
         // Build a high-quality downscale using FILTER_BITMAP_FLAG (bilinear)
         val scaled = Bitmap.createScaledBitmap(source, targetW, targetH, true)
-        cached?.bitmap?.recycle()
+        // Do NOT recycle the old cached bitmap immediately — the export pipeline runs on a
+        // background thread and may hold a reference to it mid-draw. Let it become unreachable
+        // and be GC'd rather than risk a "Canvas: trying to use a recycled bitmap" crash.
         displayBitmapCache[cacheKey] = DisplayCacheEntry(
             bitmap = scaled,
             srcWidth = source.width, srcHeight = source.height,

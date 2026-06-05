@@ -28,8 +28,10 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.createBitmap
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
@@ -64,7 +66,7 @@ import java.util.Locale
 @AndroidEntryPoint
 class FilesListFragment : Fragment() {
     private var _binding: FragmentFilesListBinding? = null
-    private val binding get() = _binding!!
+    private val binding get() = _binding
 
     private var tabName: String? = null
     private lateinit var adapter: FilesAdapter
@@ -93,7 +95,7 @@ class FilesListFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentFilesListBinding.inflate(layoutInflater, container, false)
-        return binding.root
+        return _binding!!.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -102,7 +104,7 @@ class FilesListFragment : Fragment() {
         setEvents()
         initObservers()
         if (tabName.equals("All", true) || tabName.equals("Projects", true)) {
-            binding.addMore.visibility = View.GONE
+            _binding!!.addMore.visibility = View.GONE
         }
     }
 
@@ -123,16 +125,16 @@ class FilesListFragment : Fragment() {
                 }
             }
         }, onSelectionChanged = { active ->
-            binding.deleteAll.visibility = if (active) View.VISIBLE else View.GONE
-            binding.addMore.visibility = if (active) View.GONE else View.VISIBLE
+            _binding!!.deleteAll.visibility = if (active) View.VISIBLE else View.GONE
+            _binding!!.addMore.visibility = if (active) View.GONE else View.VISIBLE
             if (tabName.equals("All", true) || tabName.equals("Projects", true)) {
-                binding.addMore.visibility = View.GONE
+                _binding!!.addMore.visibility = View.GONE
             }
         })
-        binding.filesRV.adapter = adapter
-        binding.filesRV.layoutManager = LinearLayoutManager(requireContext())
+        _binding!!.filesRV.adapter = adapter
+        _binding!!.filesRV.layoutManager = LinearLayoutManager(requireContext())
 
-        binding.filesRV.setOnTouchListener { v, event ->
+        _binding!!.filesRV.setOnTouchListener { v, event ->
             if (event.action == android.view.MotionEvent.ACTION_DOWN) {
                 if (adapter.isEditing()) {
                     val imm =
@@ -146,11 +148,11 @@ class FilesListFragment : Fragment() {
             false
         }
 
-        binding.addMore.addPressEffect {
+        _binding!!.addMore.addPressEffect {
             pickFiles.launch(arrayOf("*/*"))  // allow all file types
         }
 
-        binding.deleteAll.addPressEffect {
+        _binding!!.deleteAll.addPressEffect {
             val selectedItems = adapter.getSelectedItems() // we'll add this helper in adapter
             if (selectedItems.isNotEmpty()) {
                 DialogUtils.showDeleteDialog(
@@ -660,164 +662,182 @@ class FilesListFragment : Fragment() {
             }
         }
 
-        lifecycleScope.launch {
-            filtersViewModel.isGrid.collect { isGrid ->
-                if (isGrid) {
-                    binding.filesRV.layoutManager = GridLayoutManager(requireContext(), 2)
-                } else {
-                    binding.filesRV.layoutManager = LinearLayoutManager(requireContext())
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                filtersViewModel.isGrid.collect { isGrid ->
+                    val b = _binding ?: return@collect
+                    if (isGrid) {
+                        b.filesRV.layoutManager = GridLayoutManager(requireContext(), 2)
+                    } else {
+                        b.filesRV.layoutManager = LinearLayoutManager(requireContext())
+                    }
+                    adapter.toggleViewType(isGrid)
                 }
-                adapter.toggleViewType(isGrid)
             }
         }
 
         when (tabName) {
             "All" -> {
-                lifecycleScope.launch {
-                    combine(
-                        viewModel.localFonts,
-                        viewModel.localImages,
-                        viewModel.exportResults.asFlow(),
-                        filtersViewModel.searchQuery
-                    ) { fonts, images, results, query ->
-                        val q = query.trim().lowercase()
+                viewLifecycleOwner.lifecycleScope.launch {
+                    viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                        combine(
+                            viewModel.localFonts,
+                            viewModel.localImages,
+                            viewModel.exportResults.asFlow(),
+                            filtersViewModel.searchQuery
+                        ) { fonts, images, results, query ->
+                            val q = query.trim().lowercase()
 
-                        val filteredFonts = fonts.filter {
-                            it.font_category == "Imported" && (q.isEmpty() || it.font_name!!.lowercase()
-                                .contains(q))
+                            val filteredFonts = fonts.filter {
+                                it.font_category == "Imported" && (q.isEmpty() || it.font_name!!.lowercase()
+                                    .contains(q))
+                            }
+
+                            val filteredImages = images.filter {
+                                it.category == "Images Imported" && (q.isEmpty() || it.file_name.lowercase()
+                                    .contains(q))
+                            }
+
+                            val filteredProjects = results.filter {
+                                q.isEmpty() || it.fileName.lowercase().contains(q)
+                            }
+
+                            filteredFonts + filteredImages + filteredProjects
+                        }.collect { list ->
+                            val b = _binding ?: return@collect
+                            adapter.updateList(list)
+                            b.noImagesText.text =
+                                requireActivity().getString(R.string.no_assets_available)
+                            b.noEmojis.visibility =
+                                if (list.isEmpty()) View.VISIBLE else View.GONE
                         }
-
-                        val filteredImages = images.filter {
-                            it.category == "Images Imported" && (q.isEmpty() || it.file_name.lowercase()
-                                .contains(q))
-                        }
-
-                        val filteredProjects = results.filter {
-                            q.isEmpty() || it.fileName.lowercase().contains(q)
-                        }
-
-                        filteredFonts + filteredImages + filteredProjects
-                    }.collect { list ->
-                        adapter.updateList(list)
-                        binding.noImagesText.text =
-                            requireActivity().getString(R.string.no_assets_available)
-                        binding.noEmojis.visibility =
-                            if (list.isEmpty()) View.VISIBLE else View.GONE
                     }
                 }
             }
 
             "Projects" -> {
-                lifecycleScope.launch {
-                    combine(
-                        viewModel.exportResults.asFlow(), filtersViewModel.searchQuery
-                    ) { results, query ->
-                        val q = query.trim().lowercase()
-                        results.filter { q.isEmpty() || it.fileName.lowercase().contains(q) }
-                    }.collect { list ->
-                        adapter.updateList(list)
-                        binding.noImagesText.text =
-                            requireActivity().getString(R.string.no_projects_available)
-                        binding.noEmojis.visibility =
-                            if (list.isEmpty()) View.VISIBLE else View.GONE
+                viewLifecycleOwner.lifecycleScope.launch {
+                    viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                        combine(
+                            viewModel.exportResults.asFlow(), filtersViewModel.searchQuery
+                        ) { results, query ->
+                            val q = query.trim().lowercase()
+                            results.filter { q.isEmpty() || it.fileName.lowercase().contains(q) }
+                        }.collect { list ->
+                            val b = _binding ?: return@collect
+                            adapter.updateList(list)
+                            b.noImagesText.text =
+                                requireActivity().getString(R.string.no_projects_available)
+                            b.noEmojis.visibility =
+                                if (list.isEmpty()) View.VISIBLE else View.GONE
+                        }
                     }
                 }
             }
 
             "Fonts" -> {
-                lifecycleScope.launch {
-                    combine(
-                        viewModel.localFonts, filtersViewModel.searchQuery
-                    ) { fonts, query ->
-                        val q = query.trim().lowercase()
-                        fonts.filter {
-                            it.font_category == "Imported" && (q.isEmpty() || it.font_name!!.lowercase()
-                                .contains(q))
-                        }
-                    }.collect { list ->
-                        adapter.updateList(list)
-
-                        if (list.isEmpty()) {
-
-                            binding.noEmojis.visibility = View.VISIBLE
-
-                            val fullText = "No imported fonts.\nBrowse in-app fonts."
-                            val clickablePart = "in-app fonts"
-
-                            val spannable = android.text.SpannableString(fullText)
-
-                            val start = fullText.indexOf(clickablePart)
-                            val end = start + clickablePart.length
-
-                            val clickableSpan = object : android.text.style.ClickableSpan() {
-                                override fun onClick(widget: View) {
-                                    findNavController().navigate(R.id.popularFontsFragment)
-                                }
-
-                                override fun updateDrawState(ds: android.text.TextPaint) {
-                                    super.updateDrawState(ds)
-                                    ds.isUnderlineText = true
-                                    val typeface =
-                                        ResourcesCompat.getFont(requireContext(), R.font.medium)
-                                    ds.typeface = typeface
-                                    ds.color = requireContext().getColor(R.color.appColor)
-                                }
+                viewLifecycleOwner.lifecycleScope.launch {
+                    viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                        combine(
+                            viewModel.localFonts, filtersViewModel.searchQuery
+                        ) { fonts, query ->
+                            val q = query.trim().lowercase()
+                            fonts.filter {
+                                it.font_category == "Imported" && (q.isEmpty() || it.font_name!!.lowercase()
+                                    .contains(q))
                             }
+                        }.collect { list ->
+                            val b = _binding ?: return@collect
+                            adapter.updateList(list)
 
-                            spannable.setSpan(
-                                clickableSpan,
-                                start,
-                                end,
-                                android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                            )
+                            if (list.isEmpty()) {
 
-                            binding.noImagesText.text = spannable
-                            binding.noImagesText.movementMethod =
-                                android.text.method.LinkMovementMethod.getInstance()
+                                b.noEmojis.visibility = View.VISIBLE
 
-                        } else {
-                            binding.noEmojis.visibility = View.GONE
+                                val fullText = "No imported fonts.\nBrowse in-app fonts."
+                                val clickablePart = "in-app fonts"
+
+                                val spannable = android.text.SpannableString(fullText)
+
+                                val start = fullText.indexOf(clickablePart)
+                                val end = start + clickablePart.length
+
+                                val clickableSpan = object : android.text.style.ClickableSpan() {
+                                    override fun onClick(widget: View) {
+                                        findNavController().navigate(R.id.popularFontsFragment)
+                                    }
+
+                                    override fun updateDrawState(ds: android.text.TextPaint) {
+                                        super.updateDrawState(ds)
+                                        ds.isUnderlineText = true
+                                        val typeface =
+                                            ResourcesCompat.getFont(requireContext(), R.font.medium)
+                                        ds.typeface = typeface
+                                        ds.color = requireContext().getColor(R.color.appColor)
+                                    }
+                                }
+
+                                spannable.setSpan(
+                                    clickableSpan,
+                                    start,
+                                    end,
+                                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                                )
+
+                                b.noImagesText.text = spannable
+                                b.noImagesText.movementMethod =
+                                    android.text.method.LinkMovementMethod.getInstance()
+
+                            } else {
+                                b.noEmojis.visibility = View.GONE
+                            }
                         }
                     }
                 }
             }
 
             "Stickers" -> {
-                lifecycleScope.launch {
-                    combine(
-                        viewModel.localImages, filtersViewModel.searchQuery
-                    ) { images, query ->
-                        val q = query.trim().lowercase()
-                        images.filter {
-                            it.category == "Images Imported" && (q.isEmpty() || it.file_name.lowercase()
-                                .contains(q))
+                viewLifecycleOwner.lifecycleScope.launch {
+                    viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                        combine(
+                            viewModel.localImages, filtersViewModel.searchQuery
+                        ) { images, query ->
+                            val q = query.trim().lowercase()
+                            images.filter {
+                                it.category == "Images Imported" && (q.isEmpty() || it.file_name.lowercase()
+                                    .contains(q))
+                            }
+                        }.collect { list ->
+                            val b = _binding ?: return@collect
+                            adapter.updateList(list)
+                            b.noImagesText.text =
+                                requireActivity().getString(R.string.no_stickers_available)
+                            b.noEmojis.visibility =
+                                if (list.isEmpty()) View.VISIBLE else View.GONE
                         }
-                    }.collect { list ->
-                        adapter.updateList(list)
-                        binding.noImagesText.text =
-                            requireActivity().getString(R.string.no_stickers_available)
-                        binding.noEmojis.visibility =
-                            if (list.isEmpty()) View.VISIBLE else View.GONE
                     }
                 }
             }
 
             "Backgrounds" -> {
-                lifecycleScope.launch {
-                    combine(
-                        viewModel.localImages, filtersViewModel.searchQuery
-                    ) { images, query ->
-                        val q = query.trim().lowercase()
-                        images.filter {
-                            it.category == "Backgrounds Imported" && (q.isEmpty() || it.file_name.lowercase()
-                                .contains(q))
+                viewLifecycleOwner.lifecycleScope.launch {
+                    viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                        combine(
+                            viewModel.localImages, filtersViewModel.searchQuery
+                        ) { images, query ->
+                            val q = query.trim().lowercase()
+                            images.filter {
+                                it.category == "Backgrounds Imported" && (q.isEmpty() || it.file_name.lowercase()
+                                    .contains(q))
+                            }
+                        }.collect { list ->
+                            val b = _binding ?: return@collect
+                            adapter.updateList(list)
+                            b.noImagesText.text =
+                                requireActivity().getString(R.string.no_backgrounds_available)
+                            b.noEmojis.visibility =
+                                if (list.isEmpty()) View.VISIBLE else View.GONE
                         }
-                    }.collect { list ->
-                        adapter.updateList(list)
-                        binding.noImagesText.text =
-                            requireActivity().getString(R.string.no_backgrounds_available)
-                        binding.noEmojis.visibility =
-                            if (list.isEmpty()) View.VISIBLE else View.GONE
                     }
                 }
             }

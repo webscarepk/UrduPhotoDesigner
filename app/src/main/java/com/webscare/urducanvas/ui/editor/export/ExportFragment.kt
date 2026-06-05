@@ -29,11 +29,15 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.ExportViewType
 import com.webscare.urducanvas.common.canvas.model.ExportOptions
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.common.views.CanvasView
+import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.databinding.FragmentExportBinding
+import com.webscare.urducanvas.viewmodels.MainViewModel
 import com.webscare.urducanvas.viewmodels.SubscriptionsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -44,17 +48,16 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.getValue
 
 @AndroidEntryPoint
 class ExportFragment : androidx.fragment.app.Fragment() {
     private var _binding: FragmentExportBinding? = null
     private val binding get() = _binding!!
     private val subscriptionViewModel: SubscriptionsViewModel by viewModels()
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
-    private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
-    private var exportResult: com.webscare.urducanvas.data.model.ExportResult? = null
-    private lateinit var canvasView: com.webscare.urducanvas.common.views.CanvasView
+    private val viewModel: CanvasViewModel by activityViewModels()
+    private val mainViewModel: MainViewModel by activityViewModels()
+    private var exportResult: ExportResult? = null
+    private lateinit var canvasView: CanvasView
     private var rotateDrawable: AnimatedVectorDrawable? = null
 
     private val requestPermissionLauncher =
@@ -170,9 +173,9 @@ class ExportFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun openPremiumAssetDetailSheet() {
-        PremiumAssetsSheet.newInstance()
-            .show(parentFragmentManager, "premium_assets_sheet")
+        PremiumAssetsSheet.newInstance().show(parentFragmentManager, "premium_assets_sheet")
     }
+
     private fun renderExportResult(result: com.webscare.urducanvas.data.model.ExportResult) =
         with(binding) {
 
@@ -219,10 +222,11 @@ class ExportFragment : androidx.fragment.app.Fragment() {
             val sizeMB = getDisplayFileSizeMB(options, bitmap)
 
             withContext(Dispatchers.Main) {
-                binding.previewImage.setImageBitmap(bitmap)
-                binding.exportPreviewProgress.visibility = View.GONE
-                binding.tvExportSize.text = "%.1f MB".format(sizeMB)
-                binding.fileSize.text = "%.1f MB".format(sizeMB)
+                val b = _binding ?: return@withContext
+                b.previewImage.setImageBitmap(bitmap)
+                b.exportPreviewProgress.visibility = View.GONE
+                b.tvExportSize.text = "%.1f MB".format(sizeMB)
+                b.fileSize.text = "%.1f MB".format(sizeMB)
             }
         }
     }
@@ -266,7 +270,9 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 // 1. Render full canvas
-                val (bitmap, json) = canvasView.exportCanvas(options, jsonOutputPath = exportResult?.jsonPath!!) { percent, stage ->
+                val (bitmap, json) = canvasView.exportCanvas(
+                    options, jsonOutputPath = exportResult?.jsonPath!!
+                ) { percent, stage ->
                     viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
                         val mapped = (percent * 0.7).toInt()
                         updateProgress(mapped, stage)
@@ -367,17 +373,17 @@ class ExportFragment : androidx.fragment.app.Fragment() {
 
                 // 7. Update UI on complete
                 withContext(Dispatchers.Main) {
-                    if (_binding == null) return@withContext
+                    val b = _binding ?: return@withContext
                     updateProgress(100, "Export complete")
-                    binding.exportProgress.postDelayed({
+                    b.exportProgress.postDelayed({
                         _binding?.exportProgress?.visibility = View.GONE
                     }, 1000)
 
-                    stopRotationAnimation(binding.view4)
+                    stopRotationAnimation(b.view4)
                     stopIconRotation()
-                    binding.btnExport.isEnabled = true
-                    binding.btnExport.alpha = 1.0f
-                    binding.btnExport.text = "Export"
+                    b.btnExport.isEnabled = true
+                    b.btnExport.alpha = 1.0f
+                    b.btnExport.text = "Export"
 
                     view?.post {
                         findNavController().navigate(R.id.finishExportFragment)
@@ -386,12 +392,13 @@ class ExportFragment : androidx.fragment.app.Fragment() {
             } catch (e: Exception) {
                 Log.e("ExportFragment", "Export failed", e)
                 withContext(Dispatchers.Main) {
-                    stopRotationAnimation(binding.view4)
+                    val b = _binding ?: return@withContext
+                    stopRotationAnimation(b.view4)
                     stopIconRotation()
-                    binding.exportProgress.visibility = View.GONE
-                    binding.btnExport.isEnabled = true
-                    binding.btnExport.alpha = 1.0f
-                    binding.btnExport.text = "Export"
+                    b.exportProgress.visibility = View.GONE
+                    b.btnExport.isEnabled = true
+                    b.btnExport.alpha = 1.0f
+                    b.btnExport.text = "Export"
                     showTopBanner("Export failed: ${e.message}")
                 }
             }
@@ -414,11 +421,11 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         banner.translationY = -banner.height.toFloat()
 
         banner.animate().alpha(1f).translationY(0f).setDuration(300).withEndAction {
-                banner.postDelayed({
-                    banner.animate().alpha(0f).translationY(-banner.height.toFloat())
-                        .setDuration(300).withEndAction { banner.visibility = View.GONE }.start()
-                }, 2000)
-            }.start()
+            banner.postDelayed({
+                banner.animate().alpha(0f).translationY(-banner.height.toFloat()).setDuration(300)
+                    .withEndAction { banner.visibility = View.GONE }.start()
+            }, 2000)
+        }.start()
     }
 
     private fun startRotationAnimation(view: View) {
@@ -437,9 +444,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun getExportedImageSizeMBEstimate(
-        options: ExportOptions,
-        originalCanvasWidth: Float,
-        originalCanvasHeight: Float
+        options: ExportOptions, originalCanvasWidth: Float, originalCanvasHeight: Float
     ): Double {
         val scaleFactor = options.resolution.scaleFactor
 
@@ -489,9 +494,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         return when {
             bitmap != null -> {
                 estimateBitmapSize(
-                    bitmap,
-                    options.format.format,
-                    options.quality.quality
+                    bitmap, options.format.format, options.quality.quality
                 ) / (1024.0 * 1024.0)
             }
 
@@ -676,7 +679,8 @@ class ExportFragment : androidx.fragment.app.Fragment() {
 
         val hasPremiumAsset = viewModel.hasPremiumAsset.value == true
         val options = viewModel.exportOptions.value
-        val hasPremiumOption = options?.format?.isPremium == true || options?.resolution?.isPremium == true
+        val hasPremiumOption =
+            options?.format?.isPremium == true || options?.resolution?.isPremium == true
 
         return hasPremiumAsset || hasPremiumOption
     }

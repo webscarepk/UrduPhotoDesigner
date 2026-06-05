@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.google.android.material.chip.Chip
 import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.SectionStatus
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.common.canvas.sealed.HomeRow
@@ -28,6 +29,8 @@ import com.webscare.urducanvas.data.model.TemplateEntity
 import com.webscare.urducanvas.data.model.toExportResultFinal
 import com.webscare.urducanvas.databinding.DialogLoadingProgressBinding
 import com.webscare.urducanvas.databinding.FragmentTemplatesBinding
+import com.webscare.urducanvas.ui.creation.CanvasSizeAdapter
+import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,12 +43,12 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
     private var _binding: FragmentTemplatesBinding? = null
     private val binding get() = _binding!!
 
-    private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
-    private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    private val mainViewModel: MainViewModel by activityViewModels()
+    private val viewModel: CanvasViewModel by activityViewModels()
 
     private var currentCategory: String? = null
     private lateinit var subcategoryAdapter: TemplateCategoriesAdapter
-    private lateinit var canvasSizeAdapter: com.webscare.urducanvas.ui.creation.CanvasSizeAdapter
+    private lateinit var canvasSizeAdapter: CanvasSizeAdapter
     private lateinit var templatesAdapter: TemplatesAdapter
 
     private var downloadingTemplate: TemplateEntity? = null
@@ -65,7 +68,7 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
 
     private enum class ListMode { SECTIONS, GRID }
     private var listMode = ListMode.SECTIONS
-    private fun isGridMode(): Boolean = binding.categoriesRV.adapter === templatesAdapter
+    private fun isGridMode(): Boolean = _binding?.categoriesRV?.adapter === templatesAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -559,6 +562,7 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun updateScreenState(status: SectionStatus) {
+        if (_binding == null) return
         val hasCategoryData = categoryTemplates.isNotEmpty()
         val hasFiltersApplied = activeQuery.isNotBlank()
                 || activeSize != null
@@ -589,5 +593,10 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
         else subcategoryAdapter.itemCount
     }
 
-    override fun onDestroy() { super.onDestroy(); _binding = null }
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
+    override fun onDestroy() { super.onDestroy() }
 }

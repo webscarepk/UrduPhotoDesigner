@@ -80,6 +80,7 @@ class SearchFragment : Fragment() {
         // Force keyboard to remain open
         val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         view.postDelayed({
+            if (_binding == null) return@postDelayed
             imm.showSoftInput(binding.searchBar, InputMethodManager.SHOW_IMPLICIT)
         }, 150)
 

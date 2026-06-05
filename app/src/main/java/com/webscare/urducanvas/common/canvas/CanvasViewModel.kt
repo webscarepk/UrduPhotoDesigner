@@ -3429,19 +3429,23 @@ class CanvasViewModel @Inject constructor(
         // if we already have a background, do nothing
         if ((_canvasElements.value ?: emptyList()).any { it.type == ElementType.BACKGROUND }) return
 
+        // _canvasSize is null when clearCanvas() resets the ViewModel (e.g. navigating back
+        // from the editor). In that case there is no canvas to add a background to - bail out.
+        val size = _canvasSize.value ?: return
+
         // otherwise create and insert one
         val bg = CanvasElement(
             context = context,
             type = ElementType.BACKGROUND,
-            x = _canvasSize.value?.width!! / 2f,
-            y = _canvasSize.value?.height!! / 2f,
+            x = size.width / 2f,
+            y = size.height / 2f,
             paintColor = Color.WHITE,
             fillGradient = null,
             bitmap = null
         ).apply {
             isLocked = true
-            logicalContentWidth = _canvasSize.value?.width!!
-            logicalContentHeight = _canvasSize.value?.height!!
+            logicalContentWidth = size.width
+            logicalContentHeight = size.height
             updatePaintProperties()
         }
 

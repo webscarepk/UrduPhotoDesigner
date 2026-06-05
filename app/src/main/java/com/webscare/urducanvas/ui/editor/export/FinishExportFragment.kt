@@ -194,7 +194,7 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
                 // For image, use PrintHelper
                 val imagePath = export.imagePath ?: return@addPressEffect
                 val bitmap = ImageProcessor.filePathToBitmap(imagePath) ?: return@addPressEffect
-                val printHelper = PrintHelper(requireContext()).apply {
+                val printHelper = PrintHelper(requireActivity()).apply {
                     scaleMode = PrintHelper.SCALE_MODE_FIT
                 }
                 printHelper.printBitmap(export.fileName ?: "Design", bitmap)

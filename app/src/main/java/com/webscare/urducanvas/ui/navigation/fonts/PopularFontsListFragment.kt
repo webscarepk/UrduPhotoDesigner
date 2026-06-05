@@ -5,7 +5,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
@@ -29,7 +31,7 @@ import kotlinx.coroutines.withContext
 @AndroidEntryPoint
 class PopularFontsListFragment : androidx.fragment.app.Fragment() {
     private var _binding: FragmentPopularFontsListBinding? = null
-    private val binding get() = _binding!!
+    private val binding get() = _binding
     private var shuffleAfterRefresh = false
 
     private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
@@ -66,7 +68,7 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentPopularFontsListBinding.inflate(inflater, container, false)
-        return binding.root
+        return _binding!!.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -99,7 +101,7 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
             isItemPrefetchEnabled = true
         }
 
-        binding.fontsRV.apply {
+        _binding!!.fontsRV.apply {
             layoutManager = sglm
             adapter = this@PopularFontsListFragment.adapter
             setHasFixedSize(true)
@@ -108,15 +110,15 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
             setItemViewCacheSize(24)
         }
 
-        binding.swipeRefresh.setColorSchemeResources(
+        _binding!!.swipeRefresh.setColorSchemeResources(
             R.color.appColor, R.color.black, R.color.gray
         )
-        binding.swipeRefresh.setOnRefreshListener {
+        _binding!!.swipeRefresh.setOnRefreshListener {
             shuffleAfterRefresh = true
-            binding.fontsRV.stopScroll()
-            binding.fontsRV.scrollToPosition(0)
+            _binding!!.fontsRV.stopScroll()
+            _binding!!.fontsRV.scrollToPosition(0)
 
-            binding.fontsRV.suppressLayout(true)
+            _binding!!.fontsRV.suppressLayout(true)
             mainViewModel.fetchAndStoreFontsFromApi()
         }
     }
@@ -136,132 +138,145 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
 
     private fun applyFilters(query: String) {
         filterJob?.cancel()
-        filterJob = lifecycleScope.launch(Dispatchers.Default) {
+        filterJob = viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Default) {
             val filtered = filterFonts(baseFonts, category, query)
             val fresh = filtered.map { it.copy() } // defensive copy for DiffUtil
 
             withContext(Dispatchers.Main) {
+                val b = _binding ?: return@withContext
                 adapter.submitList(fresh)
                 sglm.invalidateSpanAssignments()
-                if (!binding.fontsRV.canScrollVertically(-1)) {
-                    binding.fontsRV.scrollToPosition(0)
+                if (!b.fontsRV.canScrollVertically(-1)) {
+                    b.fontsRV.scrollToPosition(0)
                 }
-                binding.swipeRefresh.isRefreshing = false
+                b.swipeRefresh.isRefreshing = false
             }
         }
     }
 
     private fun observeData() {
-        lifecycleScope.launch {
-            filtersViewModel.isGrid.collect { isGrid ->
-                if (isGrid) {
-                    binding.fontsRV.layoutManager = GridLayoutManager(requireContext(), 2)
-                } else {
-                    binding.fontsRV.layoutManager = LinearLayoutManager(requireContext())
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                filtersViewModel.isGrid.collect { isGrid ->
+                    val b = _binding ?: return@collect
+                    if (isGrid) {
+                        b.fontsRV.layoutManager = GridLayoutManager(requireContext(), 2)
+                    } else {
+                        b.fontsRV.layoutManager = LinearLayoutManager(requireContext())
+                    }
+                    adapter.toggleViewType(isGrid)
                 }
-                adapter.toggleViewType(isGrid)
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            mainViewModel.isLoading.collect { loading ->
-                if (!loading && binding.swipeRefresh.isRefreshing) {
-                    binding.swipeRefresh.isRefreshing = false
-                    binding.fontsRV.suppressLayout(false)
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.isLoading.collect { loading ->
+                    val b = _binding ?: return@collect
+                    if (!loading && b.swipeRefresh.isRefreshing) {
+                        b.swipeRefresh.isRefreshing = false
+                        b.fontsRV.suppressLayout(false)
 
-                    if (shuffleAfterRefresh) {
-                        shuffleAfterRefresh = false
-                        applyFilters(filtersViewModel.searchQuery.value)
-                    } else {
-                        sglm.invalidateSpanAssignments()
+                        if (shuffleAfterRefresh) {
+                            shuffleAfterRefresh = false
+                            applyFilters(filtersViewModel.searchQuery.value)
+                        } else {
+                            sglm.invalidateSpanAssignments()
+                        }
                     }
                 }
             }
         }
 
         // observe localFonts
-        lifecycleScope.launch {
-            mainViewModel.localFonts.collectLatest { fonts ->
-                baseFonts = fonts
-                applyFilters(filtersViewModel.searchQuery.value)
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.localFonts.collectLatest { fonts ->
+                    baseFonts = fonts
+                    applyFilters(filtersViewModel.searchQuery.value)
+                }
             }
         }
 
-        lifecycleScope.launch {
-            mainViewModel.fontDownloadStates.collect { downloadState ->
-                downloadState.values.forEach { state ->
-                    when (state) {
-                        is FontDownloadState.Progress -> {
-                            val font = state.fontEntity
-                            adapter.updateProgress(
-                                font.id,
-                                _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
-                                    progress = state.progress,
-                                    isDownloading = true,
-                                    isDownloaded = false
-                                )
-                            )
-                        }
-
-                        is FontDownloadState.SuccessWithTypeface -> {
-                            val font = state.fontEntity
-
-                            adapter.updateProgress(
-                                font.id,
-                                _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
-                                    100, isDownloading = false, isDownloaded = true
-                                )
-                            )
-
-                            showGlobalSuccessSnack("Font downloaded") {
-                                lifecycleScope.launch {
-                                    viewModel.setCanvasSize(
-                                        CanvasSize(
-                                            id = 0,"", 2000f, 2000f
-                                        )
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.fontDownloadStates.collect { downloadState ->
+                    downloadState.values.forEach { state ->
+                        when (state) {
+                            is FontDownloadState.Progress -> {
+                                val font = state.fontEntity
+                                adapter.updateProgress(
+                                    font.id,
+                                    _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
+                                        progress = state.progress,
+                                        isDownloading = true,
+                                        isDownloaded = false
                                     )
-                                    viewModel.addTextWithFont(
-                                        requireActivity().getString(R.string.dummyText),
-                                        font,
-                                        requireActivity()
-                                    )
+                                )
+                            }
 
-                                    if (isAdded && findNavController().currentDestination?.id != R.id.editorFragment) {
-                                        view?.post {
-                                            findNavController().navigate(
-                                                R.id.editorFragment, bundle, navOptions
+                            is FontDownloadState.SuccessWithTypeface -> {
+                                val font = state.fontEntity
+
+                                adapter.updateProgress(
+                                    font.id,
+                                    _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
+                                        100, isDownloading = false, isDownloaded = true
+                                    )
+                                )
+
+                                showGlobalSuccessSnack("Font downloaded") {
+                                    viewLifecycleOwner.lifecycleScope.launch {
+                                        viewModel.setCanvasSize(
+                                            CanvasSize(
+                                                id = 0,"", 2000f, 2000f
                                             )
+                                        )
+                                        viewModel.addTextWithFont(
+                                            requireActivity().getString(R.string.dummyText),
+                                            font,
+                                            requireActivity()
+                                        )
+
+                                        if (isAdded && findNavController().currentDestination?.id != R.id.editorFragment) {
+                                            view?.post {
+                                                findNavController().navigate(
+                                                    R.id.editorFragment, bundle, navOptions
+                                                )
+                                            }
                                         }
                                     }
+                                    mainViewModel.clearFontDownloadState()
                                 }
-                                mainViewModel.clearFontDownloadState()
                             }
-                        }
 
-                        is FontDownloadState.Error -> {
-                            val font = state.fontEntity
-                            adapter.updateProgress(
-                                font.id,
-                                _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
-                                    progress = 0, isDownloading = false, isDownloaded = false
+                            is FontDownloadState.Error -> {
+                                val font = state.fontEntity
+                                adapter.updateProgress(
+                                    font.id,
+                                    _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
+                                        progress = 0, isDownloading = false, isDownloaded = false
+                                    )
                                 )
-                            )
 
-                            mainViewModel.clearFontDownloadState()
-                            Snackbar.make(requireView(), "Download failed!", Snackbar.LENGTH_SHORT)
-                                .show()
+                                mainViewModel.clearFontDownloadState()
+                                Snackbar.make(requireView(), "Download failed!", Snackbar.LENGTH_SHORT)
+                                    .show()
+                            }
+
+                            else -> {}
                         }
-
-                        else -> {}
                     }
                 }
             }
         }
 
         // observe search query from FiltersViewModel
-        lifecycleScope.launch {
-            filtersViewModel.searchQuery.collectLatest { query ->
-                applyFilters(query)
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                filtersViewModel.searchQuery.collectLatest { query ->
+                    applyFilters(query)
+                }
             }
         }
     }

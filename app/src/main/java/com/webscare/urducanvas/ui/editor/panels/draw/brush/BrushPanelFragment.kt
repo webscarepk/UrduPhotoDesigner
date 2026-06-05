@@ -67,6 +67,7 @@ class BrushPanelFragment : Fragment() {
 
     private fun setEvents() {
         binding.brushPreview.post {
+            if (_binding == null) return@post
             updateBrushPreview()
         }
 
@@ -127,7 +128,7 @@ class BrushPanelFragment : Fragment() {
     }
 
     private fun updateBrushPreview() {
-        val preview = binding.brushPreview
+        val preview = _binding?.brushPreview ?: return
         val width = preview.width.takeIf { it > 0 } ?: return
         val height = preview.height.takeIf { it > 0 } ?: return
 

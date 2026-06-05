@@ -220,15 +220,16 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun hideKeyboard() {
+        val b = _binding ?: return
         requireContext().getSystemService(InputMethodManager::class.java)
-            ?.hideSoftInputFromWindow(binding.root.windowToken, 0)
-        binding.searchBar.clearFocus()
+            ?.hideSoftInputFromWindow(b.root.windowToken, 0)
+        b.searchBar.clearFocus()
     }
 
     override fun onDestroyView() {
         mediator?.detach()
         mediator = null
-        binding.viewPager.adapter = null
+        _binding?.viewPager?.adapter = null
         mainViewModel.setQuery("")
         super.onDestroyView()
         _binding = null

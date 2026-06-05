@@ -23,7 +23,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.animation.AnimationUtils
-import android.view.animation.DecelerateInterpolator
 import android.view.animation.LinearInterpolator
 import android.widget.EditText
 import android.widget.ImageView
@@ -1192,15 +1191,21 @@ class EditorFragment : Fragment() {
 
     /** Opens the layers panel — called from the canvas long-press callback. */
     private fun handleRequestOpenLayers() {
+        // Guard BEFORE requireActivity() — the long-press fires from GestureDetector on the
+        // main thread and can arrive after the fragment has been detached, at which point
+        // requireActivity() throws IllegalStateException.
+        if (!isAdded || view == null ||
+            !viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+        ) return
         requireActivity().runOnUiThread {
-            if (!isAdded || view == null ||
-                !viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
-            ) return@runOnUiThread
+            // Re-check inside the post in case state changed between the outer guard and now.
+            if (!isAdded || view == null) return@runOnUiThread
+            val b = _binding ?: return@runOnUiThread
             viewModel.enterSelectionMode()
-            binding.bottomNavigation.selectedItemId = R.id.nav_layers
+            b.bottomNavigation.selectedItemId = R.id.nav_layers
             navController.navigate(R.id.layersFragment)
             currentPanelItemId = R.id.nav_layers
-            binding.panelNavHost.visibility = View.VISIBLE
+            b.panelNavHost.visibility = View.VISIBLE
         }
     }
 
@@ -1787,12 +1792,13 @@ class EditorFragment : Fragment() {
     }
 
     private fun initPanelSheet() {
-        val root = binding.root as? ConstraintLayout ?: return
+        val root = _binding?.root as? ConstraintLayout ?: return
         val guideline = root.findViewById<Guideline>(R.id.centerExpandableGuide) ?: return
 
         root.doOnLayout {
             val rootHeight   = root.height
             if (rootHeight == 0) return@doOnLayout
+            val b = _binding ?: return@doOnLayout
 
             val collapsedPx = (rootHeight * 0.65f).toInt()   // resting position
 
@@ -1801,13 +1807,14 @@ class EditorFragment : Fragment() {
             panelSheet = PanelSheetBehavior(
                 root            = root,
                 guideline       = guideline,
-                dragHandleView  = binding.panelNavHost,   // placeholder; panels override via attachDragHandle()
+                dragHandleView  = b.panelNavHost,   // placeholder; panels override via attachDragHandle()
                 collapsedPx     = collapsedPx,
                 expandedPx      = expandedPx,
                 onSlide         = { offset ->
                     mainViewModel.setPanelSlideOffset(offset)
-                    binding.fabContainer.alpha = 1f - offset
-                    binding.fabContainer.visibility = if (offset >= 1f) View.GONE else View.VISIBLE
+                    val bb = _binding ?: return@PanelSheetBehavior
+                    bb.fabContainer.alpha = 1f - offset
+                    bb.fabContainer.visibility = if (offset >= 1f) View.GONE else View.VISIBLE
                 },
                 onStateSettled  = { expanded ->
                     // Sync ViewModel so panels react
@@ -1817,7 +1824,7 @@ class EditorFragment : Fragment() {
                     // Expansion is set by attachDragHandle's onStateSettled which knows panel type.
                     // If no panel has registered yet, collapse is the only action needed here.
                 },
-                dimView = binding.dimOverlay
+                dimView = b.dimOverlay
             )
             // Don't call attach() here — the real handle comes via attachDragHandle()
         }
@@ -1830,8 +1837,10 @@ class EditorFragment : Fragment() {
         currentDragHandle = handleView
         handleView.setOnTouchListener(null)  // ensure any block is cleared
         // Sheet may not exist yet if layout hasn't run — post it
-        binding.root.post {
-            val root = binding.root as? ConstraintLayout ?: return@post
+        val rootView = _binding?.root ?: return
+        rootView.post {
+            val b = _binding ?: return@post
+            val root = b.root as? ConstraintLayout ?: return@post
             val guideline = root.findViewById<Guideline>(R.id.centerExpandableGuide) ?: return@post
             val rootHeight = root.height.takeIf { it > 0 } ?: return@post
 
@@ -1842,8 +1851,8 @@ class EditorFragment : Fragment() {
             // Also hard-reset the dimOverlay so a stale half-expanded state from the old
             // PanelSheetBehavior instance never keeps blocking canvas touches.
             panelSheet?.snapTo(expanded = false, immediate = true)
-            binding.dimOverlay.visibility  = View.INVISIBLE
-            binding.dimOverlay.isClickable = false
+            b.dimOverlay.visibility  = View.INVISIBLE
+            b.dimOverlay.isClickable = false
 
             val dest = _navController?.currentDestination?.id
             val panelType = when (dest) {
@@ -1864,8 +1873,9 @@ class EditorFragment : Fragment() {
                 expandedPx      = expandedPx,
                 onSlide         = { offset ->
                     mainViewModel.setPanelSlideOffset(offset)
-                    binding.fabContainer.alpha = 1f - offset
-                    binding.fabContainer.visibility = if (offset >= 1f) View.GONE else View.VISIBLE
+                    val b = _binding ?: return@PanelSheetBehavior
+                    b.fabContainer.alpha = 1f - offset
+                    b.fabContainer.visibility = if (offset >= 1f) View.GONE else View.VISIBLE
                 },
                 onStateSettled  = { expanded ->
                     if (expanded) {
@@ -1874,7 +1884,7 @@ class EditorFragment : Fragment() {
                         mainViewModel.collapsePanel()
                     }
                 },
-                dimView = binding.dimOverlay
+                dimView = b.dimOverlay
             )
             panelSheet!!.attach()
         }
@@ -1886,7 +1896,7 @@ class EditorFragment : Fragment() {
         val sheet = panelSheet
         if (sheet == null) {
             // Sheet not ready — re-try after layout
-            binding.root.post { expandPanel(expanded) }
+            _binding?.root?.post { expandPanel(expanded) }
             return
         }
         if (sheet.isCurrentlyExpanded() == expanded) return
@@ -1910,27 +1920,37 @@ class EditorFragment : Fragment() {
      */
     @SuppressLint("ClickableViewAccessibility")
     private fun setPanelTouchBlocked(blocked: Boolean) {
+        val b = _binding ?: return
         if (blocked) {
-            binding.panelNavHost.setOnTouchListener { _, _ -> true }
+            b.panelNavHost.setOnTouchListener { _, _ -> true }
         } else {
-            binding.panelNavHost.setOnTouchListener(null)
+            b.panelNavHost.setOnTouchListener(null)
             // Safety net: guarantee the dimOverlay is invisible and non-intercepting
             // whenever the panel collapses, regardless of whether PanelSheetBehavior's
             // spring endListener already reset it. Rapid expand→collapse gestures can
             // leave the overlay visible/clickable if the spring settles before the
             // expandedPanel Flow emits the null (collapsed) state.
-            if (_binding != null) {
-                binding.dimOverlay.visibility  = View.INVISIBLE
-                binding.dimOverlay.isClickable = false
-            }
-        } 
+            b.dimOverlay.visibility  = View.INVISIBLE
+            b.dimOverlay.isClickable = false
+        }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         saveJsonJob?.cancel()
+        // Cancel the spring animation before nulling binding — its onSlide/onStateSettled
+        // lambdas capture binding, and Choreographer can deliver one more frame after
+        // onDestroyView, causing NPE on _binding!!.
+        panelSheet?.snapTo(expanded = false, immediate = true)
+        panelSheet = null
         _binding = null
         _navController = null
+        // Null out CanvasView callbacks that capture fragment state. CanvasView lives in the
+        // ViewModel across fragment recreation; without this, a GestureDetector long-press
+        // arriving after onDestroyView throws IllegalStateException on requireActivity().
+        cbOnEditTextRequested = {}
+        cbOnElementSelected   = {}
+        cbOnRequestOpenLayers = {}
         if (!BuildConfig.DEBUG) {
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
