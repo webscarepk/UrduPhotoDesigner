@@ -92,6 +92,7 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun renderState(state: CatViewState) {
+        if (_binding == null) return
         binding.apply {
             when (state) {
                 CatViewState.Loading -> {
@@ -151,6 +152,7 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun updateCatState() {
+        if (_binding == null) return   // view already destroyed — discard stale callback
         val status = mainViewModel.templatesStatus.value
         val hasData = allTemplates.isNotEmpty()
         val hasFilters = !activeQuery.isBlank() || activeSize != null ||
@@ -439,6 +441,7 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun applyFilters() {
+        if (_binding == null) return   // view already destroyed — discard stale callback
         val filtered = filterTemplates(allTemplates, activeCategory, activeQuery, activeSize, activePrice)
 
         if (activeCategory.equals("All", true)) {
@@ -533,5 +536,6 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    override fun onDestroy() { super.onDestroy(); _binding = null }
+    override fun onDestroyView() { super.onDestroyView(); _binding = null }
+    override fun onDestroy() { super.onDestroy() }
 }

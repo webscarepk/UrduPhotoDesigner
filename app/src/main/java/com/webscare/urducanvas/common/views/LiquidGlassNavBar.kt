@@ -1,41 +1,25 @@
 package com.webscare.urducanvas.common.views
 
 import android.animation.ValueAnimator
-import android.animation.AnimatorListenerAdapter
-import android.animation.Animator
 import android.content.Context
 import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.MotionEvent
+import android.view.VelocityTracker
 import android.view.View
+import android.view.ViewConfiguration
 import androidx.core.graphics.toColorInt
 import androidx.dynamicanimation.animation.FloatValueHolder
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
-import kotlin.math.sin
+import kotlin.math.*
 
-/**
- * LiquidGlassNavBar — iOS 26 liquid glass style.
- *
- * KEY FIX: BlurEngine now captures ONLY the region behind the nav bar
- * (not the full screen), so the bitmap maps 1:1 to the bar rect.
- * No more stretching/color smearing.
- *
- * Visual layers (bottom → top):
- *   1. Blurred crop of content behind bar  (real glass substrate)
- *   2. Very light white tint overlay       (15–20% — just enough frost)
- *   3. Gradient border stroke              (bright top arc → invisible bottom)
- *   4. Circle indicator                    (same blur cropped to circle + deeper tint)
- *   5. Icons                               (dark grey / accent, drawn on top)
- */
 class LiquidGlassNavBar @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyle: Int = 0
 ) : View(context, attrs, defStyle) {
-
-    // ── Model ────────────────────────────────────────────────────────
 
     data class NavItem(
         val id: Int,
@@ -47,114 +31,153 @@ class LiquidGlassNavBar @JvmOverloads constructor(
     private var selectedIndex = 0
     private var onItemSelected: ((Int) -> Unit)? = null
 
-    // ── Blur bitmaps ─────────────────────────────────────────────────
-    // Both bitmaps are already cropped to exactly the bar's region.
-    // barBlur  = light blur (bar background)
-    // deepBlur = heavy blur (indicator circle)
-
     private var barBlurBitmap:  Bitmap? = null
     private var deepBlurBitmap: Bitmap? = null
     private val bitmapPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
-    // ── Paints ───────────────────────────────────────────────────────
+    // Offscreen: nav bar with ALL icons filled. Pill clips into this as lens.
+    private var filledNavBitmap: Bitmap? = null
+    private var filledNavCanvas: Canvas? = null
 
-    // LIGHT tint — 18% white. Just enough to make it "frosted", not opaque.
+    // ── Paints ────────────────────────────────────────────────────────────────
     private val barTintPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.argb(150, 255, 255, 255)
-        style = Paint.Style.FILL
+        color = Color.argb(150, 255, 255, 255); style = Paint.Style.FILL
     }
-
-    // Glass stroke — static, no animation, no app colour
-    // Two layers: outer soft glow + inner bright top-heavy gradient
-    private val borderGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style       = Paint.Style.STROKE
-        strokeWidth = 3.5f
-        color       = Color.argb(55, 255, 255, 255)  // soft uniform white glow
-    }
-    private val borderShinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style       = Paint.Style.STROKE
-        strokeWidth = 2.5f
-        // shader set in onSizeChanged
-    }
-
-    // Indicator circle deeper tint — 35% white over heavier blur
+    // Bar border — completely removed, no stroke against background
+    private val borderGlowPaint  = Paint(Paint.ANTI_ALIAS_FLAG).apply { alpha = 0 }
+    private val borderShinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { alpha = 0 }
     private val indicatorTintPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.argb(30, 255, 255, 255)
-        style = Paint.Style.FILL
+        color = Color.argb(30, 255, 255, 255); style = Paint.Style.FILL
     }
-
-    // Indicator border gradient
-    private val indicatorBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeWidth = 1.8f
-    }
-
-    // Indicator shadow (hardware accel required — default on all modern Android)
     private val indicatorShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.argb(1, 0, 0, 0) // nearly transparent fill, shadow is the point
+        color = Color.argb(30, 0, 0, 0); style = Paint.Style.FILL
+    }
+    // Pill border — NO solid outline stroke. Only a very faint inner glow
+    // that blends with content and disappears on white backgrounds.
+    // We achieve this by drawing it INSIDE the clip with low alpha.
+    private val pillInnerGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 3f
+        // Drawn inside clip so it composites with the pill content, not against bg
+    }
+    private val lensHighlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        setShadowLayer(12f, 0f, 3f, Color.argb(55, 0, 0, 0))
+    }
+    // Inner-edge distortion — simulates thick curved glass refracting light
+    // at the inner surface. Two overlapping sweep-gradient strokes.
+    private val distortTopPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 4f
+    }
+    private val distortBottomPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 3f
+    }
+    private val distortRimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 6f
+        color = Color.argb(18, 0, 0, 0)  // subtle inner shadow depth
     }
 
-    // ── Geometry ─────────────────────────────────────────────────────
-
-    private val  barRect    = RectF()
-    private var  barRadius  = 0f
-    private var  slotWidth  = 0f
-    private var  iconSize   = 0
-    private var  iconSizeCta = 0
-    private var  hPad       = 0f
-    private var  indPillH = 0f       // half-height of indicator
-    private var  indPillW = 0f       // half-width of indicator
-    private val  indicatorRect = RectF()
-
-    // ── Scale-burst animation fields ─────────────────────────────────────
-    // journeyProgress tracks 0→1 as indicator travels from source to target.
-    // Scale follows a sine curve: 1.0 at start, peak at midpoint, 1.0 at end.
-    // MAX_SCALE > 1 means the indicator pops OUTSIDE the bar clip — drawn after restore().
-    private var journeyStart   = 0f
-    private var journeyTarget  = 0f
-    private var journeyProgress = 1f   // 1 = at rest (full size, no animation)
-    private var indicatorScale  = 1f   // current scale applied to indPillH/W
+    // ── Geometry ──────────────────────────────────────────────────────────────
+    private val barRect   = RectF()
+    private var barRadius = 0f
+    private var slotWidth = 0f
+    private var iconSize  = 0; private var iconSizeCta = 0
+    private var hPad      = 0f
+    private var indPillH  = 0f
+    private var indPillW  = 0f
+    private val indicatorRect = RectF()
 
     companion object {
-        // How large the indicator grows at the midpoint of its journey.
-        // 1.9 means it scales to 190% — large enough to pop outside the bar.
-        private const val MAX_INDICATOR_SCALE = 1.35f
+        private const val MAX_INDICATOR_SCALE = 1.18f
+        private const val MAX_ELONGATION      = 1.85f
+        private const val MAX_V_SQUISH        = 0.80f
+        private const val DRAG_MAGNIFY_MAX    = 1.32f
+        private const val VEL_NORM            = 26f
+        private const val TAPER_STRENGTH      = 0.55f
+        private const val LENS_ZOOM           = 1.45f  // magnification for filled icon reveal
     }
 
-    // ── Spring ───────────────────────────────────────────────────────
-
-    private var indicatorX      = 0f
+    // ── Spring / morph state ──────────────────────────────────────────────────
+    private var indicatorX = 0f
     private val indicatorHolder = FloatValueHolder(0f)
-
     private val springAnim: SpringAnimation by lazy {
         SpringAnimation(indicatorHolder).apply {
-            spring = SpringForce().apply {
-                stiffness    = 160f    // tuned to finish ~600ms — matches scaleAnim duration
-                dampingRatio = 0.78f   // gentle overshoot, settles cleanly
-            }
+            spring = SpringForce().apply { stiffness = 180f; dampingRatio = 0.72f }
             addUpdateListener { _, value, _ ->
-                indicatorX = value
-                invalidate()
+                indicatorX = value; updateFluidMorph(); invalidate()
+            }
+            addEndListener { _, _, _, _ ->
+                stretchX = 1f; squishY = 1f; taper = 0f
+                indicatorGlobalScale = 1f; invalidate()
             }
         }
     }
 
-    private var scaleAnim: ValueAnimator? = null
+    private var journeyFrom = 0f; private var journeyTo = 0f
+    private var indicatorGlobalScale = 1f
+    private var stretchX = 1f; private var squishY = 1f; private var taper = 0f
+    private var lastIndicatorX = 0f
 
-    private val clipPath     = Path()
-    private val indClipPath  = Path()
+    private var lensActive       = false
+    private var dragMagnifyScale = 1f
+    private var isDragging       = false
+    private var dragHoverSlot    = -1
 
-    // ── Public API ───────────────────────────────────────────────────
+    private val iconScales        = mutableListOf<Float>()
+    private val iconSpringHolders = mutableListOf<FloatValueHolder>()
+    private val iconSpringAnims   = mutableListOf<SpringAnimation>()
+    private val iconAlphas        = mutableListOf<Float>()
 
+    private var dragStartX     = 0f
+    private var dragSlotOnDown = -1
+    private var velocityTracker: VelocityTracker? = null
+    private val touchSlop: Int by lazy { ViewConfiguration.get(context).scaledTouchSlop }
+
+    private val clipPath      = Path()
+    private val indClipPath   = Path()
+    private val pillPath      = Path()
+    private val pillInsetPath = Path()
+
+    // ── Fluid morph ───────────────────────────────────────────────────────────
+    private fun updateFluidMorph() {
+        val vel    = indicatorX - lastIndicatorX
+        lastIndicatorX = indicatorX
+        val signed = (vel / VEL_NORM).coerceIn(-1f, 1f)
+        val t      = abs(signed)
+        val targetStretch = 1f + (MAX_ELONGATION - 1f) * t
+        val targetSquish  = (1f / sqrt(targetStretch)).coerceAtLeast(MAX_V_SQUISH)
+        val targetTaper   = -signed * TAPER_STRENGTH
+        val rising = t > (abs(stretchX - 1f) / (MAX_ELONGATION - 1f))
+        val ease   = if (rising) 0.40f else 0.16f
+        stretchX = lerp(stretchX, targetStretch, ease)
+        squishY  = lerp(squishY,  targetSquish,  ease)
+        taper    = lerp(taper,    targetTaper,   ease)
+        val dist = abs(journeyTo - journeyFrom)
+        if (dist > 1f) {
+            val progress = (1f - abs(journeyTo - indicatorX) / dist).coerceIn(0f, 1f)
+            val sine = sin(Math.PI * progress.toDouble()).toFloat()
+            indicatorGlobalScale = 1f + (MAX_INDICATOR_SCALE - 1f) * sine
+        }
+    }
+
+    // ── Public API ────────────────────────────────────────────────────────────
     fun setItems(navItems: List<NavItem>) {
-        items.clear()
-        // mutate() gives each drawable its own independent state so tint
-        // applied to one item never bleeds onto another item's drawable
+        items.clear(); iconScales.clear(); iconAlphas.clear()
+        iconSpringHolders.clear(); iconSpringAnims.clear()
         navItems.forEach { item ->
             items.add(item.copy(iconDrawable = item.iconDrawable?.mutate()))
+            iconScales.add(1f)
+            iconAlphas.add(if (item.isCta) 1f else 0.42f)
+            val holder = FloatValueHolder(1f)
+            iconSpringHolders.add(holder)
+            val idx = items.size - 1
+            val anim = SpringAnimation(holder).apply {
+                spring = SpringForce(1f).apply { stiffness = 500f; dampingRatio = 0.55f }
+                addUpdateListener { _, v, _ ->
+                    if (idx < iconScales.size) { iconScales[idx] = v; invalidate() }
+                }
+            }
+            iconSpringAnims.add(anim)
         }
+        if (items.isNotEmpty()) iconAlphas[selectedIndex] = 1f
         requestLayout(); invalidate()
     }
 
@@ -162,256 +185,416 @@ class LiquidGlassNavBar @JvmOverloads constructor(
 
     fun selectItem(index: Int, animate: Boolean = true, onComplete: (() -> Unit)? = null) {
         if (items.getOrNull(index)?.isCta == true) return
-        selectedIndex = index
+        if (index == selectedIndex && animate) return
+        val prev = selectedIndex; selectedIndex = index
+        updateIconAlphas(prev, index)
         val target = slotCentreX(index)
         if (animate && width > 0) {
-            journeyStart  = indicatorX
-            journeyTarget = target
-
-            // Spring drives position
+            journeyFrom = indicatorX; journeyTo = target
             indicatorHolder.value = indicatorX
-            springAnim.cancel()
-            springAnim.animateToFinalPosition(target)
-
-            // ValueAnimator drives scale: 0→1 over ~440ms
-            // scale = 1 + (MAX-1)*sin(π*t)  →  peaks at t=0.5, returns to 1 at t=1
-            scaleAnim?.cancel()
-            var navigated = false
-            scaleAnim = ValueAnimator.ofFloat(0f, 1f).apply {
-                duration = 600L
-                interpolator = android.view.animation.AccelerateDecelerateInterpolator()
-                addUpdateListener { anim ->
-                    val t = anim.animatedFraction
-                    // sine curve: 0 at start, peak at 0.5, 0 at end
-                    val sine = sin(Math.PI * t.toDouble()).toFloat()
-                    indicatorScale = 1f + (MAX_INDICATOR_SCALE - 1f) * sine
-                    invalidate()
-
-                    if (!navigated && t >= 0.2f) {
-                        navigated = true
-                        onComplete?.invoke()
-                    }
-                }
-                addListener(object : AnimatorListenerAdapter() {
-                    override fun onAnimationEnd(a: Animator) {
-                        indicatorScale = 1f
-                        journeyProgress = 1f
-                        invalidate()
-                    }
-                })
-                start()
-            }
+            springAnim.cancel(); springAnim.animateToFinalPosition(target)
+            postNavigation(onComplete)
         } else {
             springAnim.cancel()
-            scaleAnim?.cancel()
-            scaleAnim = null
-            indicatorX     = target
-            indicatorScale = 1f
-            indicatorHolder.value = target
-            invalidate()
-            onComplete?.invoke()
+            indicatorX = target; indicatorGlobalScale = 1f
+            stretchX = 1f; squishY = 1f; taper = 0f
+            indicatorHolder.value = target; lastIndicatorX = target
+            invalidate(); onComplete?.invoke()
         }
     }
 
-    /**
-     * Bar background blur — CROPPED to bar region, light blur.
-     * BlurEngine should call this with a bitmap whose pixel dimensions
-     * match the bar's width×height ratio exactly.
-     */
+    private var pendingNav: Runnable? = null
+    private fun postNavigation(onComplete: (() -> Unit)?) {
+        pendingNav?.let { removeCallbacks(it) }
+        if (onComplete == null) return
+        val r = Runnable { onComplete.invoke() }; pendingNav = r
+        postDelayed(r, 130L)
+    }
+
     fun updateBlur(bitmap: Bitmap) {
-        barBlurBitmap?.recycle()
-        barBlurBitmap = bitmap
-        invalidate()
+        barBlurBitmap?.recycle(); barBlurBitmap = bitmap; invalidate()
     }
-
-    /**
-     * Indicator deep blur — ALSO cropped to bar region, heavier blur.
-     * We re-crop to the circle region in onDraw.
-     */
     fun updateIndicatorBlur(bitmap: Bitmap) {
-        deepBlurBitmap?.recycle()
-        deepBlurBitmap = bitmap
-        invalidate()
+        deepBlurBitmap?.recycle(); deepBlurBitmap = bitmap; invalidate()
     }
 
-    // ── Lifecycle ────────────────────────────────────────────────────
+    // ── Icon helpers ──────────────────────────────────────────────────────────
+    private fun updateIconAlphas(deselected: Int, selected: Int) {
+        if (deselected in iconAlphas.indices && !items[deselected].isCta) animateIconAlpha(deselected, 0.42f)
+        if (selected   in iconAlphas.indices && !items[selected].isCta)   animateIconAlpha(selected, 1f)
+    }
+    private fun animateIconAlpha(index: Int, target: Float) {
+        val start = iconAlphas[index]
+        ValueAnimator.ofFloat(start, target).apply {
+            duration = 220L; interpolator = android.view.animation.DecelerateInterpolator()
+            addUpdateListener { iconAlphas[index] = it.animatedValue as Float; invalidate() }
+            start()
+        }
+    }
+    private fun pressIcon(index: Int) {
+        if (index !in iconSpringAnims.indices) return
+        iconSpringAnims[index].cancel()
+        iconSpringHolders[index].value = 0.82f; iconScales[index] = 0.82f
+        iconSpringAnims[index].animateToFinalPosition(1f)
+    }
 
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        springAnim.cancel()
+        springAnim.cancel(); pendingNav?.let { removeCallbacks(it) }
+        velocityTracker?.recycle(); velocityTracker = null
+        iconSpringAnims.forEach { it.cancel() }
+        filledNavBitmap?.recycle(); filledNavBitmap = null
     }
 
-    // ── Touch ────────────────────────────────────────────────────────
-
+    // ── Touch ─────────────────────────────────────────────────────────────────
     override fun performClick(): Boolean { super.performClick(); return true }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (event.action == MotionEvent.ACTION_UP) {
-            val slot = ((event.x - hPad) / slotWidth).toInt().coerceIn(0, items.size - 1)
-            val item = items.getOrNull(slot) ?: return true
-            if (item.isCta) {
-                onItemSelected?.invoke(slot)
-            } else {
-                // Pass navigation as callback — fires after animation completes
-                selectItem(slot, animate = true) { onItemSelected?.invoke(slot) }
+        velocityTracker = velocityTracker ?: VelocityTracker.obtain()
+        velocityTracker?.addMovement(event)
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                isDragging = false; dragStartX = event.x
+                dragSlotOnDown = slotIndexAt(event.x); dragHoverSlot = dragSlotOnDown
+                items.getOrNull(dragSlotOnDown)?.let { pressIcon(dragSlotOnDown) }
             }
-            performClick()
+            MotionEvent.ACTION_MOVE -> {
+                if (!isDragging && abs(event.x - dragStartX) > touchSlop) {
+                    isDragging = true; lensActive = true
+                    springAnim.cancel(); journeyFrom = indicatorX; journeyTo = indicatorX
+                }
+                if (isDragging) {
+                    dragMagnifyScale = lerp(dragMagnifyScale, DRAG_MAGNIFY_MAX, 0.10f)
+                    val firstCX  = slotCentreX(0); val lastCX = slotCentreX(items.size - 1)
+                    val clampedX = event.x.coerceIn(firstCX, lastCX)
+                    val nearestCX = slotCentreX(nearestNonCtaSlot(clampedX))
+                    val halfSlot  = slotWidth / 2f
+                    val pull = (1f - (abs(clampedX - nearestCX) / halfSlot).coerceIn(0f, 1f)) * 0.35f
+                    val magnetX = clampedX - (clampedX - nearestCX) * pull
+                    val prev = indicatorX
+                    indicatorX = lerp(indicatorX, magnetX, 0.55f)
+                    lastIndicatorX = prev
+                    // Track nearest slot — includes CTA so CTA also gets reveal
+                    dragHoverSlot = nearestSlotIncludingCta(indicatorX)
+                    updateFluidMorph(); invalidate()
+                }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                velocityTracker?.computeCurrentVelocity(1000)
+                val fling = velocityTracker?.xVelocity ?: 0f
+                velocityTracker?.recycle(); velocityTracker = null
+                lensActive = false; dragHoverSlot = -1
+                if (isDragging) {
+                    isDragging = false
+                    val snapSlot = nearestNonCtaSlot(indicatorX + fling * 0.04f)
+                    journeyFrom = indicatorX; journeyTo = slotCentreX(snapSlot)
+                    indicatorHolder.value = indicatorX
+                    springAnim.cancel(); springAnim.setStartVelocity(fling)
+                    if (snapSlot != selectedIndex) {
+                        selectItem(snapSlot, animate = true) { onItemSelected?.invoke(snapSlot) }
+                    } else {
+                        springAnim.animateToFinalPosition(slotCentreX(snapSlot))
+                    }
+                } else if (event.actionMasked == MotionEvent.ACTION_UP) {
+                    val slot = slotIndexAt(event.x)
+                    val item = items.getOrNull(slot) ?: return true
+                    if (item.isCta) onItemSelected?.invoke(slot)
+                    else selectItem(slot, animate = true) { onItemSelected?.invoke(slot) }
+                    performClick()
+                }
+            }
         }
         return true
     }
 
-    // ── Layout ───────────────────────────────────────────────────────
-
+    // ── Layout ────────────────────────────────────────────────────────────────
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         val dp = resources.displayMetrics.density
-
-        barRect.set(0f, 0f, w.toFloat(), h.toFloat())
-        barRadius = h / 2f
-
+        barRect.set(0f, 0f, w.toFloat(), h.toFloat()); barRadius = h / 2f
         hPad = 14f * dp
-        val usableW = w - hPad * 2f
-        if (items.isNotEmpty()) slotWidth = usableW / items.size.toFloat()
-
-        iconSize    = (22 * dp).toInt()
-        iconSizeCta = (26 * dp).toInt()
-        // Pill indicator with generous equal margin from all 4 sides
-        val indicatorMargin = barRadius * 0.32f   // 32% of barRadius — generous equal margin
-        indPillH = barRadius - indicatorMargin
-        indPillW = indPillH * 1.35f   // slightly narrower pill
-
+        if (items.isNotEmpty()) slotWidth = (w - hPad * 2f) / items.size.toFloat()
+        iconSize = (22 * dp).toInt(); iconSizeCta = (26 * dp).toInt()
+        val indicatorMargin = barRadius * 0.32f
+        indPillH = barRadius - indicatorMargin; indPillW = indPillH * 1.35f
         indicatorX = slotCentreX(selectedIndex)
-        indicatorHolder.value = indicatorX
+        lastIndicatorX = indicatorX; indicatorHolder.value = indicatorX
 
-        // Glass stroke: bright at top, fades at bottom — light catching rim
-        borderShinePaint.shader = LinearGradient(
-            0f, 0f, 0f, h.toFloat(),
-            intArrayOf(
-                Color.argb(220, 255, 255, 255),   // top  — bright white
-                Color.argb(140, 255, 255, 255),   // upper
-                Color.argb(40,  255, 255, 255),   // lower
-                Color.argb(8,   255, 255, 255)    // bottom — near invisible
-            ),
-            floatArrayOf(0f, 0.25f, 0.65f, 1f),
-            Shader.TileMode.CLAMP
-        )
-
-        // indicatorBorderPaint shader rebuilt per-frame in onDraw
+        filledNavBitmap?.recycle()
+        filledNavBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        filledNavCanvas = Canvas(filledNavBitmap!!)
     }
 
-    // ── Draw ─────────────────────────────────────────────────────────
+    // ── Offscreen filled-nav (lens content) ───────────────────────────────────
+    /**
+     * Renders bar background + ALL icons (including CTA) in filled/solid state
+     * at their REAL fixed slot positions. The pill clips into this — pure reveal
+     * lens. Nothing translates with the pill.
+     *
+     * The filled icon is drawn at LENS_ZOOM scale anchored on its slot centre
+     * directly into the offscreen, so when the pill samples it at 1:1 the icon
+     * appears magnified and on top of everything — solid, full opacity.
+     */
+    private fun renderFilledNav(hoverSlot: Int) {
+        val bmp = filledNavBitmap ?: return
+        val c   = filledNavCanvas ?: return
+        val w   = bmp.width.toFloat(); val h = bmp.height.toFloat(); val cy = h / 2f
 
+        c.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+
+        // Bar background
+        val clipP = Path().apply {
+            addRoundRect(RectF(0f, 0f, w, h), barRadius, barRadius, Path.Direction.CW)
+        }
+        c.save(); c.clipPath(clipP)
+        val barBmp = barBlurBitmap
+        if (barBmp != null && !barBmp.isRecycled)
+            c.drawBitmap(barBmp, Rect(0, 0, barBmp.width, barBmp.height),
+                RectF(0f, 0f, w, h), bitmapPaint)
+        else
+            c.drawColor(Color.argb(160, 240, 240, 242))
+        c.drawRoundRect(RectF(0f, 0f, w, h), barRadius, barRadius, barTintPaint)
+        c.restore()
+
+        // Draw all icons in filled state.
+        // Hovered slot is drawn ONCE at magnified size (replaces the normal draw).
+        // All other slots drawn at normal size.
+        // Result: exactly one icon per slot, hovered one just bigger — no duplicates.
+        items.forEachIndexed { index, item ->
+            val iconCX = slotCentreX(index)   // always fixed
+            val baseSize = if (item.isCta) iconSizeCta else iconSize
+            val size = if (index == hoverSlot) (baseSize * LENS_ZOOM).toInt() else baseSize
+            item.iconDrawable?.let { d ->
+                d.state = if (item.isCta) intArrayOf() else intArrayOf(android.R.attr.state_checked)
+                d.setBounds(
+                    (iconCX - size / 2f).toInt(), (cy - size / 2f).toInt(),
+                    (iconCX + size / 2f).toInt(), (cy + size / 2f).toInt()
+                )
+                d.setTintMode(PorterDuff.Mode.SRC_IN)
+                d.setTint("#2E7D32".toColorInt())
+                d.alpha = 255
+                d.draw(c)
+            }
+        }
+    }
+
+    // ── Draw ──────────────────────────────────────────────────────────────────
     override fun onDraw(canvas: Canvas) {
         if (items.isEmpty()) return
-        val cy = height / 2f
-        val w  = width.toFloat()
-        val h  = height.toFloat()
+        if (!isDragging) dragMagnifyScale = lerp(dragMagnifyScale, 1f, 0.16f)
 
-        // ── Clip to pill ──────────────────────────────────────────
+        val cy = height / 2f; val w = width.toFloat(); val h = height.toFloat()
+
+        // Layer 1: Bar background clipped to rounded rect
         clipPath.reset()
         clipPath.addRoundRect(barRect, barRadius, barRadius, Path.Direction.CW)
-        canvas.save()
-        canvas.clipPath(clipPath)
-
-        // ── Layer 1: Bar blur ─────────────────────────────────────
-        // Bitmap is already cropped to bar region → draw it at 1:1
+        canvas.save(); canvas.clipPath(clipPath)
         val barBmp = barBlurBitmap
-        if (barBmp != null && !barBmp.isRecycled) {
-            // Stretch to fill bar exactly — bitmap was captured at bar's region
-            val src = Rect(0, 0, barBmp.width, barBmp.height)
-            val dst = RectF(0f, 0f, w, h)
-            canvas.drawBitmap(barBmp, src, dst, bitmapPaint)
-        } else {
-            // Fallback until first blur frame: soft translucent white
-            canvas.drawColor(Color.argb(160, 240, 240, 242))
-        }
-
-        // ── Layer 2: Light frost tint ─────────────────────────────
+        if (barBmp != null && !barBmp.isRecycled)
+            canvas.drawBitmap(barBmp, Rect(0, 0, barBmp.width, barBmp.height),
+                RectF(0f, 0f, w, h), bitmapPaint)
+        else
+            canvas.drawColor(Color.argb(180, 30, 30, 32))
         canvas.drawRoundRect(barRect, barRadius, barRadius, barTintPaint)
+        canvas.restore()
 
-        canvas.restore()  // end pill clip
-
-        // ── Layer 3: Indicator pill — drawn OUTSIDE pill clip ────
-        // Must be outside clip so it can scale beyond bar bounds.
+        // Layers 2–5: Indicator pill (outside bar clip — can overshoot edges)
         val selItem = items.getOrNull(selectedIndex)
-        if (selItem != null && !selItem.isCta) {
-            val cx = indicatorX
-            // Apply scale around the indicator centre
-            val scaledH = indPillH * indicatorScale
-            val scaledW = indPillW * indicatorScale
-            val pillRadius = scaledH  // corner radius = half-height = pill ends
-            indicatorRect.set(cx - scaledW, cy - scaledH, cx + scaledW, cy + scaledH)
+        if (selItem != null && !selItem.isCta) drawIndicatorPill(canvas, cy, w, h)
 
-            // 3a. Shadow
-            canvas.drawRoundRect(indicatorRect, pillRadius, pillRadius, indicatorShadowPaint)
-
-            // 3b. Deep blur clipped to scaled pill
-            indClipPath.reset()
-            indClipPath.addRoundRect(indicatorRect, pillRadius, pillRadius, Path.Direction.CW)
-            canvas.save()
-            canvas.clipPath(indClipPath)
-
-            val deepBmp = deepBlurBitmap
-            if (deepBmp != null && !deepBmp.isRecycled) {
-                canvas.drawBitmap(deepBmp,
-                    Rect(0, 0, deepBmp.width, deepBmp.height),
-                    RectF(0f, 0f, w, h), bitmapPaint)
-            } else {
-                canvas.drawRoundRect(indicatorRect, pillRadius, pillRadius,
-                    Paint().apply { color = Color.argb(210, 245, 245, 248) })
-            }
-
-            // 3c. Tint
-            canvas.drawRoundRect(indicatorRect, pillRadius, pillRadius, indicatorTintPaint)
-            canvas.restore()
-
-            // 3d. Border
-            indicatorBorderPaint.shader = LinearGradient(
-                cx, cy - scaledH, cx, cy + scaledH,
-                intArrayOf(
-                    Color.argb(200, 255, 255, 255),
-                    Color.argb(80,  255, 255, 255),
-                    Color.argb(15,  200, 200, 200)
-                ),
-                floatArrayOf(0f, 0.45f, 1f),
-                Shader.TileMode.CLAMP
-            )
-            canvas.drawRoundRect(indicatorRect, pillRadius, pillRadius, indicatorBorderPaint)
-        }
-
-        // ── Layer 4: Static glass stroke — no animation, no app colour ──
-        // Outer soft glow lifts bar from background, inner gradient catches light at top
+        // Layer 6: Bar border — very faint, almost invisible on white
         canvas.drawRoundRect(barRect, barRadius, barRadius, borderGlowPaint)
         canvas.drawRoundRect(barRect, barRadius, barRadius, borderShinePaint)
 
-        // ── Layer 5: Icons ────────────────────────────────────────
+        // Layer 7: Icons
+        drawIcons(canvas, cy)
+
+        if (isDragging || abs(dragMagnifyScale - 1f) > 0.001f) invalidate()
+    }
+
+    private fun drawIndicatorPill(canvas: Canvas, cy: Float, w: Float, h: Float) {
+        val cx = indicatorX
+        val fScaleX = indicatorGlobalScale * stretchX * dragMagnifyScale
+        val fScaleY = indicatorGlobalScale * squishY  * dragMagnifyScale
+        val scaledH = indPillH * fScaleY
+        val scaledW = indPillW * fScaleX
+
+        buildTeardropPath(pillPath, cx, cy, scaledW, scaledH, taper)
+        indicatorRect.set(cx - scaledW, cy - scaledH, cx + scaledW, cy + scaledH)
+
+        // Shadow
+        canvas.drawPath(pillPath, indicatorShadowPaint)
+
+        // ── Interior clip ─────────────────────────────────────────────────────
+        indClipPath.set(pillPath)
+        canvas.save(); canvas.clipPath(indClipPath)
+
+        if (lensActive) {
+            // LENS MODE: draw filled-nav bitmap at 1:1 inside the pill.
+            // The hovered icon is already pre-magnified in the offscreen, so
+            // the pill simply reveals it — no zoom transform here, no sliding.
+            renderFilledNav(dragHoverSlot)
+            filledNavBitmap?.let { offBmp ->
+                if (!offBmp.isRecycled)
+                    canvas.drawBitmap(offBmp, 0f, 0f, bitmapPaint)
+            }
+        } else {
+            // REST / SPRING: plain blur
+            val deepBmp = deepBlurBitmap
+            when {
+                deepBmp != null && !deepBmp.isRecycled ->
+                    canvas.drawBitmap(deepBmp, Rect(0, 0, deepBmp.width, deepBmp.height),
+                        RectF(0f, 0f, w, h), bitmapPaint)
+                barBmp != null && !barBmp!!.isRecycled ->
+                    canvas.drawBitmap(barBmp!!, Rect(0, 0, barBmp!!.width, barBmp!!.height),
+                        RectF(0f, 0f, w, h), bitmapPaint)
+                else ->
+                    canvas.drawPath(pillPath, Paint().apply { color = Color.argb(200, 50, 50, 55) })
+            }
+        }
+
+        // Frost tint
+        canvas.drawPath(pillPath, indicatorTintPaint)
+
+        // ── Inner-edge distortion ─────────────────────────────────────────────
+        // Drawn INSIDE the pill clip. Two sweep-gradient arcs simulate the way
+        // thick curved glass bends and disperses light at its inner surface —
+        // bright warm arc on top (light entering), cool arc on bottom (exiting).
+        // A dark rim stroke adds depth / "thickness" of the glass.
+        val inset = (scaledH * 0.18f).coerceIn(3f, 7f)
+        buildTeardropPath(pillInsetPath, cx, cy, scaledW - inset, scaledH - inset, taper)
+
+        // Top arc: warm white → cyan → transparent sweep
+        distortTopPaint.shader = SweepGradient(
+            cx, cy,
+            intArrayOf(
+                Color.argb(0,   255, 255, 255),
+                Color.argb(110, 255, 255, 240),
+                Color.argb(80,  180, 235, 255),
+                Color.argb(55,  100, 180, 255),
+                Color.argb(20,  80,  140, 220),
+                Color.argb(0,   255, 255, 255)
+            ),
+            floatArrayOf(0f, 0.10f, 0.28f, 0.45f, 0.60f, 1f)
+        )
+        canvas.drawPath(pillInsetPath, distortTopPaint)
+
+        // Bottom arc: blue-purple dispersion sweep
+        distortBottomPaint.shader = SweepGradient(
+            cx, cy,
+            intArrayOf(
+                Color.argb(0,   80,  100, 200),
+                Color.argb(45,  100, 140, 255),
+                Color.argb(35,  160,  90, 220),
+                Color.argb(20,  200, 120, 180),
+                Color.argb(0,   80,  100, 200)
+            ),
+            floatArrayOf(0.42f, 0.55f, 0.70f, 0.85f, 1f)
+        )
+        canvas.drawPath(pillInsetPath, distortBottomPaint)
+
+        // Dark inner rim — sells the glass thickness / depth
+        canvas.drawPath(pillInsetPath, distortRimPaint)
+
+        // Inner glow on the pill border itself (composited inside, not against bg)
+        pillInnerGlowPaint.shader = SweepGradient(
+            cx, cy,
+            intArrayOf(
+                Color.argb(80,  255, 255, 255),
+                Color.argb(40,  255, 255, 255),
+                Color.argb(10,  200, 200, 200),
+                Color.argb(80,  255, 255, 255)
+            ),
+            floatArrayOf(0f, 0.4f, 0.7f, 1f)
+        )
+        // Draw just inside the pill edge so it composites with content not bg
+        buildTeardropPath(pillInsetPath, cx, cy, scaledW - 1f, scaledH - 1f, taper)
+        canvas.drawPath(pillInsetPath, pillInnerGlowPaint)
+
+        canvas.restore()
+        // ─────────────────────────────────────────────────────────────────────
+
+        // Top specular highlight — outside clip, on top of everything
+        val hiH   = scaledH * 0.36f; val hiW = scaledW * 0.58f
+        val hiTop = cy - scaledH + scaledH * 0.10f
+        lensHighlightPaint.shader = LinearGradient(
+            cx, hiTop, cx, hiTop + hiH,
+            intArrayOf(Color.argb(80, 255, 255, 255), Color.argb(0, 255, 255, 255)),
+            null, Shader.TileMode.CLAMP
+        )
+        canvas.drawOval(RectF(cx - hiW, hiTop, cx + hiW, hiTop + hiH), lensHighlightPaint)
+
+        // NO external border stroke — nothing drawn outside the pill shape
+        // so there is no visible outline against white backgrounds
+    }
+
+    private fun buildTeardropPath(
+        out: Path, cx: Float, cy: Float, halfW: Float, halfH: Float, taper: Float
+    ) {
+        out.reset()
+        val tp  = taper.coerceIn(-1f, 1f); val mag = abs(tp)
+        val fullR = halfH; val thinR = halfH * (1f - 0.6f * mag)
+        val leftR  = if (tp < 0f) thinR else fullR
+        val rightR = if (tp > 0f) thinR else fullR
+        val leftHalfH  = halfH * (if (tp < 0f) (1f - 0.18f * mag) else 1f)
+        val rightHalfH = halfH * (if (tp > 0f) (1f - 0.18f * mag) else 1f)
+        val l = cx - halfW; val r = cx + halfW
+        out.moveTo(l + leftR, cy - leftHalfH)
+        out.lineTo(r - rightR, cy - rightHalfH)
+        out.cubicTo(r - rightR * 0.45f, cy - rightHalfH, r, cy - rightHalfH * 0.45f, r, cy)
+        out.cubicTo(r, cy + rightHalfH * 0.45f, r - rightR * 0.45f, cy + rightHalfH, r - rightR, cy + rightHalfH)
+        out.lineTo(l + leftR, cy + leftHalfH)
+        out.cubicTo(l + leftR * 0.45f, cy + leftHalfH, l, cy + leftHalfH * 0.45f, l, cy)
+        out.cubicTo(l, cy - leftHalfH * 0.45f, l + leftR * 0.45f, cy - leftHalfH, l + leftR, cy - leftHalfH)
+        out.close()
+    }
+
+    private fun drawIcons(canvas: Canvas, cy: Float) {
         items.forEachIndexed { index, item ->
-            val cx         = slotCentreX(index)
+            val iconCX     = slotCentreX(index)
             val isSelected = (index == selectedIndex) && !item.isCta
             val size       = if (item.isCta) iconSizeCta else iconSize
-
+            val iconScale  = iconScales.getOrElse(index) { 1f }
+            val iconAlpha  = iconAlphas.getOrElse(index) { 1f }
             item.iconDrawable?.let { d ->
                 d.state = if (isSelected) intArrayOf(android.R.attr.state_checked)
                 else            intArrayOf(-android.R.attr.state_checked)
-
-                val left = (cx - size / 2f).toInt()
-                val top  = (cy - size / 2f).toInt()
-                d.setBounds(left, top, left + size, top + size)
-
-                // Each drawable is mutated in setItems — independent tint state per item.
-                // Selected/CTA: apply accent tint. Unselected: reset to drawable's own colours.
+                val s = (size * iconScale).toInt()
+                d.setBounds((iconCX - s/2f).toInt(), (cy - s/2f).toInt(),
+                    (iconCX + s/2f).toInt(), (cy + s/2f).toInt())
                 if (item.isCta || isSelected) {
-                    d.setTintMode(android.graphics.PorterDuff.Mode.SRC_IN)
-                    d.setTint("#2E7D32".toColorInt())
-                } else {
-                    d.setTintList(null)    // clear tint — drawable uses its own selector colours
-                    d.colorFilter = null   // belt-and-suspenders: clear any ColorFilter directly
-                }
-                d.alpha = 255
+                    d.setTintMode(PorterDuff.Mode.SRC_IN); d.setTint("#2E7D32".toColorInt())
+                } else { d.setTintList(null); d.colorFilter = null }
+                d.alpha = (iconAlpha * 255).toInt().coerceIn(0, 255)
                 d.draw(canvas)
             }
         }
     }
 
+    // ── Helpers ───────────────────────────────────────────────────────────────
     private fun slotCentreX(index: Int) = hPad + slotWidth * index + slotWidth / 2f
+    private fun slotIndexAt(x: Float) = ((x - hPad) / slotWidth).toInt().coerceIn(0, items.size - 1)
+
+    /** For drag snap — skips CTA (pill can't land on CTA) */
+    private fun nearestNonCtaSlot(x: Float): Int {
+        var best = selectedIndex; var bestDist = Float.MAX_VALUE
+        items.forEachIndexed { i, item ->
+            if (!item.isCta) { val d = abs(slotCentreX(i) - x); if (d < bestDist) { bestDist = d; best = i } }
+        }
+        return best
+    }
+
+    /** For hover tracking — includes CTA so it also gets the filled reveal */
+    private fun nearestSlotIncludingCta(x: Float): Int {
+        var best = 0; var bestDist = Float.MAX_VALUE
+        items.forEachIndexed { i, _ ->
+            val d = abs(slotCentreX(i) - x); if (d < bestDist) { bestDist = d; best = i }
+        }
+        return best
+    }
+
+    private fun lerp(a: Float, b: Float, t: Float) = a + (b - a) * t
+
+    private val barBmp get() = barBlurBitmap
 }

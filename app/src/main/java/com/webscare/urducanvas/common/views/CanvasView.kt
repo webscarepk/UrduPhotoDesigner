@@ -209,6 +209,15 @@ class CanvasView @JvmOverloads constructor(
     private var initialScale = 1f
     private var initialRotation = 0f
 
+    // Finger midpoint (screen coords) at the moment the pinch started.
+    // Used to zoom around the actual finger position, not the screen centre.
+    private var pinchFocusX = 0f
+    private var pinchFocusY = 0f
+    // Canvas offset captured at pinch-start — combined with pinchFocusX/Y for
+    // pivot-correct zoom math so the canvas never jumps when fingers lift.
+    private var initialOffsetXAtPinch = 0f
+    private var initialOffsetYAtPinch = 0f
+
     private val resizeLastSignX = mutableMapOf<String, Float>()
     private val resizeLastSignY = mutableMapOf<String, Float>()
     // Stores each element's scale at the START of a RESIZE handle gesture.
@@ -324,6 +333,20 @@ class CanvasView @JvmOverloads constructor(
     private var showHorizontalGuide = false
     private var showRotationVerticalGuide = false
     private var showRotationHorizontalGuide = false
+
+    // ── Canvas pan center-snap guides ────────────────────────────
+    private var showCanvasCenterVerticalSnap = false
+    private var showCanvasCenterHorizontalSnap = false
+    private val canvasSnapThresholdPx = 8f   // screen-px proximity to trigger snap
+
+    // Paint for the canvas-pan center snap lines (solid cyan, bold)
+    private val canvasSnapPaint = Paint().apply {
+        color = Color.parseColor("#00BCD4")
+        strokeWidth = 2f
+        style = Paint.Style.STROKE
+        isAntiAlias = true
+        pathEffect = DashPathEffect(floatArrayOf(14f, 6f), 0f)
+    }
 
     // ── Grid overlay ─────────────────────────────────────────────
     private var showGrid = false
@@ -1833,6 +1856,26 @@ class CanvasView @JvmOverloads constructor(
             canvas.drawLine(
                 0f, height / 2f, width.toFloat(), height / 2f, alignmentPaint
             )
+        }
+
+        // ── Canvas pan CENTER-SNAP guides ─────────────────────────
+        // Shown while dragging, as long as the canvas is near/at the center.
+        if (showCanvasCenterVerticalSnap || showCanvasCenterHorizontalSnap) {
+            // Show a subtle grid overlay on the canvas rect to make it obvious
+            drawGrid(canvas)
+
+            if (showCanvasCenterVerticalSnap) {
+                // Vertical line through view center X
+                canvas.drawLine(
+                    width / 2f, 0f, width / 2f, height.toFloat(), canvasSnapPaint
+                )
+            }
+            if (showCanvasCenterHorizontalSnap) {
+                // Horizontal line through view center Y
+                canvas.drawLine(
+                    0f, height / 2f, width.toFloat(), height / 2f, canvasSnapPaint
+                )
+            }
         }
 
         // ── GRID ─────────────────────────────────────────────────
@@ -4631,6 +4674,14 @@ class CanvasView @JvmOverloads constructor(
                     initialPinchAngle = getPinchAngle(event)
                     initialOverallScale = overallScale
 
+                    // Capture the midpoint between the two fingers in screen coords.
+                    // All subsequent CANVAS_PAN pinch-zoom frames use this as the
+                    // fixed pivot so the canvas content under the fingers never moves.
+                    pinchFocusX = (event.getX(0) + event.getX(1)) / 2f
+                    pinchFocusY = (event.getY(0) + event.getY(1)) / 2f
+                    initialOffsetXAtPinch = overallOffsetX
+                    initialOffsetYAtPinch = overallOffsetY
+
                     when {
                         // Elements selected → element scale/rotate (pan mode OFF only)
                         selectedElements.isNotEmpty() && !isPanMode -> {
@@ -5069,7 +5120,7 @@ class CanvasView @JvmOverloads constructor(
                                     val newDist = getPinchDistance(event)
                                     val factor = newDist / initialPinchDistance
                                     var newScale = (initialOverallScale * factor).coerceIn(0.5f, 3.0f)
-                                    // Snap to 100% when within 95%–105%
+                                    // Snap to 50%, 100%, 150%, 200%, 250%, 300%
                                     val snapTargets = listOf(0.5f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f)
                                     val snapThreshold = 0.03f
                                     val snappedTarget =
@@ -5078,6 +5129,18 @@ class CanvasView @JvmOverloads constructor(
                                         if (overallScale != snappedTarget) vibrateSoft()
                                         newScale = snappedTarget
                                     }
+
+                                    // Keep the canvas point under the finger midpoint fixed.
+                                    // Derived from onDraw transform:
+                                    //   screenPos = overallScale*(p - pivot) + pivot + overallOffset
+                                    // Setting screenPos equal before/after scale change gives:
+                                    //   newOffset = initialOffset + (focus - pivot) * (1 - newScale/initialScale)
+                                    val pivotX = width / 2f
+                                    val pivotY = height / 2f
+                                    val scaleFactor = newScale / initialOverallScale
+                                    overallOffsetX = initialOffsetXAtPinch + (pinchFocusX - pivotX) * (1f - scaleFactor)
+                                    overallOffsetY = initialOffsetYAtPinch + (pinchFocusY - pivotY) * (1f - scaleFactor)
+
                                     overallScale = newScale
                                     clampOverallPan()
                                     onZoomChanged?.invoke(overallScale)
@@ -5087,6 +5150,7 @@ class CanvasView @JvmOverloads constructor(
                                     val dy = event.y - touchStartY
                                     overallOffsetX += dx
                                     overallOffsetY += dy
+                                    checkCanvasPanSnap()
                                     clampOverallPan()
                                     touchStartX = event.x
                                     touchStartY = event.y
@@ -5350,7 +5414,7 @@ class CanvasView @JvmOverloads constructor(
                                 val newDist = getPinchDistance(event)
                                 val factor = newDist / initialPinchDistance
                                 var newScale = (initialOverallScale * factor).coerceIn(0.5f, 3.0f)
-                                // Snap to 100% when within 95%–105%
+                                // Snap to 50%, 100%, 150%, 200%, 250%, 300%
                                 val snapTargets = listOf(0.5f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f)
                                 val snapThreshold = 0.03f
                                 val snappedTarget =
@@ -5359,6 +5423,18 @@ class CanvasView @JvmOverloads constructor(
                                     if (overallScale != snappedTarget) vibrateSoft()
                                     newScale = snappedTarget
                                 }
+
+                                // Keep the canvas point under the finger midpoint fixed.
+                                // Derived from onDraw transform:
+                                //   screenPos = overallScale*(p - pivot) + pivot + overallOffset
+                                // Setting screenPos equal before/after scale change gives:
+                                //   newOffset = initialOffset + (focus - pivot) * (1 - newScale/initialScale)
+                                val pivotX = width / 2f
+                                val pivotY = height / 2f
+                                val scaleFactor = newScale / initialOverallScale
+                                overallOffsetX = initialOffsetXAtPinch + (pinchFocusX - pivotX) * (1f - scaleFactor)
+                                overallOffsetY = initialOffsetYAtPinch + (pinchFocusY - pivotY) * (1f - scaleFactor)
+
                                 overallScale = newScale
                                 clampOverallPan()
                                 onZoomChanged?.invoke(overallScale)
@@ -5368,6 +5444,7 @@ class CanvasView @JvmOverloads constructor(
                                 val dy = event.y - touchStartY
                                 overallOffsetX += dx
                                 overallOffsetY += dy
+                                checkCanvasPanSnap()
                                 clampOverallPan()
                                 touchStartX = event.x
                                 touchStartY = event.y
@@ -5411,6 +5488,10 @@ class CanvasView @JvmOverloads constructor(
                     initialPinchDistance = 0f
                     initialPinchAngle = 0f
                     initialOverallScale = overallScale
+                    pinchFocusX = 0f
+                    pinchFocusY = 0f
+                    initialOffsetXAtPinch = overallOffsetX
+                    initialOffsetYAtPinch = overallOffsetY
                 }
                 invalidate()
                 return true
@@ -5421,6 +5502,8 @@ class CanvasView @JvmOverloads constructor(
                 showHorizontalGuide = false
                 showRotationVerticalGuide = false // Reset rotation guides on ACTION_UP
                 showRotationHorizontalGuide = false // Reset rotation guides on ACTION_UP
+                showCanvasCenterVerticalSnap = false
+                showCanvasCenterHorizontalSnap = false
                 if (currentMode == Mode.CANVAS_PAN) {
                     currentMode = Mode.NONE
                 }
@@ -5457,6 +5540,10 @@ class CanvasView @JvmOverloads constructor(
                 initialPinchAngle = 0f
                 initialScale = 1f
                 initialRotation = 0f
+                pinchFocusX = 0f
+                pinchFocusY = 0f
+                initialOffsetXAtPinch = 0f
+                initialOffsetYAtPinch = 0f
                 resizeInitialScales.clear()
                 resizeStartDist = 0f
                 initialElementRotations.clear()
@@ -5484,6 +5571,34 @@ class CanvasView @JvmOverloads constructor(
             }
         }
         return super.onTouchEvent(event)
+    }
+
+    /**
+     * Called during CANVAS_PAN single-finger drag.
+     * Snaps overallOffsetX/Y to zero (canvas centered) when the canvas center
+     * comes within [canvasSnapThresholdPx] of the view center, and shows the
+     * dashed cyan guide lines.  Vibrates once when snapping occurs.
+     */
+    private fun checkCanvasPanSnap() {
+        val prevSnapV = showCanvasCenterVerticalSnap
+        val prevSnapH = showCanvasCenterHorizontalSnap
+
+        // At overallOffsetX == 0 the canvas is horizontally centered.
+        // At overallOffsetY == 0 the canvas is vertically centered.
+        val snapX = abs(overallOffsetX) <= canvasSnapThresholdPx
+        val snapY = abs(overallOffsetY) <= canvasSnapThresholdPx
+
+        if (snapX) {
+            if (!prevSnapV) vibrateSoft()
+            overallOffsetX = 0f
+        }
+        if (snapY) {
+            if (!prevSnapH) vibrateSoft()
+            overallOffsetY = 0f
+        }
+
+        showCanvasCenterVerticalSnap   = snapX
+        showCanvasCenterHorizontalSnap = snapY
     }
 
     private fun clampOverallPan() {
@@ -5702,6 +5817,7 @@ class CanvasView @JvmOverloads constructor(
     fun setZoomLevel(zoom: Float) {
         var newScale = zoom.coerceIn(0.5f, 3.0f)
 
+        // Snap to 50%, 100%, 150%, 200%, 250%, 300%
         val snapTargets = listOf(0.5f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f)
         val snappedTarget = snapTargets.firstOrNull { abs(newScale - it) <= 0.03f }
         if (snappedTarget != null) {
@@ -5715,6 +5831,14 @@ class CanvasView @JvmOverloads constructor(
     }
 
     fun getCurrentZoom(): Float = overallScale
+
+    /**
+     * Returns true if the canvas is currently centered in both axes
+     * (overallOffset within snap threshold on both axes).
+     * Callers can use this to show a "Centered" badge in the toolbar.
+     */
+    fun isCanvasCentered(): Boolean =
+        abs(overallOffsetX) <= canvasSnapThresholdPx && abs(overallOffsetY) <= canvasSnapThresholdPx
 
     private fun niceNumber(raw: Float): Float {
         val candidates = listOf(10f, 20f, 25f, 50f, 100f, 200f, 250f, 500f, 1000f, 2000f)

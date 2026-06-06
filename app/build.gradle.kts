@@ -17,8 +17,8 @@ android {
         applicationId = "com.webscare.urducanvas"
         minSdk = 24
         targetSdk = 36
-        versionCode = 19
-        versionName = "1.1.9"
+        versionCode = 20
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         setProperty("archivesBaseName", "UrduCanvas - V$versionCode($versionName)")
@@ -38,6 +38,10 @@ android {
                 "proguard-rules.pro"
             )
         }
+    }
+
+    firebaseCrashlytics {
+        mappingFileUploadEnabled = true
     }
 
     compileOptions {

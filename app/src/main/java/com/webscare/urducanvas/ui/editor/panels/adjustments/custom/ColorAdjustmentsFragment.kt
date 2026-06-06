@@ -33,7 +33,7 @@ class ColorAdjustmentsFragment : androidx.fragment.app.Fragment() {
 
         // 🎨 Saturation (0 → 2)
         binding.saturation.apply {
-            
+
             max = 200
             progress = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -55,7 +55,7 @@ class ColorAdjustmentsFragment : androidx.fragment.app.Fragment() {
 
         // 💧 Vibrance (0 → 2)
         binding.vibrance.apply {
-            
+
             max = 200
             progress = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -75,16 +75,18 @@ class ColorAdjustmentsFragment : androidx.fragment.app.Fragment() {
             })
         }
 
-        // 🌡 Temperature (-100 → +100)
+        // Temperature (-100 to +100)
+        // SeekBar.setMin() requires API 26; minSdk is 24, so we emulate negative
+        // range with an offset: raw 0..200 maps to -100..+100 via (progress - 100).
         binding.temperature.apply {
-            min = -100
-            max = 100
-            progress = 0
+            max = 200
+            progress = 100 // represents 0
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                    binding.temperatureSize.text = progress.toString()
+                    val value = progress - 100
+                    binding.temperatureSize.text = value.toString()
                     if (fromUser) {
-                        viewModel.setTemperature(progress.toFloat())
+                        viewModel.setTemperature(value.toFloat())
                     }
                 }
 
@@ -96,16 +98,16 @@ class ColorAdjustmentsFragment : androidx.fragment.app.Fragment() {
             })
         }
 
-        // 🟣 Tint (-100 → +100)
+        // Tint (-100 to +100) -- same offset trick as temperature
         binding.tint.apply {
-            min = -100
-            max = 100
-            progress = 0
+            max = 200
+            progress = 100 // represents 0
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                    binding.tintSize.text = progress.toString()
+                    val value = progress - 100
+                    binding.tintSize.text = value.toString()
                     if (fromUser) {
-                        viewModel.setTint(progress.toFloat())
+                        viewModel.setTint(value.toFloat())
                     }
                 }
 
@@ -138,16 +140,18 @@ class ColorAdjustmentsFragment : androidx.fragment.app.Fragment() {
 
         viewModel.temperature.observe(viewLifecycleOwner) { value ->
             val safeValue = value?.toInt() ?: 0
-            if (binding.temperature.progress != safeValue) {
-                binding.temperature.progress = safeValue
+            val seekProgress = safeValue + 100 // offset back to 0..200
+            if (binding.temperature.progress != seekProgress) {
+                binding.temperature.progress = seekProgress
                 binding.temperatureSize.text = "$safeValue"
             }
         }
 
         viewModel.tint.observe(viewLifecycleOwner) { value ->
             val safeValue = value?.toInt() ?: 0
-            if (binding.tint.progress != safeValue) {
-                binding.tint.progress = safeValue
+            val seekProgress = safeValue + 100 // offset back to 0..200
+            if (binding.tint.progress != seekProgress) {
+                binding.tint.progress = seekProgress
                 binding.tintSize.text = "$safeValue"
             }
         }

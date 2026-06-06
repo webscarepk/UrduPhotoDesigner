@@ -22,10 +22,12 @@ class SpringNestedScrollView @JvmOverloads constructor(
     defStyle: Int = 0
 ) : NestedScrollView(context, attrs, defStyle) {
 
-    private val MAX_OVERSCROLL_FRACTION        = 0.22f
-    private val BASE_SPRING_DURATION           = 550L
-    private val FLING_SCALE                    = 0.08f
-    private val MAX_FLING_TRANSLATION_FRACTION = 0.22f
+    // ── Tuning ────────────────────────────────────────────────────────────────
+    // Short, fluid spring: low travel distance, high damping, fast settle.
+    private val MAX_OVERSCROLL_FRACTION        = 0.08f   // was 0.22 — much shorter travel
+    private val BASE_SPRING_DURATION           = 360L    // was 550 — settles faster
+    private val FLING_SCALE                    = 0.04f   // was 0.08 — less fling overshoot
+    private val MAX_FLING_TRANSLATION_FRACTION = 0.08f   // was 0.22 — caps fling travel
 
     private var velocityTracker: VelocityTracker? = null
     private var lastY              = 0f
@@ -41,39 +43,33 @@ class SpringNestedScrollView @JvmOverloads constructor(
             scrollY >= (scrollChild.height - height).coerceAtLeast(0)
     private val maxTranslation get() = height * MAX_OVERSCROLL_FRACTION
 
-    // ── spring interpolator (damped harmonic oscillator) ──────────────────────
+    // ── Spring interpolator (damped harmonic oscillator) ──────────────────────
     //
-    //  Solves:  x(t) = 1 - e^(-ζωt) * [cos(ωdt) + (ζ/√(1-ζ²))·sin(ωdt)]
+    //  stiffness = 380  → snappy, fast oscillation (was 260)
+    //  damping   = 28   → heavily damped, barely one overshoot (was 18)
     //
-    //  stiffness  → how fast it oscillates (higher = snappier)
-    //  damping    → how quickly oscillations die out
-    //              < 1.0 = underdamped (bounces)   ← we want this
-    //             == 1.0 = critically damped (no bounce)
-    //              > 1.0 = overdamped (sluggish)
+    //  Result: one small, quick bounce then fluid settle — iOS-style.
     //
     private inner class SpringInterpolator(
-        private val stiffness: Float = 260f,   // tune: higher = faster oscillation
-        private val damping:   Float = 18f     // tune: lower  = more bounces
+        private val stiffness: Float = 380f,
+        private val damping:   Float = 28f
     ) : Interpolator {
         override fun getInterpolation(t: Float): Float {
-            val omega0 = sqrt(stiffness)           // natural frequency
-            val zeta   = damping / (2f * omega0)   // damping ratio
+            val omega0 = sqrt(stiffness)
+            val zeta   = damping / (2f * omega0)
 
             return if (zeta < 1f) {
-                // underdamped — produces the bounce overshoot
                 val omegaD = omega0 * sqrt(1f - zeta * zeta)
                 val scale  = zeta / sqrt(1f - zeta * zeta)
                 1f - exp(-zeta * omega0 * t) *
                         (cos(omegaD * t) + scale * sin(omegaD * t))
             } else {
-                // fallback: critically damped (no bounce) — shouldn't hit this
-                // with the default values but keeps it safe
                 1f - exp(-omega0 * t) * (1f + omega0 * t)
             }
         }
     }
 
-    // ── touch ─────────────────────────────────────────────────────────────────
+    // ── Touch ─────────────────────────────────────────────────────────────────
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
         trackVelocity(ev)
@@ -140,7 +136,7 @@ class SpringNestedScrollView @JvmOverloads constructor(
         return super.onTouchEvent(ev)
     }
 
-    // ── fling settle detection ────────────────────────────────────────────────
+    // ── Fling settle detection ────────────────────────────────────────────────
 
     override fun fling(velocityY: Int) {
         savedFlingVelocity = velocityY.toFloat()
@@ -189,26 +185,25 @@ class SpringNestedScrollView @JvmOverloads constructor(
         postDelayed(checker, 16)
     }
 
-    // ── rubber-band drag ──────────────────────────────────────────────────────
+    // ── Rubber-band drag ──────────────────────────────────────────────────────
 
     private fun applyRubberBand(delta: Float) {
         isBouncing = true
+        // Higher exponent (0.85 → was 0.7) = more resistance, shorter pull distance
         val ratio      = (abs(translationY) / maxTranslation).coerceIn(0f, 1f)
-        val resistance = 1f - Math.pow(ratio.toDouble(), 0.7).toFloat()
+        val resistance = 1f - Math.pow(ratio.toDouble(), 0.85).toFloat()
         translationY   = (translationY + delta * resistance)
             .coerceIn(-maxTranslation, maxTranslation)
     }
 
-    // ── animation ─────────────────────────────────────────────────────────────
+    // ── Animation ─────────────────────────────────────────────────────────────
 
-    // Push content to [target] with a fast decelerate, then spring back.
-    // We use a short DecelerateInterpolator here — the spring feel comes
-    // entirely from springBack() which uses SpringInterpolator.
     private fun animateTo(target: Float, onEnd: (() -> Unit)? = null) {
         springAnimator?.cancel()
         val start    = translationY
         val dist     = abs(target - start)
-        val duration = (200L * (dist / maxTranslation).coerceIn(0.3f, 1f)).toLong()
+        // Shorter max duration (150ms was 200ms) so the push feels snappier
+        val duration = (150L * (dist / maxTranslation).coerceIn(0.3f, 1f)).toLong()
 
         springAnimator = ValueAnimator.ofFloat(start, target).apply {
             this.duration = duration
@@ -224,20 +219,17 @@ class SpringNestedScrollView @JvmOverloads constructor(
         }
     }
 
-    // Spring back to 0 using the damped harmonic oscillator interpolator.
-    // This is where the actual bouncy feel comes from.
     private fun springBack() {
         springAnimator?.cancel()
         val start = translationY
         if (abs(start) < 0.5f) { translationY = 0f; isBouncing = false; return }
 
-        // Duration scales with displacement so bigger stretches feel heavier
         val distFraction = (abs(start) / maxTranslation).coerceIn(0.4f, 1f)
         val duration     = (BASE_SPRING_DURATION * distFraction).toLong()
 
         springAnimator = ValueAnimator.ofFloat(start, 0f).apply {
             this.duration = duration
-            interpolator  = SpringInterpolator(stiffness = 260f, damping = 18f)
+            interpolator  = SpringInterpolator(stiffness = 380f, damping = 28f)
             addUpdateListener { translationY = it.animatedValue as Float }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(a: Animator) {
@@ -249,7 +241,7 @@ class SpringNestedScrollView @JvmOverloads constructor(
         }
     }
 
-    // ── velocity tracker ──────────────────────────────────────────────────────
+    // ── Velocity tracker ──────────────────────────────────────────────────────
 
     private fun trackVelocity(ev: MotionEvent) {
         if (ev.action == MotionEvent.ACTION_DOWN) {
@@ -269,7 +261,7 @@ class SpringNestedScrollView @JvmOverloads constructor(
         velocityTracker = null
     }
 
-    // ── cleanup ───────────────────────────────────────────────────────────────
+    // ── Cleanup ───────────────────────────────────────────────────────────────
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()

@@ -495,9 +495,9 @@ class TextFragment : Fragment() {
                 if (pos >= 0) binding.fontsRV.post {
                     if (_binding == null) return@post
                     (binding.fontsRV.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(
-                            pos,
-                            0
-                        )
+                        pos,
+                        0
+                    )
                 }
                 if (pendingScrollToFontId == scrollTo) pendingScrollToFontId = null
             } else {
@@ -508,9 +508,9 @@ class TextFragment : Fragment() {
                 binding.fontsRV.post {
                     if (_binding == null) return@post
                     (binding.fontsRV.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(
-                            restoreIdx,
-                            restoreOff
-                        )
+                        restoreIdx,
+                        restoreOff
+                    )
                 }
             }
         }
@@ -530,7 +530,8 @@ class TextFragment : Fragment() {
         pendingFontEntity = font
         lastRequestedFontId = font.id
 
-        val lm = binding.fontsRV.layoutManager as? LinearLayoutManager
+        val b = _binding ?: return
+        val lm = b.fontsRV.layoutManager as? LinearLayoutManager
         val savedIdx = lm?.findFirstVisibleItemPosition()?.takeIf { it >= 0 } ?: 0
         val savedOff = lm?.findViewByPosition(savedIdx)?.top ?: 0
 
@@ -538,13 +539,13 @@ class TextFragment : Fragment() {
             if (it.id == font.id) it.copy(is_downloading = true) else it
         }
         fontsAdapter.submitList(updated) {
-            if (_binding == null) return@submitList
-            binding.fontsRV.post {
+            val bb = _binding ?: return@submitList
+            bb.fontsRV.post {
                 if (_binding == null) return@post
-                (binding.fontsRV.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(
-                        savedIdx,
-                        savedOff
-                    )
+                (_binding?.fontsRV?.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(
+                    savedIdx,
+                    savedOff
+                )
             }
         }
         mainViewModel.downloadFont(font)
@@ -562,23 +563,23 @@ class TextFragment : Fragment() {
                     mainViewModel.queryDebounced.onStart { emit("") },
                     mainViewModel.recentFonts
                 ) { fonts, query, _ -> Pair(fonts, query) }.collect { (fonts, query) ->
-                        currentQuery = query
-                        languageCategoryMap = buildLanguageCategoryMap(fonts)
-                        languageList = buildLanguageList(fonts)
+                    currentQuery = query
+                    languageCategoryMap = buildLanguageCategoryMap(fonts)
+                    languageList = buildLanguageList(fonts)
 
-                        // Only rebuild tabs if still in language mode.
-                        // If we restored inCategoryMode = true from ViewModel,
-                        // rebuild category tabs instead so the UI matches state.
-                        if (inCategoryMode) {
-                            val cats = languageCategoryMap[selectedLanguage] ?: emptyList()
-                            if (cats.isNotEmpty()) showCategoryTabs(cats)
-                            else showLanguageTabs()
-                        } else {
-                            showLanguageTabs()
-                        }
-
-                        submitFonts(buildFilteredList(fonts, query))
+                    // Only rebuild tabs if still in language mode.
+                    // If we restored inCategoryMode = true from ViewModel,
+                    // rebuild category tabs instead so the UI matches state.
+                    if (inCategoryMode) {
+                        val cats = languageCategoryMap[selectedLanguage] ?: emptyList()
+                        if (cats.isNotEmpty()) showCategoryTabs(cats)
+                        else showLanguageTabs()
+                    } else {
+                        showLanguageTabs()
                     }
+
+                    submitFonts(buildFilteredList(fonts, query))
+                }
             }
         }
     }
@@ -612,12 +613,12 @@ class TextFragment : Fragment() {
             "All" to emptyList<String>(), "Recents" to emptyList(), "Imported" to emptyList()
         )
         fonts.groupBy { it.font_language.trim() }.filter { (lang, _) ->
-                lang.isNotBlank() && !lang.equals("Imported", ignoreCase = true)
-            }.forEach { (lang, langFonts) ->
-                map[lang] =
-                    langFonts.map { it.font_category.trim() }.filter { it.isNotBlank() }.distinct()
-                        .sorted()
-            }
+            lang.isNotBlank() && !lang.equals("Imported", ignoreCase = true)
+        }.forEach { (lang, langFonts) ->
+            map[lang] =
+                langFonts.map { it.font_category.trim() }.filter { it.isNotBlank() }.distinct()
+                    .sorted()
+        }
         return map
     }
 
@@ -895,9 +896,9 @@ class TextFragment : Fragment() {
 
     private fun showKeyboard(v: View) {
         (requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).showSoftInput(
-                v,
-                InputMethodManager.SHOW_IMPLICIT
-            )
+            v,
+            InputMethodManager.SHOW_IMPLICIT
+        )
     }
 
     private fun hideKeyboard() {

@@ -116,12 +116,9 @@ class TemplateCategoriesAdapter(
         }
         if (rowIndex == -1) return
 
-        val row = currentList[rowIndex] as HomeRow.CategoryRow
-        val templateIdx = row.templates.indexOfFirst { it.id == updatedTemplate.id }
-        if (templateIdx != -1) {
-            (row.templates as? MutableList)?.set(templateIdx, updatedTemplate)
-        }
-
+        // Do NOT mutate row.templates in-place -- it is owned by ListAdapter and is
+        // unmodifiable. Forward the update to the visible ViewHolder directly;
+        // the next submitList() call will carry the full corrected state.
         val holder = hostRv?.findViewHolderForAdapterPosition(rowIndex) as? CategoryVH
         holder?.notifyChildChanged(updatedTemplate)
     }
@@ -132,8 +129,6 @@ class TemplateCategoriesAdapter(
         }
 
         override fun areContentsTheSame(old: HomeRow, new: HomeRow): Boolean {
-            // Agar templates ki list badli hai (download state change), to false den
-            // taake getChangePayload chale aur onBind(payloads) trigger ho
             return old == new
         }
 

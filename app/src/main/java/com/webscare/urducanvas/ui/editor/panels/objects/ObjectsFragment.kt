@@ -178,7 +178,7 @@ class ObjectsFragment : Fragment() {
                         // Only handle selection clear on collapse — do NOT swap RV layout
                         // managers here; onPanelExpandedSmooth already did that at 75%.
                         if (!expanded) {
-                            for ((_, fragment) in fragmentCache) fragment.onPanelExpanded(false)
+                            for (fragment in fragmentCache.values.toList()) fragment.onPanelExpanded(false)
                         }
                     }
             }
@@ -230,7 +230,7 @@ class ObjectsFragment : Fragment() {
         // Switch child RecyclerView layout managers at 75 % of travel —
         // while the spring is still in motion so the user never sees a jump.
         val effectiveExpanded = offset >= 0.75f
-        for ((_, fragment) in fragmentCache) {
+        for (fragment in fragmentCache.values.toList()) {
             fragment.onPanelExpandedSmooth(effectiveExpanded)
         }
     }
@@ -383,7 +383,7 @@ class ObjectsFragment : Fragment() {
 
             // Add selected emojis — delegate to each alive ObjectsListFragment
             // that is a base tab (emoji tab) and has selected chars
-            for ((_, fragment) in fragmentCache) {
+            for (fragment in fragmentCache.values.toList()) {
                 fragment.addSelectedEmojisToCanvas()
             }
 
@@ -501,14 +501,14 @@ class ObjectsFragment : Fragment() {
             rebuildTabLayout(selectIndex = newIndex)
         }
 
-        for ((_, fragment) in fragmentCache) fragment.onNewData(data)
+        for (fragment in fragmentCache.values.toList()) fragment.onNewData(data)
     }
 
     // ── Search ────────────────────────────────────────────────────────────────
 
     private fun applySearch(query: String) {
         currentQuery = query
-        for ((_, fragment) in fragmentCache) fragment.updateFilter(query)
+        for (fragment in fragmentCache.values.toList()) fragment.updateFilter(query)
 
         if (query.isBlank()) { showAllTabs(); return }
 

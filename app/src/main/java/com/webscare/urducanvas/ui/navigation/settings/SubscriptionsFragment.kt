@@ -54,7 +54,7 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
         observeSubscriptionState()
         observePlans()
         viewModel.loadProducts()
-        binding.root.post { startEntranceAnimation() }
+        binding.root.post { if (_binding != null) startEntranceAnimation() }
     }
 
     // ─── Observe Plans ─────────────────────────────────────────────────────────
@@ -297,27 +297,29 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
         binding.mainBgImage.animate().alpha(1f).setDuration(500)
             .setInterpolator(android.view.animation.DecelerateInterpolator())
             .withEndAction {
-                binding.subscriptionsCard.slideUpSoft()
+                val b = _binding ?: return@withEndAction
+                b.subscriptionsCard.slideUpSoft()
 
-                // ✅ Animate activePlanCard right after subscriptionsCard
-                if (binding.activePlanCard.visibility == View.VISIBLE) {
-                    binding.activePlanCard.alpha = 0f
-                    binding.activePlanCard.translationY = binding.activePlanCard.height.toFloat().coerceAtLeast(60f)
-                    binding.activePlanCard.slideUpSoft(delay = 150)
+                // Animate activePlanCard right after subscriptionsCard
+                if (b.activePlanCard.visibility == View.VISIBLE) {
+                    b.activePlanCard.alpha = 0f
+                    b.activePlanCard.translationY = b.activePlanCard.height.toFloat().coerceAtLeast(60f)
+                    b.activePlanCard.slideUpSoft(delay = 150)
                 }
 
-                binding.subscriptionsCard.postDelayed({
-                    binding.subscriptionsRV.alpha = 1f
+                b.subscriptionsCard.postDelayed({
+                    _binding?.subscriptionsRV?.alpha = 1f
                 }, 550)
 
-                binding.subscriptionsCard.postDelayed({ showBottomSection() }, 700)
+                b.subscriptionsCard.postDelayed({ if (_binding != null) showBottomSection() }, 700)
             }
     }
 
     private fun showBottomSection() {
+        val b = _binding ?: return
         val views = mutableListOf(
-            binding.continueBtn, binding.subTitle, binding.termsOfUse,
-            binding.view1, binding.privacyPolicy, binding.view2, binding.restore
+            b.continueBtn, b.subTitle, b.termsOfUse,
+            b.view1, b.privacyPolicy, b.view2, b.restore
         )
         views.forEachIndexed { i, v -> v.slideUpSoft(delay = (i * 40).toLong()) }
     }
