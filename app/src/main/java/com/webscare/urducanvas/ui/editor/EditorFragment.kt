@@ -111,8 +111,8 @@ class EditorFragment : Fragment() {
     private lateinit var sizedCanvasView: CanvasView
     private var currentMode: MultiAlignMode = MultiAlignMode.CANVAS
     private var exportModel: ExportResult? = null
-    private var jsonPath: String = "canvas_data_${System.currentTimeMillis()}.json"
-    private var imagePath: String = "design_data_${System.currentTimeMillis()}.png"
+    private var jsonPath: String = "project_${System.currentTimeMillis()}.json"
+    private var imagePath: String = "project_img_${System.currentTimeMillis()}.png"
     private var exportDialog: Dialog? = null
     private var exportDialogBinding: DialogAutoSavingLayoutBinding? = null
     private var rotationAnimator: ObjectAnimator? = null
@@ -249,8 +249,8 @@ class EditorFragment : Fragment() {
 
         val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
 
-        val jsonFileName = "canvas_$timestamp.json"
-        val imageFileName = "design_$timestamp.png"
+        val jsonFileName = "project_$timestamp.json"
+        val imageFileName = "project_img_$timestamp.png"
 
         jsonPath = File(requireContext().filesDir, jsonFileName).absolutePath
         imagePath = File(requireContext().filesDir, imageFileName).absolutePath

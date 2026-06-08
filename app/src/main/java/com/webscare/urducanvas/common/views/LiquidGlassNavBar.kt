@@ -148,6 +148,7 @@ class LiquidGlassNavBar @JvmOverloads constructor(
     private var dragStartX = 0f
     private var dragSlotOnDown = -1
     private var velocityTracker: VelocityTracker? = null
+    private var dragFingerX = 0f   // raw finger position for lag effect
     private val touchSlop: Int by lazy { ViewConfiguration.get(context).scaledTouchSlop }
 
     private val clipPath = Path()
@@ -287,6 +288,7 @@ class LiquidGlassNavBar @JvmOverloads constructor(
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 isDragging = false; dragStartX = event.x
+                dragFingerX = event.x
                 dragSlotOnDown = slotIndexAt(event.x); dragHoverSlot = dragSlotOnDown
                 items.getOrNull(dragSlotOnDown)?.let { pressIcon(dragSlotOnDown) }
             }
@@ -300,14 +302,17 @@ class LiquidGlassNavBar @JvmOverloads constructor(
                     dragMagnifyScale = lerp(dragMagnifyScale, DRAG_MAGNIFY_MAX, 0.10f)
                     val firstCX = slotCentreX(0);
                     val lastCX = slotCentreX(items.size - 1)
-                    val clampedX = event.x.coerceIn(firstCX, lastCX)
+                    // Update raw finger position and clamp it
+                    dragFingerX = event.x.coerceIn(firstCX, lastCX)
+                    val clampedX = dragFingerX
                     val nearestCX = slotCentreX(nearestNonCtaSlot(clampedX))
                     val halfSlot = slotWidth / 2f
                     val pull =
                         (1f - (abs(clampedX - nearestCX) / halfSlot).coerceIn(0f, 1f)) * 0.35f
                     val magnetX = clampedX - (clampedX - nearestCX) * pull
                     val prev = indicatorX
-                    indicatorX = lerp(indicatorX, magnetX, 0.55f)
+                    // Lower lerp factor (0.18f) so the pill lags behind the finger
+                    indicatorX = lerp(indicatorX, magnetX, 0.18f)
                     lastIndicatorX = prev
                     dragHoverSlot = nearestSlotIncludingCta(indicatorX)
                     updateFluidMorph(); invalidate()
@@ -509,7 +514,7 @@ class LiquidGlassNavBar @JvmOverloads constructor(
         val selItem = items.getOrNull(selectedIndex)
         if (selItem != null && !selItem.isCta) drawIndicatorPill(canvas, cy, w, h)
 
-        if (isDragging || abs(dragMagnifyScale - 1f) > 0.001f) invalidate()
+        if (isDragging || abs(dragMagnifyScale - 1f) > 0.001f || abs(indicatorX - dragFingerX) > 0.5f) invalidate()
     }
 
     private fun drawIndicatorPill(canvas: Canvas, cy: Float, w: Float, h: Float) {

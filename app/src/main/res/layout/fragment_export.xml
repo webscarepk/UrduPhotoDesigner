@@ -580,7 +580,7 @@
         android:background="@drawable/button_bg"
         android:backgroundTint="@color/white"
         android:padding="12dp"
-        app:layout_constraintBottom_toTopOf="@id/btnReset"
+        app:layout_constraintBottom_toTopOf="@id/btnShare"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintStart_toEndOf="@id/startGuide">
 
@@ -636,7 +636,7 @@
 
     <!-- Reset Button -->
     <TextView
-        android:id="@+id/btnReset"
+        android:id="@+id/btnShare"
         android:layout_width="0dp"
         android:layout_height="40dp"
         android:layout_marginTop="12dp"
@@ -644,10 +644,10 @@
         android:fontFamily="@font/medium"
         android:gravity="center"
         android:paddingHorizontal="30dp"
-        android:text="@string/default_"
+        android:text="@string/project"
         android:textColor="@color/black"
         android:textSize="12sp"
-        app:drawableStartCompat="@drawable/ic_refresh"
+        app:drawableStartCompat="@drawable/ic_share"
         app:drawableTint="@color/gray"
         app:layout_constraintBottom_toTopOf="@id/bottomGuide"
         app:layout_constraintEnd_toStartOf="@id/centerGuide"
@@ -673,7 +673,7 @@
         app:iconGravity="textStart"
         app:iconTint="@android:color/white"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
-        app:layout_constraintStart_toEndOf="@id/btnReset"
-        app:layout_constraintTop_toTopOf="@id/btnReset" />
+        app:layout_constraintStart_toEndOf="@id/btnShare"
+        app:layout_constraintTop_toTopOf="@id/btnShare" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

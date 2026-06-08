@@ -4600,20 +4600,36 @@ class CanvasViewModel @Inject constructor(
             try {
                 _loadingStage.postValue("Reading file" to 10)
                 val jsonFilePath = exportResult.jsonPath
-                val jsonFile = File(jsonFilePath)
+                val sourceFile = File(jsonFilePath)
 
-                if (!jsonFile.exists()) {
-                    Log.e("CanvasViewModel", "Template JSON file not found: $jsonFilePath")
+                if (!sourceFile.exists()) {
+                    Log.e("CanvasViewModel", "Template file not found: $jsonFilePath")
                     return@launch
                 }
 
                 _loadingStage.postValue("Parsing JSON" to 30)
+
+                // Decode .urdc -> plain JSON temp file, OR pass an old plain-JSON file through
+                // unchanged (auto-detected by magic bytes). Streams to disk so we never build a
+                // giant String — preserves the OOM protection noted below.
+                val tempJson = File(context.cacheDir, "open_${System.currentTimeMillis()}.json")
+                val jsonFile = try {
+                    com.webscare.urducanvas.common.canvas.io.ProjectCodec
+                        .toPlainJsonFile(sourceFile, tempJson)
+                } catch (e: com.webscare.urducanvas.common.canvas.io.ProjectCodec.BadProjectFileException) {
+                    Log.e("CanvasViewModel", "Bad/foreign project file: ${e.message}")
+                    tempJson.delete()
+                    return@launch
+                }
+
                 // Stream the JSON file directly into Gson — never load it as a String.
                 // readText() on a large project file (many images stored as base64) can
                 // allocate 50–250 MB as a single String, causing the ANR/OOM on load.
                 val elements: List<CanvasElement> = jsonFile.bufferedReader().use { reader ->
                     gson.fromJson(reader, Array<CanvasElement>::class.java).toList()
                 }
+                // Clean up the temp file if we created one (jsonFile == sourceFile for plain JSON).
+                if (jsonFile.absolutePath == tempJson.absolutePath) tempJson.delete()
 
                 val requiredFontIds =
                     elements.filter { it.type == ElementType.TEXT }.mapNotNull { it.fontId }

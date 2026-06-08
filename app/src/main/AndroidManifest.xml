@@ -22,30 +22,69 @@
         tools:targetApi="31"
         android:largeHeap="true"
         android:hardwareAccelerated="true">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:screenOrientation="portrait"
             android:launchMode="singleTop">
+
+            <!-- Launcher (unchanged) -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Open image files (unchanged) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-
                 <data android:mimeType="image/*" />
                 <data android:scheme="content" />
                 <data android:scheme="file" />
             </intent-filter>
+
+            <!-- Share image into app (unchanged) -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/*" />
             </intent-filter>
+
+            <!-- Open a .urdc (or .bin renamed by WhatsApp) from Files / file manager -->
+            <intent-filter android:label="@string/open_with_urdu_canvas">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:host="*" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:pathPattern=".*\\.urdc" />
+                <data android:pathPattern=".*\\..*\\.urdc" />
+                <data android:pathPattern=".*\\..*\\..*\\.urdc" />
+                <data android:pathPattern=".*\\.bin" />
+                <data android:pathPattern=".*\\..*\\.bin" />
+            </intent-filter>
+
+            <!-- Open a .urdc via file:// (older managers / SD card) -->
+            <intent-filter android:label="@string/open_with_urdu_canvas">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.urdc" />
+                <data android:pathPattern=".*\\..*\\.urdc" />
+            </intent-filter>
+
+            <!-- Receive a .urdc via the Share sheet -->
+            <intent-filter android:label="@string/open_with_urdu_canvas">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/octet-stream" />
+            </intent-filter>
+
         </activity>
 
         <meta-data

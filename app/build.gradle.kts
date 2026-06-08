@@ -17,8 +17,8 @@ android {
         applicationId = "com.webscare.urducanvas"
         minSdk = 24
         targetSdk = 36
-        versionCode = 20
-        versionName = "1.2.0"
+        versionCode = 21
+        versionName = "1.2.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         setProperty("archivesBaseName", "UrduCanvas - V$versionCode($versionName)")
@@ -37,6 +37,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

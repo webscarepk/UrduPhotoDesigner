@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.BitmapFactory
 import android.net.Uri
+import java.io.File
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -350,7 +351,22 @@ class MainActivity : AppCompatActivity() {
             Intent.ACTION_SEND -> intent.getParcelableExtra(Intent.EXTRA_STREAM)
             else -> null
         }
-        if (uri != null && intent.type?.startsWith("image/") == true) {
+        uri ?: return
+
+        // ── 1) Our project file? (.urdc, .bin from WhatsApp, or octet-stream) ──
+        // We always attempt tryOpenProject for any octet-stream / unknown extension.
+        // tryOpenProject does a magic-byte check internally — it rejects non-URDC files
+        // silently, so false positives just fall through to the image handler below.
+        val name = queryDisplayName(uri)
+        val looksLikeProject = name?.endsWith(".urdc", true) == true ||
+                name?.endsWith(".bin", true) == true ||   // WhatsApp renames .urdc -> .bin
+                intent.type == "application/octet-stream" ||
+                intent.type == "application/octet_stream" ||
+                intent.type == null   // some share sources send no MIME type at all
+        if (looksLikeProject && tryOpenProject(uri)) return
+
+        // ── 2) Existing image handling (unchanged) ──
+        if (intent.type?.startsWith("image/") == true) {
             try {
                 contentResolver.openInputStream(uri)?.use { stream ->
                     val bitmap = BitmapFactory.decodeStream(stream)
@@ -371,6 +387,59 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    /** Copy the incoming project to cache, build a minimal ExportResult, and load via the VM. */
+    private fun tryOpenProject(uri: Uri): Boolean {
+        return try {
+            val cached = File(cacheDir, "incoming_${System.currentTimeMillis()}.urdc")
+            contentResolver.openInputStream(uri)?.use { input ->
+                cached.outputStream().use { input.copyTo(it) }
+            } ?: return false
+
+            // Verify it's really ours before hijacking the open.
+            val isUrdc = com.webscare.urducanvas.common.canvas.io.ProjectCodec.isUrdcFile(cached)
+            if (!isUrdc) {
+                // Could still be a plain .json shared from a debug/authoring build — allow that.
+                val firstByte = cached.inputStream().use { it.read() }
+                if (firstByte != '['.code && firstByte != '{'.code) {
+                    cached.delete(); return false
+                }
+            }
+
+            // jsonPath points at the cached file; the loader auto-detects .urdc vs plain JSON.
+            val result = com.webscare.urducanvas.data.model.ExportResult(
+                imagePath = "",
+                jsonPath = cached.absolutePath,
+                fileName = "Shared project",
+                fileSizeMB = cached.length() / (1024.0 * 1024.0),
+                resolution = "",
+                format = "URDC",
+                quality = "",
+                canvasSize = viewModel.canvasSize.value
+                    ?: CanvasSize(id = 0, "Project", 1080f, 1080f),
+                exportDate = "",
+                updatedDate = ""
+            )
+
+            viewModel.loadTemplateFromJsonFile(result, this@MainActivity)
+
+            val opts = NavOptions.Builder()
+                .setLaunchSingleTop(true)
+                .setPopUpTo(R.id.editorFragment, inclusive = true)
+                .build()
+            navController.navigate(R.id.editorFragment, null, opts)
+            true
+        } catch (e: Exception) {
+            e.printStackTrace(); false
+        }
+    }
+
+    private fun queryDisplayName(uri: Uri): String? = try {
+        if (uri.scheme == "file") uri.lastPathSegment
+        else contentResolver.query(
+            uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
+        )?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+    } catch (e: Exception) { null }
 
     // ──────────────────────────────────────────────────────────
     // Observers / Resume / Result / Destroy

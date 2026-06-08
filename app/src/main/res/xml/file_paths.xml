@@ -1,25 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Public Downloads — debug zip share + exported files -->
     <external-path
         name="external_downloads"
         path="Download/" />
 
-    <!-- For sharing from app's internal files/images -->
+    <!-- Public Pictures/UrduCanvas — where release images are saved -->
+    <external-path
+        name="external_pictures"
+        path="Pictures/UrduCanvas/" />
+
+    <!-- Public Documents/UrduCanvas — where PDFs are saved -->
+    <external-path
+        name="external_documents"
+        path="Documents/UrduCanvas/" />
+
+    <!-- App-specific external storage root (getExternalFilesDir).
+         Covers: Download/fonts/template_*.json and any other files
+         downloaded by the app into external app storage. -->
+    <external-files-path
+        name="external_app_files"
+        path="." />
+
+    <!-- Internal files root — covers project_*.json / project_*.urdc
+         written directly into filesDir (not a subdirectory). -->
+    <files-path
+        name="files_root"
+        path="." />
+
+    <!-- Internal files subdirs (existing) -->
     <files-path
         name="exported_images"
         path="images/" />
-
-    <!-- For sharing from app's internal files/docs -->
     <files-path
         name="exported_docs"
         path="docs/" />
 
-    <!-- Keep cache too if you zip things in cache -->
-    <cache-path
-        name="shared_files"
-        path="." />
-
+    <!-- Cache — incoming .urdc copied here when opened via share/file manager,
+         and temp files used during export/thumbnail operations. -->
     <cache-path
         name="shared_cache"
         path="." />

@@ -125,21 +125,30 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
                 startActivity(Intent.createChooser(intent, "Share Design Zip"))
 
             } else {
-                // Release: share the final exported image directly
-                val imageFile = File(export.imagePath)
-                if (!imageFile.exists()) return@addPressEffect
+                // Release: share the final exported file (image or PDF) — what the user
+                // actually made. Project sharing (.urdc) is on the Export Settings screen.
+                val filePath = export.pdfPath ?: export.imagePath
+                val file = File(filePath)
+                if (!file.exists()) return@addPressEffect
 
+                val mimeType = when {
+                    filePath.endsWith(".pdf", true) -> "application/pdf"
+                    filePath.endsWith(".png", true) -> "image/png"
+                    filePath.endsWith(".jpg", true) || filePath.endsWith(".jpeg", true) -> "image/jpeg"
+                    filePath.endsWith(".webp", true) -> "image/webp"
+                    else -> "image/*"
+                }
                 val uri = FileProvider.getUriForFile(
                     requireContext(),
                     "${requireContext().packageName}.fileprovider",
-                    imageFile
+                    file
                 )
                 val intent = Intent(Intent.ACTION_SEND).apply {
-                    type = "image/*"
+                    type = mimeType
                     putExtra(Intent.EXTRA_STREAM, uri)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
-                startActivity(Intent.createChooser(intent, "Share Image"))
+                startActivity(Intent.createChooser(intent, "Share"))
             }
         }
 

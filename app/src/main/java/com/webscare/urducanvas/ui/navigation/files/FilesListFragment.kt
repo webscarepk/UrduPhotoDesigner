@@ -52,6 +52,9 @@ import com.webscare.urducanvas.databinding.FragmentFilesListBinding
 import com.webscare.urducanvas.databinding.LayoutFilesPopupBinding
 import com.webscare.urducanvas.viewmodels.FiltersViewModel
 import com.webscare.urducanvas.viewmodels.MainViewModel
+import android.content.Intent
+import androidx.core.content.FileProvider
+import com.webscare.urducanvas.common.canvas.io.ProjectCodec
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -76,6 +79,12 @@ class FilesListFragment : Fragment() {
     private var bundle: Bundle = Bundle()
     private var loadingDialog: Dialog? = null
     private var dialogBinding: DialogLoadingProgressBinding? = null
+    // Launcher for importing a project file (.urdc or plain .json debug build)
+    private val importProjectLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+            uri?.let { importProjectFile(it) }
+        }
+
     private val pickFiles =
         registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris: List<Uri> ->
             if (uris.isNotEmpty()) {
@@ -103,7 +112,8 @@ class FilesListFragment : Fragment() {
 
         setEvents()
         initObservers()
-        if (tabName.equals("All", true) || tabName.equals("Projects", true)) {
+        // "All" hides the button; "Projects" shows it so users can import a .urdc/.json file.
+        if (tabName.equals("All", true)) {
             _binding!!.addMore.visibility = View.GONE
         }
     }
@@ -127,7 +137,7 @@ class FilesListFragment : Fragment() {
         }, onSelectionChanged = { active ->
             _binding!!.deleteAll.visibility = if (active) View.VISIBLE else View.GONE
             _binding!!.addMore.visibility = if (active) View.GONE else View.VISIBLE
-            if (tabName.equals("All", true) || tabName.equals("Projects", true)) {
+            if (tabName.equals("All", true)) {
                 _binding!!.addMore.visibility = View.GONE
             }
         })
@@ -149,7 +159,12 @@ class FilesListFragment : Fragment() {
         }
 
         _binding!!.addMore.addPressEffect {
-            pickFiles.launch(arrayOf("*/*"))  // allow all file types
+            if (tabName.equals("Projects", true)) {
+                // Projects tab: pick .urdc project files (and plain .json for debug builds)
+                importProjectLauncher.launch(arrayOf("application/octet-stream", "*/*"))
+            } else {
+                pickFiles.launch(arrayOf("*/*"))
+            }
         }
 
         _binding!!.deleteAll.addPressEffect {
@@ -488,6 +503,11 @@ class FilesListFragment : Fragment() {
                     }
                 }
             }
+        }
+
+        popupBinding.actionShare.addPressEffect {
+            popupWindow.dismiss()
+            shareItem(item)
         }
 
         popupBinding.actionSelect.addPressEffect {
@@ -900,6 +920,141 @@ class FilesListFragment : Fragment() {
         super.onResume()
         if (findNavController().currentDestination?.id!! != R.id.editorFragment) {
             canvasViewModel.clearCanvas()
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Import a .urdc (or plain .json debug build) picked from the file manager.
+    // Decrypts into a temp JSON file, reads canvas size from the element list,
+    // copies the .urdc to app storage, inserts an ExportResult into Room so it
+    // appears in the Projects list immediately — no manual refresh needed.
+    // ─────────────────────────────────────────────────────────────────────────
+    private fun importProjectFile(uri: Uri) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val displayName = getFileName(uri).let {
+                    if (it.isBlank()) "imported_${System.currentTimeMillis()}" else it
+                }
+                val baseName = displayName.substringBeforeLast('.')
+
+                // 1. Copy the raw .urdc / .json to a permanent location in app storage.
+                val destJson = ImageProcessor.newExportJsonFile(requireActivity(), "$baseName.${com.webscare.urducanvas.common.canvas.io.ProjectCodec.FILE_EXTENSION}")
+                requireContext().contentResolver.openInputStream(uri)?.use { input ->
+                    destJson.outputStream().use { input.copyTo(it) }
+                } ?: run {
+                    withContext(Dispatchers.Main) {
+                        Snackbar.make(requireView(), "Could not read file", Snackbar.LENGTH_SHORT).show()
+                    }
+                    return@launch
+                }
+
+                // 2. Verify it's actually one of our files (magic check or plain JSON).
+                val isUrdc = com.webscare.urducanvas.common.canvas.io.ProjectCodec.isUrdcFile(destJson)
+                val firstByte = if (!isUrdc) destJson.inputStream().use { it.read() } else -1
+                val isPlainJson = !isUrdc && (firstByte == '['.code || firstByte == '{'.code)
+                if (!isUrdc && !isPlainJson) {
+                    destJson.delete()
+                    withContext(Dispatchers.Main) {
+                        Snackbar.make(requireView(), "Not a valid Urdu Canvas project file", Snackbar.LENGTH_SHORT).show()
+                    }
+                    return@launch
+                }
+
+                // 3. Extract the thumbnail (cheap — reads only the header, no JSON parse).
+                val thumb = com.webscare.urducanvas.common.canvas.io.ProjectCodec.readThumbnail(destJson)
+                val thumbPath: String? = thumb?.let {
+                    val f = File(destJson.parentFile, "$baseName.jpg")
+                    f.outputStream().use { out -> it.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out) }
+                    f.absolutePath
+                }
+                val imagePath = thumbPath ?: ""
+
+                // 4. Build a minimal ExportResult and insert into Room.
+                val now = java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", java.util.Locale.getDefault()).format(java.util.Date())
+                val result = com.webscare.urducanvas.data.model.ExportResult(
+                    id = 0,
+                    imagePath = imagePath,
+                    jsonPath = destJson.absolutePath,
+                    fileName = baseName,
+                    fileSizeMB = destJson.length() / (1024.0 * 1024.0),
+                    resolution = "",
+                    format = if (isUrdc) "URDC" else "JSON",
+                    quality = "",
+                    canvasSize = canvasViewModel.canvasSize.value
+                        ?: com.webscare.urducanvas.common.canvas.model.CanvasSize(id = 0, "Imported", 1080f, 1080f),
+                    exportDate = now,
+                    updatedDate = now,
+                    thumbnailPath = thumbPath
+                )
+                viewModel.insertExportResult(result)
+
+                withContext(Dispatchers.Main) {
+                    Snackbar.make(requireView(), "Project imported successfully", Snackbar.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("FilesListFragment", "importProjectFile failed", e)
+                withContext(Dispatchers.Main) {
+                    Snackbar.make(requireView(), "Import failed: ${e.message}", Snackbar.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Share any item from the Files list:
+    //   ExportResult → shares the .urdc project file (or plain .json in debug)
+    //   ImageEntity  → shares the image file (background / sticker)
+    //   FontEntity   → shares the .ttf / .otf font file
+    // ─────────────────────────────────────────────────────────────────────────
+    private fun shareItem(item: Any) {
+        val authority = "${requireContext().packageName}.fileprovider"
+
+        fun share(file: java.io.File, mime: String) {
+            if (!file.exists()) {
+                Snackbar.make(requireView(), "File not found", Snackbar.LENGTH_SHORT).show()
+                return
+            }
+            val uri = try {
+                FileProvider.getUriForFile(requireContext(), authority, file)
+            } catch (e: Exception) {
+                Snackbar.make(requireView(), "Cannot share this file", Snackbar.LENGTH_SHORT).show()
+                return
+            }
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = mime
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(intent, "Share"))
+        }
+
+        when (item) {
+            is ExportResult -> {
+                // Share the project file (.urdc in release, plain .json in debug)
+                share(java.io.File(item.jsonPath), "application/octet-stream")
+            }
+            is ImageEntity -> {
+                // Share the background / sticker image
+                val path = item.bitmapData?.takeIf { it.isNotBlank() } ?: item.file_url
+                val file = java.io.File(path)
+                val mime = when (file.extension.lowercase()) {
+                    "png" -> "image/png"
+                    "jpg", "jpeg" -> "image/jpeg"
+                    "webp" -> "image/webp"
+                    "svg" -> "image/svg+xml"
+                    else -> "image/*"
+                }
+                share(file, mime)
+            }
+            is FontEntity -> {
+                // Share the .ttf / .otf font file
+                val path = item.file_path?.takeIf { it.isNotBlank() } ?: return
+                val mime = when (java.io.File(path).extension.lowercase()) {
+                    "otf" -> "font/otf"
+                    else -> "font/ttf"
+                }
+                share(java.io.File(path), mime)
+            }
         }
     }
 

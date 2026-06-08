@@ -27,15 +27,11 @@ class SpringNestedScrollView @JvmOverloads constructor(
     private val MAX_OVERSCROLL_FRACTION = 0.40f
     private val RETURN_DURATION         = 500L
     private val RUBBER_EXPONENT         = 0.30    // 0.5 = very stretchy, 1.0 = barely moves
-    private val FLING_SCALE             = 0.10f
 
     private var velocityTracker: VelocityTracker? = null
-    private var lastY              = 0f
-    private var isBouncing         = false
+    private var lastY          = 0f
+    private var isBouncing     = false
     private var springAnimator: ValueAnimator? = null
-    private var savedFlingVelocity = 0f
-    private var lastScrollY        = 0
-    private var flingSettleChecker: Runnable? = null
 
     private val scrollChild    get() = getChildAt(0)
     private val isAtTop        get() = scrollY <= 0
@@ -78,9 +74,6 @@ class SpringNestedScrollView @JvmOverloads constructor(
             MotionEvent.ACTION_DOWN -> {
                 // Cancel any in-progress return animation so the list "catches"
                 springAnimator?.cancel()
-                flingSettleChecker?.let { removeCallbacks(it) }
-                flingSettleChecker = null
-                savedFlingVelocity = 0f
                 lastY = ev.rawY
             }
 
@@ -112,58 +105,7 @@ class SpringNestedScrollView @JvmOverloads constructor(
         return super.onTouchEvent(ev)
     }
 
-    // ── Fling settle detection ────────────────────────────────────────────────
-    //  When a fling reaches the top or bottom edge, apply a small stretch then
-    //  snap back cleanly — same no-bounce return.
-
-    override fun fling(velocityY: Int) {
-        savedFlingVelocity = velocityY.toFloat()
-        lastScrollY = scrollY
-        super.fling(velocityY)
-        scheduleFlingSettleCheck()
-    }
-
-    private fun scheduleFlingSettleCheck() {
-        flingSettleChecker?.let { removeCallbacks(it) }
-
-        val checker = object : Runnable {
-            override fun run() {
-                val currentScrollY = scrollY
-                val stopped = currentScrollY == lastScrollY
-
-                if (stopped) {
-                    val vy = savedFlingVelocity
-                    savedFlingVelocity = 0f
-                    flingSettleChecker = null
-
-                    if (!isBouncing && springAnimator?.isRunning != true) {
-                        when {
-                            isAtTop && vy < -300f -> {
-                                val target = (abs(vy) * FLING_SCALE)
-                                    .coerceAtMost(maxTranslation)
-                                isBouncing = true
-                                translationY = target   // snap to stretch instantly
-                                springBack()            // then return cleanly
-                            }
-                            isAtBottom && vy > 300f -> {
-                                val target = -(abs(vy) * FLING_SCALE)
-                                    .coerceAtMost(maxTranslation)
-                                isBouncing = true
-                                translationY = target
-                                springBack()
-                            }
-                        }
-                    }
-                } else {
-                    lastScrollY = currentScrollY
-                    postDelayed(this, 16)
-                }
-            }
-        }
-
-        flingSettleChecker = checker
-        postDelayed(checker, 16)
-    }
+    // Fling is left as default NestedScrollView behaviour — spring only triggers on drag.
 
     // ── Rubber-band drag ──────────────────────────────────────────────────────
     //  Resistance increases as the list is pulled further — exactly like iOS.
@@ -229,7 +171,6 @@ class SpringNestedScrollView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         springAnimator?.cancel()
-        flingSettleChecker?.let { removeCallbacks(it) }
         recycleVelocity()
     }
 }

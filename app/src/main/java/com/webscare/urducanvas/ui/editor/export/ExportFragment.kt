@@ -28,8 +28,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import com.webscare.urducanvas.BuildConfig
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.canvas.io.ProjectCodec
 import com.webscare.urducanvas.common.canvas.enums.ExportViewType
 import com.webscare.urducanvas.common.canvas.model.ExportOptions
 import com.webscare.urducanvas.common.utils.ImageProcessor
@@ -86,9 +88,44 @@ class ExportFragment : androidx.fragment.app.Fragment() {
 
         back.addPressEffect { findNavController().navigateUp() }
 
-        btnReset.addPressEffect {
-            viewModel.resetExportOptions()
-            showTopBanner("Settings reset to defaults")
+        btnShare.addPressEffect {
+            val export = viewModel.exportResult.value
+            val projectPath = export?.jsonPath
+            if (projectPath.isNullOrBlank()) {
+                showTopBanner("Export the project first to share it")
+                return@addPressEffect
+            }
+            val sourceFile = java.io.File(projectPath)
+            if (!sourceFile.exists()) {
+                showTopBanner("Project file not found")
+                return@addPressEffect
+            }
+
+            // In release, always share as .urdc — even if the source is a plain .json
+            // template downloaded from the server. Wrap it on the fly into a temp .urdc.
+            val fileToShare: java.io.File = if (!BuildConfig.DEBUG &&
+                !ProjectCodec.isUrdcFile(sourceFile)) {
+                val tmp = java.io.File(
+                    requireContext().cacheDir,
+                    sourceFile.nameWithoutExtension + "." + ProjectCodec.FILE_EXTENSION
+                )
+                ProjectCodec.wrapJsonFile(plainJsonFile = sourceFile, target = tmp)
+                tmp
+            } else {
+                sourceFile
+            }
+
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                requireContext(),
+                "${requireContext().packageName}.fileprovider",
+                fileToShare
+            )
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "application/octet-stream"
+                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(android.content.Intent.createChooser(intent, "Share project"))
         }
 
         resolutionButton.addPressEffect {
@@ -321,7 +358,30 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                 } ?: throw IllegalStateException("Failed to save file")
 
                 updateProgressSafe(95, "Just a moment…")
-                val jsonPath = json.absolutePath
+
+                // Wrap the plain-JSON file into our .urdc container.
+                //  DEBUG  -> stays plain JSON (encrypted=false). Designer/template pipeline
+                //            (zip share) keeps working untouched.
+                //  RELEASE-> AES-GCM encrypted .urdc with an embedded preview thumbnail.
+                val jsonPath = if (BuildConfig.DEBUG) {
+                    // Authoring build: keep readable JSON exactly as before.
+                    json.absolutePath
+                } else {
+                    val urdcFile = File(
+                        json.parentFile,
+                        json.nameWithoutExtension + "." + ProjectCodec.FILE_EXTENSION
+                    )
+                    ProjectCodec.wrapJsonFile(
+                        plainJsonFile = json,
+                        target = urdcFile,
+                        thumbnail = previewBitmap
+                    )
+                    // Remove the redundant plain JSON so the structure can't leak.
+                    if (urdcFile.exists() && urdcFile.absolutePath != json.absolutePath) {
+                        json.delete()
+                    }
+                    urdcFile.absolutePath
+                }
 
                 // 4. Final file size (real saved file)
                 val imageOrPdfSizeMB = if (options.format.name.equals("PDF", true)) {
