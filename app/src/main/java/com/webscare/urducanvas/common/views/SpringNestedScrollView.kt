@@ -10,10 +10,7 @@ import android.view.VelocityTracker
 import android.view.animation.Interpolator
 import androidx.core.widget.NestedScrollView
 import kotlin.math.abs
-import kotlin.math.cos
 import kotlin.math.exp
-import kotlin.math.sign
-import kotlin.math.sin
 import kotlin.math.sqrt
 
 class SpringNestedScrollView @JvmOverloads constructor(
@@ -23,11 +20,14 @@ class SpringNestedScrollView @JvmOverloads constructor(
 ) : NestedScrollView(context, attrs, defStyle) {
 
     // ── Tuning ────────────────────────────────────────────────────────────────
-    // Short, fluid spring: low travel distance, high damping, fast settle.
-    private val MAX_OVERSCROLL_FRACTION        = 0.08f   // was 0.22 — much shorter travel
-    private val BASE_SPRING_DURATION           = 360L    // was 550 — settles faster
-    private val FLING_SCALE                    = 0.04f   // was 0.08 — less fling overshoot
-    private val MAX_FLING_TRANSLATION_FRACTION = 0.08f   // was 0.22 — caps fling travel
+    //  MAX_OVERSCROLL_FRACTION  — how far the list can stretch (fraction of height)
+    //  RETURN_DURATION          — how long the snap-back takes in ms
+    //  RUBBER_EXPONENT          — resistance curve (higher = shorter pull, more rigid)
+    //  FLING_SCALE              — how much fling velocity translates to stretch distance
+    private val MAX_OVERSCROLL_FRACTION = 0.40f
+    private val RETURN_DURATION         = 500L
+    private val RUBBER_EXPONENT         = 0.30    // 0.5 = very stretchy, 1.0 = barely moves
+    private val FLING_SCALE             = 0.10f
 
     private var velocityTracker: VelocityTracker? = null
     private var lastY              = 0f
@@ -43,29 +43,23 @@ class SpringNestedScrollView @JvmOverloads constructor(
             scrollY >= (scrollChild.height - height).coerceAtLeast(0)
     private val maxTranslation get() = height * MAX_OVERSCROLL_FRACTION
 
-    // ── Spring interpolator (damped harmonic oscillator) ──────────────────────
+    // ── Critically-damped return interpolator ─────────────────────────────────
     //
-    //  stiffness = 380  → snappy, fast oscillation (was 260)
-    //  damping   = 28   → heavily damped, barely one overshoot (was 18)
+    //  zeta >= 1 → overdamped / critically damped — zero oscillation, zero overshoot.
+    //  This is exactly what iOS uses: the list returns smoothly and stops dead.
     //
-    //  Result: one small, quick bounce then fluid settle — iOS-style.
+    //  Formula: f(t) = 1 - e^(-ω·t) · (1 + ω·t)   where ω = sqrt(stiffness)
     //
-    private inner class SpringInterpolator(
-        private val stiffness: Float = 380f,
-        private val damping:   Float = 28f
+    //  stiffness = 200 gives a natural-feeling snap — increase for snappier,
+    //  decrease for slower. damping is set to exactly critical (zeta = 1).
+    //
+    private inner class CriticalSpringInterpolator(
+        private val stiffness: Float = 200f
     ) : Interpolator {
+        private val omega = sqrt(stiffness)
         override fun getInterpolation(t: Float): Float {
-            val omega0 = sqrt(stiffness)
-            val zeta   = damping / (2f * omega0)
-
-            return if (zeta < 1f) {
-                val omegaD = omega0 * sqrt(1f - zeta * zeta)
-                val scale  = zeta / sqrt(1f - zeta * zeta)
-                1f - exp(-zeta * omega0 * t) *
-                        (cos(omegaD * t) + scale * sin(omegaD * t))
-            } else {
-                1f - exp(-omega0 * t) * (1f + omega0 * t)
-            }
+            // Critically damped: zeta = 1, no oscillation
+            return 1f - exp(-omega * t) * (1f + omega * t)
         }
     }
 
@@ -82,6 +76,7 @@ class SpringNestedScrollView @JvmOverloads constructor(
 
         when (ev.action) {
             MotionEvent.ACTION_DOWN -> {
+                // Cancel any in-progress return animation so the list "catches"
                 springAnimator?.cancel()
                 flingSettleChecker?.let { removeCallbacks(it) }
                 flingSettleChecker = null
@@ -104,30 +99,11 @@ class SpringNestedScrollView @JvmOverloads constructor(
 
             MotionEvent.ACTION_UP,
             MotionEvent.ACTION_CANCEL -> {
-                val vy = captureVelocityY()
                 recycleVelocity()
 
+                // If the list is stretched at all, snap straight back — no extra push
                 if (isBouncing || abs(translationY) > 0f) {
-                    if (abs(vy) > 100f && sign(vy) == sign(translationY)) {
-                        val extra  = (vy * FLING_SCALE).coerceIn(-maxTranslation, maxTranslation)
-                        val target = (translationY + extra).coerceIn(-maxTranslation, maxTranslation)
-                        animateTo(target) { springBack() }
-                    } else {
-                        springBack()
-                    }
-                    return true
-                }
-
-                if (isAtTop && vy > 300f) {
-                    val target = (vy * FLING_SCALE).coerceAtMost(height * MAX_FLING_TRANSLATION_FRACTION)
-                    isBouncing = true
-                    animateTo(target) { springBack() }
-                    return true
-                }
-                if (isAtBottom && vy < -300f) {
-                    val target = (vy * FLING_SCALE).coerceAtLeast(-height * MAX_FLING_TRANSLATION_FRACTION)
-                    isBouncing = true
-                    animateTo(target) { springBack() }
+                    springBack()
                     return true
                 }
             }
@@ -137,6 +113,8 @@ class SpringNestedScrollView @JvmOverloads constructor(
     }
 
     // ── Fling settle detection ────────────────────────────────────────────────
+    //  When a fling reaches the top or bottom edge, apply a small stretch then
+    //  snap back cleanly — same no-bounce return.
 
     override fun fling(velocityY: Int) {
         savedFlingVelocity = velocityY.toFloat()
@@ -162,15 +140,17 @@ class SpringNestedScrollView @JvmOverloads constructor(
                         when {
                             isAtTop && vy < -300f -> {
                                 val target = (abs(vy) * FLING_SCALE)
-                                    .coerceAtMost(height * MAX_FLING_TRANSLATION_FRACTION)
+                                    .coerceAtMost(maxTranslation)
                                 isBouncing = true
-                                animateTo(target) { springBack() }
+                                translationY = target   // snap to stretch instantly
+                                springBack()            // then return cleanly
                             }
                             isAtBottom && vy > 300f -> {
                                 val target = -(abs(vy) * FLING_SCALE)
-                                    .coerceAtMost(height * MAX_FLING_TRANSLATION_FRACTION)
+                                    .coerceAtMost(maxTranslation)
                                 isBouncing = true
-                                animateTo(target) { springBack() }
+                                translationY = target
+                                springBack()
                             }
                         }
                     }
@@ -186,50 +166,33 @@ class SpringNestedScrollView @JvmOverloads constructor(
     }
 
     // ── Rubber-band drag ──────────────────────────────────────────────────────
+    //  Resistance increases as the list is pulled further — exactly like iOS.
+    //  ratio^RUBBER_EXPONENT maps [0,1] pull distance to [0,1] resistance factor.
 
     private fun applyRubberBand(delta: Float) {
         isBouncing = true
-        // Higher exponent (0.85 → was 0.7) = more resistance, shorter pull distance
         val ratio      = (abs(translationY) / maxTranslation).coerceIn(0f, 1f)
-        val resistance = 1f - Math.pow(ratio.toDouble(), 0.85).toFloat()
+        val resistance = 1f - Math.pow(ratio.toDouble(), RUBBER_EXPONENT).toFloat()
         translationY   = (translationY + delta * resistance)
             .coerceIn(-maxTranslation, maxTranslation)
     }
 
-    // ── Animation ─────────────────────────────────────────────────────────────
-
-    private fun animateTo(target: Float, onEnd: (() -> Unit)? = null) {
-        springAnimator?.cancel()
-        val start    = translationY
-        val dist     = abs(target - start)
-        // Shorter max duration (150ms was 200ms) so the push feels snappier
-        val duration = (150L * (dist / maxTranslation).coerceIn(0.3f, 1f)).toLong()
-
-        springAnimator = ValueAnimator.ofFloat(start, target).apply {
-            this.duration = duration
-            interpolator  = android.view.animation.DecelerateInterpolator(2f)
-            addUpdateListener { translationY = it.animatedValue as Float }
-            addListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(a: Animator) {
-                    translationY = target
-                    onEnd?.invoke()
-                }
-            })
-            start()
-        }
-    }
+    // ── Snap back — no bounce, no overshoot ───────────────────────────────────
+    //  Uses CriticalSpringInterpolator (zeta = 1) so the return curve is a
+    //  smooth deceleration that lands exactly on 0 with no oscillation.
 
     private fun springBack() {
         springAnimator?.cancel()
         val start = translationY
         if (abs(start) < 0.5f) { translationY = 0f; isBouncing = false; return }
 
-        val distFraction = (abs(start) / maxTranslation).coerceIn(0.4f, 1f)
-        val duration     = (BASE_SPRING_DURATION * distFraction).toLong()
+        // Scale duration by how far we are — short pull = quick return
+        val distFraction = (abs(start) / maxTranslation).coerceIn(0.3f, 1f)
+        val duration     = (RETURN_DURATION * distFraction).toLong()
 
         springAnimator = ValueAnimator.ofFloat(start, 0f).apply {
             this.duration = duration
-            interpolator  = SpringInterpolator(stiffness = 380f, damping = 28f)
+            interpolator  = CriticalSpringInterpolator(stiffness = 80f)
             addUpdateListener { translationY = it.animatedValue as Float }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(a: Animator) {
