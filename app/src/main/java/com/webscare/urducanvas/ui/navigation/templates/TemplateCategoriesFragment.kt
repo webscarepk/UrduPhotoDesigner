@@ -17,12 +17,14 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.google.android.material.chip.Chip
+import com.webscare.urducanvas.MainActivity
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.CatViewState
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.common.canvas.sealed.HomeRow
 import com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState
+import com.webscare.urducanvas.common.utils.SpringEdgeEffectFactory
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.utils.showGlobalSuccessSnack
 import com.webscare.urducanvas.data.model.TemplateEntity
@@ -78,6 +80,7 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
 //        setupPriceChips()
         setEvents()
         observeTemplateCategories()
+        (activity as? MainActivity)?.bindScrollToNav(binding.categoriesRV)
     }
 
     // ─── Loading Dialog ───────────────────────────────────────────────────────
@@ -255,6 +258,7 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
             mainViewModel.downloadTemplate(template)
         }
 
+        binding.categoriesRV.edgeEffectFactory = SpringEdgeEffectFactory()
         switchToSections()
     }
 

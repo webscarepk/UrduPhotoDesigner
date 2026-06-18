@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.BitmapFactory
 import android.net.Uri
-import java.io.File
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -20,14 +19,16 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.dynamicanimation.animation.DynamicAnimation
+import androidx.dynamicanimation.animation.SpringAnimation
+import androidx.dynamicanimation.animation.SpringForce
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
-import com.webscare.urducanvas.common.utils.BlurEngine
-import com.webscare.urducanvas.common.views.LiquidGlassNavBar
 import com.webscare.urducanvas.databinding.ActivityMainBinding
 import com.webscare.urducanvas.di.BillingManager
 import com.webscare.urducanvas.di.UpdateManager
@@ -35,6 +36,7 @@ import com.webscare.urducanvas.viewmodels.MainViewModel
 import com.webscare.urducanvas.viewmodels.PexelsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -52,29 +54,29 @@ class MainActivity : AppCompatActivity() {
 
     val navOptions: NavOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
 
-    /** Blur engine — internal: exposed so fragments can call forceCapture() on scroll idle. */
-    internal var blurEngine: BlurEngine? = null
-
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri?.let {
                 val inputStream = contentResolver.openInputStream(it)
                 val bitmap = BitmapFactory.decodeStream(inputStream)
                 inputStream?.close()
-                val canvasSize = CanvasSize(id = 0, "From Image", bitmap.width.toFloat(), bitmap.height.toFloat())
+                val canvasSize = CanvasSize(
+                    id = 0, "From Image", bitmap.width.toFloat(), bitmap.height.toFloat()
+                )
                 viewModel.clearCanvas()
                 viewModel.setCanvasSize(canvasSize)
                 viewModel.setCanvasBackgroundImage(bitmap, this@MainActivity)
-                val editorNavOptions = NavOptions.Builder()
-                    .setLaunchSingleTop(true)
-                    .setPopUpTo(R.id.editorFragment, inclusive = true)
-                    .build()
+                val editorNavOptions = NavOptions.Builder().setLaunchSingleTop(true)
+                    .setPopUpTo(R.id.editorFragment, inclusive = true).build()
                 navController.navigate(R.id.editorFragment, null, editorNavOptions)
             }
         }
 
-    @Inject lateinit var billingManager: BillingManager
-    @Inject lateinit var updateManager: UpdateManager
+    @Inject
+    lateinit var billingManager: BillingManager
+
+    @Inject
+    lateinit var updateManager: UpdateManager
 
     private val mainViewModel: MainViewModel by viewModels()
 
@@ -111,83 +113,70 @@ class MainActivity : AppCompatActivity() {
             supportFragmentManager.findFragmentById(R.id.nav_host_main) as NavHostFragment
         _navController = navHostFragment.navController
 
-        setupLiquidGlassNav()
+        setupBottomNav()
         handleIncomingIntent(intent)
     }
 
     // ──────────────────────────────────────────────────────────
-    // Liquid Glass Nav setup
+    // Bottom Nav setup (cradle + spring indicator)
     // ──────────────────────────────────────────────────────────
 
-    private fun setupLiquidGlassNav() {
-        val nav = binding.bottomNavigation
+    private fun setupBottomNav() {
+        binding.fabAddImage.visibility = View.GONE
 
-        // Build nav items — icons use selector drawables with state_checked
-        nav.setItems(
-            listOf(
-                LiquidGlassNavBar.NavItem(
-                    id = R.id.nav_home,
-                    iconDrawable = getDrawable(R.drawable.ic_home_selector)
-                ),
-                LiquidGlassNavBar.NavItem(
-                    id = R.id.nav_templates,
-                    iconDrawable = getDrawable(R.drawable.ic_templates_selector)
-                ),
-                LiquidGlassNavBar.NavItem(
-                    id = R.id.nav_add_images,
-                    iconDrawable = getDrawable(R.drawable.ic_add_image_stroke),
-                    isCta = true        // no selection state — slides never land here
-                ),
-                LiquidGlassNavBar.NavItem(
-                    id = R.id.nav_fav,
-                    iconDrawable = getDrawable(R.drawable.ic_file_selector)
-                ),
-                LiquidGlassNavBar.NavItem(
-                    id = R.id.nav_settings,
-                    iconDrawable = getDrawable(R.drawable.ic_setting_selector)
-                )
-            )
-        )
+        // Force FAB above the nav bar (z-order + elevation)
+        binding.fabAddImage.elevation = 16f * resources.displayMetrics.density
+        binding.bottomNavigation.elevation = 8f * resources.displayMetrics.density
+        binding.fabAddImage.bringToFront()
 
-        nav.setOnItemSelectedListener { slotIndex ->
-            when (slotIndex) {
-                0 -> { // home
-                    if (navController.currentDestination?.id != R.id.homeFragment) {
+        binding.fabAddImage.setOnClickListener {
+            pickImageLauncher.launch("image/*")
+        }
+
+        val nav = binding.bottomNavigation as BottomNavigationView
+
+        // Attach the springy top indicator once the nav has been measured.
+        nav.post { attachSpringIndicator(nav) }
+
+        // SINGLE item-selected listener (handles nav + indicator move).
+        nav.setOnItemSelectedListener { item ->
+            val index = indexForMenuItem(item.itemId)
+            if (index != -1 && index != CENTER_INDEX) {
+                moveIndicatorTo(nav, index)
+            }
+
+            when (item.itemId) {
+                R.id.nav_home -> {
+                    if (navController.currentDestination?.id != R.id.homeFragment)
                         navController.navigate(R.id.homeFragment, null, navOptions)
-                    }
+                    true
                 }
-                1 -> { // templates
-                    if (navController.currentDestination?.id != R.id.templateCategoriesFragment) {
+                R.id.nav_templates -> {
+                    if (navController.currentDestination?.id != R.id.templateCategoriesFragment)
                         navController.navigate(R.id.templateCategoriesFragment, null, navOptions)
-                    }
+                    true
                 }
-                2 -> { // add (CTA)
-                    pickImageLauncher.launch("image/*")
-                }
-                3 -> { // files/fav
-                    if (navController.currentDestination?.id != R.id.filesFragment) {
+                R.id.nav_add_images -> false // center FAB slot, never selectable
+                R.id.nav_fav -> {
+                    if (navController.currentDestination?.id != R.id.filesFragment)
                         navController.navigate(R.id.filesFragment, null, navOptions)
-                    }
+                    true
                 }
-                4 -> { // settings
-                    if (navController.currentDestination?.id != R.id.settingsFragment) {
+                R.id.nav_settings -> {
+                    if (navController.currentDestination?.id != R.id.settingsFragment)
                         navController.navigate(R.id.settingsFragment, null, navOptions)
-                    }
+                    true
                 }
+                else -> false
             }
         }
 
-        // Sync indicator & visibility on destination changes
+        // SINGLE destination-changed listener (nav visibility, status bar, tab sync, indicator).
         navController.addOnDestinationChangedListener { _, destination, _ ->
 
-            if (destination.id == R.id.homeFragment) {
-                // Check once per session — UpdateManager should guard against
-                // repeated network calls internally, but the flag below is a
-                // cheap safety net in case it doesn't.
-                if (!updateCheckTriggered) {
-                    updateCheckTriggered = true
-                    updateManager.checkForUpdate(this)
-                }
+            if (destination.id == R.id.homeFragment && !updateCheckTriggered) {
+                updateCheckTriggered = true
+                updateManager.checkForUpdate(this)
             }
 
             val visibleDestinations = setOf(
@@ -198,99 +187,305 @@ class MainActivity : AppCompatActivity() {
             )
 
             if (destination.id in visibleDestinations) {
-                // Show with slide-up animation — NOTE: we never toggle visibility
-                // from a background thread; this is always on main thread here.
                 if (!nav.isVisible) {
                     nav.apply {
                         visibility = View.VISIBLE
                         translationY = height.toFloat()
-                        animate().translationY(0f).setDuration(400).start()
+                        animate().translationY(0f).setDuration(400)
+                            .withStartAction {
+                                binding.fabAddImage.visibility = View.VISIBLE
+                                indicatorView?.visibility = View.VISIBLE
+                            }
+                            .setUpdateListener { syncIndicatorToNav(nav) } // follow nav slide
+                            .start()
                     }
                 }
-                if (blurEngine?.isRunning != true) blurEngine?.startContinuous()
+                binding.fabAddImage.visibility = View.VISIBLE
+                indicatorView?.visibility = View.VISIBLE
             } else {
-                // Hide: animate out then GONE — still main thread only
                 if (nav.isVisible) {
-                    nav.animate()
-                        .translationY(nav.height.toFloat() + 40f)
-                        .setDuration(300)
+                    nav.animate().translationY(nav.height.toFloat() + 40f).setDuration(300)
+                        .setUpdateListener { syncIndicatorToNav(nav) }
                         .withEndAction {
-                            // Safety: only touch visibility on main thread, check not destroyed
-                            if (!isDestroyed) nav.visibility = View.GONE
-                        }
-                        .start()
+                            if (!isDestroyed) {
+                                nav.visibility = View.GONE
+                                binding.fabAddImage.visibility = View.GONE
+                                indicatorView?.visibility = View.GONE
+                            }
+                        }.start()
                 }
-                blurEngine?.stopContinuous()
+                // hide immediately so they don't linger on splash/editor
+                binding.fabAddImage.visibility = View.GONE
+                indicatorView?.visibility = View.GONE
             }
 
             setStatusBarTextColor(darkIcons = true)
 
-            // Re-register a one-shot layout listener so blur captures the
-            // new fragment exactly once after it has fully drawn.
-            val host = binding.navHostMain
-            host.viewTreeObserver.addOnGlobalLayoutListener(object :
-                android.view.ViewTreeObserver.OnGlobalLayoutListener {
-                override fun onGlobalLayout() {
-                    host.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                    blurEngine?.forceCapture()
-                }
-            })
-
-            // Sync indicator — animate=false: no scale burst fires on arrival
-            when (destination.id) {
-                R.id.homeFragment                -> nav.selectItem(0, animate = false)
-                R.id.templateCategoriesFragment  -> nav.selectItem(1, animate = false)
-                R.id.filesFragment               -> nav.selectItem(3, animate = false)
-                R.id.settingsFragment            -> nav.selectItem(4, animate = false)
+            // Sync selected tab + indicator with the actual destination.
+            val index = when (destination.id) {
+                R.id.homeFragment -> { nav.selectedItemId = R.id.nav_home; 0 }
+                R.id.templateCategoriesFragment -> { nav.selectedItemId = R.id.nav_templates; 1 }
+                R.id.filesFragment -> { nav.selectedItemId = R.id.nav_fav; 3 }
+                R.id.settingsFragment -> { nav.selectedItemId = R.id.nav_settings; 4 }
+                else -> -1
             }
+            if (index != -1) nav.post { moveIndicatorTo(nav, index) }
         }
 
-        // Wire back-press
         onBackPressedDispatcher.addCallback(this) {
             when (navController.currentDestination?.id) {
                 R.id.editorFragment -> { /* editor handles its own back */ }
                 R.id.homeFragment -> finish()
                 R.id.templateCategoriesFragment,
                 R.id.filesFragment,
-                R.id.settingsFragment -> navController.navigate(R.id.homeFragment, null, navOptions)
+                R.id.settingsFragment ->
+                    navController.navigate(R.id.homeFragment, null, navOptions)
                 else -> { /* do nothing */ }
             }
         }
+    }
 
-        // Start blur engine once views are laid out.
-        //
-        // SOURCE must be binding.navHostMain (FragmentContainerView), NOT binding.root.
-        //
-        // If we use binding.root (ConstraintLayout), source.draw() renders BOTH the
-        // fragment content AND the LiquidGlassNavBar (which is a child of root).
-        // The nav bar's green icons get blurred and fed back into the bar background,
-        // producing the green glow halo around icons seen in the screenshot.
-        //
-        // FragmentContainerView is a SIBLING of LiquidGlassNavBar in the layout, so
-        // drawing it never includes the nav bar. It also fills the full screen
-        // (constraints: top/bottom/start/end of parent), so the region behind the bar
-        // is fully rendered — the RecyclerView content extends behind the floating bar.
-        //
-        // Background stripping: remove the background from navHostMain so that if a
-        // fragment sets a white/solid background the FragmentContainerView itself stays
-        // transparent, allowing content behind it to show in the blur crop.
-        nav.post {
-            val fragmentHost = binding.navHostMain
-            fragmentHost.background = null
-            blurEngine = BlurEngine(fragmentHost, nav)
-            blurEngine?.updatePositions()
-            blurEngine?.startContinuous()
+    private var isNavHidden = false
+    private var accumulatedDy = 0
+    private val hideThreshold = 12
+    private val showThreshold = 12
 
-            // OnDrawListener fires AFTER each draw pass completes — including when
-            // Glide/Coil posts a bitmap to an ImageView and triggers invalidate().
-            // This is the correct hook: blur captures the fully-rendered frame,
-            // not a pre-draw snapshot. Throttled by pending flag — safe at 60fps.
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
-                fragmentHost.viewTreeObserver.addOnDrawListener {
-                    blurEngine?.scheduleCapture()
-                }
+    /** Fragments just forward their scroll deltas here. All logic lives in the activity. */
+    fun onContentScrolled(scrollY: Int, oldScrollY: Int) {
+        val dy = scrollY - oldScrollY
+
+        if (dy > 0 && accumulatedDy < 0) accumulatedDy = 0
+        if (dy < 0 && accumulatedDy > 0) accumulatedDy = 0
+        accumulatedDy += dy
+
+        when {
+            accumulatedDy > hideThreshold -> {
+                setNavAndFabHidden(true)
+                accumulatedDy = 0
+            }
+            accumulatedDy < -showThreshold -> {
+                setNavAndFabHidden(false)
+                accumulatedDy = 0
             }
         }
+
+        if (scrollY == 0) {
+            setNavAndFabHidden(false)
+            accumulatedDy = 0
+        }
+    }
+
+    /**
+     * Attach any NestedScrollView to the nav hide/show behaviour in one call.
+     * Resets state each time so switching fragments starts clean.
+     */
+    /** NestedScrollView (Home ka SpringNestedScrollView bhi isi me aata hai). */
+    fun bindScrollToNav(scrollView: androidx.core.widget.NestedScrollView) {
+        accumulatedDy = 0
+        setNavAndFabHidden(false)
+        scrollView.setOnScrollChangeListener(
+            androidx.core.widget.NestedScrollView.OnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
+                onContentScrolled(scrollY, oldScrollY)
+            }
+        )
+    }
+
+    /** Plain ScrollView (Settings). */
+    fun bindScrollToNav(scrollView: android.widget.ScrollView) {
+        accumulatedDy = 0
+        setNavAndFabHidden(false)
+        scrollView.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
+            onContentScrolled(scrollY, oldScrollY)
+        }
+    }
+
+    /** RecyclerView (Templates, FilesList, aur Files ke andar wale grids). */
+    fun bindScrollToNav(recyclerView: androidx.recyclerview.widget.RecyclerView) {
+        accumulatedDy = 0
+        setNavAndFabHidden(false)
+        recyclerView.addOnScrollListener(object :
+            androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+            override fun onScrolled(rv: androidx.recyclerview.widget.RecyclerView, dx: Int, dy: Int) {
+                onContentScrolledByDelta(dy, rv)
+            }
+        })
+    }
+
+    /** RecyclerView delta-based forwarding (dy already = delta). */
+    private fun onContentScrolledByDelta(dy: Int, rv: androidx.recyclerview.widget.RecyclerView) {
+        if (dy > 0 && accumulatedDy < 0) accumulatedDy = 0
+        if (dy < 0 && accumulatedDy > 0) accumulatedDy = 0
+        accumulatedDy += dy
+
+        when {
+            accumulatedDy > hideThreshold -> { setNavAndFabHidden(true); accumulatedDy = 0 }
+            accumulatedDy < -showThreshold -> { setNavAndFabHidden(false); accumulatedDy = 0 }
+        }
+
+        // RecyclerView top par hai? (koi item upar scroll na ho sake)
+        if (!rv.canScrollVertically(-1)) {
+            setNavAndFabHidden(false)
+            accumulatedDy = 0
+        }
+    }
+
+    fun setNavAndFabHidden(hidden: Boolean) {
+        if (isNavHidden == hidden) return
+        isNavHidden = hidden
+
+        val nav = binding.bottomNavigation
+        val fab = binding.fabAddImage
+        val density = resources.displayMetrics.density
+        val margin = 20 * density   // right aur bottom dono ke liye same margin
+
+        val screenW = resources.displayMetrics.widthPixels
+        val screenH = resources.displayMetrics.heightPixels
+        val fabHalf = fab.width / 2f
+
+        // X: right edge se `margin` door
+        val fabTargetX = (screenW / 2f) - fabHalf - margin
+
+        // Y: FAB ko screen bottom se `margin` upar le jao taaki bottom gap = right gap
+        val fabLocation = IntArray(2)
+        fab.getLocationOnScreen(fabLocation)
+        val fabCurrentBottom = fabLocation[1] + fab.height   // current absolute bottom
+        val fabTargetBottom = screenH - margin               // desired bottom
+        val fabTargetY = (fabTargetBottom - fabCurrentBottom).toFloat()
+
+        if (hidden) {
+            nav.animate()
+                .translationY(nav.height.toFloat() + 40f)
+                .setDuration(250)
+                .setInterpolator(android.view.animation.AccelerateInterpolator())
+                .setUpdateListener { syncIndicatorToNav(nav) }
+                .withEndAction { indicatorView?.visibility = View.GONE }
+                .start()
+
+            // FAB diagonally → bottom-right corner (right + neeche, equal margins)
+            fab.animate()
+                .translationX(fabTargetX)
+                .translationY(fabTargetY)
+                .setDuration(250)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .start()
+        } else {
+            indicatorView?.visibility = View.VISIBLE
+
+            nav.animate()
+                .translationY(0f)
+                .setDuration(250)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .setUpdateListener { syncIndicatorToNav(nav) }
+                .start()
+
+            fab.animate()
+                .translationX(0f)
+                .translationY(0f)
+                .setDuration(250)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .start()
+        }
+    }
+
+    private var indicatorView: View? = null
+    private var indicatorSpringX: SpringAnimation? = null
+    private var indicatorW: Int = 0
+
+    private val CENTER_INDEX = 2  // nav_add_images slot (FAB), indicator skips it
+
+    private fun indexForMenuItem(itemId: Int): Int = when (itemId) {
+        R.id.nav_home -> 0
+        R.id.nav_templates -> 1
+        R.id.nav_add_images -> 2
+        R.id.nav_fav -> 3
+        R.id.nav_settings -> 4
+        else -> -1
+    }
+
+    /**
+     * X center of each item, accounting for the nav's horizontal padding.
+     * The real item strip is (width - paddingLeft - paddingRight), divided
+     * equally among all menu slots. This makes the dot land exactly over each icon.
+     */
+    private fun xForIndex(nav: BottomNavigationView, index: Int): Float {
+        val usableW = nav.width - nav.paddingLeft - nav.paddingRight
+        val itemW = usableW / nav.menu.size()
+        val itemCenter = nav.x + nav.paddingLeft + itemW * index + itemW / 2f
+        return itemCenter - indicatorW / 2f
+    }
+
+    /** Y position: just INSIDE the top edge of the white bar (not above it). */
+    private fun yForIndicator(nav: BottomNavigationView): Float {
+        val topInset = (4 * resources.displayMetrics.density)
+        return nav.y + topInset
+    }
+
+    /** Keep the indicator glued to the nav while the nav slides in/out. */
+    private fun syncIndicatorToNav(nav: BottomNavigationView) {
+        val iv = indicatorView ?: return
+        iv.translationY = nav.translationY      // match the slide
+        iv.y = yForIndicator(nav) + nav.translationY
+    }
+
+    private fun moveIndicatorTo(nav: BottomNavigationView, index: Int) {
+        if (indicatorView == null) return
+        indicatorSpringX?.animateToFinalPosition(xForIndex(nav, index))
+        indicatorView?.y = yForIndicator(nav)
+    }
+
+    private fun attachSpringIndicator(nav: BottomNavigationView) {
+        if (indicatorView != null) return  // guard against double-attach
+
+        val ctx = nav.context
+        val density = resources.displayMetrics.density
+        val indicatorH = (3 * density).toInt()   // 3dp tall
+        indicatorW = (22 * density).toInt()      // 22dp wide
+
+        val indicator = View(ctx).apply {
+            layoutParams = android.widget.FrameLayout.LayoutParams(indicatorW, indicatorH)
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                cornerRadius = indicatorH / 2f
+                setColor(androidx.core.content.ContextCompat.getColor(ctx, R.color.appColor))
+            }
+            // Above the nav bar (nav = 8dp) but below the FAB (16dp)
+            elevation = 12f * density
+        }
+
+        val root = binding.root as androidx.constraintlayout.widget.ConstraintLayout
+        root.addView(indicator)
+        indicatorView = indicator
+
+        // Initial position based on current destination (default: home).
+        val startIndex = when (navController.currentDestination?.id) {
+            R.id.templateCategoriesFragment -> 1
+            R.id.filesFragment -> 3
+            R.id.settingsFragment -> 4
+            else -> 0
+        }
+        indicator.x = xForIndex(nav, startIndex)
+        indicator.y = yForIndicator(nav)
+
+        indicatorSpringX = SpringAnimation(indicator, DynamicAnimation.X).apply {
+            spring = SpringForce().apply {
+                dampingRatio = SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY
+                stiffness = SpringForce.STIFFNESS_LOW
+            }
+        }
+
+        // z-order: indicator nav ke upar, lekin FAB sabse upar
+        indicator.bringToFront()
+        binding.fabAddImage.bringToFront()
+
+        // Start hidden unless we're already on a top-level (nav-visible) screen.
+        val navVisibleNow = navController.currentDestination?.id in setOf(
+            R.id.homeFragment,
+            R.id.templateCategoriesFragment,
+            R.id.filesFragment,
+            R.id.settingsFragment
+        )
+        indicator.visibility = if (navVisibleNow) View.VISIBLE else View.GONE
+        binding.fabAddImage.visibility = if (navVisibleNow) View.VISIBLE else View.GONE
     }
 
     // ──────────────────────────────────────────────────────────
@@ -304,8 +499,7 @@ class MainActivity : AppCompatActivity() {
                 WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
             )
         } else {
-            @Suppress("DEPRECATION")
-            val flags = window.decorView.systemUiVisibility
+            @Suppress("DEPRECATION") val flags = window.decorView.systemUiVisibility
             window.decorView.systemUiVisibility = if (darkIcons) {
                 flags or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
             } else {
@@ -320,17 +514,12 @@ class MainActivity : AppCompatActivity() {
                 w.insetsController?.apply {
                     hide(WindowInsets.Type.navigationBars())
                     show(WindowInsets.Type.statusBars())
-                    systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    systemBarsBehavior =
+                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 }
             } else {
-                @Suppress("DEPRECATION")
-                w.decorView.systemUiVisibility =
-                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-                            View.SYSTEM_UI_FLAG_FULLSCREEN or
-                            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                @Suppress("DEPRECATION") w.decorView.systemUiVisibility =
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             }
         }
     }
@@ -358,11 +547,10 @@ class MainActivity : AppCompatActivity() {
         // tryOpenProject does a magic-byte check internally — it rejects non-URDC files
         // silently, so false positives just fall through to the image handler below.
         val name = queryDisplayName(uri)
-        val looksLikeProject = name?.endsWith(".urdc", true) == true ||
-                name?.endsWith(".bin", true) == true ||   // WhatsApp renames .urdc -> .bin
-                intent.type == "application/octet-stream" ||
-                intent.type == "application/octet_stream" ||
-                intent.type == null   // some share sources send no MIME type at all
+        val looksLikeProject = name?.endsWith(".urdc", true) == true || name?.endsWith(
+            ".bin", true
+        ) == true ||   // WhatsApp renames .urdc -> .bin
+                intent.type == "application/octet-stream" || intent.type == "application/octet_stream" || intent.type == null   // some share sources send no MIME type at all
         if (looksLikeProject && tryOpenProject(uri)) return
 
         // ── 2) Existing image handling (unchanged) ──
@@ -371,14 +559,14 @@ class MainActivity : AppCompatActivity() {
                 contentResolver.openInputStream(uri)?.use { stream ->
                     val bitmap = BitmapFactory.decodeStream(stream)
                     if (bitmap != null) {
-                        val canvasSize = CanvasSize(id = 0,"From Image", bitmap.width.toFloat(), bitmap.height.toFloat())
+                        val canvasSize = CanvasSize(
+                            id = 0, "From Image", bitmap.width.toFloat(), bitmap.height.toFloat()
+                        )
                         viewModel.clearCanvas()
                         viewModel.setCanvasSize(canvasSize)
                         viewModel.setCanvasBackgroundImage(bitmap, this@MainActivity)
-                        val opts = NavOptions.Builder()
-                            .setLaunchSingleTop(true)
-                            .setPopUpTo(R.id.editorFragment, inclusive = true)
-                            .build()
+                        val opts = NavOptions.Builder().setLaunchSingleTop(true)
+                            .setPopUpTo(R.id.editorFragment, inclusive = true).build()
                         navController.navigate(R.id.editorFragment, null, opts)
                     }
                 }
@@ -415,18 +603,17 @@ class MainActivity : AppCompatActivity() {
                 resolution = "",
                 format = "URDC",
                 quality = "",
-                canvasSize = viewModel.canvasSize.value
-                    ?: CanvasSize(id = 0, "Project", 1080f, 1080f),
+                canvasSize = viewModel.canvasSize.value ?: CanvasSize(
+                    id = 0, "Project", 1080f, 1080f
+                ),
                 exportDate = "",
                 updatedDate = ""
             )
 
             viewModel.loadTemplateFromJsonFile(result, this@MainActivity)
 
-            val opts = NavOptions.Builder()
-                .setLaunchSingleTop(true)
-                .setPopUpTo(R.id.editorFragment, inclusive = true)
-                .build()
+            val opts = NavOptions.Builder().setLaunchSingleTop(true)
+                .setPopUpTo(R.id.editorFragment, inclusive = true).build()
             navController.navigate(R.id.editorFragment, null, opts)
             true
         } catch (e: Exception) {
@@ -439,7 +626,9 @@ class MainActivity : AppCompatActivity() {
         else contentResolver.query(
             uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
         )?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
-    } catch (e: Exception) { null }
+    } catch (e: Exception) {
+        null
+    }
 
     // ──────────────────────────────────────────────────────────
     // Observers / Resume / Result / Destroy
@@ -474,10 +663,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onDestroy(){
+    override fun onDestroy() {
         super.onDestroy()
-        blurEngine?.destroy()
-        blurEngine = null
         updateManager.onDestroy()
         _navController = null
         _binding = null

@@ -54,19 +54,34 @@ class BillingManager @Inject constructor(
 
     fun launchPlanChange(activity: Activity, newPlanId: Int) {
         startConnection {
-            // 1. Get current active purchase token
             billingClient.queryPurchasesAsync(
                 QueryPurchasesParams.newBuilder()
                     .setProductType(BillingClient.ProductType.SUBS)
                     .build()
-            ) { result, purchases ->
+            ) { _, purchases ->
                 val currentPurchase = purchases.firstOrNull {
                     it.purchaseState == Purchase.PurchaseState.PURCHASED
                 }
 
                 val productId = PLAN_PRODUCT_IDS[newPlanId] ?: return@queryPurchasesAsync
-                val productDetails = availableProducts.find { it.productId == productId } ?: return@queryPurchasesAsync
-                val offerToken = productDetails.subscriptionOfferDetails?.firstOrNull()?.offerToken ?: return@queryPurchasesAsync
+                val productDetails = availableProducts.find { it.productId == productId }
+                    ?: return@queryPurchasesAsync
+                val offerToken = productDetails.subscriptionOfferDetails
+                    ?.firstOrNull()?.offerToken ?: return@queryPurchasesAsync
+
+                // Work out current plan rank from the active purchase's product id.
+                val currentProductId = currentPurchase?.products?.firstOrNull()
+                val currentRank = PLAN_PRODUCT_IDS.entries
+                    .firstOrNull { it.value == currentProductId }?.key ?: 0
+                val isUpgrade = newPlanId > currentRank
+
+                val replacementMode = if (isUpgrade) {
+                    // Immediate switch, charge the prorated difference now.
+                    BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_PRORATED_PRICE
+                } else {
+                    // Keep current (higher) tier until period ends, then switch.
+                    BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.DEFERRED
+                }
 
                 val productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
                     .setProductDetails(productDetails)
@@ -76,16 +91,11 @@ class BillingManager @Inject constructor(
                 val flowParams = BillingFlowParams.newBuilder()
                     .setProductDetailsParamsList(listOf(productDetailsParams))
                     .apply {
-                        // ↓ This is the key part — tells Play this is a subscription update
                         if (currentPurchase != null) {
                             setSubscriptionUpdateParams(
                                 BillingFlowParams.SubscriptionUpdateParams.newBuilder()
                                     .setOldPurchaseToken(currentPurchase.purchaseToken)
-                                    .setSubscriptionReplacementMode(
-                                        // Upgrade → immediate with proration
-                                        // Downgrade → deferred (runs after current period)
-                                        BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.WITH_TIME_PRORATION
-                                    )
+                                    .setSubscriptionReplacementMode(replacementMode)
                                     .build()
                             )
                         }

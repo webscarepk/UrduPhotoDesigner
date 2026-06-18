@@ -54,7 +54,9 @@ import com.webscare.urducanvas.viewmodels.FiltersViewModel
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import android.content.Intent
 import androidx.core.content.FileProvider
+import com.webscare.urducanvas.MainActivity
 import com.webscare.urducanvas.common.canvas.io.ProjectCodec
+import com.webscare.urducanvas.common.utils.SpringEdgeEffectFactory
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -112,7 +114,8 @@ class FilesListFragment : Fragment() {
 
         setEvents()
         initObservers()
-        // "All" hides the button; "Projects" shows it so users can import a .urdc/.json file.
+        (activity as? MainActivity)?.bindScrollToNav(_binding!!.filesRV)
+        _binding!!.filesRV.edgeEffectFactory = SpringEdgeEffectFactory()
         if (tabName.equals("All", true)) {
             _binding!!.addMore.visibility = View.GONE
         }

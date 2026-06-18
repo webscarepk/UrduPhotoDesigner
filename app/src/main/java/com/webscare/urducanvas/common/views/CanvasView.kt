@@ -109,7 +109,8 @@ class CanvasView @JvmOverloads constructor(
     var onRequestOpenLayers: (() -> Unit)? = null,
     var onExitSelectionMode: (() -> Unit)? = null,
     var onStrokeCompleted: ((StrokeData) -> Unit)? = null,
-    var onZoomChanged: ((Float) -> Unit)? = null
+    var onZoomChanged: ((Float) -> Unit)? = null,
+    var onCanvasLongPressed: ((screenX: Float, screenY: Float) -> Unit)? = null
 ) : View(context, attrs) {
 
     private val gson: Gson by lazy {
@@ -4509,6 +4510,10 @@ class CanvasView @JvmOverloads constructor(
                 val reportList = if (sentinel != null) listOf(sentinel) else selectedElements.toList()
                 onElementSelected?.invoke(reportList)
                 invalidate()
+            }else {
+                // Long press away from any art-board element → canvas options popup.
+                vibrateSoft()
+                onCanvasLongPressed?.invoke(e.rawX, e.rawY)
             }
         }
     }

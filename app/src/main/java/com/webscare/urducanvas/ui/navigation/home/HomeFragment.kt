@@ -21,6 +21,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.snackbar.Snackbar
+import com.webscare.urducanvas.MainActivity
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.ErrorType
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
@@ -101,6 +102,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
         setEvents()
         initObservers()
+        (activity as? MainActivity)?.bindScrollToNav(binding.contentScroll)
     }
 
     private fun showLoadingDialog() {

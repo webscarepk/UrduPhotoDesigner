@@ -24,6 +24,9 @@
     <string name="verify">Verify</string>
     <string name="create">Create</string>
     <string name="resize">Resize</string>
+    <string name="canvas_size">Canvas Size</string>
+    <string name="background">Background</string>
+    <string name="canvas_size_value">%1$d × %2$d</string>
     <string name="open_with_urdu_canvas">Open in Urdu Canvas</string>
     <string name="templates">Templates</string>
     <string name="saved">Saved</string>
@@ -366,6 +369,8 @@
     <string name="feedback">Feedback</string>
     <string name="ungroup">Ungroup</string>
     <string name="project">Project</string>
+    <string name="lock_canvas">Lock Canvas</string>
+    <string name="unlock_canvas">Unlock Canvas</string>
 
     <array name="hue_colors">
         <item>#FF0000</item>

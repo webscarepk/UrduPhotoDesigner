@@ -30,6 +30,7 @@ import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.SeekBar
 import androidx.activity.OnBackPressedCallback
+import com.webscare.urducanvas.databinding.LayoutCanvasPopupBinding
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.AnimRes
 import androidx.annotation.ColorRes
@@ -75,12 +76,12 @@ import com.webscare.urducanvas.databinding.DialogAutoSavingLayoutBinding
 import com.webscare.urducanvas.databinding.FragmentEditorBinding
 import com.webscare.urducanvas.databinding.LayoutBlendPopupBinding
 import com.webscare.urducanvas.databinding.LayoutZoomPopupBinding
+import com.webscare.urducanvas.ui.creation.CreateFragment
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -633,6 +634,16 @@ class EditorFragment : Fragment() {
 
     private fun observeViewModel() {
 
+        viewModel.backgroundColor.observe(viewLifecycleOwner) { color ->
+            if (isAdded) {
+                color?.let {
+                    canvasManager.setCanvasBackgroundColor(it)
+                    binding.canvasContainer.setBackgroundColor(it)
+                    scheduleJsonSave()
+                }
+            }
+        }
+
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.expandedPanel.collect { panel ->
@@ -1076,6 +1087,7 @@ class EditorFragment : Fragment() {
     private var cbOnEditTextRequested : (CanvasElement) -> Unit = {}
     private var cbOnElementSelected   : (List<CanvasElement>) -> Unit = {}
     private var cbOnRequestOpenLayers : () -> Unit = {}
+    private var cbOnCanvasLongPressed : (Float, Float) -> Unit = { _, _ -> }
 
     /** Call on every onViewCreated to point all fragment-state callbacks at the live instance. */
     private fun rewireCanvasCallbacks() {
@@ -1085,6 +1097,7 @@ class EditorFragment : Fragment() {
             viewModel.onCanvasSelectionChanged(elements)
         }
         cbOnRequestOpenLayers = { handleRequestOpenLayers() }
+        cbOnCanvasLongPressed = { sx, sy -> showCanvasPopupMenu(sx, sy) }
     }
 
     /** Attach/restore CanvasView inside container */
@@ -1140,7 +1153,8 @@ class EditorFragment : Fragment() {
                 onRequestOpenLayers = { cbOnRequestOpenLayers() },
                 onExitSelectionMode = { viewModel.exitSelectionMode() },
                 onStrokeCompleted = { stroke -> viewModel.notifyDrawStrokeAdded(stroke) },
-                onZoomChanged = { zoom -> viewModel.setZoomLevel(zoom) }
+                onZoomChanged = { zoom -> viewModel.setZoomLevel(zoom) },
+                onCanvasLongPressed = { sx, sy -> cbOnCanvasLongPressed(sx, sy) }
             ).apply {
                 binding.canvasContainer.addView(this)
             }
@@ -1408,10 +1422,6 @@ class EditorFragment : Fragment() {
 
         binding.pan.addPressEffect {
             viewModel.togglePanMode()
-        }
-
-        binding.canvasPanLock.addPressEffect {
-            viewModel.toggleCanvasPanLock()
         }
 
         binding.done.addPressEffect {
@@ -1935,6 +1945,78 @@ class EditorFragment : Fragment() {
         }
     }
 
+    /**
+     * Shown when the user long-presses inside the CanvasView but away from any
+     * art-board element. Anchored at the raw touch coordinates.
+     */
+    private fun showCanvasPopupMenu(touchRawX: Float, touchRawY: Float) {
+        if (!isAdded) return
+
+        val popupBinding = LayoutCanvasPopupBinding.inflate(LayoutInflater.from(requireActivity()))
+        val popupWindow = PopupWindow(
+            popupBinding.root,
+            (210 * resources.displayMetrics.density).toInt(),
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            true
+        ).apply {
+            elevation = 2f
+            isOutsideTouchable = true
+        }
+
+        // ── Current canvas size ───────────────────────────────────────────
+        val size = viewModel.canvasSize.value
+        popupBinding.canvasSizeValue.text = if (size != null) {
+            getString(R.string.canvas_size_value, size.width.toInt(), size.height.toInt())
+        } else ""
+
+        popupBinding.actionCanvasSize.addPressEffect {
+            popupWindow.dismiss()
+            CreateFragment.newResizeInstance().show(parentFragmentManager, "resize_canvas")
+        }
+
+        // ── Background color: light / dark ────────────────────────────────
+        val lightColor = ContextCompat.getColor(requireContext(), R.color.contrast)
+        val darkColor   = ContextCompat.getColor(requireContext(), R.color.black)
+
+        popupBinding.bgLight.addPressEffect {
+            viewModel.setCanvasBackgroundColor(lightColor)
+            popupWindow.dismiss()
+        }
+        popupBinding.bgDark.addPressEffect {
+            viewModel.setCanvasBackgroundColor(darkColor)
+            popupWindow.dismiss()
+        }
+
+        // ── Lock / Unlock ─────────────────────────────────────────────────
+        val locked = viewModel.isCanvasPanLocked.value ?: false
+        popupBinding.actionLock.text =
+            getString(if (locked) R.string.unlock_canvas else R.string.lock_canvas)
+        popupBinding.actionLock.setCompoundDrawablesRelativeWithIntrinsicBounds(
+            0, 0, if (locked) R.drawable.ic_unlock else R.drawable.ic_lock, 0
+        )
+        popupBinding.actionLock.addPressEffect {
+            viewModel.toggleCanvasPanLock()
+            popupWindow.dismiss()
+        }
+
+        // ── Anchor at touch point, flip up if not enough room below ────────
+        binding.canvasContainer.post {
+            val screenHeight = resources.displayMetrics.heightPixels
+            popupBinding.root.measure(
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
+            val popupHeight = popupBinding.root.measuredHeight
+            val x = touchRawX.toInt()
+            val y = if (screenHeight - touchRawY >= popupHeight) {
+                touchRawY.toInt()
+            } else {
+                (touchRawY - popupHeight).toInt()
+            }
+            popupWindow.showAtLocation(binding.root, Gravity.NO_GRAVITY, x, y)
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         saveJsonJob?.cancel()
@@ -1951,6 +2033,7 @@ class EditorFragment : Fragment() {
         cbOnEditTextRequested = {}
         cbOnElementSelected   = {}
         cbOnRequestOpenLayers = {}
+        cbOnCanvasLongPressed = { _, _ -> }
         if (!BuildConfig.DEBUG) {
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }

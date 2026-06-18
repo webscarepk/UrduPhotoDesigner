@@ -13,6 +13,7 @@ import com.webscare.urducanvas.databinding.FragmentSettingsBinding
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
+import com.webscare.urducanvas.MainActivity
 import com.webscare.urducanvas.di.BillingManager
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -37,6 +38,7 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
         observeSubscription()
         setEvents()
         setVersionInfo()
+        (activity as? MainActivity)?.bindScrollToNav(binding.settingsScroll)
     }
 
     private fun setVersionInfo() {

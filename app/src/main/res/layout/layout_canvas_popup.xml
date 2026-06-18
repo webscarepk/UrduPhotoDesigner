@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:background="@drawable/button_bg"
+    android:backgroundTint="@color/white"
+    android:layout_width="220dp"
+    android:layout_height="wrap_content">
+
+    <!-- Canvas size: label + current dimensions inline -->
+    <LinearLayout
+        android:id="@+id/actionCanvasSize"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="15dp"
+        android:paddingVertical="10dp">
+
+        <TextView
+            style="@style/PopupItemStyle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="@string/canvas_size" />
+
+        <TextView
+            android:id="@+id/canvasSizeValue"
+            style="@style/PopupItemStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black"
+            tools:text="1080 × 1080" />
+
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/contrast" />
+
+    <!-- Background color: short label + swatches inline -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="15dp"
+        android:paddingVertical="8dp">
+
+        <TextView
+            style="@style/PopupItemStyle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="@string/background" />
+
+        <View
+            android:id="@+id/bgLight"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/button_bg"
+            android:backgroundTint="@color/contrast" />
+
+        <View
+            android:id="@+id/bgDark"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/button_bg"
+            android:backgroundTint="@color/black" />
+
+    </LinearLayout>
+    <TextView
+        android:id="@+id/actionLock"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        style="@style/PopupItemStyle"
+        android:text="@string/lock_canvas"
+        android:paddingHorizontal="15dp"
+        android:paddingVertical="10dp"
+        app:drawableEndCompat="@drawable/ic_unlock"
+        app:drawableTint="@color/black" />
+
+</LinearLayout>
