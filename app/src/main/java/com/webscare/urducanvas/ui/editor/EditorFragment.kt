@@ -634,16 +634,6 @@ class EditorFragment : Fragment() {
 
     private fun observeViewModel() {
 
-        viewModel.backgroundColor.observe(viewLifecycleOwner) { color ->
-            if (isAdded) {
-                color?.let {
-                    canvasManager.setCanvasBackgroundColor(it)
-                    binding.canvasContainer.setBackgroundColor(it)
-                    scheduleJsonSave()
-                }
-            }
-        }
-
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.expandedPanel.collect { panel ->
@@ -688,6 +678,16 @@ class EditorFragment : Fragment() {
     private fun observeAfterCanvasReady() {
         viewModel.inSelectionMode.observe(viewLifecycleOwner) { enabled ->
             if (::sizedCanvasView.isInitialized) sizedCanvasView.setSelectionMode(enabled)
+        }
+
+        viewModel.backgroundColor.observe(viewLifecycleOwner) { color ->
+            if (isAdded) {
+                color?.let {
+                    canvasManager.setCanvasBackgroundColor(it)
+                    binding.editorRoot.setBackgroundColor(it)
+                    scheduleJsonSave()
+                }
+            }
         }
 
         viewModel.exportResult.observe(viewLifecycleOwner) { exportResult ->
