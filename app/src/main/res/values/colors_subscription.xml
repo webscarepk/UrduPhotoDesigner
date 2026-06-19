@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Additive palette for the Plan-picker-A + Manage-subscription screens.
+  Kept in a separate file so it merges into your existing colors.xml without
+  any duplicate-resource conflicts. Names are prefixed `sub_` (shared) and
+  `state_` (per Google-Play subscription state) to stay clearly namespaced.
+-->
+<resources>
+    <!-- Header / brand gradient stops (slightly brighter than appColor) -->
+    <color name="sub_header_start">#23934F</color>
+    <color name="sub_header_end">#0C5A2C</color>
+
+    <!-- Plan-picker-A surfaces -->
+    <color name="sub_card_stroke">#CFE8D8</color>
+    <color name="sub_segment_track">#EEF2EF</color>
+    <color name="sub_divider">#EEF2EF</color>
+    <color name="sub_free_card_stroke">#E3E9E5</color>
+    <color name="sub_discount_pill">#138A4E</color>
+    <color name="sub_save_bg">#E4F3E9</color>
+    <color name="sub_save_text">#1B6B3C</color>
+    <color name="sub_strike">#B3BCB6</color>
+    <color name="sub_price_text">#15201A</color>
+    <color name="sub_segment_text">#3A4A42</color>
+    <color name="sub_segment_text_active">#15201A</color>
+    <color name="sub_overlay_white_18">#2EFFFFFF</color>
+
+    <!-- Manage screen surfaces -->
+    <color name="sub_screen_bg">#F7FAF8</color>
+    <color name="sub_banner_detail">#6B746E</color>
+    <color name="sub_mono_box_bg">#F4F6F5</color>
+    <color name="sub_mono_box_stroke">#D4DBD6</color>
+    <color name="sub_mono_text">#7C857F</color>
+    <color name="sub_mono_muted">#AAB2AC</color>
+    <color name="sub_signals_box_bg">#F7FAF8</color>
+    <color name="sub_signals_box_stroke">#E6ECE8</color>
+    <color name="sub_signal_row_divider">#EEF2EF</color>
+    <color name="sub_ackwarn_bg">#FBF1DF</color>
+    <color name="sub_ackwarn_text">#9A6A10</color>
+    <color name="sub_secondary_btn_stroke">#DCE4DE</color>
+    <color name="sub_secondary_btn_text">#3A4A42</color>
+    <color name="sub_quicklink_divider">#F0F3F1</color>
+    <color name="sub_quicklink_text">#384039</color>
+    <color name="sub_quicklink_chevron">#C2CAC4</color>
+
+    <!-- Signal value tints -->
+    <color name="sub_signal_good">#1F8A4C</color>
+    <color name="sub_signal_warn">#C2780B</color>
+    <color name="sub_signal_bad">#D7263D</color>
+    <color name="sub_signal_mute">#6B746E</color>
+
+    <!-- Per-state accent + tint (chip bg / icon box) -->
+    <color name="state_green">#1F8A4C</color>
+    <color name="state_green_tint">#EAF6EE</color>
+    <color name="state_amber">#C2780B</color>
+    <color name="state_amber_tint">#FBF1DF</color>
+    <color name="state_blue">#2563EB</color>
+    <color name="state_blue_tint">#E6EEFD</color>
+    <color name="state_gray">#6B7280</color>
+    <color name="state_gray_tint">#EEF0F2</color>
+    <color name="state_teal">#0E9F6E</color>
+    <color name="state_teal_tint">#E5F6EF</color>
+</resources>

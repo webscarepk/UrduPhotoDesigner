@@ -1,5 +1,27 @@
 package com.webscare.urducanvas.data.model
 
+/**
+ * A subscription plan/term.
+ *
+ * The first block (id, title, productId, price, duration, badge, isSelected) is
+ * unchanged from the original model so existing call-sites and
+ * [com.webscare.urducanvas.ui.navigation.settings.SubscriptionsAdapter] keep
+ * compiling.
+ *
+ * The second block is added for the "Plan picker A" design (segmented term
+ * toggle + detail card). All amounts are whole-rupee integers already divided
+ * down from Play Billing's `priceAmountMicros`, plus the currency symbol so the
+ * UI never has to touch micros again:
+ *
+ *  - [perMonth]      effective price per month for this term
+ *  - [total]         amount billed each period (e.g. 1800 for the 6-month term)
+ *  - [origPerMonth]  the monthly plan's per-month price — the strike-through baseline
+ *  - [discountPercent] rounded saving vs [origPerMonth] (0 = no discount)
+ *  - [save]          money saved over the period vs paying monthly
+ *  - [months]        billing period length in months (1 / 6 / 12)
+ *  - [billed]        cadence label, e.g. "Every month", "Every 6 months", "Annually"
+ *  - [currencySymbol] "Rs" for PKR, otherwise the ISO currency code
+ */
 data class SubscriptionPlan(
     val id: Int,
     val title: String,
@@ -7,5 +29,20 @@ data class SubscriptionPlan(
     val price: String,
     val duration: String,
     val badge: String? = null,
-    var isSelected: Boolean = false
-)
+    var isSelected: Boolean = false,
+
+    // ── Plan picker A additions ────────────────────────────────────────────
+    val perMonth: Int = 0,
+    val total: Int = 0,
+    val origPerMonth: Int = 0,
+    val discountPercent: Int = 0,
+    val save: Int = 0,
+    val months: Int = 1,
+    val billed: String = "",
+    val currencySymbol: String = "Rs"
+) {
+    val hasDiscount: Boolean get() = discountPercent > 0
+    val hasSave: Boolean get() = save > 0
+    /** Show the strike-through original only when this term beats the monthly rate. */
+    val showStrike: Boolean get() = origPerMonth > perMonth && origPerMonth > 0
+}

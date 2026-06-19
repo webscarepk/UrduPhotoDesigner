@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Additive strings for the Plan-picker-A + Manage-subscription screens.
+  Prefixed `sub_` / `mng_` so they never collide with your existing strings.xml.
+  Re-use existing strings where they already fit (urdu_canvas_pro, manage,
+  restore, terms_of_use, privacy_policy, the five benefit strings, etc.).
+-->
+<resources>
+    <!-- Plan picker A -->
+    <string name="sub_header_subtitle">Unlock premium Urdu design tools</string>
+    <string name="sub_free_title">You\'re on the Free plan</string>
+    <string name="sub_free_subtitle">Unlock everything with Pro</string>
+    <string name="sub_current_title">You\'re on %1$s</string>
+    <string name="sub_current_subtitle">Switch your plan below</string>
+
+    <string name="sub_term_monthly">Monthly</string>
+    <string name="sub_term_6month">6-Month</string>
+    <string name="sub_term_yearly">Yearly</string>
+
+    <string name="sub_plan_label">%1$s plan</string>
+    <string name="sub_percent_off">%1$d%% OFF</string>
+    <string name="sub_per_month_billed">per month · %1$s billed %2$s</string>
+    <string name="sub_save_line">Save %1$s %2$s</string>
+    <string name="sub_save_suffix_year">per year</string>
+    <string name="sub_save_suffix_6month">/ 6 months</string>
+
+    <string name="sub_cta_subscribe">Subscribe Now</string>
+    <string name="sub_cta_subscribed">Subscribed</string>
+    <string name="sub_cta_note">You\'ll be charged %1$s, billed %2$s.</string>
+
+    <!-- Billed cadence labels -->
+    <string name="sub_billed_monthly">Every month</string>
+    <string name="sub_billed_6month">Every 6 months</string>
+    <string name="sub_billed_annually">Annually</string>
+
+    <!-- Manage subscription -->
+    <string name="mng_title">Manage subscription</string>
+    <string name="mng_signals_header">From Google Play Billing</string>
+
+    <!-- chips -->
+    <string name="mng_chip_not_subscribed">Not subscribed</string>
+    <string name="mng_chip_trial">Free trial</string>
+    <string name="mng_chip_active">Active</string>
+    <string name="mng_chip_canceled">Canceled</string>
+    <string name="mng_chip_pending">Pending</string>
+
+    <!-- titles -->
+    <string name="mng_title_not_subscribed">No active subscription</string>
+    <string name="mng_title_trial">Free trial running</string>
+    <string name="mng_title_active">Pro is active</string>
+    <string name="mng_title_canceled">Auto-renew is off</string>
+    <string name="mng_title_pending">Purchase pending</string>
+
+    <!-- details -->
+    <string name="mng_detail_not_subscribed">queryPurchasesAsync returned no purchase for this account.</string>
+    <string name="mng_detail_trial">Approximated from a Rs0 pricing phase in the offer — Billing has no direct “in trial” flag app-only.</string>
+    <string name="mng_detail_active">Purchased and auto-renewing. The exact renewal date needs the Play Developer API, so it isn’t shown app-only.</string>
+    <string name="mng_detail_canceled">Still purchased — Pro stays until the current period ends, then access stops. The end date isn’t exposed app-only.</string>
+    <string name="mng_detail_pending">purchaseState is PENDING (slow or cash payment). No Pro access until it becomes PURCHASED.</string>
+
+    <!-- ack notes -->
+    <string name="mng_ack_good">Acknowledged within the 3-day window.</string>
+    <string name="mng_ack_warn">Once it turns PURCHASED, acknowledge within 3 days or Google auto-refunds it.</string>
+
+    <!-- mono no-purchase readout -->
+    <string name="mng_mono_query">queryPurchasesAsync()</string>
+    <string name="mng_mono_empty">[ ]</string>
+    <string name="mng_mono_comment">// no active purchase returned</string>
+
+    <!-- CTAs -->
+    <string name="mng_cta_see_plans">See Pro plans</string>
+    <string name="mng_cta_change_plan">Change plan</string>
+    <string name="mng_cta_resubscribe">Resubscribe</string>
+    <string name="mng_cta_recheck">Re-check (queryPurchasesAsync)</string>
+    <string name="mng_cta_manage_play">Manage in Google Play</string>
+    <string name="mng_cta_cancel_play">Cancel in Google Play</string>
+
+    <!-- quick links -->
+    <string name="mng_open_in_play">Open in Google Play</string>
+    <string name="mng_restore">Restore purchases</string>
+    <string name="mng_help_billing">Help &amp; billing support</string>
+
+    <!-- toasts -->
+    <string name="mng_toast_rechecked">Re-queried — purchaseState is now PURCHASED</string>
+    <string name="mng_toast_opening_play">Opening your subscription in Google Play…</string>
+    <string name="mng_toast_purchased">Purchased — acknowledged within 3 days</string>
+</resources>

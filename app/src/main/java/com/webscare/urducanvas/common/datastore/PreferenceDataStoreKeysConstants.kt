@@ -20,4 +20,9 @@ object PreferenceDataStoreKeysConstants {
     val PREF_ACTIVE_PLAN = stringPreferencesKey("active_plan")
     var isSubscribedValue: Boolean = false
     val REMIND_LATER_TIMESTAMP = longPreferencesKey("remind_later_timestamp")
+
+    val PREF_SUBSCRIPTION_START = longPreferencesKey("subscription_start_ms")
+    val PREF_SUBSCRIPTION_EXPIRY = longPreferencesKey("subscription_expiry_ms")
+    val PREF_CURRENT_PLAN_ID = stringPreferencesKey("current_plan_id")
+    val PREF_SUB_STATUS = stringPreferencesKey("sub_status")
 }

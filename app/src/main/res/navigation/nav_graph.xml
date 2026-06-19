@@ -78,6 +78,11 @@
         android:label="fragment_subscriptions"
         tools:layout="@layout/fragment_subscriptions" />
     <fragment
+        android:id="@+id/manageSubscriptionFragment"
+        android:name="com.webscare.urducanvas.ui.navigation.settings.ManageSubscriptionFragment"
+        android:label="fragment_manage_subscription"
+        tools:layout="@layout/fragment_manage_subscription" />
+    <fragment
         android:id="@+id/preferencesFragment"
         android:name="com.webscare.urducanvas.ui.navigation.settings.PreferencesFragment"
         android:label="fragment_preferences"

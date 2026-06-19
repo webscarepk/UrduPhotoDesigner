@@ -82,8 +82,9 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
             view?.post { findNavController().navigate(R.id.subscriptionsFragment) }
         }
 
+        // Subscribed users land on the Manage screen (state-driven), not the paywall.
         binding.manage.addPressEffect {
-            view?.post { findNavController().navigate(R.id.subscriptionsFragment) }
+            view?.post { findNavController().navigate(R.id.manageSubscriptionFragment) }
         }
 
         binding.preferences.addPressEffect {

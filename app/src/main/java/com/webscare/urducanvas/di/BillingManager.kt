@@ -39,6 +39,28 @@ class BillingManager @Inject constructor(
         data class Error(val message: String) : BillingState()
     }
 
+    // ─── App-only subscription state (what queryPurchasesAsync can tell us) ──────
+    //
+    // These are exactly the five states the Play Billing Library reports to the
+    // client without a backend. Grace / On-hold / Paused / Expired are NOT here:
+    // they return "no purchase" from queryPurchasesAsync and need
+    // subscriptionsv2.get + RTDN to tell apart.
+    enum class SubscriptionStatus { NOT_SUBSCRIBED, TRIAL, ACTIVE, CANCELED, PENDING }
+
+    /** Raw, real Billing signals surfaced on the Manage screen's readout. */
+    data class PlayBillingSnapshot(
+        val status: SubscriptionStatus = SubscriptionStatus.NOT_SUBSCRIBED,
+        val productId: String? = null,
+        val purchaseState: Int? = null,        // 1 = PURCHASED, 2 = PENDING
+        val isAutoRenewing: Boolean? = null,
+        val isAcknowledged: Boolean? = null,
+        val orderId: String? = null,
+        val isTrial: Boolean = false
+    )
+
+    private val _snapshot = MutableStateFlow(PlayBillingSnapshot())
+    val snapshot: StateFlow<PlayBillingSnapshot> = _snapshot
+
     private val _isSubscribed = MutableStateFlow(false)
     val isSubscribed: StateFlow<Boolean> = _isSubscribed
 
@@ -129,10 +151,92 @@ class BillingManager @Inject constructor(
 
                     if (activePurchase != null) fetchExpiryDate(activePurchase)
                     else _expiryDate.value = null
+
+                    // ── Derive the app-only status snapshot for the Manage screen
+                    publishSnapshot(purchases)
                 }
             }
         }
     }
+
+    /**
+     * Always re-queries (even in DEBUG) and republishes [snapshot].
+     * The Manage screen calls this on every resume so the banner reflects the
+     * real, current Play Billing state rather than a cached debug flag.
+     */
+    fun refreshSnapshot() {
+        startConnection {
+            billingClient.queryPurchasesAsync(
+                QueryPurchasesParams.newBuilder()
+                    .setProductType(BillingClient.ProductType.SUBS)
+                    .build()
+            ) { result, purchases ->
+                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                    publishSnapshot(purchases)
+                }
+            }
+        }
+    }
+
+    /** Map a raw purchase list to the five client-detectable states. */
+    private fun publishSnapshot(purchases: List<Purchase>) {
+        val purchased = purchases.firstOrNull {
+            it.purchaseState == Purchase.PurchaseState.PURCHASED
+        }
+        val pending = purchases.firstOrNull {
+            it.purchaseState == Purchase.PurchaseState.PENDING
+        }
+
+        _snapshot.value = when {
+            pending != null && purchased == null -> PlayBillingSnapshot(
+                status = SubscriptionStatus.PENDING,
+                productId = pending.products.firstOrNull(),
+                purchaseState = pending.purchaseState,
+                isAutoRenewing = null,
+                isAcknowledged = pending.isAcknowledged,
+                orderId = pending.orderId,
+                isTrial = false
+            )
+
+            purchased != null -> {
+                val pid = purchased.products.firstOrNull()
+                val trial = isTrialOffer(pid)
+                val status = when {
+                    !purchased.isAutoRenewing -> SubscriptionStatus.CANCELED
+                    trial -> SubscriptionStatus.TRIAL
+                    else -> SubscriptionStatus.ACTIVE
+                }
+                PlayBillingSnapshot(
+                    status = status,
+                    productId = pid,
+                    purchaseState = purchased.purchaseState,
+                    isAutoRenewing = purchased.isAutoRenewing,
+                    isAcknowledged = purchased.isAcknowledged,
+                    orderId = purchased.orderId,
+                    isTrial = trial
+                )
+            }
+
+            else -> PlayBillingSnapshot(SubscriptionStatus.NOT_SUBSCRIBED)
+        }
+    }
+
+    /**
+     * Best-effort free-trial detection: a product whose first offer contains a
+     * zero-cost pricing phase. This is the only app-only signal for "in trial",
+     * and is approximate (it can't tell whether the trial is the *current*
+     * phase). Returns false when product details aren't loaded yet.
+     */
+    private fun isTrialOffer(productId: String?): Boolean {
+        if (productId == null) return false
+        val product = availableProducts.find { it.productId == productId } ?: return false
+        return product.subscriptionOfferDetails
+            ?.firstOrNull()
+            ?.pricingPhases
+            ?.pricingPhaseList
+            ?.any { it.priceAmountMicros == 0L } == true
+    }
+
     private fun fetchExpiryDate(purchase: Purchase) {
         val productId = purchase.products.firstOrNull() ?: return
 
@@ -281,8 +385,18 @@ class BillingManager @Inject constructor(
         when (result.responseCode) {
             BillingClient.BillingResponseCode.OK -> {
                 purchases?.forEach { purchase ->
-                    if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
-                        acknowledgePurchase(purchase)
+                    when (purchase.purchaseState) {
+                        Purchase.PurchaseState.PURCHASED -> acknowledgePurchase(purchase)
+                        Purchase.PurchaseState.PENDING -> {
+                            // Cash / slow payment — no Pro access until it clears.
+                            _snapshot.value = PlayBillingSnapshot(
+                                status = SubscriptionStatus.PENDING,
+                                productId = purchase.products.firstOrNull(),
+                                purchaseState = purchase.purchaseState,
+                                isAcknowledged = purchase.isAcknowledged,
+                                orderId = purchase.orderId
+                            )
+                        }
                     }
                 }
             }
@@ -305,6 +419,7 @@ class BillingManager @Inject constructor(
         if (purchase.isAcknowledged) {
             _billingState.value = BillingState.PurchaseSuccess(purchase)
             saveSubscriptionStatus(true, productId)
+            publishActiveSnapshot(purchase)
             return
         }
 
@@ -316,11 +431,26 @@ class BillingManager @Inject constructor(
             if (result.responseCode == BillingClient.BillingResponseCode.OK) {
                 _billingState.value = BillingState.PurchaseSuccess(purchase)
                 saveSubscriptionStatus(true, productId)
+                publishActiveSnapshot(purchase)
             } else {
                 _billingState.value =
                     BillingState.Error("Acknowledgement failed: ${result.debugMessage}")
             }
         }
+    }
+
+    private fun publishActiveSnapshot(purchase: Purchase) {
+        val pid = purchase.products.firstOrNull()
+        val trial = isTrialOffer(pid)
+        _snapshot.value = PlayBillingSnapshot(
+            status = if (trial) SubscriptionStatus.TRIAL else SubscriptionStatus.ACTIVE,
+            productId = pid,
+            purchaseState = purchase.purchaseState,
+            isAutoRenewing = purchase.isAutoRenewing,
+            isAcknowledged = true,
+            orderId = purchase.orderId,
+            isTrial = trial
+        )
     }
 
     // ─── Restore ───────────────────────────────────────────────────────────────
@@ -345,6 +475,7 @@ class BillingManager @Inject constructor(
                     } else {
                         _billingState.value = BillingState.Error("No active subscription found.")
                     }
+                    publishSnapshot(purchases)
                 } else {
                     _billingState.value = BillingState.Error("Nothing to restore.")
                 }
@@ -374,6 +505,30 @@ class BillingManager @Inject constructor(
             PLAN_PRODUCT_IDS[planId] ?: PLAN_PRODUCT_IDS[1]
         } else null
         saveSubscriptionStatus(isSubscribed, productId)
+    }
+
+    /**
+     * DEBUG-only: force a [SubscriptionStatus] so each Manage-screen state can be
+     * QA'd without a real Play purchase. No-op in release builds.
+     */
+    fun debugSetStatus(status: SubscriptionStatus, planId: Int = 2) {
+        if (!BuildConfig.DEBUG) return
+        val pid = PLAN_PRODUCT_IDS[planId]
+        _snapshot.value = when (status) {
+            SubscriptionStatus.NOT_SUBSCRIBED -> PlayBillingSnapshot(status)
+            SubscriptionStatus.TRIAL -> PlayBillingSnapshot(
+                status, pid, 1, true, true, "GPA.DEBUG-TRIAL", true)
+            SubscriptionStatus.ACTIVE -> PlayBillingSnapshot(
+                status, pid, 1, true, true, "GPA.3327…9041", false)
+            SubscriptionStatus.CANCELED -> PlayBillingSnapshot(
+                status, pid, 1, false, true, "GPA.DEBUG-CANCEL", false)
+            SubscriptionStatus.PENDING -> PlayBillingSnapshot(
+                status, pid, 2, null, false, null, false)
+        }
+        val subscribed = status == SubscriptionStatus.ACTIVE ||
+                status == SubscriptionStatus.CANCELED || status == SubscriptionStatus.TRIAL
+        saveSubscriptionStatus(subscribed, if (subscribed) pid else null)
+        _isCancelled.value = status == SubscriptionStatus.CANCELED
     }
 
     // ─── Load from DataStore (offline fallback) ────────────────────────────────

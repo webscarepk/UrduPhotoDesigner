@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Filled radio: appColor ring + appColor inner dot. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@android:color/transparent" />
+            <stroke
+                android:width="2dp"
+                android:color="@color/appColor" />
+            <size
+                android:width="22dp"
+                android:height="22dp" />
+        </shape>
+    </item>
+    <item
+        android:width="11dp"
+        android:height="11dp"
+        android:gravity="center">
+        <shape android:shape="oval">
+            <solid android:color="@color/appColor" />
+        </shape>
+    </item>
+</layer-list>

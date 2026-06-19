@@ -159,7 +159,7 @@ class EditorFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        if (!BuildConfig.DEBUG) {
+        if (BuildConfig.DEBUG) {
             activity?.window?.setFlags(
                 WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE
             )
@@ -683,7 +683,6 @@ class EditorFragment : Fragment() {
         viewModel.backgroundColor.observe(viewLifecycleOwner) { color ->
             if (isAdded) {
                 color?.let {
-                    canvasManager.setCanvasBackgroundColor(it)
                     binding.editorRoot.setBackgroundColor(it)
                     scheduleJsonSave()
                 }
@@ -692,8 +691,6 @@ class EditorFragment : Fragment() {
 
         viewModel.exportResult.observe(viewLifecycleOwner) { exportResult ->
             if (exportResult == null) {
-                // brand new canvas → trigger first silent save
-                Log.d("EditorFragment", "Blank canvas detected → running autoSaveSilent()")
                 viewModel.ensureBackgroundElement(requireActivity())
                 autoSaveSilent()
             } else {

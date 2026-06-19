@@ -1,24 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- One row in the benefits checklist. Inflated into featuresList.
+     Regular weight + tighter spacing for a more compact list. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="9dp"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:gravity="center_vertical"
-    android:orientation="horizontal">
+    android:orientation="horizontal"
+    android:paddingVertical="5dp">
 
-    <View
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:background="@drawable/bg_benefit_tick" />
+    <ImageView
+        android:layout_width="19dp"
+        android:layout_height="19dp"
+        android:src="@drawable/ic_done"
+        android:background="@drawable/button_bg_round"
+        android:backgroundTint="@color/appColor"
+        android:padding="5dp"
+        app:tint="@color/white" />
 
     <TextView
         android:id="@+id/benefitText"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="11dp"
+        android:layout_marginStart="12dp"
         android:layout_weight="1"
-        android:fontFamily="@font/medium"
+        android:fontFamily="@font/regular"
         android:text="Benefit"
-        android:textColor="#2A2D29"
-        android:textSize="13sp" />
+        android:textColor="@color/black"
+        android:textSize="13.5sp" />
 </LinearLayout>
