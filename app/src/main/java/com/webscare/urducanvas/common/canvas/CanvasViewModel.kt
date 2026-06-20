@@ -2890,11 +2890,7 @@ class CanvasViewModel @Inject constructor(
     fun setCanvasBackgroundColor(color: Int) {
         val previousColor = _backgroundColor.value ?: Color.WHITE
         if (color != previousColor) {
-            _canvasActions.push(CanvasAction.SetBackgroundColor(color, previousColor))
-            _redoStack.clear()
             _backgroundColor.value = color
-            _backgroundImage.value = null
-            notifyUndoRedoChanged()
         }
     }
 
@@ -4752,6 +4748,7 @@ class CanvasViewModel @Inject constructor(
 
     fun clearLoading() {
         _isLoadingTemplate.value = null
+        _zoomLevel.value = 1.0f
     }
 
     fun isExplicitChange(): Boolean {

@@ -15,20 +15,22 @@ class SpringNestedScrollView @JvmOverloads constructor(
     defStyle: Int = 0
 ) : NestedScrollView(context, attrs, defStyle) {
 
-    // ── Tuning ────────────────────────────────────────────────────────────────
-    private val MAX_OVERSCROLL_FRACTION = 0.30f   // 0.40f → 0.30f (edge factory jaisा)
-    private val RUBBER_EXPONENT         = 0.50    // 0.30 → 0.50 (zyada resistance, kam stretch)
+    private val MAX_OVERSCROLL_FRACTION = 0.30f
+    private val RUBBER_EXPONENT         = 0.50
 
     private var velocityTracker: VelocityTracker? = null
     private var lastY      = 0f
     private var isBouncing = false
+    private var lastFlingVelocity = 0f
 
-    // Physics-based spring (same as SpringEdgeEffectFactory)
     private var springAnim: SpringAnimation? = null
 
+    // ── We animate the CONTENT child, not the scroll view itself.
+    // This keeps the scroll view clipped inside its layout bounds so it
+    // never overlaps the header/card above it.
     private val scrollChild get() = getChildAt(0)
-    private val isAtTop get() = scrollY <= 0
 
+    private val isAtTop    get() = scrollY <= 0
     private val isAtBottom get(): Boolean {
         val child = scrollChild ?: return false
         val maxScroll = child.height - (height - paddingTop - paddingBottom)
@@ -51,7 +53,7 @@ class SpringNestedScrollView @JvmOverloads constructor(
         when (ev.action) {
             MotionEvent.ACTION_DOWN -> {
                 springAnim?.cancel()
-                lastFlingVelocity = 0f   // ← add this
+                lastFlingVelocity = 0f
                 lastY = ev.rawY
             }
 
@@ -59,7 +61,7 @@ class SpringNestedScrollView @JvmOverloads constructor(
                 val dy = lastY - ev.rawY
                 lastY = ev.rawY
 
-                val pullUp   = dy < 0 && isAtTop && !canScrollVertically(-1)
+                val pullUp   = dy < 0 && isAtTop    && !canScrollVertically(-1)
                 val pullDown = dy > 0 && isAtBottom && !canScrollVertically(1)
 
                 if (pullUp || pullDown || isBouncing) {
@@ -73,7 +75,8 @@ class SpringNestedScrollView @JvmOverloads constructor(
                 val velocityY = captureVelocityY()
                 recycleVelocity()
 
-                if (isBouncing || abs(translationY) > 0f) {
+                val child = scrollChild
+                if (child != null && (isBouncing || abs(child.translationY) > 0f)) {
                     springBack(velocityY)
                     return true
                 }
@@ -83,8 +86,6 @@ class SpringNestedScrollView @JvmOverloads constructor(
         return super.onTouchEvent(ev)
     }
 
-    private var lastFlingVelocity = 0f
-
     override fun fling(velocityY: Int) {
         super.fling(velocityY)
         lastFlingVelocity = velocityY.toFloat()
@@ -93,63 +94,67 @@ class SpringNestedScrollView @JvmOverloads constructor(
     override fun onOverScrolled(scrollX: Int, scrollY: Int, clampedX: Boolean, clampedY: Boolean) {
         super.onOverScrolled(scrollX, scrollY, clampedX, clampedY)
 
-        if (clampedY && abs(lastFlingVelocity) > 0f && !isBouncing && translationY == 0f) {
-            val velocity = lastFlingVelocity
-            lastFlingVelocity = 0f
-
-            val sign = if (scrollY <= 0) 1f else -1f
-
-            springFromFling(abs(velocity) * sign)
+        if (clampedY && abs(lastFlingVelocity) > 0f && !isBouncing) {
+            val child = scrollChild ?: return
+            if (child.translationY == 0f) {
+                val velocity = lastFlingVelocity
+                lastFlingVelocity = 0f
+                val sign = if (scrollY <= 0) 1f else -1f
+                springFromFling(abs(velocity) * sign)
+            }
         }
     }
 
+    // ── Rubber-band: move only the content child ───────────────────────────────
+
+    private fun applyRubberBand(delta: Float) {
+        isBouncing = true
+        springAnim?.cancel()
+        val child = scrollChild ?: return
+        child.translationY = (child.translationY + delta * 0.3f)
+            .coerceIn(-maxTranslation, maxTranslation)
+    }
+
+    // ── Fling overscroll: spring the content child back ────────────────────────
+
     private fun springFromFling(velocity: Float) {
+        val child = scrollChild ?: return
         springAnim?.cancel()
         isBouncing = true
 
-        springAnim = SpringAnimation(this, SpringAnimation.TRANSLATION_Y, 0f).apply {
+        springAnim = SpringAnimation(child, SpringAnimation.TRANSLATION_Y, 0f).apply {
             spring = SpringForce(0f).apply {
                 dampingRatio = SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY
-                stiffness = SpringForce.STIFFNESS_LOW
+                stiffness    = SpringForce.STIFFNESS_LOW
             }
             setStartVelocity(velocity * 0.3f)
             addEndListener { _, _, _, _ ->
-                translationY = 0f
+                child.translationY = 0f
                 isBouncing = false
             }
             start()
         }
     }
 
-    // ── Rubber-band drag (unchanged — same iOS-style resistance) ──────────────
-
-    private fun applyRubberBand(delta: Float) {
-        isBouncing = true
-        springAnim?.cancel()
-        // Edge-factory jaisा linear stretch: height ka 0.3x, koi rubber resistance nahi
-        translationY = (translationY + delta * 0.3f)
-            .coerceIn(-maxTranslation, maxTranslation)
-    }
-
-    // ── Snap back — physics spring (same as SpringEdgeEffectFactory) ──────────
+    // ── Snap back: spring the content child to rest ────────────────────────────
 
     private fun springBack(velocityY: Float) {
-        if (abs(translationY) < 0.5f) {
-            translationY = 0f
+        val child = scrollChild ?: return
+        if (abs(child.translationY) < 0.5f) {
+            child.translationY = 0f
             isBouncing = false
             return
         }
 
         springAnim?.cancel()
-        springAnim = SpringAnimation(this, SpringAnimation.TRANSLATION_Y, 0f).apply {
+        springAnim = SpringAnimation(child, SpringAnimation.TRANSLATION_Y, 0f).apply {
             spring = SpringForce(0f).apply {
                 dampingRatio = SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY
-                stiffness = SpringForce.STIFFNESS_LOW
+                stiffness    = SpringForce.STIFFNESS_LOW
             }
-            // released finger ki velocity carry karo, taaki natural lage
             setStartVelocity(velocityY * 0.3f)
             addEndListener { _, _, _, _ ->
-                translationY = 0f
+                child.translationY = 0f
                 isBouncing = false
             }
             start()
@@ -181,6 +186,7 @@ class SpringNestedScrollView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         springAnim?.cancel()
+        scrollChild?.translationY = 0f
         recycleVelocity()
     }
 }

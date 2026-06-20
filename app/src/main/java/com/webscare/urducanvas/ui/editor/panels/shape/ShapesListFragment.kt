@@ -71,9 +71,12 @@ class ShapesListFragment : Fragment() {
 
         binding.objects.apply {
             setHasFixedSize(true)
-            setItemViewCacheSize(20)
+            // Larger view cache = cells scrolled just off-screen stay fully bound,
+            // so scrolling back over them does NOT rebind/redecode. This is the
+            // main fix for the jerk when scrolling back over already-seen cells.
+            setItemViewCacheSize(24)
             itemAnimator = null          // suppress flicker on dataset changes
-            recycledViewPool.setMaxRecycledViews(0, 25)
+            recycledViewPool.setMaxRecycledViews(0, 32)
         }
 
         setupSwipeRefresh()
@@ -89,6 +92,10 @@ class ShapesListFragment : Fragment() {
 
     override fun onDestroyView() {
         saveScrollPos()
+        // Stop background preload for this tab — switching away should not leave
+        // rasterization/decoding running. That work stacking across visited tabs
+        // was the allocation storm behind the tab-switch lag.
+        imagesAdapter?.cancelPreload()
         _binding = null
         super.onDestroyView()
     }
@@ -239,7 +246,13 @@ class ShapesListFragment : Fragment() {
             requireContext(), 3,
             if (expanded) GridLayoutManager.VERTICAL else GridLayoutManager.HORIZONTAL,
             false
-        )
+        ).apply {
+            // Prefetch upcoming items during idle frames (default true on
+            // GridLayoutManager; set explicitly for clarity). Note:
+            // initialPrefetchItemCount is intentionally NOT set — it only affects
+            // RecyclerViews nested inside another RecyclerView, which this is not.
+            isItemPrefetchEnabled = true
+        }
 
     // ── Called by ShapesParentFragment ────────────────────────────────────────
 

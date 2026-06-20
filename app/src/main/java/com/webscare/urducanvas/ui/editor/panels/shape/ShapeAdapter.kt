@@ -141,6 +141,9 @@ class ShapeAdapter(
 
     override fun getItemCount() = shapes.size
 
+    /** Call from the host fragment's onDestroyView to cancel in-flight bitmap rendering. */
+    fun cancelRender() = adapterScope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+
     // ── ViewHolder ────────────────────────────────────────────────────────────
 
     sealed class ShapeViewHolder(

@@ -4,13 +4,10 @@ import android.animation.ValueAnimator
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
-import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
-import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
@@ -28,17 +25,11 @@ import com.webscare.urducanvas.di.BillingManager
 import com.webscare.urducanvas.di.BillingManager.SubscriptionStatus
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
-/**
- * Manage subscription — reflects the real, app-only Play Billing state.
- *
- * The banner is driven entirely by [BillingManager.snapshot], which derives one
- * of five client-detectable states from `queryPurchasesAsync`
- * (Not subscribed / Free trial≈ / Active / Canceled / Pending). The monospace
- * readout shows the actual signals the library handed us — no invented renewal
- * or expiry dates, since those need the Play Developer API.
- */
 @AndroidEntryPoint
 class ManageSubscriptionFragment : androidx.fragment.app.Fragment() {
 
@@ -50,8 +41,6 @@ class ManageSubscriptionFragment : androidx.fragment.app.Fragment() {
 
     private var lastStatus: SubscriptionStatus? = null
     private var indetAnim: ValueAnimator? = null
-
-    private data class Signal(val k: String, val v: String, val colorRes: Int)
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -72,7 +61,6 @@ class ManageSubscriptionFragment : androidx.fragment.app.Fragment() {
 
     override fun onResume() {
         super.onResume()
-        // Re-query so the banner is always current when the screen reappears.
         billingManager.refreshSnapshot()
     }
 
@@ -88,117 +76,59 @@ class ManageSubscriptionFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    // ── Render one state ───────────────────────────────────────────────────────
     private fun render(snap: BillingManager.PlayBillingSnapshot) {
         val status = snap.status
-        val product = snap.productId ?: "pro_6month"
-        val purchaseStateText = when (snap.purchaseState) {
-            1 -> "PURCHASED"; 2 -> "PENDING"; else -> "—"
-        }
-        val autoRenewText = snap.isAutoRenewing?.toString() ?: "—"
-        val ackText = snap.isAcknowledged?.toString() ?: "false"
-        val orderId = snap.orderId ?: "—"
+        val planName = planFriendlyName(snap.productId)
 
-        // tone: accent (strong) + tint (light) per state
         val (accentRes, tintRes) = when (status) {
             SubscriptionStatus.NOT_SUBSCRIBED -> R.color.state_gray to R.color.state_gray_tint
-            SubscriptionStatus.TRIAL -> R.color.state_teal to R.color.state_teal_tint
-            SubscriptionStatus.ACTIVE -> R.color.state_green to R.color.state_green_tint
-            SubscriptionStatus.CANCELED -> R.color.state_amber to R.color.state_amber_tint
-            SubscriptionStatus.PENDING -> R.color.state_blue to R.color.state_blue_tint
+            SubscriptionStatus.TRIAL          -> R.color.state_teal to R.color.state_teal_tint
+            SubscriptionStatus.ACTIVE         -> R.color.state_green to R.color.state_green_tint
+            SubscriptionStatus.CANCELED       -> R.color.state_amber to R.color.state_amber_tint
+            SubscriptionStatus.PENDING        -> R.color.state_blue to R.color.state_blue_tint
         }
         val accent = color(accentRes)
-        val tint = color(tintRes)
+        val tint   = color(tintRes)
 
-        // chip + icon box
         ViewCompat.setBackgroundTintList(binding.chip, ColorStateList.valueOf(tint))
         ViewCompat.setBackgroundTintList(binding.chipDot, ColorStateList.valueOf(accent))
-        ViewCompat.setBackgroundTintList(binding.iconBox, ColorStateList.valueOf(tint))
-        ImageViewCompat.setImageTintList(binding.stateIcon, ColorStateList.valueOf(accent))
         binding.chipText.setTextColor(accent)
 
         binding.chipText.text = getString(when (status) {
             SubscriptionStatus.NOT_SUBSCRIBED -> R.string.mng_chip_not_subscribed
-            SubscriptionStatus.TRIAL -> R.string.mng_chip_trial
-            SubscriptionStatus.ACTIVE -> R.string.mng_chip_active
-            SubscriptionStatus.CANCELED -> R.string.mng_chip_canceled
-            SubscriptionStatus.PENDING -> R.string.mng_chip_pending
-        })
-        binding.stateIcon.setImageResource(when (status) {
-            SubscriptionStatus.NOT_SUBSCRIBED -> R.drawable.ic_sub_state_info
-            SubscriptionStatus.TRIAL -> R.drawable.ic_sub_state_star
-            SubscriptionStatus.ACTIVE -> R.drawable.ic_sub_state_refresh
-            SubscriptionStatus.CANCELED -> R.drawable.ic_sub_state_pause
-            SubscriptionStatus.PENDING -> R.drawable.ic_sub_state_clock
-        })
-        binding.bannerTitle.text = getString(when (status) {
-            SubscriptionStatus.NOT_SUBSCRIBED -> R.string.mng_title_not_subscribed
-            SubscriptionStatus.TRIAL -> R.string.mng_title_trial
-            SubscriptionStatus.ACTIVE -> R.string.mng_title_active
-            SubscriptionStatus.CANCELED -> R.string.mng_title_canceled
-            SubscriptionStatus.PENDING -> R.string.mng_title_pending
-        })
-        binding.bannerDetail.text = getString(when (status) {
-            SubscriptionStatus.NOT_SUBSCRIBED -> R.string.mng_detail_not_subscribed
-            SubscriptionStatus.TRIAL -> R.string.mng_detail_trial
-            SubscriptionStatus.ACTIVE -> R.string.mng_detail_active
-            SubscriptionStatus.CANCELED -> R.string.mng_detail_canceled
-            SubscriptionStatus.PENDING -> R.string.mng_detail_pending
+            SubscriptionStatus.TRIAL          -> R.string.mng_chip_trial
+            SubscriptionStatus.ACTIVE         -> R.string.mng_chip_active
+            SubscriptionStatus.CANCELED       -> R.string.mng_chip_canceled
+            SubscriptionStatus.PENDING        -> R.string.mng_chip_pending
         })
 
-        // conditional blocks
-        binding.monoBox.isVisible = status == SubscriptionStatus.NOT_SUBSCRIBED
-
-        val signals: List<Signal> = when (status) {
-            SubscriptionStatus.NOT_SUBSCRIBED -> emptyList()
-            SubscriptionStatus.TRIAL -> listOf(
-                Signal("purchaseState", purchaseStateText, R.color.sub_signal_good),
-                Signal("isAutoRenewing", autoRenewText, R.color.sub_signal_good),
-                Signal("free phase", "present", R.color.sub_signal_warn),
-                Signal("acknowledged", ackText, R.color.sub_signal_good),
-                Signal("product", product, R.color.sub_signal_mute),
-            )
-            SubscriptionStatus.ACTIVE -> listOf(
-                Signal("purchaseState", purchaseStateText, R.color.sub_signal_good),
-                Signal("isAutoRenewing", autoRenewText, R.color.sub_signal_good),
-                Signal("acknowledged", ackText, R.color.sub_signal_good),
-                Signal("product", product, R.color.sub_signal_mute),
-                Signal("orderId", orderId, R.color.sub_signal_mute),
-            )
-            SubscriptionStatus.CANCELED -> listOf(
-                Signal("purchaseState", purchaseStateText, R.color.sub_signal_good),
-                Signal("isAutoRenewing", autoRenewText, R.color.sub_signal_warn),
-                Signal("acknowledged", ackText, R.color.sub_signal_good),
-                Signal("product", product, R.color.sub_signal_mute),
-            )
-            SubscriptionStatus.PENDING -> listOf(
-                Signal("purchaseState", purchaseStateText, R.color.sub_signal_warn),
-                Signal("isAutoRenewing", autoRenewText, R.color.sub_signal_mute),
-                Signal("acknowledged", ackText, R.color.sub_signal_bad),
-                Signal("product", product, R.color.sub_signal_mute),
-            )
+        binding.bannerTitle.text = when (status) {
+            SubscriptionStatus.NOT_SUBSCRIBED -> getString(R.string.mng_title_not_subscribed)
+            SubscriptionStatus.TRIAL          -> "Free trial — $planName"
+            SubscriptionStatus.ACTIVE         -> "$planName plan is active"
+            SubscriptionStatus.CANCELED       -> "$planName — auto-renew is off"
+            SubscriptionStatus.PENDING        -> getString(R.string.mng_title_pending)
         }
-        bindSignals(signals)
 
-        // pending indeterminate bar
+        // ── Detail text: user-friendly copy + date line when available ─────────
+        binding.bannerDetail.text = buildDetailText(status, planName, snap.expiryTimeMillis)
+
         val pending = status == SubscriptionStatus.PENDING
         binding.indeterminateTrack.isVisible = pending
         if (pending) {
-            ViewCompat.setBackgroundTintList(binding.indeterminateBar, ColorStateList.valueOf(accent))
+            ViewCompat.setBackgroundTintList(
+                binding.indeterminateBar, ColorStateList.valueOf(accent))
             startIndeterminate()
         } else stopIndeterminate()
 
-        // ack rows
         binding.ackGoodRow.isVisible =
             status == SubscriptionStatus.ACTIVE || status == SubscriptionStatus.TRIAL
-        binding.ackWarnBox.isVisible = pending
 
-        // CTAs
         binding.primaryBtn.text = getString(when (status) {
             SubscriptionStatus.NOT_SUBSCRIBED -> R.string.mng_cta_see_plans
-            SubscriptionStatus.CANCELED -> R.string.mng_cta_resubscribe
-            SubscriptionStatus.PENDING -> R.string.mng_cta_recheck
-            else -> R.string.mng_cta_change_plan
+            SubscriptionStatus.CANCELED       -> R.string.mng_cta_resubscribe
+            SubscriptionStatus.PENDING        -> R.string.mng_cta_recheck
+            else                              -> R.string.mng_cta_change_plan
         })
         binding.primaryBtn.addPressEffect {
             if (status == SubscriptionStatus.PENDING) {
@@ -220,7 +150,6 @@ class ManageSubscriptionFragment : androidx.fragment.app.Fragment() {
             binding.secondaryBtn.addPressEffect { openPlaySubscriptions() }
         }
 
-        // banner pop on state change (matches the design's componentDidUpdate)
         if (lastStatus != status) {
             lastStatus = status
             binding.bannerCard.alpha = 0f
@@ -233,43 +162,57 @@ class ManageSubscriptionFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    private fun bindSignals(signals: List<Signal>) {
-        binding.signalsBox.isVisible = signals.isNotEmpty()
-        val rows = binding.signalRows
-        rows.removeAllViews()
-        signals.forEachIndexed { i, s ->
-            if (i > 0) {
-                val divider = View(requireContext()).apply {
-                    layoutParams = LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT, dp(1))
-                    setBackgroundColor(color(R.color.sub_signal_row_divider))
-                }
-                rows.addView(divider)
-            }
-            val row = LinearLayout(requireContext()).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(0, dp(6), 0, dp(6))
-            }
-            val key = TextView(requireContext()).apply {
-                text = s.k
-                textSize = 12f
-                typeface = android.graphics.Typeface.MONOSPACE
-                setTextColor(color(R.color.sub_banner_detail))
-                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-            }
-            val value = TextView(requireContext()).apply {
-                text = s.v
-                textSize = 12f
-                typeface = android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD)
-                setTextColor(color(s.colorRes))
-            }
-            row.addView(key); row.addView(value)
-            rows.addView(row)
+    /**
+     * Builds the detail paragraph shown inside the banner card.
+     *
+     * Each state gets a plain user-facing sentence, followed by a date line
+     * (e.g. "Renews on Jul 20, 2025") when [expiryMillis] is available.
+     */
+    private fun buildDetailText(
+        status: SubscriptionStatus,
+        planName: String,
+        expiryMillis: Long?
+    ): String {
+        val base = when (status) {
+            SubscriptionStatus.NOT_SUBSCRIBED ->
+                "You don't have an active subscription. Choose a plan to unlock all Pro features."
+            SubscriptionStatus.TRIAL ->
+                "You're on a free trial. You won't be charged until your trial ends."
+            SubscriptionStatus.ACTIVE ->
+                "Your $planName plan is active and renews automatically."
+            SubscriptionStatus.CANCELED ->
+                "You've turned off auto-renew. You can still use Pro until your current period ends."
+            SubscriptionStatus.PENDING ->
+                "Your payment is being processed. Pro access will be enabled once it's confirmed."
+        }
+
+        val dateLine = formatDateLine(status, expiryMillis) ?: return base
+        return "$base\n$dateLine"
+    }
+
+    /**
+     * Returns a date line like "Renews on Jul 20, 2025" or "Access until Jul 20, 2025",
+     * or null when the status doesn't warrant a date or millis aren't available yet.
+     */
+    private fun formatDateLine(status: SubscriptionStatus, expiryMillis: Long?): String? {
+        if (expiryMillis == null || expiryMillis <= 0L) return null
+        val fmt = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
+        val date = fmt.format(Date(expiryMillis))
+        return when (status) {
+            SubscriptionStatus.ACTIVE   -> "Renews on $date"
+            SubscriptionStatus.CANCELED -> "Access until $date"
+            SubscriptionStatus.TRIAL    -> "Trial ends $date"
+            else                        -> null
         }
     }
 
-    // ── Indeterminate animation ────────────────────────────────────────────────
+    private fun planFriendlyName(productId: String?): String = when (productId) {
+        "urducanvas_monthly" -> "Monthly"
+        "urducanvas_6months" -> "6-Month"
+        "urducanvas_yearly"  -> "Yearly"
+        else                 -> "Pro"
+    }
+
     private fun startIndeterminate() {
         binding.indeterminateTrack.post {
             val trackW = binding.indeterminateTrack.width
@@ -279,7 +222,9 @@ class ManageSubscriptionFragment : androidx.fragment.app.Fragment() {
                 duration = 1300
                 repeatCount = ValueAnimator.INFINITE
                 interpolator = AccelerateDecelerateInterpolator()
-                addUpdateListener { binding.indeterminateBar.translationX = it.animatedValue as Float }
+                addUpdateListener {
+                    binding.indeterminateBar.translationX = it.animatedValue as Float
+                }
                 start()
             }
         }
@@ -290,7 +235,6 @@ class ManageSubscriptionFragment : androidx.fragment.app.Fragment() {
         indetAnim = null
     }
 
-    // ── Actions ────────────────────────────────────────────────────────────────
     private fun openPlaySubscriptions() {
         val pid = billingManager.snapshot.value.productId
         val pkg = requireContext().packageName
@@ -304,8 +248,7 @@ class ManageSubscriptionFragment : androidx.fragment.app.Fragment() {
     private fun openUrl(url: String) {
         try {
             startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-        } catch (_: Exception) {
-        }
+        } catch (_: Exception) { }
     }
 
     private fun toast(msg: String) =

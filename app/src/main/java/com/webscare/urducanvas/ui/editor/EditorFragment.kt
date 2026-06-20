@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.net.Uri
 import android.os.Build.MANUFACTURER
 import android.os.Bundle
@@ -732,15 +733,6 @@ class EditorFragment : Fragment() {
             }
         }
 
-        viewModel.backgroundColor.observe(viewLifecycleOwner) { color ->
-            if (isAdded) {
-                color?.let {
-                    canvasManager.setCanvasBackgroundColor(it)
-                    scheduleJsonSave()
-                }
-            }
-        }
-
         viewModel.canUndo.observe(viewLifecycleOwner) { canUndo ->
             binding.undo.isEnabled = canUndo
         }
@@ -1103,6 +1095,7 @@ class EditorFragment : Fragment() {
         if (existing != null) {
             sizedCanvasView = existing
             sizedCanvasView.resizeCanvas(widthPx, heightPx)
+            sizedCanvasView.resetZoomAndPan()
             // Re-parent only if needed — eager re-attach in onViewCreated may
             // have already done this; guard against double-add crash.
             if (sizedCanvasView.parent !== binding.canvasContainer) {
@@ -1946,6 +1939,32 @@ class EditorFragment : Fragment() {
      * Shown when the user long-presses inside the CanvasView but away from any
      * art-board element. Anchored at the raw touch coordinates.
      */
+
+    fun View.applySelectionRing(isSelected: Boolean, fillColor: Int) {
+        // The swatch's own color fill — always present.
+        val fill = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.OVAL
+            setColor(fillColor)
+        }
+
+        background = if (isSelected) {
+            // Ring with a transparent center so the fill shows through it.
+            val ring = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor(Color.TRANSPARENT)
+                setStroke(
+                    (3 * resources.displayMetrics.density).toInt(),
+                    ContextCompat.getColor(requireContext(), R.color.appColor)
+                )
+            }
+            // Fill underneath, ring on top.
+            android.graphics.drawable.LayerDrawable(arrayOf(fill, ring))
+        } else {
+            // Not selected — just the fill, no ring.
+            fill
+        }
+    }
+
     private fun showCanvasPopupMenu(touchRawX: Float, touchRawY: Float) {
         if (!isAdded) return
 
@@ -1974,6 +1993,12 @@ class EditorFragment : Fragment() {
         // ── Background color: light / dark ────────────────────────────────
         val lightColor = ContextCompat.getColor(requireContext(), R.color.contrast)
         val darkColor   = ContextCompat.getColor(requireContext(), R.color.black)
+
+        val currentBgColor = viewModel.backgroundColor.value
+            ?: requireActivity().getColor(R.color.contrast)
+
+        popupBinding.bgLight.applySelectionRing(currentBgColor == lightColor, lightColor)
+        popupBinding.bgDark.applySelectionRing(currentBgColor == darkColor, darkColor)
 
         popupBinding.bgLight.addPressEffect {
             viewModel.setCanvasBackgroundColor(lightColor)

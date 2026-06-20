@@ -1,22 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One row in the benefits checklist. Inflated into featuresList.
-     Regular weight + tighter spacing for a more compact list. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingVertical="5dp">
+    android:paddingTop="2dp"
+    android:paddingBottom="2dp">
 
-    <ImageView
-        android:layout_width="19dp"
-        android:layout_height="19dp"
-        android:src="@drawable/ic_done"
-        android:background="@drawable/button_bg_round"
-        android:backgroundTint="@color/appColor"
-        android:padding="5dp"
-        app:tint="@color/white" />
+    <!-- Rounded square green check box -->
+    <FrameLayout
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:background="@drawable/button_bg_small"
+        android:backgroundTint="@color/selection">
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_done"
+            android:layout_margin="3dp"
+            app:tint="@color/state_green"
+            android:contentDescription="@null" />
+    </FrameLayout>
 
     <TextView
         android:id="@+id/benefitText"
@@ -25,7 +32,6 @@
         android:layout_marginStart="12dp"
         android:layout_weight="1"
         android:fontFamily="@font/regular"
-        android:text="Benefit"
         android:textColor="@color/black"
-        android:textSize="13.5sp" />
+        android:textSize="12sp" />
 </LinearLayout>

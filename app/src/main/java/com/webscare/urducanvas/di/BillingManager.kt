@@ -6,7 +6,7 @@ import com.android.billingclient.api.*
 import com.webscare.urducanvas.BuildConfig
 import com.webscare.urducanvas.common.datastore.PreferenceDataStoreAPI
 import com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.PREF_IS_SUBSCRIBED
-import com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.PREF_ACTIVE_PLAN  // ← add this key in your constants
+import com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.PREF_ACTIVE_PLAN
 import com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.isSubscribedValue
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -39,23 +39,18 @@ class BillingManager @Inject constructor(
         data class Error(val message: String) : BillingState()
     }
 
-    // ─── App-only subscription state (what queryPurchasesAsync can tell us) ──────
-    //
-    // These are exactly the five states the Play Billing Library reports to the
-    // client without a backend. Grace / On-hold / Paused / Expired are NOT here:
-    // they return "no purchase" from queryPurchasesAsync and need
-    // subscriptionsv2.get + RTDN to tell apart.
     enum class SubscriptionStatus { NOT_SUBSCRIBED, TRIAL, ACTIVE, CANCELED, PENDING }
 
-    /** Raw, real Billing signals surfaced on the Manage screen's readout. */
     data class PlayBillingSnapshot(
         val status: SubscriptionStatus = SubscriptionStatus.NOT_SUBSCRIBED,
         val productId: String? = null,
-        val purchaseState: Int? = null,        // 1 = PURCHASED, 2 = PENDING
+        val purchaseState: Int? = null,
         val isAutoRenewing: Boolean? = null,
         val isAcknowledged: Boolean? = null,
         val orderId: String? = null,
-        val isTrial: Boolean = false
+        val isTrial: Boolean = false,
+        // ── NEW: expiry millis derived from purchaseTime + billing period ──────
+        val expiryTimeMillis: Long? = null
     )
 
     private val _snapshot = MutableStateFlow(PlayBillingSnapshot())
@@ -72,7 +67,8 @@ class BillingManager @Inject constructor(
 
     private val _isCancelled = MutableStateFlow(false)
     val isCancelled: StateFlow<Boolean> = _isCancelled
-    // ─── Check on Launch ───────────────────────────────────────────────────────
+
+    // ─── Plan change ───────────────────────────────────────────────────────────
 
     fun launchPlanChange(activity: Activity, newPlanId: Int) {
         startConnection {
@@ -91,19 +87,15 @@ class BillingManager @Inject constructor(
                 val offerToken = productDetails.subscriptionOfferDetails
                     ?.firstOrNull()?.offerToken ?: return@queryPurchasesAsync
 
-                // Work out current plan rank from the active purchase's product id.
                 val currentProductId = currentPurchase?.products?.firstOrNull()
                 val currentRank = PLAN_PRODUCT_IDS.entries
                     .firstOrNull { it.value == currentProductId }?.key ?: 0
                 val isUpgrade = newPlanId > currentRank
 
-                val replacementMode = if (isUpgrade) {
-                    // Immediate switch, charge the prorated difference now.
+                val replacementMode = if (isUpgrade)
                     BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_PRORATED_PRICE
-                } else {
-                    // Keep current (higher) tier until period ends, then switch.
+                else
                     BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.DEFERRED
-                }
 
                 val productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
                     .setProductDetails(productDetails)
@@ -131,6 +123,8 @@ class BillingManager @Inject constructor(
         }
     }
 
+    // ─── Check on launch ───────────────────────────────────────────────────────
+
     fun checkSubscriptionOnLaunch() {
         if (BuildConfig.DEBUG) return
         startConnection {
@@ -145,25 +139,17 @@ class BillingManager @Inject constructor(
                     }
                     val productId = activePurchase?.products?.firstOrNull()
                     saveSubscriptionStatus(activePurchase != null, productId)
-
-                    // ── Cancelled = subscribed but not auto-renewing ──────────
                     _isCancelled.value = activePurchase != null && !activePurchase.isAutoRenewing
 
                     if (activePurchase != null) fetchExpiryDate(activePurchase)
                     else _expiryDate.value = null
 
-                    // ── Derive the app-only status snapshot for the Manage screen
                     publishSnapshot(purchases)
                 }
             }
         }
     }
 
-    /**
-     * Always re-queries (even in DEBUG) and republishes [snapshot].
-     * The Manage screen calls this on every resume so the banner reflects the
-     * real, current Play Billing state rather than a cached debug flag.
-     */
     fun refreshSnapshot() {
         startConnection {
             billingClient.queryPurchasesAsync(
@@ -178,7 +164,8 @@ class BillingManager @Inject constructor(
         }
     }
 
-    /** Map a raw purchase list to the five client-detectable states. */
+    // ─── Snapshot publishing ───────────────────────────────────────────────────
+
     private fun publishSnapshot(purchases: List<Purchase>) {
         val purchased = purchases.firstOrNull {
             it.purchaseState == Purchase.PurchaseState.PURCHASED
@@ -187,16 +174,19 @@ class BillingManager @Inject constructor(
             it.purchaseState == Purchase.PurchaseState.PENDING
         }
 
-        _snapshot.value = when {
-            pending != null && purchased == null -> PlayBillingSnapshot(
-                status = SubscriptionStatus.PENDING,
-                productId = pending.products.firstOrNull(),
-                purchaseState = pending.purchaseState,
-                isAutoRenewing = null,
-                isAcknowledged = pending.isAcknowledged,
-                orderId = pending.orderId,
-                isTrial = false
-            )
+        when {
+            pending != null && purchased == null -> {
+                _snapshot.value = PlayBillingSnapshot(
+                    status = SubscriptionStatus.PENDING,
+                    productId = pending.products.firstOrNull(),
+                    purchaseState = pending.purchaseState,
+                    isAutoRenewing = null,
+                    isAcknowledged = pending.isAcknowledged,
+                    orderId = pending.orderId,
+                    isTrial = false,
+                    expiryTimeMillis = null
+                )
+            }
 
             purchased != null -> {
                 val pid = purchased.products.firstOrNull()
@@ -206,40 +196,81 @@ class BillingManager @Inject constructor(
                     trial -> SubscriptionStatus.TRIAL
                     else -> SubscriptionStatus.ACTIVE
                 }
-                PlayBillingSnapshot(
+                // Derive expiry from purchaseTime + billing period using cached product details.
+                // This is instant (no extra network call) when products are already loaded.
+                val expiry = resolveExpiry(pid, purchased.purchaseTime)
+
+                _snapshot.value = PlayBillingSnapshot(
                     status = status,
                     productId = pid,
                     purchaseState = purchased.purchaseState,
                     isAutoRenewing = purchased.isAutoRenewing,
                     isAcknowledged = purchased.isAcknowledged,
                     orderId = purchased.orderId,
-                    isTrial = trial
+                    isTrial = trial,
+                    expiryTimeMillis = expiry
                 )
+
+                // Also keep the legacy _expiryDate StateFlow in sync.
+                _expiryDate.value = expiry
             }
 
-            else -> PlayBillingSnapshot(SubscriptionStatus.NOT_SUBSCRIBED)
+            else -> {
+                _snapshot.value = PlayBillingSnapshot(SubscriptionStatus.NOT_SUBSCRIBED)
+                _expiryDate.value = null
+            }
         }
     }
 
+    private fun publishActiveSnapshot(purchase: Purchase) {
+        val pid = purchase.products.firstOrNull()
+        val trial = isTrialOffer(pid)
+        val expiry = resolveExpiry(pid, purchase.purchaseTime)
+        _snapshot.value = PlayBillingSnapshot(
+            status = if (trial) SubscriptionStatus.TRIAL else SubscriptionStatus.ACTIVE,
+            productId = pid,
+            purchaseState = purchase.purchaseState,
+            isAutoRenewing = purchase.isAutoRenewing,
+            isAcknowledged = true,
+            orderId = purchase.orderId,
+            isTrial = trial,
+            expiryTimeMillis = expiry
+        )
+        _expiryDate.value = expiry
+    }
+
+    // ─── Expiry helpers ────────────────────────────────────────────────────────
+
     /**
-     * Best-effort free-trial detection: a product whose first offer contains a
-     * zero-cost pricing phase. This is the only app-only signal for "in trial",
-     * and is approximate (it can't tell whether the trial is the *current*
-     * phase). Returns false when product details aren't loaded yet.
+     * Resolves expiry millis using cached [availableProducts] (no network call).
+     * Falls back to null if product details aren't loaded yet; [fetchExpiryDate]
+     * will fill in _expiryDate via the async path when needed.
      */
-    private fun isTrialOffer(productId: String?): Boolean {
-        if (productId == null) return false
-        val product = availableProducts.find { it.productId == productId } ?: return false
-        return product.subscriptionOfferDetails
+    private fun resolveExpiry(productId: String?, purchaseTimeMillis: Long): Long? {
+        if (productId == null) return null
+        val billingPeriod = availableProducts
+            .find { it.productId == productId }
+            ?.subscriptionOfferDetails
             ?.firstOrNull()
             ?.pricingPhases
             ?.pricingPhaseList
-            ?.any { it.priceAmountMicros == 0L } == true
+            ?.lastOrNull()
+            ?.billingPeriod
+        return if (billingPeriod != null) calculateExpiry(purchaseTimeMillis, billingPeriod)
+        else null
     }
 
     private fun fetchExpiryDate(purchase: Purchase) {
         val productId = purchase.products.firstOrNull() ?: return
 
+        // Fast path: use already-loaded product details.
+        val cached = resolveExpiry(productId, purchase.purchaseTime)
+        if (cached != null) {
+            _expiryDate.value = cached
+            return
+        }
+
+        // Slow path: query product details then compute.
         val params = QueryProductDetailsParams.newBuilder()
             .setProductList(
                 listOf(
@@ -252,8 +283,6 @@ class BillingManager @Inject constructor(
 
         billingClient.queryProductDetailsAsync(params) { result, productDetailsList ->
             if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                // Purchase time + billing period = expiry
-                // purchaseTime is in millis, billing period is ISO 8601 e.g. "P1M", "P1Y"
                 val billingPeriod = productDetailsList.productDetailsList
                     ?.firstOrNull()
                     ?.subscriptionOfferDetails
@@ -261,10 +290,8 @@ class BillingManager @Inject constructor(
                     ?.pricingPhases
                     ?.pricingPhaseList
                     ?.lastOrNull()
-                    ?.billingPeriod // "P1M", "P6M", "P1Y"
-
-                val expiryMillis = calculateExpiry(purchase.purchaseTime, billingPeriod)
-                _expiryDate.value = expiryMillis
+                    ?.billingPeriod
+                _expiryDate.value = calculateExpiry(purchase.purchaseTime, billingPeriod)
             }
         }
     }
@@ -278,10 +305,24 @@ class BillingManager @Inject constructor(
             "P3M" -> calendar.add(java.util.Calendar.MONTH, 3)
             "P6M" -> calendar.add(java.util.Calendar.MONTH, 6)
             "P1Y" -> calendar.add(java.util.Calendar.YEAR, 1)
-            else  -> calendar.add(java.util.Calendar.MONTH, 1) // fallback
+            else  -> calendar.add(java.util.Calendar.MONTH, 1)
         }
         return calendar.timeInMillis
     }
+
+    // ─── Trial detection ───────────────────────────────────────────────────────
+
+    private fun isTrialOffer(productId: String?): Boolean {
+        if (productId == null) return false
+        val product = availableProducts.find { it.productId == productId } ?: return false
+        return product.subscriptionOfferDetails
+            ?.firstOrNull()
+            ?.pricingPhases
+            ?.pricingPhaseList
+            ?.any { it.priceAmountMicros == 0L } == true
+    }
+
+    // ─── Billing client setup ──────────────────────────────────────────────────
 
     private val _billingState = MutableStateFlow<BillingState>(BillingState.Idle)
     val billingState: StateFlow<BillingState> = _billingState
@@ -388,7 +429,6 @@ class BillingManager @Inject constructor(
                     when (purchase.purchaseState) {
                         Purchase.PurchaseState.PURCHASED -> acknowledgePurchase(purchase)
                         Purchase.PurchaseState.PENDING -> {
-                            // Cash / slow payment — no Pro access until it clears.
                             _snapshot.value = PlayBillingSnapshot(
                                 status = SubscriptionStatus.PENDING,
                                 productId = purchase.products.firstOrNull(),
@@ -413,7 +453,7 @@ class BillingManager @Inject constructor(
     // ─── Acknowledge ───────────────────────────────────────────────────────────
 
     private fun acknowledgePurchase(purchase: Purchase) {
-        val productId = purchase.products.firstOrNull()  // ← grab plan from purchase
+        val productId = purchase.products.firstOrNull()
         _isCancelled.value = false
 
         if (purchase.isAcknowledged) {
@@ -439,20 +479,6 @@ class BillingManager @Inject constructor(
         }
     }
 
-    private fun publishActiveSnapshot(purchase: Purchase) {
-        val pid = purchase.products.firstOrNull()
-        val trial = isTrialOffer(pid)
-        _snapshot.value = PlayBillingSnapshot(
-            status = if (trial) SubscriptionStatus.TRIAL else SubscriptionStatus.ACTIVE,
-            productId = pid,
-            purchaseState = purchase.purchaseState,
-            isAutoRenewing = purchase.isAutoRenewing,
-            isAcknowledged = true,
-            orderId = purchase.orderId,
-            isTrial = trial
-        )
-    }
-
     // ─── Restore ───────────────────────────────────────────────────────────────
 
     fun restorePurchases() {
@@ -469,7 +495,7 @@ class BillingManager @Inject constructor(
                         it.purchaseState == Purchase.PurchaseState.PURCHASED
                     }
                     if (activePurchase != null) {
-                        val productId = activePurchase.products.firstOrNull()  // ← grab plan
+                        val productId = activePurchase.products.firstOrNull()
                         _billingState.value = BillingState.PurchaseSuccess(activePurchase)
                         saveSubscriptionStatus(true, productId)
                     } else {
@@ -487,7 +513,7 @@ class BillingManager @Inject constructor(
         _billingState.value = BillingState.Idle
     }
 
-    // ─── Save (Google Play + DataStore) ───────────────────────────────────────
+    // ─── Save (DataStore) ──────────────────────────────────────────────────────
 
     private fun saveSubscriptionStatus(value: Boolean, productId: String? = null) {
         isSubscribedValue = value
@@ -507,23 +533,21 @@ class BillingManager @Inject constructor(
         saveSubscriptionStatus(isSubscribed, productId)
     }
 
-    /**
-     * DEBUG-only: force a [SubscriptionStatus] so each Manage-screen state can be
-     * QA'd without a real Play purchase. No-op in release builds.
-     */
     fun debugSetStatus(status: SubscriptionStatus, planId: Int = 2) {
         if (!BuildConfig.DEBUG) return
         val pid = PLAN_PRODUCT_IDS[planId]
+        // Use a fake future expiry for debug previewing (30 days from now).
+        val debugExpiry = System.currentTimeMillis() + 30L * 24 * 60 * 60 * 1000
         _snapshot.value = when (status) {
             SubscriptionStatus.NOT_SUBSCRIBED -> PlayBillingSnapshot(status)
             SubscriptionStatus.TRIAL -> PlayBillingSnapshot(
-                status, pid, 1, true, true, "GPA.DEBUG-TRIAL", true)
+                status, pid, 1, true, true, "GPA.DEBUG-TRIAL", true, debugExpiry)
             SubscriptionStatus.ACTIVE -> PlayBillingSnapshot(
-                status, pid, 1, true, true, "GPA.3327…9041", false)
+                status, pid, 1, true, true, "GPA.3327…9041", false, debugExpiry)
             SubscriptionStatus.CANCELED -> PlayBillingSnapshot(
-                status, pid, 1, false, true, "GPA.DEBUG-CANCEL", false)
+                status, pid, 1, false, true, "GPA.DEBUG-CANCEL", false, debugExpiry)
             SubscriptionStatus.PENDING -> PlayBillingSnapshot(
-                status, pid, 2, null, false, null, false)
+                status, pid, 2, null, false, null, false, null)
         }
         val subscribed = status == SubscriptionStatus.ACTIVE ||
                 status == SubscriptionStatus.CANCELED || status == SubscriptionStatus.TRIAL

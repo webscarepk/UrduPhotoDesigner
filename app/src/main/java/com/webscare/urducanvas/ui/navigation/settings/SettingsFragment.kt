@@ -12,7 +12,9 @@ import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentSettingsBinding
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.webscare.urducanvas.MainActivity
 import com.webscare.urducanvas.di.BillingManager
 import kotlinx.coroutines.launch
@@ -22,6 +24,7 @@ import javax.inject.Inject
 class SettingsFragment : androidx.fragment.app.Fragment() {
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
+
     @Inject
     lateinit var billingManager: BillingManager
 
@@ -41,6 +44,11 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
         (activity as? MainActivity)?.bindScrollToNav(binding.settingsScroll)
     }
 
+    override fun onResume() {
+        super.onResume()
+        billingManager.refreshSnapshot()
+    }
+
     private fun setVersionInfo() {
         val versionName = try {
             requireContext().packageManager
@@ -53,36 +61,42 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
 
     private fun observeSubscription() {
         viewLifecycleOwner.lifecycleScope.launch {
-            billingManager.isSubscribed.collect { subscribed ->
-                if (subscribed) {
-                    binding.subscriptionCard.visibility = View.GONE
-                    binding.currentPlanCard.visibility = View.VISIBLE
-                } else {
-                    binding.subscriptionCard.visibility = View.VISIBLE
-                    binding.currentPlanCard.visibility = View.GONE
-                }
-            }
-        }
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                billingManager.snapshot.collect { snap ->
+                    val subscribed = snap.status != BillingManager.SubscriptionStatus.NOT_SUBSCRIBED
+                            && snap.status != BillingManager.SubscriptionStatus.PENDING
 
-        viewLifecycleOwner.lifecycleScope.launch {
-            billingManager.activePlan.collect { productId ->
-                binding.manageCardTitle.text = when (productId) {
-                    "urducanvas_monthly" -> "Monthly"
-                    "urducanvas_6months" -> "6 Months"
-                    "urducanvas_yearly" -> "Yearly"
-                    else -> "Pro"
+                    if (subscribed) {
+                        binding.subscriptionCard.visibility = View.GONE
+                        binding.currentPlanCard.visibility = View.VISIBLE
+                        binding.manageCardTitle.text = when (snap.productId) {
+                            "urducanvas_monthly" -> "Monthly"
+                            "urducanvas_6months" -> "6 Months"
+                            "urducanvas_yearly"  -> "Yearly"
+                            else                 -> "Pro"
+                        }
+                    } else {
+                        binding.subscriptionCard.visibility = View.VISIBLE
+                        binding.currentPlanCard.visibility = View.GONE
+                    }
                 }
             }
         }
     }
 
+    private fun goToSubscriptions() {
+        view?.post { findNavController().navigate(R.id.subscriptionsFragment) }
+    }
+
     private fun setEvents() {
+        // Entire upgrade card + button both navigate to subscriptions.
+        binding.subscriptionCard.addPressEffect { goToSubscriptions() }
+        binding.upgradeNow.addPressEffect { goToSubscriptions() }
 
-        binding.upgradeNow.addPressEffect {
-            view?.post { findNavController().navigate(R.id.subscriptionsFragment) }
+        // Entire manage card + button both navigate to manage screen.
+        binding.currentPlanCard.addPressEffect {
+            view?.post { findNavController().navigate(R.id.manageSubscriptionFragment) }
         }
-
-        // Subscribed users land on the Manage screen (state-driven), not the paywall.
         binding.manage.addPressEffect {
             view?.post { findNavController().navigate(R.id.manageSubscriptionFragment) }
         }

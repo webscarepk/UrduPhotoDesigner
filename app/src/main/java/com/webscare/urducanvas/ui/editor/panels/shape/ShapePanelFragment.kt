@@ -3,7 +3,6 @@ package com.webscare.urducanvas.ui.editor.panels.shape
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -98,7 +97,7 @@ class ShapePanelFragment : Fragment() {
         }
 
         binding.cornerRadiusBar.apply {
-            
+
             max = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
@@ -126,56 +125,50 @@ class ShapePanelFragment : Fragment() {
     }
 
     private fun initObserver() {
-        lifecycleScope.launch {
-            mainViewModel.gradients.observe(viewLifecycleOwner) { gradients ->
-                gradientsAdapter.updateList(gradients)
-            }
+        // Observers must NOT be nested inside a coroutine — doing so creates a new
+        // observer registration on every coroutine resume and they never auto-cancel.
+        // Use viewLifecycleOwner directly so they are scoped to the view lifetime.
+        mainViewModel.gradients.observe(viewLifecycleOwner) { gradients ->
+            gradientsAdapter.updateList(gradients)
+        }
 
-            viewModel.currentShapeType.observe(viewLifecycleOwner) { type ->
-                type?.let {
-                    shapesAdapter.selectedShape = it
-                }
-            }
+        viewModel.currentShapeType.observe(viewLifecycleOwner) { type ->
+            type?.let { shapesAdapter.selectedShape = it }
+        }
 
-            // 🟢 Stroke width
-            viewModel.shapeStrokeWidth.observe(viewLifecycleOwner) { width ->
-                val safeWidth = width ?: 1f
-                binding.strokeWidthBar.progress = safeWidth.toInt().coerceIn(1, 100)
-                binding.strokeWidth.text = safeWidth.toInt().toString()
-            }
+        // 🟢 Stroke width
+        viewModel.shapeStrokeWidth.observe(viewLifecycleOwner) { width ->
+            val safeWidth = width ?: 1f
+            binding.strokeWidthBar.progress = safeWidth.toInt().coerceIn(1, 100)
+            binding.strokeWidth.text = safeWidth.toInt().toString()
+        }
 
-            // 🟣 Corner radius
-            viewModel.shapeCornerRadius.observe(viewLifecycleOwner) { radius ->
-                Log.d("TAG", "initObserver: $radius")
-                val safeRadius = radius ?: 0f
-                val progress = (safeRadius).roundToInt().coerceIn(0, 300)
-                binding.cornerRadiusBar.progress = progress
-                binding.cornerRadius.text = "$progress"
-            }
+        // 🟣 Corner radius
+        viewModel.shapeCornerRadius.observe(viewLifecycleOwner) { radius ->
+            val safeRadius = radius ?: 0f
+            val progress = safeRadius.roundToInt().coerceIn(0, 300)
+            binding.cornerRadiusBar.progress = progress
+            binding.cornerRadius.text = "$progress"
+        }
 
-            // 🎨 Fill color
-            viewModel.shapeFillColor.observe(viewLifecycleOwner) { color ->
-                color?.let {
-                    colorsAdapter.selectedColor = it
-                }
-            }
+        // 🎨 Fill color
+        viewModel.shapeFillColor.observe(viewLifecycleOwner) { color ->
+            color?.let { colorsAdapter.selectedColor = it }
+        }
 
-            // 🖌 Stroke color
-            viewModel.shapeStrokeColor.observe(viewLifecycleOwner) { color ->
-                color?.let {
-                    colorsAdapter.selectedColor = it
-                }
-            }
+        // 🖌 Stroke color
+        viewModel.shapeStrokeColor.observe(viewLifecycleOwner) { color ->
+            color?.let { colorsAdapter.selectedColor = it }
+        }
 
-            // 🌈 Fill gradient
-            viewModel.shapeFillGradient.observe(viewLifecycleOwner) { gradient ->
-                gradientsAdapter.selectedItem = gradient
-            }
+        // 🌈 Fill gradient
+        viewModel.shapeFillGradient.observe(viewLifecycleOwner) { gradient ->
+            gradientsAdapter.selectedItem = gradient
+        }
 
-            // 🌈 Stroke gradient
-            viewModel.shapeStrokeGradient.observe(viewLifecycleOwner) { gradient ->
-                gradientsAdapter.selectedItem = gradient
-            }
+        // 🌈 Stroke gradient
+        viewModel.shapeStrokeGradient.observe(viewLifecycleOwner) { gradient ->
+            gradientsAdapter.selectedItem = gradient
         }
     }
 

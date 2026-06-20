@@ -50,6 +50,7 @@ class ImagesAdapter(
         const val TYPE_COLLAPSED    = 0
         const val TYPE_EXPANDED     = 1
         const val PAYLOAD_SELECTION = "selection_changed"
+        private const val PRELOAD_WINDOW = 15   // first visible screen only
     }
 
     var isExpanded: Boolean = false
@@ -100,6 +101,17 @@ class ImagesAdapter(
 
     fun submitList(newList: List<ImageEntity>) {
         differ.submitList(newList.toList())
+    }
+
+    /**
+     * Cancel in-flight preload work. Call from the host fragment's onDestroyView
+     * so a tab scrolled away from stops doing background rasterization/decoding.
+     * (The adapter instance itself may be reused on reattach; adapterScope stays
+     * alive, only the current preloadJob is cancelled.)
+     */
+    fun cancelPreload() {
+        preloadJob?.cancel()
+        preloadJob = null
     }
 
     /**
@@ -164,23 +176,39 @@ class ImagesAdapter(
 
     override fun getItemCount() = items.size
 
-    private fun preloadAll(list: List<ImageEntity>) {
-        // SVG preload — only for your own images (Pexels images are never SVG)
-        val svgUrls = list.take(40)
-            .filter { it.file_name.endsWith(".svg", ignoreCase = true) }
-            .map { Constants.BASE_URL_GLIDE + it.file_url }
-        SvgLoader.preload(svgUrls, adapterScope)
+    // Only the first on-screen window needs warming. RecyclerView lazy-binds the
+    // rest as the user scrolls. Eager full-list preload on every submitList (i.e.
+    // every tab switch) was allocating the entire category at once and stacking
+    // across tabs -> GC thrash. Bound it hard, and cancel the previous tab's
+    // preload before starting a new one.
+    private var preloadJob: Job? = null
 
-        // Preload display URLs (medium for Pexels, own URL for yours) — NOT large
-        // This is critical for speed: preloading medium (940px) is ~4x faster than large
-        list.take(40)
-            .filterNot { it.file_name.endsWith(".svg", ignoreCase = true) }
-            .forEach { image ->
-                Glide.with(context)
-                    .load(resolveUrl(image))   // resolveUrl returns file_url = medium for Pexels
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .preload()
-            }
+    private fun preloadAll(list: List<ImageEntity>) {
+        // Cancel any preload still running from the previously-shown list/tab.
+        preloadJob?.cancel()
+        if (list.isEmpty()) return
+
+        // First visible screen only: 3 columns x ~4 rows = 12, plus a little
+        // lookahead = 15. Tiny, bounded, same on every device.
+        val window = list.take(PRELOAD_WINDOW)
+
+        preloadJob = adapterScope.launch {
+            // SVG thumbnails (own images only; Pexels images are never SVG).
+            val svgUrls = window
+                .filter { it.file_name.endsWith(".svg", ignoreCase = true) }
+                .map { Constants.BASE_URL_GLIDE + it.file_url }
+            if (svgUrls.isNotEmpty()) SvgLoader.preload(svgUrls, adapterScope)
+
+            // Non-SVG: warm Glide's cache for just the visible window.
+            window
+                .filterNot { it.file_name.endsWith(".svg", ignoreCase = true) }
+                .forEach { image ->
+                    Glide.with(context)
+                        .load(resolveUrl(image))
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .preload()
+                }
+        }
     }
 
     // ── ViewHolder ────────────────────────────────────────────────────────────
@@ -262,13 +290,23 @@ class ImagesAdapter(
             val isSvg = image.file_name.endsWith(".svg", ignoreCase = true)
             displayJob?.cancel()
             if (isSvg) {
-                shimmer.startShimmer()
-                displayJob = SvgLoader.load(displayUrl, imageView, scope, image.bitmapData) { _, _ ->
+                // INSTANT PATH: if the thumbnail is already rasterized, set it
+                // synchronously during bind — no coroutine hop, no shimmer restart.
+                // This removes the per-bind hitch when scrolling back over cells
+                // that were already seen.
+                val cached = SvgLoader.peekThumbnail(displayUrl)
+                if (cached != null) {
                     shimmer.stopShimmer(); shimmer.setShimmer(null)
-                }
-                displayJob?.invokeOnCompletion {
-                    itemView.post {
-                        if (shimmer.isShimmerStarted) { shimmer.stopShimmer(); shimmer.setShimmer(null) }
+                    imageView.setImageBitmap(cached)
+                } else {
+                    shimmer.startShimmer()
+                    displayJob = SvgLoader.load(displayUrl, imageView, scope, image.bitmapData) { _, _ ->
+                        shimmer.stopShimmer(); shimmer.setShimmer(null)
+                    }
+                    displayJob?.invokeOnCompletion {
+                        itemView.post {
+                            if (shimmer.isShimmerStarted) { shimmer.stopShimmer(); shimmer.setShimmer(null) }
+                        }
                     }
                 }
             } else {

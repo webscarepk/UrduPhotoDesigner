@@ -156,7 +156,7 @@ class CanvasView @JvmOverloads constructor(
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
 
     private val initialElementSizes = mutableMapOf<String, Pair<Float, Float>>()
-
+    private var suppressZoomCallback = false
 
     private val checkerShader: BitmapShader by lazy {
         // create a 2×2 tile
@@ -4512,8 +4512,11 @@ class CanvasView @JvmOverloads constructor(
                 invalidate()
             }else {
                 // Long press away from any art-board element → canvas options popup.
-                vibrateSoft()
-                onCanvasLongPressed?.invoke(e.rawX, e.rawY)
+                val isOutsideArtboard = x < 0f || y < 0f || x > canvasWidth || y > canvasHeight
+                if (isOutsideArtboard) {
+                    vibrateSoft()
+                    onCanvasLongPressed?.invoke(e.rawX, e.rawY)
+                }
             }
         }
     }
@@ -5148,7 +5151,9 @@ class CanvasView @JvmOverloads constructor(
 
                                     overallScale = newScale
                                     clampOverallPan()
+                                    suppressZoomCallback = true
                                     onZoomChanged?.invoke(overallScale)
+                                    suppressZoomCallback = false
                                     invalidate()
                                 } else if (event.pointerCount == 1) {
                                     val dx = event.x - touchStartX
@@ -5442,7 +5447,9 @@ class CanvasView @JvmOverloads constructor(
 
                                 overallScale = newScale
                                 clampOverallPan()
+                                suppressZoomCallback = true
                                 onZoomChanged?.invoke(overallScale)
+                                suppressZoomCallback = false
                                 invalidate()
                             } else if (event.pointerCount == 1) {
                                 val dx = event.x - touchStartX
@@ -5819,7 +5826,16 @@ class CanvasView @JvmOverloads constructor(
         isCanvasPanLocked = locked
     }
 
+    fun resetZoomAndPan() {
+        overallScale = 1f
+        overallOffsetX = 0f
+        overallOffsetY = 0f
+        clampOverallPan()
+        invalidate()
+    }
+
     fun setZoomLevel(zoom: Float) {
+        if (suppressZoomCallback) return
         var newScale = zoom.coerceIn(0.5f, 3.0f)
 
         // Snap to 50%, 100%, 150%, 200%, 250%, 300%

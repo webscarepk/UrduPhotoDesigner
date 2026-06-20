@@ -194,5 +194,20 @@ class VectorsTabFragment : Fragment() {
             false
         )
 
-    override fun onDestroyView() { _binding = null; super.onDestroyView() }
+    override fun onDestroyView() {
+        // NOTE: do NOT cancel the adapter's bitmap render here. With detach/attach
+        // tab switching, onDestroyView fires on every tab change while the adapter
+        // instance is reused — cancelling would leave shapes blank on reattach.
+        // Detach adapter from the dying RecyclerView so it can rebind on reattach.
+        _binding?.objects?.adapter = null
+        _binding = null
+        super.onDestroyView()
+    }
+
+    override fun onDestroy() {
+        // Fragment is genuinely going away — safe to cancel in-flight rendering.
+        shapesAdapter?.cancelRender()
+        shapesAdapter = null
+        super.onDestroy()
+    }
 }

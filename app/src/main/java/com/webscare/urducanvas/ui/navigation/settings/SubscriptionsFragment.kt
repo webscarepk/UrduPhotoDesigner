@@ -2,6 +2,7 @@ package com.webscare.urducanvas.ui.navigation.settings
 
 import android.animation.ValueAnimator
 import android.content.Intent
+import android.graphics.Paint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -18,7 +19,6 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
@@ -32,19 +32,6 @@ import java.text.NumberFormat
 import java.util.Locale
 import javax.inject.Inject
 
-/**
- * UrduCanvas Pro paywall — "Plan picker A".
- *
- * Segmented term toggle (Monthly / 6-Month / Yearly) with a spring-driven
- * sliding indicator, a single detail card whose price counts up between terms,
- * a shimmering save badge, and a Subscribe button that morphs
- * idle → spinner → check.
- *
- * Billing is unchanged from the original acquisition flow: the CTA only ever
- * kicks off `viewModel.subscribe`, and everything else reacts to the resulting
- * [BillingManager.BillingState]. On a real PurchaseSuccess we land the user on
- * the Manage screen (matching the locked flow).
- */
 @AndroidEntryPoint
 class SubscriptionsFragment : androidx.fragment.app.Fragment() {
 
@@ -56,12 +43,10 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
     @Inject
     lateinit var billingManager: BillingManager
 
-    /** Plans backing the segmented tabs; index = tab position. */
     private var plans: List<SubscriptionPlan> = emptyList()
     private var selectedIndex = 0
     private val selectedPlan: SubscriptionPlan? get() = plans.getOrNull(selectedIndex)
 
-    /** Currently displayed (animated) figures, so count-ups start from where we are. */
     private var dispPerMonth = 0
     private var dispTotal = 0
     private var dispSave = 0
@@ -87,13 +72,14 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        binding.priceStrike.paintFlags =
+            binding.priceStrike.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
         renderBenefits()
         setEvents()
         observe()
         viewModel.loadProducts()
     }
 
-    // ── Static benefit rows ────────────────────────────────────────────────────
     private fun renderBenefits() {
         binding.featuresList.removeAllViews()
         benefits.forEach { b ->
@@ -120,18 +106,17 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
                     plans = list
                     selectedIndex = list.indexOfFirst { it.isSelected }.coerceAtLeast(0)
 
-                    // Reveal the real content, drop the skeleton.
                     binding.skeleton.stopShimmer()
                     binding.skeleton.isVisible = false
                     binding.contentGroup.isVisible = true
 
                     buildSegments()
                     bindInfoCard()
-                    // Seed displayed figures to the selected plan, no animation on first paint.
                     selectedPlan?.let {
                         dispPerMonth = it.perMonth; dispTotal = it.total; dispSave = it.save
                     }
                     bindDetailCard(animate = false)
+                    updateCtaText()
                 }
             }
         }
@@ -163,7 +148,6 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
                         }
 
                         is BillingManager.BillingState.Idle -> {
-                            // Covers user-cancel: drop the spinner back to idle.
                             if (purchasing) {
                                 purchasing = false
                                 setButtonState(ButtonState.IDLE)
@@ -181,21 +165,42 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
         val tabs = binding.segmentTabs
         tabs.removeAllViews()
         plans.forEachIndexed { i, plan ->
-            val tab = TextView(requireContext()).apply {
-                text = plan.title
-                textSize = 13f
+            val isActive = i == selectedIndex
+            val tab = android.widget.LinearLayout(requireContext()).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
                 gravity = android.view.Gravity.CENTER
-                setTextColor(color(if (i == selectedIndex) R.color.sub_segment_text_active else R.color.sub_segment_text))
-                typeface = androidx.core.content.res.ResourcesCompat.getFont(context, R.font.bold)
-                // Fill the fixed-height track; the thumb sits behind this text.
                 layoutParams = android.widget.LinearLayout.LayoutParams(
                     0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
                 addPressEffect { selectIndex(i) }
             }
+
+            val titleView = TextView(requireContext()).apply {
+                text = plan.title
+                textSize = 13f
+                gravity = android.view.Gravity.CENTER
+                setTextColor(color(if (isActive) R.color.sub_segment_text_active else R.color.sub_segment_text))
+                typeface = androidx.core.content.res.ResourcesCompat.getFont(context, R.font.bold)
+                layoutParams = android.widget.LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            }
+            tab.addView(titleView)
+
+            if (plan.hasDiscount) {
+                val saveView = TextView(requireContext()).apply {
+                    text = "Save ${plan.discountPercent}%"
+                    textSize = 10f
+                    gravity = android.view.Gravity.CENTER
+                    setTextColor(color(if (isActive) R.color.sub_segment_text_active else R.color.appColor))
+                    typeface = androidx.core.content.res.ResourcesCompat.getFont(context, R.font.regular)
+                    layoutParams = android.widget.LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                }
+                tab.addView(saveView)
+            }
+
             tabs.addView(tab)
         }
 
-        // Size + place the sliding thumb once the track has been measured.
         binding.segmentTrack.doOnLayout {
             val count = plans.size.coerceAtLeast(1)
             val inner = binding.segmentTrack.width -
@@ -207,8 +212,8 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
 
             thumbSpring = SpringAnimation(binding.segmentThumb, DynamicAnimation.TRANSLATION_X).apply {
                 spring = SpringForce().apply {
-                    stiffness = 520f                          // snappy
-                    dampingRatio = 0.62f                      // slight overshoot, like the design
+                    stiffness = 520f
+                    dampingRatio = 0.62f
                 }
             }
         }
@@ -218,7 +223,6 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
         if (index == selectedIndex || index !in plans.indices) return
         selectedIndex = index
 
-        // Slide the indicator.
         val count = plans.size.coerceAtLeast(1)
         val inner = binding.segmentTrack.width -
                 binding.segmentTrack.paddingLeft - binding.segmentTrack.paddingRight
@@ -226,15 +230,19 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
         thumbSpring?.animateToFinalPosition(target)
             ?: run { binding.segmentThumb.translationX = target }
 
-        // Recolour tabs.
         binding.segmentTabs.children().forEachIndexed { i, v ->
-            (v as TextView).setTextColor(
-                color(if (i == selectedIndex) R.color.sub_segment_text_active else R.color.sub_segment_text)
+            val tab = v as android.widget.LinearLayout
+            (tab.getChildAt(0) as? TextView)?.setTextColor(
+                color(if (i == index) R.color.sub_segment_text_active else R.color.sub_segment_text)
+            )
+            (tab.getChildAt(1) as? TextView)?.setTextColor(
+                color(if (i == index) R.color.sub_segment_text_active else R.color.appColor)
             )
         }
 
         bindInfoCard()
         bindDetailCard(animate = true)
+        updateCtaText()
     }
 
     // ── Info + detail card binding ─────────────────────────────────────────────
@@ -242,11 +250,13 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
         val subscribed = viewModel.isSubscribed.value
         if (subscribed) {
             val name = planName(viewModel.activePlan.value)
-            binding.infoTitle.text = getString(R.string.sub_current_title, name)
+            binding.infoTitle.text = "You're on the $name plan"
             binding.infoSubtitle.text = getString(R.string.sub_current_subtitle)
+            binding.activeBadge.isVisible = true
         } else {
             binding.infoTitle.text = getString(R.string.sub_free_title)
             binding.infoSubtitle.text = getString(R.string.sub_free_subtitle)
+            binding.activeBadge.isVisible = false
         }
     }
 
@@ -259,11 +269,12 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
         if (plan.hasDiscount) binding.discountPill.text = getString(R.string.sub_percent_off, plan.discountPercent)
 
         binding.priceStrike.isVisible = plan.showStrike
-        if (plan.showStrike) binding.priceStrike.text = money(plan.currencySymbol, plan.origPerMonth)
+        if (plan.showStrike) {
+            binding.priceStrike.text = "${money(plan.currencySymbol, plan.origPerMonth)}/mo"
+        }
 
         binding.saveShimmer.isVisible = plan.hasSave
 
-        // Count-up across per-month / total / save; everything else updates per frame.
         priceAnim?.cancel()
         if (!animate) {
             applyPriceFrame(plan, plan.perMonth, plan.total, plan.save)
@@ -305,6 +316,15 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
         )
     }
 
+    private fun updateCtaText() {
+        val plan = selectedPlan ?: return
+        binding.btnIdleText.text = if (plan.hasDiscount) {
+            "Start ${plan.title} — Save ${plan.discountPercent}%"
+        } else {
+            "Start ${plan.title}"
+        }
+    }
+
     // ── Subscribe button morph ─────────────────────────────────────────────────
     private enum class ButtonState { IDLE, BUSY, DONE }
 
@@ -325,10 +345,9 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
 
     private fun goToManage() {
         purchasing = false
-        val opts = NavOptions.Builder()
-            .setPopUpTo(R.id.subscriptionsFragment, true)
-            .build()
-        findNavController().navigate(R.id.manageSubscriptionFragment, null, opts)
+        val navController = findNavController()
+        navController.popBackStack(R.id.manageSubscriptionFragment, true)
+        navController.navigate(R.id.manageSubscriptionFragment)
     }
 
     private fun showErrorDialog(message: String) {
@@ -345,7 +364,6 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
             .show(childFragmentManager, "purchase_error")
     }
 
-    // ── Helpers ────────────────────────────────────────────────────────────────
     private fun planName(productId: String?): String = when (productId) {
         "urducanvas_monthly" -> "Monthly"
         "urducanvas_6months" -> "6-Month"

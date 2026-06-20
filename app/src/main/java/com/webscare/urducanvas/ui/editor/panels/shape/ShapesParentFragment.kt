@@ -61,6 +61,8 @@ class ShapesParentFragment : Fragment() {
     private var lastShapesData: ShapesData? = null
     private var tabListenerAttached = false
 
+    private var lastSlideExpanded: Boolean? = null  // guards applySlideOffset thrash
+
     private var thumbnailAdapter: ThumbnailAdapter? = null
 
     override fun onCreateView(
@@ -99,6 +101,7 @@ class ShapesParentFragment : Fragment() {
 
     override fun onDestroyView() {
         tabListenerAttached = false
+        lastSlideExpanded = null
         _binding = null
         super.onDestroyView()
     }
@@ -213,11 +216,16 @@ class ShapesParentFragment : Fragment() {
 
         // Switch child RecyclerView layout managers at 75 % of travel —
         // while the spring is still in motion so the user never sees a jump.
+        // Guard with lastSlideExpanded so we call onPanelExpandedSmooth at most once
+        // per direction flip — not on every drag frame.
         val effectiveExpanded = offset >= 0.75f
-        for ((_, fragment) in fragmentCache) {
-            when (fragment) {
-                is ShapesListFragment -> fragment.onPanelExpandedSmooth(effectiveExpanded)
-                is VectorsTabFragment -> fragment.onPanelExpandedSmooth(effectiveExpanded)
+        if (lastSlideExpanded != effectiveExpanded) {
+            lastSlideExpanded = effectiveExpanded
+            for ((_, fragment) in fragmentCache) {
+                when (fragment) {
+                    is ShapesListFragment -> fragment.onPanelExpandedSmooth(effectiveExpanded)
+                    is VectorsTabFragment -> fragment.onPanelExpandedSmooth(effectiveExpanded)
+                }
             }
         }
     }
@@ -359,9 +367,23 @@ class ShapesParentFragment : Fragment() {
 
     // ── Tab switching ─────────────────────────────────────────────────────────
 
+    /**
+     * Switch tabs. Synchronous and idempotent. No Handler debounce queue (which
+     * could back up and replay many switches, producing the multi-second freeze).
+     */
     private fun showTab(position: Int) {
+        if (_binding == null) return
         if (position < 0 || position >= tabs.size) return
+
         val category = tabs[position]
+
+        // Idempotent: if this tab is already the visible one, do nothing.
+        val existing = fragmentCache[category]
+        if (currentTabIndex == position && existing != null &&
+            existing.isAdded && !existing.isHidden) {
+            return
+        }
+
         currentTabIndex = position
         mainViewModel.lastShapesTabCategory = category
 
@@ -375,30 +397,42 @@ class ShapesParentFragment : Fragment() {
             }
         }
 
+        // Plain hide/show (keeps fragments warm; loading stays instant). commit()
+        // is async but cheap; no queue to back up because showTab is idempotent.
         childFragmentManager.beginTransaction().setReorderingAllowed(true).apply {
-            for (f in childFragmentManager.fragments) {
-                if (f !== target && !f.isHidden) hide(f)
+            for ((_, f) in fragmentCache) {
+                if (f !== target && f.isAdded && !f.isHidden) hide(f)
             }
             if (!target.isAdded) add(R.id.fragmentContainer, target, category)
             else if (target.isHidden) show(target)
-        }.commitNow()
+        }.commit()
 
         val expanded = mainViewModel.isPanelExpanded(PanelType.SHAPES)
         when (target) {
-            is ShapesListFragment -> {
-                target.onPanelExpandedSmooth(expanded)
-                target.onPanelExpanded(expanded)
-            }
-            is VectorsTabFragment -> {
-                target.onPanelExpandedSmooth(expanded)
-                target.onPanelExpanded(expanded)
-            }
+            is ShapesListFragment -> target.onPanelExpandedSmooth(expanded)
+            is VectorsTabFragment -> target.onPanelExpandedSmooth(expanded)
         }
     }
 
     // ── TabLayout ─────────────────────────────────────────────────────────────
 
+    private var lastBuiltTabs: List<String> = emptyList()
+
     private fun rebuildTabLayout(selectIndex: Int) {
+        // Skip the expensive 2xN custom-tab inflation if the tab set is identical.
+        // (removeAllTabs + re-inflate for BOTH layouts on every data emit was the
+        // heavy main-thread work behind the multi-second freeze.)
+        if (lastBuiltTabs == tabs && binding.tabLayout.tabCount == tabs.size) {
+            val safe = selectIndex.coerceIn(0, tabs.lastIndex)
+            binding.tabLayout.clearOnTabSelectedListeners()
+            binding.tabLayoutExpanded.clearOnTabSelectedListeners()
+            binding.tabLayout.getTabAt(safe)?.select()
+            binding.tabLayoutExpanded.getTabAt(safe)?.select()
+            tabListenerAttached = false
+            attachTabListener()
+            return
+        }
+        lastBuiltTabs = tabs.toList()
         tabListenerAttached = false
 
         listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
@@ -426,21 +460,32 @@ class ShapesParentFragment : Fragment() {
         if (tabListenerAttached) return
         tabListenerAttached = true
 
+        binding.tabLayout.clearOnTabSelectedListeners()
+        binding.tabLayoutExpanded.clearOnTabSelectedListeners()
+
+        // ONE listener per layout. NO cross-layout .select() — that mirror call was
+        // re-entering the listener and, combined with onShapesDataChanged ->
+        // rebuildTabLayout, could back up a queue of tab rebuilds that froze the
+        // main thread for seconds. We sync the other layout's selected INDEX only
+        // when it is safe (setScrollPosition does not fire onTabSelected).
         val listener = object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 val pos = tab?.position ?: return
-                tab.view.animate().scaleX(1f).scaleY(1f).setDuration(100)
-                    .setInterpolator(OvershootInterpolator(1.2f)).start()
-                val other =
-                    if (tab.parent == binding.tabLayout) binding.tabLayoutExpanded else binding.tabLayout
-                if (other.selectedTabPosition != pos) other.getTabAt(pos)?.select()
+                // Keep the other layout visually in sync WITHOUT firing its listener.
+                val other = if (tab.parent === binding.tabLayout)
+                    binding.tabLayoutExpanded else binding.tabLayout
+                if (other.selectedTabPosition != pos) {
+                    other.setScrollPosition(pos, 0f, true)
+                    other.getTabAt(pos)?.let { otherTab ->
+                        // select WITHOUT firing listeners: temporarily detach them
+                        other.clearOnTabSelectedListeners()
+                        otherTab.select()
+                        other.addOnTabSelectedListener(this)
+                    }
+                }
                 showTab(pos)
             }
-
-            override fun onTabUnselected(tab: TabLayout.Tab?) {
-                tab?.view?.animate()?.scaleX(0.9f)?.scaleY(0.9f)?.setDuration(100)?.start()
-            }
-
+            override fun onTabUnselected(tab: TabLayout.Tab?) {}
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         }
 

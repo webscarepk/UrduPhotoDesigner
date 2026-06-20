@@ -53,6 +53,8 @@
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/title"
         android:id="@+id/subscriptionLayout">
+
+        <!-- ── Upgrade card (shown when NOT subscribed) ─────────────────── -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -80,42 +82,46 @@
                 android:padding="15dp">
 
                 <ImageView
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
                     android:background="@drawable/button_bg_round"
                     android:src="@drawable/ic_crown"
-                    android:padding="7dp"
+                    android:padding="8dp"
                     android:id="@+id/titleImage"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     android:backgroundTint="@color/white"/>
 
+                <!-- stacked title + subtitle -->
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:text="@string/urdu_canvas_pro"
                     android:textSize="14sp"
                     android:fontFamily="@font/bold"
                     app:layout_constraintStart_toEndOf="@id/titleImage"
+                    app:layout_constraintEnd_toStartOf="@id/upgradeNow"
                     android:textColor="@color/white"
                     android:layout_marginStart="10dp"
+                    android:layout_marginEnd="8dp"
                     android:id="@+id/subscriptionCardTitle"
                     app:layout_constraintBottom_toTopOf="@+id/subscriptionCardSubTitle"
-                    app:layout_constraintTop_toTopOf="@id/titleImage"/>
+                    app:layout_constraintTop_toTopOf="@id/titleImage"
+                    app:layout_constraintVertical_chainStyle="packed"/>
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:text="@string/unlock_all_features_and_assets"
-                    android:textSize="12sp"
-                    android:layout_marginEnd="5dp"
+                    android:textSize="11.5sp"
                     android:fontFamily="@font/regular"
                     app:layout_constraintStart_toEndOf="@id/titleImage"
+                    app:layout_constraintEnd_toStartOf="@id/upgradeNow"
                     android:textColor="@color/light_gray"
                     android:layout_marginStart="10dp"
+                    android:layout_marginEnd="8dp"
                     android:id="@+id/subscriptionCardSubTitle"
-                    app:layout_constraintEnd_toStartOf="@id/upgradeNow"
                     app:layout_constraintTop_toBottomOf="@id/subscriptionCardTitle"
                     app:layout_constraintBottom_toBottomOf="@id/titleImage"/>
 
@@ -126,9 +132,9 @@
                     android:background="@drawable/button_gradient_contrast"
                     android:text="@string/upgrade_now"
                     android:textColor="@color/white"
-                    android:paddingVertical="5dp"
-                    android:fontFamily="@font/regular"
-                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="6dp"
+                    android:fontFamily="@font/bold"
+                    android:paddingHorizontal="12dp"
                     android:textSize="12sp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
@@ -137,6 +143,7 @@
             </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- ── Manage card (shown when subscribed) ──────────────────────── -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -164,60 +171,66 @@
                 android:padding="15dp">
 
                 <ImageView
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
                     android:background="@drawable/button_bg_round"
                     android:src="@drawable/ic_crown"
-                    android:padding="7dp"
+                    android:padding="8dp"
                     android:id="@+id/currentTitleImage"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     android:backgroundTint="@color/white"/>
 
+                <!-- "Current Plan" label -->
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:text="Current Plan"
-                    android:textSize="12sp"
+                    android:textSize="11sp"
                     android:fontFamily="@font/regular"
-                    app:layout_constraintStart_toEndOf="@id/currentTitleImage"
-                    android:textColor="@color/white"
-                    android:layout_marginStart="10dp"
-                    android:id="@+id/currentPlanTitle"
                     android:includeFontPadding="false"
+                    app:layout_constraintStart_toEndOf="@id/currentTitleImage"
+                    app:layout_constraintEnd_toStartOf="@id/manage"
+                    android:textColor="@color/light_gray"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginEnd="8dp"
+                    android:id="@+id/currentPlanTitle"
                     app:layout_constraintBottom_toTopOf="@+id/manageCardTitle"
                     app:layout_constraintTop_toTopOf="@id/currentTitleImage"
+                    app:layout_constraintVertical_chainStyle="packed"
                     tools:ignore="DuplicateIds" />
 
+                <!-- Plan name — set dynamically: Monthly / 6 Months / Yearly -->
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:text="@string/monthly"
-                    android:textSize="16sp"
+                    android:textSize="17sp"
                     android:fontFamily="@font/bold"
                     android:includeFontPadding="false"
                     app:layout_constraintStart_toEndOf="@id/currentTitleImage"
+                    app:layout_constraintEnd_toStartOf="@id/manage"
                     android:textColor="@color/white"
                     android:layout_marginStart="10dp"
+                    android:layout_marginEnd="8dp"
                     android:id="@+id/manageCardTitle"
-                    app:layout_constraintBottom_toTopOf="@+id/manageCardSubTitle"
-                    app:layout_constraintTop_toBottomOf="@id/currentPlanTitle"/>
+                    app:layout_constraintTop_toBottomOf="@id/currentPlanTitle"
+                    app:layout_constraintBottom_toTopOf="@id/manageCardSubTitle"/>
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:text="@string/subscribed_amp_unstoppable_new_features_unlocked"
-                    android:textSize="12sp"
-                    android:layout_marginEnd="5dp"
+                    android:textSize="11sp"
+                    android:layout_marginEnd="8dp"
                     android:fontFamily="@font/regular"
-                    app:layout_constraintStart_toEndOf="@id/currentTitleImage"
-                    android:textColor="@color/light_gray"
-                    android:lineHeight="12dp"
-                    android:layout_marginStart="10dp"
                     android:includeFontPadding="false"
-                    android:id="@+id/manageCardSubTitle"
+                    app:layout_constraintStart_toEndOf="@id/currentTitleImage"
                     app:layout_constraintEnd_toStartOf="@id/manage"
+                    android:textColor="@color/light_gray"
+                    android:layout_marginStart="10dp"
+                    android:id="@+id/manageCardSubTitle"
                     app:layout_constraintTop_toBottomOf="@id/manageCardTitle"
                     app:layout_constraintBottom_toBottomOf="@id/currentTitleImage"/>
 
@@ -228,9 +241,9 @@
                     android:background="@drawable/button_gradient_contrast"
                     android:text="@string/manage"
                     android:textColor="@color/white"
-                    android:paddingVertical="5dp"
-                    android:fontFamily="@font/regular"
-                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="6dp"
+                    android:fontFamily="@font/bold"
+                    android:paddingHorizontal="12dp"
                     android:textSize="12sp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
@@ -291,7 +304,7 @@
 
                 <View
                     android:layout_width="match_parent"
-                    android:layout_height="1dp"
+                    android:layout_height="0.5dp"
                     android:layout_marginHorizontal="15dp"
                     android:background="@color/white" />
 
@@ -310,7 +323,7 @@
 
                 <View
                     android:layout_width="match_parent"
-                    android:layout_height="1dp"
+                    android:layout_height="0.5dp"
                     android:layout_marginHorizontal="15dp"
                     android:background="@color/white" />
 
@@ -329,7 +342,7 @@
 
                 <View
                     android:layout_width="match_parent"
-                    android:layout_height="1dp"
+                    android:layout_height="0.5dp"
                     android:layout_marginHorizontal="15dp"
                     android:background="@color/white" />
 
@@ -348,7 +361,7 @@
 
                 <View
                     android:layout_width="match_parent"
-                    android:layout_height="1dp"
+                    android:layout_height="0.5dp"
                     android:layout_marginHorizontal="15dp"
                     android:background="@color/white" />
 
@@ -399,7 +412,7 @@
 
                 <View
                     android:layout_width="match_parent"
-                    android:layout_height="1dp"
+                    android:layout_height="0.5dp"
                     android:layout_marginHorizontal="15dp"
                     android:background="@color/white" />
 
@@ -418,7 +431,7 @@
 
                 <View
                     android:layout_width="match_parent"
-                    android:layout_height="1dp"
+                    android:layout_height="0.5dp"
                     android:layout_marginHorizontal="15dp"
                     android:background="@color/white" />
 
