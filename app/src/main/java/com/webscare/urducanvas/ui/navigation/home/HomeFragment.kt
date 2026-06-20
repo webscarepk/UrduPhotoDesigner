@@ -468,11 +468,10 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
                 mainViewModel.localFonts.collect { fonts ->
                     val filteredFonts = fonts.filter { !it.font_category.equals("Imported", true) }
-                    fontsAdapter.submitList(filteredFonts)
+                    fontsAdapter.submitList(filteredFonts.reversed())
                     binding.popularFonts.visibility =
                         if (filteredFonts.isEmpty()) View.GONE else View.VISIBLE
                 }
-
             }
         }
 
