@@ -89,13 +89,18 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         back.addPressEffect { findNavController().navigateUp() }
 
         btnShare.addPressEffect {
+            if (isPremiumLocked()) {
+                findNavController().navigate(R.id.subscriptionsFragment)
+                return@addPressEffect
+            }
+
             val export = viewModel.exportResult.value
             val projectPath = export?.jsonPath
             if (projectPath.isNullOrBlank()) {
                 showTopBanner("Export the project first to share it")
                 return@addPressEffect
             }
-            val sourceFile = java.io.File(projectPath)
+            val sourceFile = File(projectPath)
             if (!sourceFile.exists()) {
                 showTopBanner("Project file not found")
                 return@addPressEffect
@@ -103,9 +108,9 @@ class ExportFragment : androidx.fragment.app.Fragment() {
 
             // In release, always share as .urdc — even if the source is a plain .json
             // template downloaded from the server. Wrap it on the fly into a temp .urdc.
-            val fileToShare: java.io.File = if (!BuildConfig.DEBUG &&
+            val fileToShare: File = if (!BuildConfig.DEBUG &&
                 !ProjectCodec.isUrdcFile(sourceFile)) {
-                val tmp = java.io.File(
+                val tmp = File(
                     requireContext().cacheDir,
                     sourceFile.nameWithoutExtension + "." + ProjectCodec.FILE_EXTENSION
                 )
@@ -194,14 +199,46 @@ class ExportFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun updatePremiumBannerVisibility(hasPremium: Boolean) = with(binding) {
-        premiumAssets.isVisible = hasPremium && !subscriptionViewModel.isSubscribed.value
+        val isFromPremiumTemplate = viewModel.exportResult.value?.isFromPremiumTemplate == true
+        val locked = isPremiumLocked()
 
-        if (isPremiumLocked()) {
+        premiumAssets.isVisible = (hasPremium || isFromPremiumTemplate)
+                && !subscriptionViewModel.isSubscribed.value
+
+        if (locked) {
             btnExport.text = getString(R.string.buy_now)
             btnExport.setIconResource(R.drawable.ic_premium_stroke)
-            if (hasPremium) {
-                seeMore.paintFlags = seeMore.paintFlags or Paint.UNDERLINE_TEXT_FLAG
-                seeMore.addPressEffect { openPremiumAssetDetailSheet() }
+
+            when {
+                // Project derived from a premium template, no extra premium assets
+                isFromPremiumTemplate && !hasPremium -> {
+                    seeMore.text = "This project uses a premium template"
+                    // Update the card title + description
+                    premiumTitle.text =
+                        "Premium Template"
+                    premiumSubTitle.text =
+                        "This design is based on a premium template. Upgrade to export or share it."
+                }
+
+                // Premium assets inside canvas (with or without premium template origin)
+                hasPremium -> {
+                    seeMore.paintFlags = seeMore.paintFlags or Paint.UNDERLINE_TEXT_FLAG
+                    seeMore.addPressEffect { openPremiumAssetDetailSheet() }
+                    premiumTitle.text =
+                        "Premium Assets Detected"
+                    premiumSubTitle.text =
+                        "This design contains premium fonts, stickers, or images. Upgrade to export without restrictions."
+                }
+
+                // Both — premium template AND premium assets inside it
+                isFromPremiumTemplate && hasPremium -> {
+                    seeMore.paintFlags = seeMore.paintFlags or Paint.UNDERLINE_TEXT_FLAG
+                    seeMore.addPressEffect { openPremiumAssetDetailSheet() }
+                    premiumTitle.text =
+                        "Premium Template & Assets"
+                    premiumSubTitle.text =
+                        "This design uses a premium template and contains premium assets. Upgrade to unlock export."
+                }
             }
         } else {
             btnExport.text = getString(R.string.export)
@@ -213,7 +250,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         PremiumAssetsSheet.newInstance().show(parentFragmentManager, "premium_assets_sheet")
     }
 
-    private fun renderExportResult(result: com.webscare.urducanvas.data.model.ExportResult) =
+    private fun renderExportResult(result: ExportResult) =
         with(binding) {
 
             resolutionValue.text = result.resolution
@@ -412,7 +449,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                     this.updatedDate = exportDate
                     this.canvasSize = viewModel.canvasSize.value!!
                     this.isExported = true
-                } ?: _root_ide_package_.com.webscare.urducanvas.data.model.ExportResult(
+                } ?: ExportResult(
                     imagePath = imagePath,
                     jsonPath = jsonPath,
                     fileName = fileName,
@@ -424,6 +461,8 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                     canvasSize = viewModel.canvasSize.value!!,
                     exportDate = exportDate,
                     updatedDate = exportDate,
+                    isFromPremiumTemplate = viewModel.exportResult.value?.isFromPremiumTemplate == true,
+                    sourceTemplateId = viewModel.exportResult.value?.sourceTemplateId,
                 ).also { exportResult = it }
 
                 withContext(Dispatchers.Main) {
@@ -742,7 +781,10 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         val hasPremiumOption =
             options?.format?.isPremium == true || options?.resolution?.isPremium == true
 
-        return hasPremiumAsset || hasPremiumOption
+        // NEW: also check if the project came from a premium template
+        val isFromPremiumTemplate = viewModel.exportResult.value?.isFromPremiumTemplate == true
+
+        return hasPremiumAsset || hasPremiumOption || isFromPremiumTemplate
     }
 
     fun isBlueStacks(): Boolean {

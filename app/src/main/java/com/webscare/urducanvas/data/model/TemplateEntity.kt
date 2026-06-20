@@ -54,6 +54,8 @@ fun TemplateEntity.toExportResultFinal(
         exportDate = created_at ?: nowIso(),
         updatedDate = updated_at ?: nowIso(),
         isExported = true,
+        isFromPremiumTemplate = is_premium,   // carry it forward
+        sourceTemplateId = id,
     )
 }
 

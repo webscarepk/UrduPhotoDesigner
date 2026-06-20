@@ -214,7 +214,7 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <ScrollView
+    <com.webscare.urducanvas.common.views.SpringNestedScrollView
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:id="@+id/scrollView"
@@ -570,7 +570,7 @@
             </androidx.constraintlayout.widget.ConstraintLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-    </ScrollView>
+    </com.webscare.urducanvas.common.views.SpringNestedScrollView>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/exportSummaryCard"

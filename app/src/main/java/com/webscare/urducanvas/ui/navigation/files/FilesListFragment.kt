@@ -81,12 +81,23 @@ class FilesListFragment : Fragment() {
     private var bundle: Bundle = Bundle()
     private var loadingDialog: Dialog? = null
     private var dialogBinding: DialogLoadingProgressBinding? = null
-    // Launcher for importing a project file (.urdc or plain .json debug build)
+
+    // ─── File pickers ─────────────────────────────────────────────────────────
+
+    /** Projects tab: pick one or more .urdc / .json project files. */
     private val importProjectLauncher =
-        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-            uri?.let { importProjectFile(it) }
+        registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris: List<Uri> ->
+            if (uris.isNotEmpty()) {
+                lifecycleScope.launch(Dispatchers.IO) {
+                    uris.forEach { importProjectFile(it) }
+                }
+            }
         }
 
+    /**
+     * Non-project tabs: accept any mix of file types.
+     * Auto-detected by extension in [handlePickedFile].
+     */
     private val pickFiles =
         registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris: List<Uri> ->
             if (uris.isNotEmpty()) {
@@ -111,245 +122,313 @@ class FilesListFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         setEvents()
         initObservers()
         (activity as? MainActivity)?.bindScrollToNav(_binding!!.filesRV)
         _binding!!.filesRV.edgeEffectFactory = SpringEdgeEffectFactory()
-        if (tabName.equals("All", true)) {
-            _binding!!.addMore.visibility = View.GONE
+    }
+
+    // ─── Public API called by FilesFragment ───────────────────────────────────
+
+    /**
+     * Triggered by the parent toolbar "Import …" button.
+     * Routes to the correct system picker based on the active tab.
+     */
+    fun triggerImport() {
+        if (tabName.equals("Projects", true)) {
+            importProjectLauncher.launch(arrayOf("application/octet-stream", "*/*"))
+        } else {
+            pickFiles.launch(arrayOf("*/*"))
         }
     }
 
-    @SuppressLint("ClickableViewAccessibility")
-    private fun setEvents() {
-        adapter = FilesAdapter(emptyList(), isGrid = false, onItemClick = { item ->
-            openItem(item)
-        }, onItemLongClick = {}, onOptionsClick = { item, anchorView ->
-            showFilePopup(anchorView, item)
-        }, onRename = { item, newName ->
-            if (newName.isNotEmpty()) {
-                lifecycleScope.launch {
+    /**
+     * Triggered by the parent toolbar "Delete All" button.
+     * Shows a confirmation dialog then deletes every selected item.
+     */
+    fun triggerDeleteSelected() {
+        val selectedItems = adapter.getSelectedItems()
+        if (selectedItems.isEmpty()) return
+
+        DialogUtils.showDeleteDialog(
+            requireActivity(),
+            getString(R.string.delete_permanently),
+            getString(R.string.your_asset_will_be_permanently_deleted)
+        ) {
+            lifecycleScope.launch {
+                selectedItems.forEach { item ->
                     when (item) {
-                        is ExportResult -> viewModel.insertExportResult(item.copy(fileName = newName))
-                        is ImageEntity -> viewModel.updateImage(item.copy(file_name = newName))
-                        is FontEntity -> viewModel.updateFont(item.copy(font_name = newName))
+                        is ExportResult -> viewModel.deleteExportResult(item)
+                        is ImageEntity  -> viewModel.deleteImage(item)
+                        is FontEntity   -> viewModel.deleteFont(item)
                     }
                 }
+                adapter.clearSelection()
+                // Notify parent so it swaps the toolbar button back to Import
+                (parentFragment as? FilesFragment)?.onSelectionModeChanged(false)
             }
-        }, onSelectionChanged = { active ->
-            _binding!!.deleteAll.visibility = if (active) View.VISIBLE else View.GONE
-            _binding!!.addMore.visibility = if (active) View.GONE else View.VISIBLE
-            if (tabName.equals("All", true)) {
-                _binding!!.addMore.visibility = View.GONE
+        }
+    }
+
+    // ─── Events ───────────────────────────────────────────────────────────────
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setEvents() {
+        adapter = FilesAdapter(
+            items           = emptyList(),
+            isGrid          = false,
+            onItemClick     = { item -> openItem(item) },
+            onItemLongClick = {},
+            onOptionsClick  = { item, anchorView -> showFilePopup(anchorView, item) },
+            onRename        = { item, newName ->
+                if (newName.isNotEmpty()) {
+                    lifecycleScope.launch {
+                        when (item) {
+                            is ExportResult -> viewModel.insertExportResult(item.copy(fileName = newName))
+                            is ImageEntity  -> viewModel.updateImage(item.copy(file_name = newName))
+                            is FontEntity   -> viewModel.updateFont(item.copy(font_name = newName))
+                        }
+                    }
+                }
+            },
+            onSelectionChanged = { active ->
+                (parentFragment as? FilesFragment)?.onSelectionModeChanged(active)
             }
-        })
+        )
+
         _binding!!.filesRV.adapter = adapter
         _binding!!.filesRV.layoutManager = LinearLayoutManager(requireContext())
 
         _binding!!.filesRV.setOnTouchListener { v, event ->
-            if (event.action == android.view.MotionEvent.ACTION_DOWN) {
-                if (adapter.isEditing()) {
-                    val imm =
-                        requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                    imm.hideSoftInputFromWindow(v.windowToken, 0)
-                    requireActivity().currentFocus?.clearFocus()
-                    adapter.stopEditing()
-                }
+            if (event.action == android.view.MotionEvent.ACTION_DOWN && adapter.isEditing()) {
+                val imm = requireContext()
+                    .getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
+                        as android.view.inputmethod.InputMethodManager
+                imm.hideSoftInputFromWindow(v.windowToken, 0)
+                requireActivity().currentFocus?.clearFocus()
+                adapter.stopEditing()
             }
-
             false
         }
-
-        _binding!!.addMore.addPressEffect {
-            if (tabName.equals("Projects", true)) {
-                // Projects tab: pick .urdc project files (and plain .json for debug builds)
-                importProjectLauncher.launch(arrayOf("application/octet-stream", "*/*"))
-            } else {
-                pickFiles.launch(arrayOf("*/*"))
-            }
-        }
-
-        _binding!!.deleteAll.addPressEffect {
-            val selectedItems = adapter.getSelectedItems() // we'll add this helper in adapter
-            if (selectedItems.isNotEmpty()) {
-                DialogUtils.showDeleteDialog(
-                    requireActivity(),
-                    getString(R.string.delete_permanently),
-                    getString(R.string.your_asset_will_be_permanently_deleted)
-                ) {
-                    lifecycleScope.launch {
-                        selectedItems.forEach { item ->
-                            when (item) {
-                                is ExportResult -> viewModel.deleteExportResult(item)
-                                is ImageEntity -> viewModel.deleteImage(item)
-                                is FontEntity -> viewModel.deleteFont(item)
-                            }
-                        }
-                        adapter.clearSelection()
-                    }
-                }
-            }
-        }
     }
 
+    // ─── Multi-file import ────────────────────────────────────────────────────
+
+    /**
+     * Dispatches each picked URI to [handlePickedFile] on IO, then
+     * shows a single summary Snackbar on the main thread.
+     */
     private fun handlePickedFiles(uris: List<Uri>) {
         lifecycleScope.launch(Dispatchers.IO) {
+            var imported = 0
+            var skipped  = 0
             uris.forEach { uri ->
-                handlePickedFile(uri)
+                if (handlePickedFile(uri)) imported++ else skipped++
+            }
+            withContext(Dispatchers.Main) {
+                val root = _binding?.root ?: return@withContext
+                val msg = when {
+                    imported > 0 && skipped == 0 ->
+                        if (imported == 1) "File imported successfully"
+                        else "$imported files imported successfully"
+                    imported > 0 ->
+                        "$imported imported, $skipped skipped (unsupported type)"
+                    else -> "No supported files found"
+                }
+                Snackbar.make(root, msg, Snackbar.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun handlePickedFile(uri: Uri) {
+    /**
+     * Auto-detects the file category from its extension and stores it in Room.
+     *  • .ttf / .otf          → Font
+     *  • .jpg / .jpeg / .webp → Background
+     *  • .png                 → Sticker
+     *  • .urdc / .json        → Project
+     *
+     * @return true on success, false if the type is unsupported or an error occurred.
+     */
+    private suspend fun handlePickedFile(uri: Uri): Boolean {
         val name = getFileName(uri)
-        val ext = name.substringAfterLast('.', "").lowercase()
+        val ext  = name.substringAfterLast('.', "").lowercase()
 
-        when (ext) {
-            "ttf", "otf" -> {   // FONT IMPORT — no bitmap processing needed
-                lifecycleScope.launch(Dispatchers.IO) {
-                    try {
-                        val fontFile = copyToTemp(uri, ".$ext")
-                        val exportDate =
-                            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        return when (ext) {
 
-                        val fontEntity = FontEntity(
-                            id = System.currentTimeMillis().toInt(),
-                            file_name = fontFile.name,
-                            font_name = fontFile.nameWithoutExtension,
-                            font_category = "Imported",
-                            font_language = "Imported",
-                            file_url = "",
-                            file_size = fontFile.length().toString(),
-                            font_image = null,
-                            image_url = "",
-                            alt_text = "Font sample image",
-                            user_id = 0,
-                            created_at = exportDate,
-                            updated_at = exportDate,
-                            is_selected = false,
-                            is_downloaded = true,
-                            is_downloading = false,
-                            file_path = fontFile.absolutePath
-                        )
-                        viewModel.insertFont(fontEntity)
-                    } catch (e: Exception) {
-                        withContext(Dispatchers.Main) {
-                            Snackbar.make(
-                                requireView(), "Font import failed", Snackbar.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
-                }
+            // ── Fonts ────────────────────────────────────────────────────────
+            "ttf", "otf" -> try {
+                val fontFile   = copyToTemp(uri, ".$ext")
+                val exportDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                viewModel.insertFont(FontEntity(
+                    id             = System.currentTimeMillis().toInt(),
+                    file_name      = fontFile.name,
+                    font_name      = fontFile.nameWithoutExtension,
+                    font_category  = "Imported",
+                    font_language  = "Imported",
+                    file_url       = "",
+                    file_size      = fontFile.length().toString(),
+                    font_image     = null,
+                    image_url      = "",
+                    alt_text       = "Font sample image",
+                    user_id        = 0,
+                    created_at     = exportDate,
+                    updated_at     = exportDate,
+                    is_selected    = false,
+                    is_downloaded  = true,
+                    is_downloading = false,
+                    file_path      = fontFile.absolutePath
+                ))
+                true
+            } catch (e: Exception) {
+                Log.e("FilesListFragment", "Font import failed: $name", e); false
             }
 
-            "jpg", "jpeg" -> {   // BACKGROUND IMPORT
-                lifecycleScope.launch(Dispatchers.IO) {
-                    try {
-                        val filePath =
-                            ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
-                                ?: return@launch
-                        val rawBitmap = ImageProcessor.filePathToBitmap(filePath) ?: return@launch
-
-                        // Cap at GPU hard limit only — the user will likely set this as a full-canvas
-                        // background, so preserve every pixel we can up to 24 MP.
-                        val bitmap =
-                            downsampleIfNeeded(rawBitmap, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)
-
-                        // Write back at maximum JPEG quality (100) — stored on disk once,
-                        // CanvasView's display-proxy handles render-time downscaling.
-                        val outFile = File(filePath)
-                        outFile.outputStream()
-                            .use { bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it) }
-
-                        val exportDate =
-                            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                        val entity = ImageEntity(
-                            id = System.currentTimeMillis().toInt(),
-                            file_name = outFile.name,
-                            file_url = "",
-                            file_size = outFile.length().toString(),
-                            alt_text = "",
-                            category = "Backgrounds Imported",
-                            parent_category = "Images",
-                            user_id = 0,
-                            is_selected = false,
-                            bitmapData = filePath,
-                            created_at = exportDate
-                        )
-                        viewModel.insertImage(entity)
-                    } catch (e: Exception) {
-                        Log.e("BackgroundPicker", "Failed", e)
-                    }
-                }
+            // ── Backgrounds (JPEG / WEBP) ─────────────────────────────────
+            "jpg", "jpeg", "webp" -> try {
+                val filePath  = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath ?: return false
+                val rawBitmap = ImageProcessor.filePathToBitmap(filePath) ?: return false
+                val bitmap    = downsampleIfNeeded(rawBitmap, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)
+                val fmt       = if (ext == "webp") Bitmap.CompressFormat.WEBP else Bitmap.CompressFormat.JPEG
+                val outFile   = File(filePath)
+                outFile.outputStream().use { bitmap.compress(fmt, 100, it) }
+                val exportDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                viewModel.insertImage(ImageEntity(
+                    id              = System.currentTimeMillis().toInt(),
+                    file_name       = outFile.name,
+                    file_url        = "",
+                    file_size       = outFile.length().toString(),
+                    alt_text        = "",
+                    category        = "Backgrounds Imported",
+                    parent_category = "Images",
+                    user_id         = 0,
+                    is_selected     = false,
+                    bitmapData      = filePath,
+                    created_at      = exportDate
+                ))
+                true
+            } catch (e: Exception) {
+                Log.e("FilesListFragment", "Background import failed: $name", e); false
             }
 
-            "png" -> {   // STICKER IMPORT
-                lifecycleScope.launch(Dispatchers.IO) {
-                    try {
-                        val filePath =
-                            ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
-                                ?: return@launch
-                        val rawBitmap = ImageProcessor.filePathToBitmap(filePath) ?: return@launch
+            // ── Stickers (PNG) ────────────────────────────────────────────
+            "png" -> try {
+                val filePath  = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath ?: return false
+                val rawBitmap = ImageProcessor.filePathToBitmap(filePath) ?: return false
+                val bitmap    = downsampleIfNeeded(rawBitmap, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)
+                val outFile   = File(filePath)
+                outFile.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                val exportDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                viewModel.insertImage(ImageEntity(
+                    id              = System.currentTimeMillis().toInt(),
+                    file_name       = outFile.name,
+                    file_url        = "",
+                    file_size       = outFile.length().toString(),
+                    alt_text        = "",
+                    category        = "Images Imported",
+                    parent_category = "Images",
+                    user_id         = 0,
+                    is_selected     = false,
+                    bitmapData      = filePath,
+                    created_at      = exportDate
+                ))
+                true
+            } catch (e: Exception) {
+                Log.e("FilesListFragment", "Sticker import failed: $name", e); false
+            }
 
-                        // Same GPU-safe cap — no canvas context available here.
-                        val bitmap =
-                            downsampleIfNeeded(rawBitmap, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)
-
-                        // Write the downsampled bitmap back to the temp file
-                        // PNG is lossless so quality param is ignored — always use PNG for stickers
-                        val outFile = File(filePath)
-                        outFile.outputStream()
-                            .use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-
-                        val exportDate =
-                            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                        val entity = ImageEntity(
-                            id = System.currentTimeMillis().toInt(),
-                            file_name = outFile.name,
-                            file_url = "",
-                            file_size = outFile.length().toString(),
-                            alt_text = "",
-                            category = "Images Imported",
-                            parent_category = "Images",
-                            user_id = 0,
-                            is_selected = false,
-                            bitmapData = filePath,
-                            created_at = exportDate
-                        )
-                        viewModel.insertImage(entity)
-                    } catch (e: Exception) {
-                        Log.e("StickerPicker", "Failed", e)
-                    }
-                }
+            // ── Projects (.urdc / .json) ──────────────────────────────────
+            ProjectCodec.FILE_EXTENSION, "json" -> {
+                importProjectFile(uri); true
             }
 
             else -> {
-                Snackbar.make(requireView(), "Unsupported file type!", Snackbar.LENGTH_SHORT).show()
+                Log.w("FilesListFragment", "Unsupported extension: $ext ($name)"); false
             }
         }
     }
 
+    // ─── Project import ───────────────────────────────────────────────────────
+
+    private suspend fun importProjectFile(uri: Uri) {
+        try {
+            val displayName = getFileName(uri).ifBlank { "imported_${System.currentTimeMillis()}" }
+            val baseName    = displayName.substringBeforeLast('.')
+
+            // 1. Copy to permanent app storage.
+            val destJson = ImageProcessor.newExportJsonFile(
+                requireActivity(), "$baseName.${ProjectCodec.FILE_EXTENSION}"
+            )
+            requireContext().contentResolver.openInputStream(uri)?.use { input ->
+                destJson.outputStream().use { input.copyTo(it) }
+            } ?: run {
+                withContext(Dispatchers.Main) {
+                    _binding?.root?.let { Snackbar.make(it, "Could not read file", Snackbar.LENGTH_SHORT).show() }
+                }
+                return
+            }
+
+            // 2. Validate.
+            val isUrdc      = ProjectCodec.isUrdcFile(destJson)
+            val firstByte   = if (!isUrdc) destJson.inputStream().use { it.read() } else -1
+            val isPlainJson = !isUrdc && (firstByte == '['.code || firstByte == '{'.code)
+            if (!isUrdc && !isPlainJson) {
+                destJson.delete()
+                withContext(Dispatchers.Main) {
+                    _binding?.root?.let { Snackbar.make(it, "Not a valid Urdu Canvas project file", Snackbar.LENGTH_SHORT).show() }
+                }
+                return
+            }
+
+            // 3. Extract thumbnail.
+            val thumb      = ProjectCodec.readThumbnail(destJson)
+            val thumbPath  = thumb?.let {
+                val f = File(destJson.parentFile, "$baseName.jpg")
+                f.outputStream().use { out -> it.compress(Bitmap.CompressFormat.JPEG, 85, out) }
+                f.absolutePath
+            }
+
+            // 4. Insert into Room.
+            val now = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
+            viewModel.insertExportResult(ExportResult(
+                id            = 0,
+                imagePath     = thumbPath ?: "",
+                jsonPath      = destJson.absolutePath,
+                fileName      = baseName,
+                fileSizeMB    = destJson.length() / (1024.0 * 1024.0),
+                resolution    = "",
+                format        = if (isUrdc) "URDC" else "JSON",
+                quality       = "",
+                canvasSize    = canvasViewModel.canvasSize.value
+                    ?: CanvasSize(id = 0, "Imported", 1080f, 1080f),
+                exportDate    = now,
+                updatedDate   = now,
+                thumbnailPath = thumbPath
+            ))
+        } catch (e: Exception) {
+            Log.e("FilesListFragment", "importProjectFile failed", e)
+            withContext(Dispatchers.Main) {
+                _binding?.root?.let { Snackbar.make(it, "Import failed: ${e.message}", Snackbar.LENGTH_SHORT).show() }
+            }
+        }
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
     private fun getFileName(uri: Uri): String {
         var name: String? = null
-        val cursor = requireContext().contentResolver.query(uri, null, null, null, null)
-        cursor?.use {
-            if (it.moveToFirst()) {
-                name =
-                    it.getString(it.getColumnIndexOrThrow(android.provider.OpenableColumns.DISPLAY_NAME))
-            }
+        requireContext().contentResolver.query(uri, null, null, null, null)?.use {
+            if (it.moveToFirst())
+                name = it.getString(it.getColumnIndexOrThrow(android.provider.OpenableColumns.DISPLAY_NAME))
         }
         return name ?: uri.lastPathSegment ?: "file"
     }
 
     private fun copyToTemp(uri: Uri, dotExt: String): File {
-        val tempFile = File.createTempFile(
-            "imported_${System.currentTimeMillis()}", dotExt, requireContext().cacheDir
-        )
+        val temp = File.createTempFile("imported_${System.currentTimeMillis()}", dotExt, requireContext().cacheDir)
         requireContext().contentResolver.openInputStream(uri).use { input ->
-            tempFile.outputStream().use { out -> input?.copyTo(out) }
+            temp.outputStream().use { out -> input?.copyTo(out) }
         }
-        return tempFile
+        return temp
     }
 
     private fun createFontSampleBitmap(typeface: Typeface): Bitmap {
@@ -359,105 +438,70 @@ class FilesListFragment : Fragment() {
             color = ContextCompat.getColor(requireContext(), R.color.appColor)
             textAlign = Paint.Align.LEFT
         }
-
-        val width = paint.measureText("Ab").toInt()
-        val height = (paint.descent() - paint.ascent()).toInt()
-        val bitmap = createBitmap(width, height)
-        val canvas = Canvas(bitmap)
-        val y = -paint.ascent()
-        canvas.drawText("Ab", 0f, y, paint)
+        val bitmap = createBitmap(paint.measureText("Ab").toInt(), (paint.descent() - paint.ascent()).toInt())
+        Canvas(bitmap).drawText("Ab", 0f, -paint.ascent(), paint)
         return bitmap
     }
 
+    // ─── Open item ────────────────────────────────────────────────────────────
+
     private fun openItem(item: Any) {
         when (item) {
-            is ExportResult -> {
-                lifecycleScope.launch {
-                    withContext(Dispatchers.Default) {
-                        canvasViewModel.loadTemplateFromJsonFile(item, requireContext())
-                    }
+            is ExportResult -> lifecycleScope.launch {
+                withContext(Dispatchers.Default) {
+                    canvasViewModel.loadTemplateFromJsonFile(item, requireContext())
                 }
             }
-
             is FontEntity -> {
-                canvasViewModel.setCanvasSize(
-                    CanvasSize(
-                        id = 0,"", 2000f, 2000f
-                    )
-                )
-                canvasViewModel.addTextWithFont(
-                    requireActivity().getString(R.string.dummyText), item, requireActivity()
-                )
-                view?.post {
-                    findNavController().navigate(R.id.editorFragment, bundle, navOptions)
-                }
+                canvasViewModel.setCanvasSize(CanvasSize(id = 0, "", 2000f, 2000f))
+                canvasViewModel.addTextWithFont(requireActivity().getString(R.string.dummyText), item, requireActivity())
+                view?.post { findNavController().navigate(R.id.editorFragment, bundle, navOptions) }
             }
-
             is ImageEntity -> {
                 val rawBitmap = BitmapFactory.decodeFile(item.bitmapData)
-
                 rawBitmap?.let { bmp ->
-                    // Use canvas-relative sizing: 2× canvas ensures sharpness when zoomed in,
-                    // bounded by the GPU hard limit so we never crash.
                     val canvasW = canvasViewModel.canvasSize.value?.width ?: bmp.width.toFloat()
                     val canvasH = canvasViewModel.canvasSize.value?.height ?: bmp.height.toFloat()
-                    val maxW = (canvasW * 2).toInt().coerceIn(1024, MAX_IMAGE_DIMENSION)
-                    val maxH = (canvasH * 2).toInt().coerceIn(1024, MAX_IMAGE_DIMENSION)
-                    val bitmap = downsampleIfNeeded(bmp, maxW, maxH)
-
-                    val widthVal = bitmap.width.toFloat()
-                    val heightVal = bitmap.height.toFloat()
-
-                    val canvasSize = CanvasSize(
-                        id = 0, "From Image", widthVal, heightVal
-                    )
-
+                    val bitmap  = downsampleIfNeeded(bmp,
+                        (canvasW * 2).toInt().coerceIn(1024, MAX_IMAGE_DIMENSION),
+                        (canvasH * 2).toInt().coerceIn(1024, MAX_IMAGE_DIMENSION))
                     canvasViewModel.clearCanvas()
-                    canvasViewModel.setCanvasSize(canvasSize)
+                    canvasViewModel.setCanvasSize(CanvasSize(id = 0, "From Image", bitmap.width.toFloat(), bitmap.height.toFloat()))
                     canvasViewModel.setCanvasBackgroundImage(bitmap, requireActivity())
-                    view?.post {
-                        findNavController().navigate(R.id.editorFragment, bundle, navOptions)
-                    }
+                    view?.post { findNavController().navigate(R.id.editorFragment, bundle, navOptions) }
                 }
             }
         }
     }
 
+    // ─── File popup ───────────────────────────────────────────────────────────
+
     private fun showFilePopup(anchorView: View, item: Any) {
         val popupBinding = LayoutFilesPopupBinding.inflate(LayoutInflater.from(requireActivity()))
-        val popupWindow = PopupWindow(
+        val popupWindow  = PopupWindow(
             popupBinding.root,
-            (180 * requireActivity().resources.displayMetrics.density).toInt(), // fixed width ~200dp
+            (180 * requireActivity().resources.displayMetrics.density).toInt(),
             LinearLayout.LayoutParams.WRAP_CONTENT,
             true
-        )
-
-        popupWindow.elevation = 2f
-        popupWindow.isOutsideTouchable = true
+        ).apply {
+            elevation = 2f
+            isOutsideTouchable = true
+        }
 
         anchorView.post {
             val screenHeight = resources.displayMetrics.heightPixels
-
-            val location = IntArray(2)
-            anchorView.getLocationOnScreen(location)
-            val anchorTop = location[1]
+            val loc          = IntArray(2).also { anchorView.getLocationOnScreen(it) }
+            val anchorTop    = loc[1]
             val anchorBottom = anchorTop + anchorView.height
-
             popupBinding.root.measure(
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
             )
             val popupHeight = popupBinding.root.measuredHeight
-
-            val spaceBelow = screenHeight - anchorBottom
-            val spaceAbove = anchorTop
-
-            if (spaceBelow >= popupHeight) {
+            if (screenHeight - anchorBottom >= popupHeight) {
                 popupWindow.showAsDropDown(anchorView)
-            } else if (spaceAbove >= popupHeight) {
-                popupWindow.showAtLocation(
-                    anchorView, Gravity.NO_GRAVITY, location[0], anchorTop - popupHeight
-                )
+            } else if (anchorTop >= popupHeight) {
+                popupWindow.showAtLocation(anchorView, Gravity.NO_GRAVITY, loc[0], anchorTop - popupHeight)
             } else {
                 popupWindow.showAsDropDown(anchorView)
             }
@@ -465,57 +509,28 @@ class FilesListFragment : Fragment() {
 
         popupBinding.actionExport.addPressEffect {
             popupWindow.dismiss()
-
             when (item) {
-                is ExportResult -> {
-                    lifecycleScope.launch {
-                        val bitmap = BitmapFactory.decodeFile(item.imagePath)
-                        if (bitmap != null) {
-                            exportToGallery(bitmap, item.fileName, Bitmap.CompressFormat.PNG)
-                        } else {
-                            Snackbar.make(
-                                requireView(), "Could not load image", Snackbar.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
+                is ExportResult -> lifecycleScope.launch {
+                    BitmapFactory.decodeFile(item.imagePath)?.let { exportToGallery(it, item.fileName, Bitmap.CompressFormat.PNG) }
+                        ?: Snackbar.make(requireView(), "Could not load image", Snackbar.LENGTH_SHORT).show()
                 }
-
-                is ImageEntity -> {
-                    lifecycleScope.launch {
-                        val bitmap = BitmapFactory.decodeFile(item.bitmapData)
-                        if (bitmap != null) {
-                            exportToGallery(bitmap, item.file_name, Bitmap.CompressFormat.PNG)
-                        } else {
-                            Snackbar.make(
-                                requireView(), "Could not load image", Snackbar.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
+                is ImageEntity -> lifecycleScope.launch {
+                    BitmapFactory.decodeFile(item.bitmapData)?.let { exportToGallery(it, item.file_name, Bitmap.CompressFormat.PNG) }
+                        ?: Snackbar.make(requireView(), "Could not load image", Snackbar.LENGTH_SHORT).show()
                 }
-
-                is FontEntity -> {
-                    lifecycleScope.launch {
-                        val bitmap = BitmapFactory.decodeFile(item.font_image)
-                        if (bitmap != null) {
-                            exportToGallery(bitmap, item.font_name!!, Bitmap.CompressFormat.PNG)
-                        } else {
-                            Snackbar.make(
-                                requireView(), "Could not load image", Snackbar.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
+                is FontEntity -> lifecycleScope.launch {
+                    BitmapFactory.decodeFile(item.font_image)?.let { exportToGallery(it, item.font_name!!, Bitmap.CompressFormat.PNG) }
+                        ?: Snackbar.make(requireView(), "Could not load image", Snackbar.LENGTH_SHORT).show()
                 }
             }
         }
 
-        popupBinding.actionShare.addPressEffect {
-            popupWindow.dismiss()
-            shareItem(item)
-        }
+        popupBinding.actionShare.addPressEffect { popupWindow.dismiss(); shareItem(item) }
 
         popupBinding.actionSelect.addPressEffect {
             popupWindow.dismiss()
             adapter.toggleMultiSelectMode(true)
+            (parentFragment as? FilesFragment)?.onSelectionModeChanged(true)
         }
 
         popupBinding.actionDuplicate.addPressEffect {
@@ -523,63 +538,36 @@ class FilesListFragment : Fragment() {
             lifecycleScope.launch(Dispatchers.IO) {
                 when (item) {
                     is ExportResult -> {
-                        val srcImage = File(item.imagePath)
-                        val srcJson = File(item.jsonPath)
-
-                        val newImageFile =
-                            ImageProcessor.newExportImageFile(requireActivity(), srcImage.name)
-                        val newJsonFile =
-                            ImageProcessor.newExportJsonFile(requireActivity(), srcJson.name)
-
-                        ImageProcessor.copyFile(srcImage, newImageFile)
-                        ImageProcessor.copyFile(srcJson, newJsonFile)
-
-                        val newExport = item.copy(
-                            id = 0,
-                            imagePath = newImageFile.absolutePath,
-                            jsonPath = newJsonFile.absolutePath,
-                            fileName = "${item.fileName}_copy",
-                            updatedDate = System.currentTimeMillis().toString()
-                        )
-                        viewModel.insertExportResult(newExport)
+                        val newImage = ImageProcessor.newExportImageFile(requireActivity(), File(item.imagePath).name)
+                        val newJson  = ImageProcessor.newExportJsonFile(requireActivity(), File(item.jsonPath).name)
+                        ImageProcessor.copyFile(File(item.imagePath), newImage)
+                        ImageProcessor.copyFile(File(item.jsonPath),  newJson)
+                        viewModel.insertExportResult(item.copy(
+                            id = 0, imagePath = newImage.absolutePath, jsonPath = newJson.absolutePath,
+                            fileName = "${item.fileName}_copy", updatedDate = System.currentTimeMillis().toString()
+                        ))
                     }
-
                     is ImageEntity -> {
-                        val srcImage = File(item.bitmapData ?: item.file_url)
-                        val newImageFile =
-                            ImageProcessor.newImageFile(requireContext(), srcImage.name)
-
-                        if (srcImage.exists()) ImageProcessor.copyFile(srcImage, newImageFile)
-
-                        val newEntity = item.copy(
-                            id = 0,
-                            file_name = "${item.file_name}_copy",
-                            bitmapData = newImageFile.absolutePath,
-                            created_at = System.currentTimeMillis().toString()
-                        )
-                        viewModel.insertImage(newEntity)
+                        val src  = File(item.bitmapData ?: item.file_url)
+                        val dest = ImageProcessor.newImageFile(requireContext(), src.name)
+                        if (src.exists()) ImageProcessor.copyFile(src, dest)
+                        viewModel.insertImage(item.copy(
+                            id = 0, file_name = "${item.file_name}_copy",
+                            bitmapData = dest.absolutePath, created_at = System.currentTimeMillis().toString()
+                        ))
                     }
-
                     is FontEntity -> {
-                        val srcFont = File(item.file_path ?: item.file_url)
-                        val newFontFile = ImageProcessor.newFontFile(requireContext(), srcFont.name)
-
-                        if (srcFont.exists()) ImageProcessor.copyFile(srcFont, newFontFile)
-
-                        val srcPreview = File(item.font_image)
-                        val newPreviewFile =
-                            ImageProcessor.newFontPreviewFile(requireContext(), srcPreview.name)
-
-                        if (srcPreview.exists()) ImageProcessor.copyFile(srcPreview, newPreviewFile)
-
-                        val newEntity = item.copy(
-                            id = 0,
-                            font_name = "${item.font_name}_copy",
-                            font_image = newPreviewFile.absolutePath,
-                            file_path = newFontFile.absolutePath,
+                        val srcFont    = File(item.file_path ?: item.file_url)
+                        val destFont   = ImageProcessor.newFontFile(requireContext(), srcFont.name)
+                        if (srcFont.exists()) ImageProcessor.copyFile(srcFont, destFont)
+                        val srcPrev    = File(item.font_image)
+                        val destPrev   = ImageProcessor.newFontPreviewFile(requireContext(), srcPrev.name)
+                        if (srcPrev.exists()) ImageProcessor.copyFile(srcPrev, destPrev)
+                        viewModel.insertFont(item.copy(
+                            id = 0, font_name = "${item.font_name}_copy",
+                            font_image = destPrev.absolutePath, file_path = destFont.absolutePath,
                             created_at = System.currentTimeMillis().toString()
-                        )
-                        viewModel.insertFont(newEntity)
+                        ))
                     }
                 }
             }
@@ -587,80 +575,83 @@ class FilesListFragment : Fragment() {
 
         popupBinding.actionRename.addPressEffect {
             popupWindow.dismiss()
-
-            val itemId = when (item) {
-                is ImageEntity -> item.id.toLong()
-                is FontEntity -> item.id.toLong()
+            adapter.startEditing(when (item) {
+                is ImageEntity  -> item.id.toLong()
+                is FontEntity   -> item.id.toLong()
                 is ExportResult -> item.id
-                else -> 0
-            }
-            adapter.startEditing(itemId)
+                else            -> 0
+            })
         }
 
         popupBinding.actionDelete.addPressEffect {
             popupWindow.dismiss()
             val (title, subtitle) = when (item) {
                 is ExportResult -> getString(R.string.delete_project) to getString(R.string.your_asset_will_be_permanently_deleted)
-                is ImageEntity -> getString(R.string.delete_image) to getString(R.string.your_asset_will_be_permanently_deleted)
-                is FontEntity -> getString(R.string.delete_font) to getString(R.string.your_asset_will_be_permanently_deleted)
-                else -> getString(R.string.delete) to getString(R.string.your_asset_will_be_permanently_deleted)
+                is ImageEntity  -> getString(R.string.delete_image)   to getString(R.string.your_asset_will_be_permanently_deleted)
+                is FontEntity   -> getString(R.string.delete_font)    to getString(R.string.your_asset_will_be_permanently_deleted)
+                else            -> getString(R.string.delete)         to getString(R.string.your_asset_will_be_permanently_deleted)
             }
-
             DialogUtils.showDeleteDialog(requireActivity(), title, subtitle) {
                 when (item) {
                     is ExportResult -> viewModel.deleteExportResult(item)
-                    is ImageEntity -> viewModel.deleteImage(item)
-                    is FontEntity -> viewModel.deleteFont(item)
+                    is ImageEntity  -> viewModel.deleteImage(item)
+                    is FontEntity   -> viewModel.deleteFont(item)
                 }
             }
         }
     }
 
+    // ─── Export / Share ───────────────────────────────────────────────────────
+
     private fun exportToGallery(bitmap: Bitmap, fileName: String, format: Bitmap.CompressFormat) {
-        val ext = when (format) {
-            Bitmap.CompressFormat.PNG -> "png"
-            Bitmap.CompressFormat.JPEG -> "jpg"
-            else -> "webp"
-        }
+        val ext      = when (format) { Bitmap.CompressFormat.PNG -> "png"; Bitmap.CompressFormat.JPEG -> "jpg"; else -> "webp" }
+        val mimeType = when (format) { Bitmap.CompressFormat.PNG -> "image/png"; Bitmap.CompressFormat.JPEG -> "image/jpeg"; else -> "image/webp" }
 
-        val mimeType = when (format) {
-            Bitmap.CompressFormat.PNG -> "image/png"
-            Bitmap.CompressFormat.JPEG -> "image/jpeg"
-            else -> "image/webp"
-        }
-
-        // Quality: PNG is lossless (quality param ignored), JPEG/WEBP use max.
-        val quality = when (format) {
-            Bitmap.CompressFormat.JPEG -> 100
-            else -> 100 // PNG: ignored; WEBP lossless: 100 = best compression
-        }
-
-        val filename = "${fileName}_${System.currentTimeMillis()}.$ext"
-
-        val contentValues = ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+        val cv = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, "${fileName}_${System.currentTimeMillis()}.$ext")
             put(MediaStore.Images.Media.MIME_TYPE, mimeType)
-            put(
-                MediaStore.Images.Media.RELATIVE_PATH,
-                Environment.DIRECTORY_PICTURES + "/${getString(R.string.app_name)}"
-            )
+            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/${getString(R.string.app_name)}")
         }
-
         val resolver = requireContext().contentResolver
-        val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-
-        uri?.let {
-            resolver.openOutputStream(it)?.use { stream ->
-                bitmap.compress(format, quality, stream)
-            }
+        resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, cv)?.let { uri ->
+            resolver.openOutputStream(uri)?.use { bitmap.compress(format, 100, it) }
             Snackbar.make(requireView(), "Exported to Gallery", Snackbar.LENGTH_SHORT).show()
-        } ?: run {
-            Snackbar.make(requireView(), "Export failed", Snackbar.LENGTH_SHORT).show()
+        } ?: Snackbar.make(requireView(), "Export failed", Snackbar.LENGTH_SHORT).show()
+    }
+
+    private fun shareItem(item: Any) {
+        val authority = "${requireContext().packageName}.fileprovider"
+        fun share(file: File, mime: String) {
+            if (!file.exists()) { Snackbar.make(requireView(), "File not found", Snackbar.LENGTH_SHORT).show(); return }
+            val uri = runCatching { FileProvider.getUriForFile(requireContext(), authority, file) }.getOrElse {
+                Snackbar.make(requireView(), "Cannot share this file", Snackbar.LENGTH_SHORT).show(); return
+            }
+            startActivity(Intent.createChooser(
+                Intent(Intent.ACTION_SEND).apply {
+                    type = mime; putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }, "Share"
+            ))
+        }
+        when (item) {
+            is ExportResult -> share(File(item.jsonPath), "application/octet-stream")
+            is ImageEntity  -> {
+                val file = File(item.bitmapData?.takeIf { it.isNotBlank() } ?: item.file_url)
+                share(file, when (file.extension.lowercase()) {
+                    "png" -> "image/png"; "jpg", "jpeg" -> "image/jpeg"
+                    "webp" -> "image/webp"; "svg" -> "image/svg+xml"; else -> "image/*"
+                })
+            }
+            is FontEntity -> {
+                val path = item.file_path?.takeIf { it.isNotBlank() } ?: return
+                share(File(path), if (File(path).extension.lowercase() == "otf") "font/otf" else "font/ttf")
+            }
         }
     }
 
-    private fun initObservers() {
+    // ─── Observers ────────────────────────────────────────────────────────────
 
+    private fun initObservers() {
         canvasViewModel.loadingStage.observe(viewLifecycleOwner) { (message, percent) ->
             dialogBinding?.apply {
                 progressBar.progress = percent
@@ -677,9 +668,7 @@ class FilesListFragment : Fragment() {
                 lifecycleScope.launch {
                     delay(500)
                     if (findNavController().currentDestination?.id != R.id.editorFragment) {
-                        view?.post {
-                            findNavController().navigate(R.id.editorFragment, bundle, navOptions)
-                        }
+                        view?.post { findNavController().navigate(R.id.editorFragment, bundle, navOptions) }
                     }
                 }
             }
@@ -689,11 +678,10 @@ class FilesListFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 filtersViewModel.isGrid.collect { isGrid ->
                     val b = _binding ?: return@collect
-                    if (isGrid) {
-                        b.filesRV.layoutManager = GridLayoutManager(requireContext(), 2)
-                    } else {
-                        b.filesRV.layoutManager = LinearLayoutManager(requireContext())
-                    }
+                    b.filesRV.layoutManager = if (isGrid)
+                        GridLayoutManager(requireContext(), 2)
+                    else
+                        LinearLayoutManager(requireContext())
                     adapter.toggleViewType(isGrid)
                 }
             }
@@ -710,29 +698,16 @@ class FilesListFragment : Fragment() {
                             filtersViewModel.searchQuery
                         ) { fonts, images, results, query ->
                             val q = query.trim().lowercase()
-
-                            val filteredFonts = fonts.filter {
-                                it.font_category == "Imported" && (q.isEmpty() || it.font_name!!.lowercase()
-                                    .contains(q))
-                            }
-
-                            val filteredImages = images.filter {
-                                it.category == "Images Imported" && (q.isEmpty() || it.file_name.lowercase()
-                                    .contains(q))
-                            }
-
-                            val filteredProjects = results.filter {
-                                q.isEmpty() || it.fileName.lowercase().contains(q)
-                            }
-
-                            filteredFonts + filteredImages + filteredProjects
+                            fonts.filter {
+                                it.font_category == "Imported" && (q.isEmpty() || it.font_name!!.lowercase().contains(q))
+                            } + images.filter {
+                                it.category == "Images Imported" && (q.isEmpty() || it.file_name.lowercase().contains(q))
+                            } + results.filter { q.isEmpty() || it.fileName.lowercase().contains(q) }
                         }.collect { list ->
                             val b = _binding ?: return@collect
                             adapter.updateList(list)
-                            b.noImagesText.text =
-                                requireActivity().getString(R.string.no_assets_available)
-                            b.noEmojis.visibility =
-                                if (list.isEmpty()) View.VISIBLE else View.GONE
+                            b.noImagesText.text = requireActivity().getString(R.string.no_assets_available)
+                            b.noEmojis.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
                         }
                     }
                 }
@@ -741,18 +716,14 @@ class FilesListFragment : Fragment() {
             "Projects" -> {
                 viewLifecycleOwner.lifecycleScope.launch {
                     viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                        combine(
-                            viewModel.exportResults.asFlow(), filtersViewModel.searchQuery
-                        ) { results, query ->
+                        combine(viewModel.exportResults.asFlow(), filtersViewModel.searchQuery) { results, query ->
                             val q = query.trim().lowercase()
                             results.filter { q.isEmpty() || it.fileName.lowercase().contains(q) }
                         }.collect { list ->
                             val b = _binding ?: return@collect
                             adapter.updateList(list)
-                            b.noImagesText.text =
-                                requireActivity().getString(R.string.no_projects_available)
-                            b.noEmojis.visibility =
-                                if (list.isEmpty()) View.VISIBLE else View.GONE
+                            b.noImagesText.text = requireActivity().getString(R.string.no_projects_available)
+                            b.noEmojis.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
                         }
                     }
                 }
@@ -761,56 +732,33 @@ class FilesListFragment : Fragment() {
             "Fonts" -> {
                 viewLifecycleOwner.lifecycleScope.launch {
                     viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                        combine(
-                            viewModel.localFonts, filtersViewModel.searchQuery
-                        ) { fonts, query ->
+                        combine(viewModel.localFonts, filtersViewModel.searchQuery) { fonts, query ->
                             val q = query.trim().lowercase()
                             fonts.filter {
-                                it.font_category == "Imported" && (q.isEmpty() || it.font_name!!.lowercase()
-                                    .contains(q))
+                                it.font_category == "Imported" && (q.isEmpty() || it.font_name!!.lowercase().contains(q))
                             }
                         }.collect { list ->
                             val b = _binding ?: return@collect
                             adapter.updateList(list)
-
                             if (list.isEmpty()) {
-
                                 b.noEmojis.visibility = View.VISIBLE
-
-                                val fullText = "No imported fonts.\nBrowse in-app fonts."
+                                val fullText      = "No imported fonts.\nBrowse in-app fonts."
                                 val clickablePart = "in-app fonts"
-
-                                val spannable = android.text.SpannableString(fullText)
-
-                                val start = fullText.indexOf(clickablePart)
-                                val end = start + clickablePart.length
-
-                                val clickableSpan = object : android.text.style.ClickableSpan() {
+                                val spannable     = android.text.SpannableString(fullText)
+                                val start         = fullText.indexOf(clickablePart)
+                                spannable.setSpan(object : android.text.style.ClickableSpan() {
                                     override fun onClick(widget: View) {
                                         findNavController().navigate(R.id.popularFontsFragment)
                                     }
-
                                     override fun updateDrawState(ds: android.text.TextPaint) {
                                         super.updateDrawState(ds)
                                         ds.isUnderlineText = true
-                                        val typeface =
-                                            ResourcesCompat.getFont(requireContext(), R.font.medium)
-                                        ds.typeface = typeface
-                                        ds.color = requireContext().getColor(R.color.appColor)
+                                        ds.typeface = ResourcesCompat.getFont(requireContext(), R.font.medium)
+                                        ds.color    = requireContext().getColor(R.color.appColor)
                                     }
-                                }
-
-                                spannable.setSpan(
-                                    clickableSpan,
-                                    start,
-                                    end,
-                                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                                )
-
+                                }, start, start + clickablePart.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                                 b.noImagesText.text = spannable
-                                b.noImagesText.movementMethod =
-                                    android.text.method.LinkMovementMethod.getInstance()
-
+                                b.noImagesText.movementMethod = android.text.method.LinkMovementMethod.getInstance()
                             } else {
                                 b.noEmojis.visibility = View.GONE
                             }
@@ -822,21 +770,16 @@ class FilesListFragment : Fragment() {
             "Stickers" -> {
                 viewLifecycleOwner.lifecycleScope.launch {
                     viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                        combine(
-                            viewModel.localImages, filtersViewModel.searchQuery
-                        ) { images, query ->
+                        combine(viewModel.localImages, filtersViewModel.searchQuery) { images, query ->
                             val q = query.trim().lowercase()
                             images.filter {
-                                it.category == "Images Imported" && (q.isEmpty() || it.file_name.lowercase()
-                                    .contains(q))
+                                it.category == "Images Imported" && (q.isEmpty() || it.file_name.lowercase().contains(q))
                             }
                         }.collect { list ->
                             val b = _binding ?: return@collect
                             adapter.updateList(list)
-                            b.noImagesText.text =
-                                requireActivity().getString(R.string.no_stickers_available)
-                            b.noEmojis.visibility =
-                                if (list.isEmpty()) View.VISIBLE else View.GONE
+                            b.noImagesText.text = requireActivity().getString(R.string.no_stickers_available)
+                            b.noEmojis.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
                         }
                     }
                 }
@@ -845,21 +788,16 @@ class FilesListFragment : Fragment() {
             "Backgrounds" -> {
                 viewLifecycleOwner.lifecycleScope.launch {
                     viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                        combine(
-                            viewModel.localImages, filtersViewModel.searchQuery
-                        ) { images, query ->
+                        combine(viewModel.localImages, filtersViewModel.searchQuery) { images, query ->
                             val q = query.trim().lowercase()
                             images.filter {
-                                it.category == "Backgrounds Imported" && (q.isEmpty() || it.file_name.lowercase()
-                                    .contains(q))
+                                it.category == "Backgrounds Imported" && (q.isEmpty() || it.file_name.lowercase().contains(q))
                             }
                         }.collect { list ->
                             val b = _binding ?: return@collect
                             adapter.updateList(list)
-                            b.noImagesText.text =
-                                requireActivity().getString(R.string.no_backgrounds_available)
-                            b.noEmojis.visibility =
-                                if (list.isEmpty()) View.VISIBLE else View.GONE
+                            b.noImagesText.text = requireActivity().getString(R.string.no_backgrounds_available)
+                            b.noEmojis.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
                         }
                     }
                 }
@@ -867,26 +805,23 @@ class FilesListFragment : Fragment() {
         }
     }
 
+    // ─── Loading dialog ───────────────────────────────────────────────────────
+
     private fun showLoadingDialog() {
         if (loadingDialog?.isShowing == true) return
-
         dialogBinding = DialogLoadingProgressBinding.inflate(LayoutInflater.from(requireActivity()))
-
         loadingDialog = Dialog(requireContext()).apply {
             setContentView(dialogBinding!!.root)
             setCancelable(true)
-            setOnCancelListener { dialog ->
-                canvasViewModel.clearLoading()
-            }
+            setOnCancelListener { canvasViewModel.clearLoading() }
             window?.setBackgroundDrawableResource(android.R.color.transparent)
             val params = window?.attributes
-            params?.width = (resources.displayMetrics.widthPixels * 0.8).toInt()
+            params?.width  = (resources.displayMetrics.widthPixels * 0.8).toInt()
             params?.height = ViewGroup.LayoutParams.WRAP_CONTENT
             window?.attributes = params
             window?.setGravity(Gravity.CENTER)
             show()
         }
-
         dialogBinding?.title?.text = "Loading Template"
         startIconRotation()
     }
@@ -894,18 +829,15 @@ class FilesListFragment : Fragment() {
     private fun startIconRotation() {
         dialogBinding?.view4?.let { icon ->
             rotationAnimator = ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, 360f).apply {
-                duration = 1000L
-                repeatCount = ValueAnimator.INFINITE
+                duration     = 1000L
+                repeatCount  = ValueAnimator.INFINITE
                 interpolator = LinearInterpolator()
                 start()
             }
         }
     }
 
-    private fun stopIconRotation() {
-        rotationAnimator?.cancel()
-        rotationAnimator = null
-    }
+    private fun stopIconRotation() { rotationAnimator?.cancel(); rotationAnimator = null }
 
     private fun dismissLoadingDialog() {
         stopIconRotation()
@@ -913,6 +845,8 @@ class FilesListFragment : Fragment() {
         loadingDialog = null
         dialogBinding = null
     }
+
+    // ─── Lifecycle ────────────────────────────────────────────────────────────
 
     override fun onDestroyView() {
         super.onDestroyView()
@@ -926,149 +860,12 @@ class FilesListFragment : Fragment() {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Import a .urdc (or plain .json debug build) picked from the file manager.
-    // Decrypts into a temp JSON file, reads canvas size from the element list,
-    // copies the .urdc to app storage, inserts an ExportResult into Room so it
-    // appears in the Projects list immediately — no manual refresh needed.
-    // ─────────────────────────────────────────────────────────────────────────
-    private fun importProjectFile(uri: Uri) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val displayName = getFileName(uri).let {
-                    if (it.isBlank()) "imported_${System.currentTimeMillis()}" else it
-                }
-                val baseName = displayName.substringBeforeLast('.')
-
-                // 1. Copy the raw .urdc / .json to a permanent location in app storage.
-                val destJson = ImageProcessor.newExportJsonFile(requireActivity(), "$baseName.${com.webscare.urducanvas.common.canvas.io.ProjectCodec.FILE_EXTENSION}")
-                requireContext().contentResolver.openInputStream(uri)?.use { input ->
-                    destJson.outputStream().use { input.copyTo(it) }
-                } ?: run {
-                    withContext(Dispatchers.Main) {
-                        Snackbar.make(requireView(), "Could not read file", Snackbar.LENGTH_SHORT).show()
-                    }
-                    return@launch
-                }
-
-                // 2. Verify it's actually one of our files (magic check or plain JSON).
-                val isUrdc = com.webscare.urducanvas.common.canvas.io.ProjectCodec.isUrdcFile(destJson)
-                val firstByte = if (!isUrdc) destJson.inputStream().use { it.read() } else -1
-                val isPlainJson = !isUrdc && (firstByte == '['.code || firstByte == '{'.code)
-                if (!isUrdc && !isPlainJson) {
-                    destJson.delete()
-                    withContext(Dispatchers.Main) {
-                        Snackbar.make(requireView(), "Not a valid Urdu Canvas project file", Snackbar.LENGTH_SHORT).show()
-                    }
-                    return@launch
-                }
-
-                // 3. Extract the thumbnail (cheap — reads only the header, no JSON parse).
-                val thumb = com.webscare.urducanvas.common.canvas.io.ProjectCodec.readThumbnail(destJson)
-                val thumbPath: String? = thumb?.let {
-                    val f = File(destJson.parentFile, "$baseName.jpg")
-                    f.outputStream().use { out -> it.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out) }
-                    f.absolutePath
-                }
-                val imagePath = thumbPath ?: ""
-
-                // 4. Build a minimal ExportResult and insert into Room.
-                val now = java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", java.util.Locale.getDefault()).format(java.util.Date())
-                val result = com.webscare.urducanvas.data.model.ExportResult(
-                    id = 0,
-                    imagePath = imagePath,
-                    jsonPath = destJson.absolutePath,
-                    fileName = baseName,
-                    fileSizeMB = destJson.length() / (1024.0 * 1024.0),
-                    resolution = "",
-                    format = if (isUrdc) "URDC" else "JSON",
-                    quality = "",
-                    canvasSize = canvasViewModel.canvasSize.value
-                        ?: com.webscare.urducanvas.common.canvas.model.CanvasSize(id = 0, "Imported", 1080f, 1080f),
-                    exportDate = now,
-                    updatedDate = now,
-                    thumbnailPath = thumbPath
-                )
-                viewModel.insertExportResult(result)
-
-                withContext(Dispatchers.Main) {
-                    Snackbar.make(requireView(), "Project imported successfully", Snackbar.LENGTH_SHORT).show()
-                }
-            } catch (e: Exception) {
-                android.util.Log.e("FilesListFragment", "importProjectFile failed", e)
-                withContext(Dispatchers.Main) {
-                    Snackbar.make(requireView(), "Import failed: ${e.message}", Snackbar.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Share any item from the Files list:
-    //   ExportResult → shares the .urdc project file (or plain .json in debug)
-    //   ImageEntity  → shares the image file (background / sticker)
-    //   FontEntity   → shares the .ttf / .otf font file
-    // ─────────────────────────────────────────────────────────────────────────
-    private fun shareItem(item: Any) {
-        val authority = "${requireContext().packageName}.fileprovider"
-
-        fun share(file: java.io.File, mime: String) {
-            if (!file.exists()) {
-                Snackbar.make(requireView(), "File not found", Snackbar.LENGTH_SHORT).show()
-                return
-            }
-            val uri = try {
-                FileProvider.getUriForFile(requireContext(), authority, file)
-            } catch (e: Exception) {
-                Snackbar.make(requireView(), "Cannot share this file", Snackbar.LENGTH_SHORT).show()
-                return
-            }
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = mime
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            startActivity(Intent.createChooser(intent, "Share"))
-        }
-
-        when (item) {
-            is ExportResult -> {
-                // Share the project file (.urdc in release, plain .json in debug)
-                share(java.io.File(item.jsonPath), "application/octet-stream")
-            }
-            is ImageEntity -> {
-                // Share the background / sticker image
-                val path = item.bitmapData?.takeIf { it.isNotBlank() } ?: item.file_url
-                val file = java.io.File(path)
-                val mime = when (file.extension.lowercase()) {
-                    "png" -> "image/png"
-                    "jpg", "jpeg" -> "image/jpeg"
-                    "webp" -> "image/webp"
-                    "svg" -> "image/svg+xml"
-                    else -> "image/*"
-                }
-                share(file, mime)
-            }
-            is FontEntity -> {
-                // Share the .ttf / .otf font file
-                val path = item.file_path?.takeIf { it.isNotBlank() } ?: return
-                val mime = when (java.io.File(path).extension.lowercase()) {
-                    "otf" -> "font/otf"
-                    else -> "font/ttf"
-                }
-                share(java.io.File(path), mime)
-            }
-        }
-    }
-
     companion object {
         private const val MAX_IMAGE_DIMENSION = 4899
 
         fun newInstance(tabName: String): FilesListFragment {
             return FilesListFragment().apply {
-                arguments = Bundle().apply {
-                    putString("TAB_NAME", tabName)
-                }
+                arguments = Bundle().apply { putString("TAB_NAME", tabName) }
             }
         }
     }

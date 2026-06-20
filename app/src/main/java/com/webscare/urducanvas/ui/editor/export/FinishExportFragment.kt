@@ -184,7 +184,6 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
             val export = viewModel.exportResult.value ?: return@addPressEffect
 
             export.pdfPath?.let { pdfPath ->
-                // For PDF, open default print dialog via ACTION_VIEW
                 val pdfFile = File(pdfPath)
                 if (pdfFile.exists()) {
                     val uri = FileProvider.getUriForFile(
@@ -200,13 +199,19 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
                     startActivity(Intent.createChooser(intent, "Print PDF"))
                 }
             } ?: run {
-                // For image, use PrintHelper
                 val imagePath = export.imagePath ?: return@addPressEffect
                 val bitmap = ImageProcessor.filePathToBitmap(imagePath) ?: return@addPressEffect
-                val printHelper = PrintHelper(requireActivity()).apply {
-                    scaleMode = PrintHelper.SCALE_MODE_FIT
+
+                // ✅ Fix: PrintHelper requires a live Activity, not just any context.
+                // requireActivity() can be detached by the time the press animation ends.
+                // Grab the activity reference before the lambda and guard it.
+                val activity = activity ?: return@addPressEffect
+                if (!activity.isFinishing && !activity.isDestroyed) {
+                    val printHelper = PrintHelper(activity).apply {
+                        scaleMode = PrintHelper.SCALE_MODE_FIT
+                    }
+                    printHelper.printBitmap(export.fileName ?: "Design", bitmap)
                 }
-                printHelper.printBitmap(export.fileName ?: "Design", bitmap)
             }
         }
     }

@@ -4567,7 +4567,16 @@ class CanvasView @JvmOverloads constructor(
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        gestureDetector.onTouchEvent(event)
+        // Only forward single-pointer events to GestureDetector.
+        // Forwarding ACTION_POINTER_DOWN/UP causes TouchTarget double-recycle
+        // on Android 14 (SDK 34), triggering IllegalStateException: already recycled once.
+        val maskedAction = event.actionMasked
+        if (maskedAction == MotionEvent.ACTION_DOWN ||
+            maskedAction == MotionEvent.ACTION_MOVE ||
+            maskedAction == MotionEvent.ACTION_UP ||
+            maskedAction == MotionEvent.ACTION_CANCEL) {
+            gestureDetector.onTouchEvent(event)
+        }
 
         val (x, y) = screenToCanvas(event.x, event.y)
 
@@ -5582,7 +5591,10 @@ class CanvasView @JvmOverloads constructor(
                 return true
             }
         }
-        return super.onTouchEvent(event)
+        // This view handles all touch events — never fall through to super,
+        // as that can re-enter the parent's touch dispatch chain and contribute
+        // to the TouchTarget double-recycle crash on Android 14.
+        return true
     }
 
     /**

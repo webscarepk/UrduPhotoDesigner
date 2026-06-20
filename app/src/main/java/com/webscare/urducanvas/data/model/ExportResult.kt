@@ -20,5 +20,7 @@ data class ExportResult(
     val exportDate: String,
     var updatedDate: String,
     var isExported: Boolean = false,
-    var thumbnailPath: String? = null
+    var thumbnailPath: String? = null,
+    val isFromPremiumTemplate: Boolean = false,  // NEW
+    val sourceTemplateId: Int? = null,           // NEW — for re-validation if needed
 ) : Serializable

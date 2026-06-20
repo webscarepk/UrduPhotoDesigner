@@ -8,18 +8,6 @@
     android:id="@+id/editorRoot"
     tools:context=".ui.editor.EditorFragment">
 
-    <!--
-        dimOverlay — sits behind the panel, fades in when panel expands.
-
-        CRITICAL touch-blocking notes:
-        • android:visibility="invisible"  — starts INVISIBLE, not GONE and not VISIBLE.
-          INVISIBLE keeps layout space but removes the view from the touch dispatch tree.
-          VISIBLE with alpha=0 still intercepts all touches because the view has non-zero
-          bounds and translationZ="7dp" puts it above the canvas — that was the root cause
-          of canvas touches being swallowed after the panel collapsed.
-        • android:clickable is intentionally absent (defaults to false) — PanelSheetBehavior
-          sets isClickable=true only while the overlay is visible (alpha > 0.01).
-    -->
     <View
         android:id="@+id/dimOverlay"
         android:layout_width="match_parent"
@@ -207,7 +195,7 @@
             android:layout_marginEnd="5dp"
             app:layout_constraintBottom_toBottomOf="@id/back"
             app:layout_constraintTop_toTopOf="@id/back"
-            app:layout_constraintEnd_toStartOf="@id/canvasPanLock"
+            app:layout_constraintEnd_toStartOf="@id/done"
             android:paddingHorizontal="5dp">
 
             <ImageView
@@ -309,20 +297,6 @@
             app:layout_constraintStart_toEndOf="@id/pan"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
-
-        <ImageView
-            android:id="@+id/canvasPanLock"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="@drawable/button_bg_round"
-            android:backgroundTint="@color/contrast"
-            app:tint="@color/gray"
-            android:padding="8dp"
-            android:src="@drawable/ic_unlock"
-            android:layout_marginEnd="5dp"
-            app:layout_constraintBottom_toBottomOf="@id/back"
-            app:layout_constraintTop_toTopOf="@id/back"
-            app:layout_constraintEnd_toStartOf="@id/done" />
 
         <ImageView
             android:id="@+id/done"

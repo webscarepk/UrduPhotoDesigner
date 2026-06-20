@@ -17,7 +17,7 @@ import com.webscare.urducanvas.data.model.TrendTemplateCrossRef
 @androidx.room.Database(
     entities = [FontEntity::class, ImageEntity::class, GradientEntity::class, ExportResult::class, TemplateEntity::class, TrendEntity::class,
         TrendTemplateCrossRef::class, CanvasSizeEntity::class, StockPhotoMeta::class],
-    version = 4
+    version = 5
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

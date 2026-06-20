@@ -1,42 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".ui.navigation.files.FilesListFragment"
-    android:background="@color/contrast">
+    android:background="@color/contrast"
+    tools:context=".ui.navigation.files.FilesListFragment">
 
+    <!-- RecyclerView fills the whole fragment; padding keeps items clear of the nav bar -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/filesRV"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:paddingHorizontal="@dimen/_12sdp"
-        tools:listitem="@layout/layout_files_grid"
-        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-        android:orientation="vertical"
-        app:spanCount="2"
-        android:paddingTop="20dp"
         android:clipToPadding="false"
+        android:orientation="vertical"
         android:paddingBottom="100dp"
+        android:paddingHorizontal="@dimen/_12sdp"
+        android:paddingTop="20dp"
         android:visibility="visible"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintTop_toTopOf="parent"
+        app:spanCount="2"
+        tools:listitem="@layout/layout_files_grid"/>
 
+    <!-- Empty state — centred in the fragment -->
     <LinearLayout
         android:id="@+id/noEmojis"
-        android:visibility="gone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:orientation="vertical"
+        android:gravity="center"
         android:layout_marginBottom="100dp"
-        android:gravity="center">
+        android:orientation="vertical"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
         <ImageView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -46,43 +50,12 @@
             android:id="@+id/noImagesText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/no_images_available_here"
             android:layout_marginTop="6dp"
             android:fontFamily="@font/regular"
             android:gravity="center_horizontal"
+            android:text="@string/no_images_available_here"
             android:textColor="@color/black"
             android:textSize="15sp"/>
     </LinearLayout>
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/deleteAll"
-        android:visibility="gone"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/ic_delete"
-        style="@style/Widget.MaterialComponents.FloatingActionButton"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="100dp"
-        android:backgroundTint="@color/appColor"
-        app:tint="@color/white"
-        android:background="@drawable/button_bg"/>
-
-    <TextView
-        android:id="@+id/addMore"
-        android:visibility="visible"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:drawableStartCompat="@drawable/ic_download"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="100dp"
-        android:paddingVertical="10dp"
-        android:paddingHorizontal="20dp"
-        drawablepaddin
-        app:tint="@color/white"
-        android:text="@string/import_font"
-        android:background="@drawable/button_bg_round_stroke_fill"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

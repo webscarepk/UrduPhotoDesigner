@@ -160,7 +160,7 @@ class EditorFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        if (BuildConfig.DEBUG) {
+        if (!BuildConfig.DEBUG) {
             activity?.window?.setFlags(
                 WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE
             )
@@ -845,10 +845,6 @@ class EditorFragment : Fragment() {
             if (::sizedCanvasView.isInitialized) {
                 sizedCanvasView.setCanvasPanLocked(locked)
             }
-            updateToggleButton(binding.canvasPanLock, locked)
-            binding.canvasPanLock.setImageResource(
-                if (locked) R.drawable.ic_lock else R.drawable.ic_unlock
-            )
         }
 
         viewModel.zoomLevel.observe(viewLifecycleOwner) { zoom ->
