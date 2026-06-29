@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.DisplayMetrics
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
@@ -653,6 +654,9 @@ class MainActivity : AppCompatActivity() {
     override fun attachBaseContext(newBase: Context) {
         val config = Configuration(newBase.resources.configuration)
         config.fontScale = 1.0f
+        if (MyApplication.defaultDensityDpi != 0) {
+            config.densityDpi = MyApplication.defaultDensityDpi
+        }
         super.attachBaseContext(newBase.createConfigurationContext(config))
     }
 

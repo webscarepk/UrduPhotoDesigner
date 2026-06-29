@@ -1,17 +1,20 @@
 package com.webscare.urducanvas.di
 
 import android.content.Context
-import com.webscare.urducanvas.R
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import com.webscare.urducanvas.common.datastore.PreferenceDataStoreAPI
 import com.webscare.urducanvas.common.datastore.PreferencesDataStoreHelper
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.ImageFilterAdapter
 import com.webscare.urducanvas.common.utils.SocketFactoryWithTcpNoDelay
 import com.webscare.urducanvas.data.local.AppDatabase
+import com.webscare.urducanvas.data.local.CanvasSizeDao
 import com.webscare.urducanvas.data.local.ExportResultsDao
 import com.webscare.urducanvas.data.local.GradientDao
 import com.webscare.urducanvas.data.remote.EndPointsInterface
-import com.webscare.urducanvas.data.repository.AuthRepositoryImpl
+import com.webscare.urducanvas.data.repository.CanvasSizeRepoImpl
 import com.webscare.urducanvas.data.repository.ExportResultsRepositoryImpl
 import com.webscare.urducanvas.data.repository.FetchFontsRepoImpl
 import com.webscare.urducanvas.data.repository.FetchImagesRepoImpl
@@ -22,7 +25,7 @@ import com.webscare.urducanvas.data.repository.GradientRepositoryImpl
 import com.webscare.urducanvas.data.repository.ImagesRepoImpl
 import com.webscare.urducanvas.data.repository.TemplatesRepoImpl
 import com.webscare.urducanvas.data.repository.TrendsRepoImpl
-import com.webscare.urducanvas.domain.repo.AuthRepo
+import com.webscare.urducanvas.domain.repo.CanvasSizeRepo
 import com.webscare.urducanvas.domain.repo.ExportResultsRepo
 import com.webscare.urducanvas.domain.repo.FetchFontsRepo
 import com.webscare.urducanvas.domain.repo.FetchImagesRepo
@@ -39,16 +42,6 @@ import com.webscare.urducanvas.domain.usecase.GetAllGradientsUseCase
 import com.webscare.urducanvas.domain.usecase.InsertGradientUseCase
 import com.webscare.urducanvas.domain.usecase.SeedGradientsUseCase
 import com.webscare.urducanvas.domain.usecase.UpdateGradientUseCase
-import com.google.android.gms.auth.api.identity.BeginSignInRequest
-import com.google.android.gms.auth.api.identity.Identity
-import com.google.android.gms.auth.api.identity.SignInClient
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
-import com.webscare.urducanvas.data.local.CanvasSizeDao
-import com.webscare.urducanvas.data.repository.CanvasSizeRepoImpl
-import com.webscare.urducanvas.domain.repo.CanvasSizeRepo
-import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -74,36 +67,27 @@ object AppModule {
         val logging = HttpLoggingInterceptor()
         logging.setLevel(HttpLoggingInterceptor.Level.BODY)
 
-        val gson = GsonBuilder()
-            .setLenient()
-            .create()
-        val httpClient: OkHttpClient.Builder = OkHttpClient.Builder()
-            .socketFactory(SocketFactoryWithTcpNoDelay())
-            .addInterceptor(logging)
-            .addInterceptor(Interceptor {
-                val original: Request = it.request()
-                val originalHttpUrl: HttpUrl = original.url
-                val url = originalHttpUrl.newBuilder()
-                    .build()
-                val requestBuilder: Request.Builder = original.newBuilder()
-                    .url(url)
-                val request: Request = requestBuilder.build()
-                it.proceed(request)
-            })
-            .readTimeout(120, TimeUnit.SECONDS)
-            .connectTimeout(120, TimeUnit.SECONDS)
-            .writeTimeout(120, TimeUnit.SECONDS)
+        val gson = GsonBuilder().setLenient().create()
+        val httpClient: OkHttpClient.Builder =
+            OkHttpClient.Builder().socketFactory(SocketFactoryWithTcpNoDelay())
+                .addInterceptor(logging).addInterceptor(Interceptor {
+                    val original: Request = it.request()
+                    val originalHttpUrl: HttpUrl = original.url
+                    val url = originalHttpUrl.newBuilder().build()
+                    val requestBuilder: Request.Builder = original.newBuilder().url(url)
+                    val request: Request = requestBuilder.build()
+                    it.proceed(request)
+                }).readTimeout(120, TimeUnit.SECONDS).connectTimeout(120, TimeUnit.SECONDS)
+                .writeTimeout(120, TimeUnit.SECONDS)
         return Retrofit.Builder().baseUrl(Constants.BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create(gson))
-            .client(httpClient.build())
+            .addConverterFactory(GsonConverterFactory.create(gson)).client(httpClient.build())
             .build().create(EndPointsInterface::class.java)
     }
 
     @Provides
     @Singleton
     fun provideGson(): Gson {
-        return GsonBuilder()
-            .registerTypeAdapter(ImageFilter::class.java, ImageFilterAdapter())
+        return GsonBuilder().registerTypeAdapter(ImageFilter::class.java, ImageFilterAdapter())
             .create()
     }
 
@@ -176,56 +160,17 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideSignInClient(@ApplicationContext context: Context): SignInClient {
-        return Identity.getSignInClient(context)
-    }
-
-    @Provides
-    @Singleton
-    fun provideBeginSignInRequest(@ApplicationContext context: Context): BeginSignInRequest {
-        return BeginSignInRequest.builder()
-            .setGoogleIdTokenRequestOptions(
-                BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
-                    .setSupported(true)
-                    .setServerClientId(context.getString(R.string.server_client_id)) // Ensure this is correctly set in your strings.xml
-                    .setFilterByAuthorizedAccounts(false)
-                    .build()
-            )
-            .setAutoSelectEnabled(false)
-            .build()
-    }
-
-    @Provides
-    @Singleton
     fun providePreferenceDataStoreAPI(@ApplicationContext context: Context): PreferenceDataStoreAPI {
         return PreferencesDataStoreHelper(context)
     }
 
     @Provides
     @Singleton
-    fun provideAuthRepository(
-        oneTapClient: SignInClient,
-        signInRequest: BeginSignInRequest,
-        preferenceDataStoreAPI: PreferenceDataStoreAPI,
-        authApiService: EndPointsInterface
-    ): AuthRepo {
-        return AuthRepositoryImpl(
-            oneTapClient,
-            signInRequest,
-            preferenceDataStoreAPI,
-            authApiService
-        )
-    }
+    fun provideGradientDao(db: AppDatabase): GradientDao = db.gradientDao()
 
     @Provides
     @Singleton
-    fun provideGradientDao(db: AppDatabase): GradientDao =
-        db.gradientDao()
-
-    @Provides
-    @Singleton
-    fun provideGradientRepository(dao: GradientDao): GradientRepo =
-        GradientRepositoryImpl(dao)
+    fun provideGradientRepository(dao: GradientDao): GradientRepo = GradientRepositoryImpl(dao)
 
     @Provides
     @Singleton
@@ -271,8 +216,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideCanvasSizeRepo(
-        api: EndPointsInterface,
-        dao: CanvasSizeDao
+        api: EndPointsInterface, dao: CanvasSizeDao
     ): CanvasSizeRepo {
         return CanvasSizeRepoImpl(api, dao)
     }

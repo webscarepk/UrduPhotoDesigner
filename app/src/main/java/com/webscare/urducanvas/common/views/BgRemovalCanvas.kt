@@ -696,12 +696,10 @@ class BgRemovalCanvas @JvmOverloads constructor(
      */
     private fun buildOutlinePath(source: Path?): Path? {
         source ?: return null
-        // Use Paint.getFillPath to convert the filled scanline path into its stroked outline.
-        // This is exactly what Canvas uses internally when style=STROKE; calling it directly
-        // gives us the contour as a Path we can cache and reuse without re-stroking each frame.
+
         val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = 4f   // slightly wider than the visible 3f so gaps between scanlines close
+            strokeWidth = 4f
             strokeJoin = Paint.Join.ROUND
             strokeCap = Paint.Cap.ROUND
         }

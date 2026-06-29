@@ -28,7 +28,6 @@ import com.webscare.urducanvas.di.BillingManager
 import com.webscare.urducanvas.viewmodels.SubscriptionsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import java.text.NumberFormat
 import java.util.Locale
 import javax.inject.Inject
 
@@ -47,9 +46,10 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
     private var selectedIndex = 0
     private val selectedPlan: SubscriptionPlan? get() = plans.getOrNull(selectedIndex)
 
-    private var dispPerMonth = 0
-    private var dispTotal = 0
-    private var dispSave = 0
+    // Changed from Int to Double to correctly animate decimal prices (USD, AED, etc.)
+    private var dispPerMonth = 0.0
+    private var dispTotal = 0.0
+    private var dispSave = 0.0
 
     private var thumbSpring: SpringAnimation? = null
     private var priceAnim: ValueAnimator? = null
@@ -191,7 +191,6 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
                     textSize = 10f
                     gravity = android.view.Gravity.CENTER
                     setTextColor(color(if (isActive) R.color.sub_segment_text_active else R.color.appColor))
-                    typeface = androidx.core.content.res.ResourcesCompat.getFont(context, R.font.regular)
                     layoutParams = android.widget.LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
                 }
@@ -285,17 +284,17 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
             duration = 480
             interpolator = DecelerateInterpolator()
             addUpdateListener { a ->
-                val f = a.animatedFraction
-                val pm = (fromPm + (plan.perMonth - fromPm) * f).toInt()
-                val tot = (fromTot + (plan.total - fromTot) * f).toInt()
-                val sv = (fromSave + (plan.save - fromSave) * f).toInt()
+                val f = a.animatedFraction.toDouble()
+                val pm = fromPm + (plan.perMonth - fromPm) * f
+                val tot = fromTot + (plan.total - fromTot) * f
+                val sv = fromSave + (plan.save - fromSave) * f
                 applyPriceFrame(plan, pm, tot, sv)
             }
             start()
         }
     }
 
-    private fun applyPriceFrame(plan: SubscriptionPlan, perMonth: Int, total: Int, save: Int) {
+    private fun applyPriceFrame(plan: SubscriptionPlan, perMonth: Double, total: Double, save: Double) {
         dispPerMonth = perMonth; dispTotal = total; dispSave = save
         binding.priceMain.text = money(plan.currencySymbol, perMonth)
         binding.priceSub.text = getString(
@@ -371,8 +370,21 @@ class SubscriptionsFragment : androidx.fragment.app.Fragment() {
         else -> "Pro"
     }
 
-    private fun money(symbol: String, value: Int): String =
-        "$symbol ${NumberFormat.getIntegerInstance(Locale.US).format(value)}"
+    /**
+     * Formats a monetary Double value with the given currency symbol.
+     *
+     * - PKR (Rs): no decimals needed — "Rs 1,800"
+     * - All other currencies (USD, AED, etc.): always 2 decimal places — "USD 4.99", "AED 5.49"
+     */
+    private fun money(symbol: String, value: Double): String {
+        return if (symbol == "Rs") {
+            // PKR — whole numbers, comma-separated
+            "$symbol ${String.format(Locale.US, "%,.0f", value)}"
+        } else {
+            // USD, AED, EUR, etc. — always show 2 decimal places
+            "$symbol ${String.format(Locale.US, "%,.2f", value)}"
+        }
+    }
 
     private fun color(res: Int) = androidx.core.content.ContextCompat.getColor(requireContext(), res)
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()

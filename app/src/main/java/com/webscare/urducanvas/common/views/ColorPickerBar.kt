@@ -118,12 +118,10 @@ class ColorPickerBar @JvmOverloads constructor(
             MotionEvent.ACTION_MOVE -> {
                 val x = event.x.coerceIn(barPadding, width - barPadding)
                 progress = (x - barPadding) / (width - 2 * barPadding)
-                return true
             }
             MotionEvent.ACTION_UP,
             MotionEvent.ACTION_CANCEL -> {
                 onColorPicked?.invoke(colorToHex(thumbColor))  // ← fire on finger lift
-                return true
             }
         }
         // Consume all other events (e.g. ACTION_POINTER_DOWN/UP) — never call

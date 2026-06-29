@@ -67,7 +67,7 @@ object Utils {
                     true
                 }
 
-                else -> false
+                else -> true
             }
         }
     }
@@ -139,7 +139,7 @@ object Utils {
                     true
                 }
 
-                else -> false
+                else -> true
             }
         }
 

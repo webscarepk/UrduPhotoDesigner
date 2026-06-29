@@ -10,6 +10,7 @@ import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.utils.Constants
@@ -23,7 +24,7 @@ class PremiumAssetsAdapter(
     private val localFonts: List<FontEntity> // your existing font list
 ) : RecyclerView.Adapter<PremiumAssetsAdapter.VH>() {
 
-    inner class VH(val binding: ItemPremiumAssetBinding) :
+    class VH(val binding: ItemPremiumAssetBinding) :
         RecyclerView.ViewHolder(binding.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
@@ -60,7 +61,7 @@ class PremiumAssetsAdapter(
                                     override fun onLoadFailed(
                                         e: GlideException?,
                                         model: Any?,
-                                        target: com.bumptech.glide.request.target.Target<PictureDrawable?>?,
+                                        target: Target<PictureDrawable>,
                                         isFirstResource: Boolean
                                     ): Boolean {
                                         holder.binding.shimmerLayout.hideShimmer()
@@ -68,10 +69,10 @@ class PremiumAssetsAdapter(
                                     }
 
                                     override fun onResourceReady(
-                                        resource: PictureDrawable?,
-                                        model: Any?,
-                                        target: com.bumptech.glide.request.target.Target<PictureDrawable?>?,
-                                        dataSource: DataSource?,
+                                        resource: PictureDrawable,
+                                        model: Any,
+                                        target: Target<PictureDrawable?>?,
+                                        dataSource: DataSource,
                                         isFirstResource: Boolean
                                     ): Boolean {
                                         holder.binding.shimmerLayout.hideShimmer()
@@ -88,7 +89,7 @@ class PremiumAssetsAdapter(
                                     override fun onLoadFailed(
                                         e: GlideException?,
                                         model: Any?,
-                                        target: com.bumptech.glide.request.target.Target<Drawable?>?,
+                                        target: Target<Drawable?>,
                                         isFirstResource: Boolean
                                     ): Boolean {
                                         holder.binding.shimmerLayout.hideShimmer()
@@ -96,10 +97,10 @@ class PremiumAssetsAdapter(
                                     }
 
                                     override fun onResourceReady(
-                                        resource: Drawable?,
-                                        model: Any?,
-                                        target: com.bumptech.glide.request.target.Target<Drawable?>?,
-                                        dataSource: DataSource?,
+                                        resource: Drawable,
+                                        model: Any,
+                                        target: Target<Drawable?>?,
+                                        dataSource: DataSource,
                                         isFirstResource: Boolean
                                     ): Boolean {
                                         holder.binding.shimmerLayout.hideShimmer()

@@ -2,26 +2,30 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.jetbrains.kotlin.android)
-    id ("kotlin-kapt")
+    alias(libs.plugins.ksp)
     id("com.google.dagger.hilt.android")
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
 }
 
+val appVersionCode = 23
+val appVersionName = "1.2.3"
+
+base.archivesName.set("UrduCanvas - V$appVersionCode($appVersionName)")
+
 android {
     namespace = "com.webscare.urducanvas"
-    compileSdk = 36
+    compileSdk = 37
+
 
     defaultConfig {
         applicationId = "com.webscare.urducanvas"
         minSdk = 24
-        targetSdk = 36
-        versionCode = 22
-        versionName = "1.2.2"
+        targetSdk = 37
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        setProperty("archivesBaseName", "UrduCanvas - V$versionCode($versionName)")
     }
 
     bundle{
@@ -41,19 +45,17 @@ android {
         }
     }
 
-    firebaseCrashlytics {
-        mappingFileUploadEnabled = true
-    }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlin {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
         }
     }
+
     buildFeatures {
         viewBinding = true
         buildConfig = true
@@ -77,21 +79,20 @@ dependencies {
 
     //dagger hilt
     implementation(libs.hilt.android)
-    kapt(libs.hilt.android.compiler)
+    ksp(libs.hilt.android.compiler)
     //sdp
     implementation (libs.sdp.android)
 
     //room database
     implementation(libs.androidx.room.runtime)
-    annotationProcessor(libs.androidx.room.compiler)
-    kapt(libs.androidx.room.compiler)
+    ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
 
     //Glide
     implementation(libs.glide)
-    kapt(libs.compiler)
+    ksp(libs.compiler)
     implementation(libs.okhttp)
-    implementation("com.github.bumptech.glide:okhttp3-integration:4.13.1") {
+    implementation("com.github.bumptech.glide:okhttp3-integration:5.0.7") {
         exclude(group = "glide-parent")
     }
 
@@ -105,12 +106,10 @@ dependencies {
     //lottie
     implementation (libs.lottie)
 
-    // ViewModel
-    implementation(libs.androidx.lifecycle.viewmodel.ktx)
-
     // LiveData
     implementation(libs.androidx.lifecycle.livedata.ktx)
-    kapt(libs.androidx.lifecycle.compiler)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    ksp(libs.androidx.lifecycle.compiler)
 
     //DataStore
     implementation(libs.androidx.datastore.preferences)
@@ -124,9 +123,6 @@ dependencies {
 
     //SVG Support
     implementation (libs.androidsvg)
-
-    //Google Sign in
-    implementation(libs.play.services.auth)
 
     //Shimmer
     implementation(libs.shimmer)

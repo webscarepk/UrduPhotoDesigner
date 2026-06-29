@@ -33,7 +33,7 @@ class SubscriptionsViewModel @Inject constructor(
         //    the Monthly term as the strike-through / "save vs monthly" baseline.
         val priced = products.mapNotNull { product -> priceOf(product) }
         val monthlyPerMonth = priced
-            .firstOrNull { it.productId == "urducanvas_monthly" }?.perMonth ?: 0
+            .firstOrNull { it.productId == "urducanvas_monthly" }?.perMonth ?: 0.0
 
         val allPlans = priced.mapNotNull { p ->
             val (id, title, duration, badge) = when (p.productId) {
@@ -44,12 +44,12 @@ class SubscriptionsViewModel @Inject constructor(
             }
 
             val discount =
-                if (monthlyPerMonth > 0 && p.perMonth < monthlyPerMonth)
-                    ((1f - p.perMonth.toFloat() / monthlyPerMonth) * 100f).roundToInt()
+                if (monthlyPerMonth > 0.0 && p.perMonth < monthlyPerMonth)
+                    ((1.0 - p.perMonth / monthlyPerMonth) * 100.0).roundToInt()
                 else 0
             val save =
-                if (monthlyPerMonth > 0) (monthlyPerMonth * p.months - p.total).coerceAtLeast(0)
-                else 0
+                if (monthlyPerMonth > 0.0) (monthlyPerMonth * p.months - p.total).coerceAtLeast(0.0)
+                else 0.0
 
             SubscriptionPlan(
                 id = id,
@@ -84,8 +84,8 @@ class SubscriptionsViewModel @Inject constructor(
     /** Parsed recurring price for one product (free-trial phases skipped). */
     private data class Priced(
         val productId: String,
-        val perMonth: Int,
-        val total: Int,
+        val perMonth: Double,
+        val total: Double,
         val months: Int,
         val symbol: String,
         val formattedTotal: String
@@ -96,8 +96,9 @@ class SubscriptionsViewModel @Inject constructor(
         // Last phase = the ongoing paid phase (a free trial would be an earlier 0-cost phase).
         val phase = offer.pricingPhases.pricingPhaseList.lastOrNull() ?: return null
         val months = monthsOf(phase.billingPeriod)
-        val total = (phase.priceAmountMicros / 1_000_000.0).roundToInt()
-        val perMonth = (phase.priceAmountMicros / 1_000_000.0 / months).roundToInt()
+        // Keep as Double — do NOT roundToInt() here or decimals are lost for USD/AED etc.
+        val total = phase.priceAmountMicros / 1_000_000.0
+        val perMonth = total / months
         return Priced(
             productId = product.productId,
             perMonth = perMonth,

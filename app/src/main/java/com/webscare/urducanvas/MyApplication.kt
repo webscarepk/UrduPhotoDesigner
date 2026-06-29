@@ -7,9 +7,14 @@ import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
 class MyApplication : Application() {
+    companion object {
+        var defaultDensityDpi: Int = 0
+    }
     override fun onCreate() {
         super.onCreate()
         FirebaseApp.initializeApp(this)
         FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled = true
+
+        defaultDensityDpi = resources.displayMetrics.densityDpi
     }
 }

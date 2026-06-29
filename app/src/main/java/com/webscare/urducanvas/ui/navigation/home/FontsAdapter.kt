@@ -21,15 +21,15 @@ import com.webscare.urducanvas.data.model.ProgressUi
 import com.webscare.urducanvas.databinding.LayoutPopularFontItemBinding
 
 class FontsAdapter(
-    private val onFontClick: (com.webscare.urducanvas.data.model.FontEntity, Boolean) -> Unit,
-    private val onDownload: (com.webscare.urducanvas.data.model.FontEntity) -> Unit
-) : androidx.recyclerview.widget.ListAdapter<com.webscare.urducanvas.data.model.FontEntity, FontsAdapter.VH>(
+    private val onFontClick: (FontEntity, Boolean) -> Unit,
+    private val onDownload: (FontEntity) -> Unit
+) : androidx.recyclerview.widget.ListAdapter<FontEntity, FontsAdapter.VH>(
     Diff()
 ) {
 
-    private val progressById = mutableMapOf<Int, com.webscare.urducanvas.data.model.ProgressUi>()
+    private val progressById = mutableMapOf<Int, ProgressUi>()
 
-    fun updateProgress(fontId: Int, ui: com.webscare.urducanvas.data.model.ProgressUi) {
+    fun updateProgress(fontId: Int, ui: ProgressUi) {
         val prev = progressById[fontId]
         if (prev == ui) return
         progressById[fontId] = ui
@@ -57,7 +57,7 @@ class FontsAdapter(
 
     override fun onBindViewHolder(holder: VH, position: Int, payloads: MutableList<Any>) {
         if (payloads.isNotEmpty()) {
-            (payloads.lastOrNull() as? com.webscare.urducanvas.data.model.ProgressUi)?.let {
+            (payloads.lastOrNull() as? ProgressUi)?.let {
                 holder.applyProgress(
                     it
                 )
@@ -67,13 +67,13 @@ class FontsAdapter(
 
     class VH(
         private val binding: LayoutPopularFontItemBinding,
-        private val onFontClick: (com.webscare.urducanvas.data.model.FontEntity, Boolean) -> Unit,
-        private val onDownload: (com.webscare.urducanvas.data.model.FontEntity) -> Unit
+        private val onFontClick: (FontEntity, Boolean) -> Unit,
+        private val onDownload: (FontEntity) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(
-            item: com.webscare.urducanvas.data.model.FontEntity,
-            progress: com.webscare.urducanvas.data.model.ProgressUi
+            item: FontEntity,
+            progress: ProgressUi
         ) {
             // Preview (if you have thumbnail url or local file)
             if (item.image_url.isEmpty() && item.font_image?.isNotEmpty() == true) {
@@ -91,14 +91,17 @@ class FontsAdapter(
                             override fun onLoadFailed(
                                 e: GlideException?,
                                 model: Any?,
-                                target: com.bumptech.glide.request.target.Target<PictureDrawable>,
+                                target: Target<PictureDrawable>,
                                 isFirstResource: Boolean
-                            ) = false.also { binding.shimmerLayout.hideShimmer() }
+                            ) = false.also {
+                                android.util.Log.e("FontsAdapter", "SVG load failed | url: $model | error: ${e?.message}")
+                                e?.logRootCauses("FontsAdapter_RootCause")
+                                binding.shimmerLayout.hideShimmer() }
 
                             override fun onResourceReady(
                                 resource: PictureDrawable,
                                 model: Any,
-                                target: com.bumptech.glide.request.target.Target<PictureDrawable>?,
+                                target: Target<PictureDrawable>?,
                                 dataSource: DataSource,
                                 isFirstResource: Boolean
                             ) = false.also { binding.shimmerLayout.hideShimmer() }
@@ -106,19 +109,21 @@ class FontsAdapter(
                 } else {
                     Glide.with(binding.root.context).load(url)
                         .diskCacheStrategy(DiskCacheStrategy.ALL).thumbnail(0.1f)
-                        .listener(object : RequestListener<android.graphics.drawable.Drawable> {
+                        .listener(object : RequestListener<Drawable> {
                             override fun onLoadFailed(
                                 e: GlideException?,
                                 model: Any?,
-                                target: com.bumptech.glide.request.target.Target<Drawable>,
+                                target: Target<Drawable>,
                                 isFirstResource: Boolean
                             ): Boolean {
+                                android.util.Log.e("FontsAdapter", "Image load failed | url: $model | error: ${e?.message}")
+                                e?.logRootCauses("FontsAdapter_RootCause")
                                 binding.shimmerLayout.hideShimmer()
                                 return false
                             }
 
                             override fun onResourceReady(
-                                resource: android.graphics.drawable.Drawable,
+                                resource: Drawable,
                                 model: Any,
                                 target: Target<Drawable>?,
                                 dataSource: DataSource,
@@ -147,7 +152,7 @@ class FontsAdapter(
             return q.endsWith(".svg")
         }
 
-        fun applyProgress(ui: com.webscare.urducanvas.data.model.ProgressUi) {
+        fun applyProgress(ui: ProgressUi) {
             val completed = ui.progress >= 100 || ui.isDownloaded
             val downloading = ui.isDownloading && !completed
 
