@@ -760,21 +760,21 @@ class CanvasViewModel @Inject constructor(
 
                 session.drawStrokes?.forEach { stroke ->
                     when (stroke.style) {
-                        com.webscare.urducanvas.common.canvas.enums.BrushStyle.BRUSH ->
+                        BrushStyle.BRUSH ->
                             com.webscare.urducanvas.common.utils.BrushRenderUtils.drawBrushStroke(
                                 fullCanvas,
                                 stroke,
                                 255
                             )
 
-                        com.webscare.urducanvas.common.canvas.enums.BrushStyle.PEN ->
+                        BrushStyle.PEN ->
                             com.webscare.urducanvas.common.utils.BrushRenderUtils.drawTaperedPenStroke(
                                 fullCanvas,
                                 stroke,
                                 255
                             )
 
-                        com.webscare.urducanvas.common.canvas.enums.BrushStyle.HIGHLIGHTER -> {
+                        BrushStyle.HIGHLIGHTER -> {
                             val paint =
                                 com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
                                     stroke,
@@ -783,7 +783,7 @@ class CanvasViewModel @Inject constructor(
                                 )
                             paint.alpha = 130
                             paint.strokeCap = android.graphics.Paint.Cap.BUTT
-                            val path = android.graphics.Path(stroke.path)
+                            val path = Path(stroke.path)
                             val m = android.graphics.Matrix()
                             m.postTranslate(0f, stroke.thickness * 0.3f)
                             path.transform(m)
@@ -804,12 +804,16 @@ class CanvasViewModel @Inject constructor(
                 }
 
                 // --- Step 3: Crop to tight bounds ---
-                val croppedBitmap = android.graphics.Bitmap.createBitmap(
+                val cropX = minX.toInt().coerceIn(0, fullBitmap.width - 1)
+                val cropY = minY.toInt().coerceIn(0, fullBitmap.height - 1)
+                val cropW = strokesWidth.toInt().coerceIn(1, fullBitmap.width - cropX)
+                val cropH = strokesHeight.toInt().coerceIn(1, fullBitmap.height - cropY)
+                val croppedBitmap = Bitmap.createBitmap(
                     fullBitmap,
-                    minX.toInt(),
-                    minY.toInt(),
-                    strokesWidth.toInt(),
-                    strokesHeight.toInt()
+                    cropX,
+                    cropY,
+                    cropW,
+                    cropH
                 )
                 fullBitmap.recycle()
 
@@ -3663,10 +3667,37 @@ class CanvasViewModel @Inject constructor(
         applyChangesToSelectedTextElements()
     }
 
+    private fun isFontFileValid(path: String): Boolean {
+        return try {
+            val file = File(path)
+            if (!file.exists() || file.length() < 4) return false
+            // Check for valid font magic bytes
+            // TTF/OTF starts with 0x00010000 or 'OTTO' or 'true' or 'typ1'
+            val bytes = file.inputStream().use { it.readNBytes(4) }
+            val magic = ((bytes[0].toInt() and 0xFF) shl 24) or
+                    ((bytes[1].toInt() and 0xFF) shl 16) or
+                    ((bytes[2].toInt() and 0xFF) shl 8) or
+                    (bytes[3].toInt() and 0xFF)
+            magic == 0x00010000 ||           // TrueType
+                    magic == 0x4F54544F ||           // 'OTTO' OpenType/CFF
+                    magic == 0x74727565 ||           // 'true' Mac TrueType
+                    magic == 0x74797031              // 'typ1'
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     private fun CanvasElement.applyTypefaceFromFontList(): Typeface {
         return fontId?.let { id ->
-            localFonts.value.firstOrNull { it.id.toString() == id }?.file_path?.takeIf { it.isNotBlank() }
-                ?.let { Typeface.createFromFile(it) }
+            localFonts.value.firstOrNull { it.id.toString() == id }?.file_path
+                ?.takeIf { it.isNotBlank() && File(it).exists() && isFontFileValid(it) }
+                ?.let { path ->
+                    try {
+                        Typeface.createFromFile(path)
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
         } ?: context?.let { ResourcesCompat.getFont(it, R.font.default_canvas) } ?: Typeface.DEFAULT
     }
 
@@ -4001,7 +4032,7 @@ class CanvasViewModel @Inject constructor(
      */
     fun notifyDrawStrokeAdded(stroke: StrokeData) {
         // Deep-copy the path so the undo record is independent of future mutations
-        val snapshot = stroke.copy(path = stroke.path?.let { android.graphics.Path(it) })
+        val snapshot = stroke.copy(path = stroke.path?.let { Path(it) })
         _canvasActions.push(CanvasAction.DrawSessionStroke(snapshot))
         _redoStack.clear()
         notifyUndoRedoChanged()
@@ -4051,7 +4082,7 @@ class CanvasViewModel @Inject constructor(
                         try {
                             val svg = com.caverock.androidsvg.SVG.getFromString(svgData)
                             svgDrawable =
-                                android.graphics.drawable.PictureDrawable(svg.renderToPicture())
+                                PictureDrawable(svg.renderToPicture())
                                     .trimTransparentEdges()
                             bitmap = null
                         } catch (e: Exception) {
@@ -4129,7 +4160,7 @@ class CanvasViewModel @Inject constructor(
                         try {
                             val svg = com.caverock.androidsvg.SVG.getFromString(svgData)
                             svgDrawable =
-                                android.graphics.drawable.PictureDrawable(svg.renderToPicture())
+                                PictureDrawable(svg.renderToPicture())
                                     .trimTransparentEdges()
                             bitmap = null
                         } catch (e: Exception) {
@@ -4254,13 +4285,13 @@ class CanvasViewModel @Inject constructor(
                     if (element.id == action.elementId) {
                         element.overlayGradient = targetGradient
                         if (targetGradient != null) {
-                            element.overlayColor = android.graphics.Color.TRANSPARENT
+                            element.overlayColor = Color.TRANSPARENT
                             if (element.overlayOpacity == 0) element.overlayOpacity = 255
                             element.hasOverlay = true
                         } else {
                             element.hasOverlay =
                                 element.overlayOpacity > 0 &&
-                                        element.overlayColor != android.graphics.Color.TRANSPARENT
+                                        element.overlayColor != Color.TRANSPARENT
                         }
                         element
                     } else element
@@ -4513,7 +4544,7 @@ class CanvasViewModel @Inject constructor(
                 if (isRedo) {
                     // Re-append the stroke (deep copy so redo record stays clean)
                     val restored = action.strokeData.copy(
-                        path = action.strokeData.path?.let { android.graphics.Path(it) }
+                        path = action.strokeData.path?.let { Path(it) }
                     )
                     session.drawStrokes?.add(restored)
                 } else {

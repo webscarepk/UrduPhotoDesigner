@@ -29,7 +29,7 @@ object Utils {
         var isInside = false
 
         setOnTouchListener { v, event ->
-            when (event.action) {
+            when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     isInside = true
                     v.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80).start()
@@ -54,7 +54,7 @@ object Utils {
 
                 MotionEvent.ACTION_UP -> {
                     v.animate().scaleX(1f).scaleY(1f).setDuration(120).withEndAction {
-                        if (isInside) {
+                        if (isInside && v.isAttachedToWindow) {
                             onClick?.invoke() ?: v.performClick()
                         }
                     }.start()

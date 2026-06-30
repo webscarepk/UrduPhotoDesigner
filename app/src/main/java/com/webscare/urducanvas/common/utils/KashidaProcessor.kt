@@ -67,24 +67,28 @@ class KashidaProcessor(
 
     // ---- Safety Check for Current Font ----
     private fun isKasheedaSafe(typeface: Typeface): Boolean {
-        val paint = TextPaint().apply {
-            this.typeface = typeface
-            textSize = 64f
+        return try {
+            val paint = TextPaint().apply {
+                this.typeface = typeface
+                textSize = 64f
+            }
+            val baseWord = "باب"
+            val withKasheeda = "با${KASHIDA}ب"
+
+            val widthBase = paint.measureText(baseWord)
+            val widthKasheeda = paint.measureText(withKasheeda)
+
+            if (widthKasheeda <= widthBase) return false
+
+            val baseWidths = FloatArray(baseWord.length)
+            val kasheedaWidths = FloatArray(withKasheeda.length)
+            paint.getTextWidths(baseWord, baseWidths)
+            paint.getTextWidths(withKasheeda, kasheedaWidths)
+
+            kasheedaWidths.size >= baseWidths.size
+        } catch (e: Exception) {
+            false // corrupt font — skip kashida entirely
         }
-        val baseWord = "باب"
-        val withKasheeda = "با${KASHIDA}ب"
-
-        val widthBase = paint.measureText(baseWord)
-        val widthKasheeda = paint.measureText(withKasheeda)
-
-        if (widthKasheeda <= widthBase) return false
-
-        val baseWidths = FloatArray(baseWord.length)
-        val kasheedaWidths = FloatArray(withKasheeda.length)
-        paint.getTextWidths(baseWord, baseWidths)
-        paint.getTextWidths(withKasheeda, kasheedaWidths)
-
-        return kasheedaWidths.size >= baseWidths.size
     }
 
     // Public safe entry point

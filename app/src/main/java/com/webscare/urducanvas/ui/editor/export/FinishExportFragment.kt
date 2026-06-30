@@ -201,16 +201,21 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
             } ?: run {
                 val imagePath = export.imagePath ?: return@addPressEffect
                 val bitmap = ImageProcessor.filePathToBitmap(imagePath) ?: return@addPressEffect
+                val fileName = export.fileName ?: "Design"
 
-                // ✅ Fix: PrintHelper requires a live Activity, not just any context.
-                // requireActivity() can be detached by the time the press animation ends.
-                // Grab the activity reference before the lambda and guard it.
-                val activity = activity ?: return@addPressEffect
-                if (!activity.isFinishing && !activity.isDestroyed) {
-                    val printHelper = PrintHelper(activity).apply {
-                        scaleMode = PrintHelper.SCALE_MODE_FIT
+                // ✅ Capture everything BEFORE the animation starts
+                // addPressEffect fires onClick inside withEndAction (animation end callback),
+                // so capture all context-sensitive references here, outside the lambda.
+                val activity = requireActivity()
+
+                // ✅ Post to next frame so we're fully outside the animation callback
+                // before PrintManager tries to resolve the Activity from context.
+                activity.window.decorView.post {
+                    if (!activity.isFinishing && !activity.isDestroyed) {
+                        PrintHelper(activity).apply {
+                            scaleMode = PrintHelper.SCALE_MODE_FIT
+                        }.printBitmap(fileName, bitmap)
                     }
-                    printHelper.printBitmap(export.fileName ?: "Design", bitmap)
                 }
             }
         }

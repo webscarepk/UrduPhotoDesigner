@@ -68,7 +68,7 @@ class BrushPanelFragment : Fragment() {
     private fun setEvents() {
         binding.brushPreview.post {
             if (_binding == null) return@post
-            updateBrushPreview()
+            animatePreview()
         }
 
         binding.sizePane.isVisible = tabName == "Size"
@@ -127,52 +127,6 @@ class BrushPanelFragment : Fragment() {
         initObservers()
     }
 
-    private fun updateBrushPreview() {
-        val preview = _binding?.brushPreview ?: return
-        val width = preview.width.takeIf { it > 0 } ?: return
-        val height = preview.height.takeIf { it > 0 } ?: return
-
-        val bitmap = createBitmap(width, height)
-        val canvas = Canvas(bitmap)
-        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
-
-        // 🔹 Create same type of StrokeData used in CanvasView
-        val path = Path().apply {
-            moveTo(width * 0.1f, height * 0.5f)
-            cubicTo(
-                width * 0.3f,
-                height * 0.3f,
-                width * 0.7f,
-                height * 0.7f,
-                width * 0.9f,
-                height * 0.5f
-            )
-        }
-
-        val stroke = com.webscare.urducanvas.common.canvas.model.StrokeData(
-            path = path,
-            color = viewModel.brushColor.value ?: Color.BLACK,
-            thickness = viewModel.brushThickness.value ?: 20f,
-            hardness = viewModel.brushHardness.value ?: 1f,
-            style = viewModel.currentBrushStyle.value ?: BrushStyle.PEN,
-            gradient = viewModel.brushGradient.value
-        )
-
-        // 🪄 Use the same rendering pipeline as CanvasView
-        BrushRenderUtils.drawStrokePreview(
-            canvas = canvas,
-            stroke = stroke,
-            paintAlpha = 255,
-            width = width,
-            height = height,
-            makePaint = BrushRenderUtils::makeStrokePaint,
-            drawBrush = BrushRenderUtils::drawBrushStroke,
-            drawPen = BrushRenderUtils::drawTaperedPenStroke
-        )
-
-        preview.setImageBitmap(bitmap)
-    }
-
     private fun togglePanels() {
         val fadeDuration = 300L
 
@@ -211,12 +165,50 @@ class BrushPanelFragment : Fragment() {
     }
 
     private fun animatePreview() {
-        val targetAlpha = 1f
-        val animDuration = 120L
-        binding.brushPreview.animate().setDuration(animDuration)
-            .setInterpolator(android.view.animation.LinearInterpolator()).withStartAction {
-                updateBrushPreview()
-            }.alpha(targetAlpha).start()
+        val preview = _binding?.brushPreview ?: return
+        val width = preview.width.takeIf { it > 0 } ?: return
+        val height = preview.height.takeIf { it > 0 } ?: return
+
+        // Capture values before leaving main thread
+        val color = viewModel.brushColor.value ?: Color.BLACK
+        val thickness = viewModel.brushThickness.value ?: 20f
+        val hardness = viewModel.brushHardness.value ?: 1f
+        val style = viewModel.currentBrushStyle.value ?: BrushStyle.PEN
+        val gradient = viewModel.brushGradient.value
+
+        lifecycleScope.launch {
+            val bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                val bmp = createBitmap(width, height)
+                val canvas = Canvas(bmp)
+                canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+
+                val path = Path().apply {
+                    moveTo(width * 0.1f, height * 0.5f)
+                    cubicTo(width * 0.3f, height * 0.3f, width * 0.7f, height * 0.7f, width * 0.9f, height * 0.5f)
+                }
+                val stroke = com.webscare.urducanvas.common.canvas.model.StrokeData(
+                    path = path, color = color, thickness = thickness,
+                    hardness = hardness, style = style, gradient = gradient
+                )
+                BrushRenderUtils.drawStrokePreview(
+                    canvas = canvas, stroke = stroke, paintAlpha = 255,
+                    width = width, height = height,
+                    makePaint = BrushRenderUtils::makeStrokePaint,
+                    drawBrush = BrushRenderUtils::drawBrushStroke,
+                    drawPen = BrushRenderUtils::drawTaperedPenStroke
+                )
+                bmp
+            }
+
+            // Back on main thread — update UI and animate
+            val b = _binding ?: return@launch
+            b.brushPreview.setImageBitmap(bitmap)
+            b.brushPreview.animate()
+                .setDuration(120L)
+                .setInterpolator(android.view.animation.LinearInterpolator())
+                .alpha(1f)
+                .start()
+        }
     }
 
     private fun initObservers() {
@@ -305,7 +297,7 @@ class BrushPanelFragment : Fragment() {
 
     private fun setupRecyclerView() {
         colorsAdapter =
-            com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter(
+            ColorsAdapter(
                 Constants.colorList,
                 onColorSelected = { color ->
                     val selectedColor = color.colorCode.toColorInt()

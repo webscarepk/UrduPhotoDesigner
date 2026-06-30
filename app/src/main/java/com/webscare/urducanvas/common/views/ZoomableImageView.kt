@@ -320,7 +320,7 @@ class ZoomableImageView @JvmOverloads constructor(
             val vh = height.toFloat()
             if (vw == 0f || vh == 0f) return
             val scale = min(vw / d.intrinsicWidth, vh / d.intrinsicHeight)
-            minScale = scale
+            minScale = scale.coerceAtMost(maxScale)
             matrixScale.setScale(scale, scale)
             matrixScale.postTranslate(
                 (vw - scale * d.intrinsicWidth) / 2f,
@@ -369,7 +369,8 @@ class ZoomableImageView @JvmOverloads constructor(
 
         override fun onScale(detector: ScaleGestureDetector): Boolean {
             val cur = getCurrentScale()
-            val next = (cur * detector.scaleFactor).coerceIn(rubberBandMinScale, maxScale)
+            val safeMin = rubberBandMinScale.coerceAtMost(maxScale)
+            val next = (cur * detector.scaleFactor).coerceIn(safeMin, maxScale)
             matrixScale.postScale(next / cur, next / cur, detector.focusX, detector.focusY)
             fixTranslation()
             imageMatrix = matrixScale

@@ -43,14 +43,14 @@ class SpringNestedScrollView @JvmOverloads constructor(
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
         trackVelocity(ev)
-        if (ev.action == MotionEvent.ACTION_DOWN) lastY = ev.rawY
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) lastY = ev.rawY
         return super.onInterceptTouchEvent(ev)
     }
 
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         trackVelocity(ev)
 
-        when (ev.action) {
+        when (ev.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 springAnim?.cancel()
                 lastFlingVelocity = 0f

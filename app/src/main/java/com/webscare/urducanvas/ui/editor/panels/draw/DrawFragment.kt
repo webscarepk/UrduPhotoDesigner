@@ -184,9 +184,10 @@ class DrawFragment : Fragment() {
                 // so swiping down on the toolbar collapses the panel — same gesture
                 // as dragging the handle.
                 binding.root.post {
+                    val b = _binding ?: return@post
                     (f as EditorFragment).panelSheetBehavior()?.let { sheet ->
-                        sheet.attachAdditionalHandle(binding.headerCollapsed)
-                        sheet.attachAdditionalHandle(binding.headerExpanded)
+                        sheet.attachAdditionalHandle(b.headerCollapsed)
+                        sheet.attachAdditionalHandle(b.headerExpanded)
                     }
                 }
                 return

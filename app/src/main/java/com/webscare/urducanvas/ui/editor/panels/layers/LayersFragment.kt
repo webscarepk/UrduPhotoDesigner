@@ -84,8 +84,9 @@ class LayersFragment : Fragment() {
             if (f is EditorFragment) {
                 f.attachDragHandle(binding.dragHandle)
                 binding.root.post {
+                    val b = _binding ?: return@post
                     (f as EditorFragment).panelSheetBehavior()
-                        ?.attachAdditionalHandle(binding.toolBarContainer)
+                        ?.attachAdditionalHandle(b.toolBarContainer)
                 }
                 return
             }

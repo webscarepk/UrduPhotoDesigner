@@ -1819,7 +1819,7 @@ class CanvasView @JvmOverloads constructor(
                         drawCanvasElements(this, showOverlays = false)
                         drawRect(
                             0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat(),
-                            Paint().apply { color = android.graphics.Color.argb(140, 255, 255, 255); style = Paint.Style.FILL }
+                            Paint().apply { color = Color.argb(140, 255, 255, 255); style = Paint.Style.FILL }
                         )
                         // Re-draw group children at full opacity on top
                         val groupChildIds = canvasElements.filter { it.groupId == activeGroupId }.map { it.id }.toSet()
@@ -4044,13 +4044,21 @@ class CanvasView @JvmOverloads constructor(
         if (element.paintAlpha == 0) return
 
         val lines = element.getTextWithKashida().split("\n")
-        val fm = element.paint.fontMetrics
+        val fm = try {
+            element.paint.fontMetrics
+        } catch (e: Exception) {
+            Paint.FontMetrics() // safe default: all zeros, text won't draw but won't crash
+        }
         val lineHeight = (fm.descent - fm.ascent) * element.lineSpacing
         val totalHeight = lineHeight * lines.size
 
         // ----- DRAW LABEL -----
         if (element.hasLabel) {
-            val maxLineWidth = lines.maxOf { element.paint.measureText(it) }
+            val maxLineWidth = try {
+                lines.maxOf { element.paint.measureText(it) }
+            } catch (e: Exception) {
+                0f
+            }
             val labelPadding = 16f
             val left = -maxLineWidth / 2f - labelPadding
             val top = -totalHeight / 2f - labelPadding

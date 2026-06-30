@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
@@ -26,6 +27,8 @@ object SvgLoader {
     // invalidates constantly) -> GC thrash / multi-second freezes. We cap
     // thumbnails to this size. 128*128*4 = 64 KB max per thumbnail.
     private const val THUMB_MAX_PX = 128
+
+    private val renderSemaphore = kotlinx.coroutines.sync.Semaphore(3)
 
     private val httpClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
@@ -97,7 +100,13 @@ object SvgLoader {
      * Rasterize [url]'s SVG to a thumbnail bitmap (<= THUMB_MAX_PX), cache it,
      * and return it with the source xml. Safe on any background thread.
      */
-    private fun rasterizeThumbnail(url: String, cachedXml: String?): Pair<Bitmap, String>? {
+    // ✅ Fix — suspend function with semaphore
+    private suspend fun rasterizeThumbnail(url: String, cachedXml: String?): Pair<Bitmap, String>? =
+        renderSemaphore.withPermit {
+            rasterizeThumbnailInternal(url, cachedXml)
+        }
+
+    private fun rasterizeThumbnailInternal(url: String, cachedXml: String?): Pair<Bitmap, String>? {
         bitmapCache.get(url)?.let { return it to (xmlCache.get(url) ?: "") }
 
         val svg = getOrParseSvg(url, cachedXml) ?: return null
@@ -168,11 +177,9 @@ object SvgLoader {
     fun preload(urls: List<String>, scope: CoroutineScope) {
         scope.launch(Dispatchers.IO) {
             for (url in urls) {
-                // Honour cancellation so switching tabs actually stops this work
-                // mid-list instead of rasterizing the whole window anyway.
                 if (!isActive) return@launch
                 if (bitmapCache.get(url) != null) continue
-                rasterizeThumbnail(url, null)
+                rasterizeThumbnail(url, null)  // now suspend, semaphore limits concurrency
             }
         }
     }

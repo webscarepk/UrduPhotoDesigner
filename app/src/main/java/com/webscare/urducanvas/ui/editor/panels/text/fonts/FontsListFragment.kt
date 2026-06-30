@@ -385,39 +385,43 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
 
     private fun observeDownloadStates() {
         viewLifecycleOwner.lifecycleScope.launch {
-            mainViewModel.fontDownloadStates.collect { downloadState ->
-                downloadState.values.forEach { state ->
-                    when (state) {
-                        is FontDownloadState.Progress -> {
-                            Log.d("FONT_DEBUG", "Progress observed")
-                        }
-                        is FontDownloadState.SuccessWithTypeface -> {
-                            val completedFont = state.fontEntity
-                            Log.d("FONT_DEBUG", "SUCCESS id=${completedFont.id} lastRequested=$lastRequestedFontId")
-                            if (completedFont.id == lastRequestedFontId) {
-                                fontEntity                  = completedFont
-                                mainViewModel.recordRecentFont(completedFont.id)
-                                fontsAdapter.selectedFontId = completedFont.id.toString()
-                                pendingScrollToFontId       = completedFont.id.toString()
-                                viewModel.setFont(completedFont)
-                                if (!standaloneMode) mainViewModel.collapsePanel()
-                                lastRequestedFontId         = null
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {  // ← add this
+                mainViewModel.fontDownloadStates.collect { downloadState ->
+                    downloadState.values.forEach { state ->
+                        when (state) {
+                            is FontDownloadState.Progress -> {
+                                Log.d("FONT_DEBUG", "Progress observed")
+                            }
+                            is FontDownloadState.SuccessWithTypeface -> {
+                                val completedFont = state.fontEntity
+                                Log.d("FONT_DEBUG", "SUCCESS id=${completedFont.id} lastRequested=$lastRequestedFontId")
+                                if (completedFont.id == lastRequestedFontId) {
+                                    fontEntity                  = completedFont
+                                    mainViewModel.recordRecentFont(completedFont.id)
+                                    fontsAdapter.selectedFontId = completedFont.id.toString()
+                                    pendingScrollToFontId       = completedFont.id.toString()
+                                    viewModel.setFont(completedFont)
+                                    if (!standaloneMode) mainViewModel.collapsePanel()
+                                    lastRequestedFontId         = null
+                                    mainViewModel.clearFontDownloadState()
+                                }
+                            }
+                            is FontDownloadState.Error -> {
+                                Log.d("FONT_DEBUG", "ERROR observed")
+                                view?.let {
+                                    if (it.isAttachedToWindow) {
+                                        Snackbar.make(it, "Download failed!", Snackbar.LENGTH_SHORT).show()
+                                    }
+                                }
+                                fontEntity            = null
+                                pendingScrollToFontId = null
+                                lastRequestedFontId   = null
                                 mainViewModel.clearFontDownloadState()
                             }
-                        }
-                        is FontDownloadState.Error -> {
-                            Log.d("FONT_DEBUG", "ERROR observed")
-                            view?.let {
-                                Snackbar.make(it, "Download failed!", Snackbar.LENGTH_SHORT).show()
-                            }
-                            fontEntity            = null
-                            pendingScrollToFontId = null
-                            lastRequestedFontId   = null
-                            mainViewModel.clearFontDownloadState()
-                        }
-                        else -> {
-                            fontEntity?.let { font ->
-                                if (font.is_downloaded) viewModel.setFont(font)
+                            else -> {
+                                fontEntity?.let { font ->
+                                    if (font.is_downloaded) viewModel.setFont(font)
+                                }
                             }
                         }
                     }
