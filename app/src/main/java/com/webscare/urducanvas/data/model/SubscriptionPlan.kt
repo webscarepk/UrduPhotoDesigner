@@ -5,7 +5,7 @@ package com.webscare.urducanvas.data.model
  *
  * The first block (id, title, productId, price, duration, badge, isSelected) is
  * unchanged from the original model so existing call-sites and
- * [com.webscare.urducanvas.ui.navigation.settings.SubscriptionsAdapter] keep
+ * [com.webscare.urducanvas.ui.navigation.settings.subscriptions.SubscriptionsAdapter] keep
  * compiling.
  *
  * The second block is added for the "Plan picker A" design (segmented term

@@ -1,4 +1,4 @@
-package com.webscare.urducanvas.ui.navigation.settings
+package com.webscare.urducanvas.ui.navigation.settings.subscriptions
 
 import android.animation.ValueAnimator
 import android.content.Intent
@@ -13,7 +13,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
-import androidx.core.widget.ImageViewCompat
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -31,7 +31,7 @@ import java.util.Locale
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class ManageSubscriptionFragment : androidx.fragment.app.Fragment() {
+class ManageSubscriptionFragment : Fragment() {
 
     private var _binding: FragmentManageSubscriptionBinding? = null
     private val binding get() = _binding!!

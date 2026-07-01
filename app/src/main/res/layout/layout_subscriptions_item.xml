@@ -1,108 +1,123 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Plan card row for SubscriptionsAdapter.
-  IDs preserved from the original item: saveBadge, mainCard, title, price, duration.
-  Added: radio circle (id/radio) toggled alongside the border in updateSelection().
+  Compact plan card for SubscriptionsAdapter — 3 of these sit side-by-side
+  in a single row (GridLayoutManager, spanCount = 3) to match the reference
+  screenshot: title on top, big price + "/mo" on the baseline, a green save
+  line underneath (or an em-dash placeholder to keep card heights equal),
+  and an optional "BEST VALUE" ribbon overlapping the top edge.
 
-  Selection look (matches the reference image):
-   - selected   → appColor border (stroke set in adapter) + filled radio
-   - unselected → no border + empty radio
+  IDs preserved from the original item: mainCard, title, price, duration.
+  Removed: radio (selection is now shown via border only, per the design).
+  Added: saveBadge (was already present but repurposed for plain text,
+  not a pill), bestValueBadge (new, the overlapping ribbon).
 -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/subscriptionCard"
-    android:layout_width="match_parent"
+    android:layout_width="108dp"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="2dp"
-    android:layout_marginBottom="12dp">
+    android:layout_marginHorizontal="4dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
 
-    <!-- Discount badge, pinned to the card's top-right corner -->
+    <!-- "BEST VALUE" ribbon — pinned to the card's top edge, only shown on
+         whichever plan the adapter flags as best value. Reuses the same
+         gradient pill drawable the old full-width item badge used. -->
     <TextView
-        android:id="@+id/saveBadge"
+        android:id="@+id/bestValueBadge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="14dp"
         android:background="@drawable/ic_button_gradient_wrap"
-        android:fontFamily="@font/medium"
-        android:paddingHorizontal="10dp"
+        android:fontFamily="@font/bold"
+        android:letterSpacing="0.03"
+        android:paddingHorizontal="8dp"
         android:paddingVertical="3dp"
-        android:text="@string/save_25"
+        android:text="@string/sub_best_value"
         android:textColor="@color/white"
-        android:textSize="10sp"
+        android:textSize="8.5sp"
         android:translationZ="2dp"
+        android:visibility="gone"
+        tools:visibility="visible"
         app:layout_constraintTop_toTopOf="@id/mainCard"
         app:layout_constraintBottom_toTopOf="@id/mainCard"
+        app:layout_constraintStart_toStartOf="@id/mainCard"
         app:layout_constraintEnd_toEndOf="@id/mainCard" />
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/mainCard"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_height="130dp"
+        android:layout_marginTop="7dp"
         app:cardBackgroundColor="@color/white"
         app:cardCornerRadius="14dp"
         app:cardElevation="0dp"
-        app:strokeColor="@color/appColor"
-        app:strokeWidth="0dp"
+        app:strokeColor="@color/sub_divider"
+        app:strokeWidth="1dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="16dp">
-
-            <!-- Radio circle (left). Image swapped by updateSelection() in adapter. -->
-            <ImageView
-                android:id="@+id/radio"
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:src="@drawable/ic_radio_unselected"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent" />
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingHorizontal="6dp"
+            android:paddingTop="14dp"
+            android:layout_gravity="center"
+            android:paddingBottom="12dp">
 
             <TextView
                 android:id="@+id/title"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="14dp"
-                android:fontFamily="@font/bold"
-                android:text="@string/monthly"
-                android:textColor="@color/black"
-                android:textSize="15sp"
-                app:layout_constraintStart_toEndOf="@id/radio"
-                app:layout_constraintEnd_toStartOf="@id/price"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/duration"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="14dp"
-                android:layout_marginTop="2dp"
-                android:fontFamily="@font/regular"
-                android:text="@string/per_month"
-                android:textColor="@color/gray"
-                android:textSize="12sp"
-                app:layout_constraintStart_toEndOf="@id/radio"
-                app:layout_constraintEnd_toStartOf="@id/price"
-                app:layout_constraintTop_toBottomOf="@id/title" />
-
-            <!-- Price block (right) -->
-            <TextView
-                android:id="@+id/price"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:fontFamily="@font/medium"
+                android:gravity="center"
+                android:text="@string/monthly"
+                android:textColor="@color/gray"
+                android:textSize="11.5sp" />
+
+            <!-- Price on its own line -->
+            <TextView
+                android:id="@+id/price"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
                 android:fontFamily="@font/bold"
+                android:gravity="center"
+                android:includeFontPadding="false"
                 android:text="@string/rs_399"
+                android:textColor="@color/black"
+                android:textSize="20sp" />
+
+            <!-- Duration underneath — its own line so long strings like
+                 "/6 Months" wrap inside the card instead of overflowing
+                 past the rounded border. -->
+            <TextView
+                android:id="@+id/duration"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:fontFamily="@font/regular"
+                android:includeFontPadding="false"
+                android:text="@string/per_month_short"
+                android:textColor="@color/gray"
+                android:textSize="11sp" />
+
+            <!-- Save badge — a solid pill when the plan has a discount (set in
+                 SubscriptionsAdapter), or a plain em-dash placeholder with no
+                 background so all three cards stay the same height. -->
+            <TextView
+                android:id="@+id/saveBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:fontFamily="@font/bold"
+                android:gravity="center"
+                android:text="@string/sub_save_placeholder"
                 android:textColor="@color/appColor"
-                android:textSize="18sp"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
+                android:textSize="11sp" />
+        </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 </androidx.constraintlayout.widget.ConstraintLayout>

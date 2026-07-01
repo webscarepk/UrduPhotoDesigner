@@ -1,5 +1,6 @@
-package com.webscare.urducanvas.ui.navigation.settings
+package com.webscare.urducanvas.ui.navigation.settings.subscriptions
 
+import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
@@ -46,6 +47,11 @@ class SubscriptionsAdapter(
         if (notifyCaller) onSelect(items[position])
     }
 
+    /** Index of the plan with the highest discount — that one gets the "BEST VALUE" ribbon. */
+    private fun bestValueIndex(): Int =
+        items.indices.filter { items[it].hasDiscount }
+            .maxByOrNull { items[it].discountPercent } ?: -1
+
     inner class VH(val binding: LayoutSubscriptionsItemBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
@@ -54,10 +60,8 @@ class SubscriptionsAdapter(
             price.text = item.price
             duration.text = item.duration
 
-            saveBadge.apply {
-                isVisible = item.badge != null
-                text = item.badge
-            }
+            bindSaveLine(item)
+            bestValueBadge.isVisible = adapterPosition == bestValueIndex()
 
             updateSelection(item.isSelected)
 
@@ -67,16 +71,40 @@ class SubscriptionsAdapter(
             }
         }
 
+        private fun bindSaveLine(item: SubscriptionPlan) = with(binding) {
+            val ctx = root.context
+            if (item.hasDiscount) {
+                // Solid pill — much more prominent than plain colored text.
+                saveBadge.text = ctx.getString(R.string.sub_save_percent, item.discountPercent)
+                saveBadge.background = ContextCompat.getDrawable(ctx, R.drawable.sub_discount_pill)
+                saveBadge.backgroundTintList = ColorStateList.valueOf(
+                    ContextCompat.getColor(ctx, R.color.contrast)
+                )
+                saveBadge.setTextColor(ContextCompat.getColor(ctx, R.color.appColor))
+                saveBadge.setPadding(dp(9f), dp(3f), dp(9f), dp(3f))
+                saveBadge.alpha = 1f
+            } else {
+                // Em-dash placeholder, no pill — keeps all three cards the
+                // same height even when this plan has no discount to show.
+                saveBadge.text = ctx.getString(R.string.sub_save_placeholder)
+                saveBadge.background = null
+                saveBadge.setPadding(0, 0, 0, 0)
+                saveBadge.setTextColor(ContextCompat.getColor(ctx, R.color.gray))
+                saveBadge.alpha = 0.6f
+            }
+        }
+
         fun updateSelection(isSelected: Boolean) = with(binding) {
-            // Border highlight…
-            mainCard.strokeWidth = if (isSelected) 1 else 0
-            mainCard.strokeColor = ContextCompat.getColor(root.context, R.color.appColor)
-            // …and radio circle, moved together.
-            radio.setImageResource(
-                if (isSelected) R.drawable.ic_radio_selected
-                else R.drawable.ic_radio_unselected
+            // Border highlight only — no radio circle in the compact card design.
+            mainCard.strokeWidth = if (isSelected) dp(1.5f) else dp(1f)
+            mainCard.strokeColor = ContextCompat.getColor(
+                root.context,
+                if (isSelected) R.color.appColor else R.color.sub_divider
             )
         }
+
+        private fun dp(v: Float) =
+            (v * itemView.resources.displayMetrics.density).toInt()
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
@@ -92,7 +120,7 @@ class SubscriptionsAdapter(
         holder.bind(items[position])
     }
 
-    // ✅ Partial rebind — only updates stroke + radio, never triggers layout animation
+    // ✅ Partial rebind — only updates stroke, never triggers layout animation
     override fun onBindViewHolder(holder: VH, position: Int, payloads: List<Any>) {
         if (payloads.isNotEmpty() && payloads[0] == "selection") {
             holder.updateSelection(items[position].isSelected)

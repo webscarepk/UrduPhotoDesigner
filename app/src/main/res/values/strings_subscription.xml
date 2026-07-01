@@ -73,4 +73,37 @@
     <string name="mng_toast_rechecked">Re-queried — purchaseState is now PURCHASED</string>
     <string name="mng_toast_opening_play">Opening your subscription in Google Play…</string>
     <string name="mng_toast_purchased">Purchased — acknowledged within 3 days</string>
+    <string name="sub_best_value">BEST VALUE</string>
+    <string name="sub_save_percent">SAVE %d%%</string>
+    <string name="sub_save_placeholder">—</string>
+    <string name="per_month_short">/mo</string>
+    <string name="sub_cta_start_plan">Start %1$s · %2$s/mo</string>
+
+    <!-- Banner -->
+    <string name="sub_templates_count">1000+ templates</string>
+    <string name="sub_banner_headline">Eid Mubarak</string>
+    <string name="sub_banner_title">Premium Urdu templates</string>
+    <string name="sub_banner_subtitle">Fresh designs added every week</string>
+
+    <!-- Manage-subscription link -->
+    <string name="sub_manage_link">Already Pro? Manage subscription</string>
+
+    <!-- Feature grid -->
+    <string name="sub_feature_fonts_title">Urdu Fonts</string>
+    <string name="sub_feature_fonts_subtitle">Premium font pack</string>
+
+    <string name="sub_feature_templates_title">All Templates</string>
+    <string name="sub_feature_templates_subtitle">Unlimited use</string>
+
+    <string name="sub_feature_export_title">Source Export</string>
+    <string name="sub_feature_export_subtitle">Editable projects</string>
+
+    <string name="sub_feature_stickers_title">Stickers</string>
+    <string name="sub_feature_stickers_subtitle">Premium collection</string>
+
+    <string name="sub_feature_custom_title">Custom Design</string>
+    <string name="sub_feature_custom_subtitle">Request anytime</string>
+
+    <string name="sub_feature_no_ads_title">Ad-Free</string>
+    <string name="sub_feature_no_ads_subtitle">No interruptions</string>
 </resources>

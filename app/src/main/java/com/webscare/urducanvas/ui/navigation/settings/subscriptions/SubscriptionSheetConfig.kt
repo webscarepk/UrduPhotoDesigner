@@ -1,4 +1,4 @@
-package com.webscare.urducanvas.ui.navigation.settings
+package com.webscare.urducanvas.ui.navigation.settings.subscriptions
 
 import android.os.Build
 import android.os.Bundle

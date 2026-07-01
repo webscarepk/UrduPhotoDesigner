@@ -74,12 +74,12 @@
         tools:layout="@layout/fragment_settings" />
     <fragment
         android:id="@+id/subscriptionsFragment"
-        android:name="com.webscare.urducanvas.ui.navigation.settings.SubscriptionsFragment"
+        android:name="com.webscare.urducanvas.ui.navigation.settings.subscriptions.SubscriptionsFragment"
         android:label="fragment_subscriptions"
         tools:layout="@layout/fragment_subscriptions" />
     <fragment
         android:id="@+id/manageSubscriptionFragment"
-        android:name="com.webscare.urducanvas.ui.navigation.settings.ManageSubscriptionFragment"
+        android:name="com.webscare.urducanvas.ui.navigation.settings.subscriptions.ManageSubscriptionFragment"
         android:label="fragment_manage_subscription"
         tools:layout="@layout/fragment_manage_subscription" />
     <fragment

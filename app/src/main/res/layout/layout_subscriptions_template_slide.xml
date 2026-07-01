@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One page of the popular-templates slideshow.
+
+  IMPORTANT: slideShimmer and slideImage must be SIBLINGS, not nested.
+  If slideImage is placed *inside* slideShimmer:
+   - the shimmer has nothing visible to animate over while the image is
+     still invisible/loading, so it looks blank instead of shimmering
+   - hiding the shimmer (slideShimmer.isVisible = false → GONE) takes the
+     whole subtree down with it, so the loaded image never renders even
+     after Glide finishes, because it's now inside a GONE parent
+  Keeping them as siblings means toggling one never affects the other.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:shimmer="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Shimmer placeholder — its own dedicated skeleton box to animate
+         over, separate from the real image. -->
+    <com.facebook.shimmer.ShimmerFrameLayout
+        android:id="@+id/slideShimmer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        shimmer:shimmer_auto_start="true"
+        shimmer:shimmer_duration="1100">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/sub_skeleton_block" />
+    </com.facebook.shimmer.ShimmerFrameLayout>
+
+    <!-- Real thumbnail — a SIBLING of slideShimmer, not nested inside it. -->
+    <ImageView
+        android:id="@+id/slideImage"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/urdu_canvas_pro"
+        android:scaleType="centerCrop"
+        android:visibility="invisible" />
+
+    <!-- Scrim — translucent so the thumbnail underneath stays visible. -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0.35"
+        android:background="@color/black" />
+
+</FrameLayout>

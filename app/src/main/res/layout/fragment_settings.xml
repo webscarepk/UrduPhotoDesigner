@@ -60,7 +60,7 @@
             android:layout_height="wrap_content"
             app:cardCornerRadius="10dp"
             app:cardElevation="3dp"
-            android:visibility="visible"
+            android:visibility="gone"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -143,12 +143,19 @@
             </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- ── Manage card (shown when subscribed) ──────────────────────── -->
+        <!-- ── Manage card (shown when subscribed) ──────────────────────────
+             Compact pill design: left status-color accent bar, small icon
+             chip, plan name + status badge inline, a one-line status/date
+             detail underneath, and a "Manage ›" link on the right. Colors
+             on the accent bar / icon chip / badge are all set dynamically
+             per subscription status in SettingsFragment (same status→color
+             mapping ManageSubscriptionFragment already uses), not hardcoded
+             to "active" green. -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="10dp"
-            app:cardElevation="3dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="2dp"
             android:outlineSpotShadowColor="@color/shadowColor"
             app:cardBackgroundColor="@color/white"
             app:layout_constraintStart_toStartOf="parent"
@@ -156,99 +163,121 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             android:id="@+id/currentPlanCard"
-            android:visibility="gone"
+            android:visibility="visible"
             android:layout_marginTop="24dp">
-
-            <ImageView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:src="@drawable/ic_subscription_card_bg"
-                android:scaleType="centerCrop"/>
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:padding="15dp">
+                android:layout_height="wrap_content"
+                android:minHeight="64dp">
 
-                <ImageView
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:background="@drawable/button_bg_round"
-                    android:src="@drawable/ic_crown"
-                    android:padding="8dp"
-                    android:id="@+id/currentTitleImage"
-                    app:layout_constraintTop_toTopOf="parent"
+                <!-- Status-color accent bar, inset slightly from the card's
+                     rounded corners so it doesn't poke past them. -->
+                <View
+                    android:id="@+id/statusAccentBar"
+                    android:layout_width="4dp"
+                    android:layout_height="0dp"
+                    android:visibility="gone"
+                    android:layout_marginVertical="10dp"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/sub_discount_pill"
+                    android:backgroundTint="@color/state_green"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    android:backgroundTint="@color/white"/>
+                    app:layout_constraintTop_toTopOf="parent" />
 
-                <!-- "Current Plan" label -->
-                <TextView
+                <ImageView
+                    android:id="@+id/manageCardIcon"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
+                    android:layout_marginStart="12dp"
+                    android:background="@drawable/button_bg_round"
+                    android:backgroundTint="@color/state_green_tint"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_crown"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/statusAccentBar"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:tint="@color/state_green" />
+
+                <!-- Plan name + status badge, on one row -->
+                <LinearLayout
+                    android:id="@+id/manageCardTitleRow"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Current Plan"
-                    android:textSize="11sp"
-                    android:fontFamily="@font/regular"
-                    android:includeFontPadding="false"
-                    app:layout_constraintStart_toEndOf="@id/currentTitleImage"
-                    app:layout_constraintEnd_toStartOf="@id/manage"
-                    android:textColor="@color/light_gray"
                     android:layout_marginStart="10dp"
-                    android:layout_marginEnd="8dp"
-                    android:id="@+id/currentPlanTitle"
-                    app:layout_constraintBottom_toTopOf="@+id/manageCardTitle"
-                    app:layout_constraintTop_toTopOf="@id/currentTitleImage"
-                    app:layout_constraintVertical_chainStyle="packed"
-                    tools:ignore="DuplicateIds" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    app:layout_constraintBottom_toTopOf="@id/manageCardSubTitle"
+                    app:layout_constraintEnd_toStartOf="@id/manage"
+                    app:layout_constraintStart_toEndOf="@id/manageCardIcon"
+                    app:layout_constraintTop_toTopOf="@id/manageCardIcon"
+                    app:layout_constraintVertical_chainStyle="packed">
 
-                <!-- Plan name — set dynamically: Monthly / 6 Months / Yearly -->
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:text="@string/monthly"
-                    android:textSize="17sp"
-                    android:fontFamily="@font/bold"
-                    android:includeFontPadding="false"
-                    app:layout_constraintStart_toEndOf="@id/currentTitleImage"
-                    app:layout_constraintEnd_toStartOf="@id/manage"
-                    android:textColor="@color/white"
-                    android:layout_marginStart="10dp"
-                    android:layout_marginEnd="8dp"
-                    android:id="@+id/manageCardTitle"
-                    app:layout_constraintTop_toBottomOf="@id/currentPlanTitle"
-                    app:layout_constraintBottom_toTopOf="@id/manageCardSubTitle"/>
+                    <TextView
+                        android:id="@+id/manageCardTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/bold"
+                        android:includeFontPadding="false"
+                        android:text="@string/monthly"
+                        android:textColor="@color/black"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:id="@+id/manageCardStatusBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/sub_discount_pill"
+                        android:backgroundTint="@color/state_green_tint"
+                        android:fontFamily="@font/bold"
+                        android:includeFontPadding="false"
+                        android:paddingHorizontal="7dp"
+                        android:paddingVertical="2dp"
+                        android:text="@string/mng_chip_active"
+                        android:textColor="@color/state_green"
+                        android:textSize="9.5sp" />
+                </LinearLayout>
 
                 <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:text="@string/subscribed_amp_unstoppable_new_features_unlocked"
-                    android:textSize="11sp"
-                    android:layout_marginEnd="8dp"
-                    android:fontFamily="@font/regular"
-                    android:includeFontPadding="false"
-                    app:layout_constraintStart_toEndOf="@id/currentTitleImage"
-                    app:layout_constraintEnd_toStartOf="@id/manage"
-                    android:textColor="@color/light_gray"
-                    android:layout_marginStart="10dp"
                     android:id="@+id/manageCardSubTitle"
-                    app:layout_constraintTop_toBottomOf="@id/manageCardTitle"
-                    app:layout_constraintBottom_toBottomOf="@id/currentTitleImage"/>
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:fontFamily="@font/regular"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/gray"
+                    android:textSize="11.5sp"
+                    app:layout_constraintBottom_toBottomOf="@id/manageCardIcon"
+                    app:layout_constraintEnd_toStartOf="@id/manage"
+                    app:layout_constraintStart_toEndOf="@id/manageCardIcon"
+                    app:layout_constraintTop_toBottomOf="@id/manageCardTitleRow"
+                    tools:text="Renews Aug 1, 2026" />
 
                 <TextView
                     android:id="@+id/manage"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/button_gradient_contrast"
-                    android:text="@string/manage"
-                    android:textColor="@color/white"
-                    android:paddingVertical="6dp"
+                    android:layout_marginEnd="5dp"
                     android:fontFamily="@font/bold"
-                    android:paddingHorizontal="12dp"
-                    android:textSize="12sp"
+                    android:text="@string/manage"
+                    android:textColor="@color/appColor"
+                    android:textSize="13sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/nextArrow"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <ImageView
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    app:tint="@color/gray"
+                    android:src="@drawable/ic_next"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"/>
-
+                    android:layout_marginEnd="10dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:id="@+id/nextArrow"/>
             </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.card.MaterialCardView>
     </androidx.constraintlayout.widget.ConstraintLayout>
