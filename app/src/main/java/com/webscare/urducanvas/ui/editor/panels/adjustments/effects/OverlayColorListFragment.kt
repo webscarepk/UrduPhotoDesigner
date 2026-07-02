@@ -54,11 +54,9 @@ class OverlayColorListFragment : Fragment() {
     }
 
     private fun initObservers() {
-        lifecycleScope.launch {
-            mainViewModel.gradients.observe(viewLifecycleOwner) { gradients ->
-                if (gradients.isNotEmpty()){
-                    gradientsAdapter.updateList(gradients.reversed())
-                }
+        mainViewModel.gradients.observe(viewLifecycleOwner) { gradients ->
+            if (gradients.isNotEmpty()){
+                gradientsAdapter.updateList(gradients.reversed())
             }
         }
     }

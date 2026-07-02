@@ -539,7 +539,7 @@ class MainViewModel @Inject constructor(
 
     private fun observeLocalFonts() {
         viewModelScope.launch {
-            getFontsUseCase().collect { fonts ->
+            getFontsUseCase().distinctUntilChanged().collect { fonts ->
                 _localFonts.value = fonts
                 recomputeHomeState()
             }
@@ -874,7 +874,6 @@ class MainViewModel @Inject constructor(
         val fontId = font.id.toString()
         fontJobs[fontId]?.cancel()
         val job = viewModelScope.launch {
-            updateFontStatusUseCase.invoke(fontId, true)
             updateFontState(
                 fontId,
                 FontDownloadState.Progress(0, font.copy(is_downloading = true))

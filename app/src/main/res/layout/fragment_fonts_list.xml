@@ -16,7 +16,7 @@
         android:orientation="horizontal"
         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
         tools:itemCount="50"
-        app:spanCount="2"
+        app:spanCount="3"
         android:id="@+id/englishRV"
         tools:listitem="@layout/layout_font_item"/>
 

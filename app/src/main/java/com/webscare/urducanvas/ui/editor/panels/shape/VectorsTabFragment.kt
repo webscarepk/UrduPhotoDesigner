@@ -16,6 +16,7 @@ import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.canvas.enums.PanelType
 import com.webscare.urducanvas.common.canvas.enums.ShapeType
+import com.webscare.urducanvas.common.utils.MorphGridLayoutManager
 import com.webscare.urducanvas.databinding.FragmentObjectsListBinding
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -75,7 +76,13 @@ class VectorsTabFragment : Fragment() {
         binding.objects.apply {
             setHasFixedSize(true)
             itemAnimator = null          // suppress flicker on dataset changes
-            layoutManager = buildLayoutManager(isPanelExpanded)
+            layoutManager = MorphGridLayoutManager(
+                context = requireContext(),
+                collapsedSpan = 3,
+                expandedSpan = 3
+            ).apply {
+                applyFraction(binding.objects, if (mainViewModel.isPanelExpanded(PanelType.SHAPES)) 1f else 0f)
+            }
             adapter = shapesAdapter
         }
         binding.noEmojis.visibility = View.GONE
@@ -166,14 +173,31 @@ class VectorsTabFragment : Fragment() {
 
     // ── Panel expand/collapse ─────────────────────────────────────────────────
 
-    fun onPanelExpandedSmooth(effectiveExpanded: Boolean) {
+    fun onPanelSlide(offset: Float) {
         if (_binding == null) return
-        if (isPanelExpanded == effectiveExpanded) return   // already in right state
-        isPanelExpanded = effectiveExpanded
+        val lm = binding.objects.layoutManager as? MorphGridLayoutManager
+        if (lm != null) {
+            lm.applyFraction(binding.objects, offset)
+            val effectiveExpanded = offset >= 0.5f
+            if (shapesAdapter?.isExpanded != effectiveExpanded) {
+                binding.objects.recycledViewPool.clear()
+                shapesAdapter?.isExpanded = effectiveExpanded
+            }
+        }
 
-        binding.objects.recycledViewPool.clear()
-        binding.objects.layoutManager = buildLayoutManager(effectiveExpanded)
-        shapesAdapter?.isExpanded = effectiveExpanded
+        // Smoothly update size of all visible items in 60fps!
+        val adapter = shapesAdapter ?: return
+        val rvWidth = binding.objects.width
+        val rvPadding = binding.objects.paddingLeft + binding.objects.paddingRight
+        adapter.slideOffset = offset
+        adapter.recyclerViewWidth = rvWidth
+        adapter.recyclerViewPadding = rvPadding
+
+        for (i in 0 until binding.objects.childCount) {
+            val child = binding.objects.getChildAt(i)
+            val holder = binding.objects.getChildViewHolder(child) as? ShapeAdapter.ShapeViewHolder
+            holder?.updateSize(offset, rvWidth, rvPadding)
+        }
     }
 
     fun onPanelExpanded(expanded: Boolean) {
@@ -182,17 +206,32 @@ class VectorsTabFragment : Fragment() {
         if (_binding == null) return
 
         binding.swipeRefresh?.isEnabled = expanded
-        binding.objects.layoutManager = buildLayoutManager(expanded)
-        shapesAdapter?.isExpanded = expanded
+        val lm = binding.objects.layoutManager as? MorphGridLayoutManager
+        if (lm != null) {
+            lm.applyFraction(binding.objects, if (expanded) 1f else 0f)
+            if (shapesAdapter?.isExpanded != expanded) {
+                binding.objects.recycledViewPool.clear()
+                shapesAdapter?.isExpanded = expanded
+            }
+        }
+
+        // Sync item size on final settle state
+        val adapter = shapesAdapter ?: return
+        val rvWidth = binding.objects.width
+        val rvPadding = binding.objects.paddingLeft + binding.objects.paddingRight
+        val offset = if (expanded) 1f else 0f
+        adapter.slideOffset = offset
+        adapter.recyclerViewWidth = rvWidth
+        adapter.recyclerViewPadding = rvPadding
+
+        for (i in 0 until binding.objects.childCount) {
+            val child = binding.objects.getChildAt(i)
+            val holder = binding.objects.getChildViewHolder(child) as? ShapeAdapter.ShapeViewHolder
+            holder?.updateSize(offset, rvWidth, rvPadding)
+        }
+
         if (expanded) binding.objects.scrollToPosition(0)
     }
-
-    private fun buildLayoutManager(expanded: Boolean): GridLayoutManager =
-        GridLayoutManager(
-            requireContext(), 3,
-            if (expanded) GridLayoutManager.VERTICAL else GridLayoutManager.HORIZONTAL,
-            false
-        )
 
     override fun onDestroyView() {
         // NOTE: do NOT cancel the adapter's bitmap render here. With detach/attach

@@ -17,6 +17,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.PanelType
 import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
+import com.webscare.urducanvas.common.utils.MorphGridLayoutManager
 import com.webscare.urducanvas.databinding.FragmentFontsListBinding
 import com.webscare.urducanvas.ui.editor.EditorFragment
 import com.webscare.urducanvas.ui.editor.PanelSheetBehavior
@@ -39,6 +40,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
     private lateinit var fontsAdapter: FontsAdapter
     private var fontEntity: com.webscare.urducanvas.data.model.FontEntity? = null
     private var lastRequestedFontId: Int? = null
+    private var isDownloadingFont = false
 
     private var currentLanguage: String? = null
     private var currentCategory: String? = null
@@ -194,27 +196,68 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
                     .collect { expanded -> applyExpansion(expanded == PanelType.FONTS) }
             }
         }
+
+        // Live slide offset: drives smooth layout transition on slide
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.panelSlideOffset.collect { offset ->
+                    applySlideOffset(offset)
+                }
+            }
+        }
+    }
+
+    private fun applySlideOffset(offset: Float) {
+        val rv = safeBinding?.englishRV ?: return
+        val lm = rv.layoutManager as? MorphGridLayoutManager
+        if (lm != null) {
+            lm.applyFraction(rv, offset)
+            val effectiveExpanded = offset >= 0.45f
+            if (fontsAdapter.isExpanded != effectiveExpanded) {
+                rv.recycledViewPool.clear()
+                fontsAdapter.isExpanded = effectiveExpanded
+            }
+        }
+
+        // Smoothly update size of all visible items in 60fps!
+        val rvWidth = rv.width
+        val rvPadding = rv.paddingLeft + rv.paddingRight
+        fontsAdapter.slideOffset = offset
+        fontsAdapter.recyclerViewWidth = rvWidth
+        fontsAdapter.recyclerViewPadding = rvPadding
+
+        for (i in 0 until rv.childCount) {
+            val child = rv.getChildAt(i)
+            val holder = rv.getChildViewHolder(child) as? FontsAdapter.FontViewHolder
+            holder?.updateSize(offset, rvWidth, rvPadding)
+        }
     }
 
     private fun applyExpansion(expanded: Boolean) {
-        // On expand: onPanelExpandedSmooth (called via applySlideOffset at 75%)
-        // already switched the layout manager while the spring was still moving.
-        // Swapping it again here causes a remeasure jerk on an already-correct RV.
-        // Only act on collapse to reset state.
-        if (expanded) return
         val rv = safeBinding?.englishRV ?: return
-        rv.recycledViewPool.clear()
-        fontsAdapter.isExpanded = false
-        rv.layoutManager = buildLayoutManager(false)
-    }
+        val lm = rv.layoutManager as? MorphGridLayoutManager
+        if (lm != null) {
+            lm.applyFraction(rv, if (expanded) 1f else 0f)
+            if (fontsAdapter.isExpanded != expanded) {
+                rv.recycledViewPool.clear()
+                fontsAdapter.isExpanded = expanded
+            }
+        }
 
-    private fun buildLayoutManager(expanded: Boolean): GridLayoutManager =
-        GridLayoutManager(
-            requireContext(),
-            2,
-            if (expanded) GridLayoutManager.VERTICAL else GridLayoutManager.HORIZONTAL,
-            false
-        )
+        // Sync item size on final settle state
+        val rvWidth = rv.width
+        val rvPadding = rv.paddingLeft + rv.paddingRight
+        val offset = if (expanded) 1f else 0f
+        fontsAdapter.slideOffset = offset
+        fontsAdapter.recyclerViewWidth = rvWidth
+        fontsAdapter.recyclerViewPadding = rvPadding
+
+        for (i in 0 until rv.childCount) {
+            val child = rv.getChildAt(i)
+            val holder = rv.getChildViewHolder(child) as? FontsAdapter.FontViewHolder
+            holder?.updateSize(offset, rvWidth, rvPadding)
+        }
+    }
 
     // ── Filtering ─────────────────────────────────────────────────────────────
 
@@ -287,6 +330,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
     private fun submitWithScrollPreservation(
         newList: List<com.webscare.urducanvas.data.model.FontEntity>
     ) {
+        if (isDownloadingFont) return
         val lm           = safeBinding?.englishRV?.layoutManager as? LinearLayoutManager
         val savedIndex   = lm?.findFirstVisibleItemPosition()?.takeIf { it >= 0 } ?: 0
         val savedOffset  = lm?.findViewByPosition(savedIndex)?.top ?: 0
@@ -297,19 +341,13 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
             if (scrollTarget != null) {
                 val pos = newList.indexOfFirst { it.id.toString() == scrollTarget }
                 if (pos >= 0) {
-                    b.englishRV.post {
-                        safeBinding ?: return@post
-                        (b.englishRV.layoutManager as? LinearLayoutManager)
-                            ?.scrollToPositionWithOffset(pos, 0)
-                    }
+                    (b.englishRV.layoutManager as? LinearLayoutManager)
+                        ?.scrollToPositionWithOffset(pos, 0)
                 }
                 if (pendingScrollToFontId == scrollTarget) pendingScrollToFontId = null
             } else {
-                b.englishRV.post {
-                    safeBinding ?: return@post
-                    (b.englishRV.layoutManager as? LinearLayoutManager)
-                        ?.scrollToPositionWithOffset(savedIndex, savedOffset)
-                }
+                (b.englishRV.layoutManager as? LinearLayoutManager)
+                    ?.scrollToPositionWithOffset(savedIndex, savedOffset)
             }
         }
     }
@@ -328,7 +366,13 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         }
         val isExpanded = mainViewModel.isPanelExpanded(PanelType.FONTS)
         val rv = _binding!!.englishRV
-        rv.layoutManager = buildLayoutManager(isExpanded)
+        rv.layoutManager = MorphGridLayoutManager(
+            context = requireContext(),
+            collapsedSpan = 3,
+            expandedSpan = 3
+        ).apply {
+            applyFraction(rv, if (isExpanded) 1f else 0f)
+        }
         fontsAdapter.isExpanded = isExpanded
         rv.adapter = fontsAdapter
     }
@@ -346,22 +390,9 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
 
         fontEntity = font
         lastRequestedFontId = font.id
+        isDownloadingFont = true
 
-        val b           = safeBinding ?: return
-        val lm          = b.englishRV.layoutManager as? LinearLayoutManager
-        val savedIndex  = lm?.findFirstVisibleItemPosition()?.takeIf { it >= 0 } ?: 0
-        val savedOffset = lm?.findViewByPosition(savedIndex)?.top ?: 0
-
-        val updatedList = fontsAdapter.currentList.map {
-            if (it.id == font.id) it.copy(is_downloading = true) else it
-        }
-        fontsAdapter.submitList(updatedList) {
-            safeBinding?.englishRV?.post {
-                safeBinding ?: return@post
-                (safeBinding?.englishRV?.layoutManager as? LinearLayoutManager)
-                    ?.scrollToPositionWithOffset(savedIndex, savedOffset)
-            }
-        }
+        fontsAdapter.addDownloadingId(font.id)
         mainViewModel.downloadFont(font)
     }
 
@@ -395,11 +426,12 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
                             is FontDownloadState.SuccessWithTypeface -> {
                                 val completedFont = state.fontEntity
                                 Log.d("FONT_DEBUG", "SUCCESS id=${completedFont.id} lastRequested=$lastRequestedFontId")
+                                isDownloadingFont = false
+                                fontsAdapter.clearDownloadingId(completedFont.id)
                                 if (completedFont.id == lastRequestedFontId) {
                                     fontEntity                  = completedFont
                                     mainViewModel.recordRecentFont(completedFont.id)
                                     fontsAdapter.selectedFontId = completedFont.id.toString()
-                                    pendingScrollToFontId       = completedFont.id.toString()
                                     viewModel.setFont(completedFont)
                                     if (!standaloneMode) mainViewModel.collapsePanel()
                                     lastRequestedFontId         = null
@@ -407,7 +439,10 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
                                 }
                             }
                             is FontDownloadState.Error -> {
+                                val failedFont = state.fontEntity
                                 Log.d("FONT_DEBUG", "ERROR observed")
+                                isDownloadingFont = false
+                                fontsAdapter.clearDownloadingId(failedFont.id)
                                 view?.let {
                                     if (it.isAttachedToWindow) {
                                         Snackbar.make(it, "Download failed!", Snackbar.LENGTH_SHORT).show()

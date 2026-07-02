@@ -89,7 +89,7 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
 
         // Observe maskAppliedEvent HERE (not in EditorFragment) so we control
         // dialog dismiss + navigation in one place, in the right order.
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.maskAppliedEvent.collect {
                     // Data is committed — dismiss dialog then navigate back immediately.
@@ -118,7 +118,7 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
         startProgressLoop()
         startIconRotation()
 
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             while (loadingDialog?.isShowing == true) {
                 dialogBinding?.subtitle?.text = loadingMessages[messageIndex]
                 dialogBinding?.title?.text = getString(R.string.processing_your_image)
@@ -341,6 +341,7 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onDestroyView() {
+        dismissLoadingDialog()
         super.onDestroyView()
         _binding = null
     }

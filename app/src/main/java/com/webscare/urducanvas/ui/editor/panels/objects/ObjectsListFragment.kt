@@ -20,6 +20,7 @@ import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
 import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.data.model.ObjectsData
 import com.webscare.urducanvas.databinding.FragmentObjectsListBinding
+import com.webscare.urducanvas.common.utils.MorphGridLayoutManager
 import com.webscare.urducanvas.ui.editor.panels.images.ImagesAdapter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -88,6 +89,13 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
             setHasFixedSize(false)
             setItemViewCacheSize(20)
             recycledViewPool.setMaxRecycledViews(0, 25)
+            layoutManager = MorphGridLayoutManager(
+                context = requireContext(),
+                collapsedSpan = 3,
+                expandedSpan = 3
+            ).apply {
+                applyFraction(binding.objects, if (mainViewModel.isPanelExpanded(PanelType.OBJECTS)) 1f else 0f)
+            }
         }
 
         setupSwipeRefresh()
@@ -266,7 +274,6 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                 }
             )
         }
-        binding.objects.layoutManager = buildLayoutManager(isPanelExpanded)
         binding.objects.adapter = emojiAdapter
 
         if (filterText.isBlank()) {
@@ -313,7 +320,6 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                 }
             )
         }
-        binding.objects.layoutManager = buildLayoutManager(isPanelExpanded)
         binding.objects.adapter = imagesAdapter
 
         if (categoryImages.isEmpty()) {
@@ -334,11 +340,6 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
     // ── Panel expand/collapse ─────────────────────────────────────────────────
 
     fun onPanelExpanded(expanded: Boolean) {
-        // This is only called for cleanup on collapse now — the layout manager
-        // was already switched by onPanelExpandedSmooth() at 75% of travel.
-        // Swapping it again here would cause a remeasure jerk on an already-correct RV.
-        if (expanded) return   // onPanelExpandedSmooth handled it; nothing extra needed
-
         if (isPanelExpanded == expanded) return
         isPanelExpanded = expanded
         if (_binding == null) return
@@ -352,30 +353,95 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
         imagesAdapter?.clearSelectionShadow()
         emojiAdapter?.clearSelectionShadow()
 
-        binding.swipeRefresh?.isEnabled = false
-    }
+        binding.swipeRefresh?.isEnabled = expanded
+        val lm = binding.objects.layoutManager as? MorphGridLayoutManager
+        if (lm != null) {
+            lm.applyFraction(binding.objects, if (expanded) 1f else 0f)
+            if (isBaseTab(category)) {
+                if (emojiAdapter?.isExpanded != expanded) {
+                    binding.objects.recycledViewPool.clear()
+                    emojiAdapter?.isExpanded = expanded
+                }
+            } else {
+                if (imagesAdapter?.isExpanded != expanded) {
+                    binding.objects.recycledViewPool.clear()
+                    imagesAdapter?.isExpanded = expanded
+                }
+            }
+        }
 
-    /**
-     * Called during drag at the 0.75f threshold so the layout manager switches
-     * WHILE the spring is still animating — the user never sees a static jump.
-     * Guards against double-switching with the same isPanelExpanded flag.
-     */
-    fun onPanelExpandedSmooth(effectiveExpanded: Boolean) {
-        if (_binding == null) return
-        if (isPanelExpanded == effectiveExpanded) return   // already in right state
-        isPanelExpanded = effectiveExpanded
-
-        // Gate swipe refresh here too — without this it stays enabled/disabled
-        // from the last settled state and can fire in the wrong panel position.
-        binding.swipeRefresh?.isEnabled = effectiveExpanded
-
-        binding.objects.recycledViewPool.clear()
-        binding.objects.layoutManager = buildLayoutManager(effectiveExpanded)
+        // Sync item size on final settle state
+        val rvWidth   = binding.objects.width
+        val rvPadding = binding.objects.paddingLeft + binding.objects.paddingRight
+        val offset    = if (expanded) 1f else 0f
 
         if (isBaseTab(category)) {
-            emojiAdapter?.isExpanded = effectiveExpanded
+            val ea = emojiAdapter ?: return
+            ea.slideOffset         = offset
+            ea.recyclerViewWidth   = rvWidth
+            ea.recyclerViewPadding = rvPadding
+            for (i in 0 until binding.objects.childCount) {
+                val child  = binding.objects.getChildAt(i)
+                val holder = binding.objects.getChildViewHolder(child) as? EmojiAdapter.EmojiViewHolder
+                holder?.updateSize(offset, rvWidth, rvPadding)
+            }
         } else {
-            imagesAdapter?.isExpanded = effectiveExpanded
+            val ia = imagesAdapter ?: return
+            ia.slideOffset         = offset
+            ia.recyclerViewWidth   = rvWidth
+            ia.recyclerViewPadding = rvPadding
+            for (i in 0 until binding.objects.childCount) {
+                val child  = binding.objects.getChildAt(i)
+                val holder = binding.objects.getChildViewHolder(child) as? ImagesAdapter.ImageViewHolder
+                holder?.updateSize(offset, rvWidth, rvPadding)
+            }
+        }
+    }
+
+    fun onPanelSlide(offset: Float) {
+        if (_binding == null) return
+        binding.swipeRefresh?.isEnabled = offset >= 0.5f
+        val lm = binding.objects.layoutManager as? MorphGridLayoutManager
+        if (lm != null) {
+            lm.applyFraction(binding.objects, offset)
+            val effectiveExpanded = offset >= 0.5f
+            if (isBaseTab(category)) {
+                if (emojiAdapter?.isExpanded != effectiveExpanded) {
+                    binding.objects.recycledViewPool.clear()
+                    emojiAdapter?.isExpanded = effectiveExpanded
+                }
+            } else {
+                if (imagesAdapter?.isExpanded != effectiveExpanded) {
+                    binding.objects.recycledViewPool.clear()
+                    imagesAdapter?.isExpanded = effectiveExpanded
+                }
+            }
+        }
+
+        val rvWidth   = binding.objects.width
+        val rvPadding = binding.objects.paddingLeft + binding.objects.paddingRight
+
+        // Smoothly update size of all visible items in 60fps!
+        if (isBaseTab(category)) {
+            val ea = emojiAdapter ?: return
+            ea.slideOffset         = offset
+            ea.recyclerViewWidth   = rvWidth
+            ea.recyclerViewPadding = rvPadding
+            for (i in 0 until binding.objects.childCount) {
+                val child  = binding.objects.getChildAt(i)
+                val holder = binding.objects.getChildViewHolder(child) as? EmojiAdapter.EmojiViewHolder
+                holder?.updateSize(offset, rvWidth, rvPadding)
+            }
+        } else {
+            val ia = imagesAdapter ?: return
+            ia.slideOffset         = offset
+            ia.recyclerViewWidth   = rvWidth
+            ia.recyclerViewPadding = rvPadding
+            for (i in 0 until binding.objects.childCount) {
+                val child  = binding.objects.getChildAt(i)
+                val holder = binding.objects.getChildViewHolder(child) as? ImagesAdapter.ImageViewHolder
+                holder?.updateSize(offset, rvWidth, rvPadding)
+            }
         }
     }
 
@@ -393,14 +459,6 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
             }
         }
     }
-
-    private fun buildLayoutManager(expanded: Boolean): GridLayoutManager =
-        GridLayoutManager(
-            requireContext(),
-            3,
-            if (expanded) GridLayoutManager.VERTICAL else GridLayoutManager.HORIZONTAL,
-            false
-        )
 
     // ── Called by ObjectsFragment ─────────────────────────────────────────────
 

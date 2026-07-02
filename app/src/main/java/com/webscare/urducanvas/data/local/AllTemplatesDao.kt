@@ -18,10 +18,10 @@ interface AllTemplatesDao {
     suspend fun getTemplateById(id: Int): TemplateEntity?
 
     @Query("UPDATE templates SET is_downloaded = :isDownloaded, is_downloading = :isDownloading, download_progress = :progress, file_path = :filePath WHERE id = :id")
-    fun updateTemplate(id: String, isDownloaded: Boolean, isDownloading: Boolean, progress: Int, filePath: String?)
+    suspend fun updateTemplate(id: String, isDownloaded: Boolean, isDownloading: Boolean, progress: Int, filePath: String?)
 
     @Query("UPDATE templates SET is_downloading = :isDownloading WHERE id = :id")
-    fun updateTemplateStatus(id: String, isDownloading: Boolean)
+    suspend fun updateTemplateStatus(id: String, isDownloading: Boolean)
 
     @Delete
     suspend fun deleteTemplate(template: TemplateEntity)

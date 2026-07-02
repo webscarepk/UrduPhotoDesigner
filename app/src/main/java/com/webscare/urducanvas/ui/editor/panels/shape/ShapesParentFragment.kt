@@ -159,14 +159,10 @@ class ShapesParentFragment : Fragment() {
                 mainViewModel.expandedPanel.collect { panel ->
                     val expanded = panel == PanelType.SHAPES
                     applyExpandedUi(expanded)
-                    // Do NOT call fragment.onPanelExpanded() here —
-                    // onPanelExpandedSmooth() already switched the layout manager
-                    // at 75% while the spring was still moving. Calling onPanelExpanded()
-                    // again now re-swaps it on an already-correct RV, causing the jerk.
-                    // Only handle selection clear on collapse:
-                    if (!expanded) {
-                        for ((_, fragment) in fragmentCache) {
-                            if (fragment is ShapesListFragment) fragment.onPanelExpanded(false)
+                    for ((_, fragment) in fragmentCache) {
+                        when (fragment) {
+                            is ShapesListFragment -> fragment.onPanelExpanded(expanded)
+                            is VectorsTabFragment -> fragment.onPanelExpanded(expanded)
                         }
                     }
                 }
@@ -216,18 +212,11 @@ class ShapesParentFragment : Fragment() {
         }
 
 
-        // Switch child RecyclerView layout managers at 75 % of travel —
-        // while the spring is still in motion so the user never sees a jump.
-        // Guard with lastSlideExpanded so we call onPanelExpandedSmooth at most once
-        // per direction flip — not on every drag frame.
-        val effectiveExpanded = offset >= 0.75f
-        if (lastSlideExpanded != effectiveExpanded) {
-            lastSlideExpanded = effectiveExpanded
-            for ((_, fragment) in fragmentCache) {
-                when (fragment) {
-                    is ShapesListFragment -> fragment.onPanelExpandedSmooth(effectiveExpanded)
-                    is VectorsTabFragment -> fragment.onPanelExpandedSmooth(effectiveExpanded)
-                }
+        // Forward live offset to child fragments to drive morph transition on every frame
+        for ((_, fragment) in fragmentCache) {
+            when (fragment) {
+                is ShapesListFragment -> fragment.onPanelSlide(offset)
+                is VectorsTabFragment -> fragment.onPanelSlide(offset)
             }
         }
     }
@@ -411,8 +400,8 @@ class ShapesParentFragment : Fragment() {
 
         val expanded = mainViewModel.isPanelExpanded(PanelType.SHAPES)
         when (target) {
-            is ShapesListFragment -> target.onPanelExpandedSmooth(expanded)
-            is VectorsTabFragment -> target.onPanelExpandedSmooth(expanded)
+            is ShapesListFragment -> target.onPanelExpanded(expanded)
+            is VectorsTabFragment -> target.onPanelExpanded(expanded)
         }
     }
 

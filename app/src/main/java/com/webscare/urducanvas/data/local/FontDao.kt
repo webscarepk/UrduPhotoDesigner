@@ -18,10 +18,10 @@ interface FontDao {
     fun getAllFonts(): Flow<List<FontEntity>>
 
     @Query("UPDATE fonts SET is_downloaded = :isDownloaded, is_downloading = :isDownloading, file_path = :filePath WHERE id = :id")
-    fun updateFont(id: String, isDownloaded: Boolean, isDownloading: Boolean, filePath: String)
+    suspend fun updateFont(id: String, isDownloaded: Boolean, isDownloading: Boolean, filePath: String)
 
     @Query("UPDATE fonts SET is_downloading = :isDownloading WHERE id = :id")
-    fun updateFontStatus(id: String, isDownloading: Boolean)
+    suspend fun updateFontStatus(id: String, isDownloading: Boolean)
 
     @Delete
     suspend fun delete(font: FontEntity)

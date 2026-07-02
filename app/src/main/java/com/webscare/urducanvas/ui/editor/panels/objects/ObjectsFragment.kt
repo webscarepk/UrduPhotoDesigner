@@ -177,11 +177,7 @@ class ObjectsFragment : Fragment() {
                     .map { it == PanelType.OBJECTS }
                     .collect { expanded ->
                         applyExpandedUi(expanded)
-                        // Only handle selection clear on collapse — do NOT swap RV layout
-                        // managers here; onPanelExpandedSmooth already did that at 75%.
-                        if (!expanded) {
-                            for (fragment in fragmentCache.values.toList()) fragment.onPanelExpanded(false)
-                        }
+                        for (fragment in fragmentCache.values.toList()) fragment.onPanelExpanded(expanded)
                     }
             }
         }
@@ -229,11 +225,9 @@ class ObjectsFragment : Fragment() {
         }
 
 
-        // Switch child RecyclerView layout managers at 75 % of travel —
-        // while the spring is still in motion so the user never sees a jump.
-        val effectiveExpanded = offset >= 0.75f
+        // Forward live offset to child fragments to drive morph transition on every frame
         for (fragment in fragmentCache.values.toList()) {
-            fragment.onPanelExpandedSmooth(effectiveExpanded)
+            fragment.onPanelSlide(offset)
         }
     }
 
@@ -422,7 +416,6 @@ class ObjectsFragment : Fragment() {
 
         currentFragment = target
         val isExpanded = mainViewModel.isPanelExpanded(PanelType.OBJECTS)
-        target.onPanelExpandedSmooth(isExpanded)
         target.onPanelExpanded(isExpanded)
     }
 

@@ -383,4 +383,105 @@
         <item>#FF00FF</item>
         <item>#FF0000</item>
     </array>
+
+    <!--  Plan picker A  -->
+    <string name="sub_hero_title">Unlock everything in Pro</string>
+    <string name="sub_hero_subtitle">Premium templates, fonts, stickers &amp; an ad-free canvas</string>
+    <string name="sub_benefits_header">EVERYTHING IN PRO</string>
+    <string name="sub_header_subtitle">Unlock premium Urdu design tools</string>
+    <string name="sub_free_title">You\'re on the Free plan</string>
+    <string name="sub_free_subtitle">Unlock everything with Pro</string>
+    <string name="sub_current_title">You\'re on %1$s</string>
+    <string name="sub_current_subtitle">Switch or upgrade below</string>
+    <string name="sub_term_monthly">Monthly</string>
+    <string name="sub_term_6month">6-Month</string>
+    <string name="sub_term_yearly">Yearly</string>
+    <string name="sub_plan_label">%1$s plan</string>
+    <string name="sub_percent_off">%1$d%% OFF</string>
+    <string name="sub_per_month_billed">%1$s billed %2$s</string>
+    <string name="sub_save_line">Save %1$s %2$s</string>
+    <string name="sub_save_suffix_year">per year</string>
+    <string name="sub_save_suffix_6month">/ 6 months</string>
+    <string name="sub_cta_subscribe">Subscribe Now</string>
+    <string name="sub_cta_subscribed">Subscribed</string>
+    <string name="sub_cta_note">You\'ll be charged %1$s, billed %2$s.</string>
+    <!--  Billed cadence labels  -->
+    <string name="sub_billed_monthly">Every month</string>
+    <string name="sub_billed_6month">Every 6 months</string>
+    <string name="sub_billed_annually">Annually</string>
+    <!--  Manage subscription  -->
+    <string name="mng_title">Manage subscription</string>
+    <string name="mng_signals_header">From Google Play Billing</string>
+    <!--  chips  -->
+    <string name="mng_chip_not_subscribed">Not subscribed</string>
+    <string name="mng_chip_trial">Free trial</string>
+    <string name="mng_chip_active">Active</string>
+    <string name="mng_chip_canceled">Canceled</string>
+    <string name="mng_chip_pending">Pending</string>
+    <!--  titles  -->
+    <string name="mng_title_not_subscribed">No active subscription</string>
+    <string name="mng_title_trial">Free trial running</string>
+    <string name="mng_title_active">Pro is active</string>
+    <string name="mng_title_canceled">Auto-renew is off</string>
+    <string name="mng_title_pending">Purchase pending</string>
+    <!--  details  -->
+    <string name="mng_detail_not_subscribed">You don\'t have an active subscription yet. Tap below to explore Pro plans.</string>
+    <string name="mng_detail_trial">You\'re in a free trial. Enjoy full Pro access at no cost for now.</string>
+    <string name="mng_detail_active">Your subscription is active and set to auto-renew. Enjoy all premium features.</string>
+    <string name="mng_detail_canceled">You still have Pro access until the current period ends, then it won\'t renew.</string>
+    <string name="mng_detail_pending">Your payment is being processed. Pro will unlock once payment is confirmed.</string>
+    <!--  ack notes  -->
+    <string name="mng_ack_good">Subscription verified</string>
+    <!--  mono no-purchase readout  -->
+    <string name="mng_mono_query">queryPurchasesAsync()</string>
+    <string name="mng_mono_empty">[ ]</string>
+    <string name="mng_mono_comment">// no active purchase returned</string>
+    <!--  CTAs  -->
+    <string name="mng_cta_see_plans">See Pro plans</string>
+    <string name="mng_cta_change_plan">Change plan</string>
+    <string name="mng_cta_resubscribe">Resubscribe</string>
+    <string name="mng_cta_recheck">Re-check payment status</string>
+    <string name="mng_cta_manage_play">Manage in Google Play</string>
+    <string name="mng_cta_cancel_play">Cancel in Google Play</string>
+    <!--  quick links  -->
+    <string name="mng_open_in_play">Open in Google Play</string>
+    <string name="mng_restore">Restore purchases</string>
+    <string name="mng_help_billing">Help &amp; billing support</string>
+    <!--  toasts  -->
+    <string name="mng_toast_rechecked">Re-queried — purchaseState is now PURCHASED</string>
+    <string name="mng_toast_opening_play">Opening your subscription in Google Play…</string>
+    <string name="mng_toast_purchased">Purchased — acknowledged within 3 days</string>
+    <string name="sub_best_value">BEST VALUE</string>
+    <string name="sub_save_percent">SAVE %d%%</string>
+    <string name="sub_save_placeholder">—</string>
+    <string name="per_month_short">/mo</string>
+    <string name="sub_cta_start_plan">Start %1$s · %2$s/mo</string>
+
+    <!-- Banner -->
+    <string name="sub_templates_count">1000+ templates</string>
+    <string name="sub_banner_headline">Eid Mubarak</string>
+    <string name="sub_banner_title">Premium Urdu templates</string>
+    <string name="sub_banner_subtitle">Fresh designs added every week</string>
+
+    <!-- Manage-subscription link -->
+    <string name="sub_manage_link">Already Pro? Manage subscription</string>
+
+    <!-- Feature grid -->
+    <string name="sub_feature_fonts_title">Urdu Fonts</string>
+    <string name="sub_feature_fonts_subtitle">Premium font pack</string>
+
+    <string name="sub_feature_templates_title">All Templates</string>
+    <string name="sub_feature_templates_subtitle">Unlimited use</string>
+
+    <string name="sub_feature_export_title">Source Export</string>
+    <string name="sub_feature_export_subtitle">Editable projects</string>
+
+    <string name="sub_feature_stickers_title">Stickers</string>
+    <string name="sub_feature_stickers_subtitle">Premium collection</string>
+
+    <string name="sub_feature_custom_title">Custom Design</string>
+    <string name="sub_feature_custom_subtitle">Request anytime</string>
+
+    <string name="sub_feature_no_ads_title">Ad-Free</string>
+    <string name="sub_feature_no_ads_subtitle">No interruptions</string>
 </resources>

@@ -22,6 +22,7 @@ import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.data.model.ShapesData
 import com.webscare.urducanvas.databinding.FragmentObjectsListBinding
 import com.webscare.urducanvas.ui.editor.panels.images.ImagesAdapter
+import com.webscare.urducanvas.common.utils.MorphGridLayoutManager
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.combine
@@ -77,6 +78,13 @@ class ShapesListFragment : Fragment() {
             setItemViewCacheSize(24)
             itemAnimator = null          // suppress flicker on dataset changes
             recycledViewPool.setMaxRecycledViews(0, 32)
+            layoutManager = MorphGridLayoutManager(
+                context = requireContext(),
+                collapsedSpan = 3,
+                expandedSpan = 3
+            ).apply {
+                applyFraction(binding.objects, if (mainViewModel.isPanelExpanded(PanelType.SHAPES)) 1f else 0f)
+            }
         }
 
         setupSwipeRefresh()
@@ -194,7 +202,6 @@ class ShapesListFragment : Fragment() {
             )
         }
 
-        binding.objects.layoutManager = buildLayoutManager(isPanelExpanded)
         binding.objects.adapter = imagesAdapter
 
         val data = mainViewModel.shapesData.value
@@ -212,11 +219,6 @@ class ShapesListFragment : Fragment() {
     // ── Panel expand/collapse ─────────────────────────────────────────────────
 
     fun onPanelExpanded(expanded: Boolean) {
-        // This is only called for cleanup on collapse now — the layout manager
-        // was already switched by onPanelExpandedSmooth() at 75% of travel.
-        // Swapping it again here would cause a remeasure jerk on an already-correct RV.
-        if (expanded) return   // onPanelExpandedSmooth handled it; nothing extra needed
-
         if (isPanelExpanded == expanded) return
         isPanelExpanded = expanded
         if (_binding == null) return
@@ -225,34 +227,63 @@ class ShapesListFragment : Fragment() {
         prevSelectedIds = emptySet()
         prevWasInMode   = false
         imagesAdapter?.clearSelectionShadow()
-        binding.swipeRefresh?.isEnabled = false
-    }
+        binding.swipeRefresh?.isEnabled = expanded
 
-    fun onPanelExpandedSmooth(effectiveExpanded: Boolean) {
-        if (_binding == null) return
-        if (isPanelExpanded == effectiveExpanded) return   // already in right state
-        isPanelExpanded = effectiveExpanded
-
-        binding.objects.recycledViewPool.clear()
-        binding.objects.layoutManager = buildLayoutManager(effectiveExpanded)
-        imagesAdapter?.isExpanded = effectiveExpanded
-
-        val bottomPadding = if (effectiveExpanded) (64 * resources.displayMetrics.density).toInt() else 0
-        binding.objects.setPadding(0, 0, 0, bottomPadding)
-    }
-
-    private fun buildLayoutManager(expanded: Boolean): GridLayoutManager =
-        GridLayoutManager(
-            requireContext(), 3,
-            if (expanded) GridLayoutManager.VERTICAL else GridLayoutManager.HORIZONTAL,
-            false
-        ).apply {
-            // Prefetch upcoming items during idle frames (default true on
-            // GridLayoutManager; set explicitly for clarity). Note:
-            // initialPrefetchItemCount is intentionally NOT set — it only affects
-            // RecyclerViews nested inside another RecyclerView, which this is not.
-            isItemPrefetchEnabled = true
+        val lm = binding.objects.layoutManager as? MorphGridLayoutManager
+        if (lm != null) {
+            lm.applyFraction(binding.objects, if (expanded) 1f else 0f)
+            if (imagesAdapter?.isExpanded != expanded) {
+                binding.objects.recycledViewPool.clear()
+                imagesAdapter?.isExpanded = expanded
+            }
         }
+        val bottomPadding = if (expanded) (64 * resources.displayMetrics.density).toInt() else 0
+        binding.objects.setPadding(0, 0, 0, bottomPadding)
+
+        // Sync item size on final settle state
+        val adapter = imagesAdapter ?: return
+        val rvWidth = binding.objects.width
+        val rvPadding = binding.objects.paddingLeft + binding.objects.paddingRight
+        val offset = if (expanded) 1f else 0f
+        adapter.slideOffset = offset
+        adapter.recyclerViewWidth = rvWidth
+        adapter.recyclerViewPadding = rvPadding
+
+        for (i in 0 until binding.objects.childCount) {
+            val child = binding.objects.getChildAt(i)
+            val holder = binding.objects.getChildViewHolder(child) as? ImagesAdapter.ImageViewHolder
+            holder?.updateSize(offset, rvWidth, rvPadding)
+        }
+    }
+
+    fun onPanelSlide(offset: Float) {
+        if (_binding == null) return
+        val lm = binding.objects.layoutManager as? MorphGridLayoutManager
+        if (lm != null) {
+            lm.applyFraction(binding.objects, offset)
+            val effectiveExpanded = offset >= 0.5f
+            if (imagesAdapter?.isExpanded != effectiveExpanded) {
+                binding.objects.recycledViewPool.clear()
+                imagesAdapter?.isExpanded = effectiveExpanded
+            }
+        }
+        val bottomPadding = (64 * resources.displayMetrics.density * offset).toInt()
+        binding.objects.setPadding(0, 0, 0, bottomPadding)
+
+        // Smoothly update size of all visible items in 60fps!
+        val adapter = imagesAdapter ?: return
+        val rvWidth = binding.objects.width
+        val rvPadding = binding.objects.paddingLeft + binding.objects.paddingRight
+        adapter.slideOffset = offset
+        adapter.recyclerViewWidth = rvWidth
+        adapter.recyclerViewPadding = rvPadding
+
+        for (i in 0 until binding.objects.childCount) {
+            val child = binding.objects.getChildAt(i)
+            val holder = binding.objects.getChildViewHolder(child) as? ImagesAdapter.ImageViewHolder
+            holder?.updateSize(offset, rvWidth, rvPadding)
+        }
+    }
 
     // ── Called by ShapesParentFragment ────────────────────────────────────────
 

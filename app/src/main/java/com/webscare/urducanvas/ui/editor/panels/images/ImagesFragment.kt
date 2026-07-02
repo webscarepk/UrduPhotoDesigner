@@ -171,11 +171,7 @@ class ImagesFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.expandedPanel.map { it == PanelType.IMAGES }.collect { expanded ->
                     applyExpandedUi(expanded)
-                    // Only handle selection clear on collapse — do NOT swap RV layout
-                    // managers here; onPanelExpandedSmooth already did that at 75%.
-                    if (!expanded) {
-                        for ((_, fragment) in fragmentCache) fragment.onPanelExpanded(false)
-                    }
+                    for ((_, fragment) in fragmentCache) fragment.onPanelExpanded(expanded)
                 }
             }
         }
@@ -213,9 +209,9 @@ class ImagesFragment : Fragment() {
             binding.tabLayoutExpanded.visibility = if (expandedAlpha > 0f) View.VISIBLE else View.GONE
         }
 
-        val effectiveExpanded = offset >= 0.75f
+        // Forward live offset to child fragments to drive morph transition on every frame
         for ((_, fragment) in fragmentCache) {
-            fragment.onPanelExpandedSmooth(effectiveExpanded)
+            fragment.onPanelSlide(offset)
         }
     }
 
@@ -398,7 +394,6 @@ class ImagesFragment : Fragment() {
 
         currentFragment = target
         val isExpanded = mainViewModel.isPanelExpanded(PanelType.IMAGES)
-        target.onPanelExpandedSmooth(isExpanded)
         target.onPanelExpanded(isExpanded)
     }
 

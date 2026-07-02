@@ -21,14 +21,12 @@ import java.util.concurrent.TimeUnit
 
 object SvgLoader {
 
-    // Max raster size for a GRID THUMBNAIL. SVGs declare arbitrary viewBoxes
-    // (512, 1024, 2048…). The old path drew them via PictureDrawable at intrinsic
-    // size, forcing HWUI to re-rasterize multi-MB bitmaps every frame (shimmer
-    // invalidates constantly) -> GC thrash / multi-second freezes. We cap
-    // thumbnails to this size. 128*128*4 = 64 KB max per thumbnail.
-    private const val THUMB_MAX_PX = 128
+    // Raster size for thumbnails. 384 px is crisp on 3× screens even in the
+    // expanded grid (≈120 dp column → 360 px needed).
+    private const val THUMB_MAX_PX = 384
 
-    private val renderSemaphore = kotlinx.coroutines.sync.Semaphore(3)
+    // 6 concurrent renders for fast first-scroll population.
+    private val renderSemaphore = kotlinx.coroutines.sync.Semaphore(6)
 
     private val httpClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
@@ -44,11 +42,9 @@ object SvgLoader {
     // Raw XML strings, for re-parse without network.
     private val xmlCache = object : LruCache<String, String>(400) {}
 
-    // Rasterized THUMBNAIL bitmaps, sized to the grid cell. THE KEY FIX: the grid
-    // now displays a cheap immutable Bitmap (never re-rasterized per frame)
-    // instead of a PictureDrawable. Sized by retained byte count; 12 MB budget
-    // ≈ ~190 thumbnails at 128px — plenty for a scrolling grid.
-    private val bitmapCache = object : LruCache<String, Bitmap>(12 * 1024 * 1024) {
+    // At 256 px, each tile is 256*256*4 = 256 KB. 32 MB ≈ 125 tiles — enough
+    // for a full grid without eviction churn.
+    private val bitmapCache = object : LruCache<String, Bitmap>(32 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
     }
 
@@ -134,8 +130,9 @@ object SvgLoader {
 
             val bmp = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bmp)
-            // The RectF viewPort scales the SVG to fill the target rect. This is
-            // the only scaling needed — do NOT also mutate documentWidth/Height.
+            // Force xMidYMid meet so ALL SVGs are centred regardless of their own
+            // preserveAspectRatio declaration (some say xMinYMax → bottom-left).
+            svg.documentPreserveAspectRatio = com.caverock.androidsvg.PreserveAspectRatio.LETTERBOX
             svg.renderToCanvas(canvas, RectF(0f, 0f, outW.toFloat(), outH.toFloat()))
 
             bitmapCache.put(url, bmp)

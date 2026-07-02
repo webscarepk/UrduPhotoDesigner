@@ -128,10 +128,8 @@ class ImageStrokeFragment : Fragment() {
             gradientsAdapter.selectedItem = gradient
         }
 
-        lifecycleScope.launch {
-            mainViewModel.gradients.observe(viewLifecycleOwner) { gradients ->
-                gradientsAdapter.updateList(gradients)
-            }
+        mainViewModel.gradients.observe(viewLifecycleOwner) { gradients ->
+            gradientsAdapter.updateList(gradients)
         }
     }
 

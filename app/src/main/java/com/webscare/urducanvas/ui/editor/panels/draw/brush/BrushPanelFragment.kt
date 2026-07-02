@@ -176,7 +176,7 @@ class BrushPanelFragment : Fragment() {
         val style = viewModel.currentBrushStyle.value ?: BrushStyle.PEN
         val gradient = viewModel.brushGradient.value
 
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             val bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
                 val bmp = createBitmap(width, height)
                 val canvas = Canvas(bmp)
@@ -212,10 +212,8 @@ class BrushPanelFragment : Fragment() {
     }
 
     private fun initObservers() {
-        lifecycleScope.launch {
-            mainViewModel.gradients.observe(viewLifecycleOwner) { gradients ->
-                gradientsAdapter.updateList(gradients)
-            }
+        mainViewModel.gradients.observe(viewLifecycleOwner) { gradients ->
+            gradientsAdapter.updateList(gradients)
         }
 
         viewModel.currentBrushStyle.observe(viewLifecycleOwner) { style ->

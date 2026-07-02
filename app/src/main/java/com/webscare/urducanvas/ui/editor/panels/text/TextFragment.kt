@@ -31,6 +31,7 @@ import com.webscare.urducanvas.common.canvas.enums.PanelType
 import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.FontEntity
+import com.webscare.urducanvas.common.utils.MorphGridLayoutManager
 import com.webscare.urducanvas.databinding.FragmentTextBinding
 import com.webscare.urducanvas.ui.editor.EditorFragment
 import com.webscare.urducanvas.ui.editor.panels.text.fonts.FontsAdapter
@@ -83,6 +84,7 @@ class TextFragment : Fragment() {
     private var pendingFontEntity: FontEntity? = null
     private var lastRequestedFontId: Int? = null
     private var pendingScrollToFontId: String? = null
+    private var isDownloadingFont = false
 
     private val isPanelExpanded: Boolean
         get() = mainViewModel.isPanelExpanded(PanelType.FONTS)
@@ -138,7 +140,13 @@ class TextFragment : Fragment() {
             handleFontSelection(font, isDownloaded)
         }
         binding.fontsRV.apply {
-            layoutManager = buildLayoutManager(isPanelExpanded)
+            layoutManager = MorphGridLayoutManager(
+                context = requireContext(),
+                collapsedSpan = 3,
+                expandedSpan = 3
+            ).apply {
+                applyFraction(binding.fontsRV, if (isPanelExpanded) 1f else 0f)
+            }
             adapter = fontsAdapter
         }
         fontsAdapter.isExpanded = isPanelExpanded
@@ -160,12 +168,7 @@ class TextFragment : Fragment() {
         }
     }
 
-    private fun buildLayoutManager(expanded: Boolean) = GridLayoutManager(
-        requireContext(),
-        if (expanded) 3 else 2,
-        if (expanded) GridLayoutManager.VERTICAL else GridLayoutManager.HORIZONTAL,
-        false
-    )
+
 
     // ─────────────────────────────────────────────────────────────────────────
     // LANGUAGE state  →  "All | Urdu | English | Imported"
@@ -477,10 +480,12 @@ class TextFragment : Fragment() {
     }
 
     private fun submitFonts(list: List<FontEntity>) {
+        if (isDownloadingFont) return
         val lm = binding.fontsRV.layoutManager as? LinearLayoutManager
         val savedIdx = lm?.findFirstVisibleItemPosition()?.takeIf { it >= 0 } ?: 0
         val savedOff = lm?.findViewByPosition(savedIdx)?.top ?: 0
         val scrollTo = pendingScrollToFontId
+        val isFirstLoad = fontsAdapter.currentList.isEmpty()
 
         // Persist scroll position so it survives fragment recreation
         if (savedIdx > 0) {
@@ -492,26 +497,24 @@ class TextFragment : Fragment() {
             if (_binding == null) return@submitList
             if (scrollTo != null) {
                 val pos = list.indexOfFirst { it.id.toString() == scrollTo }
-                if (pos >= 0) binding.fontsRV.post {
-                    if (_binding == null) return@post
+                if (pos >= 0) {
+                    if (_binding == null) return@submitList
                     (binding.fontsRV.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(
                         pos,
                         0
                     )
                 }
                 if (pendingScrollToFontId == scrollTo) pendingScrollToFontId = null
-            } else {
+            } else if (isFirstLoad) {
                 // Prefer live scroll position; fall back to ViewModel-persisted value
                 // on first load after recreation (when savedIdx is still 0)
                 val restoreIdx = if (savedIdx > 0) savedIdx else mainViewModel.lastFontsScrollIndex
                 val restoreOff = if (savedIdx > 0) savedOff else mainViewModel.lastFontsScrollOffset
-                binding.fontsRV.post {
-                    if (_binding == null) return@post
-                    (binding.fontsRV.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(
-                        restoreIdx,
-                        restoreOff
-                    )
-                }
+                if (_binding == null) return@submitList
+                (binding.fontsRV.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(
+                    restoreIdx,
+                    restoreOff
+                )
             }
         }
     }
@@ -529,25 +532,9 @@ class TextFragment : Fragment() {
         }
         pendingFontEntity = font
         lastRequestedFontId = font.id
+        isDownloadingFont = true
 
-        val b = _binding ?: return
-        val lm = b.fontsRV.layoutManager as? LinearLayoutManager
-        val savedIdx = lm?.findFirstVisibleItemPosition()?.takeIf { it >= 0 } ?: 0
-        val savedOff = lm?.findViewByPosition(savedIdx)?.top ?: 0
-
-        val updated = fontsAdapter.currentList.map {
-            if (it.id == font.id) it.copy(is_downloading = true) else it
-        }
-        fontsAdapter.submitList(updated) {
-            val bb = _binding ?: return@submitList
-            bb.fontsRV.post {
-                if (_binding == null) return@post
-                (_binding?.fontsRV?.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(
-                    savedIdx,
-                    savedOff
-                )
-            }
-        }
+        fontsAdapter.addDownloadingId(font.id)
         mainViewModel.downloadFont(font)
     }
 
@@ -630,9 +617,10 @@ class TextFragment : Fragment() {
                         is FontDownloadState.SuccessWithTypeface -> {
                             val done = state.fontEntity
                             if (done.id == lastRequestedFontId) {
+                                isDownloadingFont = false
+                                fontsAdapter.clearDownloadingId(done.id)
                                 mainViewModel.recordRecentFont(done.id)
                                 fontsAdapter.selectedFontId = done.id.toString()
-                                pendingScrollToFontId = done.id.toString()
                                 viewModel.setFont(done)
                                 mainViewModel.collapsePanel()
                                 lastRequestedFontId = null
@@ -642,6 +630,9 @@ class TextFragment : Fragment() {
                         }
 
                         is FontDownloadState.Error -> {
+                            val failedFont = state.fontEntity
+                            isDownloadingFont = false
+                            fontsAdapter.clearDownloadingId(failedFont.id)
                             view?.let {
                                 Snackbar.make(it, "Download failed!", Snackbar.LENGTH_SHORT).show()
                             }
@@ -698,15 +689,22 @@ class TextFragment : Fragment() {
     private fun applySlideOffset(offset: Float) {
         if (_binding == null) return
 
-        // Collapsed header: fully visible at 0, fades out by 0.4
-        val collapsedAlpha = (1f - offset / 0.4f).coerceIn(0f, 1f)
-        // Expanded header: invisible until 0.3, fully visible at 1.0
-        val expandedAlpha = ((offset - 0.3f) / 0.7f).coerceIn(0f, 1f)
+        val density = resources.displayMetrics.density
+        // Smoothly animate header container space height from 38dp to 104dp
+        val heightPx = (38 * density + (104 * density - 38 * density) * offset).toInt()
+        val lp = binding.headerSpace.layoutParams
+        if (lp.height != heightPx) {
+            lp.height = heightPx
+            binding.headerSpace.layoutParams = lp
+        }
+
+        // Crossfade headers smoothly at 0.5f threshold
+        val collapsedAlpha = (1f - offset / 0.5f).coerceIn(0f, 1f)
+        val expandedAlpha = ((offset - 0.5f) / 0.5f).coerceIn(0f, 1f)
 
         binding.headerCollapsed.alpha = collapsedAlpha
         binding.headerExpanded.alpha = expandedAlpha
 
-        // INVISIBLE not GONE — GONE causes layout shifts that jerk the RecyclerView
         binding.headerCollapsed.visibility = if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
         binding.headerExpanded.visibility = if (expandedAlpha > 0f) View.VISIBLE else View.GONE
 
@@ -720,13 +718,28 @@ class TextFragment : Fragment() {
                 if (expandedAlpha > 0f) View.VISIBLE else View.GONE
         }
 
-        // Switch the RecyclerView layout manager at 75 % of travel —
-        // while the spring is still in motion so the user never sees a jump.
-        val effectiveExpanded = offset >= 0.75f
-        if (fontsAdapter.isExpanded != effectiveExpanded) {
-            binding.fontsRV.recycledViewPool.clear()
-            fontsAdapter.isExpanded = effectiveExpanded
-            binding.fontsRV.layoutManager = buildLayoutManager(effectiveExpanded)
+        // Sync layout manager fraction with drag offset on every frame
+        val lm = binding.fontsRV.layoutManager as? MorphGridLayoutManager
+        if (lm != null) {
+            lm.applyFraction(binding.fontsRV, offset)
+            val effectiveExpanded = offset >= 0.5f
+            if (fontsAdapter.isExpanded != effectiveExpanded) {
+                binding.fontsRV.recycledViewPool.clear()
+                fontsAdapter.isExpanded = effectiveExpanded
+            }
+        }
+
+        // Smoothly update size of all visible items in 60fps!
+        val rvWidth = binding.fontsRV.width
+        val rvPadding = binding.fontsRV.paddingLeft + binding.fontsRV.paddingRight
+        fontsAdapter.slideOffset = offset
+        fontsAdapter.recyclerViewWidth = rvWidth
+        fontsAdapter.recyclerViewPadding = rvPadding
+
+        for (i in 0 until binding.fontsRV.childCount) {
+            val child = binding.fontsRV.getChildAt(i)
+            val holder = binding.fontsRV.getChildViewHolder(child) as? FontsAdapter.FontViewHolder
+            holder?.updateSize(offset, rvWidth, rvPadding)
         }
     }
 
@@ -735,13 +748,39 @@ class TextFragment : Fragment() {
         binding.headerExpanded.isVisible = expanded
         binding.tabLayoutExpanded.isVisible = expanded
 
+        val density = resources.displayMetrics.density
+        val finalHeightPx = if (expanded) (104 * density).toInt() else (38 * density).toInt()
+        val lp = binding.headerSpace.layoutParams
+        if (lp.height != finalHeightPx) {
+            lp.height = finalHeightPx
+            binding.headerSpace.layoutParams = lp
+        }
+
         // Enable swipe-to-shuffle only in expanded state
         binding.swipeRefresh.isEnabled = expanded
 
-        // Switch grid layout
-        binding.fontsRV.recycledViewPool.clear()
-        fontsAdapter.isExpanded = expanded
-        binding.fontsRV.layoutManager = buildLayoutManager(expanded)
+        val lm = binding.fontsRV.layoutManager as? MorphGridLayoutManager
+        if (lm != null) {
+            lm.applyFraction(binding.fontsRV, if (expanded) 1f else 0f)
+            if (fontsAdapter.isExpanded != expanded) {
+                binding.fontsRV.recycledViewPool.clear()
+                fontsAdapter.isExpanded = expanded
+            }
+        }
+
+        // Sync item size on final settle state
+        val rvWidth = binding.fontsRV.width
+        val rvPadding = binding.fontsRV.paddingLeft + binding.fontsRV.paddingRight
+        val offset = if (expanded) 1f else 0f
+        fontsAdapter.slideOffset = offset
+        fontsAdapter.recyclerViewWidth = rvWidth
+        fontsAdapter.recyclerViewPadding = rvPadding
+
+        for (i in 0 until binding.fontsRV.childCount) {
+            val child = binding.fontsRV.getChildAt(i)
+            val holder = binding.fontsRV.getChildViewHolder(child) as? FontsAdapter.FontViewHolder
+            holder?.updateSize(offset, rvWidth, rvPadding)
+        }
 
         if (expanded) {
             // Sync expanded search bar with whatever is in collapsed bar

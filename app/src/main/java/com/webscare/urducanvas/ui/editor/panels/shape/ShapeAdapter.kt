@@ -30,11 +30,7 @@ class ShapeAdapter(
     companion object {
         const val TYPE_COLLAPSED = 0
         const val TYPE_EXPANDED  = 1
-        private const val BITMAP_SIZE = 300   // single size — padding controls visual size
-
-        // Shape drawn inside 30–70% of the bitmap (35% pad each side).
-        // This leaves ~30% visual width for the stroke + breathing room.
-        // Increase PAD to make shapes smaller, decrease to make them larger.
+        private const val BITMAP_SIZE = 300
         private const val PAD = 0.32f
     }
 
@@ -50,10 +46,11 @@ class ShapeAdapter(
             notifyItemRangeChanged(0, itemCount, "expand_changed")
         }
 
+    var slideOffset: Float = 0f
+    var recyclerViewWidth: Int = 0
+    var recyclerViewPadding: Int = 0
+
     // ── Pre-rendered bitmap cache ─────────────────────────────────────────────
-    // One shared bitmap per shape — collapsed and expanded use the same bitmap,
-    // the card size changes but the image scales via scaleType="fitCenter".
-    // This halves memory vs two separate caches.
 
     private val bitmaps = mutableMapOf<ShapeType, Bitmap>()
     private var bitmapsReady = false
@@ -75,11 +72,9 @@ class ShapeAdapter(
         val canvas = Canvas(bitmap)
         val paint  = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color       = context.getColor(R.color.black)
-            strokeWidth = size * 0.025f  // 2.5% — thinner, looks cleaner at thumbnail sizes
+            strokeWidth = size * 0.025f  // 2.5%
             style       = Paint.Style.STROKE
         }
-        // PAD controls how much empty space surrounds the shape.
-        // 0.32f = shape occupies the middle 36% of the bitmap side.
         val pad    = size * PAD
         val rect   = RectF(pad, pad, size - pad, size - pad)
         drawShape(canvas, paint, shape, rect, 0f)
@@ -95,22 +90,20 @@ class ShapeAdapter(
     override fun getItemViewType(position: Int): Int =
         if (isExpanded) TYPE_EXPANDED else TYPE_COLLAPSED
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ShapeViewHolder =
-        if (viewType == TYPE_EXPANDED) {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ShapeViewHolder {
+        val inflater = LayoutInflater.from(parent.context)
+        return if (viewType == TYPE_EXPANDED) {
             ShapeViewHolder.Expanded(
-                LayoutImagesItemExpandedBinding.inflate(
-                    LayoutInflater.from(parent.context), parent, false
-                ),
-                onShapeSelected = ::handleShapeClick
+                LayoutImagesItemExpandedBinding.inflate(inflater, parent, false),
+                ::handleShapeClick
             )
         } else {
             ShapeViewHolder.Collapsed(
-                LayoutImagesItemBinding.inflate(
-                    LayoutInflater.from(parent.context), parent, false
-                ),
-                onShapeSelected = ::handleShapeClick
+                LayoutImagesItemBinding.inflate(inflater, parent, false),
+                ::handleShapeClick
             )
         }
+    }
 
     private fun handleShapeClick(shape: ShapeType) {
         val oldPos = shapes.indexOf(selectedShape)
@@ -123,7 +116,7 @@ class ShapeAdapter(
 
     override fun onBindViewHolder(holder: ShapeViewHolder, position: Int) {
         val shape  = shapes[position]
-        holder.bind(shape, shape == selectedShape, bitmaps[shape])
+        holder.bind(shape, shape == selectedShape, bitmaps[shape], slideOffset, recyclerViewWidth, recyclerViewPadding)
     }
 
     override fun onBindViewHolder(
@@ -141,7 +134,6 @@ class ShapeAdapter(
 
     override fun getItemCount() = shapes.size
 
-    /** Call from the host fragment's onDestroyView to cancel in-flight bitmap rendering. */
     fun cancelRender() = adapterScope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
 
     // ── ViewHolder ────────────────────────────────────────────────────────────
@@ -151,18 +143,44 @@ class ShapeAdapter(
         private val onShapeSelected: (ShapeType) -> Unit
     ) : RecyclerView.ViewHolder(itemView) {
 
-        protected abstract val imageView: android.widget.ImageView
-        protected abstract val cardRoot: com.google.android.material.card.MaterialCardView
+        abstract val imageView: android.widget.ImageView
+        abstract val cardRoot: com.google.android.material.card.MaterialCardView
 
         private var boundShape: ShapeType? = null
 
-        fun bind(shape: ShapeType, isSelected: Boolean, bitmap: Bitmap?) {
+        fun bind(
+            shape: ShapeType,
+            isSelected: Boolean,
+            bitmap: Bitmap?,
+            slideOffset: Float,
+            rvWidth: Int,
+            rvPadding: Int
+        ) {
             boundShape = shape
-            // fitCenter keeps aspect ratio and adds natural padding within the card
             imageView.scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
             bitmap?.let { imageView.setImageBitmap(it) }
             updateSelectionOnly(isSelected)
+            updateSize(slideOffset, rvWidth, rvPadding)
             itemView.setOnClickListener { boundShape?.let { onShapeSelected(it) } }
+        }
+
+        fun updateSize(slideOffset: Float, rvWidth: Int, rvPadding: Int) {
+            if (rvWidth <= 0) return
+            val context = itemView.context
+            val density = context.resources.displayMetrics.density
+            val collapsedSize = (50 * density).toInt()
+
+            val marginPx = 18 * density // spacing space (3 columns * 2 sides * 3dp = 18dp)
+            val columnWidth = ((rvWidth - rvPadding - marginPx) / 3).toInt()
+
+            val currentSize = (collapsedSize + (columnWidth - collapsedSize) * slideOffset).toInt()
+
+            val lp = cardRoot.layoutParams
+            if (lp.width != currentSize || lp.height != currentSize) {
+                lp.width = currentSize
+                lp.height = currentSize
+                cardRoot.layoutParams = lp
+            }
         }
 
         fun setImage(bitmap: Bitmap) {

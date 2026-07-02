@@ -14,6 +14,7 @@ import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.utils.Utils.addPressEffectWithLongClick
 import com.webscare.urducanvas.databinding.LayoutLayersGroupHeaderBinding
 import com.webscare.urducanvas.databinding.LayoutLayersItemBinding
+import com.webscare.urducanvas.databinding.LayoutLayersItemCollapsedBinding
 
 // ── Display model ─────────────────────────────────────────────────────────────
 sealed class DisplayItem {
@@ -41,12 +42,24 @@ class LayersAdapter(
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
-        private const val TYPE_GROUP_HEADER = 0
-        private const val TYPE_ITEM         = 1
+        const val TYPE_COLLAPSED             = 0
+        const val TYPE_EXPANDED_GROUP_HEADER = 1
+        const val TYPE_EXPANDED_ITEM         = 2
     }
 
-    private val items = mutableListOf<DisplayItem>()
+    internal val items = mutableListOf<DisplayItem>()
     private var inSelectionMode = false
+
+    var isExpanded: Boolean = false
+        set(value) {
+            if (field == value) return
+            field = value
+            notifyDataSetChanged()
+        }
+
+    var slideOffset: Float = 0f
+    var recyclerViewWidth: Int = 0
+    var recyclerViewPadding: Int = 0
 
     fun setSelectionMode(enabled: Boolean) {
         if (inSelectionMode != enabled) {
@@ -61,10 +74,8 @@ class LayersAdapter(
         notifyDataSetChanged()
     }
 
-    // Returns CanvasElement list mapped from current display items (for external callers).
     fun currentList(): List<CanvasElement> = items.map { it.element }
 
-    // Returns the raw DisplayItem at a position — used by drag callback for type-safe checks.
     fun getDisplayItemAt(position: Int): DisplayItem? = items.getOrNull(position)
 
     fun moveItem(from: Int, to: Int) {
@@ -74,20 +85,9 @@ class LayersAdapter(
         notifyItemMoved(from, to)
     }
 
-    /**
-     * Replaces the DisplayItem at [position] with a re-typed version.
-     * Used during drag to convert a Standalone→Child (join group) or Child→Standalone (leave group).
-     * [newGroupId] is the groupId to assign when joining; null when leaving.
-     */
     fun retypeItem(position: Int, asChild: Boolean, newGroupId: String?) {
         val current = items.getOrNull(position) ?: return
         val element = current.element
-        // Mutate the element's groupId so applyLayerReorder reads the correct value at clearView.
-        // Do NOT call notifyItemChanged here — calling any notify during an active drag
-        // causes ItemTouchHelper to lose its ViewHolder reference, which leaves a ghost
-        // copy of the item stuck on screen until the panel is reopened.
-        // The visual rebind happens naturally after clearView fires and the ViewModel
-        // pushes a new canvasElements list → buildDisplayList → submitList.
         val newItem = if (asChild) {
             element.groupId = newGroupId
             DisplayItem.Child(element)
@@ -96,60 +96,200 @@ class LayersAdapter(
             DisplayItem.Standalone(element)
         }
         items[position] = newItem
-        // intentionally no notifyItemChanged — see comment above
     }
 
-    // Returns all CanvasElements in current display order (collapsed children excluded).
     fun getItems(): List<CanvasElement> = items.map { it.element }
 
-    // Returns the raw DisplayItem list — used by clearView to resolve groupId mutations.
     fun getDisplayItems(): List<DisplayItem> = items.toList()
 
-    override fun getItemViewType(position: Int): Int =
-        if (items[position] is DisplayItem.GroupHeader) TYPE_GROUP_HEADER else TYPE_ITEM
+    override fun getItemViewType(position: Int): Int {
+        if (!isExpanded) return TYPE_COLLAPSED
+        return if (items[position] is DisplayItem.GroupHeader) TYPE_EXPANDED_GROUP_HEADER else TYPE_EXPANDED_ITEM
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return if (viewType == TYPE_GROUP_HEADER) {
-            val binding = LayoutLayersGroupHeaderBinding.inflate(
-                LayoutInflater.from(parent.context), parent, false
-            )
-            GroupHeaderViewHolder(binding)
-        } else {
-            val binding = LayoutLayersItemBinding.inflate(
-                LayoutInflater.from(parent.context), parent, false
-            )
-            ItemViewHolder(binding)
+        val inflater = LayoutInflater.from(parent.context)
+        return when (viewType) {
+            TYPE_COLLAPSED -> {
+                Collapsed(
+                    LayoutLayersItemCollapsedBinding.inflate(inflater, parent, false),
+                    this, onLockToggle, onMoreOptions, onItemClick, onItemLongClick, onStartDrag, onGroupHeaderClick, onToggleCollapse
+                )
+            }
+            TYPE_EXPANDED_GROUP_HEADER -> {
+                ExpandedGroupHeader(
+                    LayoutLayersGroupHeaderBinding.inflate(inflater, parent, false),
+                    this, onLockToggle, onMoreOptions, onItemClick, onItemLongClick, onStartDrag, onGroupHeaderClick, onToggleCollapse
+                )
+            }
+            else -> {
+                ExpandedItem(
+                    LayoutLayersItemBinding.inflate(inflater, parent, false),
+                    this, onLockToggle, onMoreOptions, onItemClick, onItemLongClick, onStartDrag, onGroupHeaderClick, onToggleCollapse
+                )
+            }
         }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-        when (val displayItem = items[position]) {
-            is DisplayItem.GroupHeader -> (holder as GroupHeaderViewHolder).bind(displayItem.element)
-            is DisplayItem.Child       -> (holder as ItemViewHolder).bind(
-                displayItem.element,
-                isChild = true,
-                isFirst = position == 0 || items[position - 1] is DisplayItem.GroupHeader,
-                isLast  = position == items.size - 1 || items[position + 1] !is DisplayItem.Child
-            )
-            is DisplayItem.Standalone  -> (holder as ItemViewHolder).bind(
-                displayItem.element, isChild = false, isFirst = false, isLast = false
-            )
-        }
+        val displayItem = items[position]
+        val layerHolder = holder as LayerViewHolder
+        layerHolder.bind(
+            displayItem,
+            isChild = displayItem is DisplayItem.Child,
+            isFirst = position == 0 || items[position - 1] is DisplayItem.GroupHeader,
+            isLast  = position == items.size - 1 || items[position + 1] !is DisplayItem.Child,
+            inSelectionMode = inSelectionMode,
+            slideOffset = slideOffset,
+            rvWidth = recyclerViewWidth,
+            rvPadding = recyclerViewPadding
+        )
     }
 
     override fun getItemCount(): Int = items.size
 
-    // ── Group header ViewHolder ───────────────────────────────────────────────
+    // ── ViewHolders ───────────────────────────────────────────────────────────
 
-    inner class GroupHeaderViewHolder(
-        private val binding: LayoutLayersGroupHeaderBinding
-    ) : RecyclerView.ViewHolder(binding.root) {
+    abstract class LayerViewHolder(
+        itemView: View,
+        protected val adapter: LayersAdapter,
+        protected val onLockToggle:       (element: CanvasElement) -> Unit,
+        protected val onMoreOptions:      (element: CanvasElement, anchorView: View) -> Unit,
+        protected val onItemClick:        (element: CanvasElement) -> Unit,
+        protected val onItemLongClick:    (element: CanvasElement) -> Unit,
+        protected val onStartDrag:        (RecyclerView.ViewHolder) -> Unit,
+        protected val onGroupHeaderClick: (element: CanvasElement) -> Unit,
+        protected val onToggleCollapse:   (element: CanvasElement) -> Unit
+    ) : RecyclerView.ViewHolder(itemView) {
 
-        fun bind(element: CanvasElement) {
+        abstract val cardRoot: com.google.android.material.card.MaterialCardView
+
+        abstract fun bind(
+            displayItem: DisplayItem,
+            isChild: Boolean,
+            isFirst: Boolean,
+            isLast: Boolean,
+            inSelectionMode: Boolean,
+            slideOffset: Float,
+            rvWidth: Int,
+            rvPadding: Int
+        )
+
+        fun updateSize(slideOffset: Float, rvWidth: Int, rvPadding: Int) {
+            if (rvWidth <= 0) return
+            val context = itemView.context
+            val density = context.resources.displayMetrics.density
+            val collapsedSize = (50 * density).toInt()
+
+            val marginPx = 18 * density // spacing space (3 columns * 2 sides * 3dp = 18dp)
+            val columnWidth = ((rvWidth - rvPadding - marginPx) / 3).toInt()
+
+            val currentSize = (collapsedSize + (columnWidth - collapsedSize) * slideOffset).toInt()
+
+            val lp = cardRoot.layoutParams
+            if (lp.width != currentSize || lp.height != currentSize) {
+                lp.width = currentSize
+                lp.height = currentSize
+                cardRoot.layoutParams = lp
+            }
+        }
+
+        protected fun Float.dpToPx(context: android.content.Context): Float =
+            this * context.resources.displayMetrics.density
+
+        protected fun Int.dpToPx(context: android.content.Context): Int =
+            (this * context.resources.displayMetrics.density).toInt()
+    }
+
+    class Collapsed(
+        private val binding: LayoutLayersItemCollapsedBinding,
+        adapter: LayersAdapter,
+        onLockToggle:       (element: CanvasElement) -> Unit,
+        onMoreOptions:      (element: CanvasElement, anchorView: View) -> Unit,
+        onItemClick:        (element: CanvasElement) -> Unit,
+        onItemLongClick:    (element: CanvasElement) -> Unit,
+        onStartDrag:        (RecyclerView.ViewHolder) -> Unit,
+        onGroupHeaderClick: (element: CanvasElement) -> Unit,
+        onToggleCollapse:   (element: CanvasElement) -> Unit
+    ) : LayerViewHolder(binding.root, adapter, onLockToggle, onMoreOptions, onItemClick, onItemLongClick, onStartDrag, onGroupHeaderClick, onToggleCollapse) {
+
+        override val cardRoot get() = binding.root
+
+        override fun bind(
+            displayItem: DisplayItem,
+            isChild: Boolean,
+            isFirst: Boolean,
+            isLast: Boolean,
+            inSelectionMode: Boolean,
+            slideOffset: Float,
+            rvWidth: Int,
+            rvPadding: Int
+        ) {
+            val element = displayItem.element
+
+            binding.image.setImageResource(
+                if (displayItem is DisplayItem.GroupHeader) {
+                    R.drawable.ic_stickers
+                } else {
+                    when (element.type) {
+                        ElementType.TEXT    -> R.drawable.ic_text_layer
+                        ElementType.IMAGE   -> R.drawable.ic_image_layer
+                        ElementType.STICKER -> R.drawable.ic_sticker
+                        ElementType.DRAW    -> R.drawable.ic_pen
+                        ElementType.SHAPE   -> R.drawable.ic_shapes
+                        else                -> R.drawable.ic_stickers
+                    }
+                }
+            )
+
+            if (element.isSelected) {
+                binding.root.strokeWidth = 2
+                binding.root.strokeColor = ContextCompat.getColor(binding.root.context, R.color.appColor)
+            } else {
+                binding.root.strokeWidth = 0
+            }
+
+            binding.root.addPressEffectWithLongClick(
+                onClick = {
+                    if (displayItem is DisplayItem.GroupHeader) onGroupHeaderClick(element)
+                    else onItemClick(element)
+                },
+                onLongClick = { onItemLongClick(element) }
+            )
+
+            updateSize(slideOffset, rvWidth, rvPadding)
+        }
+    }
+
+    class ExpandedGroupHeader(
+        private val binding: LayoutLayersGroupHeaderBinding,
+        adapter: LayersAdapter,
+        onLockToggle:       (element: CanvasElement) -> Unit,
+        onMoreOptions:      (element: CanvasElement, anchorView: View) -> Unit,
+        onItemClick:        (element: CanvasElement) -> Unit,
+        onItemLongClick:    (element: CanvasElement) -> Unit,
+        onStartDrag:        (RecyclerView.ViewHolder) -> Unit,
+        onGroupHeaderClick: (element: CanvasElement) -> Unit,
+        onToggleCollapse:   (element: CanvasElement) -> Unit
+    ) : LayerViewHolder(binding.root, adapter, onLockToggle, onMoreOptions, onItemClick, onItemLongClick, onStartDrag, onGroupHeaderClick, onToggleCollapse) {
+
+        override val cardRoot get() = binding.root
+
+        override fun bind(
+            displayItem: DisplayItem,
+            isChild: Boolean,
+            isFirst: Boolean,
+            isLast: Boolean,
+            inSelectionMode: Boolean,
+            slideOffset: Float,
+            rvWidth: Int,
+            rvPadding: Int
+        ) {
+            val element = displayItem.element
             binding.apply {
                 title.text = element.customName ?: "Group"
 
-                val childCount = items.count {
+                val childCount = adapter.items.count {
                     it is DisplayItem.Child && it.element.groupId == element.id
                 }
                 badge.text       = childCount.toString()
@@ -159,13 +299,11 @@ class LayersAdapter(
                     if (element.isGroupCollapsed) R.drawable.ic_next else R.drawable.ic_down
                 )
 
-                // ── Lock icon ─────────────────────────────────────────────────
                 lock.setImageResource(
                     if (element.isLocked) R.drawable.ic_lock else R.drawable.ic_unlock
                 )
                 lock.addPressEffect { onLockToggle(element) }
 
-                // ── Selection highlight ───────────────────────────────────────
                 if (element.isSelected) {
                     root.setCardBackgroundColor(
                         ContextCompat.getColor(root.context, R.color.white)
@@ -179,26 +317,43 @@ class LayersAdapter(
 
                 chevron.addPressEffect { onToggleCollapse(element) }
                 options.setOnClickListener { v -> onMoreOptions(element, v) }
-                drag.setOnTouchListener { _, _ -> onStartDrag(this@GroupHeaderViewHolder); false }
+                drag.setOnTouchListener { _, _ -> onStartDrag(this@ExpandedGroupHeader); false }
                 root.addPressEffectWithLongClick(
                     onClick     = { onGroupHeaderClick(element) },
                     onLongClick = { onItemLongClick(element) }
                 )
             }
+            updateSize(slideOffset, rvWidth, rvPadding)
         }
     }
 
-    // ── Item ViewHolder ───────────────────────────────────────────────────────
+    class ExpandedItem(
+        private val binding: LayoutLayersItemBinding,
+        adapter: LayersAdapter,
+        onLockToggle:       (element: CanvasElement) -> Unit,
+        onMoreOptions:      (element: CanvasElement, anchorView: View) -> Unit,
+        onItemClick:        (element: CanvasElement) -> Unit,
+        onItemLongClick:    (element: CanvasElement) -> Unit,
+        onStartDrag:        (RecyclerView.ViewHolder) -> Unit,
+        onGroupHeaderClick: (element: CanvasElement) -> Unit,
+        onToggleCollapse:   (element: CanvasElement) -> Unit
+    ) : LayerViewHolder(binding.root, adapter, onLockToggle, onMoreOptions, onItemClick, onItemLongClick, onStartDrag, onGroupHeaderClick, onToggleCollapse) {
 
-    inner class ItemViewHolder(
-        private val binding: LayoutLayersItemBinding
-    ) : RecyclerView.ViewHolder(binding.root) {
+        override val cardRoot get() = binding.root
 
         @SuppressLint("ClickableViewAccessibility")
-        fun bind(element: CanvasElement, isChild: Boolean, isFirst: Boolean, isLast: Boolean) {
+        override fun bind(
+            displayItem: DisplayItem,
+            isChild: Boolean,
+            isFirst: Boolean,
+            isLast: Boolean,
+            inSelectionMode: Boolean,
+            slideOffset: Float,
+            rvWidth: Int,
+            rvPadding: Int
+        ) {
+            val element = displayItem.element
             binding.apply {
-
-                // ── Child indent & container styling ──────────────────────────
                 val indentDp = if (isChild) 16 else 0
                 val indentPx = (indentDp * root.context.resources.displayMetrics.density).toInt()
                 (drag.layoutParams as? androidx.constraintlayout.widget.ConstraintLayout.LayoutParams)
@@ -226,7 +381,6 @@ class LayersAdapter(
                     root.radius = 6f.dpToPx(root.context)
                 }
 
-                // ── Title ─────────────────────────────────────────────────────
                 title.text = element.customName ?: when (element.type) {
                     ElementType.TEXT    -> element.text ?: "Text"
                     ElementType.IMAGE   -> "Image"
@@ -236,7 +390,6 @@ class LayersAdapter(
                     else                -> "Background"
                 }
 
-                // ── Icon ──────────────────────────────────────────────────────
                 image.setImageResource(when (element.type) {
                     ElementType.TEXT    -> R.drawable.ic_text_layer
                     ElementType.IMAGE   -> R.drawable.ic_image_layer
@@ -246,7 +399,6 @@ class LayersAdapter(
                     else                -> R.drawable.ic_stickers
                 })
 
-                // ── Selection highlight (override child bg when selected) ──────
                 if (element.isSelected) {
                     if (inSelectionMode) {
                         root.setCardBackgroundColor(
@@ -264,9 +416,7 @@ class LayersAdapter(
                     root.setCardBackgroundColor(Color.TRANSPARENT)
                     root.strokeWidth = 0
                 }
-                // Children keep their contrast bg set above unless selected
 
-                // ── Icon visibility ───────────────────────────────────────────
                 val hideDragOrOptions = element.isLocked
                 if (inSelectionMode) {
                     lock.visibility    = View.GONE
@@ -278,19 +428,17 @@ class LayersAdapter(
                     drag.visibility    = if (hideDragOrOptions) View.GONE else View.VISIBLE
                 }
 
-                // ── Lock icon ─────────────────────────────────────────────────
                 lock.setImageResource(
                     if (element.isLocked) R.drawable.ic_lock else R.drawable.ic_unlock
                 )
 
-                // ── Click listeners ───────────────────────────────────────────
                 lock.addPressEffect {
                     element.isLocked = !element.isLocked
                     onLockToggle(element)
                 }
                 options.setOnClickListener { v -> onMoreOptions(element, v) }
                 drag.setOnTouchListener { _, _ ->
-                    onStartDrag(this@ItemViewHolder)
+                    onStartDrag(this@ExpandedItem)
                     false
                 }
                 root.addPressEffectWithLongClick(
@@ -298,12 +446,6 @@ class LayersAdapter(
                     onLongClick = { onItemLongClick(element) }
                 )
             }
+            updateSize(slideOffset, rvWidth, rvPadding)
         }
-
-        private fun Float.dpToPx(context: android.content.Context): Float =
-            this * context.resources.displayMetrics.density
-
-        private fun Int.dpToPx(context: android.content.Context): Int =
-            (this * context.resources.displayMetrics.density).toInt()
-    }
-}
+    }}

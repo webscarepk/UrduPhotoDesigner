@@ -65,6 +65,11 @@ class EmojiAdapter(
             notifyDataSetChanged()
         }
 
+    // Per-frame morph data forwarded by the fragment
+    var slideOffset: Float = 0f
+    var recyclerViewWidth: Int = 0
+    var recyclerViewPadding: Int = 0
+
     fun updateData(newList: List<EmojiMeta>) {
         val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
             override fun getOldListSize() = emojis.size
@@ -184,6 +189,26 @@ class EmojiAdapter(
                 val current = boundEmoji ?: emoji
                 onLongPress?.invoke(current)
                 true
+            }
+        }
+
+        /**
+         * Interpolates the item size between 50dp (collapsed) and full column width (expanded).
+         * Called per-frame by the fragment during the panel slide.
+         */
+        fun updateSize(slideOffset: Float, rvWidth: Int, rvPadding: Int) {
+            if (rvWidth <= 0) return
+            val density = itemView.context.resources.displayMetrics.density
+            val collapsedSize = (50 * density).toInt()
+            val marginPx = 18 * density // 3 cols × 2 sides × 3dp
+            val columnWidth = ((rvWidth - rvPadding - marginPx) / 3).toInt()
+            val size = (collapsedSize + (columnWidth - collapsedSize) * slideOffset).toInt()
+
+            val lp = itemView.layoutParams
+            if (lp != null && (lp.width != size || lp.height != size)) {
+                lp.width  = size
+                lp.height = size
+                itemView.layoutParams = lp
             }
         }
 

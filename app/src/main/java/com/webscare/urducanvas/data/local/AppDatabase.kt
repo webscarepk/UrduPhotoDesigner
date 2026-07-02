@@ -44,7 +44,6 @@ abstract class AppDatabase : RoomDatabase() {
             context,
             AppDatabase::class.java, "UrduPhotoDesigner.db"
         )
-            .allowMainThreadQueries()
             .fallbackToDestructiveMigration()
             .build()
     }

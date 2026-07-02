@@ -25,7 +25,7 @@ class MorphGridLayoutManager(
     context: Context,
     private val collapsedSpan: Int = 3,   // rows in horizontal strip
     private val expandedSpan: Int = 3,    // columns in vertical grid
-    private val orientationFlipThreshold: Float = 0.45f
+    private val orientationFlipThreshold: Float = 0.5f
 ) : GridLayoutManager(context, collapsedSpan, HORIZONTAL, false) {
 
     // Track what we last set so we skip redundant requestLayout() calls
@@ -68,25 +68,12 @@ class MorphGridLayoutManager(
 
     /**
      * Interpolate span count.
-     * In HORIZONTAL mode: collapsed strip uses [collapsedSpan] rows. As fraction grows
-     * toward the flip threshold, rows decrease toward the transition span.
-     * In VERTICAL mode: expanded grid uses [expandedSpan] columns. At flip threshold the
-     * span matches, then stays constant through full expansion.
-     *
-     * This keeps item count-per-screen roughly stable across the boundary.
+     * Horizontal layout uses collapsedSpan rows.
+     * Vertical layout uses expandedSpan columns.
+     * Changes orientation and span count in a single step at the flip threshold.
      */
     private fun computeSpan(f: Float, orientation: Int): Int {
-        return if (orientation == HORIZONTAL) {
-            // f goes from 0 → orientationFlipThreshold
-            // span goes from collapsedSpan → expandedSpan (they're the same = 3 typically)
-            // So no interpolation needed if they match; if they differ, lerp.
-            val t = (f / orientationFlipThreshold).coerceIn(0f, 1f)
-            lerp(collapsedSpan, expandedSpan, t)
-        } else {
-            // f goes from orientationFlipThreshold → 1
-            // Just keep expandedSpan (columns) fixed once we're in vertical mode
-            expandedSpan
-        }
+        return if (orientation == HORIZONTAL) collapsedSpan else expandedSpan
     }
 
     private fun lerp(a: Int, b: Int, t: Float): Int =
