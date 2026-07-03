@@ -106,6 +106,7 @@ class ZoomableImageView @JvmOverloads constructor(
         when (event.actionMasked) {
 
             MotionEvent.ACTION_DOWN -> {
+                parent?.requestDisallowInterceptTouchEvent(true)
                 savedMatrix.set(matrixScale)
                 last.set(event.x, event.y)
                 mode = DRAG
@@ -117,6 +118,7 @@ class ZoomableImageView @JvmOverloads constructor(
             }
 
             MotionEvent.ACTION_POINTER_DOWN -> {
+                parent?.requestDisallowInterceptTouchEvent(true)
                 if (isDismissing) cancelDismissDrag(animated = false)
                 isScaling = true
                 mode = ZOOM
@@ -183,6 +185,7 @@ class ZoomableImageView @JvmOverloads constructor(
                 dismissDragY += dy
                 if (dismissDragY > 3f) {
                     isDismissing = true
+                    parent?.requestDisallowInterceptTouchEvent(true)
                     // Hard-freeze the matrix so it never gets reassigned again
                     // during this gesture — this is what eliminates the flicker.
                     imageMatrix = matrixScale

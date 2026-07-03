@@ -13,6 +13,7 @@ class MyApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        com.webscare.urducanvas.common.utils.SvgLoader.init(this)
         FirebaseApp.initializeApp(this)
         FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled = true
         defaultDensityDpi = resources.displayMetrics.densityDpi

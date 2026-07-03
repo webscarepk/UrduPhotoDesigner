@@ -25,4 +25,5 @@ object PreferenceDataStoreKeysConstants {
     val PREF_SUBSCRIPTION_EXPIRY = longPreferencesKey("subscription_expiry_ms")
     val PREF_CURRENT_PLAN_ID = stringPreferencesKey("current_plan_id")
     val PREF_SUB_STATUS = stringPreferencesKey("sub_status")
+    val KEY_DARK_MODE = booleanPreferencesKey("key_dark_mode")
 }

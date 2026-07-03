@@ -40,7 +40,7 @@
                     app:shimmer_colored="true"
                     app:shimmer_duration="700"
 app:shimmer_repeat_delay="0"
-                    app:shimmer_highlight_alpha="1.0">
+                    app:shimmer_highlight_alpha="@dimen/shimmer_highlight_alpha">
 
                     <ImageView
                         android:id="@+id/image"

@@ -86,6 +86,10 @@ class VectorsTabFragment : Fragment() {
             adapter = shapesAdapter
         }
         binding.noEmojis.visibility = View.GONE
+
+        val isExpandedNow = mainViewModel.isPanelExpanded(PanelType.SHAPES)
+        isPanelExpanded = !isExpandedNow
+        onPanelExpanded(isExpandedNow)
     }
 
     // ── Shape tap logic ───────────────────────────────────────────────────────

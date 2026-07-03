@@ -4,4 +4,5 @@
     <dimen name="_120sdp">120dp</dimen>
     <dimen name="_260sdp">260dp</dimen>
     <dimen name="nav_corner_radius">32dp</dimen>
+    <item name="shimmer_highlight_alpha" format="float" type="dimen">1.0</item>
 </resources>

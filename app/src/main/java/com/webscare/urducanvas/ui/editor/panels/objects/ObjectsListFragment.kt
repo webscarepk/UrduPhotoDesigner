@@ -22,6 +22,7 @@ import com.webscare.urducanvas.data.model.ObjectsData
 import com.webscare.urducanvas.databinding.FragmentObjectsListBinding
 import com.webscare.urducanvas.common.utils.MorphGridLayoutManager
 import com.webscare.urducanvas.ui.editor.panels.images.ImagesAdapter
+import com.webscare.urducanvas.common.utils.isDarkModeEnabled
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -70,9 +71,6 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
             category   = it.getString(ARG_CATEGORY).orEmpty()
             filterText = it.getString(ARG_FILTER).orEmpty()
         }
-        if (isBaseTab(category)) {
-            baseEmojiData = emojiDataForCategory(category)
-        }
     }
 
     override fun onCreateView(
@@ -108,6 +106,10 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
             setupImageTab()
             observeSelectionState()
         }
+
+        val isExpandedNow = mainViewModel.isPanelExpanded(PanelType.OBJECTS)
+        isPanelExpanded = !isExpandedNow
+        onPanelExpanded(isExpandedNow)
     }
 
     override fun onHiddenChanged(hidden: Boolean) {
@@ -264,7 +266,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
         if (emojiAdapter == null) {
             emojiAdapter = EmojiAdapter(
                 context        = requireActivity(),
-                initialEmojis  = baseEmojiData,
+                initialEmojis  = emptyList(),
                 onEmojiClicked = { bmp ->
                     if (isPanelExpanded) mainViewModel.togglePanel(PanelType.OBJECTS)
                     viewModel.addSticker(bmp, requireActivity(), ElementType.STICKER)
@@ -276,10 +278,19 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
         }
         binding.objects.adapter = emojiAdapter
 
-        if (filterText.isBlank()) {
-            onFilterResult?.invoke(category, baseEmojiData.size)
-        } else {
-            applyEmojiFilter(filterText)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val emojiList = withContext(Dispatchers.Default) {
+                emojiDataForCategory(category)
+            }
+            baseEmojiData = emojiList
+            if (_binding != null) {
+                if (filterText.isBlank()) {
+                    emojiAdapter?.updateData(emojiList)
+                    onFilterResult?.invoke(category, emojiList.size)
+                } else {
+                    applyEmojiFilter(filterText)
+                }
+            }
         }
     }
 
@@ -303,7 +314,8 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                                 "${svgDrawable.intrinsicWidth}x${svgDrawable.intrinsicHeight}" +
                                         " → ${trimmed.intrinsicWidth}x${trimmed.intrinsicHeight}")
                             viewModel.addSvgSticker(
-                                trimmed, svgXml, requireActivity(), entity.is_premium
+                                trimmed, svgXml, requireActivity(), entity.is_premium,
+                                applyWhiteTintInDarkMode = true
                             )
                         } else {
                             viewModel.addSticker(
@@ -320,6 +332,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                 }
             )
         }
+        imagesAdapter?.applyWhiteTint = requireContext().isDarkModeEnabled()
         binding.objects.adapter = imagesAdapter
 
         if (categoryImages.isEmpty()) {

@@ -14,6 +14,8 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.webscare.urducanvas.common.utils.Constants
+import com.webscare.urducanvas.common.utils.startShimmerSoft
+import com.webscare.urducanvas.common.utils.isDarkModeEnabled
 import com.webscare.urducanvas.databinding.LayoutSubscriptionsTemplateSlideBinding
 
 /** One slide of the popular-templates slideshow. */
@@ -84,8 +86,9 @@ class TemplateSliderAdapter : RecyclerView.Adapter<TemplateSliderAdapter.VH>() {
         val url = buildThumbnailUrl(slide.imageUrl)
 
         with(holder.binding) {
+            val isDark = root.context.isDarkModeEnabled()
             slideShimmer.isVisible = true
-            slideShimmer.startShimmer()
+            slideShimmer.startShimmerSoft(isDark)
             // INVISIBLE, not GONE — see class doc.
             slideImage.visibility = View.INVISIBLE
         }

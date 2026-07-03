@@ -18,6 +18,8 @@ import com.bumptech.glide.request.target.Target
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.common.utils.startShimmerSoft
+import com.webscare.urducanvas.common.utils.isDarkModeEnabled
 import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.databinding.LayoutFontItemBinding
 
@@ -150,18 +152,24 @@ class FontsAdapter(
             if (rvWidth <= 0) return
             val context = itemView.context
             val density = context.resources.displayMetrics.density
-            val collapsedSize = (50 * density).toInt()
+            val collapsedSize = (44 * density).toInt()
 
             val marginPx = 18 * density // spacing space (3 columns * 2 sides * 3dp = 18dp)
             val columnWidth = ((rvWidth - rvPadding - marginPx) / 3).toInt()
 
             val currentSize = (collapsedSize + (columnWidth - collapsedSize) * slideOffset).toInt()
 
-            val lp = cardRoot.layoutParams
-            if (lp.width != currentSize || lp.height != currentSize) {
-                lp.width = currentSize
-                lp.height = currentSize
-                cardRoot.layoutParams = lp
+            val lp = cardRoot.layoutParams as? android.view.ViewGroup.MarginLayoutParams
+            if (lp != null) {
+                val marginEndPx = (6 * density).toInt()
+                val marginBottomPx = (6 * density).toInt()
+                if (lp.width != currentSize || lp.height != currentSize || lp.rightMargin != marginEndPx || lp.bottomMargin != marginBottomPx) {
+                    lp.width = currentSize
+                    lp.height = currentSize
+                    lp.rightMargin = marginEndPx
+                    lp.bottomMargin = marginBottomPx
+                    cardRoot.layoutParams = lp
+                }
             }
         }
 
@@ -170,12 +178,28 @@ class FontsAdapter(
             imageView: android.widget.ImageView,
             shimmer: com.facebook.shimmer.ShimmerFrameLayout
         ) {
-            shimmer.startShimmer()
+            val isDarkMode = imageView.context.isDarkModeEnabled()
+            shimmer.startShimmerSoft(isDarkMode)
+
+            if (isDarkMode) {
+                imageView.setColorFilter(android.graphics.Color.WHITE, android.graphics.PorterDuff.Mode.SRC_IN)
+            } else {
+                imageView.clearColorFilter()
+            }
 
             if (font.image_url.isEmpty()) {
                 if (font.font_image?.isNotEmpty() == true) {
                     Glide.with(imageView.context)
                         .load(font.font_image)
+                        .listener(object : RequestListener<android.graphics.drawable.Drawable> {
+                            override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<android.graphics.drawable.Drawable>, isFirstResource: Boolean): Boolean = false
+                            override fun onResourceReady(resource: android.graphics.drawable.Drawable, model: Any, target: Target<android.graphics.drawable.Drawable>?, dataSource: DataSource, isFirstResource: Boolean): Boolean {
+                                if (imageView.context.isDarkModeEnabled()) {
+                                    imageView.setColorFilter(android.graphics.Color.WHITE, android.graphics.PorterDuff.Mode.SRC_IN)
+                                }
+                                return false
+                            }
+                        })
                         .into(imageView)
                     shimmer.hideShimmer()
                 } else {
@@ -188,9 +212,19 @@ class FontsAdapter(
             val imgUrl = Constants.BASE_URL_GLIDE + font.image_url
             val isSvg = font.image_url.endsWith(".svg", ignoreCase = true)
             if (isSvg) {
-                com.webscare.urducanvas.common.utils.SvgLoader.load(imgUrl, imageView, kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main), font.alt_text) { _, _ ->
+                com.webscare.urducanvas.common.utils.SvgLoader.load(
+                    url = imgUrl,
+                    imageView = imageView,
+                    scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main),
+                    cachedXml = null,
+                    maxPx = 1024,
+                    applyWhiteTint = isDarkMode
+                ) { _, _ ->
                     shimmer.stopShimmer()
                     shimmer.setShimmer(null)
+                    if (imageView.context.isDarkModeEnabled()) {
+                        imageView.setColorFilter(android.graphics.Color.WHITE, android.graphics.PorterDuff.Mode.SRC_IN)
+                    }
                 }
             } else {
                 Glide.with(imageView.context)
@@ -202,6 +236,9 @@ class FontsAdapter(
                             shimmer.stopShimmer(); shimmer.setShimmer(null); return false
                         }
                         override fun onResourceReady(resource: android.graphics.drawable.Drawable, model: Any, target: Target<android.graphics.drawable.Drawable>?, dataSource: DataSource, isFirstResource: Boolean): Boolean {
+                            if (imageView.context.isDarkModeEnabled()) {
+                                imageView.setColorFilter(android.graphics.Color.WHITE, android.graphics.PorterDuff.Mode.SRC_IN)
+                            }
                             shimmer.stopShimmer(); shimmer.setShimmer(null); return false
                         }
                     })

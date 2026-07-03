@@ -16,6 +16,7 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.common.utils.isDarkModeEnabled
 import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.data.model.ProgressUi
 import com.webscare.urducanvas.databinding.LayoutPopularFontItemBinding
@@ -75,37 +76,42 @@ class FontsAdapter(
             item: FontEntity,
             progress: ProgressUi
         ) {
+            val isDarkMode = itemView.context.isDarkModeEnabled()
+            if (isDarkMode) {
+                binding.image.setColorFilter(android.graphics.Color.WHITE, android.graphics.PorterDuff.Mode.SRC_IN)
+            } else {
+                binding.image.clearColorFilter()
+            }
             // Preview (if you have thumbnail url or local file)
             if (item.image_url.isEmpty() && item.font_image?.isNotEmpty() == true) {
                 // Parse font_image from Base64 to Bitmap
-                Glide.with(itemView.context).load(item.font_image).into(binding.image)
+                Glide.with(itemView.context).load(item.font_image)
+                    .listener(object : RequestListener<Drawable> {
+                        override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean): Boolean = false
+                        override fun onResourceReady(resource: Drawable, model: Any, target: Target<Drawable>?, dataSource: DataSource, isFirstResource: Boolean): Boolean {
+                            if (itemView.context.isDarkModeEnabled()) {
+                                binding.image.setColorFilter(android.graphics.Color.WHITE, android.graphics.PorterDuff.Mode.SRC_IN)
+                            }
+                            return false
+                        }
+                    })
+                    .into(binding.image)
                 binding.shimmerLayout.hideShimmer()
             } else {
                 // Load font preview using Glide (from image_url)
                 val url =
                     Constants.BASE_URL_GLIDE + item.image_url
                 if (isSvgUrl(url)) {
-                    Glide.with(binding.root.context).`as`(PictureDrawable::class.java).load(url)
-                        .diskCacheStrategy(DiskCacheStrategy.DATA)
-                        .listener(object : RequestListener<PictureDrawable> {
-                            override fun onLoadFailed(
-                                e: GlideException?,
-                                model: Any?,
-                                target: Target<PictureDrawable>,
-                                isFirstResource: Boolean
-                            ) = false.also {
-                                android.util.Log.e("FontsAdapter", "SVG load failed | url: $model | error: ${e?.message}")
-                                e?.logRootCauses("FontsAdapter_RootCause")
-                                binding.shimmerLayout.hideShimmer() }
-
-                            override fun onResourceReady(
-                                resource: PictureDrawable,
-                                model: Any,
-                                target: Target<PictureDrawable>?,
-                                dataSource: DataSource,
-                                isFirstResource: Boolean
-                            ) = false.also { binding.shimmerLayout.hideShimmer() }
-                        }).into(binding.image)
+                    com.webscare.urducanvas.common.utils.SvgLoader.load(
+                        url = url,
+                        imageView = binding.image,
+                        scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main),
+                        cachedXml = null,
+                        maxPx = 512,
+                        applyWhiteTint = isDarkMode
+                    ) { _, _ ->
+                        binding.shimmerLayout.hideShimmer()
+                    }
                 } else {
                     Glide.with(binding.root.context).load(url)
                         .diskCacheStrategy(DiskCacheStrategy.ALL).thumbnail(0.1f)
@@ -129,6 +135,9 @@ class FontsAdapter(
                                 dataSource: DataSource,
                                 isFirstResource: Boolean
                             ): Boolean {
+                                if (binding.root.context.isDarkModeEnabled()) {
+                                    binding.image.setColorFilter(android.graphics.Color.WHITE, android.graphics.PorterDuff.Mode.SRC_IN)
+                                }
                                 binding.shimmerLayout.hideShimmer()
                                 return false
                             }

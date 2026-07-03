@@ -110,6 +110,7 @@
         android:paddingHorizontal="12dp"
         android:paddingVertical="8dp"
         android:src="@drawable/ic_list_view"
+        app:tint="@color/black"
         android:translationZ="1dp"
         app:layout_constraintBottom_toBottomOf="@id/searchBar"
         app:layout_constraintEnd_toStartOf="@id/endGuide"

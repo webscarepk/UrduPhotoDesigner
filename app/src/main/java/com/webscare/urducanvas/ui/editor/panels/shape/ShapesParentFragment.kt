@@ -33,6 +33,7 @@ import com.webscare.urducanvas.common.canvas.enums.PanelType
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
 import com.webscare.urducanvas.common.utils.SvgLoader
+import com.webscare.urducanvas.common.utils.isDarkModeEnabled
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.ShapesData
 import com.webscare.urducanvas.databinding.FragmentShapesParentBinding
@@ -321,14 +322,15 @@ class ShapesParentFragment : Fragment() {
 
                 if (isSvg) {
                     val result = withContext(Dispatchers.IO) {
-                        SvgLoader.resolve(url, entity.bitmapData)
+                        SvgLoader.resolve(url, entity.bitmapData, applyWhiteTint = false)
                     }
                     result?.let { (drawable, xml) ->
                         viewModel.addSvgSticker(
                             drawable.trimTransparentEdges(),
                             xml,
                             requireActivity(),
-                            entity.is_premium
+                            entity.is_premium,
+                            applyWhiteTintInDarkMode = false
                         )
                     }
                 } else {
@@ -396,7 +398,7 @@ class ShapesParentFragment : Fragment() {
             }
             if (!target.isAdded) add(R.id.fragmentContainer, target, category)
             else if (target.isHidden) show(target)
-        }.commit()
+        }.commitNow()
 
         val expanded = mainViewModel.isPanelExpanded(PanelType.SHAPES)
         when (target) {

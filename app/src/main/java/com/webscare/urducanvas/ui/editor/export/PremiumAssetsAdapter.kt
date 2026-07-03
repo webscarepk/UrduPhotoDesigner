@@ -14,6 +14,8 @@ import com.bumptech.glide.request.target.Target
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.utils.Constants
+import com.webscare.urducanvas.common.utils.isDarkModeEnabled
+import com.webscare.urducanvas.common.utils.startShimmerSoft
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.data.model.PremiumAssetItem
@@ -41,7 +43,14 @@ class PremiumAssetsAdapter(
         val item = items[position]
         val context = holder.itemView.context
 
-        holder.binding.shimmerLayout.startShimmer()
+        val isDarkMode = context.isDarkModeEnabled()
+        if (isDarkMode && (item.type == ElementType.TEXT || item.applyWhiteTintInDarkMode)) {
+            holder.binding.image.setColorFilter(android.graphics.Color.WHITE, android.graphics.PorterDuff.Mode.SRC_IN)
+        } else {
+            holder.binding.image.clearColorFilter()
+        }
+
+        holder.binding.shimmerLayout.startShimmerSoft(isDarkMode)
 
         when (item.type) {
 

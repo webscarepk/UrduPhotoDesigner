@@ -38,6 +38,8 @@ data class CanvasElement(
     @SerializedName("svgData")
     var svgData: String? = null,
 
+    @SerializedName("applyWhiteTintInDarkMode") var applyWhiteTintInDarkMode: Boolean = false,
+
     @SerializedName("text") var text: String = "",
 
     @SerializedName("bitmap") @field:Transient var bitmap: Bitmap? = null,

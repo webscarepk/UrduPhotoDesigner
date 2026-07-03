@@ -71,6 +71,7 @@ import com.webscare.urducanvas.common.canvas.model.ExportOptions
 import com.webscare.urducanvas.common.utils.BitmapCache
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.common.utils.Utils.vibrateSoft
 import com.webscare.urducanvas.common.views.CanvasView
 import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.databinding.DialogAutoSavingLayoutBinding
@@ -177,6 +178,14 @@ class EditorFragment : Fragment() {
         val navHostFragment =
             childFragmentManager.findFragmentById(R.id.panelNavHost) as NavHostFragment
         _navController = navHostFragment.navController
+
+        binding.panelNavHost.outlineProvider = object : android.view.ViewOutlineProvider() {
+            override fun getOutline(view: View, outline: android.graphics.Outline) {
+                val radius = (30 * view.resources.displayMetrics.density + 0.5f).toInt()
+                outline.setRoundRect(0, 0, view.width, view.height + radius, radius.toFloat())
+            }
+        }
+        binding.panelNavHost.clipToOutline = true
 
         binding.bottomNavigation.setupWithNavController(navController)
 
@@ -1245,8 +1254,14 @@ class EditorFragment : Fragment() {
             initFab()
         }
 
-        binding.undo.addPressEffect { viewModel.undo() }
-        binding.redo.addPressEffect { viewModel.redo() }
+        binding.undo.addPressEffect {
+            binding.undo.vibrateSoft()
+            viewModel.undo()
+        }
+        binding.redo.addPressEffect {
+            binding.redo.vibrateSoft()
+            viewModel.redo()
+        }
         binding.showHide.addPressEffect {
             panelsLocked = !panelsLocked
             if (panelsLocked) {
@@ -1399,10 +1414,12 @@ class EditorFragment : Fragment() {
         }
 
         binding.grid.addPressEffect {
+            binding.grid.vibrateSoft()
             viewModel.toggleGrid()
         }
 
         binding.ruler.addPressEffect {
+            binding.ruler.vibrateSoft()
             viewModel.toggleRuler()
         }
 
@@ -1988,7 +2005,7 @@ class EditorFragment : Fragment() {
 
         // ── Background color: light / dark ────────────────────────────────
         val lightColor = ContextCompat.getColor(requireContext(), R.color.contrast)
-        val darkColor   = ContextCompat.getColor(requireContext(), R.color.black)
+        val darkColor   = ContextCompat.getColor(requireContext(), R.color.darkContrast)
 
         val currentBgColor = viewModel.backgroundColor.value
             ?: requireActivity().getColor(R.color.contrast)

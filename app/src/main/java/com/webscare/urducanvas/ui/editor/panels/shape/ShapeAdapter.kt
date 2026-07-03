@@ -168,18 +168,24 @@ class ShapeAdapter(
             if (rvWidth <= 0) return
             val context = itemView.context
             val density = context.resources.displayMetrics.density
-            val collapsedSize = (50 * density).toInt()
+            val collapsedSize = (44 * density).toInt()
 
             val marginPx = 18 * density // spacing space (3 columns * 2 sides * 3dp = 18dp)
             val columnWidth = ((rvWidth - rvPadding - marginPx) / 3).toInt()
 
             val currentSize = (collapsedSize + (columnWidth - collapsedSize) * slideOffset).toInt()
 
-            val lp = cardRoot.layoutParams
-            if (lp.width != currentSize || lp.height != currentSize) {
-                lp.width = currentSize
-                lp.height = currentSize
-                cardRoot.layoutParams = lp
+            val lp = cardRoot.layoutParams as? android.view.ViewGroup.MarginLayoutParams
+            if (lp != null) {
+                val marginEndPx = (6 * density).toInt()
+                val marginBottomPx = (6 * density).toInt()
+                if (lp.width != currentSize || lp.height != currentSize || lp.rightMargin != marginEndPx || lp.bottomMargin != marginBottomPx) {
+                    lp.width = currentSize
+                    lp.height = currentSize
+                    lp.rightMargin = marginEndPx
+                    lp.bottomMargin = marginBottomPx
+                    cardRoot.layoutParams = lp
+                }
             }
         }
 

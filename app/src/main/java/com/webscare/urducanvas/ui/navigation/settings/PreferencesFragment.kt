@@ -18,6 +18,7 @@ class PreferencesFragment : androidx.fragment.app.Fragment() {
     private var _binding: FragmentPreferencesBinding? = null
     private val binding get() = _binding!!
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
 
 
     override fun onCreateView(
@@ -47,6 +48,12 @@ class PreferencesFragment : androidx.fragment.app.Fragment() {
             binding.resolutionList.adapter?.notifyDataSetChanged()
             binding.qualityList.adapter?.notifyDataSetChanged()
             binding.formatList.adapter?.notifyDataSetChanged()
+        }
+
+        mainViewModel.isDarkMode.observe(viewLifecycleOwner) { isChecked ->
+            if (binding.darkModeSwitch.isChecked != isChecked) {
+                binding.darkModeSwitch.isChecked = isChecked
+            }
         }
     }
 
@@ -93,6 +100,17 @@ class PreferencesFragment : androidx.fragment.app.Fragment() {
         binding.resolution.addPressEffect { toggle(binding.resolutionList) }
         binding.quality.addPressEffect { toggle(binding.qualityList) }
         binding.format.addPressEffect { toggle(binding.formatList) }
+
+        binding.darkModeSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (mainViewModel.isDarkMode.value != isChecked) {
+                mainViewModel.updateDarkMode(isChecked)
+                if (isChecked) {
+                    androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES)
+                } else {
+                    androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO)
+                }
+            }
+        }
 
         binding.back.addPressEffect {
             findNavController().navigateUp()

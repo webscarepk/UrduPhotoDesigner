@@ -15,6 +15,8 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.webscare.urducanvas.common.utils.Constants
+import com.webscare.urducanvas.common.utils.startShimmerSoft
+import com.webscare.urducanvas.common.utils.isDarkModeEnabled
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.ProgressUi
 import com.webscare.urducanvas.data.model.TemplateEntity
@@ -99,7 +101,8 @@ class TemplatesAdapter(
 
             val url = Constants.BASE_URL_GLIDE + item.thumbnail_url
             if (url.isNotEmpty()) {
-                binding.shimmerLayout.startShimmer()
+                val isDark = binding.root.context.isDarkModeEnabled()
+                binding.shimmerLayout.startShimmerSoft(isDark)
                 binding.shimmerLayout.isVisible = true
 
                 Glide.with(binding.root.context).asBitmap().load(url)
@@ -121,8 +124,6 @@ class TemplatesAdapter(
                             return false
                         }
                     }).into(binding.template)
-
-                binding.shimmerLayout.startShimmer()
             }
         }
 

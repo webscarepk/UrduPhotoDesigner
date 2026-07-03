@@ -1,19 +1,75 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#2B2B2B</color>
-    <color name="white">#FFFFFF</color>
-    <color name="shadowColor">#40000000</color>
+    <color name="black">#FFFFFF</color>
+    <color name="white">#202024</color>
+    <color name="shadowColor">#66000000</color>
     <color name="whiteText">#FFFFFF</color>
-    <color name="contrast">#F7F7F7</color>
-    <color name="appColor">#005D28</color>
-    <color name="selection">#F2F2F2</color>
-    <color name="gray">#8E94A2</color>
-    <color name="light_gray">#D6D6D6</color>
-    <color name="yellow">#FEF9C2</color>
-    <color name="yellow1">#20000000</color>
-    <color name="darkContrast">#39D27A</color>
+    <color name="contrast">#121214</color>
+    <color name="appColor">#2ECC71</color>
+    <color name="appColorLow">#402ECC71</color>
+    <color name="selection">#2E2E34</color>
+    <color name="gray">#9AA0AC</color>
+    <color name="light_gray">#3A3A3C</color>
+    <color name="yellow">#4A4527</color>
+    <color name="yellow1">#20FFFFFF</color>
+    <color name="darkContrast">#E5E5E5</color>
 
-    <color name="quality_high_light">#81C784</color>   <!-- Green 300 -->
-    <color name="quality_medium_light">#FFD180</color> <!-- Orange 200 -->
-    <color name="quality_low_light">#FF8A80</color>    <!-- Red 200 -->
+    <color name="quality_high_light">#4CAF50</color>   <!-- Green 500 -->
+    <color name="quality_medium_light">#FF9800</color> <!-- Orange 500 -->
+    <color name="quality_low_light">#E53935</color>    <!-- Red 500 -->
+
+    <!-- Header / brand gradient stops (slightly brighter than appColor) -->
+    <color name="sub_header_start">#2FBE6E</color>
+    <color name="sub_header_end">#155C33</color>
+
+    <!-- Plan-picker-A surfaces -->
+    <color name="sub_card_stroke">#2A4536</color>
+    <color name="sub_segment_track">#232826</color>
+    <color name="sub_divider">#2A2E2C</color>
+    <color name="sub_free_card_stroke">#303432</color>
+    <color name="sub_discount_pill">#2ECC71</color>
+    <color name="sub_save_bg">#1C3324</color>
+    <color name="sub_save_text">#5FD38A</color>
+    <color name="sub_strike">#5A6560</color>
+    <color name="sub_price_text">#F2F5F3</color>
+    <color name="sub_segment_text">#B9C4BE</color>
+    <color name="sub_segment_text_active">#F2F5F3</color>
+    <color name="sub_overlay_white_18">#2E2B2B2B</color>
+
+    <!-- Manage screen surfaces -->
+    <color name="sub_screen_bg">#151817</color>
+    <color name="sub_banner_detail">#9AA39C</color>
+    <color name="sub_mono_box_bg">#1F2321</color>
+    <color name="sub_mono_box_stroke">#33382F35</color>
+    <color name="sub_mono_text">#A7AFA9</color>
+    <color name="sub_mono_muted">#767D78</color>
+    <color name="sub_signals_box_bg">#191C1A</color>
+    <color name="sub_signals_box_stroke">#2A2F2C</color>
+    <color name="sub_signal_row_divider">#282C2A</color>
+    <color name="sub_ackwarn_bg">#3A2E14</color>
+    <color name="sub_ackwarn_text">#E8B355</color>
+    <color name="sub_secondary_btn_stroke">#33382F35</color>
+    <color name="sub_secondary_btn_text">#C4CDC6</color>
+    <color name="sub_quicklink_divider">#262927</color>
+    <color name="sub_quicklink_text">#D5DBD6</color>
+    <color name="sub_quicklink_chevron">#565D58</color>
+
+    <!-- Signal value tints -->
+    <color name="sub_signal_good">#4ADE80</color>
+    <color name="sub_signal_warn">#F0A93B</color>
+    <color name="sub_signal_bad">#F0576A</color>
+    <color name="sub_signal_mute">#9AA39C</color>
+
+    <!-- Per-state accent + tint (chip bg / icon box) -->
+    <color name="state_green">#4ADE80</color>
+    <color name="state_green_tint">#1C3324</color>
+    <color name="state_amber">#F0A93B</color>
+    <color name="state_amber_tint">#3A2E14</color>
+    <color name="state_blue">#5B8DEF</color>
+    <color name="state_blue_tint">#1B2540</color>
+    <color name="state_gray">#9AA0AC</color>
+    <color name="state_gray_tint">#26282B</color>
+    <color name="state_teal">#2DD4A7</color>
+    <color name="state_teal_tint">#123B31</color>
+    <color name="contrast_transparent">#00121214</color>
 </resources>

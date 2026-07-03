@@ -93,6 +93,16 @@ class MainActivity : AppCompatActivity() {
     // ──────────────────────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val prefDataStore = com.webscare.urducanvas.common.datastore.PreferencesDataStoreHelper(applicationContext)
+        val isDarkMode = kotlinx.coroutines.runBlocking {
+            prefDataStore.getFirstPreference(com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.KEY_DARK_MODE, false)
+        }
+        if (isDarkMode) {
+            androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES)
+        } else {
+            androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO)
+        }
+
         super.onCreate(savedInstanceState)
         _binding = ActivityMainBinding.inflate(layoutInflater)
         installSplashScreen().setKeepOnScreenCondition { false }

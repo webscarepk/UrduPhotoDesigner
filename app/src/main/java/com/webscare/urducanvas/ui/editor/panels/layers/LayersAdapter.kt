@@ -103,7 +103,6 @@ class LayersAdapter(
     fun getDisplayItems(): List<DisplayItem> = items.toList()
 
     override fun getItemViewType(position: Int): Int {
-        if (!isExpanded) return TYPE_COLLAPSED
         return if (items[position] is DisplayItem.GroupHeader) TYPE_EXPANDED_GROUP_HEADER else TYPE_EXPANDED_ITEM
     }
 
@@ -176,22 +175,7 @@ class LayersAdapter(
         )
 
         fun updateSize(slideOffset: Float, rvWidth: Int, rvPadding: Int) {
-            if (rvWidth <= 0) return
-            val context = itemView.context
-            val density = context.resources.displayMetrics.density
-            val collapsedSize = (50 * density).toInt()
-
-            val marginPx = 18 * density // spacing space (3 columns * 2 sides * 3dp = 18dp)
-            val columnWidth = ((rvWidth - rvPadding - marginPx) / 3).toInt()
-
-            val currentSize = (collapsedSize + (columnWidth - collapsedSize) * slideOffset).toInt()
-
-            val lp = cardRoot.layoutParams
-            if (lp.width != currentSize || lp.height != currentSize) {
-                lp.width = currentSize
-                lp.height = currentSize
-                cardRoot.layoutParams = lp
-            }
+            // No-op: layers fragment is always a full-width vertical list, no sizing overrides needed
         }
 
         protected fun Float.dpToPx(context: android.content.Context): Float =

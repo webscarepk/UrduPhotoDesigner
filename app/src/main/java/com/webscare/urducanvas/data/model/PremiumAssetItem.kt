@@ -8,5 +8,6 @@ data class PremiumAssetItem(
     val fontId: String? = null,   // for TEXT
     val bitmapData: String? = null, // for IMAGE/STICKER (base64)
     val fontImageBase64: String? = null, // local font thumbnail
-    val fontImageUrl: String? = null    // remote font image_url
+    val fontImageUrl: String? = null,    // remote font image_url
+    val applyWhiteTintInDarkMode: Boolean = false
 )

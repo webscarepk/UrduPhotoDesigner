@@ -107,10 +107,21 @@ class MainViewModel @Inject constructor(
     private val getCanvasSizesUseCase: GetCanvasSizesUseCase,
     private val pexelsRepo: PexelsRepo,
     private val imagesRepo: ImagesRepo,
+    private val dataStore: com.webscare.urducanvas.common.datastore.PreferencesDataStoreHelper,
 ) : ViewModel() {
 
     private val _selectedImageIds = MutableStateFlow<Set<Int>>(emptySet())
     val selectedImageIds: StateFlow<Set<Int>> = _selectedImageIds.asStateFlow()
+
+    private val _isDarkMode = MutableLiveData<Boolean>(false)
+    val isDarkMode: LiveData<Boolean> = _isDarkMode
+
+    fun updateDarkMode(enabled: Boolean) {
+        _isDarkMode.value = enabled
+        viewModelScope.launch {
+            dataStore.putPreference(com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.KEY_DARK_MODE, enabled)
+        }
+    }
 
     private val _selectedShapesIds = MutableStateFlow<Set<Int>>(emptySet())
     val selectedShapesIds: StateFlow<Set<Int>> = _selectedShapesIds.asStateFlow()
@@ -416,6 +427,10 @@ class MainViewModel @Inject constructor(
 
 
     init {
+        viewModelScope.launch {
+            val dark = dataStore.getFirstPreference(com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.KEY_DARK_MODE, false)
+            _isDarkMode.value = dark
+        }
         viewModelScope.launch {
             billingManager.loadSavedSubscriptionStatus()
             billingManager.checkSubscriptionOnLaunch()

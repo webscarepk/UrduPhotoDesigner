@@ -484,4 +484,5 @@
 
     <string name="sub_feature_no_ads_title">Ad-Free</string>
     <string name="sub_feature_no_ads_subtitle">No interruptions</string>
+    <string name="dark_mode">Dark Mode</string>
 </resources>

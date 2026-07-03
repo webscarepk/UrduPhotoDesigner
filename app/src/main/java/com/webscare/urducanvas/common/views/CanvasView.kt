@@ -17,6 +17,7 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
 import android.graphics.PorterDuffXfermode
 import android.graphics.RadialGradient
 import android.graphics.Rect
@@ -68,6 +69,7 @@ import com.webscare.urducanvas.common.canvas.model.StrokeData
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import com.webscare.urducanvas.common.utils.BrushRenderUtils.createBackgroundGradientShader
 import com.webscare.urducanvas.common.utils.ImageAdjustmentHelper
+import com.webscare.urducanvas.common.utils.isDarkModeEnabled
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
 import com.webscare.urducanvas.common.utils.ShapeRenderUtils
@@ -270,6 +272,22 @@ class CanvasView @JvmOverloads constructor(
         val dstHeight: Int
     )
     private val displayBitmapCache = mutableMapOf<String, DisplayCacheEntry>()
+
+    // Per-element cache for raw rasterized SVG bitmaps
+    private val rawSvgBitmapCache = mutableMapOf<String, Bitmap>()
+
+    // Per-element cache for pre-rendered feather masks
+    private data class FeatherCacheEntry(val bitmap: Bitmap, val fingerprint: Int)
+    private val featherBitmapCache = mutableMapOf<String, FeatherCacheEntry>()
+
+    private fun isGestureActive(): Boolean {
+        return currentMode == Mode.DRAG ||
+                currentMode == Mode.ROTATE ||
+                currentMode == Mode.RESIZE ||
+                currentMode == Mode.TRANSFORM ||
+                currentMode == Mode.MULTI_TOUCH ||
+                currentMode == Mode.CANVAS_PAN
+    }
 
     // ── Background coroutine scope for async image-adjustment processing ─────
     // applyAllAdjustments can take 100-500 ms on a full-res bitmap — never block onDraw.
@@ -950,6 +968,8 @@ class CanvasView @JvmOverloads constructor(
                 strokeBitmapCache.remove(element.id + "_img")?.bitmap?.recycle()
                 displayBitmapCache.remove(element.id)?.bitmap?.recycle()
                 displayBitmapCache.remove(element.id + "_bg")?.bitmap?.recycle()
+                rawSvgBitmapCache.remove(element.id)?.recycle()
+                featherBitmapCache.remove(element.id)?.bitmap?.recycle()
                 pendingAdjustmentJobs.remove(element.id)?.cancel()
             }
             selectedElements.clear()
@@ -976,6 +996,8 @@ class CanvasView @JvmOverloads constructor(
             strokeBitmapCache.remove(element.id + "_img")?.bitmap?.recycle()
             displayBitmapCache.remove(element.id)?.bitmap?.recycle()
             displayBitmapCache.remove(element.id + "_bg")?.bitmap?.recycle()
+            rawSvgBitmapCache.remove(element.id)?.recycle()
+            featherBitmapCache.remove(element.id)?.bitmap?.recycle()
             pendingAdjustmentJobs.remove(element.id)?.cancel()
         }
         selectedElements.clear()
@@ -1149,7 +1171,20 @@ class CanvasView @JvmOverloads constructor(
         drawable.setBounds(0, 0, bitmapW, bitmapH)
         drawable.draw(canvas)
 
-        return bitmap
+        val finalBitmap = if (element.applyWhiteTintInDarkMode && context.isDarkModeEnabled()) {
+            val result = createBitmap(bitmapW, bitmapH)
+            val tempCanvas = Canvas(result)
+            val paint = Paint().apply {
+                colorFilter = PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN)
+            }
+            tempCanvas.drawBitmap(bitmap, 0f, 0f, paint)
+            bitmap.recycle()
+            result
+        } else {
+            bitmap
+        }
+
+        return finalBitmap
     }
 
     fun exportCanvas(
@@ -2543,10 +2578,11 @@ class CanvasView @JvmOverloads constructor(
                                 // We store the rasterized result on element.bitmap and reuse it.
                                 // It is invalidated (set null) whenever adjustments/filters change.
                                 val finalBitmap: Bitmap? = if (needsRaster) {
-                                    if (element.bitmap == null || element.bitmap!!.isRecycled) {
-                                        // First time or invalidated — rasterize once and cache
+                                    // 1. Get or build the raw SVG bitmap (unadjusted)
+                                    var rawSvg = rawSvgBitmapCache[element.id]
+                                    if (rawSvg == null || rawSvg.isRecycled) {
                                         val svgData = element.svgData
-                                        val bmp: Bitmap = if (svgData != null) {
+                                        rawSvg = if (svgData != null) {
                                             try {
                                                 val svg = SVG.getFromString(svgData)
                                                 val vb = svg.documentViewBox
@@ -2593,18 +2629,11 @@ class CanvasView @JvmOverloads constructor(
                                                 drawable.draw(Canvas(it))
                                             }
                                         }
-
-                                        // Apply adjustments and cache on element
-                                        val adjusted = ImageAdjustmentHelper.applyAllAdjustments(
-                                            element.context!!, bmp, element
-                                        )
-                                        if (adjusted != bmp) bmp.recycle()
-                                        element.bitmap =
-                                            adjusted  // ✅ cached — not recreated next frame
-                                        adjusted
-                                    } else {
-                                        element.bitmap!! // ✅ reuse cached bitmap
+                                        rawSvgBitmapCache[element.id] = rawSvg
                                     }
+
+                                    // 2. Resolve adjusted bitmap asynchronously
+                                    resolveAdjustedBitmapAsync(element, rawSvg)
                                 } else null
 
                                 // ── Compute draw rect (aspect-ratio-correct, shared by shadow/stroke/main) ──
@@ -2734,7 +2763,7 @@ class CanvasView @JvmOverloads constructor(
                                     )
 
                                     val cachedStroke = strokeBitmapCache[element.id]
-                                    val strokeAlpha: Bitmap =
+                                    val strokedAlphaMask: Bitmap =
                                         if (cachedStroke != null && cachedStroke.fingerprint == strokeFp && !cachedStroke.bitmap.isRecycled) {
                                             cachedStroke.bitmap // ✅ reuse
                                         } else {
@@ -2748,10 +2777,26 @@ class CanvasView @JvmOverloads constructor(
                                                     drawable.draw(c)
                                                 }
                                             }
-                                            val alpha = strokeSource.extractAlpha()
+                                            val strokeAlpha = strokeSource.extractAlpha()
                                             if (finalBitmap == null) strokeSource.recycle()
+
+                                            // Pre-render the stroke onto a single ALPHA_8 bitmap
+                                            val strokeWidthInt = element.strokeWidth.roundToInt().coerceAtLeast(1)
+                                            val maskW = strokeAlpha.width + 2 * strokeWidthInt
+                                            val maskH = strokeAlpha.height + 2 * strokeWidthInt
+                                            val preRendered = Bitmap.createBitmap(maskW, maskH, Bitmap.Config.ALPHA_8)
+                                            val maskCanvas = Canvas(preRendered)
+                                            val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+                                            for (angle in 0 until 360 step 10) {
+                                                val rad = Math.toRadians(angle.toDouble())
+                                                val dx = (strokeWidthInt * cos(rad)).toFloat()
+                                                val dy = (strokeWidthInt * sin(rad)).toFloat()
+                                                maskCanvas.drawBitmap(strokeAlpha, strokeWidthInt + dx, strokeWidthInt + dy, maskPaint)
+                                            }
+                                            strokeAlpha.recycle()
+
                                             StrokeCacheEntry(
-                                                alpha, strokeFp
+                                                preRendered, strokeFp
                                             ).also { strokeBitmapCache[element.id] = it }.bitmap
                                         }
 
@@ -2767,14 +2812,11 @@ class CanvasView @JvmOverloads constructor(
                                         reusableStrokePaint.color = element.strokeColor
                                     }
                                     canvas.save()
-                                    val strokeWidth = element.strokeWidth.toInt().coerceAtLeast(1)
-                                    for (angle in 0 until 360 step 10) {
-                                        val rad = Math.toRadians(angle.toDouble())
-                                        val dx = (strokeWidth * cos(rad)).toFloat()
-                                        val dy = (strokeWidth * sin(rad)).toFloat()
-                                        reusableRectF.set(bl + dx, bt + dy, br + dx, bb + dy)
+                                    val strokeWidth = element.strokeWidth
+                                    reusableRectF.set(bl - strokeWidth, bt - strokeWidth, br + strokeWidth, bb + strokeWidth)
+                                    if (!strokedAlphaMask.isRecycled) {
                                         canvas.drawBitmap(
-                                            strokeAlpha,
+                                            strokedAlphaMask,
                                             null,
                                             reusableRectF,
                                             reusableStrokePaint
@@ -2842,7 +2884,7 @@ class CanvasView @JvmOverloads constructor(
 
                                     // ── Feather: soft edge fade, instant GPU, no pixel loops ────────
                                     if (element.hasFeather && element.featherRadius > 0f) {
-                                        drawFeatherMask(canvas, bl, bt, br, bb,
+                                        drawFeatherMask(canvas, element.id, bl, bt, br, bb,
                                             element.featherRadius, element.featherWidth, element.featherDirection ?: FeatherDirection.ALL)
                                     }
 
@@ -2884,7 +2926,7 @@ class CanvasView @JvmOverloads constructor(
 
                                     // ── Feather: soft edge fade, instant GPU, no pixel loops ────────
                                     if (element.hasFeather && element.featherRadius > 0f) {
-                                        drawFeatherMask(canvas, left, top, left + w, top + h,
+                                        drawFeatherMask(canvas, element.id, left, top, left + w, top + h,
                                             element.featherRadius, element.featherWidth, element.featherDirection ?: FeatherDirection.ALL)
                                     }
 
@@ -2922,17 +2964,33 @@ class CanvasView @JvmOverloads constructor(
                                         finalBitmap.height
                                     )
                                     val cachedStroke = strokeBitmapCache[element.id + "_img"]
-                                    val strokeAlpha: Bitmap =
+                                    val strokedAlphaMask: Bitmap =
                                         if (cachedStroke != null && cachedStroke.fingerprint == strokeFp && !cachedStroke.bitmap.isRecycled) {
                                             cachedStroke.bitmap
                                         } else {
                                             cachedStroke?.bitmap?.recycle()
-                                            val alpha = finalBitmap.extractAlpha()
-                                            StrokeCacheEntry(alpha, strokeFp)
+                                            val strokeAlpha = finalBitmap.extractAlpha()
+
+                                            // Pre-render the stroke onto a single ALPHA_8 bitmap
+                                            val strokeWidthInt = element.strokeWidth.roundToInt().coerceAtLeast(1)
+                                            val maskW = strokeAlpha.width + 2 * strokeWidthInt
+                                            val maskH = strokeAlpha.height + 2 * strokeWidthInt
+                                            val preRendered = Bitmap.createBitmap(maskW, maskH, Bitmap.Config.ALPHA_8)
+                                            val maskCanvas = Canvas(preRendered)
+                                            val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+                                            for (angle in 0 until 360 step 10) {
+                                                val rad = Math.toRadians(angle.toDouble())
+                                                val dx = (strokeWidthInt * cos(rad)).toFloat()
+                                                val dy = (strokeWidthInt * sin(rad)).toFloat()
+                                                maskCanvas.drawBitmap(strokeAlpha, strokeWidthInt + dx, strokeWidthInt + dy, maskPaint)
+                                            }
+                                            strokeAlpha.recycle()
+
+                                            StrokeCacheEntry(preRendered, strokeFp)
                                                 .also { strokeBitmapCache[element.id + "_img"] = it }.bitmap
                                         }
 
-                                    val strokeWidth = element.strokeWidth.toInt().coerceAtLeast(1)
+                                    val strokeWidth = element.strokeWidth
                                     reusableStrokePaint.reset()
                                     reusableStrokePaint.style = Paint.Style.FILL
                                     reusableStrokePaint.isFilterBitmap = true
@@ -2944,14 +3002,9 @@ class CanvasView @JvmOverloads constructor(
                                     }
 
                                     canvas.save()
-                                    for (angle in 0 until 360 step 10) {
-                                        val rad = Math.toRadians(angle.toDouble())
-                                        val dx = (strokeWidth * cos(rad)).toFloat()
-                                        val dy = (strokeWidth * sin(rad)).toFloat()
-                                        reusableRectF.set(left + dx, top + dy, left + dx + w, top + dy + h)
-                                        if (!strokeAlpha.isRecycled) {
-                                            canvas.drawBitmap(strokeAlpha, null, reusableRectF, reusableStrokePaint)
-                                        }
+                                    reusableRectF.set(left - strokeWidth, top - strokeWidth, left + w + strokeWidth, top + h + strokeWidth)
+                                    if (!strokedAlphaMask.isRecycled) {
+                                        canvas.drawBitmap(strokedAlphaMask, null, reusableRectF, reusableStrokePaint)
                                     }
                                     canvas.restore()
                                 }
@@ -3057,7 +3110,7 @@ class CanvasView @JvmOverloads constructor(
 
                                 // ── Feather: soft edge fade, instant GPU, no pixel loops ────────────
                                 if (element.hasFeather && element.featherRadius > 0f) {
-                                    drawFeatherMask(canvas, left, top, left + w, top + h,
+                                    drawFeatherMask(canvas, element.id, left, top, left + w, top + h,
                                         element.featherRadius, element.featherWidth, element.featherDirection ?: FeatherDirection.ALL)
                                 }
                                 canvas.restore()  // restore saveLayer opened above for feather compositing
@@ -3577,7 +3630,7 @@ class CanvasView @JvmOverloads constructor(
 
                 // ── Feather: soft edge fade drawn on canvas — instant, no pixel loops ─
                 if (element.hasFeather && element.featherRadius > 0f) {
-                    drawFeatherMask(canvas,
+                    drawFeatherMask(canvas, element.id,
                         localRect.left, localRect.top, localRect.right, localRect.bottom,
                         element.featherRadius, element.featherWidth, element.featherDirection ?: FeatherDirection.ALL)
                 }
@@ -3836,6 +3889,7 @@ class CanvasView @JvmOverloads constructor(
     // ─────────────────────────────────────────────────────────────────────────
     private fun drawFeatherMask(
         canvas: Canvas,
+        elementId: String,
         left: Float, top: Float, right: Float, bottom: Float,
         featherRadius: Float, featherWidth: Float,
         direction: FeatherDirection = FeatherDirection.ALL
@@ -3848,39 +3902,48 @@ class CanvasView @JvmOverloads constructor(
         val maskW = 128
         val maskH = 128
 
-        val fraction = sqrt((featherRadius / 100.0)).toFloat().coerceIn(0f, 1f)
-        val bandX = (maskW / 2f) * fraction
-        val bandY = (maskH / 2f) * fraction
-        val exponent = 1.0 + ((100f - featherWidth) / 100.0) * 7.0
+        val featherFp = Objects.hash(elementId, featherRadius, featherWidth, direction)
+        val cached = featherBitmapCache[elementId]
+        val maskBmp: Bitmap = if (cached != null && cached.fingerprint == featherFp && !cached.bitmap.isRecycled) {
+            cached.bitmap
+        } else {
+            cached?.bitmap?.recycle()
 
-        // Which edges are active
-        val doTop    = direction == FeatherDirection.ALL || direction == FeatherDirection.TOP
-        val doBottom = direction == FeatherDirection.ALL || direction == FeatherDirection.BOTTOM
-        val doLeft   = direction == FeatherDirection.ALL || direction == FeatherDirection.LEFT
-        val doRight  = direction == FeatherDirection.ALL || direction == FeatherDirection.RIGHT
+            val fraction = sqrt((featherRadius / 100.0)).toFloat().coerceIn(0f, 1f)
+            val bandX = (maskW / 2f) * fraction
+            val bandY = (maskH / 2f) * fraction
+            val exponent = 1.0 + ((100f - featherWidth) / 100.0) * 7.0
 
-        val pixels = IntArray(maskW * maskH)
-        for (py in 0 until maskH) {
-            val topRamp    = if (doTop    && bandY > 0f) smoothStep((py / bandY).coerceIn(0f, 1f), exponent) else 1f
-            val botRamp    = if (doBottom && bandY > 0f) smoothStep(((maskH - 1 - py) / bandY).coerceIn(0f, 1f), exponent) else 1f
-            val vRamp = topRamp * botRamp
+            // Which edges are active
+            val doTop    = direction == FeatherDirection.ALL || direction == FeatherDirection.TOP
+            val doBottom = direction == FeatherDirection.ALL || direction == FeatherDirection.BOTTOM
+            val doLeft   = direction == FeatherDirection.ALL || direction == FeatherDirection.LEFT
+            val doRight  = direction == FeatherDirection.ALL || direction == FeatherDirection.RIGHT
 
-            for (px in 0 until maskW) {
-                val leftRamp  = if (doLeft  && bandX > 0f) smoothStep((px / bandX).coerceIn(0f, 1f), exponent) else 1f
-                val rightRamp = if (doRight && bandX > 0f) smoothStep(((maskW - 1 - px) / bandX).coerceIn(0f, 1f), exponent) else 1f
-                val alpha = (vRamp * leftRamp * rightRamp * 255f).toInt().coerceIn(0, 255)
-                pixels[py * maskW + px] = Color.argb(alpha, 0, 0, 0)
+            val pixels = IntArray(maskW * maskH)
+            for (py in 0 until maskH) {
+                val topRamp    = if (doTop    && bandY > 0f) smoothStep((py / bandY).coerceIn(0f, 1f), exponent) else 1f
+                val botRamp    = if (doBottom && bandY > 0f) smoothStep(((maskH - 1 - py) / bandY).coerceIn(0f, 1f), exponent) else 1f
+                val vRamp = topRamp * botRamp
+
+                for (px in 0 until maskW) {
+                    val leftRamp  = if (doLeft  && bandX > 0f) smoothStep((px / bandX).coerceIn(0f, 1f), exponent) else 1f
+                    val rightRamp = if (doRight && bandX > 0f) smoothStep(((maskW - 1 - px) / bandX).coerceIn(0f, 1f), exponent) else 1f
+                    val alpha = (vRamp * leftRamp * rightRamp * 255f).toInt().coerceIn(0, 255)
+                    pixels[py * maskW + px] = Color.argb(alpha, 0, 0, 0)
+                }
             }
+
+            val newBmp = Bitmap.createBitmap(maskW, maskH, Bitmap.Config.ARGB_8888)
+            newBmp.setPixels(pixels, 0, maskW, 0, 0, maskW, maskH)
+            FeatherCacheEntry(newBmp, featherFp).also { featherBitmapCache[elementId] = it }.bitmap
         }
 
-        val maskBmp = Bitmap.createBitmap(maskW, maskH, Bitmap.Config.ARGB_8888)
-        maskBmp.setPixels(pixels, 0, maskW, 0, 0, maskW, maskH)
         val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             isFilterBitmap = true
             xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
         }
         canvas.drawBitmap(maskBmp, null, RectF(left, top, right, bottom), maskPaint)
-        maskBmp.recycle()
         maskPaint.xfermode = null
     }
 
@@ -3952,25 +4015,40 @@ class CanvasView @JvmOverloads constructor(
         if (source.width <= targetW && source.height <= targetH) return source
 
         val cached = displayBitmapCache[cacheKey]
-        if (cached != null &&
-            !cached.bitmap.isRecycled &&
-            cached.srcWidth == source.width &&
-            cached.srcHeight == source.height &&
-            cached.dstWidth == targetW &&
-            cached.dstHeight == targetH
-        ) {
-            return cached.bitmap  // ✅ cache hit
+        if (cached != null && !cached.bitmap.isRecycled) {
+            // During active gestures, reuse the cached proxy even if the size has changed,
+            // to prevent heavy bitmap resizing on every frame.
+            if (isGestureActive()) {
+                return cached.bitmap
+            }
+
+            // Discretize target sizes to nearest multiple of 128px to reduce cache misses
+            // from minor layout/scale updates when not in active gesture.
+            val discreteW = (((targetW + 127) / 128) * 128).coerceAtMost(source.width)
+            val discreteH = (((targetH + 127) / 128) * 128).coerceAtMost(source.height)
+
+            if (cached.srcWidth == source.width &&
+                cached.srcHeight == source.height &&
+                cached.dstWidth == discreteW &&
+                cached.dstHeight == discreteH
+            ) {
+                return cached.bitmap  // ✅ cache hit
+            }
         }
 
+        // For the first frame of gesture or when no cache exists, use rounded/discretized size.
+        val discreteW = (((targetW + 127) / 128) * 128).coerceAtMost(source.width).coerceAtLeast(1)
+        val discreteH = (((targetH + 127) / 128) * 128).coerceAtMost(source.height).coerceAtLeast(1)
+
         // Build a high-quality downscale using FILTER_BITMAP_FLAG (bilinear)
-        val scaled = Bitmap.createScaledBitmap(source, targetW, targetH, true)
+        val scaled = Bitmap.createScaledBitmap(source, discreteW, discreteH, true)
         // Do NOT recycle the old cached bitmap immediately — the export pipeline runs on a
         // background thread and may hold a reference to it mid-draw. Let it become unreachable
         // and be GC'd rather than risk a "Canvas: trying to use a recycled bitmap" crash.
         displayBitmapCache[cacheKey] = DisplayCacheEntry(
             bitmap = scaled,
             srcWidth = source.width, srcHeight = source.height,
-            dstWidth = targetW, dstHeight = targetH
+            dstWidth = discreteW, dstHeight = discreteH
         )
         return scaled
     }
@@ -5521,6 +5599,14 @@ class CanvasView @JvmOverloads constructor(
                     pinchFocusY = 0f
                     initialOffsetXAtPinch = overallOffsetX
                     initialOffsetYAtPinch = overallOffsetY
+
+                    // Update touchStart points to the remaining finger's coordinates
+                    // if we were in CANVAS_PAN mode to prevent a jump/snap when the remaining finger moves.
+                    if (currentMode == Mode.CANVAS_PAN && event.pointerCount == 2) {
+                        val remainingIndex = if (event.actionIndex == 0) 1 else 0
+                        touchStartX = event.getX(remainingIndex)
+                        touchStartY = event.getY(remainingIndex)
+                    }
                 }
                 invalidate()
                 return true

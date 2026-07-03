@@ -22,6 +22,7 @@ import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.data.model.ShapesData
 import com.webscare.urducanvas.databinding.FragmentObjectsListBinding
 import com.webscare.urducanvas.ui.editor.panels.images.ImagesAdapter
+import com.webscare.urducanvas.common.utils.isDarkModeEnabled
 import com.webscare.urducanvas.common.utils.MorphGridLayoutManager
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -91,6 +92,10 @@ class ShapesListFragment : Fragment() {
         setupExpandGesture()
         setupImageTab()
         observeSelectionState()
+
+        val isExpandedNow = mainViewModel.isPanelExpanded(PanelType.SHAPES)
+        isPanelExpanded = !isExpandedNow
+        onPanelExpanded(isExpandedNow)
     }
 
     override fun onHiddenChanged(hidden: Boolean) {
@@ -190,7 +195,10 @@ class ShapesListFragment : Fragment() {
                     if (svgDrawable != null) {
                         val trimmed = svgDrawable.trimTransparentEdges()
                         Log.d("SVG", "${svgDrawable.intrinsicWidth}x${svgDrawable.intrinsicHeight} → ${trimmed.intrinsicWidth}x${trimmed.intrinsicHeight}")
-                        viewModel.addSvgSticker(trimmed, svgXml, requireActivity(), entity.is_premium)
+                        viewModel.addSvgSticker(
+                            trimmed, svgXml, requireActivity(), entity.is_premium,
+                            applyWhiteTintInDarkMode = false
+                        )
                     } else if (bitmap != null) {
                         viewModel.addSticker(bitmap.trimTransparentEdges(), requireActivity(), ElementType.IMAGE, entity.is_premium)
                     }
@@ -201,7 +209,7 @@ class ShapesListFragment : Fragment() {
                 }
             )
         }
-
+        imagesAdapter?.applyWhiteTint = false
         binding.objects.adapter = imagesAdapter
 
         val data = mainViewModel.shapesData.value

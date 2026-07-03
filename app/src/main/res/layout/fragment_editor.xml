@@ -8,15 +8,6 @@
     android:id="@+id/editorRoot"
     tools:context=".ui.editor.EditorFragment">
 
-    <View
-        android:id="@+id/dimOverlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#000000"
-        android:alpha="0"
-        android:visibility="invisible"
-        android:translationZ="7dp" />
-
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/topGuide"
         android:layout_width="wrap_content"
@@ -170,6 +161,17 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <View
+        android:id="@+id/dimOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0.5"
+        android:background="#000000"
+        android:translationZ="7dp"
+        android:visibility="visible"
+        tools:layout_editor_absoluteX="0dp"
+        tools:layout_editor_absoluteY="0dp" />
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/header"
         android:layout_width="0dp"
@@ -244,8 +246,8 @@
 
         <ImageView
             android:id="@+id/grid"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:background="@drawable/button_bg_round"
             android:backgroundTint="@color/contrast"
             app:tint="@color/gray"
@@ -258,8 +260,8 @@
 
         <ImageView
             android:id="@+id/ruler"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:background="@drawable/button_bg_round"
             android:backgroundTint="@color/contrast"
             app:tint="@color/gray"
@@ -272,8 +274,8 @@
 
         <ImageView
             android:id="@+id/pan"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:background="@drawable/button_bg_round"
             android:backgroundTint="@color/contrast"
             app:tint="@color/gray"
@@ -286,8 +288,8 @@
 
         <ImageView
             android:id="@+id/zoom"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:background="@drawable/button_bg_round"
             android:backgroundTint="@color/contrast"
             app:tint="@color/black"
@@ -457,14 +459,14 @@
 
     <View
         android:id="@+id/panelTopShadow"
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="60dp"
         android:background="@drawable/top_shadow"
         android:importantForAccessibility="no"
-        app:layout_constraintTop_toBottomOf="@id/centerGuide"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/panelNavHost" />
+        app:layout_constraintTop_toTopOf="@id/panelNavHost"
+        app:layout_constraintBottom_toTopOf="@id/panelNavHost"/>
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/panelNavHost"
@@ -474,7 +476,7 @@
         android:elevation="0dp"
         android:visibility="visible"
         app:defaultNavHost="false"
-        android:translationZ="8dp"
+        android:translationZ="10dp"
         android:background="@android:color/transparent"
         app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
         app:layout_constraintEnd_toEndOf="parent"
@@ -696,6 +698,7 @@
         android:layout_height="63dp"
         android:layout_gravity="center_vertical"
         android:background="@color/white"
+        android:translationZ="10dp"
         android:fitsSystemWindows="true"
         android:paddingHorizontal="20dp"
         android:paddingBottom="0dp"

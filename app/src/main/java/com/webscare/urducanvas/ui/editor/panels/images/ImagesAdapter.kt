@@ -21,6 +21,8 @@ import com.bumptech.glide.request.target.Target
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.SvgLoader
+import com.webscare.urducanvas.common.utils.startShimmerSoft
+import com.webscare.urducanvas.common.utils.isDarkModeEnabled
 import com.webscare.urducanvas.common.utils.Utils.addPressEffectWithLongClick
 import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.databinding.LayoutImagesItemBinding
@@ -61,6 +63,7 @@ class ImagesAdapter(
         }
 
     var isInMultiSelectMode: Boolean = false
+    var applyWhiteTint: Boolean = false
 
     var slideOffset: Float = 0f
     var recyclerViewWidth: Int = 0
@@ -234,18 +237,24 @@ class ImagesAdapter(
             if (rvWidth <= 0) return
             val context = itemView.context
             val density = context.resources.displayMetrics.density
-            val collapsedSize = (50 * density).toInt()
+            val collapsedSize = (44 * density).toInt()
 
             val marginPx = 18 * density // spacing space (3 columns * 2 sides * 3dp = 18dp)
             val columnWidth = ((rvWidth - rvPadding - marginPx) / 3).toInt()
 
             val currentSize = (collapsedSize + (columnWidth - collapsedSize) * slideOffset).toInt()
 
-            val lp = cardRoot.layoutParams
-            if (lp.width != currentSize || lp.height != currentSize) {
-                lp.width = currentSize
-                lp.height = currentSize
-                cardRoot.layoutParams = lp
+            val lp = cardRoot.layoutParams as? android.view.ViewGroup.MarginLayoutParams
+            if (lp != null) {
+                val marginEndPx = (6 * density).toInt()
+                val marginBottomPx = (6 * density).toInt()
+                if (lp.width != currentSize || lp.height != currentSize || lp.rightMargin != marginEndPx || lp.bottomMargin != marginBottomPx) {
+                    lp.width = currentSize
+                    lp.height = currentSize
+                    lp.rightMargin = marginEndPx
+                    lp.bottomMargin = marginBottomPx
+                    cardRoot.layoutParams = lp
+                }
             }
         }
 
@@ -287,14 +296,15 @@ class ImagesAdapter(
             val displayUrl = resolveUrl(image)
             val isSvg = image.file_name.endsWith(".svg", ignoreCase = true)
             displayJob?.cancel()
+            val isDark = itemView.context.isDarkModeEnabled()
             if (isSvg) {
-                val cached = SvgLoader.peekThumbnail(displayUrl)
+                val cached = SvgLoader.peekThumbnail(displayUrl, adapter.applyWhiteTint)
                 if (cached != null) {
                     shimmer.stopShimmer(); shimmer.setShimmer(null)
                     imageView.setImageBitmap(cached)
                 } else {
-                    shimmer.startShimmer()
-                    displayJob = SvgLoader.load(displayUrl, imageView, scope, image.bitmapData) { _, _ ->
+                    shimmer.startShimmerSoft(isDark)
+                    displayJob = SvgLoader.load(displayUrl, imageView, scope, image.bitmapData, applyWhiteTint = adapter.applyWhiteTint) { _, _ ->
                         shimmer.stopShimmer(); shimmer.setShimmer(null)
                     }
                     displayJob?.invokeOnCompletion {
@@ -304,7 +314,7 @@ class ImagesAdapter(
                     }
                 }
             } else {
-                shimmer.startShimmer()
+                shimmer.startShimmerSoft(isDark)
                 Glide.with(itemView.context)
                     .load(displayUrl)
                     .centerInside()
@@ -323,7 +333,7 @@ class ImagesAdapter(
         private suspend fun handleTap(image: ImageEntity, url: String, isSvg: Boolean) {
             if (isSvg) {
                 loadingAnim.isVisible = true
-                val result = withContext(Dispatchers.IO) { SvgLoader.resolve(url, image.bitmapData) }
+                val result = withContext(Dispatchers.IO) { SvgLoader.resolve(url, image.bitmapData, adapter.applyWhiteTint) }
                 loadingAnim.isVisible = false
                 result?.let { (d, xml) -> onImageSelected(null, d, xml, image) }
             } else {

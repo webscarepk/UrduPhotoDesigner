@@ -119,29 +119,7 @@ class LayersFragment : Fragment() {
 
     @Suppress("UNUSED_PARAMETER")
     private fun applySlideOffset(offset: Float) {
-        if (_binding == null) return
-        val lm = binding.layers.layoutManager as? MorphGridLayoutManager
-        if (lm != null) {
-            lm.applyFraction(binding.layers, offset)
-            val effectiveExpanded = offset >= 0.5f
-            if (adapter.isExpanded != effectiveExpanded) {
-                binding.layers.recycledViewPool.clear()
-                adapter.isExpanded = effectiveExpanded
-            }
-        }
-
-        // Smoothly resize all visible items at 60fps
-        val rvWidth   = binding.layers.width
-        val rvPadding = binding.layers.paddingLeft + binding.layers.paddingRight
-        adapter.slideOffset         = offset
-        adapter.recyclerViewWidth   = rvWidth
-        adapter.recyclerViewPadding = rvPadding
-
-        for (i in 0 until binding.layers.childCount) {
-            val child  = binding.layers.getChildAt(i)
-            val holder = binding.layers.getChildViewHolder(child) as? LayersAdapter.LayerViewHolder
-            holder?.updateSize(offset, rvWidth, rvPadding)
-        }
+        // No-op: layers fragment is always a full-width vertical list, no morphing needed
     }
 
     // ── Toolbar ───────────────────────────────────────────────────────────────
@@ -231,20 +209,15 @@ class LayersFragment : Fragment() {
             onToggleCollapse    = { element -> handleToggleCollapse(element) }
         )
 
-        val isPanelCurrentlyExpanded = mainViewModel.isPanelExpanded(
-            com.webscare.urducanvas.common.canvas.enums.PanelType.LAYERS
-        )
-        adapter.isExpanded = isPanelCurrentlyExpanded
+        adapter.isExpanded = true
 
         binding.layers.apply {
             this.adapter = this@LayersFragment.adapter
-            layoutManager = MorphGridLayoutManager(
-                context      = requireContext(),
-                collapsedSpan = 3,
-                expandedSpan  = 3
-            ).apply {
-                applyFraction(binding.layers, if (isPanelCurrentlyExpanded) 1f else 0f)
-            }
+            layoutManager = androidx.recyclerview.widget.LinearLayoutManager(
+                requireContext(),
+                androidx.recyclerview.widget.RecyclerView.VERTICAL,
+                false
+            )
         }
 
         val callback = object : ItemTouchHelper.SimpleCallback(

@@ -118,7 +118,7 @@
                     android:fontFamily="@font/regular"
                     app:layout_constraintStart_toEndOf="@id/titleImage"
                     app:layout_constraintEnd_toStartOf="@id/upgradeNow"
-                    android:textColor="@color/light_gray"
+                    android:textColor="#D6D6D6"
                     android:layout_marginStart="10dp"
                     android:layout_marginEnd="8dp"
                     android:id="@+id/subscriptionCardSubTitle"
@@ -328,6 +328,7 @@
                     android:text="@string/preferences"
                     android:textColor="@color/black"
                     android:textSize="14sp"
+                    app:drawableTint="@color/black"
                     app:drawableEndCompat="@drawable/ic_next"
                     app:drawableStartCompat="@drawable/ic_preferences" />
 
@@ -347,6 +348,7 @@
                     android:text="@string/contact_support"
                     android:textColor="@color/black"
                     android:textSize="14sp"
+                    app:drawableTint="@color/black"
                     app:drawableEndCompat="@drawable/ic_next"
                     app:drawableStartCompat="@drawable/ic_support" />
 
@@ -366,6 +368,7 @@
                     android:text="@string/privacy_policy"
                     android:textColor="@color/black"
                     android:textSize="14sp"
+                    app:drawableTint="@color/black"
                     app:drawableEndCompat="@drawable/ic_next"
                     app:drawableStartCompat="@drawable/ic_privacy" />
 
@@ -385,6 +388,7 @@
                     android:text="@string/rate_the_app"
                     android:textColor="@color/black"
                     android:textSize="14sp"
+                    app:drawableTint="@color/black"
                     app:drawableEndCompat="@drawable/ic_next"
                     app:drawableStartCompat="@drawable/ic_rate" />
 
@@ -404,6 +408,7 @@
                     android:text="@string/join_whatsapp_channel"
                     android:textColor="@color/black"
                     android:textSize="14sp"
+                    app:drawableTint="@color/black"
                     app:drawableEndCompat="@drawable/ic_next"
                     app:drawableStartCompat="@drawable/ic_whatsapp" />
 
@@ -436,6 +441,7 @@
                     android:text="@string/help_us_improve"
                     android:textColor="@color/black"
                     android:textSize="14sp"
+                    app:drawableTint="@color/black"
                     app:drawableEndCompat="@drawable/ic_next"
                     app:drawableStartCompat="@drawable/ic_improve" />
 
@@ -455,6 +461,7 @@
                     android:text="@string/request_for_a_feature"
                     android:textColor="@color/black"
                     android:textSize="14sp"
+                    app:drawableTint="@color/black"
                     app:drawableEndCompat="@drawable/ic_next"
                     app:drawableStartCompat="@drawable/ic_feature_request" />
 
@@ -474,6 +481,7 @@
                     android:text="@string/report_a_bug"
                     android:textColor="@color/black"
                     android:textSize="14sp"
+                    app:drawableTint="@color/black"
                     app:drawableEndCompat="@drawable/ic_next"
                     app:drawableStartCompat="@drawable/ic_bug_report" />
             </LinearLayout>

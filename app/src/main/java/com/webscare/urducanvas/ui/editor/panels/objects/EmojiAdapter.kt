@@ -199,16 +199,22 @@ class EmojiAdapter(
         fun updateSize(slideOffset: Float, rvWidth: Int, rvPadding: Int) {
             if (rvWidth <= 0) return
             val density = itemView.context.resources.displayMetrics.density
-            val collapsedSize = (50 * density).toInt()
+            val collapsedSize = (44 * density).toInt()
             val marginPx = 18 * density // 3 cols × 2 sides × 3dp
             val columnWidth = ((rvWidth - rvPadding - marginPx) / 3).toInt()
             val size = (collapsedSize + (columnWidth - collapsedSize) * slideOffset).toInt()
 
-            val lp = itemView.layoutParams
-            if (lp != null && (lp.width != size || lp.height != size)) {
-                lp.width  = size
-                lp.height = size
-                itemView.layoutParams = lp
+            val lp = itemView.layoutParams as? android.view.ViewGroup.MarginLayoutParams
+            if (lp != null) {
+                val marginEndPx = (6 * density).toInt()
+                val marginBottomPx = (6 * density).toInt()
+                if (lp.width != size || lp.height != size || lp.rightMargin != marginEndPx || lp.bottomMargin != marginBottomPx) {
+                    lp.width = size
+                    lp.height = size
+                    lp.rightMargin = marginEndPx
+                    lp.bottomMargin = marginBottomPx
+                    itemView.layoutParams = lp
+                }
             }
         }
 

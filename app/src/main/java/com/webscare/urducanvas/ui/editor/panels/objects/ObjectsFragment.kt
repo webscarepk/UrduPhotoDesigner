@@ -38,6 +38,7 @@ import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.ImageProcessor.downsampleIfNeeded
 import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
 import com.webscare.urducanvas.common.utils.SvgLoader
+import com.webscare.urducanvas.common.utils.isDarkModeEnabled
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.ObjectsData
 import com.webscare.urducanvas.databinding.FragmentObjectsBinding
@@ -346,12 +347,13 @@ class ObjectsFragment : Fragment() {
 
                 if (isSvg) {
                     val result = withContext(Dispatchers.IO) {
-                        SvgLoader.resolve(url, entity.bitmapData)
+                        SvgLoader.resolve(url, entity.bitmapData, applyWhiteTint = requireContext().isDarkModeEnabled())
                     }
                     result?.let { (drawable, xml) ->
                         viewModel.addSvgSticker(
                             drawable.trimTransparentEdges(), xml,
-                            requireActivity(), entity.is_premium
+                            requireActivity(), entity.is_premium,
+                            applyWhiteTintInDarkMode = true
                         )
                     }
                 } else {

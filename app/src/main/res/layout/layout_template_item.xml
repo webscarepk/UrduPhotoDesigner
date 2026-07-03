@@ -40,7 +40,7 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:shimmer_base_color="@color/contrast"
-                app:shimmer_highlight_alpha="1.0">
+                app:shimmer_highlight_alpha="@dimen/shimmer_highlight_alpha">
 
                 <!-- IMAGE -->
                 <ImageView

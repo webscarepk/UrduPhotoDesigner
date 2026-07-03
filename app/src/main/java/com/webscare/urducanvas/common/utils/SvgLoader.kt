@@ -28,11 +28,29 @@ object SvgLoader {
     // 6 concurrent renders for fast first-scroll population.
     private val renderSemaphore = kotlinx.coroutines.sync.Semaphore(6)
 
-    private val httpClient = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .connectionPool(ConnectionPool(10, 5, TimeUnit.MINUTES))
-        .build()
+    @Volatile
+    private var appContext: android.content.Context? = null
+
+    fun init(context: android.content.Context) {
+        if (appContext == null) {
+            appContext = context.applicationContext
+        }
+    }
+
+    private val httpClient by lazy {
+        val builder = OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .connectionPool(ConnectionPool(10, 5, TimeUnit.MINUTES))
+        
+        appContext?.let { ctx ->
+            val cacheSize = 50 * 1024 * 1024L // 50 MiB
+            val cacheDir = java.io.File(ctx.cacheDir, "svg_cache")
+            builder.cache(okhttp3.Cache(cacheDir, cacheSize))
+        }
+        
+        builder.build()
+    }
 
     // ── Caches ────────────────────────────────────────────────────────────────
 
@@ -48,17 +66,67 @@ object SvgLoader {
         override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
     }
 
+    private val isMultiColorCache = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+
     /**
      * Synchronous cache peek. Returns the already-rasterized thumbnail bitmap if
      * present, else null. Lets the adapter set a cached thumbnail DURING bind with
      * zero coroutine hop and without starting shimmer — this removes the per-bind
      * hitch when scrolling back over already-seen cells.
      */
-    fun peekThumbnail(url: String): Bitmap? = bitmapCache.get(url)
+    fun peekThumbnail(url: String, applyWhiteTint: Boolean = false): Bitmap? {
+        val tintedCacheKey = if (applyWhiteTint) "${url}_white" else url
+        return bitmapCache.get(tintedCacheKey)
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Public: DISPLAY load (grid thumbnails) — bitmap path, low memory
     // ─────────────────────────────────────────────────────────────────────────
+
+    private fun rasterizeFromXmlSync(url: String, xml: String, maxPx: Int, applyWhiteTint: Boolean): Bitmap? {
+        val cacheKey = if (maxPx == THUMB_MAX_PX) url else "${url}_$maxPx"
+        val tintedCacheKey = if (applyWhiteTint) "${cacheKey}_white" else cacheKey
+        
+        val svg = runCatching { SVG.getFromString(xml) }.getOrNull() ?: return null
+        svgCache.put(url, svg)
+        
+        return runCatching {
+            val vb = svg.documentViewBox
+            var w = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.width() else svg.documentWidth
+            var h = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.height() else svg.documentHeight
+            if (w <= 0f || h <= 0f) {
+                w = maxPx.toFloat()
+                h = maxPx.toFloat()
+            }
+
+            val scale = maxPx / maxOf(w, h)
+            val outW = (w * scale).toInt().coerceAtLeast(1)
+            val outH = (h * scale).toInt().coerceAtLeast(1)
+
+            val bmp = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bmp)
+            
+            svg.documentWidth = outW.toFloat()
+            svg.documentHeight = outH.toFloat()
+
+            if (svg.documentViewBox != null) {
+                val origAspectRatio = svg.documentPreserveAspectRatio
+                try {
+                    svg.documentPreserveAspectRatio = com.caverock.androidsvg.PreserveAspectRatio.LETTERBOX
+                    svg.renderToCanvas(canvas, RectF(0f, 0f, outW.toFloat(), outH.toFloat()))
+                } finally {
+                    svg.documentPreserveAspectRatio = origAspectRatio
+                }
+            } else {
+                canvas.scale(scale, scale)
+                svg.renderToCanvas(canvas)
+            }
+
+            val finalBmp = if (applyWhiteTint) bmp.tintWhite() else bmp
+            bitmapCache.put(tintedCacheKey, finalBmp)
+            finalBmp
+        }.getOrNull()
+    }
 
     /**
      * Load an SVG into [imageView] as a small cached BITMAP. Call from Main; work
@@ -72,24 +140,107 @@ object SvgLoader {
      * to receive [svgXml]. If any caller actually consumes the PictureDrawable,
      * use resolve() instead.
      */
+    fun isMultiColorSvg(xml: String): Boolean {
+        if (xml.isEmpty()) return false
+        val key = xml.hashCode().toString()
+        return isMultiColorCache.getOrPut(key) {
+            val uniqueColors = mutableSetOf<String>()
+            
+            // 1. Match hex colors: #FFF, #123456, #AABBCCDD, etc.
+            val hexRegex = Regex("#([0-9a-fA-F]{3,8})(?![0-9a-fA-F])")
+            for (match in hexRegex.findAll(xml)) {
+                val hex = normalizeHexColor(match.value)
+                uniqueColors.add(hex)
+            }
+            
+            // 2. Match XML attributes: fill="red", stroke="black", stop-color="#fff"
+            val attrRegex = Regex("""(fill|stroke|stop-color)\s*=\s*"([^"]+)"""", RegexOption.IGNORE_CASE)
+            for (match in attrRegex.findAll(xml)) {
+                val color = match.groups[2]?.value?.trim()?.lowercase() ?: continue
+                if (color != "none" && color != "currentColor" && color != "inherit" && !color.startsWith("url(")) {
+                    if (color.startsWith("#")) {
+                        uniqueColors.add(normalizeHexColor(color))
+                    } else {
+                        uniqueColors.add(color)
+                    }
+                }
+            }
+            
+            // 3. Match CSS properties: fill:red, stroke:#fff, etc.
+            val styleRegex = Regex("""(fill|stroke|stop-color)\s*:\s*([^;"]+)""", RegexOption.IGNORE_CASE)
+            for (match in styleRegex.findAll(xml)) {
+                val color = match.groups[2]?.value?.trim()?.lowercase() ?: continue
+                if (color != "none" && color != "currentColor" && color != "inherit" && !color.startsWith("url(")) {
+                    if (color.startsWith("#")) {
+                        uniqueColors.add(normalizeHexColor(color))
+                    } else {
+                        uniqueColors.add(color)
+                    }
+                }
+            }
+
+            // 4. Match rgb/rgba colors: rgb(255, 99, 71), rgba(0, 0, 0, 0.5)
+            val rgbRegex = Regex("""rgba?\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[\d.]+\s*)?\)""", RegexOption.IGNORE_CASE)
+            for (match in rgbRegex.findAll(xml)) {
+                uniqueColors.add(match.value.replace(" ", "").lowercase())
+            }
+
+            uniqueColors.size >= 3
+        }
+    }
+
+    private fun normalizeHexColor(hex: String): String {
+        val clean = hex.removePrefix("#").lowercase()
+        return when (clean.length) {
+            3 -> "${clean[0]}${clean[0]}${clean[1]}${clean[1]}${clean[2]}${clean[2]}"
+            4 -> "${clean[0]}${clean[0]}${clean[1]}${clean[1]}${clean[2]}${clean[2]}${clean[3]}${clean[3]}"
+            else -> clean
+        }
+    }
+
     fun load(
         url: String,
         imageView: ImageView,
         scope: CoroutineScope,
         cachedXml: String? = null,
+        maxPx: Int = THUMB_MAX_PX,
+        applyWhiteTint: Boolean = false,
         onLoaded: ((PictureDrawable, svgXml: String) -> Unit)? = null
-    ): Job = scope.launch(Dispatchers.Main) {
-        bitmapCache.get(url)?.let { bmp ->
+    ): Job {
+        val cacheKey = if (maxPx == THUMB_MAX_PX) url else "${url}_$maxPx"
+        
+        val xmlFromCache = xmlCache.get(url) ?: cachedXml
+        val actualWhiteTint = if (xmlFromCache != null) {
+            applyWhiteTint && !isMultiColorSvg(xmlFromCache)
+        } else {
+            applyWhiteTint
+        }
+        val tintedCacheKey = if (actualWhiteTint) "${cacheKey}_white" else cacheKey
+        
+        bitmapCache.get(tintedCacheKey)?.let { bmp ->
             imageView.setImageBitmap(bmp)
             onLoaded?.invoke(EMPTY_PICTURE_DRAWABLE, xmlCache.get(url) ?: "")
-            return@launch
+            return kotlinx.coroutines.Job().apply { complete() }
         }
 
-        val result = withContext(Dispatchers.IO) { rasterizeThumbnail(url, cachedXml) }
-            ?: return@launch
-        val (bmp, xml) = result
-        imageView.setImageBitmap(bmp)
-        onLoaded?.invoke(EMPTY_PICTURE_DRAWABLE, xml)
+        if (xmlFromCache?.isNotEmpty() == true) {
+            val xml = xmlFromCache
+            xmlCache.put(url, xml)
+            val cachedBmp = rasterizeFromXmlSync(url, xml, maxPx, actualWhiteTint)
+            if (cachedBmp != null) {
+                imageView.setImageBitmap(cachedBmp)
+                onLoaded?.invoke(EMPTY_PICTURE_DRAWABLE, xml)
+                return kotlinx.coroutines.Job().apply { complete() }
+            }
+        }
+
+        return scope.launch(Dispatchers.Main) {
+            val result = withContext(Dispatchers.IO) { rasterizeThumbnail(url, cachedXml, maxPx, applyWhiteTint) }
+                ?: return@launch
+            val (bmp, xml) = result
+            imageView.setImageBitmap(bmp)
+            onLoaded?.invoke(EMPTY_PICTURE_DRAWABLE, xml)
+        }
     }
 
     /**
@@ -97,47 +248,73 @@ object SvgLoader {
      * and return it with the source xml. Safe on any background thread.
      */
     // ✅ Fix — suspend function with semaphore
-    private suspend fun rasterizeThumbnail(url: String, cachedXml: String?): Pair<Bitmap, String>? =
+    private suspend fun rasterizeThumbnail(url: String, cachedXml: String?, maxPx: Int = THUMB_MAX_PX, applyWhiteTint: Boolean = false): Pair<Bitmap, String>? =
         renderSemaphore.withPermit {
-            rasterizeThumbnailInternal(url, cachedXml)
+            rasterizeThumbnailInternal(url, cachedXml, maxPx, applyWhiteTint)
         }
 
-    private fun rasterizeThumbnailInternal(url: String, cachedXml: String?): Pair<Bitmap, String>? {
-        bitmapCache.get(url)?.let { return it to (xmlCache.get(url) ?: "") }
-
+    private fun rasterizeThumbnailInternal(url: String, cachedXml: String?, maxPx: Int = THUMB_MAX_PX, applyWhiteTint: Boolean = false): Pair<Bitmap, String>? {
+        val cacheKey = if (maxPx == THUMB_MAX_PX) url else "${url}_$maxPx"
+        
         val svg = getOrParseSvg(url, cachedXml) ?: return null
         val xml = xmlCache.get(url) ?: cachedXml ?: ""
+        
+        val actualWhiteTint = applyWhiteTint && !isMultiColorSvg(xml)
+        val tintedCacheKey = if (actualWhiteTint) "${cacheKey}_white" else cacheKey
+        
+        bitmapCache.get(tintedCacheKey)?.let { return it to xml }
 
         return runCatching {
-            // Derive an aspect ratio: prefer explicit document width/height, but
-            // those return -1 for viewBox-only SVGs, so fall back to the viewBox,
-            // then to a square.
-            var w = svg.documentWidth
-            var h = svg.documentHeight
+            // Prefer viewBox dimensions to get correct coordinates/aspect ratio,
+            // fallback to document dimensions, then to standard default.
+            val vb = svg.documentViewBox
+            var w = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.width() else svg.documentWidth
+            var h = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.height() else svg.documentHeight
             if (w <= 0f || h <= 0f) {
-                val vb = svg.documentViewBox
-                if (vb != null && vb.width() > 0f && vb.height() > 0f) {
-                    w = vb.width(); h = vb.height()
-                } else {
-                    w = THUMB_MAX_PX.toFloat(); h = THUMB_MAX_PX.toFloat()
-                }
+                w = maxPx.toFloat()
+                h = maxPx.toFloat()
             }
 
-            // Scale the longest side down to THUMB_MAX_PX (never up).
-            val scale = (THUMB_MAX_PX / maxOf(w, h)).coerceAtMost(1f)
+            // Scale the longest side to maxPx.
+            val scale = maxPx / maxOf(w, h)
             val outW = (w * scale).toInt().coerceAtLeast(1)
             val outH = (h * scale).toInt().coerceAtLeast(1)
 
             val bmp = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bmp)
-            // Force xMidYMid meet so ALL SVGs are centred regardless of their own
-            // preserveAspectRatio declaration (some say xMinYMax → bottom-left).
-            svg.documentPreserveAspectRatio = com.caverock.androidsvg.PreserveAspectRatio.LETTERBOX
-            svg.renderToCanvas(canvas, RectF(0f, 0f, outW.toFloat(), outH.toFloat()))
+            
+            // Override document dimensions to match the output bitmap bounds
+            svg.documentWidth = outW.toFloat()
+            svg.documentHeight = outH.toFloat()
 
-            bitmapCache.put(url, bmp)
-            bmp to xml
+            if (svg.documentViewBox != null) {
+                val origAspectRatio = svg.documentPreserveAspectRatio
+                try {
+                    svg.documentPreserveAspectRatio = com.caverock.androidsvg.PreserveAspectRatio.LETTERBOX
+                    svg.renderToCanvas(canvas, RectF(0f, 0f, outW.toFloat(), outH.toFloat()))
+                } finally {
+                    svg.documentPreserveAspectRatio = origAspectRatio
+                }
+            } else {
+                // If there's no viewBox, scale the canvas itself to render the vector shapes at high resolution
+                canvas.scale(scale, scale)
+                svg.renderToCanvas(canvas)
+            }
+
+            val finalBmp = if (actualWhiteTint) bmp.tintWhite() else bmp
+            bitmapCache.put(tintedCacheKey, finalBmp)
+            finalBmp to xml
         }.getOrNull()
+    }
+
+    private fun Bitmap.tintWhite(): Bitmap {
+        val result = Bitmap.createBitmap(width, height, config ?: Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(result)
+        val paint = android.graphics.Paint().apply {
+            colorFilter = android.graphics.PorterDuffColorFilter(android.graphics.Color.WHITE, android.graphics.PorterDuff.Mode.SRC_IN)
+        }
+        canvas.drawBitmap(this, 0f, 0f, paint)
+        return result
     }
 
     private fun getOrParseSvg(url: String, cachedXml: String?): SVG? {
@@ -161,10 +338,21 @@ object SvgLoader {
      * and happens once per tap, not per grid cell per frame.
      * Safe on any background thread.
      */
-    internal fun resolve(url: String, cachedXml: String?): Pair<PictureDrawable, String>? {
+    internal fun resolve(url: String, cachedXml: String?, applyWhiteTint: Boolean = false): Pair<PictureDrawable, String>? {
         val svg = getOrParseSvg(url, cachedXml) ?: return null
         val xml = xmlCache.get(url) ?: cachedXml ?: ""
-        return runCatching { PictureDrawable(svg.renderToPicture()) to xml }.getOrNull()
+        return runCatching {
+            val vb = svg.documentViewBox
+            var w = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.width() else svg.documentWidth
+            var h = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.height() else svg.documentHeight
+            if (w <= 0f || h <= 0f) {
+                w = 512f
+                h = 512f
+            }
+            svg.documentWidth = w
+            svg.documentHeight = h
+            PictureDrawable(svg.renderToPicture()) to xml
+        }.getOrNull()
     }
 
     /**

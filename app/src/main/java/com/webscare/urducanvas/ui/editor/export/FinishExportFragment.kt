@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.FileProvider
+import androidx.core.content.ContextCompat
 import com.webscare.urducanvas.BuildConfig
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.NavOptions
@@ -77,7 +78,22 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.fileLocationDetail.addPressEffect {
-            requireActivity().copyToClipboard(requireView(),"Exported Path", binding.fileLocationDetail.text.toString())
+            val context = requireContext()
+            requireActivity().copyToClipboard(requireView(), "Exported Path", binding.fileLocationDetail.text.toString())
+            
+            // Swap icon to ic_done tinted with appColor
+            val doneDrawable = ContextCompat.getDrawable(context, R.drawable.ic_done)?.mutate()
+            doneDrawable?.setTint(ContextCompat.getColor(context, R.color.appColor))
+            binding.fileLocationDetail.setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, doneDrawable, null)
+            
+            // Post delayed to switch back to ic_copy tinted with black
+            binding.fileLocationDetail.postDelayed({
+                if (isAdded) {
+                    val copyDrawable = ContextCompat.getDrawable(context, R.drawable.ic_copy)?.mutate()
+                    copyDrawable?.setTint(ContextCompat.getColor(context, R.color.black))
+                    binding.fileLocationDetail.setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, copyDrawable, null)
+                }
+            }, 2000)
         }
 
         binding.back.addPressEffect { findNavController().navigateUp() }

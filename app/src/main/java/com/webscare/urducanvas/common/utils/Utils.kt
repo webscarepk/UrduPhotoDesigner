@@ -16,6 +16,8 @@ import android.view.ViewConfiguration
 import com.webscare.urducanvas.R
 import com.google.android.gms.tasks.Task
 import com.google.android.material.snackbar.Snackbar
+import com.facebook.shimmer.ShimmerFrameLayout
+import com.facebook.shimmer.Shimmer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resumeWithException
@@ -212,4 +214,29 @@ object Utils {
         }
     }
 
+}
+
+fun Context.isDarkModeEnabled(): Boolean {
+    return (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+}
+
+fun ShimmerFrameLayout.startShimmerSoft(isDarkMode: Boolean) {
+    stopShimmer()
+    val builder = if (isDarkMode) {
+        Shimmer.ColorHighlightBuilder()
+            .setBaseAlpha(0.8f)
+            .setHighlightAlpha(0.1f)
+            .setBaseColor(android.graphics.Color.parseColor("#1C1C1E"))
+            .setHighlightColor(android.graphics.Color.parseColor("#2C2C2E"))
+            .setDuration(1200)
+            .setRepeatDelay(0)
+    } else {
+        Shimmer.AlphaHighlightBuilder()
+            .setBaseAlpha(0.5f)
+            .setHighlightAlpha(1.0f)
+            .setDuration(700)
+            .setRepeatDelay(0)
+    }
+    setShimmer(builder.build())
+    startShimmer()
 }

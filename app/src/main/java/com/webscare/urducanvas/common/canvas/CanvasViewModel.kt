@@ -3319,7 +3319,8 @@ class CanvasViewModel @Inject constructor(
         drawable: PictureDrawable,
         svgXml: String?,          // ✅ nullable — graceful fallback for legacy/import
         context: Context,
-        isPremium: Boolean = false
+        isPremium: Boolean = false,
+        applyWhiteTintInDarkMode: Boolean = false
     ) {
         val currentList = _canvasElements.value ?: emptyList()
         val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
@@ -3334,6 +3335,8 @@ class CanvasViewModel @Inject constructor(
         val targetH = canvasH * 0.4f
         val scaleFactor = minOf(targetW / svgW, targetH / svgH)
 
+        val actualTint = applyWhiteTintInDarkMode && (svgXml == null || !com.webscare.urducanvas.common.utils.SvgLoader.isMultiColorSvg(svgXml))
+
         val element = CanvasElement(
             context = context,
             type = ElementType.STICKER,
@@ -3344,7 +3347,8 @@ class CanvasViewModel @Inject constructor(
             y = canvasH / 2f,
             paintAlpha = 255,
             zIndex = newZIndex,
-            isPremium = isPremium
+            isPremium = isPremium,
+            applyWhiteTintInDarkMode = actualTint
         ).apply {
             svgDrawable = drawable
             scale = scaleFactor
@@ -4081,6 +4085,16 @@ class CanvasViewModel @Inject constructor(
                         // ✅ Restore from raw SVG XML — resolution-independent, works at any scale
                         try {
                             val svg = com.caverock.androidsvg.SVG.getFromString(svgData)
+                            val vb = svg.documentViewBox
+                            var w = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.width() else svg.documentWidth
+                            var h = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.height() else svg.documentHeight
+                            if (w <= 0f || h <= 0f) {
+                                w = 512f
+                                h = 512f
+                            }
+                            svg.documentWidth = w
+                            svg.documentHeight = h
+
                             svgDrawable =
                                 PictureDrawable(svg.renderToPicture())
                                     .trimTransparentEdges()
@@ -4159,6 +4173,16 @@ class CanvasViewModel @Inject constructor(
                     if (svgData != null) {
                         try {
                             val svg = com.caverock.androidsvg.SVG.getFromString(svgData)
+                            val vb = svg.documentViewBox
+                            var w = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.width() else svg.documentWidth
+                            var h = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.height() else svg.documentHeight
+                            if (w <= 0f || h <= 0f) {
+                                w = 512f
+                                h = 512f
+                            }
+                            svg.documentWidth = w
+                            svg.documentHeight = h
+
                             svgDrawable =
                                 PictureDrawable(svg.renderToPicture())
                                     .trimTransparentEdges()
@@ -4835,6 +4859,7 @@ class CanvasViewModel @Inject constructor(
                     type = element.type!!,
                     fontId = element.fontId,
                     bitmapData = element.bitmapData,
+                    applyWhiteTintInDarkMode = element.applyWhiteTintInDarkMode
                 )
             } ?: emptyList()
     }

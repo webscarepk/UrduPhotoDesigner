@@ -105,6 +105,10 @@ class ImagesListFragment : Fragment() {
         observePaginationAppend()
         observePaginationLoader()
         pexelsViewModel.loadTabGroupIfNeeded(category)
+
+        val isExpandedNow = mainViewModel.isPanelExpanded(PanelType.IMAGES)
+        isPanelExpanded = !isExpandedNow
+        onPanelExpanded(isExpandedNow)
     }
 
     override fun onHiddenChanged(hidden: Boolean) {
