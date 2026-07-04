@@ -110,7 +110,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
     private var isRenderCacheDirty = true
 
-    private var edgeMap: Bitmap? = null
+
 
     private val whiteOverlayPaint = Paint().apply {
         color = Color.argb(150, 255, 255, 255) // semi-transparent white
@@ -121,7 +121,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
         color = Color.BLACK
         style = Paint.Style.STROKE
         strokeWidth = 3f
-        pathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase)
+        pathEffect = DashPathEffect(floatArrayOf(10f, 10f), 0f)
         strokeJoin = Paint.Join.ROUND
         strokeCap = Paint.Cap.ROUND
         isAntiAlias = true
@@ -133,7 +133,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
         color = Color.RED
         style = Paint.Style.STROKE
         strokeWidth = 3f
-        pathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase)
+        pathEffect = DashPathEffect(floatArrayOf(10f, 10f), 0f)
         strokeJoin = Paint.Join.ROUND
         strokeCap = Paint.Cap.ROUND
         isAntiAlias = true
@@ -141,19 +141,34 @@ class BgRemovalCanvas @JvmOverloads constructor(
         xfermode = null
     }
 
+    private val antsBackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeWidth = 2f
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+    }
+
+    private val antsFrontPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.BLACK
+        style = Paint.Style.STROKE
+        strokeWidth = 2f
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+    }
+
+    private var magicWandJob: kotlinx.coroutines.Job? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var isCancelled = false
 
     init {
-        // ✅ marching ants animator
-        ValueAnimator.ofFloat(0f, 12f).apply {
-            duration = 500
+        // ✅ Marching ants animator - fast, smooth and clean single stroke
+        ValueAnimator.ofFloat(0f, 16f).apply {
+            duration = 400 // fast and smooth
             repeatCount = ValueAnimator.INFINITE
-            addUpdateListener {
-                dashPhase += 2f
-                strokePaintAdd.pathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase)
-                strokePaintRemove.pathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase)
-                // Keep animation driven by animator — only invalidate here
+            addUpdateListener { animator ->
+                dashPhase = animator.animatedValue as Float
+                antsFrontPaint.pathEffect = DashPathEffect(floatArrayOf(8f, 8f), -dashPhase)
                 postInvalidateOnAnimation()
             }
             start()
@@ -163,9 +178,6 @@ class BgRemovalCanvas @JvmOverloads constructor(
     fun setImage(bitmap: Bitmap) {
         imageBitmap = bitmap
         if (width > 0 && height > 0) calculateImageRect()
-        scope.launch(Dispatchers.Default) {
-            edgeMap = computeEdgeMap(bitmap)
-        }
         markRenderCacheDirty()
         invalidate()
     }
@@ -208,32 +220,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
         markRenderCacheDirty()
     }
 
-    private fun computeEdgeMap(bmp: Bitmap): Bitmap {
-        val w = bmp.width
-        val h = bmp.height
-        val edge = createBitmap(w, h)
 
-        val gx = arrayOf(intArrayOf(-1, 0, 1), intArrayOf(-2, 0, 2), intArrayOf(-1, 0, 1))
-        val gy = arrayOf(intArrayOf(-1, -2, -1), intArrayOf(0, 0, 0), intArrayOf(1, 2, 1))
-
-        for (y in 1 until h - 1) {
-            for (x in 1 until w - 1) {
-                var sumX = 0
-                var sumY = 0
-                for (ky in -1..1) {
-                    for (kx in -1..1) {
-                        val color = bmp[x + kx, y + ky]
-                        val gray = (Color.red(color) + Color.green(color) + Color.blue(color)) / 3
-                        sumX += gx[ky + 1][kx + 1] * gray
-                        sumY += gy[ky + 1][kx + 1] * gray
-                    }
-                }
-                val mag = (sqrt((sumX * sumX + sumY * sumY).toDouble())).toInt().coerceIn(0, 255)
-                edge[x, y] = Color.rgb(mag, mag, mag)
-            }
-        }
-        return edge
-    }
 
     private suspend fun maskBufferToBitmap(
         buffer: FloatBuffer, maskWidth: Int, maskHeight: Int
@@ -258,23 +245,14 @@ class BgRemovalCanvas @JvmOverloads constructor(
             onProcessingChanged?.invoke(true)
             val maskBitmap = maskBufferToBitmap(buffer, maskWidth, maskHeight)
 
-            val scaled = withContext(Dispatchers.Default) {
-                maskBitmap.scale(
-                    imageRect?.width()?.toInt() ?: maskWidth,
-                    imageRect?.height()?.toInt() ?: maskHeight,
-                    false
-                )
-            }
-
-            subjectMaskBitmap = scaled
-
+            // Trace the contour at native mask resolution (extremely fast!)
             val subjectPath = withContext(Dispatchers.Default) {
-                maskToContourPath(scaled)
+                maskToContourPath(maskBitmap)
             }.apply {
                 val matrix = Matrix()
                 imageRect?.let { rect ->
                     matrix.setRectToRect(
-                        RectF(0f, 0f, scaled.width.toFloat(), scaled.height.toFloat()),
+                        RectF(0f, 0f, maskBitmap.width.toFloat(), maskBitmap.height.toFloat()),
                         rect,
                         Matrix.ScaleToFit.FILL
                     )
@@ -295,30 +273,29 @@ class BgRemovalCanvas @JvmOverloads constructor(
             val path = Path()
             val w = mask.width
             val h = mask.height
+            val pixels = IntArray(w * h)
+            mask.getPixels(pixels, 0, w, 0, 0, w, h)
             val visited = Array(h) { BooleanArray(w) }
+
+            val dirs = arrayOf(
+                intArrayOf(1, 0), intArrayOf(1, 1), intArrayOf(0, 1), intArrayOf(-1, 1),
+                intArrayOf(-1, 0), intArrayOf(-1, -1), intArrayOf(0, -1), intArrayOf(1, -1)
+            )
 
             fun traceContour(startX: Int, startY: Int) {
                 var x = startX
                 var y = startY
                 path.moveTo(x.toFloat(), y.toFloat())
-                val dirs = arrayOf(
-                    intArrayOf(1, 0),
-                    intArrayOf(1, 1),
-                    intArrayOf(0, 1),
-                    intArrayOf(-1, 1),
-                    intArrayOf(-1, 0),
-                    intArrayOf(-1, -1),
-                    intArrayOf(0, -1),
-                    intArrayOf(1, -1)
-                )
+                visited[y][x] = true
                 var dir = 0
                 do {
+                    if (isCancelled) return
                     var found = false
                     for (i in 0 until 8) {
                         val ndir = (dir + i) % 8
                         val nx = x + dirs[ndir][0]
                         val ny = y + dirs[ndir][1]
-                        if (nx in 0 until w && ny in 0 until h && mask[nx, ny] == Color.WHITE) {
+                        if (nx in 0 until w && ny in 0 until h && ((pixels[ny * w + nx] ushr 24) > 127)) {
                             x = nx; y = ny
                             path.lineTo(x.toFloat(), y.toFloat())
                             visited[y][x] = true
@@ -334,9 +311,12 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
             for (y in 1 until h - 1) {
                 for (x in 1 until w - 1) {
-                    if (!visited[y][x] && mask[x, y] == Color.WHITE) {
+                    if (!visited[y][x] && ((pixels[y * w + x] ushr 24) > 127)) {
                         val isEdge =
-                            mask[x - 1, y] == Color.TRANSPARENT || mask[x + 1, y] == Color.TRANSPARENT || mask[x, y - 1] == Color.TRANSPARENT || mask[x, y + 1] == Color.TRANSPARENT
+                            ((pixels[y * w + (x - 1)] ushr 24) <= 127) ||
+                            ((pixels[y * w + (x + 1)] ushr 24) <= 127) ||
+                            ((pixels[(y - 1) * w + x] ushr 24) <= 127) ||
+                            ((pixels[(y + 1) * w + x] ushr 24) <= 127)
                         if (isEdge) traceContour(x, y)
                     }
                 }
@@ -351,11 +331,11 @@ class BgRemovalCanvas @JvmOverloads constructor(
         if (selectionPath == null) {
             selectionPath = Path(finalPath)
         } else {
-            val result = Path(selectionPath)
+            val result = Path()
             if (actionMode == ActionMode.ADD) {
-                result.op(result, finalPath, Path.Op.UNION)
+                result.op(selectionPath!!, finalPath, Path.Op.UNION)
             } else if (actionMode == ActionMode.REMOVE) {
-                result.op(result, finalPath, Path.Op.DIFFERENCE)
+                result.op(selectionPath!!, finalPath, Path.Op.DIFFERENCE)
             }
             selectionPath = result
         }
@@ -405,67 +385,77 @@ class BgRemovalCanvas @JvmOverloads constructor(
     }
 
     private fun renderContent(canvas: Canvas) {
-        imageBitmap?.let { bmp ->
-            imageRect?.let { rect ->
+        val bmp = imageBitmap ?: return
+        val rect = imageRect ?: return
+
+        canvas.withMatrix(drawMatrix) {
+            if (previewEnabled) {
+                // In preview mode: draw only the masked selection with transparent background
+                val saveCount = saveLayer(rect, null)
+                drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+
+                // Draw path filled with the image
+                val shaderMatrix = Matrix()
+                shaderMatrix.setRectToRect(
+                    RectF(0f, 0f, bmp.width.toFloat(), bmp.height.toFloat()),
+                    rect,
+                    Matrix.ScaleToFit.FILL
+                )
+                val bmpShader = android.graphics.BitmapShader(bmp, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP).apply {
+                    setLocalMatrix(shaderMatrix)
+                }
+                val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    shader = bmpShader
+                }
+
+                selectionPath?.let {
+                    drawPath(it, paint)
+                }
+                restoreToCount(saveCount)
+            } else {
+                // In edit mode: draw original image + semi-transparent white overlay + cutout selection
+                drawBitmap(bmp, null, rect, null)
+                val saveCount = saveLayer(rect, null)
+                drawRect(rect, whiteOverlayPaint) // White overlay unselected areas
+
+                val punchPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
+                }
+                selectionPath?.let {
+                    drawPath(it, punchPaint)
+                }
+                restoreToCount(saveCount)
+            }
+        }
+
+        // Draw selection helper elements only when NOT in preview mode
+        if (!previewEnabled) {
+            // Live preview path (drawing the current path in progress)
+            currentPath?.let {
+                val paintStroke =
+                    if (actionMode == ActionMode.ADD) strokePaintAdd else strokePaintRemove
                 canvas.withMatrix(drawMatrix) {
-                    drawBitmap(bmp, null, rect, null)  // Draw the image with transformations
-
-                    // Draw the overlay with the current transformations
-                    val saveCount = saveLayer(rect, null)
-                    drawRect(rect, whiteOverlayPaint)  // White overlay for unselected areas
-
-                    // Draw the selected area from cached selectionPath (cheap in onDraw)
-                    val punchPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                        xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
+                    when (toolMode) {
+                        ToolMode.BRUSH -> drawPath(it, paintStroke)
+                        ToolMode.RECTANGLE -> drawRect(startX, startY, endX, endY, paintStroke)
+                        ToolMode.ELLIPSE -> drawOval(RectF(startX, startY, endX, endY), paintStroke)
+                        else -> {}
                     }
-
-                    selectionPath?.let {
-                        drawPath(it, punchPaint)
-                    }
-
-                    restoreToCount(saveCount)  // Restore the canvas after overlay drawing
                 }
             }
-        }
 
-        // Live preview path (drawing the current path in progress)
-        currentPath?.let {
-            val paintStroke =
-                if (actionMode == ActionMode.ADD) strokePaintAdd else strokePaintRemove
-            canvas.withMatrix(drawMatrix) {
-                when (toolMode) {
-                    ToolMode.BRUSH -> drawPath(it, paintStroke)
-                    ToolMode.RECTANGLE -> drawRect(startX, startY, endX, endY, paintStroke)
-                    ToolMode.ELLIPSE -> drawOval(RectF(startX, startY, endX, endY), paintStroke)
-                    else -> {}
+            // Draw marching ants — ONLY on the outer edge, not internal scanline borders.
+            // Draw marching ants — ONLY on the outer edge, not internal scanline borders.
+            selectionOutlinePath?.let { outline ->
+                val currentWidth = 2f / scaleFactor
+                antsBackPaint.strokeWidth = currentWidth
+                antsFrontPaint.strokeWidth = currentWidth
+                
+                canvas.withMatrix(drawMatrix) {
+                    drawPath(outline, antsBackPaint)
+                    drawPath(outline, antsFrontPaint)
                 }
             }
-        }
-
-        // Draw marching ants — ONLY on the outer edge, not internal scanline borders.
-        // FIX: was using selectionPath (thousands of scanline rects) directly with a
-        // STROKE paint. Android strokes every rect edge including all internal horizontal
-        // lines, producing the crosshatch/grid over the whole selection (visible in screenshot).
-        // Now uses selectionOutlinePath which is pre-computed by buildOutlinePath() via
-        // Paint.getFillPath() — a single clean closed contour with zero internal lines.
-        selectionOutlinePath?.let { outline ->
-            val transformed = Path(outline)
-            transformed.transform(drawMatrix)
-            val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.BLACK
-                style = Paint.Style.STROKE
-                strokeWidth = strokePaintAdd.strokeWidth
-                strokeJoin = Paint.Join.ROUND
-                strokeCap = Paint.Cap.ROUND
-                pathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase)
-            }
-            // White backing dash so the ants are visible on both light and dark backgrounds
-            val backPaint = Paint(strokePaint).apply {
-                color = Color.WHITE
-                pathEffect = DashPathEffect(floatArrayOf(12f, 12f), dashPhase + 12f)
-            }
-            canvas.drawPath(transformed, backPaint)
-            canvas.drawPath(transformed, strokePaint)
         }
 
         // Update stroke width based on zoom level
@@ -474,14 +464,6 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
         strokePaintAdd.strokeWidth = scaledStrokeWidth
         strokePaintRemove.strokeWidth = scaledStrokeWidth
-
-        // Update the dash phase for marching ants animation
-        dashPhase += 2
-        strokePaintAdd.pathEffect = DashPathEffect(floatArrayOf(10f, 10f), dashPhase)
-        strokePaintRemove.pathEffect = DashPathEffect(floatArrayOf(10f, 10f), dashPhase)
-
-        // NOTE: Removed unconditional postInvalidateOnAnimation() here to avoid continuous redraws.
-        // The marching ants animator invalidates when it needs to.
     }
 
     private fun handleMagicWand(event: MotionEvent) {
@@ -497,7 +479,8 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
                     val targetColor = bmp[safeX, safeY]
 
-                    scope.launch {
+                    magicWandJob?.cancel()
+                    magicWandJob = scope.launch {
                         onProcessingChanged?.invoke(true)
 
                         val workingBmp = if (bmp.width > 512) {
@@ -515,14 +498,12 @@ class BgRemovalCanvas @JvmOverloads constructor(
                             wandTolerance
                         )
 
-                        val resizedMask = mask.scale(bmp.width, bmp.height, false)
+                        val rawPath = maskToContourPath(mask)
 
-                        val rawPath = maskToContourPath(resizedMask)
-
-                        // scale path to imageRect
+                        // scale path from low-res mask directly to imageRect (screen space)
                         val matrix = Matrix()
                         matrix.setRectToRect(
-                            RectF(0f, 0f, bmp.width.toFloat(), bmp.height.toFloat()),
+                            RectF(0f, 0f, mask.width.toFloat(), mask.height.toFloat()),
                             rect,
                             Matrix.ScaleToFit.FILL
                         )
@@ -570,44 +551,67 @@ class BgRemovalCanvas @JvmOverloads constructor(
     ): Bitmap = withContext(Dispatchers.Default) {
         val w = bmp.width
         val h = bmp.height
-        val mask = createBitmap(w, h)
-        val visited = Array(h) { BooleanArray(w) }
 
-        val stack = ArrayDeque<Pair<Int, Int>>()
-        stack.add(startX to startY)
-        var processed = 0
-        while (stack.isNotEmpty()) {
-            if (isCancelled) return@withContext mask
-            val (x, y) = stack.removeLast()
-            if (x !in 0 until w || y !in 0 until h) continue
-            if (visited[y][x]) continue
-            if (!isColorSimilar(targetColor, bmp[x, y], tolerance)) continue
+        // Read all source pixels to local array (avoid JNI overhead in loop)
+        val pixels = IntArray(w * h)
+        bmp.getPixels(pixels, 0, w, 0, 0, w, h)
 
-            // expand left/right in one scan
-            var lx = x
-            while (lx >= 0 && !visited[y][lx] && isColorSimilar(targetColor, bmp[lx, y], tolerance)) {
-                mask[lx, y] = Color.WHITE
-                visited[y][lx] = true
-                if (y > 0) stack.add(lx to y - 1)
-                if (y < h - 1) stack.add(lx to y + 1)
-                lx--
-                processed++
+        // Write mask to local array
+        val maskPixels = IntArray(w * h)
+        val visited = BooleanArray(w * h)
+
+        // Queue for flood fill coordinates (stored as flat index: y * w + x)
+        val queue = java.util.ArrayDeque<Int>()
+        queue.add(startY * w + startX)
+        visited[startY * w + startX] = true
+
+        while (queue.isNotEmpty()) {
+            if (isCancelled) break
+            val idx = queue.removeFirst()
+            val x = idx % w
+            val y = idx / w
+
+            // Set mask pixel to white
+            maskPixels[idx] = Color.WHITE
+
+            // Check 4-connected neighbors
+            // Left
+            if (x > 0) {
+                val nextIdx = idx - 1
+                if (!visited[nextIdx] && isColorSimilar(targetColor, pixels[nextIdx], tolerance)) {
+                    visited[nextIdx] = true
+                    queue.add(nextIdx)
+                }
             }
-            var rx = x + 1
-            while (rx < w && !visited[y][rx] && isColorSimilar(targetColor, bmp[rx, y], tolerance)) {
-                mask[rx, y] = Color.WHITE
-                visited[y][rx] = true
-                if (y > 0) stack.add(rx to y - 1)
-                if (y < h - 1) stack.add(rx to y + 1)
-                rx++
-                processed++
+            // Right
+            if (x < w - 1) {
+                val nextIdx = idx + 1
+                if (!visited[nextIdx] && isColorSimilar(targetColor, pixels[nextIdx], tolerance)) {
+                    visited[nextIdx] = true
+                    queue.add(nextIdx)
+                }
             }
-            if (processed % 10_000 == 0) {
-                withContext(Dispatchers.Main) {
-                    onProcessingChanged?.invoke(true) // still working
+            // Up
+            if (y > 0) {
+                val nextIdx = idx - w
+                if (!visited[nextIdx] && isColorSimilar(targetColor, pixels[nextIdx], tolerance)) {
+                    visited[nextIdx] = true
+                    queue.add(nextIdx)
+                }
+            }
+            // Down
+            if (y < h - 1) {
+                val nextIdx = idx + w
+                if (!visited[nextIdx] && isColorSimilar(targetColor, pixels[nextIdx], tolerance)) {
+                    visited[nextIdx] = true
+                    queue.add(nextIdx)
                 }
             }
         }
+
+        // Create the mask bitmap and write pixels in a single operation
+        val mask = Bitmap.createBitmap(w, h, Bitmap.Config.ALPHA_8)
+        mask.setPixels(maskPixels, 0, w, 0, 0, w, h)
         mask
     }
 
@@ -1003,57 +1007,18 @@ class BgRemovalCanvas @JvmOverloads constructor(
     }
 
     fun confirmMask() {
-        exportMaskedImage()?.let { masked ->
-            onMaskConfirmed?.invoke(masked)
+        isApplyingMask = true
+        onProcessingChanged?.invoke(true)
+        scope.launch {
+            val result = withContext(Dispatchers.Default) {
+                exportMaskedImage()
+            }
+            isApplyingMask = false
+            onProcessingChanged?.invoke(false)
+            result?.let { masked ->
+                onMaskConfirmed?.invoke(masked)
+            }
         }
-    }
-
-    private fun featherMask(mask: Bitmap): Bitmap {
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            isFilterBitmap = true
-            maskFilter =
-                BlurMaskFilter(3f, BlurMaskFilter.Blur.NORMAL)
-        }
-
-        val output = createBitmap(mask.width, mask.height)
-        val canvas = Canvas(output)
-        canvas.drawBitmap(mask, 0f, 0f, paint)
-        return output
-    }
-
-    fun previewMaskedImage(): Bitmap? {
-        imageBitmap?.let { bmp ->
-            val output = createBitmap(width, height)
-            val canvas = Canvas(output)
-            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
-
-            // Draw the original image
-            imageRect?.let { rect ->
-                canvas.drawBitmap(bmp, null, rect, null)
-            }
-
-            // Create mask bitmap
-            val mask = createBitmap(width, height)
-            val maskCanvas = Canvas(mask)
-            val addPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.WHITE
-                style = Paint.Style.FILL
-            }
-
-            // 🔹 Use the final selectionPath instead of paths
-            selectionPath?.let {
-                maskCanvas.drawPath(it, addPaint)
-            }
-
-            // Apply mask
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
-            }
-            canvas.drawBitmap(mask, 0f, 0f, paint)
-
-            return output
-        }
-        return null
     }
 
     fun exportMaskedImage(): Bitmap? {
@@ -1062,8 +1027,6 @@ class BgRemovalCanvas @JvmOverloads constructor(
         if (selectionPath == null) return null
 
         // Export at the ORIGINAL image resolution, not view resolution.
-        // The selectionPath is in view/screen coordinates (imageRect space).
-        // We scale it to image-pixel space so the mask aligns with the full-res bitmap.
         val imgW = bmp.width
         val imgH = bmp.height
 
@@ -1079,27 +1042,16 @@ class BgRemovalCanvas @JvmOverloads constructor(
         val imagePath = Path(selectionPath!!)
         imagePath.transform(toImageSpace)
 
-        // Draw original image at full resolution
+        // Draw original image inside the path with BitmapShader and feathered edge
         val fullMasked = createBitmap(imgW, imgH)
         val fullCanvas = Canvas(fullMasked)
         fullCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
-        fullCanvas.drawBitmap(bmp, 0f, 0f, null)
 
-        // Build mask at full image resolution
-        val mask = createBitmap(imgW, imgH)
-        val maskCanvas = Canvas(mask)
-        val addPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
-            style = Paint.Style.FILL
-        }
-        maskCanvas.drawPath(imagePath, addPaint)
-
-        // Apply mask (DST_IN keeps pixels where mask is white)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+            shader = android.graphics.BitmapShader(bmp, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP)
+            maskFilter = BlurMaskFilter(3f, BlurMaskFilter.Blur.NORMAL)
         }
-        val smoothMask = featherMask(mask)
-        fullCanvas.drawBitmap(smoothMask, 0f, 0f, paint)
+        fullCanvas.drawPath(imagePath, paint)
 
         // Crop to tight non-transparent bounds
         val bounds = Rect()
@@ -1112,29 +1064,33 @@ class BgRemovalCanvas @JvmOverloads constructor(
     private fun Bitmap.getBounds(outRect: Rect): Boolean {
         val w = width
         val h = height
-        val pixels = IntArray(w * h)
-        getPixels(pixels, 0, w, 0, 0, w, h)
+        val rowPixels = IntArray(w) // Row-by-row buffer to avoid massive OOM allocations
 
         var left = w
-        var right = 0
+        var right = -1
         var top = h
-        var bottom = 0
+        var bottom = -1
         var found = false
 
         for (y in 0 until h) {
+            getPixels(rowPixels, 0, w, 0, y, w, 1)
+            var rowHasPixels = false
             for (x in 0 until w) {
-                if (pixels[y * w + x] != Color.TRANSPARENT) {
-                    found = true
+                if (Color.alpha(rowPixels[x]) > 0) {
+                    rowHasPixels = true
                     if (x < left) left = x
                     if (x > right) right = x
-                    if (y < top) top = y
-                    if (y > bottom) bottom = y
                 }
+            }
+            if (rowHasPixels) {
+                found = true
+                if (y < top) top = y
+                if (y > bottom) bottom = y
             }
         }
 
         return if (found) {
-            outRect.set(left, top, right, bottom)
+            outRect.set(left, top, (right + 1).coerceAtMost(w), (bottom + 1).coerceAtMost(h))
             true
         } else {
             false

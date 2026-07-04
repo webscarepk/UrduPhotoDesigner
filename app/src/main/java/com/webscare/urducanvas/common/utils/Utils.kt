@@ -228,13 +228,13 @@ fun ShimmerFrameLayout.startShimmerSoft(isDarkMode: Boolean) {
             .setHighlightAlpha(0.1f)
             .setBaseColor(android.graphics.Color.parseColor("#1C1C1E"))
             .setHighlightColor(android.graphics.Color.parseColor("#2C2C2E"))
-            .setDuration(1200)
+            .setDuration(900)
             .setRepeatDelay(0)
     } else {
         Shimmer.AlphaHighlightBuilder()
             .setBaseAlpha(0.5f)
             .setHighlightAlpha(1.0f)
-            .setDuration(700)
+            .setDuration(500)
             .setRepeatDelay(0)
     }
     setShimmer(builder.build())

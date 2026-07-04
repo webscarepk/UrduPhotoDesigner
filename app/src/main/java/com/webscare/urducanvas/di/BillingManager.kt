@@ -329,6 +329,9 @@ class BillingManager @Inject constructor(
 
     private var availableProducts: List<ProductDetails> = emptyList()
 
+    private var retryDelayMs = 2000L
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+
     private var billingClient: BillingClient = BillingClient.newBuilder(context)
         .setListener(this)
         .enablePendingPurchases(
@@ -341,11 +344,16 @@ class BillingManager @Inject constructor(
     // ─── Connection ────────────────────────────────────────────────────────────
 
     fun startConnection(onReady: () -> Unit = {}) {
-        if (billingClient.isReady) { onReady(); return }
+        if (billingClient.isReady) {
+            retryDelayMs = 2000L
+            onReady()
+            return
+        }
 
         billingClient.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(result: BillingResult) {
                 if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                    retryDelayMs = 2000L
                     onReady()
                 } else {
                     _billingState.value =
@@ -354,7 +362,10 @@ class BillingManager @Inject constructor(
             }
 
             override fun onBillingServiceDisconnected() {
-                startConnection(onReady)
+                handler.postDelayed({
+                    startConnection(onReady)
+                }, retryDelayMs)
+                retryDelayMs = (retryDelayMs * 2).coerceAtMost(60000L)
             }
         })
     }

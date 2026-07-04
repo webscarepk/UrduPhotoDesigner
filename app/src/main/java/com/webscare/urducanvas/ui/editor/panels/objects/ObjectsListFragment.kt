@@ -21,8 +21,10 @@ import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.data.model.ObjectsData
 import com.webscare.urducanvas.databinding.FragmentObjectsListBinding
 import com.webscare.urducanvas.common.utils.MorphGridLayoutManager
+import com.webscare.urducanvas.common.utils.HorizontalSpringEdgeEffectFactory
 import com.webscare.urducanvas.ui.editor.panels.images.ImagesAdapter
 import com.webscare.urducanvas.common.utils.isDarkModeEnabled
+import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -114,7 +116,10 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
 
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
-        if (hidden) saveScrollPos()
+        if (hidden) {
+            saveScrollPos()
+            imagesAdapter?.cancelPreload()
+        }
     }
 
     override fun onDestroyView() {
@@ -356,6 +361,13 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
         if (isPanelExpanded == expanded) return
         isPanelExpanded = expanded
         if (_binding == null) return
+
+        if (expanded) {
+            binding.objects.edgeEffectFactory = RecyclerView.EdgeEffectFactory()
+            binding.objects.translationX = 0f
+        } else {
+            binding.objects.edgeEffectFactory = HorizontalSpringEdgeEffectFactory()
+        }
 
         mainViewModel.clearImageSelection()
         mainViewModel.clearEmojiSelection()

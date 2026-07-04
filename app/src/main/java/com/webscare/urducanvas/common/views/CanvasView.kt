@@ -1099,6 +1099,11 @@ class CanvasView @JvmOverloads constructor(
         val offsetX = (canvas.width - scaledWidth) / 2f
         val offsetY = (canvas.height - scaledHeight) / 2f
 
+        canvas.drawFilter = android.graphics.PaintFlagsDrawFilter(
+            0,
+            android.graphics.Paint.ANTI_ALIAS_FLAG or android.graphics.Paint.FILTER_BITMAP_FLAG
+        )
+
         canvas.withTranslation(offsetX, offsetY) {
             scale(scaleFactor, scaleFactor)
             this@CanvasView.drawCanvasElements(this, showOverlays = false, showCheckerboard = false)
@@ -1397,6 +1402,33 @@ class CanvasView @JvmOverloads constructor(
             fallback.writeText("[]")
             Pair(thumbnailBitmap, fallback)
         }
+    }
+
+    fun generatePreviewBitmap(maxWidth: Int = 300, maxHeight: Int = 300): Bitmap {
+        val contentWidth = this.canvasWidth
+        val contentHeight = this.canvasHeight
+
+        val aspectRatio = contentWidth.toFloat() / contentHeight
+        val targetWidth: Int
+        val targetHeight: Int
+        if (aspectRatio >= 1f) {
+            targetWidth = maxWidth
+            targetHeight = (maxWidth / aspectRatio).toInt().coerceAtLeast(1)
+        } else {
+            targetHeight = maxHeight
+            targetWidth = (maxHeight * aspectRatio).toInt().coerceAtLeast(1)
+        }
+
+        val bitmap = createBitmap(targetWidth, targetHeight)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+
+        val scaleFactorX = targetWidth.toFloat() / contentWidth.toFloat()
+        val scaleFactorY = targetHeight.toFloat() / contentHeight.toFloat()
+        val scaleFactor = minOf(scaleFactorX, scaleFactorY)
+
+        renderCanvasTo(canvas, scaleFactor)
+        return bitmap
     }
 
     fun exportCanvasThumbnail(

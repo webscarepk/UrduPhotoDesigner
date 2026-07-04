@@ -38,7 +38,11 @@ class PreferencesDataStoreHelper(context: Context): PreferenceDataStoreAPI {
     /* This returns the last saved value of the key. If we change the value, 
         it wont effect the values produced by this function */
     override suspend fun <T> getFirstPreference(key: Preferences.Key<T>, defaultValue: T) :
-            T = dataSource.data.first()[key] ?: defaultValue
+            T = try {
+                dataSource.data.first()[key] ?: defaultValue
+            } catch (e: Exception) {
+                defaultValue
+            }
 
     // This Sets the value based on the value passed in value parameter.
     override suspend fun <T> putPreference(key: Preferences.Key<T>, value: T) {

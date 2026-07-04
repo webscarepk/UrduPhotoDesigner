@@ -76,6 +76,10 @@ class ExportFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        view.alpha = 0f
+        view.translationY = 80f
+        view.animate().alpha(1f).translationY(0f).setDuration(350).start()
         setEvents()
         initObservers()
     }
@@ -287,20 +291,29 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         }
     }
 
+    private fun formatFileSize(sizeMB: Double): String {
+        return if (sizeMB < 1.0) {
+            val sizeKB = sizeMB * 1024.0
+            "%.0f KB".format(sizeKB)
+        } else {
+            "%.1f MB".format(sizeMB)
+        }
+    }
+
     private fun renderPreview() {
         val canvas = viewModel.canvasView.value ?: return
         val options = viewModel.exportOptions.value ?: return
         lifecycleScope.launch(Dispatchers.Default) {
-            val (bitmap, _) = canvas.exportCanvasThumbnail()
+            val bitmap = canvas.generatePreviewBitmap()
 
-            val sizeMB = getDisplayFileSizeMB(options, bitmap)
+            val sizeMB = getDisplayFileSizeMB(options, canvas)
 
             withContext(Dispatchers.Main) {
                 val b = _binding ?: return@withContext
                 b.previewImage.setImageBitmap(bitmap)
                 b.exportPreviewProgress.visibility = View.GONE
-                b.tvExportSize.text = "%.1f MB".format(sizeMB)
-                b.fileSize.text = "%.1f MB".format(sizeMB)
+                b.tvExportSize.text = formatFileSize(sizeMB)
+                b.fileSize.text = formatFileSize(sizeMB)
             }
         }
     }
@@ -580,25 +593,11 @@ class ExportFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun getDisplayFileSizeMB(
-        options: ExportOptions, bitmap: Bitmap? = null
+        options: ExportOptions, canvas: CanvasView
     ): Double {
-        val canvasSize = viewModel.canvasSize.value
-
-        if (canvasSize != null) {
-            return getExportedImageSizeMBEstimate(
-                options, canvasSize.width, canvasSize.height
-            )
-        }
-
-        return when {
-            bitmap != null -> {
-                estimateBitmapSize(
-                    bitmap, options.format.format, options.quality.quality
-                ) / (1024.0 * 1024.0)
-            }
-
-            else -> 0.0
-        }
+        return getExportedImageSizeMBEstimate(
+            options, canvas.canvasWidth.toFloat(), canvas.canvasHeight.toFloat()
+        )
     }
 
     private fun saveDirectToDownloads(
@@ -669,7 +668,12 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                     ).create()
 
                     val page = pdfDocument.startPage(pageInfo)
-                    page.canvas.drawBitmap(bitmap, 0f, 0f, null)
+                    val paint = Paint().apply {
+                        isAntiAlias = true
+                        isFilterBitmap = true
+                        isDither = true
+                    }
+                    page.canvas.drawBitmap(bitmap, 0f, 0f, paint)
                     pdfDocument.finishPage(page)
 
                     pdfDocument.writeTo(stream)

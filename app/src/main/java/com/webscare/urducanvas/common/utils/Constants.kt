@@ -16,6 +16,7 @@ object Constants {
     const val PEXELS_BASE_URL = "https://api.pexels.com/"
     const val PEXELS_API_KEY = "YUm6Jh5M8TEmXCi8UTIIZ0UbrByP5xWj8IFVoqkVy93mpihh4fQOYJxg"
     const val PEXELS_ID_OFFSET = 10_000_000
+    const val GPU_SAFE_MAX_PX = 4899
     private val EMOTICONS = 0x1F600..0x1F64F
     private val SUPP_EMOTICONS = 0x1F910..0x1F91F
     private val ANIMAL_FACES = 0x1F400..0x1F43F

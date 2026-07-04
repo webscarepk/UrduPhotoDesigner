@@ -351,7 +351,7 @@ class ImagesFragment : Fragment() {
                             val raw = Glide.with(requireActivity()).asBitmap()
                                 .load(entity.bitmapData ?: url).centerCrop()
                                 .diskCacheStrategy(DiskCacheStrategy.ALL).submit().get()
-                            downsampleIfNeeded(raw, GPU_SAFE_MAX_PX, GPU_SAFE_MAX_PX)
+                            downsampleIfNeeded(raw, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)
                         }.getOrNull()
                     }
                     bitmap?.let {
@@ -669,7 +669,7 @@ class ImagesFragment : Fragment() {
 
                 tabs.getOrNull(currentTabIndex).orEmpty()
                 // User picked image from gallery — always add as image element
-                val bitmap = downsampleIfNeeded(rawBitmap, GPU_SAFE_MAX_PX, GPU_SAFE_MAX_PX)
+                 val bitmap = downsampleIfNeeded(rawBitmap, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)
 
                 withContext(Dispatchers.Main) {
                     viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE)
@@ -681,6 +681,5 @@ class ImagesFragment : Fragment() {
     }
 
     companion object {
-        private const val GPU_SAFE_MAX_PX = 4899
     }
 }

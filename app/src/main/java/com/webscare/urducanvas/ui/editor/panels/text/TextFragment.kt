@@ -32,6 +32,8 @@ import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.common.utils.MorphGridLayoutManager
+import com.webscare.urducanvas.common.utils.HorizontalSpringEdgeEffectFactory
+import androidx.recyclerview.widget.RecyclerView
 import com.webscare.urducanvas.databinding.FragmentTextBinding
 import com.webscare.urducanvas.ui.editor.EditorFragment
 import com.webscare.urducanvas.ui.editor.panels.text.fonts.FontsAdapter
@@ -744,6 +746,13 @@ class TextFragment : Fragment() {
     }
 
     private fun applyExpandedUi(expanded: Boolean) {
+        if (expanded) {
+            binding.fontsRV.edgeEffectFactory = RecyclerView.EdgeEffectFactory()
+            binding.fontsRV.translationX = 0f
+        } else {
+            binding.fontsRV.edgeEffectFactory = HorizontalSpringEdgeEffectFactory()
+        }
+
         binding.headerCollapsed.isVisible = !expanded
         binding.headerExpanded.isVisible = expanded
         binding.tabLayoutExpanded.isVisible = expanded

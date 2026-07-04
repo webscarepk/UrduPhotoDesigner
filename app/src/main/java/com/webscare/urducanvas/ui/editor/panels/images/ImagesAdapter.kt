@@ -32,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 // ── Top-level URL resolver ────────────────────────────────────────────────────
@@ -169,10 +170,11 @@ class ImagesAdapter(
         val window = list.take(PRELOAD_WINDOW)
 
         preloadJob = adapterScope.launch {
+            delay(250) // Debounce preloading to prevent resource starvation during tab switches
             val svgUrls = window
                 .filter { it.file_name.endsWith(".svg", ignoreCase = true) }
                 .map { Constants.BASE_URL_GLIDE + it.file_url }
-            if (svgUrls.isNotEmpty()) SvgLoader.preload(svgUrls, adapterScope)
+            if (svgUrls.isNotEmpty()) SvgLoader.preload(svgUrls, this)
 
             window
                 .filterNot { it.file_name.endsWith(".svg", ignoreCase = true) }
@@ -226,7 +228,7 @@ class ImagesAdapter(
         ) {
             boundImage = image
             premiumBadge.isVisible = image.is_premium && !image.is_subscribed
-            cardRoot.setCardBackgroundColor(Color.WHITE)
+            cardRoot.setCardBackgroundColor(ContextCompat.getColor(itemView.context, R.color.white))
             updateSelectionOnly(isSelected, inMultiSelectMode)
             updateSize(slideOffset, rvWidth, rvPadding)
             loadForDisplay(image)

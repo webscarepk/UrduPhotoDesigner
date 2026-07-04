@@ -71,7 +71,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
                     // Apply GPU hard limit — same cap used by every other image entry point.
                     val bitmap = com.webscare.urducanvas.common.utils.ImageProcessor
-                        .downsampleIfNeeded(rawBitmap, GPU_SAFE_MAX_PX, GPU_SAFE_MAX_PX)
+                        .downsampleIfNeeded(rawBitmap, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)
 
                     val widthVal = bitmap.width.toFloat()
                     val heightVal = bitmap.height.toFloat()
@@ -603,9 +603,5 @@ class HomeFragment : androidx.fragment.app.Fragment() {
     }
 
     companion object {
-        // GPU hard limit: 24 MP (ARGB_8888 @ 4 bytes/px = 96 MB).
-        // Applied to every image entering the canvas — CanvasView's display-proxy
-        // handles render performance, this just prevents hard OOM crashes.
-        private const val GPU_SAFE_MAX_PX = 4899
     }
 }

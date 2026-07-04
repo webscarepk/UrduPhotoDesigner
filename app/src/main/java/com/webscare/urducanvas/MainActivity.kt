@@ -36,7 +36,9 @@ import com.webscare.urducanvas.di.UpdateManager
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import com.webscare.urducanvas.viewmodels.PexelsViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
@@ -58,18 +60,33 @@ class MainActivity : AppCompatActivity() {
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri?.let {
-                val inputStream = contentResolver.openInputStream(it)
-                val bitmap = BitmapFactory.decodeStream(inputStream)
-                inputStream?.close()
-                val canvasSize = CanvasSize(
-                    id = 0, "From Image", bitmap.width.toFloat(), bitmap.height.toFloat()
-                )
-                viewModel.clearCanvas()
-                viewModel.setCanvasSize(canvasSize)
-                viewModel.setCanvasBackgroundImage(bitmap, this@MainActivity)
-                val editorNavOptions = NavOptions.Builder().setLaunchSingleTop(true)
-                    .setPopUpTo(R.id.editorFragment, inclusive = true).build()
-                navController.navigate(R.id.editorFragment, null, editorNavOptions)
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        val rawBitmap = contentResolver.openInputStream(it)?.use { stream ->
+                            BitmapFactory.decodeStream(stream)
+                        } ?: return@launch
+
+                        val bitmap = com.webscare.urducanvas.common.utils.ImageProcessor
+                            .downsampleIfNeeded(rawBitmap, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)
+
+                        val widthVal = bitmap.width.toFloat()
+                        val heightVal = bitmap.height.toFloat()
+
+                        withContext(Dispatchers.Main) {
+                            val canvasSize = CanvasSize(
+                                id = 0, "From Image", widthVal, heightVal
+                            )
+                            viewModel.clearCanvas()
+                            viewModel.setCanvasSize(canvasSize)
+                            viewModel.setCanvasBackgroundImage(bitmap, this@MainActivity)
+                            val editorNavOptions = NavOptions.Builder().setLaunchSingleTop(true)
+                                .setPopUpTo(R.id.editorFragment, inclusive = true).build()
+                            navController.navigate(R.id.editorFragment, null, editorNavOptions)
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
             }
         }
 
@@ -553,32 +570,45 @@ class MainActivity : AppCompatActivity() {
         }
         uri ?: return
 
-        // ── 1) Our project file? (.urdc, .bin from WhatsApp, or octet-stream) ──
-        // We always attempt tryOpenProject for any octet-stream / unknown extension.
-        // tryOpenProject does a magic-byte check internally — it rejects non-URDC files
-        // silently, so false positives just fall through to the image handler below.
-        val name = queryDisplayName(uri)
-        val looksLikeProject = name?.endsWith(".urdc", true) == true || name?.endsWith(
-            ".bin", true
-        ) == true ||   // WhatsApp renames .urdc -> .bin
-                intent.type == "application/octet-stream" || intent.type == "application/octet_stream" || intent.type == null   // some share sources send no MIME type at all
-        if (looksLikeProject && tryOpenProject(uri)) return
-
-        // ── 2) Existing image handling (unchanged) ──
-        if (intent.type?.startsWith("image/") == true) {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
-                contentResolver.openInputStream(uri)?.use { stream ->
-                    val bitmap = BitmapFactory.decodeStream(stream)
-                    if (bitmap != null) {
-                        val canvasSize = CanvasSize(
-                            id = 0, "From Image", bitmap.width.toFloat(), bitmap.height.toFloat()
-                        )
-                        viewModel.clearCanvas()
-                        viewModel.setCanvasSize(canvasSize)
-                        viewModel.setCanvasBackgroundImage(bitmap, this@MainActivity)
-                        val opts = NavOptions.Builder().setLaunchSingleTop(true)
-                            .setPopUpTo(R.id.editorFragment, inclusive = true).build()
-                        navController.navigate(R.id.editorFragment, null, opts)
+                // ── 1) Our project file? (.urdc, .bin from WhatsApp, or octet-stream) ──
+                // We always attempt tryOpenProject for any octet-stream / unknown extension.
+                // tryOpenProject does a magic-byte check internally — it rejects non-URDC files
+                // silently, so false positives just fall through to the image handler below.
+                val name = queryDisplayName(uri)
+                val looksLikeProject = name?.endsWith(".urdc", true) == true || name?.endsWith(
+                    ".bin", true
+                ) == true ||   // WhatsApp renames .urdc -> .bin
+                        intent.type == "application/octet-stream" || intent.type == "application/octet_stream" || intent.type == null   // some share sources send no MIME type at all
+                if (looksLikeProject && tryOpenProjectAsync(uri)) {
+                    return@launch
+                }
+
+                // ── 2) Existing image handling (unchanged) ──
+                if (intent.type?.startsWith("image/") == true) {
+                    contentResolver.openInputStream(uri)?.use { stream ->
+                        val rawBitmap = BitmapFactory.decodeStream(stream)
+                        if (rawBitmap != null) {
+                            val bitmap = com.webscare.urducanvas.common.utils.ImageProcessor.downsampleIfNeeded(
+                                rawBitmap,
+                                com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX,
+                                com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX
+                            )
+                            val widthVal = bitmap.width.toFloat()
+                            val heightVal = bitmap.height.toFloat()
+                            withContext(Dispatchers.Main) {
+                                val canvasSize = CanvasSize(
+                                    id = 0, "From Image", widthVal, heightVal
+                                )
+                                viewModel.clearCanvas()
+                                viewModel.setCanvasSize(canvasSize)
+                                viewModel.setCanvasBackgroundImage(bitmap, this@MainActivity)
+                                val opts = NavOptions.Builder().setLaunchSingleTop(true)
+                                    .setPopUpTo(R.id.editorFragment, inclusive = true).build()
+                                navController.navigate(R.id.editorFragment, null, opts)
+                            }
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -588,7 +618,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Copy the incoming project to cache, build a minimal ExportResult, and load via the VM. */
-    private fun tryOpenProject(uri: Uri): Boolean {
+    private suspend fun tryOpenProjectAsync(uri: Uri): Boolean {
         return try {
             val cached = File(cacheDir, "incoming_${System.currentTimeMillis()}.urdc")
             contentResolver.openInputStream(uri)?.use { input ->
@@ -621,11 +651,12 @@ class MainActivity : AppCompatActivity() {
                 updatedDate = ""
             )
 
-            viewModel.loadTemplateFromJsonFile(result, this@MainActivity)
-
-            val opts = NavOptions.Builder().setLaunchSingleTop(true)
-                .setPopUpTo(R.id.editorFragment, inclusive = true).build()
-            navController.navigate(R.id.editorFragment, null, opts)
+            withContext(Dispatchers.Main) {
+                viewModel.loadTemplateFromJsonFile(result, this@MainActivity)
+                val opts = NavOptions.Builder().setLaunchSingleTop(true)
+                    .setPopUpTo(R.id.editorFragment, inclusive = true).build()
+                navController.navigate(R.id.editorFragment, null, opts)
+            }
             true
         } catch (e: Exception) {
             e.printStackTrace(); false
@@ -661,13 +692,23 @@ class MainActivity : AppCompatActivity() {
         updateManager.onResume(this)
     }
 
+    private var originalBaseContext: Context? = null
+
     override fun attachBaseContext(newBase: Context) {
+        originalBaseContext = newBase
         val config = Configuration(newBase.resources.configuration)
         config.fontScale = 1.0f
         if (MyApplication.defaultDensityDpi != 0) {
             config.densityDpi = MyApplication.defaultDensityDpi
         }
         super.attachBaseContext(newBase.createConfigurationContext(config))
+    }
+
+    override fun getSystemService(name: String): Any? {
+        if (name == Context.PRINT_SERVICE) {
+            return originalBaseContext?.getSystemService(name) ?: super.getSystemService(name)
+        }
+        return super.getSystemService(name)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

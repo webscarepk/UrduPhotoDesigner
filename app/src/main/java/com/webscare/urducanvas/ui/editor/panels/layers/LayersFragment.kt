@@ -6,6 +6,7 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -73,6 +74,7 @@ class LayersFragment : Fragment() {
         setupRecyclerView()
         setupToolbarInitial()
         attachDragHandleSwipe()
+        setupSwipeToCollapse()
         observeViewModel()
         observePanelExpanded()
     }
@@ -93,6 +95,80 @@ class LayersFragment : Fragment() {
             }
             f = f.parentFragment
         }
+    }
+
+    private fun findPanelSheet(): com.webscare.urducanvas.ui.editor.PanelSheetBehavior? {
+        var f: Fragment? = this
+        while (f != null) {
+            if (f is EditorFragment) return f.panelSheetBehavior()
+            f = f.parentFragment
+        }
+        return null
+    }
+
+    private fun setupSwipeToCollapse() {
+        val slop = 8f * resources.displayMetrics.density
+
+        var downX = 0f
+        var downY = 0f
+        var trackingPanel = false
+        var decided = false
+
+        binding.layers.addOnItemTouchListener(object : RecyclerView.OnItemTouchListener {
+            override fun onInterceptTouchEvent(rv: RecyclerView, event: MotionEvent): Boolean {
+                val isExpanded = mainViewModel.isPanelExpanded(PanelType.LAYERS)
+                if (!isExpanded) return false
+
+                val sheet = findPanelSheet() ?: return false
+
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        downX = event.rawX
+                        downY = event.rawY
+                        trackingPanel = false
+                        decided = false
+                        // Pre-register drag start position so the sheet has an anchor point if we decide to intercept
+                        sheet.externalDragBegin(downRawY = downY, currentRawY = event.rawY)
+                    }
+
+                    MotionEvent.ACTION_MOVE -> {
+                        val dy = event.rawY - downY // positive = finger moving down
+                        val dx = event.rawX - downX
+
+                        if (!decided) {
+                            if (kotlin.math.abs(dy) < slop && kotlin.math.abs(dx) < slop) return false
+
+                            // Downward swipe when already at the top of the list
+                            val isAtTop = !binding.layers.canScrollVertically(-1)
+                            if (dy > 0f && isAtTop && kotlin.math.abs(dy) > kotlin.math.abs(dx)) {
+                                trackingPanel = true
+                                decided = true
+                                return true // Intercept touch events, cancel children touches
+                            }
+                            decided = true
+                        }
+                    }
+                }
+                return trackingPanel
+            }
+
+            override fun onTouchEvent(rv: RecyclerView, event: MotionEvent) {
+                val sheet = findPanelSheet() ?: return
+
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_MOVE -> {
+                        sheet.externalDragBy(event.rawY)
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        sheet.externalDragEnd()
+                        trackingPanel = false
+                        decided = false
+                    }
+                }
+            }
+
+            override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {}
+        })
     }
 
     // ── Panel expansion observer ──────────────────────────────────────────────

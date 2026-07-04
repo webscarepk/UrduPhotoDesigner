@@ -52,7 +52,7 @@ class ShapeFragment : Fragment() {
                         // Apply GPU hard-limit so we never crash regardless of source resolution.
                         // CanvasView's display-proxy keeps rendering smooth even at max size.
                         val bitmap = com.webscare.urducanvas.common.utils.ImageProcessor
-                            .downsampleIfNeeded(rawBitmap, GPU_SAFE_MAX_PX, GPU_SAFE_MAX_PX)
+                            .downsampleIfNeeded(rawBitmap, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)
                         withContext(Dispatchers.Main) {
                             viewModel.addImageInsideShape(bitmap, requireActivity())
                         }
@@ -216,9 +216,5 @@ class ShapeFragment : Fragment() {
         fun newInstance(tabName: String) = ShapeFragment().apply {
             arguments = Bundle().apply { putString("tabName", tabName) }
         }
-
-        // GPU hard limit: 24 MP (ARGB_8888 @ 4 bytes/px = 96 MB).
-        // Applied to every image entering the canvas — CanvasView handles render perf.
-        private const val GPU_SAFE_MAX_PX = 4899
     }
 }

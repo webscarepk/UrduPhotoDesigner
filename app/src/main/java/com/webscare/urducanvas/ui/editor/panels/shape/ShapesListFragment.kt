@@ -24,6 +24,8 @@ import com.webscare.urducanvas.databinding.FragmentObjectsListBinding
 import com.webscare.urducanvas.ui.editor.panels.images.ImagesAdapter
 import com.webscare.urducanvas.common.utils.isDarkModeEnabled
 import com.webscare.urducanvas.common.utils.MorphGridLayoutManager
+import com.webscare.urducanvas.common.utils.HorizontalSpringEdgeEffectFactory
+import androidx.recyclerview.widget.RecyclerView
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.combine
@@ -100,7 +102,10 @@ class ShapesListFragment : Fragment() {
 
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
-        if (hidden) saveScrollPos()
+        if (hidden) {
+            saveScrollPos()
+            imagesAdapter?.cancelPreload()
+        }
     }
 
     override fun onDestroyView() {
@@ -230,6 +235,13 @@ class ShapesListFragment : Fragment() {
         if (isPanelExpanded == expanded) return
         isPanelExpanded = expanded
         if (_binding == null) return
+
+        if (expanded) {
+            binding.objects.edgeEffectFactory = RecyclerView.EdgeEffectFactory()
+            binding.objects.translationX = 0f
+        } else {
+            binding.objects.edgeEffectFactory = HorizontalSpringEdgeEffectFactory()
+        }
 
         mainViewModel.clearShapesSelection()
         prevSelectedIds = emptySet()

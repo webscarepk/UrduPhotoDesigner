@@ -23,6 +23,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import androidx.core.graphics.scale
+import android.widget.Toast
 
 @AndroidEntryPoint
 class FinishExportFragment : androidx.fragment.app.Fragment() {
@@ -40,8 +41,21 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        view.alpha = 0f
+        view.translationY = 80f
+        view.animate().alpha(1f).translationY(0f).setDuration(350).start()
         setEvents()
         initObservers()
+    }
+
+    private fun formatFileSize(sizeMB: Double?): String {
+        val size = sizeMB ?: return "0 KB"
+        return if (size < 1.0) {
+            val sizeKB = size * 1024.0
+            "%.0f KB".format(sizeKB)
+        } else {
+            "%.1f MB".format(size)
+        }
     }
 
     private fun initObservers() {
@@ -55,7 +69,7 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
             binding.fileName.text = result?.fileName
             binding.fileNameDetail.text = result?.fileName
             binding.fileType.text = "${result?.format} File"
-            binding.fileSizeDetail.text = "%.1f MB".format(result?.fileSizeMB)
+            binding.fileSizeDetail.text = formatFileSize(result?.fileSizeMB)
             binding.fileResolutionDetail.text = result?.resolution
             binding.fileQualityDetail.text = result?.quality
             binding.fileLocationDetail.text = result?.pdfPath ?: result?.imagePath
@@ -219,18 +233,22 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
                 val bitmap = ImageProcessor.filePathToBitmap(imagePath) ?: return@addPressEffect
                 val fileName = export.fileName ?: "Design"
 
-                // ✅ Capture everything BEFORE the animation starts
-                // addPressEffect fires onClick inside withEndAction (animation end callback),
-                // so capture all context-sensitive references here, outside the lambda.
                 val activity = requireActivity()
+                if (!PrintHelper.systemSupportsPrint()) {
+                    Toast.makeText(activity, "Printing is not supported on this device", Toast.LENGTH_SHORT).show()
+                    return@addPressEffect
+                }
 
-                // ✅ Post to next frame so we're fully outside the animation callback
-                // before PrintManager tries to resolve the Activity from context.
                 activity.window.decorView.post {
                     if (!activity.isFinishing && !activity.isDestroyed) {
-                        PrintHelper(activity).apply {
-                            scaleMode = PrintHelper.SCALE_MODE_FIT
-                        }.printBitmap(fileName, bitmap)
+                        try {
+                            PrintHelper(activity).apply {
+                                scaleMode = PrintHelper.SCALE_MODE_FIT
+                            }.printBitmap(fileName, bitmap)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            Toast.makeText(activity, "Failed to start printing", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             }

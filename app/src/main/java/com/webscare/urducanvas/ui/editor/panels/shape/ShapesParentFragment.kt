@@ -398,7 +398,7 @@ class ShapesParentFragment : Fragment() {
             }
             if (!target.isAdded) add(R.id.fragmentContainer, target, category)
             else if (target.isHidden) show(target)
-        }.commitNow()
+        }.commit()
 
         val expanded = mainViewModel.isPanelExpanded(PanelType.SHAPES)
         when (target) {
@@ -476,7 +476,9 @@ class ShapesParentFragment : Fragment() {
                         other.addOnTabSelectedListener(this)
                     }
                 }
-                showTab(pos)
+                binding.root.post {
+                    showTab(pos)
+                }
             }
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
             override fun onTabReselected(tab: TabLayout.Tab?) {}

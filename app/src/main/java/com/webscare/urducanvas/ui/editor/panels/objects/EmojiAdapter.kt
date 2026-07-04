@@ -71,6 +71,11 @@ class EmojiAdapter(
     var recyclerViewPadding: Int = 0
 
     fun updateData(newList: List<EmojiMeta>) {
+        if (emojis.isEmpty()) {
+            emojis.addAll(newList)
+            notifyDataSetChanged()
+            return
+        }
         val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
             override fun getOldListSize() = emojis.size
             override fun getNewListSize() = newList.size
@@ -242,6 +247,7 @@ class EmojiAdapter(
             override val emojiText   get() = binding.emojiText
             // Now has loadingAnim from updated item_emoji.xml layout
             override val loadingAnim get() = binding.loading
+            override val cardRoot    get() = binding.root
         }
 
         class Expanded(

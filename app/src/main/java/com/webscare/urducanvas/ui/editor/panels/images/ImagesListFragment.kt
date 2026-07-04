@@ -27,6 +27,7 @@ import com.webscare.urducanvas.viewmodels.MainViewModel
 import com.webscare.urducanvas.viewmodels.PexelsViewModel
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.PexelsCategories
+import com.webscare.urducanvas.common.utils.HorizontalSpringEdgeEffectFactory
 import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.combine
@@ -272,6 +273,13 @@ class ImagesListFragment : Fragment() {
         if (isPanelExpanded == expanded) return
         isPanelExpanded = expanded
         if (_binding == null) return
+
+        if (expanded) {
+            binding.backgrounds.edgeEffectFactory = RecyclerView.EdgeEffectFactory()
+            binding.backgrounds.translationX = 0f
+        } else {
+            binding.backgrounds.edgeEffectFactory = HorizontalSpringEdgeEffectFactory()
+        }
 
         mainViewModel.clearImagesSelection()
         prevSelectedIds = emptySet()

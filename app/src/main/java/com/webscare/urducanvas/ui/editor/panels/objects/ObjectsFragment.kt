@@ -116,6 +116,7 @@ class ObjectsFragment : Fragment() {
     override fun onDestroyView() {
         tabListenerAttached = false
         fragmentCache.clear()
+        currentFragment = null
         _binding = null
         super.onDestroyView()
     }
@@ -365,7 +366,7 @@ class ObjectsFragment : Fragment() {
                                 .diskCacheStrategy(com.bumptech.glide.load.engine.DiskCacheStrategy.ALL)
                                 .submit().get()
                             // Apply GPU hard-limit only — preserve full detail for stickers/objects
-                            downsampleIfNeeded(raw, GPU_SAFE_MAX_PX, GPU_SAFE_MAX_PX)
+                            downsampleIfNeeded(raw, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)
                         }.getOrNull()
                     }
                     bitmap?.let {
@@ -396,6 +397,10 @@ class ObjectsFragment : Fragment() {
     private fun showTab(position: Int) {
         if (position < 0 || position >= tabs.size) return
         val category = tabs[position]
+        
+        // Skip duplicate tab selections to prevent redundant layout passes and transactions
+        if (currentTabIndex == position && currentFragment != null) return
+
         currentTabIndex = position
         mainViewModel.lastObjectsTabCategory = category
 
@@ -414,7 +419,7 @@ class ObjectsFragment : Fragment() {
                 if (!target.isAdded) add(R.id.fragmentContainer, target, category)
                 else if (target.isHidden) show(target)
             }
-            .commitNow()
+            .commit()
 
         currentFragment = target
         val isExpanded = mainViewModel.isPanelExpanded(PanelType.OBJECTS)
@@ -451,15 +456,28 @@ class ObjectsFragment : Fragment() {
         if (tabListenerAttached) return
         tabListenerAttached = true
 
+        binding.tabLayout.clearOnTabSelectedListeners()
+        binding.tabLayoutExpanded.clearOnTabSelectedListeners()
+
         val listener = object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 val pos = tab?.position ?: return
                 tab.view.animate().scaleX(1f).scaleY(1f).setDuration(100)
                     .setInterpolator(OvershootInterpolator(1.2f)).start()
-                val other = if (tab.parent == binding.tabLayout)
+                
+                val other = if (tab.parent === binding.tabLayout)
                     binding.tabLayoutExpanded else binding.tabLayout
-                if (other.selectedTabPosition != pos) other.getTabAt(pos)?.select()
-                showTab(pos)
+                if (other.selectedTabPosition != pos) {
+                    other.setScrollPosition(pos, 0f, true)
+                    other.getTabAt(pos)?.let { otherTab ->
+                        other.clearOnTabSelectedListeners()
+                        otherTab.select()
+                        other.addOnTabSelectedListener(this)
+                    }
+                }
+                binding.root.post {
+                    showTab(pos)
+                }
             }
             override fun onTabUnselected(tab: TabLayout.Tab?) {
                 tab?.view?.animate()?.scaleX(0.9f)?.scaleY(0.9f)?.setDuration(100)?.start()
@@ -658,7 +676,7 @@ class ObjectsFragment : Fragment() {
                 // Preserve as much detail as possible — only apply the GPU hard-limit cap
                 // (24 MP / 4899 px per side) to prevent a hard crash. No canvas-relative
                 // downscale here; CanvasView's display-proxy system handles rendering perf.
-                val bitmap = downsampleIfNeeded(rawBitmap, GPU_SAFE_MAX_PX, GPU_SAFE_MAX_PX)
+                 val bitmap = downsampleIfNeeded(rawBitmap, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)
 
                 withContext(Dispatchers.Main) {
                     viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE)
@@ -674,10 +692,5 @@ class ObjectsFragment : Fragment() {
             "Emoticons", "Animals", "Nature", "Food", "Sports",
             "Transport", "Objects", "Alchemy", "Shapes", "Arrows", "Letters", "Flags"
         )
-
-        // GPU hard limit: 24 MP (ARGB_8888 @ 4 bytes/px = 96 MB). Applied everywhere an
-        // image enters the canvas, so we never crash regardless of source resolution.
-        // CanvasView's display-proxy system keeps rendering smooth even at this size.
-        private const val GPU_SAFE_MAX_PX = 4899
     }
 }

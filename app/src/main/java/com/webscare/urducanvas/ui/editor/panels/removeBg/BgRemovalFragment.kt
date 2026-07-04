@@ -68,6 +68,7 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
     private val subjectSegmenter: SubjectSegmenter by lazy {
         val options = SubjectSegmenterOptions.Builder()
             .enableForegroundConfidenceMask()
+            .enableForegroundBitmap()
             .build()
         SubjectSegmentation.getClient(options)
     }
@@ -194,15 +195,7 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
         binding.clearIcon.addPressEffect { binding.imageCanvas.clearSelection() }
 
         binding.previewIcon.addPressEffect {
-            if (!preview) {
-                originalBitmap?.let { bitmap -> binding.imageCanvas.setImage(bitmap) }
-            } else {
-                binding.imageCanvas.previewMaskedImage()?.let { maskedBitmap ->
-                    binding.imageCanvas.setImage(maskedBitmap)
-                }
-            }
             binding.imageCanvas.setPreviewMode(preview)
-            setIconSelected(binding.previewIcon, preview)
             preview = !preview
         }
 
@@ -318,16 +311,27 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
     private fun runSubjectSegmentation(bitmap: Bitmap) {
         Log.d(TAG, "runSubjectSegmentation: ${bitmap.width}x${bitmap.height}")
         showLoadingDialog()
-        val image = InputImage.fromBitmap(bitmap, 0)
+
+        // Downscale image to a reasonable size (max 1024px) for ML Kit to optimize quality and speed
+        val maxDim = 1024
+        val isScaled = bitmap.width > maxDim || bitmap.height > maxDim
+        val mlKitBitmap = if (isScaled) {
+            val scale = maxDim.toFloat() / Math.max(bitmap.width, bitmap.height)
+            Bitmap.createScaledBitmap(bitmap, (bitmap.width * scale).toInt(), (bitmap.height * scale).toInt(), true)
+        } else {
+            bitmap
+        }
+
+        val image = InputImage.fromBitmap(mlKitBitmap, 0)
         subjectSegmenter.process(image)
             .addOnSuccessListener { result ->
                 val maskBuffer = result.foregroundConfidenceMask
                 val maskBitmap = result.foregroundBitmap
                 Log.d(TAG, "MLKit success — maskBuffer=${maskBuffer != null} maskBitmap=${maskBitmap?.width}x${maskBitmap?.height}")
                 if (maskBuffer != null) {
-                    val width = maskBitmap?.width ?: bitmap.width
-                    val height = maskBitmap?.height ?: bitmap.height
-                    dismissLoadingDialog() // hand off to canvas processing flow
+                    val width = maskBitmap?.width ?: mlKitBitmap.width
+                    val height = maskBitmap?.height ?: mlKitBitmap.height
+                    dismissLoadingDialog()
                     binding.imageCanvas.applyGeneratedMask(maskBuffer, width, height)
                 } else {
                     Log.w(TAG, "maskBuffer is null — no subject detected")
@@ -338,11 +342,23 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
                 Log.e(TAG, "MLKit failed: ${e.javaClass.simpleName}: ${e.message}", e)
                 dismissLoadingDialog()
             }
+            .addOnCompleteListener {
+                if (isScaled) {
+                    mlKitBitmap.recycle()
+                }
+                // Switch back to nav_lasso so nav_subject is deselected and immediately re-clickable
+                binding.bottomNavigation.selectedItemId = R.id.nav_lasso
+            }
     }
 
     override fun onDestroyView() {
         dismissLoadingDialog()
         super.onDestroyView()
         _binding = null
+    }
+
+    override fun onDestroy() {
+        subjectSegmenter.close()
+        super.onDestroy()
     }
 }

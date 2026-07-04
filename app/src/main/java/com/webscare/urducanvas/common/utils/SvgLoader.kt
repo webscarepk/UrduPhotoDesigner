@@ -42,6 +42,17 @@ object SvgLoader {
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .connectionPool(ConnectionPool(10, 5, TimeUnit.MINUTES))
+            .addNetworkInterceptor { chain ->
+                val request = chain.request()
+                val response = chain.proceed(request)
+                if (request.url.toString().endsWith(".svg", ignoreCase = true)) {
+                    response.newBuilder()
+                        .header("Cache-Control", "public, max-age=2592000") // Cache SVGs locally on disk for 30 days
+                        .build()
+                } else {
+                    response
+                }
+            }
         
         appContext?.let { ctx ->
             val cacheSize = 50 * 1024 * 1024L // 50 MiB
@@ -83,50 +94,7 @@ object SvgLoader {
     // Public: DISPLAY load (grid thumbnails) — bitmap path, low memory
     // ─────────────────────────────────────────────────────────────────────────
 
-    private fun rasterizeFromXmlSync(url: String, xml: String, maxPx: Int, applyWhiteTint: Boolean): Bitmap? {
-        val cacheKey = if (maxPx == THUMB_MAX_PX) url else "${url}_$maxPx"
-        val tintedCacheKey = if (applyWhiteTint) "${cacheKey}_white" else cacheKey
-        
-        val svg = runCatching { SVG.getFromString(xml) }.getOrNull() ?: return null
-        svgCache.put(url, svg)
-        
-        return runCatching {
-            val vb = svg.documentViewBox
-            var w = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.width() else svg.documentWidth
-            var h = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.height() else svg.documentHeight
-            if (w <= 0f || h <= 0f) {
-                w = maxPx.toFloat()
-                h = maxPx.toFloat()
-            }
 
-            val scale = maxPx / maxOf(w, h)
-            val outW = (w * scale).toInt().coerceAtLeast(1)
-            val outH = (h * scale).toInt().coerceAtLeast(1)
-
-            val bmp = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
-            val canvas = Canvas(bmp)
-            
-            svg.documentWidth = outW.toFloat()
-            svg.documentHeight = outH.toFloat()
-
-            if (svg.documentViewBox != null) {
-                val origAspectRatio = svg.documentPreserveAspectRatio
-                try {
-                    svg.documentPreserveAspectRatio = com.caverock.androidsvg.PreserveAspectRatio.LETTERBOX
-                    svg.renderToCanvas(canvas, RectF(0f, 0f, outW.toFloat(), outH.toFloat()))
-                } finally {
-                    svg.documentPreserveAspectRatio = origAspectRatio
-                }
-            } else {
-                canvas.scale(scale, scale)
-                svg.renderToCanvas(canvas)
-            }
-
-            val finalBmp = if (applyWhiteTint) bmp.tintWhite() else bmp
-            bitmapCache.put(tintedCacheKey, finalBmp)
-            finalBmp
-        }.getOrNull()
-    }
 
     /**
      * Load an SVG into [imageView] as a small cached BITMAP. Call from Main; work
@@ -209,34 +177,27 @@ object SvgLoader {
     ): Job {
         val cacheKey = if (maxPx == THUMB_MAX_PX) url else "${url}_$maxPx"
         
-        val xmlFromCache = xmlCache.get(url) ?: cachedXml
-        val actualWhiteTint = if (xmlFromCache != null) {
-            applyWhiteTint && !isMultiColorSvg(xmlFromCache)
+        // Fast synchronous check of memory cache
+        val xmlFromCache = xmlCache.get(url)
+        val tintedCacheKey = if (applyWhiteTint && xmlFromCache != null) {
+            val key = xmlFromCache.hashCode().toString()
+            val isMulti = isMultiColorCache[key] ?: false
+            if (isMulti) cacheKey else "${cacheKey}_white"
         } else {
-            applyWhiteTint
+            if (applyWhiteTint) "${cacheKey}_white" else cacheKey
         }
-        val tintedCacheKey = if (actualWhiteTint) "${cacheKey}_white" else cacheKey
         
         bitmapCache.get(tintedCacheKey)?.let { bmp ->
             imageView.setImageBitmap(bmp)
-            onLoaded?.invoke(EMPTY_PICTURE_DRAWABLE, xmlCache.get(url) ?: "")
+            onLoaded?.invoke(EMPTY_PICTURE_DRAWABLE, xmlFromCache ?: "")
             return kotlinx.coroutines.Job().apply { complete() }
         }
 
-        if (xmlFromCache?.isNotEmpty() == true) {
-            val xml = xmlFromCache
-            xmlCache.put(url, xml)
-            val cachedBmp = rasterizeFromXmlSync(url, xml, maxPx, actualWhiteTint)
-            if (cachedBmp != null) {
-                imageView.setImageBitmap(cachedBmp)
-                onLoaded?.invoke(EMPTY_PICTURE_DRAWABLE, xml)
-                return kotlinx.coroutines.Job().apply { complete() }
-            }
-        }
-
+        // Always delegate parsing, check, and rasterization to Dispatchers.IO asynchronously
         return scope.launch(Dispatchers.Main) {
-            val result = withContext(Dispatchers.IO) { rasterizeThumbnail(url, cachedXml, maxPx, applyWhiteTint) }
-                ?: return@launch
+            val result = withContext(Dispatchers.IO) {
+                rasterizeThumbnail(url, cachedXml, maxPx, applyWhiteTint)
+            } ?: return@launch
             val (bmp, xml) = result
             imageView.setImageBitmap(bmp)
             onLoaded?.invoke(EMPTY_PICTURE_DRAWABLE, xml)

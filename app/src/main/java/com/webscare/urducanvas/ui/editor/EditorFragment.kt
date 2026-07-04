@@ -301,7 +301,7 @@ class EditorFragment : Fragment() {
                 // quality up to the GPU hard limit (24 MP / 4899 px per side).
                 // CanvasView's display-proxy system handles render performance transparently.
                 val bitmap = ImageProcessor.downsampleIfNeeded(
-                    rawBitmap, GPU_SAFE_MAX_PX, GPU_SAFE_MAX_PX
+                    rawBitmap, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX
                 )
 
                 withContext(Dispatchers.Main) {
@@ -2075,9 +2075,5 @@ class EditorFragment : Fragment() {
     }
 
     companion object {
-        // GPU hard limit: 24 MP (ARGB_8888 @ 4 bytes/px = 96 MB).
-        // Applied to every image entering the canvas — CanvasView's display-proxy
-        // handles render performance, this just prevents hard OOM crashes.
-        private const val GPU_SAFE_MAX_PX = 4899
     }
 }
