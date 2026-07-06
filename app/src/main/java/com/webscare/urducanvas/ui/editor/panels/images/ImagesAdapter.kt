@@ -250,9 +250,25 @@ class ImagesAdapter(
             if (lp != null) {
                 val marginEndPx = (6 * density).toInt()
                 val marginBottomPx = (6 * density).toInt()
-                if (lp.width != currentSize || lp.height != currentSize || lp.rightMargin != marginEndPx || lp.bottomMargin != marginBottomPx) {
-                    lp.width = currentSize
-                    lp.height = currentSize
+
+                // Calculate vertical clamping when horizontal orientation to prevent overlapping rows
+                val recyclerView = itemView.parent as? androidx.recyclerview.widget.RecyclerView
+                val lm = recyclerView?.layoutManager as? androidx.recyclerview.widget.GridLayoutManager
+                val finalSize = if (lm != null && lm.orientation == androidx.recyclerview.widget.GridLayoutManager.HORIZONTAL) {
+                    val rvHeight = recyclerView.height
+                    val rvPaddingY = recyclerView.paddingTop + recyclerView.paddingBottom
+                    val availHeight = rvHeight - rvPaddingY
+                    val spanCount = lm.spanCount.coerceAtLeast(1)
+                    val rowHeight = availHeight / spanCount
+                    val maxAllowedHeight = rowHeight - marginBottomPx
+                    minOf(currentSize, maxAllowedHeight).coerceAtLeast((28 * density).toInt())
+                } else {
+                    currentSize
+                }
+
+                if (lp.width != finalSize || lp.height != finalSize || lp.rightMargin != marginEndPx || lp.bottomMargin != marginBottomPx) {
+                    lp.width = finalSize
+                    lp.height = finalSize
                     lp.rightMargin = marginEndPx
                     lp.bottomMargin = marginBottomPx
                     cardRoot.layoutParams = lp

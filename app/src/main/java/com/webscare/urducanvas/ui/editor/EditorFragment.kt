@@ -145,6 +145,7 @@ class EditorFragment : Fragment() {
     )
     private var isPanelExpandable = true
     private var currentDragHandle: View? = null  // stored so we can block/restore touch
+    private val registeredDragHandles = mutableListOf<View>()
 
     private val pickImage =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -179,6 +180,29 @@ class EditorFragment : Fragment() {
             childFragmentManager.findFragmentById(R.id.panelNavHost) as NavHostFragment
         _navController = navHostFragment.navController
 
+        binding.panelNavContainer.dragListener = object : com.webscare.urducanvas.common.views.GestureFrameLayout.DragListener {
+            override fun onDragBegin(downRawY: Float, currentRawY: Float) {
+                if (isPanelExpandable && panelSheet?.isCurrentlyExpanded() == false) {
+                    panelSheet?.externalDragBegin(downRawY, currentRawY)
+                }
+            }
+
+            override fun onDragBy(currentRawY: Float) {
+                if (isPanelExpandable && panelSheet?.isCurrentlyExpanded() == false) {
+                    panelSheet?.externalDragBy(currentRawY)
+                }
+            }
+
+            override fun onDragEnd() {
+                if (isPanelExpandable && panelSheet?.isCurrentlyExpanded() == false) {
+                    panelSheet?.externalDragEnd()
+                }
+            }
+        }
+        binding.panelNavContainer.isSwipeUpEnabled = {
+            isPanelExpandable && panelSheet?.isCurrentlyExpanded() == false
+        }
+
         binding.panelNavHost.outlineProvider = object : android.view.ViewOutlineProvider() {
             override fun getOutline(view: View, outline: android.graphics.Outline) {
                 val radius = (30 * view.resources.displayMetrics.density + 0.5f).toInt()
@@ -203,6 +227,7 @@ class EditorFragment : Fragment() {
             val isNonExpandable = destination.id in nonExpandableDestinations
             if (isPanelExpandable != !isNonExpandable) {
                 isPanelExpandable = !isNonExpandable
+                panelSheet?.isSwipeEnabled = isPanelExpandable
                 if (!isPanelExpandable) {
                     // Snap to collapsed immediately — no spring animation, no user drag
                     panelSheet?.snapTo(expanded = false, immediate = true)
@@ -688,6 +713,13 @@ class EditorFragment : Fragment() {
     private fun observeAfterCanvasReady() {
         viewModel.inSelectionMode.observe(viewLifecycleOwner) { enabled ->
             if (::sizedCanvasView.isInitialized) sizedCanvasView.setSelectionMode(enabled)
+        }
+
+        // Set default background color based on app mode for new designs/projects
+        if (exportModel == null && viewModel.backgroundColor.value == Color.WHITE) {
+            val isNightMode = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+            val defaultColor = if (isNightMode) Color.parseColor("#2B2B2B") else Color.WHITE
+            viewModel.setCanvasBackgroundColor(defaultColor)
         }
 
         viewModel.backgroundColor.observe(viewLifecycleOwner) { color ->
@@ -1843,6 +1875,14 @@ class EditorFragment : Fragment() {
         }
     }
 
+    fun registerAdditionalDragHandle(view: View) {
+        val b = _binding ?: return
+        if (!registeredDragHandles.contains(view)) {
+            registeredDragHandles.add(view)
+            b.panelNavContainer.dragHandles = ArrayList(registeredDragHandles)
+        }
+    }
+
     /** Called by child panels to hand their drag handle to the sheet behavior. */
     fun attachDragHandle(handleView: View) {
         // Called only by expandable panel fragments — restore expandable state.
@@ -1859,6 +1899,11 @@ class EditorFragment : Fragment() {
 
             val collapsedPx = (rootHeight * 0.65f).toInt()
             val expandedPx = 0
+
+            // Reset drag handles tracker
+            registeredDragHandles.clear()
+            registeredDragHandles.add(handleView)
+            b.panelNavContainer.dragHandles = ArrayList(registeredDragHandles)
 
             // Cancel any in-flight spring from the previous instance before replacing it.
             // Also hard-reset the dimOverlay so a stale half-expanded state from the old
@@ -1886,9 +1931,9 @@ class EditorFragment : Fragment() {
                 expandedPx      = expandedPx,
                 onSlide         = { offset ->
                     mainViewModel.setPanelSlideOffset(offset)
-                    val b = _binding ?: return@PanelSheetBehavior
-                    b.fabContainer.alpha = 1f - offset
-                    b.fabContainer.visibility = if (offset >= 1f) View.GONE else View.VISIBLE
+                    val bb = _binding ?: return@PanelSheetBehavior
+                    bb.fabContainer.alpha = 1f - offset
+                    bb.fabContainer.visibility = if (offset >= 1f) View.GONE else View.VISIBLE
                 },
                 onStateSettled  = { expanded ->
                     if (expanded) {
@@ -1898,7 +1943,11 @@ class EditorFragment : Fragment() {
                     }
                 },
                 dimView = b.dimOverlay
-            )
+            ).apply {
+                onAdditionalHandleAttached = { view ->
+                    registerAdditionalDragHandle(view)
+                }
+            }
             panelSheet!!.attach()
         }
     }
@@ -1966,12 +2015,15 @@ class EditorFragment : Fragment() {
                 shape = android.graphics.drawable.GradientDrawable.OVAL
                 setColor(Color.TRANSPARENT)
                 setStroke(
-                    (3 * resources.displayMetrics.density).toInt(),
+                    (2 * resources.displayMetrics.density).toInt(),
                     ContextCompat.getColor(requireContext(), R.color.appColor)
                 )
             }
-            // Fill underneath, ring on top.
-            android.graphics.drawable.LayerDrawable(arrayOf(fill, ring))
+            // Fill underneath (inset), ring on top.
+            val layerDrawable = android.graphics.drawable.LayerDrawable(arrayOf(fill, ring))
+            val inset = (4 * resources.displayMetrics.density).toInt()
+            layerDrawable.setLayerInset(0, inset, inset, inset, inset)
+            layerDrawable
         } else {
             // Not selected — just the fill, no ring.
             fill
@@ -2004,14 +2056,25 @@ class EditorFragment : Fragment() {
         }
 
         // ── Background color: light / dark ────────────────────────────────
-        val lightColor = ContextCompat.getColor(requireContext(), R.color.contrast)
-        val darkColor   = ContextCompat.getColor(requireContext(), R.color.darkContrast)
+        var lightColor = ContextCompat.getColor(requireContext(), R.color.contrast)
+        var darkColor  = ContextCompat.getColor(requireContext(), R.color.black)
 
-        val currentBgColor = viewModel.backgroundColor.value
-            ?: requireActivity().getColor(R.color.contrast)
+        // Day-mode color fallbacks if night-mode is active (where R.color.black becomes #FFFFFF)
+        if (darkColor == Color.WHITE || darkColor == -1) {
+            lightColor = Color.parseColor("#F7F7F7") // R.color.contrast in day mode
+            darkColor  = Color.parseColor("#2B2B2B") // R.color.black in day mode
+        }
 
-        popupBinding.bgLight.applySelectionRing(currentBgColor == lightColor, lightColor)
-        popupBinding.bgDark.applySelectionRing(currentBgColor == darkColor, darkColor)
+        val currentBgColor = viewModel.backgroundColor.value ?: Color.WHITE
+
+        val isLightSelected = currentBgColor == lightColor || currentBgColor == Color.WHITE
+        val isDarkSelected = currentBgColor == darkColor || currentBgColor == Color.BLACK
+
+        popupBinding.bgLight.backgroundTintList = null
+        popupBinding.bgDark.backgroundTintList = null
+
+        popupBinding.bgLight.applySelectionRing(isLightSelected, lightColor)
+        popupBinding.bgDark.applySelectionRing(isDarkSelected, darkColor)
 
         popupBinding.bgLight.addPressEffect {
             viewModel.setCanvasBackgroundColor(lightColor)

@@ -99,7 +99,6 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
         }
 
         setupSwipeRefresh()
-        setupExpandGesture()    // ← NEW: swipe-up on RecyclerView to expand
 
         if (isBaseTab(category)) {
             setupEmojiTab()
@@ -150,51 +149,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    // ── Swipe-up to expand gesture ────────────────────────────────────────────
-    //
-    // Same logic as ImagesListFragment.setupExpandGesture():
-    //
-    // In collapsed state the RecyclerView is HORIZONTAL — it consumes
-    // left/right drag itself. Vertical drag is not consumed, so we intercept
-    // upward vertical swipes to expand the panel.
-    //
-    // In expanded state returns false immediately — the vertical RecyclerView
-    // and SwipeRefreshLayout handle all touch events themselves.
-    //
-    // Directional guard: dy > dx * 1.5f ensures we only trigger on gestures
-    // that are more vertical than horizontal, so horizontal scroll works fine.
 
-    @SuppressLint("ClickableViewAccessibility")
-    private fun setupExpandGesture() {
-        val thresholdPx = 40 * resources.displayMetrics.density
-        var startY = 0f
-        var startX = 0f
-
-        binding.objects.setOnTouchListener { _, event ->
-            // Expanded: let RecyclerView and SwipeRefreshLayout handle everything
-            if (isPanelExpanded) return@setOnTouchListener false
-
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    startY = event.rawY
-                    startX = event.rawX
-                    false   // don't consume — RecyclerView needs it for scroll init
-                }
-                MotionEvent.ACTION_UP -> {
-                    val dy = startY - event.rawY   // positive = finger moved up
-                    val dx = abs(startX - event.rawX)
-
-                    if (dy > thresholdPx && dy > dx * 1.5f) {
-                        mainViewModel.togglePanel(PanelType.OBJECTS)
-                        true
-                    } else {
-                        false
-                    }
-                }
-                else -> false
-            }
-        }
-    }
 
     // ── Image selection observer ──────────────────────────────────────────────
 
@@ -362,6 +317,17 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
         isPanelExpanded = expanded
         if (_binding == null) return
 
+        val rv = binding.objects
+        if (rv.width == 0) {
+            rv.post {
+                if (_binding != null) {
+                    isPanelExpanded = !expanded
+                    onPanelExpanded(expanded)
+                }
+            }
+            return
+        }
+
         if (expanded) {
             binding.objects.edgeEffectFactory = RecyclerView.EdgeEffectFactory()
             binding.objects.translationX = 0f
@@ -425,11 +391,11 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
 
     fun onPanelSlide(offset: Float) {
         if (_binding == null) return
-        binding.swipeRefresh?.isEnabled = offset >= 0.5f
+        binding.swipeRefresh?.isEnabled = offset >= 0.95f
         val lm = binding.objects.layoutManager as? MorphGridLayoutManager
         if (lm != null) {
             lm.applyFraction(binding.objects, offset)
-            val effectiveExpanded = offset >= 0.5f
+            val effectiveExpanded = offset >= 0.95f
             if (isBaseTab(category)) {
                 if (emojiAdapter?.isExpanded != effectiveExpanded) {
                     binding.objects.recycledViewPool.clear()

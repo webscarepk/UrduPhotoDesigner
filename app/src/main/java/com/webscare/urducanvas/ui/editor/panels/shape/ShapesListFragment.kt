@@ -91,7 +91,6 @@ class ShapesListFragment : Fragment() {
         }
 
         setupSwipeRefresh()
-        setupExpandGesture()
         setupImageTab()
         observeSelectionState()
 
@@ -132,30 +131,7 @@ class ShapesListFragment : Fragment() {
         }
     }
 
-    // ── Swipe-up to expand ────────────────────────────────────────────────────
 
-    @SuppressLint("ClickableViewAccessibility")
-    private fun setupExpandGesture() {
-        val thresholdPx = 40 * resources.displayMetrics.density
-        var startY = 0f
-        var startX = 0f
-
-        binding.objects.setOnTouchListener { _, event ->
-            if (isPanelExpanded) return@setOnTouchListener false
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> { startY = event.rawY; startX = event.rawX; false }
-                MotionEvent.ACTION_UP -> {
-                    val dy = startY - event.rawY
-                    val dx = abs(startX - event.rawX)
-                    if (dy > thresholdPx && dy > dx * 1.5f) {
-                        mainViewModel.togglePanel(PanelType.SHAPES)
-                        true
-                    } else false
-                }
-                else -> false
-            }
-        }
-    }
 
     // ── Selection observer ────────────────────────────────────────────────────
 
@@ -202,7 +178,7 @@ class ShapesListFragment : Fragment() {
                         Log.d("SVG", "${svgDrawable.intrinsicWidth}x${svgDrawable.intrinsicHeight} → ${trimmed.intrinsicWidth}x${trimmed.intrinsicHeight}")
                         viewModel.addSvgSticker(
                             trimmed, svgXml, requireActivity(), entity.is_premium,
-                            applyWhiteTintInDarkMode = false
+                            applyWhiteTintInDarkMode = true
                         )
                     } else if (bitmap != null) {
                         viewModel.addSticker(bitmap.trimTransparentEdges(), requireActivity(), ElementType.IMAGE, entity.is_premium)
@@ -214,7 +190,7 @@ class ShapesListFragment : Fragment() {
                 }
             )
         }
-        imagesAdapter?.applyWhiteTint = false
+        imagesAdapter?.applyWhiteTint = requireContext().isDarkModeEnabled()
         binding.objects.adapter = imagesAdapter
 
         val data = mainViewModel.shapesData.value
@@ -235,6 +211,14 @@ class ShapesListFragment : Fragment() {
         if (isPanelExpanded == expanded) return
         isPanelExpanded = expanded
         if (_binding == null) return
+
+        val rv = binding.objects
+        if (rv.width == 0) {
+            rv.post {
+                if (_binding != null) onPanelExpanded(expanded)
+            }
+            return
+        }
 
         if (expanded) {
             binding.objects.edgeEffectFactory = RecyclerView.EdgeEffectFactory()
@@ -258,7 +242,12 @@ class ShapesListFragment : Fragment() {
             }
         }
         val bottomPadding = if (expanded) (64 * resources.displayMetrics.density).toInt() else 0
-        binding.objects.setPadding(0, 0, 0, bottomPadding)
+        binding.objects.setPadding(
+            binding.objects.paddingLeft,
+            binding.objects.paddingTop,
+            binding.objects.paddingRight,
+            bottomPadding
+        )
 
         // Sync item size on final settle state
         val adapter = imagesAdapter ?: return
@@ -281,14 +270,22 @@ class ShapesListFragment : Fragment() {
         val lm = binding.objects.layoutManager as? MorphGridLayoutManager
         if (lm != null) {
             lm.applyFraction(binding.objects, offset)
-            val effectiveExpanded = offset >= 0.5f
+            val effectiveExpanded = offset >= 0.95f
             if (imagesAdapter?.isExpanded != effectiveExpanded) {
                 binding.objects.recycledViewPool.clear()
                 imagesAdapter?.isExpanded = effectiveExpanded
             }
         }
-        val bottomPadding = (64 * resources.displayMetrics.density * offset).toInt()
-        binding.objects.setPadding(0, 0, 0, bottomPadding)
+        
+        // Smoothly animate bottom padding during slide to avoid jerking
+        val maxPadding = (64 * resources.displayMetrics.density).toInt()
+        val currentPadding = (offset * maxPadding).toInt()
+        binding.objects.setPadding(
+            binding.objects.paddingLeft,
+            binding.objects.paddingTop,
+            binding.objects.paddingRight,
+            currentPadding
+        )
 
         // Smoothly update size of all visible items in 60fps!
         val adapter = imagesAdapter ?: return

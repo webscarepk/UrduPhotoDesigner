@@ -16,7 +16,10 @@ import com.webscare.urducanvas.common.canvas.enums.ShapeType
 import com.webscare.urducanvas.common.canvas.model.EmojiMeta
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.ShapeRenderUtils.drawShape
+import com.webscare.urducanvas.common.utils.isDarkModeEnabled
 import com.webscare.urducanvas.common.utils.SvgLoader
+
+// ── SelectedItem sealed class ─────────────────────────────────────────────────
 import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.databinding.LayoutThumbnailItemBinding
 import kotlinx.coroutines.CoroutineScope
@@ -87,7 +90,7 @@ class ThumbnailAdapter(
             val url   = resolveUrl(entity)
             val isSvg = entity.file_name.endsWith(".svg", ignoreCase = true)
             if (isSvg) {
-                SvgLoader.load(url, binding.thumbImage, scope, entity.bitmapData) { _, _ -> }
+                SvgLoader.load(url, binding.thumbImage, scope, entity.bitmapData, applyWhiteTint = binding.thumbImage.context.isDarkModeEnabled()) { _, _ -> }
             } else {
                 Glide.with(binding.thumbImage)
                     .load(entity.bitmapData ?: url)

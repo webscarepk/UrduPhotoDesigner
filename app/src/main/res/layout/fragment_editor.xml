@@ -305,7 +305,7 @@
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:background="@drawable/ic_button_gradient_wrap"
-            app:tint="@color/appColor"
+            app:tint="@color/black"
             android:backgroundTint="#30005D28"
             android:padding="8dp"
             android:src="@drawable/ic_export_canvas"
@@ -465,24 +465,32 @@
         android:importantForAccessibility="no"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/panelNavHost"
-        app:layout_constraintBottom_toTopOf="@id/panelNavHost"/>
+        app:layout_constraintTop_toTopOf="@id/panelNavContainer"
+        app:layout_constraintBottom_toTopOf="@id/panelNavContainer"/>
 
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/panelNavHost"
-        android:name="androidx.navigation.fragment.NavHostFragment"
+    <com.webscare.urducanvas.common.views.GestureFrameLayout
+        android:id="@+id/panelNavContainer"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:elevation="0dp"
         android:visibility="visible"
-        app:defaultNavHost="false"
         android:translationZ="10dp"
         android:background="@android:color/transparent"
         app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/centerExpandableGuide"
-        app:navGraph="@navigation/panel_nav_graph" />
+        app:layout_constraintTop_toBottomOf="@id/centerExpandableGuide">
+
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/panelNavHost"
+            android:name="androidx.navigation.fragment.NavHostFragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:defaultNavHost="false"
+            android:background="@android:color/transparent"
+            app:navGraph="@navigation/panel_nav_graph" />
+
+    </com.webscare.urducanvas.common.views.GestureFrameLayout>
 
     <ScrollView
         android:id="@+id/contextToolsScroll"

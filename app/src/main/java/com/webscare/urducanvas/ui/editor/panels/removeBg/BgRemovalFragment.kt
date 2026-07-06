@@ -325,6 +325,7 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
         val image = InputImage.fromBitmap(mlKitBitmap, 0)
         subjectSegmenter.process(image)
             .addOnSuccessListener { result ->
+                if (_binding == null || !isAdded) return@addOnSuccessListener
                 val maskBuffer = result.foregroundConfidenceMask
                 val maskBitmap = result.foregroundBitmap
                 Log.d(TAG, "MLKit success — maskBuffer=${maskBuffer != null} maskBitmap=${maskBitmap?.width}x${maskBitmap?.height}")
@@ -336,18 +337,24 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
                 } else {
                     Log.w(TAG, "maskBuffer is null — no subject detected")
                     dismissLoadingDialog()
+                    android.widget.Toast.makeText(requireContext(), "No clear subject detected in this image.", android.widget.Toast.LENGTH_LONG).show()
                 }
             }
             .addOnFailureListener { e ->
                 Log.e(TAG, "MLKit failed: ${e.javaClass.simpleName}: ${e.message}", e)
-                dismissLoadingDialog()
+                if (_binding != null && isAdded) {
+                    dismissLoadingDialog()
+                    android.widget.Toast.makeText(requireContext(), "Background removal failed: ${e.localizedMessage}", android.widget.Toast.LENGTH_LONG).show()
+                }
             }
             .addOnCompleteListener {
                 if (isScaled) {
                     mlKitBitmap.recycle()
                 }
-                // Switch back to nav_lasso so nav_subject is deselected and immediately re-clickable
-                binding.bottomNavigation.selectedItemId = R.id.nav_lasso
+                if (_binding != null && isAdded) {
+                    // Switch back to nav_lasso so nav_subject is deselected and immediately re-clickable
+                    binding.bottomNavigation.selectedItemId = R.id.nav_lasso
+                }
             }
     }
 

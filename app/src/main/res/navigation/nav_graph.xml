@@ -26,16 +26,6 @@
         android:label="fragment_home"
         tools:layout="@layout/fragment_home" />
     <fragment
-        android:id="@+id/loginFragment"
-        android:name="com.webscare.urducanvas.ui.auth.LoginFragment"
-        android:label="fragment_login"
-        tools:layout="@layout/fragment_login" />
-    <fragment
-        android:id="@+id/signupFragment"
-        android:name="com.webscare.urducanvas.ui.auth.SignupFragment"
-        android:label="fragment_signup"
-        tools:layout="@layout/fragment_signup" />
-    <fragment
         android:id="@+id/templatesFragment"
         android:name="com.webscare.urducanvas.ui.navigation.templates.TemplatesFragment"
         android:label="fragment_templates"
@@ -45,11 +35,6 @@
         android:name="com.webscare.urducanvas.ui.navigation.templates.TemplatesListFragment"
         android:label="fragment_templates_list"
         tools:layout="@layout/fragment_templates_list" />
-    <fragment
-        android:id="@+id/verificationFragment"
-        android:name="com.webscare.urducanvas.ui.auth.VerificationFragment"
-        android:label="fragment_verification"
-        tools:layout="@layout/fragment_verification" />
 
     <include app:graph="@navigation/panel_nav_graph" />
     <fragment

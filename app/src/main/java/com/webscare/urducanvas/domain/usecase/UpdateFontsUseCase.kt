@@ -21,4 +21,8 @@ class UpdateFontsUseCase @Inject constructor(
     ) {
         fontsRepo.updateFont(fontEntity)
     }
+
+    suspend fun updatePremiumEntitlement(subscribed: Boolean) {
+        fontsRepo.updatePremiumEntitlement(subscribed)
+    }
 }

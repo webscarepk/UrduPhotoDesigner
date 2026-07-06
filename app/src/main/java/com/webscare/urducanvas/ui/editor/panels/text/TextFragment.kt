@@ -676,7 +676,7 @@ class TextFragment : Fragment() {
 
         // ── 2. Live slide offset: drives smooth crossfade every frame ───────────
         viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 mainViewModel.panelSlideOffset.collect { offset ->
                     applySlideOffset(offset)
                 }
@@ -720,11 +720,19 @@ class TextFragment : Fragment() {
                 if (expandedAlpha > 0f) View.VISIBLE else View.GONE
         }
 
+        val rv = binding.fontsRV
+        if (rv.width == 0) {
+            rv.post {
+                if (_binding != null) applySlideOffset(offset)
+            }
+            return
+        }
+
         // Sync layout manager fraction with drag offset on every frame
         val lm = binding.fontsRV.layoutManager as? MorphGridLayoutManager
         if (lm != null) {
             lm.applyFraction(binding.fontsRV, offset)
-            val effectiveExpanded = offset >= 0.5f
+            val effectiveExpanded = offset >= 0.95f
             if (fontsAdapter.isExpanded != effectiveExpanded) {
                 binding.fontsRV.recycledViewPool.clear()
                 fontsAdapter.isExpanded = effectiveExpanded

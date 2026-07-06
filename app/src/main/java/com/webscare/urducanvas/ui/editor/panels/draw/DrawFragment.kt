@@ -124,7 +124,7 @@ class DrawFragment : Fragment() {
 
         // ── 2. Live slide offset: drives smooth crossfade every frame ───────────
         viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 mainViewModel.panelSlideOffset.collect { offset ->
                     applySlideOffset(offset)
                 }

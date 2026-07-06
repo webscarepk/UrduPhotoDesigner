@@ -9,4 +9,5 @@ interface ImagesRepo {
     suspend fun updateImage(imageEntity: ImageEntity)
     suspend fun deleteImages(imageEntity: ImageEntity)
     suspend fun markAsRecent(id: Int)
+    suspend fun updatePremiumEntitlement(subscribed: Boolean)
 }

@@ -47,8 +47,7 @@
                 android:layout_height="match_parent"
                 android:background="@color/contrast"
                 android:padding="8dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_launcher_background" />
+                android:scaleType="fitCenter" />
 
         </com.facebook.shimmer.ShimmerFrameLayout>
 
@@ -85,7 +84,7 @@
             android:padding="3dp"
             android:src="@drawable/ic_download"
             android:visibility="gone"
-            app:tint="@color/appColor" />
+            app:tint="@color/download_tint" />
 
     </com.webscare.urducanvas.common.views.SquareFrameLayout>
 

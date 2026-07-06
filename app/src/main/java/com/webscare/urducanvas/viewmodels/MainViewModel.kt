@@ -108,6 +108,7 @@ class MainViewModel @Inject constructor(
     private val pexelsRepo: PexelsRepo,
     private val imagesRepo: ImagesRepo,
     private val dataStore: com.webscare.urducanvas.common.datastore.PreferencesDataStoreHelper,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
 ) : ViewModel() {
 
     private val _selectedImageIds = MutableStateFlow<Set<Int>>(emptySet())
@@ -121,6 +122,8 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             dataStore.putPreference(com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.KEY_DARK_MODE, enabled)
         }
+        val sharedPrefs = context.getSharedPreferences("theme_prefs", android.content.Context.MODE_PRIVATE)
+        sharedPrefs.edit().putBoolean("is_dark_mode", enabled).apply()
     }
 
     private val _selectedShapesIds = MutableStateFlow<Set<Int>>(emptySet())
@@ -459,32 +462,9 @@ class MainViewModel @Inject constructor(
 
         viewModelScope.launch {
             billingManager.isSubscribed.collect { subscribed ->
-                _localFonts.value.forEach { font ->
-                    if (subscribed && font.is_premium) {
-                        updateFontsUseCase.invoke(font.copy(is_subscribed = true))
-                    }else if (!subscribed && font.is_premium){
-                        updateFontsUseCase.invoke(font.copy(is_subscribed = false))
-                    }
-                }
-                _localImages.value.forEach { image ->
-                    if (subscribed && image.is_premium) {
-                        updateImagesUseCase.invoke(image.copy(is_subscribed = true))
-                    }else if (!subscribed && image.is_premium){
-                        updateImagesUseCase.invoke(image.copy(is_subscribed = false))
-                    }
-                }
-
-                _localTemplates.value.forEach { template ->
-                    if (subscribed && template.is_premium) {
-                        updateTemplatesUseCase.updatePremiumStatus(
-                            template.id, true
-                        )
-                    }else if (!subscribed && template.is_premium){
-                        updateTemplatesUseCase.updatePremiumStatus(
-                            template.id, false
-                        )
-                    }
-                }
+                updateFontsUseCase.updatePremiumEntitlement(subscribed)
+                updateImagesUseCase.updatePremiumEntitlement(subscribed)
+                updateTemplatesUseCase.updatePremiumEntitlement(subscribed)
             }
         }
     }

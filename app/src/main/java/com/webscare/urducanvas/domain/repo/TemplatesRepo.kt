@@ -10,4 +10,5 @@ interface TemplatesRepo {
     suspend fun updateStatusTemplates(id: String, isDownloading: Boolean)
 
     suspend fun updateTemplatePremiumStatus(id: Int, isPremium: Boolean)
+    suspend fun updatePremiumEntitlement(subscribed: Boolean)
 }

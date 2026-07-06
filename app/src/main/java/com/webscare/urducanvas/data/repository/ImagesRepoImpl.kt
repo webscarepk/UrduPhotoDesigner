@@ -31,4 +31,8 @@ class ImagesRepoImpl @Inject constructor(
     override suspend fun markAsRecent(id: Int) {
         appDatabase.imagesDao().markAsRecent(id)
     }
+
+    override suspend fun updatePremiumEntitlement(subscribed: Boolean) {
+        appDatabase.imagesDao().updatePremiumEntitlement(subscribed)
+    }
 }

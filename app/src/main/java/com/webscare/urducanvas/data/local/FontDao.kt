@@ -28,4 +28,7 @@ interface FontDao {
 
     @Update
     suspend fun update(font: FontEntity)
+
+    @Query("UPDATE fonts SET is_subscribed = :isSubscribed WHERE is_premium = 1")
+    suspend fun updatePremiumEntitlement(isSubscribed: Boolean)
 }

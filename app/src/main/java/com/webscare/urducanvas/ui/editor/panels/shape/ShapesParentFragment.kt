@@ -172,7 +172,7 @@ class ShapesParentFragment : Fragment() {
 
         // ── 2. Live slide offset: drives smooth crossfade every frame ───────────
         viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 mainViewModel.panelSlideOffset.collect { offset ->
                     applySlideOffset(offset)
                 }
@@ -322,7 +322,7 @@ class ShapesParentFragment : Fragment() {
 
                 if (isSvg) {
                     val result = withContext(Dispatchers.IO) {
-                        SvgLoader.resolve(url, entity.bitmapData, applyWhiteTint = false)
+                        SvgLoader.resolve(url, entity.bitmapData, applyWhiteTint = requireContext().isDarkModeEnabled())
                     }
                     result?.let { (drawable, xml) ->
                         viewModel.addSvgSticker(
@@ -330,7 +330,7 @@ class ShapesParentFragment : Fragment() {
                             xml,
                             requireActivity(),
                             entity.is_premium,
-                            applyWhiteTintInDarkMode = false
+                            applyWhiteTintInDarkMode = true
                         )
                     }
                 } else {

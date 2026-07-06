@@ -99,6 +99,6 @@ app:shimmer_repeat_delay="0"
             android:background="@drawable/button_bg_round"
             android:backgroundTint="@color/white"
             android:padding="6dp"
-            app:tint="@color/appColor" />
+            app:tint="@color/download_tint" />
     </FrameLayout>
 </com.google.android.material.card.MaterialCardView>

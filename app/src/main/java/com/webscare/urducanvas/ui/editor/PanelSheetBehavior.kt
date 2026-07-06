@@ -46,6 +46,7 @@ class PanelSheetBehavior(
 
     // ── State ─────────────────────────────────────────────────────────────────
 
+    var isSwipeEnabled = true
     private var isExpanded = false
     private var springAnim: SpringAnimation? = null
     private var velocityTracker: VelocityTracker? = null
@@ -120,42 +121,24 @@ class PanelSheetBehavior(
 
         val startPx = currentGuideBegin
 
-        // Boost velocity so the spring naturally overshoots ~5 % of screen height.
-        // If the caller already supplies fling velocity we blend it in; otherwise
-        // we synthesise a minimum launch speed that guarantees a visible bounce.
-        val travelPx   = (targetPx - startPx).toFloat()           // signed
-        val minBoost   = screenHeight * OVERSHOOT_VELOCITY_FACTOR  // px/s
-        val launchV = when {
-            // If fling velocity is in the right direction and fast enough, use it
-            startVelocity != 0f && (startVelocity * travelPx > 0f) &&
-                    abs(startVelocity) > minBoost -> startVelocity
-            // Otherwise give it our minimum boost in the correct direction
-            travelPx != 0f -> minBoost * (if (travelPx > 0f) 1f else -1f)
-            else -> 0f
-        }
-
         val holder = FloatValueHolder(startPx.toFloat())
         springAnim = SpringAnimation(holder).apply {
             setStartValue(startPx.toFloat())
-            setStartVelocity(launchV)
+            setStartVelocity(startVelocity)
             spring = SpringForce(targetPx.toFloat()).apply {
-                stiffness    = SpringForce.STIFFNESS_LOW       // slower, lazier travel
-                dampingRatio = SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY  // gentle single overshoot
+                stiffness    = SpringForce.STIFFNESS_LOW
+                dampingRatio = SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY
             }
             addUpdateListener { _, value, _ ->
-                // Allow spring to travel slightly past bounds so overshoot is visible,
-                // but hard-clamp at a small extra margin to avoid layout weirdness.
-                val clampMin = expandedPx   - (screenHeight * OVERSHOOT_CLAMP_MARGIN).toInt()
-                val clampMax = collapsedPx  + (screenHeight * OVERSHOOT_CLAMP_MARGIN).toInt()
+                val clampMin = expandedPx - (screenHeight * OVERSHOOT_CLAMP_MARGIN).toInt()
+                val clampMax = collapsedPx + (screenHeight * OVERSHOOT_CLAMP_MARGIN).toInt()
                 currentGuideBegin = value.toInt().coerceIn(clampMin, clampMax)
             }
             addEndListener { _, _, _, _ ->
                 // Snap exactly to target when settled
                 currentGuideBegin = targetPx
                 isExpanded = targetPx == expandedPx
-                // Hard-reset the dim when collapsing — the overshoot bounce can leave
-                // alpha briefly above 0.01f, which would keep the overlay VISIBLE and
-                // intercepting touches even after the spring finishes.
+                // Hard-reset the dim when collapsing
                 if (!isExpanded) updateDim(0f)
                 onStateSettled(isExpanded)
                 releaseVelocityTracker()
@@ -210,6 +193,7 @@ class PanelSheetBehavior(
     // ── Touch ─────────────────────────────────────────────────────────────────
 
     private fun onTouch(event: MotionEvent): Boolean {
+        if (!isSwipeEnabled) return false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 springAnim?.cancel()
@@ -294,9 +278,12 @@ class PanelSheetBehavior(
         }
     }
 
+    var onAdditionalHandleAttached: ((View) -> Unit)? = null
+
     @SuppressLint("ClickableViewAccessibility")
     fun attachAdditionalHandle(view: View) {
         view.setOnTouchListener { _, event -> onTouch(event) }
+        onAdditionalHandleAttached?.invoke(view)
     }
 
     fun isCurrentlyExpanded() = isExpanded

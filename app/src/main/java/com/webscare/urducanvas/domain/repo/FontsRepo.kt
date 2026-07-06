@@ -10,4 +10,5 @@ interface FontsRepo {
     suspend fun updateStatusFont(id: String, isDownloading: Boolean)
     suspend fun deleteFont(fontEntity: FontEntity)
     suspend fun updateFont(fontEntity: FontEntity)
+    suspend fun updatePremiumEntitlement(subscribed: Boolean)
 }

@@ -50,6 +50,9 @@ interface ImageDao {
     @Update
     suspend fun update(imageEntity: ImageEntity)
 
+    @Query("UPDATE images SET is_subscribed = :isSubscribed WHERE is_premium = 1")
+    suspend fun updatePremiumEntitlement(isSubscribed: Boolean)
+
     // ── Mark recent ───────────────────────────────────────────────────────────
     // Updates is_recent = true for any image by id.
     // Works for ALL images including Pexels search results.

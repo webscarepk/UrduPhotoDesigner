@@ -600,29 +600,6 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         )
     }
 
-    private fun saveDirectToDownloads(
-        bitmap: Bitmap, options: ExportOptions
-    ): Uri {
-        val dir = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-            getString(R.string.app_name)
-        )
-        if (!dir.exists()) dir.mkdirs()
-
-        val ext = when (options.format.format) {
-            Bitmap.CompressFormat.PNG -> "png"
-            Bitmap.CompressFormat.JPEG -> "jpg"
-            Bitmap.CompressFormat.WEBP -> "webp"
-            else -> "png"
-        }
-
-        val file = File(dir, "design_${System.currentTimeMillis()}.$ext")
-        file.outputStream().use {
-            bitmap.compress(options.format.format!!, options.quality.quality, it)
-        }
-
-        return Uri.fromFile(file)
-    }
 
     private suspend fun saveImageOrPdf(
         bitmap: Bitmap, options: ExportOptions

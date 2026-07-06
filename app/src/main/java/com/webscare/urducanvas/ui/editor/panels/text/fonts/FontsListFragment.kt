@@ -68,7 +68,6 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
-        setupSwipeToExpand()   // ← swipe-up on RV to expand panel
         observeExpansion()
         observeFontData()
         observeDownloadStates()
@@ -107,76 +106,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
     }
 
     // ── Swipe-up on englishRV to expand panel ─────────────────────────────────
-    //
-    // The RV is HORIZONTAL in collapsed mode so any upward vertical swipe is
-    // free to drive the panel — no vertical scroll competes with it.
-    //
-    // We pass downY (from ACTION_DOWN) as the anchor to externalDragBegin so
-    // every pixel of finger movement counts from the very start — not just
-    // from after the slop threshold.
 
-    @SuppressLint("ClickableViewAccessibility")
-    private fun setupSwipeToExpand() {
-        val slop = 8f * resources.displayMetrics.density
-
-        var downX = 0f
-        var downY = 0f
-        var trackingPanel = false
-        var decided = false
-
-        _binding?.englishRV?.setOnTouchListener { _, event ->
-            // Panel already expanded — let the vertical RV scroll normally
-            if (mainViewModel.isPanelExpanded(PanelType.FONTS)) return@setOnTouchListener false
-
-            val sheet = findPanelSheet() ?: return@setOnTouchListener false
-
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    downX = event.rawX
-                    downY = event.rawY
-                    trackingPanel = false
-                    decided = false
-                    false   // let RV see DOWN
-                }
-
-                MotionEvent.ACTION_MOVE -> {
-                    val dy = event.rawY - downY   // negative = finger moving up
-                    val dx = event.rawX - downX
-
-                    if (!decided) {
-                        if (abs(dy) < slop && abs(dx) < slop) return@setOnTouchListener false
-
-                        // Upward swipe that's more vertical than horizontal → take over
-                        if (dy < 0f && abs(dy) > abs(dx)) {
-                            trackingPanel = true
-                            sheet.externalDragBegin(downRawY = downY, currentRawY = event.rawY)
-                            // Cancel RV's own touch tracking (stops horizontal scroll)
-                            val cancel = MotionEvent.obtain(event).also { c ->
-                                c.action = MotionEvent.ACTION_CANCEL
-                            }
-                            _binding?.englishRV?.dispatchTouchEvent(cancel)
-                            cancel.recycle()
-                            // Prevent SwipeRefreshLayout / any parent from intercepting
-                            _binding?.englishRV?.parent?.requestDisallowInterceptTouchEvent(true)
-                        }
-                        decided = true
-                    }
-
-                    if (trackingPanel) { sheet.externalDragBy(event.rawY); true } else false
-                }
-
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    val was = trackingPanel
-                    if (was) sheet.externalDragEnd()
-                    trackingPanel = false
-                    decided = false
-                    was
-                }
-
-                else -> false
-            }
-        }
-    }
 
     private fun findPanelSheet(): PanelSheetBehavior? {
         var f: androidx.fragment.app.Fragment? = this
@@ -199,7 +129,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
 
         // Live slide offset: drives smooth layout transition on slide
         viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 mainViewModel.panelSlideOffset.collect { offset ->
                     applySlideOffset(offset)
                 }
@@ -212,7 +142,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         val lm = rv.layoutManager as? MorphGridLayoutManager
         if (lm != null) {
             lm.applyFraction(rv, offset)
-            val effectiveExpanded = offset >= 0.45f
+            val effectiveExpanded = offset >= 0.95f
             if (fontsAdapter.isExpanded != effectiveExpanded) {
                 rv.recycledViewPool.clear()
                 fontsAdapter.isExpanded = effectiveExpanded
@@ -235,6 +165,12 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
 
     private fun applyExpansion(expanded: Boolean) {
         val rv = safeBinding?.englishRV ?: return
+        if (rv.width == 0) {
+            rv.post {
+                applyExpansion(expanded)
+            }
+            return
+        }
         val lm = rv.layoutManager as? MorphGridLayoutManager
         if (lm != null) {
             lm.applyFraction(rv, if (expanded) 1f else 0f)

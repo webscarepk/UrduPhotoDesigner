@@ -5820,6 +5820,20 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
+    private fun getCanvasBgColor(): Int {
+        val bgElement = canvasElements.firstOrNull { it.type == ElementType.BACKGROUND }
+        return bgElement?.backgroundColor ?: Color.WHITE
+    }
+
+    private fun isCanvasBgDark(): Boolean {
+        val color = getCanvasBgColor()
+        val r = Color.red(color)
+        val g = Color.green(color)
+        val b = Color.blue(color)
+        val luminance = 0.299f * r + 0.587f * g + 0.114f * b
+        return luminance < 128f
+    }
+
     private fun drawCanvasShadow(canvas: Canvas) {
 
         val rect = RectF(
@@ -5831,6 +5845,10 @@ class CanvasView @JvmOverloads constructor(
         val shadowRect = RectF(
             rect.left - spread, rect.top - spread, rect.right + spread, rect.bottom + spread
         )
+
+        val isDark = isCanvasBgDark()
+        canvasShadowPaint.color = if (isDark) Color.WHITE else Color.BLACK
+        canvasShadowPaint.alpha = if (isDark) 50 else 30
 
         canvas.drawRoundRect(
             shadowRect, 30f, 30f, canvasShadowPaint

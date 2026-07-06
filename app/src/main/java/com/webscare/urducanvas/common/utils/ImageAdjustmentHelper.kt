@@ -486,24 +486,76 @@ object ImageAdjustmentHelper {
         val h = src.height
         val pixels = IntArray(w * h)
         src.getPixels(pixels, 0, w, 0, 0, w, h)
+        val temp = IntArray(w * h)
         val out = IntArray(w * h)
-        val r = radius.toInt().coerceAtLeast(1)
+        val r = radius.toInt().coerceIn(1, 25)
 
+        // 1. Horizontal blur pass
         for (y in 0 until h) {
+            var rSum = 0; var gSum = 0; var bSum = 0; var aSum = 0
+            
+            // Initialize window
+            for (dx in -r..r) {
+                val px = pixels[y * w + dx.coerceIn(0, w - 1)]
+                aSum += (px ushr 24) and 0xFF
+                rSum += (px ushr 16) and 0xFF
+                gSum += (px ushr 8) and 0xFF
+                bSum += px and 0xFF
+            }
+
             for (x in 0 until w) {
-                var rSum = 0; var gSum = 0; var bSum = 0; var count = 0
-                for (dy in -r..r) {
-                    val ny = (y + dy).coerceIn(0, h - 1)
-                    for (dx in -r..r) {
-                        val nx = (x + dx).coerceIn(0, w - 1)
-                        val c = pixels[ny * w + nx]
-                        rSum += Color.red(c); gSum += Color.green(c); bSum += Color.blue(c)
-                        count++
-                    }
-                }
-                out[y * w + x] = Color.rgb(rSum / count, gSum / count, bSum / count)
+                val div = 2 * r + 1
+                temp[y * w + x] = (
+                    ((aSum / div) shl 24) or
+                    ((rSum / div) shl 16) or
+                    ((gSum / div) shl 8) or
+                    (bSum / div)
+                )
+
+                // Slide window
+                val oldPx = pixels[y * w + (x - r).coerceIn(0, w - 1)]
+                val newPx = pixels[y * w + (x + r + 1).coerceIn(0, w - 1)]
+
+                aSum += ((newPx ushr 24) and 0xFF) - ((oldPx ushr 24) and 0xFF)
+                rSum += ((newPx ushr 16) and 0xFF) - ((oldPx ushr 16) and 0xFF)
+                gSum += ((newPx ushr 8) and 0xFF) - ((oldPx ushr 8) and 0xFF)
+                bSum += (newPx and 0xFF) - (oldPx and 0xFF)
             }
         }
+
+        // 2. Vertical blur pass
+        for (x in 0 until w) {
+            var rSum = 0; var gSum = 0; var bSum = 0; var aSum = 0
+
+            // Initialize window
+            for (dy in -r..r) {
+                val px = temp[dy.coerceIn(0, h - 1) * w + x]
+                aSum += (px ushr 24) and 0xFF
+                rSum += (px ushr 16) and 0xFF
+                gSum += (px ushr 8) and 0xFF
+                bSum += px and 0xFF
+            }
+
+            for (y in 0 until h) {
+                val div = 2 * r + 1
+                out[y * w + x] = (
+                    ((aSum / div) shl 24) or
+                    ((rSum / div) shl 16) or
+                    ((gSum / div) shl 8) or
+                    (bSum / div)
+                )
+
+                // Slide window
+                val oldPx = temp[(y - r).coerceIn(0, h - 1) * w + x]
+                val newPx = temp[(y + r + 1).coerceIn(0, h - 1) * w + x]
+
+                aSum += ((newPx ushr 24) and 0xFF) - ((oldPx ushr 24) and 0xFF)
+                rSum += ((newPx ushr 16) and 0xFF) - ((oldPx ushr 16) and 0xFF)
+                gSum += ((newPx ushr 8) and 0xFF) - ((oldPx ushr 8) and 0xFF)
+                bSum += (newPx and 0xFF) - (oldPx and 0xFF)
+            }
+        }
+
         return Bitmap.createBitmap(out, w, h, Bitmap.Config.ARGB_8888)
     }
 }

@@ -12,6 +12,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.ExportViewType
@@ -25,6 +28,7 @@ class ExportOptionsFragment : com.google.android.material.bottomsheet.BottomShee
 
     private lateinit var viewType: ExportViewType
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    private val subscriptionViewModel: com.webscare.urducanvas.viewmodels.SubscriptionsViewModel by viewModels()
 
     private lateinit var items: List<Any>
     private lateinit var adapter: ExportOptionAdapter<Any>
@@ -102,6 +106,13 @@ class ExportOptionsFragment : com.google.android.material.bottomsheet.BottomShee
                 ExportViewType.FORMAT -> viewModel.formatOptions
             }
             adapter.updateList(items)
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            subscriptionViewModel.isSubscribed.collect { subscribed ->
+                adapter.isSubscribed = subscribed
+                adapter.notifyDataSetChanged()
+            }
         }
     }
 

@@ -13,4 +13,8 @@ class UpdateTemplatesUseCase @Inject constructor(
     suspend fun updatePremiumStatus(id: Int, isSubscribed: Boolean) {
         templatesRepo.updateTemplatePremiumStatus(id, isSubscribed)
     }
+
+    suspend fun updatePremiumEntitlement(subscribed: Boolean) {
+        templatesRepo.updatePremiumEntitlement(subscribed)
+    }
 }

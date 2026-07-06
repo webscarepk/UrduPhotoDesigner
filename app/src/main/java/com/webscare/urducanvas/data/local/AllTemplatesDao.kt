@@ -31,4 +31,7 @@ interface AllTemplatesDao {
 
     @Query("UPDATE templates SET is_subscribed = :isSubscribed WHERE id = :id")
     suspend fun updateTemplatePremiumStatus(id: Int, isSubscribed: Boolean)
+
+    @Query("UPDATE templates SET is_subscribed = :isSubscribed WHERE is_premium = 1")
+    suspend fun updatePremiumEntitlement(isSubscribed: Boolean)
 }

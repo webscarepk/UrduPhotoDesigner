@@ -25,7 +25,7 @@ class MorphGridLayoutManager(
     context: Context,
     private val collapsedSpan: Int = 3,   // rows in horizontal strip
     private val expandedSpan: Int = 3,    // columns in vertical grid
-    private val orientationFlipThreshold: Float = 0.5f
+    private val orientationFlipThreshold: Float = 0.95f
 ) : GridLayoutManager(context, collapsedSpan, HORIZONTAL, false) {
 
     // Track what we last set so we skip redundant requestLayout() calls

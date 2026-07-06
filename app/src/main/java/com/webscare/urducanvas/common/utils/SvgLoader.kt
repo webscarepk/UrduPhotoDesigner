@@ -78,6 +78,7 @@ object SvgLoader {
     }
 
     private val isMultiColorCache = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+    private val isSingleColorDarkCache = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
 
     /**
      * Synchronous cache peek. Returns the already-rasterized thumbnail bitmap if
@@ -157,6 +158,109 @@ object SvgLoader {
         }
     }
 
+    fun isSingleColorDarkSvg(xml: String): Boolean {
+        if (xml.isEmpty()) return false
+        val key = xml.hashCode().toString()
+        return isSingleColorDarkCache.getOrPut(key) {
+            runCatching {
+                val svg = SVG.getFromString(xml)
+                val width = 16
+                val height = 16
+                val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(bmp)
+                
+                svg.documentWidth = width.toFloat()
+                svg.documentHeight = height.toFloat()
+                
+                if (svg.documentViewBox != null) {
+                    val origAspectRatio = svg.documentPreserveAspectRatio
+                    try {
+                        svg.documentPreserveAspectRatio = com.caverock.androidsvg.PreserveAspectRatio.LETTERBOX
+                        svg.renderToCanvas(canvas, RectF(0f, 0f, width.toFloat(), height.toFloat()))
+                    } finally {
+                        svg.documentPreserveAspectRatio = origAspectRatio
+                    }
+                } else {
+                    svg.renderToCanvas(canvas)
+                }
+
+                // Gather colors from solid pixels (alpha >= 180 to skip anti-aliased edges)
+                val uniqueColors = mutableSetOf<Int>()
+                for (y in 0 until height) {
+                    for (x in 0 until width) {
+                        val pixel = bmp.getPixel(x, y)
+                        val alpha = (pixel ushr 24) and 0xFF
+                        if (alpha >= 180) {
+                            val r = (pixel ushr 16) and 0xFF
+                            val g = (pixel ushr 8) and 0xFF
+                            val b = pixel and 0xFF
+                            uniqueColors.add(android.graphics.Color.rgb(r, g, b))
+                        }
+                    }
+                }
+
+                // If empty due to thin strokes/lines, retry with lower alpha threshold
+                if (uniqueColors.isEmpty()) {
+                    for (y in 0 until height) {
+                        for (x in 0 until width) {
+                            val pixel = bmp.getPixel(x, y)
+                            val alpha = (pixel ushr 24) and 0xFF
+                            if (alpha >= 40) {
+                                val r = (pixel ushr 16) and 0xFF
+                                val g = (pixel ushr 8) and 0xFF
+                                val b = pixel and 0xFF
+                                uniqueColors.add(android.graphics.Color.rgb(r, g, b))
+                            }
+                        }
+                    }
+                }
+
+                bmp.recycle()
+
+                if (uniqueColors.isEmpty()) {
+                    return@getOrPut false
+                }
+
+                // Group colors that are very close to each other (Euclidean distance < 40)
+                val groups = mutableListOf<Int>()
+                for (color in uniqueColors) {
+                    val r = android.graphics.Color.red(color)
+                    val g = android.graphics.Color.green(color)
+                    val b = android.graphics.Color.blue(color)
+                    
+                    var matched = false
+                    for (gColor in groups) {
+                        val gr = android.graphics.Color.red(gColor)
+                        val gg = android.graphics.Color.green(gColor)
+                        val gb = android.graphics.Color.blue(gColor)
+                        
+                        val dist = Math.sqrt(((r - gr) * (r - gr) + (g - gg) * (g - gg) + (b - gb) * (b - gb)).toDouble())
+                        if (dist < 40.0) {
+                            matched = true
+                            break
+                        }
+                    }
+                    if (!matched) {
+                        groups.add(color)
+                    }
+                }
+
+                // Only tint if it's single/duo-colored (groups <= 2) and ALL groups are dark (luminance < 80.0)
+                if (groups.size in 1..2) {
+                    groups.all { color ->
+                        val r = android.graphics.Color.red(color)
+                        val g = android.graphics.Color.green(color)
+                        val b = android.graphics.Color.blue(color)
+                        val luminance = 0.299 * r + 0.587 * g + 0.114 * b
+                        luminance < 80.0
+                    }
+                } else {
+                    false
+                }
+            }.getOrDefault(false)
+        }
+    }
+
     private fun normalizeHexColor(hex: String): String {
         val clean = hex.removePrefix("#").lowercase()
         return when (clean.length) {
@@ -179,10 +283,11 @@ object SvgLoader {
         
         // Fast synchronous check of memory cache
         val xmlFromCache = xmlCache.get(url)
-        val tintedCacheKey = if (applyWhiteTint && xmlFromCache != null) {
-            val key = xmlFromCache.hashCode().toString()
-            val isMulti = isMultiColorCache[key] ?: false
-            if (isMulti) cacheKey else "${cacheKey}_white"
+        val key = xmlFromCache?.hashCode()?.toString()
+        val hasCachedDarkState = key != null && isSingleColorDarkCache.containsKey(key)
+        val tintedCacheKey = if (applyWhiteTint && xmlFromCache != null && hasCachedDarkState) {
+            val isDark = isSingleColorDarkCache[key] ?: false
+            if (isDark) "${cacheKey}_white" else cacheKey
         } else {
             if (applyWhiteTint) "${cacheKey}_white" else cacheKey
         }
@@ -220,7 +325,7 @@ object SvgLoader {
         val svg = getOrParseSvg(url, cachedXml) ?: return null
         val xml = xmlCache.get(url) ?: cachedXml ?: ""
         
-        val actualWhiteTint = applyWhiteTint && !isMultiColorSvg(xml)
+        val actualWhiteTint = applyWhiteTint && isSingleColorDarkSvg(xml)
         val tintedCacheKey = if (actualWhiteTint) "${cacheKey}_white" else cacheKey
         
         bitmapCache.get(tintedCacheKey)?.let { return it to xml }

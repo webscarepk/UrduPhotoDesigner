@@ -40,5 +40,9 @@ class FontsRepoImpl @Inject constructor(
     override suspend fun updateFont(fontEntity: com.webscare.urducanvas.data.model.FontEntity) {
         appDatabase.fontsDao().update(fontEntity)
     }
+
+    override suspend fun updatePremiumEntitlement(subscribed: Boolean) {
+        appDatabase.fontsDao().updatePremiumEntitlement(subscribed)
+    }
 }
 

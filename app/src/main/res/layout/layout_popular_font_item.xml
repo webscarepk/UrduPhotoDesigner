@@ -29,7 +29,6 @@ app:shimmer_repeat_delay="0"
                 android:id="@+id/image"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:src="@drawable/ic_launcher_background"
                 android:background="@color/white"
                 android:padding="6dp"
                 android:scaleType="centerCrop" />
@@ -69,6 +68,6 @@ app:shimmer_repeat_delay="0"
             android:background="@drawable/button_bg_round"
             android:backgroundTint="@color/contrast"
             android:padding="6dp"
-            app:tint="@color/appColor" />
+            app:tint="@color/download_tint" />
     </FrameLayout>
 </com.google.android.material.card.MaterialCardView>

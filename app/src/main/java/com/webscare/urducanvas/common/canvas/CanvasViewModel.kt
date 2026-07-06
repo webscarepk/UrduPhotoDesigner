@@ -3335,7 +3335,7 @@ class CanvasViewModel @Inject constructor(
         val targetH = canvasH * 0.4f
         val scaleFactor = minOf(targetW / svgW, targetH / svgH)
 
-        val actualTint = applyWhiteTintInDarkMode && (svgXml == null || !com.webscare.urducanvas.common.utils.SvgLoader.isMultiColorSvg(svgXml))
+        val actualTint = applyWhiteTintInDarkMode && (svgXml == null || com.webscare.urducanvas.common.utils.SvgLoader.isSingleColorDarkSvg(svgXml))
 
         val element = CanvasElement(
             context = context,
@@ -3437,13 +3437,17 @@ class CanvasViewModel @Inject constructor(
         // from the editor). In that case there is no canvas to add a background to - bail out.
         val size = _canvasSize.value ?: return
 
+        val isNightMode = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val defaultBgColor = if (isNightMode) Color.parseColor("#2B2B2B") else Color.WHITE
+
         // otherwise create and insert one
         val bg = CanvasElement(
             context = context,
             type = ElementType.BACKGROUND,
             x = size.width / 2f,
             y = size.height / 2f,
-            paintColor = Color.WHITE,
+            paintColor = defaultBgColor,
+            backgroundColor = defaultBgColor,
             fillGradient = null,
             bitmap = null
         ).apply {
@@ -3455,6 +3459,7 @@ class CanvasViewModel @Inject constructor(
 
         // prepend it so it’s always drawn first
         _canvasElements.value = listOf(bg) + (_canvasElements.value ?: emptyList())
+        _backgroundColor.value = defaultBgColor
     }
 
     fun addText(text: String, context: Context) {

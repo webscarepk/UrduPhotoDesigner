@@ -62,9 +62,9 @@ class MainActivity : AppCompatActivity() {
             uri?.let {
                 lifecycleScope.launch(Dispatchers.IO) {
                     try {
-                        val rawBitmap = contentResolver.openInputStream(it)?.use { stream ->
-                            BitmapFactory.decodeStream(stream)
-                        } ?: return@launch
+                        val rawBitmap = com.webscare.urducanvas.common.utils.ImageProcessor
+                            .decodeUriSafely(contentResolver, it, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)
+                            ?: return@launch
 
                         val bitmap = com.webscare.urducanvas.common.utils.ImageProcessor
                             .downsampleIfNeeded(rawBitmap, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)
@@ -110,25 +110,24 @@ class MainActivity : AppCompatActivity() {
     // ──────────────────────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val prefDataStore = com.webscare.urducanvas.common.datastore.PreferencesDataStoreHelper(applicationContext)
-        val isDarkMode = kotlinx.coroutines.runBlocking {
-            prefDataStore.getFirstPreference(com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.KEY_DARK_MODE, false)
-        }
+        val sharedPrefs = getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
+        val isDarkMode = sharedPrefs.getBoolean("is_dark_mode", false)
         if (isDarkMode) {
             androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES)
         } else {
             androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO)
         }
 
+        installSplashScreen().setKeepOnScreenCondition { false }
         super.onCreate(savedInstanceState)
         _binding = ActivityMainBinding.inflate(layoutInflater)
-        installSplashScreen().setKeepOnScreenCondition { false }
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(binding.root)
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
             val statusBarHeight = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
-            view.setPadding(0, statusBarHeight, 0, 0)
+            val navBarHeight = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            view.setPadding(0, statusBarHeight, 0, navBarHeight)
             insets
         }
 
@@ -247,7 +246,7 @@ class MainActivity : AppCompatActivity() {
                 indicatorView?.visibility = View.GONE
             }
 
-            setStatusBarTextColor(darkIcons = true)
+            applyStatusBarColor()
 
             // Sync selected tab + indicator with the actual destination.
             val index = when (destination.id) {
@@ -521,19 +520,13 @@ class MainActivity : AppCompatActivity() {
     // ──────────────────────────────────────────────────────────
 
     private fun setStatusBarTextColor(darkIcons: Boolean) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.insetsController?.setSystemBarsAppearance(
-                if (darkIcons) WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS else 0,
-                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
-            )
-        } else {
-            @Suppress("DEPRECATION") val flags = window.decorView.systemUiVisibility
-            window.decorView.systemUiVisibility = if (darkIcons) {
-                flags or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-            } else {
-                flags and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
-            }
-        }
+        val controller = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
+        controller.isAppearanceLightStatusBars = darkIcons
+    }
+
+    private fun applyStatusBarColor() {
+        val isNightMode = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        setStatusBarTextColor(darkIcons = !isNightMode)
     }
 
     private fun forceImmersiveMode() {
@@ -549,6 +542,7 @@ class MainActivity : AppCompatActivity() {
                 @Suppress("DEPRECATION") w.decorView.systemUiVisibility =
                     View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             }
+            applyStatusBarColor()
         }
     }
 
@@ -587,27 +581,30 @@ class MainActivity : AppCompatActivity() {
 
                 // ── 2) Existing image handling (unchanged) ──
                 if (intent.type?.startsWith("image/") == true) {
-                    contentResolver.openInputStream(uri)?.use { stream ->
-                        val rawBitmap = BitmapFactory.decodeStream(stream)
-                        if (rawBitmap != null) {
-                            val bitmap = com.webscare.urducanvas.common.utils.ImageProcessor.downsampleIfNeeded(
-                                rawBitmap,
-                                com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX,
-                                com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX
+                    val rawBitmap = com.webscare.urducanvas.common.utils.ImageProcessor.decodeUriSafely(
+                        contentResolver,
+                        uri,
+                        com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX,
+                        com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX
+                    )
+                    if (rawBitmap != null) {
+                        val bitmap = com.webscare.urducanvas.common.utils.ImageProcessor.downsampleIfNeeded(
+                            rawBitmap,
+                            com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX,
+                            com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX
+                        )
+                        val widthVal = bitmap.width.toFloat()
+                        val heightVal = bitmap.height.toFloat()
+                        withContext(Dispatchers.Main) {
+                            val canvasSize = CanvasSize(
+                                id = 0, "From Image", widthVal, heightVal
                             )
-                            val widthVal = bitmap.width.toFloat()
-                            val heightVal = bitmap.height.toFloat()
-                            withContext(Dispatchers.Main) {
-                                val canvasSize = CanvasSize(
-                                    id = 0, "From Image", widthVal, heightVal
-                                )
-                                viewModel.clearCanvas()
-                                viewModel.setCanvasSize(canvasSize)
-                                viewModel.setCanvasBackgroundImage(bitmap, this@MainActivity)
-                                val opts = NavOptions.Builder().setLaunchSingleTop(true)
-                                    .setPopUpTo(R.id.editorFragment, inclusive = true).build()
-                                navController.navigate(R.id.editorFragment, null, opts)
-                            }
+                            viewModel.clearCanvas()
+                            viewModel.setCanvasSize(canvasSize)
+                            viewModel.setCanvasBackgroundImage(bitmap, this@MainActivity)
+                            val opts = NavOptions.Builder().setLaunchSingleTop(true)
+                                .setPopUpTo(R.id.editorFragment, inclusive = true).build()
+                            navController.navigate(R.id.editorFragment, null, opts)
                         }
                     }
                 }

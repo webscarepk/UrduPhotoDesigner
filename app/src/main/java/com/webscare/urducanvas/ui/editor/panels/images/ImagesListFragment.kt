@@ -98,7 +98,6 @@ class ImagesListFragment : Fragment() {
         }
 
         setupSwipeRefresh()
-        setupExpandGesture()
         setupImageTab()
         observeSelectionState()
         setupPaginationScroll()
@@ -141,37 +140,7 @@ class ImagesListFragment : Fragment() {
         submitImages(categoryImages)
     }
 
-    // ── Swipe-up to expand gesture ────────────────────────────────────────────
 
-    @SuppressLint("ClickableViewAccessibility")
-    private fun setupExpandGesture() {
-        val thresholdPx = 40 * resources.displayMetrics.density
-        var startY = 0f
-        var startX = 0f
-
-        binding.backgrounds.setOnTouchListener { _, event ->
-            if (isPanelExpanded) return@setOnTouchListener false
-
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    startY = event.rawY
-                    startX = event.rawX
-                    false
-                }
-                MotionEvent.ACTION_UP -> {
-                    val dy = startY - event.rawY
-                    val dx = abs(startX - event.rawX)
-                    if (dy > thresholdPx && dy > dx * 1.5f) {
-                        mainViewModel.togglePanel(PanelType.IMAGES)
-                        true
-                    } else {
-                        false
-                    }
-                }
-                else -> false
-            }
-        }
-    }
 
     // ── Selection observer ────────────────────────────────────────────────────
 
@@ -274,6 +243,17 @@ class ImagesListFragment : Fragment() {
         isPanelExpanded = expanded
         if (_binding == null) return
 
+        val rv = binding.backgrounds
+        if (rv.width == 0) {
+            rv.post {
+                if (_binding != null) {
+                    isPanelExpanded = !expanded
+                    onPanelExpanded(expanded)
+                }
+            }
+            return
+        }
+
         if (expanded) {
             binding.backgrounds.edgeEffectFactory = RecyclerView.EdgeEffectFactory()
             binding.backgrounds.translationX = 0f
@@ -321,22 +301,25 @@ class ImagesListFragment : Fragment() {
 
     fun onPanelSlide(offset: Float) {
         if (_binding == null) return
-        binding.swipeRefresh.isEnabled = offset >= 0.5f
+        binding.swipeRefresh.isEnabled = offset >= 0.95f
         val lm = binding.backgrounds.layoutManager as? MorphGridLayoutManager
         if (lm != null) {
             lm.applyFraction(binding.backgrounds, offset)
-            val effectiveExpanded = offset >= 0.5f
+            val effectiveExpanded = offset >= 0.95f
             if (imagesAdapter?.isExpanded != effectiveExpanded) {
                 binding.backgrounds.recycledViewPool.clear()
                 imagesAdapter?.isExpanded = effectiveExpanded
             }
         }
-        val bottomPadding = (64 * resources.displayMetrics.density * offset).toInt()
+        
+        // Smoothly animate bottom padding during slide to avoid jerking
+        val maxPadding = (64 * resources.displayMetrics.density).toInt()
+        val currentPadding = (offset * maxPadding).toInt()
         binding.backgrounds.setPadding(
             binding.backgrounds.paddingLeft,
             binding.backgrounds.paddingTop,
             binding.backgrounds.paddingRight,
-            bottomPadding
+            currentPadding
         )
 
         // Smoothly update size of all visible items in 60fps!

@@ -10,4 +10,8 @@ class UpdateImagesUseCase @Inject constructor(
     suspend operator fun invoke(imageEntity: com.webscare.urducanvas.data.model.ImageEntity) {
         imagesRepo.updateImage(imageEntity)
     }
+
+    suspend fun updatePremiumEntitlement(subscribed: Boolean) {
+        imagesRepo.updatePremiumEntitlement(subscribed)
+    }
 }

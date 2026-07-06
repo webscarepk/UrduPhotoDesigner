@@ -151,6 +151,8 @@ class UpdateManager @Inject constructor(
     }
 
     fun onDestroy() {
+        updateDialog?.dismiss()
+        updateDialog = null
         currentActivity = null
         appUpdateManager.unregisterListener(installStateListener)
     }

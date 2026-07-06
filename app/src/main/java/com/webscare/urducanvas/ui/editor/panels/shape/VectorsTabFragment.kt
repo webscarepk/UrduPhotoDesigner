@@ -65,7 +65,6 @@ class VectorsTabFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupSwipeRefresh()
-        setupExpandGesture()
 
         if (shapesAdapter == null) {
             shapesAdapter = ShapeAdapter(requireContext(), ShapeType.entries) { shape ->
@@ -152,28 +151,7 @@ class VectorsTabFragment : Fragment() {
         }
     }
 
-    // ── Swipe-up to expand ────────────────────────────────────────────────────
 
-    @SuppressLint("ClickableViewAccessibility")
-    private fun setupExpandGesture() {
-        val thresholdPx = 40 * resources.displayMetrics.density
-        var startY = 0f; var startX = 0f
-
-        binding.objects.setOnTouchListener { _, event ->
-            if (isPanelExpanded) return@setOnTouchListener false
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> { startY = event.rawY; startX = event.rawX; false }
-                MotionEvent.ACTION_UP -> {
-                    val dy = startY - event.rawY
-                    val dx = abs(startX - event.rawX)
-                    if (dy > thresholdPx && dy > dx * 1.5f) {
-                        mainViewModel.togglePanel(PanelType.SHAPES); true
-                    } else false
-                }
-                else -> false
-            }
-        }
-    }
 
     // ── Panel expand/collapse ─────────────────────────────────────────────────
 
@@ -182,13 +160,12 @@ class VectorsTabFragment : Fragment() {
         val lm = binding.objects.layoutManager as? MorphGridLayoutManager
         if (lm != null) {
             lm.applyFraction(binding.objects, offset)
-            val effectiveExpanded = offset >= 0.5f
+            val effectiveExpanded = offset >= 0.95f
             if (shapesAdapter?.isExpanded != effectiveExpanded) {
                 binding.objects.recycledViewPool.clear()
                 shapesAdapter?.isExpanded = effectiveExpanded
             }
         }
-
         // Smoothly update size of all visible items in 60fps!
         val adapter = shapesAdapter ?: return
         val rvWidth = binding.objects.width
@@ -209,6 +186,18 @@ class VectorsTabFragment : Fragment() {
         isPanelExpanded = expanded
         if (_binding == null) return
 
+        val rv = binding.objects
+        if (rv.width == 0) {
+            rv.post {
+                if (_binding != null) {
+                    // force logic run by clearing flag
+                    isPanelExpanded = !expanded
+                    onPanelExpanded(expanded)
+                }
+            }
+            return
+        }
+
         binding.swipeRefresh?.isEnabled = expanded
         val lm = binding.objects.layoutManager as? MorphGridLayoutManager
         if (lm != null) {
@@ -218,6 +207,13 @@ class VectorsTabFragment : Fragment() {
                 shapesAdapter?.isExpanded = expanded
             }
         }
+        val bottomPadding = if (expanded) (64 * resources.displayMetrics.density).toInt() else 0
+        binding.objects.setPadding(
+            binding.objects.paddingLeft,
+            binding.objects.paddingTop,
+            binding.objects.paddingRight,
+            bottomPadding
+        )
 
         // Sync item size on final settle state
         val adapter = shapesAdapter ?: return

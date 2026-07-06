@@ -21,6 +21,8 @@ class ExportOptionAdapter<T>(
     private val onItemSelected: (T) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
+    var isSubscribed: Boolean = false
+
     override fun getItemCount(): Int = items.size
     override fun getItemViewType(position: Int) = viewType.ordinal
 
@@ -108,7 +110,7 @@ class ExportOptionAdapter<T>(
             binding.resolutionDesc.text = item.description
             binding.resolutionDiff.text = String.format("~%.1f MB", item.estimatedSizeKb / 1000f)
 
-            binding.isPremium.isVisible = item.isPremium
+            binding.isPremium.isVisible = item.isPremium && !isSubscribed
             // Apply UI changes based on selection state
             if (item.isSelected) {
                 binding.root.setBackgroundResource(R.drawable.card_bg_selected)
@@ -196,7 +198,7 @@ class ExportOptionAdapter<T>(
             binding.resolutionValue2.visibility = if (tags.size > 1) View.VISIBLE else View.GONE
             binding.resolutionValue3.visibility = if (tags.size > 2) View.VISIBLE else View.GONE
 
-            binding.isPremium.isVisible = item.isPremium
+            binding.isPremium.isVisible = item.isPremium && !isSubscribed
             if (item.isSelected) {
                 binding.root.setBackgroundResource(R.drawable.card_bg_selected)
                 binding.done.visibility = View.VISIBLE
