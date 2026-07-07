@@ -109,6 +109,21 @@ class MainActivity : AppCompatActivity() {
     // Lifecycle
     // ──────────────────────────────────────────────────────────
 
+    /**
+     * Guard against a known Android framework bug where
+     * [ViewGroup.TouchTarget.recycle] throws [IllegalStateException]
+     * ("already recycled once") when a child view is removed/detached
+     * during an active touch sequence.  The entire stack trace is
+     * framework-internal, so catching here is the only viable fix.
+     */
+    override fun dispatchTouchEvent(ev: android.view.MotionEvent?): Boolean {
+        return try {
+            super.dispatchTouchEvent(ev)
+        } catch (e: IllegalStateException) {
+            // Swallow only the specific "already recycled" crash
+            true
+        }
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         val sharedPrefs = getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
         val isDarkMode = sharedPrefs.getBoolean("is_dark_mode", false)

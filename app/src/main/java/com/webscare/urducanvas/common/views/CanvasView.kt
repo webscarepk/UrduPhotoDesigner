@@ -811,6 +811,16 @@ class CanvasView @JvmOverloads constructor(
         val oldSize = canvasElements.size
         canvasElements.clear()
         canvasElements.addAll(newElements.sortedBy { it.zIndex })
+
+        // Re-hydrate transient context on every element — it gets nulled during
+        // serialization/export and by copy() in undo/redo paths.  Without this,
+        // resolveAdjustedBitmapAsync silently skips blur (and all adjustments)
+        // because ImageAdjustmentHelper needs a Context for RenderScript.
+        val viewContext = context
+        canvasElements.forEach { el ->
+            if (el.context == null) el.context = viewContext
+        }
+
         selectedElements.clear()
         if (newElements.size > oldSize) {
             val newcomer = canvasElements.last()
@@ -1435,7 +1445,7 @@ class CanvasView @JvmOverloads constructor(
         maxWidth: Int = 300,
         maxHeight: Int = 300,
         onProgress: ((percent: Int, stage: String) -> Unit)? = null
-    ): Pair<Bitmap, String> {
+    ): Pair<Bitmap, File> {
         val contentWidth = this.canvasWidth
         val contentHeight = this.canvasHeight
 
@@ -1488,14 +1498,14 @@ class CanvasView @JvmOverloads constructor(
                                 element.svgDrawable!!, element
                             ) // canvasScale=1f default
                             element.bitmap = rasterized
-                            element.bitmapData = ImageProcessor.bitmapToBase64Lossless(rasterized)
+                            element.bitmapData = ImageProcessor.bitmapToBase64(rasterized)
                             element.svgDrawable = null  // ✅ clear @Transient — not serializable
                         }
 
                         // Regular bitmap
                         else -> {
                             element.bitmap?.let {
-                                element.bitmapData = ImageProcessor.bitmapToBase64Lossless(it)
+                                element.bitmapData = ImageProcessor.bitmapToBase64(it)
                             }
                         }
                     }
@@ -1531,20 +1541,20 @@ class CanvasView @JvmOverloads constructor(
                 gson.toJson(elementsSnapshot, writer)
             }
 
-            val json = jsonFile.readText()
-            if (json.isBlank()) {
+            if (jsonFile.length() < 2L) {
                 throw IOException("JSON serialization produced empty output")
             }
 
             onProgress?.invoke(95, "Thumbnail ready")
-            Pair(bitmap, json)
+            Pair(bitmap, jsonFile)  // Return File — caller streams it, never loads full String
 
         } catch (e: Exception) {
             Log.e("CanvasView", "exportCanvasThumbnail failed: ${e.message}", e)
-            // Return bitmap with empty JSON rather than crashing — caller can handle
-            Pair(bitmap, "[]")
-        } finally {
             jsonFile.delete()
+            // Return an empty-array sentinel file so the caller always gets a valid File
+            val fallback = File(context.cacheDir, "thumb_meta_fallback.json")
+            fallback.writeText("[]")
+            Pair(bitmap, fallback)
         }
     }
 
@@ -4008,8 +4018,11 @@ class CanvasView @JvmOverloads constructor(
         val existing = pendingAdjustmentJobs[element.id]
         if (existing == null || !existing.isActive) {
             val job = adjustmentScope.launch {
+                // Prefer the element's context; fall back to the View's context
+                // so adjustments (especially RenderScript blur) never silently skip.
+                val ctx = element.context ?: context ?: return@launch
                 val result = ImageAdjustmentHelper.applyAllAdjustments(
-                    element.context ?: return@launch, rawBitmap, element
+                    ctx, rawBitmap, element
                 )
                 withContext(Dispatchers.Main) {
                     // Do NOT recycle the old cachedAdjustedBitmap immediately — the export

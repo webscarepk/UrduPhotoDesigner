@@ -166,6 +166,17 @@ class VectorsTabFragment : Fragment() {
                 shapesAdapter?.isExpanded = effectiveExpanded
             }
         }
+
+        // Smoothly animate bottom padding during slide to avoid jerking
+        val maxPadding = (64 * resources.displayMetrics.density).toInt()
+        val currentPadding = (offset * maxPadding).toInt()
+        binding.objects.setPadding(
+            binding.objects.paddingLeft,
+            binding.objects.paddingTop,
+            binding.objects.paddingRight,
+            currentPadding
+        )
+
         // Smoothly update size of all visible items in 60fps!
         val adapter = shapesAdapter ?: return
         val rvWidth = binding.objects.width

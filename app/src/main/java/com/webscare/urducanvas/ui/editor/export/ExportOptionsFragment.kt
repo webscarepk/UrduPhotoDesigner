@@ -28,7 +28,7 @@ class ExportOptionsFragment : com.google.android.material.bottomsheet.BottomShee
 
     private lateinit var viewType: ExportViewType
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
-    private val subscriptionViewModel: com.webscare.urducanvas.viewmodels.SubscriptionsViewModel by viewModels()
+    private val subscriptionViewModel: com.webscare.urducanvas.viewmodels.SubscriptionsViewModel by activityViewModels()
 
     private lateinit var items: List<Any>
     private lateinit var adapter: ExportOptionAdapter<Any>

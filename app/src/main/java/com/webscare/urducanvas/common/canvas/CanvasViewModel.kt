@@ -3682,7 +3682,8 @@ class CanvasViewModel @Inject constructor(
             if (!file.exists() || file.length() < 4) return false
             // Check for valid font magic bytes
             // TTF/OTF starts with 0x00010000 or 'OTTO' or 'true' or 'typ1'
-            val bytes = file.inputStream().use { it.readNBytes(4) }
+            val bytes = ByteArray(4)
+            file.inputStream().use { it.read(bytes) }
             val magic = ((bytes[0].toInt() and 0xFF) shl 24) or
                     ((bytes[1].toInt() and 0xFF) shl 16) or
                     ((bytes[2].toInt() and 0xFF) shl 8) or

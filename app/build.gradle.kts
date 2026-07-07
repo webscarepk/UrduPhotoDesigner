@@ -8,15 +8,14 @@ plugins {
     id("com.google.firebase.crashlytics")
 }
 
-val appVersionCode = 25
-val appVersionName = "1.2.5"
+val appVersionCode = 26
+val appVersionName = "1.2.6"
 
 base.archivesName.set("UrduCanvas - V$appVersionCode($appVersionName)")
 
 android {
     namespace = "com.webscare.urducanvas"
     compileSdk = 37
-
 
     defaultConfig {
         applicationId = "com.webscare.urducanvas"
