@@ -4813,4 +4813,9 @@ class CanvasViewModel @Inject constructor(
         current.removeAll { it.isPremium }
 //        setCanvasElements(current)
     }
+
+    override fun onCleared() {
+        super.onCleared()
+        _canvasView.value = null
+    }
 }
