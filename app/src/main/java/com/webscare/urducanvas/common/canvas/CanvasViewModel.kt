@@ -722,9 +722,105 @@ class CanvasViewModel @Inject constructor(
         )
     }
 
+    private fun computeStrokeBounds(strokes: List<StrokeData>, canvasW: Int, canvasH: Int): android.graphics.RectF {
+        var minX = Float.MAX_VALUE
+        var minY = Float.MAX_VALUE
+        var maxX = -Float.MAX_VALUE
+        var maxY = -Float.MAX_VALUE
+
+        strokes.forEach { stroke ->
+            val path = stroke.path ?: return@forEach
+            val pathBounds = android.graphics.RectF()
+            path.computeBounds(pathBounds, true)
+            val expand = (stroke.thickness.takeIf { it.isFinite() } ?: 0f) * 0.5f
+            pathBounds.inset(-expand, -expand)
+            minX = minOf(minX, pathBounds.left)
+            minY = minOf(minY, pathBounds.top)
+            maxX = maxOf(maxX, pathBounds.right)
+            maxY = maxOf(maxY, pathBounds.bottom)
+        }
+
+        minX = minX.coerceAtLeast(0f)
+        minY = minY.coerceAtLeast(0f)
+        maxX = maxX.coerceAtMost(canvasW.toFloat())
+        maxY = maxY.coerceAtMost(canvasH.toFloat())
+
+        return android.graphics.RectF(minX, minY, maxX, maxY)
+    }
+
+    private fun rasterizeStrokesToBitmap(
+        strokes: List<StrokeData>,
+        canvasW: Int,
+        canvasH: Int,
+        bounds: android.graphics.RectF
+    ): Bitmap {
+        val fullBitmap = createBitmap(canvasW, canvasH)
+        val fullCanvas = android.graphics.Canvas(fullBitmap)
+
+        strokes.forEach { stroke ->
+            when (stroke.style) {
+                BrushStyle.BRUSH ->
+                    com.webscare.urducanvas.common.utils.BrushRenderUtils.drawBrushStroke(
+                        fullCanvas,
+                        stroke,
+                        255,
+                    )
+
+                BrushStyle.PEN ->
+                    com.webscare.urducanvas.common.utils.BrushRenderUtils.drawTaperedPenStroke(
+                        fullCanvas,
+                        stroke,
+                        255,
+                    )
+
+                BrushStyle.HIGHLIGHTER -> {
+                    val paint =
+                        com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
+                            stroke,
+                            canvasW,
+                            canvasH,
+                        )
+                    paint.alpha = 130
+                    paint.strokeCap = android.graphics.Paint.Cap.BUTT
+                    val path = Path(stroke.path)
+                    val m = android.graphics.Matrix()
+                    m.postTranslate(0f, stroke.thickness * 0.3f)
+                    path.transform(m)
+                    fullCanvas.drawPath(path, paint)
+                }
+
+                else -> {
+                    val paint =
+                        com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
+                            stroke,
+                            canvasW,
+                            canvasH,
+                        )
+                    paint.alpha = 255
+                    fullCanvas.drawPath(stroke.path!!, paint)
+                }
+            }
+        }
+
+        val cropX = bounds.left.toInt().coerceIn(0, fullBitmap.width - 1)
+        val cropY = bounds.top.toInt().coerceIn(0, fullBitmap.height - 1)
+        val cropW = bounds.width().toInt().coerceIn(1, fullBitmap.width - cropX)
+        val cropH = bounds.height().toInt().coerceIn(1, fullBitmap.height - cropY)
+        val croppedBitmap = Bitmap.createBitmap(
+            fullBitmap,
+            cropX,
+            cropY,
+            cropW,
+            cropH,
+        )
+        fullBitmap.recycle()
+        return croppedBitmap
+    }
+
     fun commitDrawSession() {
         val session = _activeDrawSession ?: return
-        if (session.drawStrokes.isNullOrEmpty()) {
+        val strokes = session.drawStrokes
+        if (strokes.isNullOrEmpty()) {
             _activeDrawSession = null
             return
         }
@@ -736,101 +832,12 @@ class CanvasViewModel @Inject constructor(
             val canvasH = _canvasSize.value?.height?.toInt() ?: 0
 
             val rasterized: CanvasElement = if (canvasW > 0 && canvasH > 0) {
-                // --- Step 1: Compute tight bounds across all strokes ---
-                var minX = Float.MAX_VALUE
-                var minY = Float.MAX_VALUE
-                var maxX = -Float.MAX_VALUE
-                var maxY = -Float.MAX_VALUE
-
-                session.drawStrokes?.forEach { stroke ->
-                    val path = stroke.path ?: return@forEach
-                    val pathBounds = android.graphics.RectF()
-                    path.computeBounds(pathBounds, true)
-                    val expand = (stroke.thickness.takeIf { it.isFinite() } ?: 0f) * 0.5f
-                    pathBounds.inset(-expand, -expand)
-                    minX = minOf(minX, pathBounds.left)
-                    minY = minOf(minY, pathBounds.top)
-                    maxX = maxOf(maxX, pathBounds.right)
-                    maxY = maxOf(maxY, pathBounds.bottom)
-                }
-
-                // Clamp to canvas bounds
-                minX = minX.coerceAtLeast(0f)
-                minY = minY.coerceAtLeast(0f)
-                maxX = maxX.coerceAtMost(canvasW.toFloat())
-                maxY = maxY.coerceAtMost(canvasH.toFloat())
-
-                val strokesWidth = (maxX - minX).coerceAtLeast(1f)
-                val strokesHeight = (maxY - minY).coerceAtLeast(1f)
-
-                // --- Step 2: Render strokes onto a full-canvas bitmap ---
-                val fullBitmap = createBitmap(canvasW, canvasH)
-                val fullCanvas = android.graphics.Canvas(fullBitmap)
-
-                session.drawStrokes?.forEach { stroke ->
-                    when (stroke.style) {
-                        BrushStyle.BRUSH ->
-                            com.webscare.urducanvas.common.utils.BrushRenderUtils.drawBrushStroke(
-                                fullCanvas,
-                                stroke,
-                                255,
-                            )
-
-                        BrushStyle.PEN ->
-                            com.webscare.urducanvas.common.utils.BrushRenderUtils.drawTaperedPenStroke(
-                                fullCanvas,
-                                stroke,
-                                255,
-                            )
-
-                        BrushStyle.HIGHLIGHTER -> {
-                            val paint =
-                                com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
-                                    stroke,
-                                    canvasW,
-                                    canvasH,
-                                )
-                            paint.alpha = 130
-                            paint.strokeCap = android.graphics.Paint.Cap.BUTT
-                            val path = Path(stroke.path)
-                            val m = android.graphics.Matrix()
-                            m.postTranslate(0f, stroke.thickness * 0.3f)
-                            path.transform(m)
-                            fullCanvas.drawPath(path, paint)
-                        }
-
-                        else -> {
-                            val paint =
-                                com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
-                                    stroke,
-                                    canvasW,
-                                    canvasH,
-                                )
-                            paint.alpha = 255
-                            fullCanvas.drawPath(stroke.path!!, paint)
-                        }
-                    }
-                }
-
-                // --- Step 3: Crop to tight bounds ---
-                val cropX = minX.toInt().coerceIn(0, fullBitmap.width - 1)
-                val cropY = minY.toInt().coerceIn(0, fullBitmap.height - 1)
-                val cropW = strokesWidth.toInt().coerceIn(1, fullBitmap.width - cropX)
-                val cropH = strokesHeight.toInt().coerceIn(1, fullBitmap.height - cropY)
-                val croppedBitmap = Bitmap.createBitmap(
-                    fullBitmap,
-                    cropX,
-                    cropY,
-                    cropW,
-                    cropH,
-                )
-                fullBitmap.recycle()
-
+                val bounds = computeStrokeBounds(strokes, canvasW, canvasH)
+                val croppedBitmap = rasterizeStrokesToBitmap(strokes, canvasW, canvasH, bounds)
                 val bitmapData = ImageProcessor.bitmapToBase64Lossless(croppedBitmap)
 
-                // --- Step 4: Position element at center of stroke bounds ---
-                val centerX = minX + strokesWidth / 2f
-                val centerY = minY + strokesHeight / 2f
+                val centerX = bounds.centerX()
+                val centerY = bounds.centerY()
 
                 session.copy(
                     bitmap = croppedBitmap,
@@ -838,8 +845,8 @@ class CanvasViewModel @Inject constructor(
                     drawStrokes = null,
                     x = centerX,
                     y = centerY,
-                    logicalContentWidth = strokesWidth,
-                    logicalContentHeight = strokesHeight,
+                    logicalContentWidth = bounds.width(),
+                    logicalContentHeight = bounds.height(),
                     isSelected = true,
                 )
             } else {
