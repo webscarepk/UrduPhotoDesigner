@@ -98,8 +98,8 @@ import kotlin.math.sqrt
 
 class CanvasView @JvmOverloads constructor(
     context: Context,
-    var canvasWidth: Int = 300,
-    var canvasHeight: Int = 300,
+    override var canvasWidth: Int = 300,
+    override var canvasHeight: Int = 300,
     attrs: AttributeSet? = null,
     var onEditTextRequested: ((CanvasElement) -> Unit)? = null,
     var onElementChanged: ((CanvasElement) -> Unit)? = null,
