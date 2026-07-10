@@ -2791,17 +2791,7 @@ class CanvasViewModel @Inject constructor(
 
     private fun getTypefaceForElement(element: CanvasElement, context: Context?): Typeface = context?.let { FontManager.getTypefaceForElement(element, localFonts.value, it) } ?: Typeface.DEFAULT
 
-    fun onCanvasSelectionChanged(selectedListFromCanvas: List<CanvasElement>) {
-        val currentElements = _canvasElements.value?.toMutableList() ?: mutableListOf()
-        val context = currentElements.firstOrNull()?.context
-
-        // Decide whether to collapse a group selection to its sentinel.
-        // Rules:
-        //   - Single child selected alone (e.g. tapped from layers panel or individually
-        //     selected) → keep the child selected, do NOT collapse to sentinel.
-        //     This preserves individual drag/edit on that child.
-        //   - All children of a group selected together → collapse to sentinel so the
-        //     whole group moves as one unit.
+    private fun determineSelectedIds(selectedListFromCanvas: List<CanvasElement>): Set<String> {
         val commonGroupId = selectedListFromCanvas
             .mapNotNull { it.groupId }
             .distinct()
@@ -2810,26 +2800,16 @@ class CanvasViewModel @Inject constructor(
 
         val collapseToSentinel = commonGroupId != null && selectedListFromCanvas.size > 1
 
-        val selectedIds: Set<String> = if (collapseToSentinel) {
-            // Whole group selected — mark sentinel selected, not children
+        return if (collapseToSentinel) {
             setOf(commonGroupId!!)
         } else {
             selectedListFromCanvas.map { it.id }.toSet()
         }
+    }
 
-        val updatedList = currentElements.map { element ->
-            val updated =
-                element.copy(isSelected = selectedIds.contains(element.id), context = context)
-            updated.paint.typeface = getTypefaceForElement(updated, context)
-            updated
-        }
-
-        _canvasElements.value = updatedList
-        refreshSelectedElements()
-
+    private fun syncUiWithSelectedElement(selectedListFromCanvas: List<CanvasElement>) {
         val firstText = selectedListFromCanvas.firstOrNull { it.type == ElementType.TEXT }
-        val firstImage =
-            selectedListFromCanvas.firstOrNull { it.type == ElementType.IMAGE || it.type == ElementType.STICKER }
+        val firstImage = selectedListFromCanvas.firstOrNull { it.type == ElementType.IMAGE || it.type == ElementType.STICKER }
         val firstDraw = selectedListFromCanvas.firstOrNull { it.type == ElementType.DRAW }
         val firstShape = selectedListFromCanvas.firstOrNull { it.type == ElementType.SHAPE }
 
@@ -2858,7 +2838,6 @@ class CanvasViewModel @Inject constructor(
                     _featherRadius.value = firstImage.featherRadius
                     _featherWidth.value = firstImage.featherWidth
                 }
-                // Always sync blur/opacity state so UI reflects the element's current values
                 _blur.value = firstImage.blurValue
                 _blurValue.value = firstImage.blurValue
                 _hasBlur.value = firstImage.hasBlur
@@ -2866,12 +2845,10 @@ class CanvasViewModel @Inject constructor(
             }
 
             firstDraw != null -> {
-                // 🖌️ Update brush LiveData to defaults or selected draw element values
                 _brushColor.value = firstDraw.drawStrokes?.lastOrNull()?.color ?: Color.BLACK
                 _brushThickness.value = firstDraw.drawStrokes?.lastOrNull()?.thickness ?: 10f
                 _brushHardness.value = firstDraw.drawStrokes?.lastOrNull()?.hardness ?: 1f
-                _currentBrushStyle.value =
-                    firstDraw.drawStrokes?.lastOrNull()?.style ?: BrushStyle.BRUSH
+                _currentBrushStyle.value = firstDraw.drawStrokes?.lastOrNull()?.style ?: BrushStyle.BRUSH
                 _brushGradient.value = firstDraw.drawStrokes?.lastOrNull()?.gradient
             }
 
@@ -2885,7 +2862,6 @@ class CanvasViewModel @Inject constructor(
             }
 
             else -> {
-                // No text, image, or draw → reset brushes
                 _brushColor.value = Color.BLACK
                 _brushThickness.value = 10f
                 _brushHardness.value = 1f
@@ -2893,6 +2869,22 @@ class CanvasViewModel @Inject constructor(
                 _brushGradient.value = null
             }
         }
+    }
+
+    fun onCanvasSelectionChanged(selectedListFromCanvas: List<CanvasElement>) {
+        val currentElements = _canvasElements.value?.toMutableList() ?: mutableListOf()
+        val context = currentElements.firstOrNull()?.context
+        val selectedIds = determineSelectedIds(selectedListFromCanvas)
+
+        val updatedList = currentElements.map { element ->
+            val updated = element.copy(isSelected = selectedIds.contains(element.id), context = context)
+            updated.paint.typeface = getTypefaceForElement(updated, context)
+            updated
+        }
+
+        _canvasElements.value = updatedList
+        refreshSelectedElements()
+        syncUiWithSelectedElement(selectedListFromCanvas)
     }
 
     private fun syncUiFormattingWithSelectedTextElement(textElement: CanvasElement?) {
