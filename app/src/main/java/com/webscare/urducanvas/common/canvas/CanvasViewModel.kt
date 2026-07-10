@@ -584,14 +584,14 @@ class CanvasViewModel @Inject constructor(
             if (element.isSelected && element.type == ElementType.SHAPE) {
                 val oldElement = element.copy()
                 val newElement = update(element)
-                _canvasActions.push(CanvasAction.UpdateElement(element.id, newElement, oldElement))
+                pushAction(CanvasAction.UpdateElement(element.id, newElement, oldElement))
                 newElement
             } else {
                 element
             }
         }
         _canvasElements.value = updatedList
-        _redoStack.clear()
+        undoRedoManager.clearRedo()
         notifyUndoRedoChanged()
     }
 
@@ -613,7 +613,7 @@ class CanvasViewModel @Inject constructor(
             }
         }
         _canvasElements.value = updatedList
-        _redoStack.clear()
+        undoRedoManager.clearRedo()
         notifyUndoRedoChanged()
     }
 
@@ -645,8 +645,7 @@ class CanvasViewModel @Inject constructor(
         )
 
         _canvasElements.value = _canvasElements.value?.plus(element)
-        _canvasActions.push(CanvasAction.AddShape(element))
-        _redoStack.clear()
+        pushAction(CanvasAction.AddShape(element))
         notifyUndoRedoChanged()
     }
 
@@ -724,7 +723,7 @@ class CanvasViewModel @Inject constructor(
             return
         }
 
-        _canvasActions.removeAll { it is CanvasAction.DrawSessionStroke }
+        undoRedoManager.removeAllActions { it is CanvasAction.DrawSessionStroke }
 
         viewModelScope.launch(Dispatchers.Default) {
             val canvasW = _canvasSize.value?.width?.toInt() ?: 0
@@ -848,7 +847,7 @@ class CanvasViewModel @Inject constructor(
                 _canvasActions.push(
                     CanvasAction.AddDrawStroke(rasterized.copy(context = null, bitmap = null)),
                 )
-                _redoStack.clear()
+                undoRedoManager.clearRedo()
                 notifyUndoRedoChanged()
                 _activeDrawSession = null
             }
@@ -856,8 +855,8 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun discardDrawSession() {
-        _canvasActions.removeAll { it is CanvasAction.DrawSessionStroke }
-        _redoStack.removeAll { it is CanvasAction.DrawSessionStroke }
+        undoRedoManager.removeAllActions { it is CanvasAction.DrawSessionStroke }
+        undoRedoManager.removeAllActions { it is CanvasAction.DrawSessionStroke }
         _activeDrawSession = null
         notifyUndoRedoChanged()
     }
@@ -911,7 +910,7 @@ class CanvasViewModel @Inject constructor(
                 ),
             )
 
-            _redoStack.clear()
+            undoRedoManager.clearRedo()
             notifyUndoRedoChanged()
         }
     }
@@ -1008,7 +1007,7 @@ class CanvasViewModel @Inject constructor(
             }
         }
         _canvasElements.value = updatedList
-        _redoStack.clear()
+        undoRedoManager.clearRedo()
         notifyUndoRedoChanged()
     }
 
@@ -1035,7 +1034,7 @@ class CanvasViewModel @Inject constructor(
             }
         }
         _canvasElements.value = updatedList
-        _redoStack.clear()
+        undoRedoManager.clearRedo()
         notifyUndoRedoChanged()
     }
 
@@ -1061,7 +1060,7 @@ class CanvasViewModel @Inject constructor(
             }
         }
         _canvasElements.value = updatedList
-        _redoStack.clear()
+        undoRedoManager.clearRedo()
         notifyUndoRedoChanged()
     }
 
@@ -1144,7 +1143,7 @@ class CanvasViewModel @Inject constructor(
         }
 
         _canvasElements.value = updatedList
-        _redoStack.clear()
+        undoRedoManager.clearRedo()
         notifyUndoRedoChanged()
     }
 
@@ -1612,7 +1611,7 @@ class CanvasViewModel @Inject constructor(
                 updatedList.map { it.copy(context = null, bitmap = null) },
             ),
         )
-        _redoStack.clear()
+        undoRedoManager.clearRedo()
         _canvasElements.value = updatedList
         notifyUndoRedoChanged()
     }
@@ -1904,8 +1903,7 @@ class CanvasViewModel @Inject constructor(
                 gradient,
             )
 
-            _canvasActions.push(action)
-            _redoStack.clear()
+            pushAction(action)
 
             element.overlayGradient = gradient
 
@@ -1982,12 +1980,12 @@ class CanvasViewModel @Inject constructor(
             val after = element.copy(context = null, bitmap = null)
             // Only push if something actually changed — avoids phantom undo entries
             if (before.lineSpacing != after.lineSpacing || before.letterSpacing != after.letterSpacing) {
-                _canvasActions.push(CanvasAction.UpdateElement(element.id, after, before))
+                pushAction(CanvasAction.UpdateElement(element.id, after, before))
                 pushed = true
             }
         }
         if (pushed) {
-            _redoStack.clear()
+            undoRedoManager.clearRedo()
             notifyUndoRedoChanged()
         }
     }
@@ -2159,7 +2157,7 @@ class CanvasViewModel @Inject constructor(
         }
 
         // Clear redo stack after applying changes
-        _redoStack.clear()
+        undoRedoManager.clearRedo()
 
         // Notify UI to update undo/redo status
         notifyUndoRedoChanged()
@@ -2209,8 +2207,7 @@ class CanvasViewModel @Inject constructor(
         }
 
         if (oldElement != null && newElement != null && targetId != null) {
-            _canvasActions.push(CanvasAction.UpdateElement(targetId!!, newElement!!, oldElement!!))
-            _redoStack.clear()
+            pushAction(CanvasAction.UpdateElement(targetId!!, newElement!!, oldElement!!))
             notifyUndoRedoChanged()
             markChanged()
         }
@@ -2372,7 +2369,7 @@ class CanvasViewModel @Inject constructor(
                     oldElement!!,
                 ),
             )
-            _redoStack.clear()
+            undoRedoManager.clearRedo()
             notifyUndoRedoChanged()
         }
 
@@ -2443,11 +2440,11 @@ class CanvasViewModel @Inject constructor(
         copiedElements.forEach { copied ->
             when {
                 copied.type == ElementType.GROUP -> { /* sentinel — no undo action needed separately */ }
-                copied.type == ElementType.TEXT -> _canvasActions.push(CanvasAction.AddText(copied.text, copied))
-                else -> _canvasActions.push(CanvasAction.AddSticker(copied))
+                copied.type == ElementType.TEXT -> pushAction(CanvasAction.AddText(copied.text, copied))
+                else -> pushAction(CanvasAction.AddSticker(copied))
             }
         }
-        _redoStack.clear()
+        undoRedoManager.clearRedo()
         notifyUndoRedoChanged()
     }
 
@@ -2457,7 +2454,7 @@ class CanvasViewModel @Inject constructor(
             _canvasActions.push(
                 CanvasAction.SetCanvasSize(newSize, oldSize ?: newSize),
             )
-            _redoStack.clear()
+            undoRedoManager.clearRedo()
             _canvasSize.value = newSize
             syncBackgroundElementSize(newSize) // ← ADD THIS
             notifyUndoRedoChanged()
@@ -2551,7 +2548,7 @@ class CanvasViewModel @Inject constructor(
                     /* No specific batch action in progress */
                 }
             }
-            _redoStack.clear() // Clear redo stack on new action
+            undoRedoManager.clearRedo() // Clear redo stack on new action
             notifyUndoRedoChanged()
         }
         currentBatchAction = null // Clear the batch action
@@ -2633,7 +2630,7 @@ class CanvasViewModel @Inject constructor(
                         oldElement = oldCopy,
                     ),
                 )
-                _redoStack.clear()
+                undoRedoManager.clearRedo()
                 notifyUndoRedoChanged()
             }
         }
@@ -2703,7 +2700,7 @@ class CanvasViewModel @Inject constructor(
                 updatedList.map { it.copy(context = null, bitmap = null) },
             ),
         )
-        _redoStack.clear()
+        undoRedoManager.clearRedo()
         _canvasElements.value = updatedList
         notifyUndoRedoChanged()
     }
@@ -2789,7 +2786,7 @@ class CanvasViewModel @Inject constructor(
                     oldElement = oldCopy,
                 ),
             )
-            _redoStack.clear()
+            undoRedoManager.clearRedo()
 
             // Update canvasElements — this triggers canvasManager.syncElements in EditorFragment.
             _canvasElements.value = currentList.map {
@@ -3283,8 +3280,7 @@ class CanvasViewModel @Inject constructor(
                 opacity,
             )
 
-            _canvasActions.push(action)
-            _redoStack.clear()
+            pushAction(action)
             notifyUndoRedoChanged()
         }
 
@@ -3318,8 +3314,7 @@ class CanvasViewModel @Inject constructor(
                 color,
                 element.overlayOpacity,
             )
-            _canvasActions.push(action)
-            _redoStack.clear()
+            pushAction(action)
 
             element.overlayColor = color
             element.overlayGradient = null // ✅ clear gradient when solid color applied
@@ -3359,7 +3354,7 @@ class CanvasViewModel @Inject constructor(
                 action,
             )
 
-            _redoStack.clear()
+            undoRedoManager.clearRedo()
 
             element.overlayOpacity = opacity
             element.hasOverlay = opacity > 0
@@ -3373,8 +3368,8 @@ class CanvasViewModel @Inject constructor(
 //        val previousBitmap = _backgroundImage.value
 //        // Only push action if there's a change
 //        if (bitmap != previousBitmap) {
-//            _canvasActions.push(CanvasAction.SetBackgroundImage(bitmap, previousBitmap))
-//            _redoStack.clear()
+//            pushAction(CanvasAction.SetBackgroundImage(bitmap, previousBitmap))
+//            undoRedoManager.clearRedo()
 //            _backgroundImage.value = bitmap
 //            notifyUndoRedoChanged()
 //        }
@@ -3409,8 +3404,7 @@ class CanvasViewModel @Inject constructor(
         )
 
         element.updatePaintProperties()
-        _canvasActions.push(CanvasAction.AddSticker(element.copy(context = null, bitmap = null)))
-        _redoStack.clear()
+        pushAction(CanvasAction.AddSticker(element.copy(context = null, bitmap = null)))
         _canvasElements.value = currentList + element
         notifyUndoRedoChanged()
     }
@@ -3420,8 +3414,7 @@ class CanvasViewModel @Inject constructor(
         // Only push if actually changed
         if (newGradient != previous) {
             // record the change (new, old)
-            _canvasActions.push(CanvasAction.SetBackgroundGradient(newGradient, previous))
-            _redoStack.clear()
+            pushAction(CanvasAction.SetBackgroundGradient(newGradient, previous))
             _backgroundGradient.value = newGradient
             notifyUndoRedoChanged()
         }
@@ -3431,8 +3424,7 @@ class CanvasViewModel @Inject constructor(
         val previous = _backgroundGradient.value
         if (previous != null) {
             val defaultGradient = GradientItem()
-            _canvasActions.push(CanvasAction.SetBackgroundGradient(defaultGradient, previous))
-            _redoStack.clear()
+            pushAction(CanvasAction.SetBackgroundGradient(defaultGradient, previous))
             _backgroundGradient.value = defaultGradient
             notifyUndoRedoChanged()
         }
@@ -3473,7 +3465,7 @@ class CanvasViewModel @Inject constructor(
             if (it.id == selectedElement?.id) updatedElement!! else it
         }
 
-        _redoStack.clear()
+        undoRedoManager.clearRedo()
         notifyUndoRedoChanged()
     }
 
@@ -3517,8 +3509,7 @@ class CanvasViewModel @Inject constructor(
         }
 
         element.updatePaintProperties()
-        _canvasActions.push(CanvasAction.AddSticker(element.copy(context = null, bitmap = null)))
-        _redoStack.clear()
+        pushAction(CanvasAction.AddSticker(element.copy(context = null, bitmap = null)))
         _canvasElements.value = currentList + element
         notifyUndoRedoChanged()
     }
@@ -3589,7 +3580,7 @@ class CanvasViewModel @Inject constructor(
             ),
         )
 
-        _redoStack.clear()
+        undoRedoManager.clearRedo()
         _canvasElements.value = currentList + element
         notifyUndoRedoChanged()
     }
@@ -3657,8 +3648,7 @@ class CanvasViewModel @Inject constructor(
             text,
             element.copy(context = null, bitmap = null),
         ) // Push a copy for undo, without transient data
-        _canvasActions.push(action)
-        _redoStack.clear()
+        pushAction(action)
         _canvasElements.value = currentList + element
         selectedElement = element
         notifyUndoRedoChanged()
@@ -3705,8 +3695,7 @@ class CanvasViewModel @Inject constructor(
             text,
             element.copy(context = null, bitmap = null),
         )
-        _canvasActions.push(action)
-        _redoStack.clear()
+        pushAction(action)
 
         // Add to list + mark selected
         _canvasElements.value = currentList + element
@@ -3773,8 +3762,7 @@ class CanvasViewModel @Inject constructor(
             }
 
             _canvasElements.value = updatedList
-            _canvasActions.push(CanvasAction.SetFont(fontEntity, affectedElementsData))
-            _redoStack.clear()
+            pushAction(CanvasAction.SetFont(fontEntity, affectedElementsData))
             _isExplicitChange = false
             notifyUndoRedoChanged()
         }
@@ -3923,7 +3911,7 @@ class CanvasViewModel @Inject constructor(
             _canvasActions.push(
                 CanvasAction.SetTextColor(color, oldColor ?: Color.BLACK, targetElementId!!),
             )
-            _redoStack.clear()
+            undoRedoManager.clearRedo()
             notifyUndoRedoChanged()
         }
     }
@@ -3964,7 +3952,7 @@ class CanvasViewModel @Inject constructor(
                     targetElementId!!,
                 ),
             )
-            _redoStack.clear()
+            undoRedoManager.clearRedo()
             notifyUndoRedoChanged()
         }
     }
@@ -3989,7 +3977,7 @@ class CanvasViewModel @Inject constructor(
                 previousText = oldText,
             ),
         )
-        _redoStack.clear()
+        undoRedoManager.clearRedo()
         notifyUndoRedoChanged()
     }
 
@@ -4021,8 +4009,7 @@ class CanvasViewModel @Inject constructor(
             _canvasElements.value =
                 currentList.map { if (it.id == updatedElement.id) updatedElement else it }
             if (updatedElement.isSelected) _currentImageFilter.value = newFilter
-            _canvasActions.push(CanvasAction.ApplyImageFilter(elementId, newFilter, oldFilter))
-            _redoStack.clear()
+            pushAction(CanvasAction.ApplyImageFilter(elementId, newFilter, oldFilter))
             _isExplicitChange = false
             notifyUndoRedoChanged()
         }
@@ -4073,7 +4060,7 @@ class CanvasViewModel @Inject constructor(
                 ),
             )
         }
-        _redoStack.clear()
+        undoRedoManager.clearRedo()
         notifyUndoRedoChanged()
     }
 
@@ -4137,7 +4124,7 @@ class CanvasViewModel @Inject constructor(
                 ),
             )
         }
-        _redoStack.clear()
+        undoRedoManager.clearRedo()
         notifyUndoRedoChanged()
     }
 
@@ -4180,7 +4167,7 @@ class CanvasViewModel @Inject constructor(
                 oldElement = oldCopy,
             ),
         )
-        _redoStack.clear()
+        undoRedoManager.clearRedo()
         notifyUndoRedoChanged()
     }
 
@@ -4201,9 +4188,9 @@ class CanvasViewModel @Inject constructor(
         allToRemove.forEach { elem ->
             val element = elem.copy(context = null, bitmap = null)
             element.paint.typeface = element.applyTypefaceFromFontList()
-            _canvasActions.push(CanvasAction.RemoveElement(element))
+            pushAction(CanvasAction.RemoveElement(element))
         }
-        _redoStack.clear()
+        undoRedoManager.clearRedo()
 
         val removeIds = allToRemove.map { it.id }.toSet()
         _canvasElements.value = currentList.filter { it.id !in removeIds }
@@ -4217,8 +4204,7 @@ class CanvasViewModel @Inject constructor(
         if (currentList.any { it.id == element.id }) {
             val newElement = element.copy(context = null, bitmap = null)
             newElement.paint.typeface = newElement.applyTypefaceFromFontList()
-            _canvasActions.push(CanvasAction.RemoveElement(newElement))
-            _redoStack.clear()
+            pushAction(CanvasAction.RemoveElement(newElement))
             // If deleting a GROUP sentinel, also delete all its children.
             // 'Delete group' means delete everything in it, not ungroup.
             val idsToRemove = if (element.type == ElementType.GROUP) {
@@ -4243,30 +4229,27 @@ class CanvasViewModel @Inject constructor(
     fun notifyDrawStrokeAdded(stroke: StrokeData) {
         // Deep-copy the path so the undo record is independent of future mutations
         val snapshot = stroke.copy(path = stroke.path?.let { Path(it) })
-        _canvasActions.push(CanvasAction.DrawSessionStroke(snapshot))
-        _redoStack.clear()
+        pushAction(CanvasAction.DrawSessionStroke(snapshot))
         notifyUndoRedoChanged()
     }
 
     fun undo() {
-        if (_canvasActions.isEmpty()) return
-        val action = _canvasActions.pop()
-        _redoStack.push(action)
+        val action = undoRedoManager.popUndo() ?: return
+        undoRedoManager.pushRedo(action)
         applyAction(action, isRedo = false)
         notifyUndoRedoChanged()
     }
 
     fun redo() {
-        if (_redoStack.isEmpty()) return
-        val action = _redoStack.pop()
-        _canvasActions.push(action)
+        val action = undoRedoManager.popRedo() ?: return
+        undoRedoManager.pushUndo(action)
         applyAction(action, isRedo = true)
         notifyUndoRedoChanged()
     }
 
     private fun notifyUndoRedoChanged() {
-        _canUndo.value = _canvasActions.isNotEmpty()
-        _canRedo.value = _redoStack.isNotEmpty()
+        _canUndo.value = undoRedoManager.canUndo()
+        _canRedo.value = undoRedoManager.canRedo()
         refreshSelectedElements()
     }
 
@@ -4835,8 +4818,8 @@ class CanvasViewModel @Inject constructor(
     fun clearCanvas() {
         _canvasElements.value = emptyList()
         _selectedElements.value = emptyList()
-        _canvasActions.clear()
-        _redoStack.clear()
+        undoRedoManager.clear()
+        undoRedoManager.clearRedo()
 
         _canvasSize.value = null
         _canvasView.value = null
