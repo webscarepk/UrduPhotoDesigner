@@ -79,6 +79,7 @@ class CanvasViewModel @Inject constructor(
     private val fontGate: FontGate,
     private val billingManager: BillingManager,
     private val templateRepository: TemplateRepository,
+    private val manageElementsUseCase: ManageElementsUseCase,
 ) : ViewModel() {
 
     private val _fontPanelState = MutableLiveData(FontPanelState())
@@ -2643,60 +2644,28 @@ class CanvasViewModel @Inject constructor(
 
     fun updateCanvasElementsOrderAndZIndex(reorderedList: List<CanvasElement>) {
         val oldList = _canvasElements.value ?: emptyList()
+        val updatedList = manageElementsUseCase.reorderAndAssignZIndices(oldList, reorderedList)
 
-        // ── Expand reorderedList to include collapsed children ────────────────
-        // reorderedList contains only the items visible in the RecyclerView.
-        // Children of COLLAPSED groups are absent — we re-insert them beneath
-        // their GROUP sentinel so their z-indices are always updated correctly.
-        val reorderedIds = reorderedList.map { it.id }.toSet()
-
-        // Collapsed children: present in canvasElements but absent from reorderedList
-        val collapsedChildrenByGroup: Map<String, List<CanvasElement>> =
-            oldList
-                .filter { it.groupId != null && it.id !in reorderedIds }
-                .groupBy { it.groupId!! }
-
-        // Build the full ordered list: after each GROUP sentinel inject its
-        // collapsed children (preserving their relative old z-index order so
-        // internal ordering survives collapse/expand cycles).
-        val fullOrderedList = mutableListOf<CanvasElement>()
-        for (element in reorderedList) {
-            fullOrderedList.add(element)
-            if (element.type == ElementType.GROUP) {
-                val collapsed = collapsedChildrenByGroup[element.id]
-                    ?.sortedByDescending { it.zIndex }
-                    ?: emptyList()
-                fullOrderedList.addAll(collapsed)
-            }
-        }
-
-        // ── Assign z-indices: position 0 (top of layers panel) = highest z ──
-        val totalCount = fullOrderedList.size
-        val updatedList = fullOrderedList.mapIndexed { index, element ->
-            val newZ = totalCount - 1 - index
-            val copiedElement = element.copy(zIndex = newZ, context = element.context)
-            if (copiedElement.type == ElementType.TEXT && copiedElement.fontId != null) {
-                val font = localFonts.value.find { it.id.toString() == copiedElement.fontId }
-                if (font != null && font.file_path?.isNotBlank() == true) {
+        // Re-apply typefaces on the main thread / ViewModel context
+        val context = updatedList.firstOrNull()?.context
+        updatedList.forEach { element ->
+            if (element.type == ElementType.TEXT && element.fontId != null) {
+                val font = _localFonts.value?.find { it.id.toString() == element.fontId }
+                if (font?.file_path?.isNotBlank() == true) {
                     try {
-                        copiedElement.paint.typeface = Typeface.createFromFile(font.file_path)
+                        element.paint.typeface = Typeface.createFromFile(font.file_path)
                     } catch (e: Exception) {
                         Log.e("CanvasViewModel", "Error re-applying typeface in updateCanvasElementsOrderAndZIndex: ${font.file_path}", e)
-                        copiedElement.paint.typeface = copiedElement.context?.let {
+                        element.paint.typeface = context?.let {
                             ResourcesCompat.getFont(it, R.font.default_canvas)
                         } ?: Typeface.DEFAULT
                     }
-                } else {
-                    copiedElement.paint.typeface = copiedElement.context?.let {
-                        ResourcesCompat.getFont(it, R.font.default_canvas)
-                    } ?: Typeface.DEFAULT
                 }
             } else {
-                copiedElement.paint.typeface = copiedElement.context?.let {
+                element.paint.typeface = context?.let {
                     ResourcesCompat.getFont(it, R.font.default_canvas)
                 } ?: Typeface.DEFAULT
             }
-            copiedElement
         }
 
         undoRedoManager.pushAction(
