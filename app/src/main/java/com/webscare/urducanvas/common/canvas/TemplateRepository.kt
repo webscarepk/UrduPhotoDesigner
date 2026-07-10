@@ -2,15 +2,18 @@ package com.webscare.urducanvas.common.canvas
 
 import android.content.Context
 import android.graphics.Typeface
+import android.graphics.drawable.PictureDrawable
 import android.util.Log
 import androidx.core.content.res.ResourcesCompat
 import com.google.gson.Gson
 import com.webscare.urducanvas.R
-import com.webscare.urducanvas.common.canvas.enums.AdjustmentValues
 import com.webscare.urducanvas.common.canvas.enums.ElementType
+import com.webscare.urducanvas.common.canvas.model.AdjustmentValues
 import com.webscare.urducanvas.common.canvas.model.CanvasElement
+import com.webscare.urducanvas.common.utils.ImageProcessor
+import com.webscare.urducanvas.common.utils.ImageProcessor.trimTransparentEdges
+import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.data.model.FontEntity
-import com.webscare.urducanvas.ui.editor.export.ExportResult
 import com.webscare.urducanvas.viewmodels.FontGate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -69,7 +72,7 @@ class TemplateRepository @Inject constructor(
                         drawStrokes?.forEach { stroke -> stroke.restorePath() }
                     }
                 }
-                element.restoreWithContextBackground(context)
+                restoreWithContextBackground(element, context, localFonts)
             }
 
             onProgress("Applying fonts", 70)
@@ -94,5 +97,81 @@ class TemplateRepository @Inject constructor(
             Log.e("TemplateRepository", "parseAndHydrateTemplate failed: ${e.message}", e)
             null
         }
+    }
+
+    private fun restoreWithContextBackground(
+        element: CanvasElement,
+        context: Context,
+        localFonts: List<FontEntity>
+    ): CanvasElement {
+        val restored = element.copy(context = context).apply {
+            updatePaintProperties()
+            when (type) {
+                ElementType.TEXT -> {
+                    paint.typeface = FontManager.applyTypefaceFromFontList(this, localFonts, context)
+                }
+
+                ElementType.IMAGE -> {
+                    bitmapData?.let { data ->
+                        bitmap = ImageProcessor.base64ToBitmap(data)
+                    }
+                }
+
+                ElementType.STICKER -> {
+                    if (svgData != null) {
+                        try {
+                            val svg = com.caverock.androidsvg.SVG.getFromString(svgData)
+                            val vb = svg.documentViewBox
+                            var w = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.width() else svg.documentWidth
+                            var h = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.height() else svg.documentHeight
+                            if (w <= 0f || h <= 0f) {
+                                w = 512f
+                                h = 512f
+                            }
+                            svg.documentWidth = w
+                            svg.documentHeight = h
+
+                            svgDrawable = PictureDrawable(svg.renderToPicture())
+                                .trimTransparentEdges()
+                            bitmap = null
+                        } catch (e: Exception) {
+                            Log.e("TemplateRepository", "SVG restore in restoreWithContextBackground failed, falling back to bitmapData", e)
+                            bitmapData?.let { data ->
+                                bitmap = ImageProcessor.base64ToBitmap(data)
+                            }
+                        }
+                    } else {
+                        bitmapData?.let { data ->
+                            bitmap = ImageProcessor.base64ToBitmap(data)
+                        }
+                    }
+                }
+
+                ElementType.SHAPE -> {
+                    bitmapData?.let { data ->
+                        bitmap = ImageProcessor.base64ToBitmap(data)
+                    }
+                }
+
+                ElementType.BACKGROUND -> {
+                    bitmapData?.let { data ->
+                        bitmap = ImageProcessor.base64ToBitmap(data)
+                    }
+                }
+
+                ElementType.DRAW -> {
+                    if (drawStrokes.isNullOrEmpty()) {
+                        bitmapData?.let { data ->
+                            bitmap = ImageProcessor.base64ToBitmap(data)
+                        }
+                    } else {
+                        drawStrokes?.forEach { stroke -> stroke.restorePath() }
+                    }
+                }
+
+                else -> { /* no extra work */ }
+            }
+        }
+        return restored
     }
 }
