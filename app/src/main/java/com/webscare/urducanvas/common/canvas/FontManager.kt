@@ -7,7 +7,7 @@ import androidx.core.content.res.ResourcesCompat
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.canvas.model.CanvasElement
-import com.webscare.urducanvas.domain.model.FontEntity
+import com.webscare.urducanvas.data.model.FontEntity
 import java.io.File
 
 object FontManager {
