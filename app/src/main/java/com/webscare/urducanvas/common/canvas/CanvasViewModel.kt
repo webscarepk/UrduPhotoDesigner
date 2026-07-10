@@ -2812,26 +2812,7 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
-    private fun getTypefaceForElement(element: CanvasElement, context: Context?): Typeface {
-        return if (element.type == ElementType.TEXT && element.fontId != null) {
-            val font = localFonts.value.find { it.id.toString() == element.fontId }
-            font?.file_path?.takeIf { it.isNotBlank() }?.let { path ->
-                try {
-                    Typeface.createFromFile(path)
-                } catch (e: Exception) {
-                    Log.e("CanvasViewModel", "Failed to load typeface from file: $path", e)
-                    ResourcesCompat.getFont(
-                        context ?: return Typeface.DEFAULT,
-                        R.font.default_canvas,
-                    ) ?: Typeface.DEFAULT
-                }
-            } ?: ResourcesCompat.getFont(context ?: return Typeface.DEFAULT, R.font.default_canvas)
-                ?: Typeface.DEFAULT
-        } else {
-            ResourcesCompat.getFont(context ?: return Typeface.DEFAULT, R.font.default_canvas)
-                ?: Typeface.DEFAULT
-        }
-    }
+    private fun getTypefaceForElement(element: CanvasElement, context: Context?): Typeface = context?.let { FontManager.getTypefaceForElement(element, localFonts.value, it) } ?: Typeface.DEFAULT
 
     fun onCanvasSelectionChanged(selectedListFromCanvas: List<CanvasElement>) {
         val currentElements = _canvasElements.value?.toMutableList() ?: mutableListOf()
@@ -3847,43 +3828,9 @@ class CanvasViewModel @Inject constructor(
         applyChangesToSelectedTextElements()
     }
 
-    private fun isFontFileValid(path: String): Boolean {
-        return try {
-            val file = File(path)
-            if (!file.exists() || file.length() < 4) return false
-            // Check for valid font magic bytes
-            // TTF/OTF starts with 0x00010000 or 'OTTO' or 'true' or 'typ1'
-            val bytes = ByteArray(4)
-            file.inputStream().use { it.read(bytes) }
-            val magic = ((bytes[0].toInt() and 0xFF) shl 24) or
-                ((bytes[1].toInt() and 0xFF) shl 16) or
-                ((bytes[2].toInt() and 0xFF) shl 8) or
-                (bytes[3].toInt() and 0xFF)
-            magic == 0x00010000 ||
-                // TrueType
-                magic == 0x4F54544F ||
-                // 'OTTO' OpenType/CFF
-                magic == 0x74727565 ||
-                // 'true' Mac TrueType
-                magic == 0x74797031 // 'typ1'
-        } catch (e: Exception) {
-            Log.e("CanvasViewModel", "isFontFileValid failed for $path", e)
-            false
-        }
-    }
+    private fun isFontFileValid(path: String): Boolean = FontManager.isFontFileValid(path)
 
-    private fun CanvasElement.applyTypefaceFromFontList(): Typeface = fontId?.let { id ->
-        localFonts.value.firstOrNull { it.id.toString() == id }?.file_path
-            ?.takeIf { it.isNotBlank() && File(it).exists() && isFontFileValid(it) }
-            ?.let { path ->
-                try {
-                    Typeface.createFromFile(path)
-                } catch (e: Exception) {
-                    Log.e("CanvasViewModel", "Failed to create typeface from path: $path", e)
-                    null
-                }
-            }
-    } ?: context?.let { ResourcesCompat.getFont(it, R.font.default_canvas) } ?: Typeface.DEFAULT
+    private fun CanvasElement.applyTypefaceFromFontList(): Typeface = context?.let { FontManager.applyTypefaceFromFontList(this, localFonts.value, it) } ?: Typeface.DEFAULT ?: context?.let { ResourcesCompat.getFont(it, R.font.default_canvas) } ?: Typeface.DEFAULT
 
     fun setTextColor(color: Int) {
         clearFillGradients()
