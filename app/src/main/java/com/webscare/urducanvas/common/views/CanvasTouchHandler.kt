@@ -31,6 +31,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import kotlin.math.sign
 
 class CanvasTouchHandler(private val view: CanvasView) {
 
@@ -54,8 +55,6 @@ class CanvasTouchHandler(private val view: CanvasView) {
     private var resizeStartDist = 0f
     private var touchedDownElement: CanvasElement? = null
     private var isDragCandidate = false
-    private var suppressZoomCallback = false
-    private var iconTouched: String? = null
     
     private val touchSlop = ViewConfiguration.get(view.context).scaledTouchSlop
     private val gestureDetector = GestureDetector(view.context, GestureListener())
@@ -90,7 +89,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                         val matrix = Matrix()
                         matrix.postTranslate(-element.x, -element.y)
                         matrix.postRotate(-element.rotation)
-                        matrix.postScale(1f / element.view.scale, 1f / element.view.scale)
+                        matrix.postScale(1f / element.scale, 1f / element.scale)
 
                         val touchPoint = floatArrayOf(x, y)
                         matrix.mapPoints(touchPoint)
@@ -254,8 +253,8 @@ class CanvasTouchHandler(private val view: CanvasView) {
                             shader =
                                 createBackgroundGradientShader(
                                     it,
-                                    width.toFloat(),
-                                    height.toFloat(),
+                                    view.width.toFloat(),
+                                    view.height.toFloat(),
                                 )
                         }
                     }
@@ -347,11 +346,11 @@ class CanvasTouchHandler(private val view: CanvasView) {
                         // Elements selected → element view.scale/rotate (pan mode OFF only)
                         view.selectedElements.isNotEmpty() && !isPanMode -> {
                             view.currentMode = Mode.MULTI_TOUCH
-                            initialScale = view.selectedElements.firstOrNull()?.view.scale ?: 1f
+                            initialScale = view.selectedElements.firstOrNull()?.scale ?: 1f
                             initialRotation = view.selectedElements.firstOrNull()?.rotation ?: 0f
                         }
                         // Pan locked — block two-finger zoom/pan
-                        isCanvasPanLocked -> { /* consume but do nothing */ }
+                        view.isCanvasPanLocked -> { /* consume but do nothing */ }
                         // Empty canvas (ya pan mode ON) → overall canvas zoom
                         else -> {
                             view.currentMode = Mode.CANVAS_PAN
@@ -431,7 +430,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                             touchStartX - initialGroupPivotX,
                                         )
                                         view.selectedElements.firstOrNull()?.let {
-                                            onStartBatchUpdate?.invoke(it.id, "rotate")
+                                            view.onStartBatchUpdate?.invoke(it.id, "rotate")
                                         }
                                         return true
                                     }
@@ -446,8 +445,8 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                         view.selectedElements.forEach { el ->
                                             resizeLastSignX[el.id] = (touchStartX - pivotX).sign
                                             resizeLastSignY[el.id] = (touchStartY - pivotY).sign
-                                            resizeInitialScales[el.id] = el.view.scale
-                                            onStartBatchUpdate?.invoke(el.id, "resize")
+                                            resizeInitialScales[el.id] = el.scale
+                                            view.onStartBatchUpdate?.invoke(el.id, "resize")
                                         }
                                         return true
                                     }
@@ -462,11 +461,11 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                         touchStartX = x
                                         touchStartY = y
                                         view.selectedElements.forEach { el ->
-                                            initialElementSizes[el.id] = Pair(
+                                            view.initialElementSizes[el.id] = Pair(
                                                 el.logicalContentWidth,
                                                 el.logicalContentHeight,
                                             )
-                                            onStartBatchUpdate?.invoke(el.id, "transform")
+                                            view.onStartBatchUpdate?.invoke(el.id, "transform")
                                         }
                                         return true
                                     }
@@ -480,7 +479,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                 val matrix = Matrix().apply {
                                     postTranslate(-element.x, -element.y)
                                     postRotate(-element.rotation)
-                                    postScale(1f / element.view.scale, 1f / element.view.scale)
+                                    postScale(1f / element.scale, 1f / element.scale)
                                 }
                                 val pt = floatArrayOf(x, y).also { matrix.mapPoints(it) }
                                 element.getTightTextBounds().contains(pt[0], pt[1])
@@ -500,7 +499,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                             view.currentMode = Mode.DRAG
                             touchStartX = x
                             touchStartY = y
-                            onStartBatchUpdate?.invoke(hitChild.id, "drag")
+                            view.onStartBatchUpdate?.invoke(hitChild.id, "drag")
                             view.invalidate()
                             return true
                         } else {
@@ -575,7 +574,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                     touchStartX - initialGroupPivotX,
                                 )
                                 view.selectedElements.firstOrNull()?.let { element ->
-                                    onStartBatchUpdate?.invoke(element.id, "rotate")
+                                    view.onStartBatchUpdate?.invoke(element.id, "rotate")
                                 }
                                 return true
                             }
@@ -594,8 +593,8 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                 view.selectedElements.forEach { element ->
                                     resizeLastSignX[element.id] = (touchStartX - pivotX).sign
                                     resizeLastSignY[element.id] = (touchStartY - pivotY).sign
-                                    resizeInitialScales[element.id] = element.view.scale
-                                    onStartBatchUpdate?.invoke(element.id, "resize")
+                                    resizeInitialScales[element.id] = element.scale
+                                    view.onStartBatchUpdate?.invoke(element.id, "resize")
                                 }
                                 return true
                             }
@@ -614,11 +613,11 @@ class CanvasTouchHandler(private val view: CanvasView) {
 
                                 // Store initial logical sizes for direct geometry resize
                                 view.selectedElements.forEach { element ->
-                                    initialElementSizes[element.id] = Pair(
+                                    view.initialElementSizes[element.id] = Pair(
                                         element.logicalContentWidth,
                                         element.logicalContentHeight,
                                     )
-                                    onStartBatchUpdate?.invoke(element.id, "transform")
+                                    view.onStartBatchUpdate?.invoke(element.id, "transform")
                                 }
                                 return true
                             }
@@ -634,7 +633,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                             val matrix = Matrix()
                             matrix.postTranslate(-element.x, -element.y)
                             matrix.postRotate(-element.rotation)
-                            matrix.postScale(1f / element.view.scale, 1f / element.view.scale)
+                            matrix.postScale(1f / element.scale, 1f / element.scale)
 
                             val touchPoint = floatArrayOf(x, y)
                             matrix.mapPoints(touchPoint)
@@ -669,7 +668,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                             touchStartX = x
                             touchStartY = y
                             view.currentMode = Mode.DRAG // drag takes over until ACTION_UP
-                            onStartBatchUpdate?.invoke(touchedElement.id, "drag")
+                            view.onStartBatchUpdate?.invoke(touchedElement.id, "drag")
                             // Report just the child — NOT the sentinel — so ViewModel keeps
                             // the child individually selected and doesn't collapse to whole group.
                             view.onElementSelected?.invoke(view.selectedElements.toList())
@@ -726,7 +725,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                             vibrateSoft()
                         }
                     }
-                    onStartBatchUpdate?.invoke(touchedElement.id, "drag")
+                    view.onStartBatchUpdate?.invoke(touchedElement.id, "drag")
                     // Report sentinel to ViewModel when a group is selected,
                     // so it sees 1 unit not N children.
                     val reportForSelection = if (touchedElement.groupId != null) {
@@ -765,7 +764,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                         view.invalidate()
                     } else {
                         // Pan mode ON, ya zoomed in — canvas pan karo
-                        if (isCanvasPanLocked) {
+                        if (view.isCanvasPanLocked) {
                             view.currentMode = Mode.NONE
                             return true
                         }
@@ -788,7 +787,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                     // allow overall canvas pan/zoom
                     when (view.currentMode) {
                         Mode.CANVAS_PAN -> {
-                            if (!isCanvasPanLocked) {
+                            if (!view.isCanvasPanLocked) {
                                 if (event.pointerCount == 2) {
                                     // Empty canvas ya pan mode → overall zoom
                                     val newDist = getPinchDistance(event)
@@ -809,17 +808,17 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                     //   screenPos = view.overallScale*(p - pivot) + pivot + overallOffset
                                     // Setting screenPos equal before/after view.scale change gives:
                                     //   newOffset = initialOffset + (focus - pivot) * (1 - newScale/initialScale)
-                                    val pivotX = width / 2f
-                                    val pivotY = height / 2f
+                                    val pivotX = view.width / 2f
+                                    val pivotY = view.height / 2f
                                     val scaleFactor = newScale / initialOverallScale
                                     view.overallOffsetX = initialOffsetXAtPinch + (pinchFocusX - pivotX) * (1f - scaleFactor)
                                     view.overallOffsetY = initialOffsetYAtPinch + (pinchFocusY - pivotY) * (1f - scaleFactor)
 
                                     view.overallScale = newScale
                                     view.clampOverallPan()
-                                    suppressZoomCallback = true
+                                    view.suppressZoomCallback = true
                                     view.onZoomChanged?.invoke(view.overallScale)
-                                    suppressZoomCallback = false
+                                    view.suppressZoomCallback = false
                                     view.invalidate()
                                 } else if (event.pointerCount == 1) {
                                     val dx = event.x - touchStartX
@@ -884,7 +883,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                 element.x += dx
                                 element.y += dy
                             }
-                            onElementChanged?.invoke(element)
+                            view.onElementChanged?.invoke(element)
                         }
 
                         // Check alignment for the first selected element (if only one is selected for single drag)
@@ -910,14 +909,14 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                 val scaleFactor = newPinchDistance / initialPinchDistance
                                 view.selectedElements.filter { !it.isLocked }.forEach { element ->
                                     // ── Dynamic minimum view.scale (matches RESIZE handle) ─────────
-                                    val minOnScreenPx = 20f * resources.displayMetrics.density
+                                    val minOnScreenPx = 20f * view.resources.displayMetrics.density
                                     val logicalW = element.getLocalContentWidth().takeIf { it > 0 } ?: 1f
                                     val minScale = (minOnScreenPx / (logicalW * view.scale * view.overallScale))
                                         .coerceAtMost(0.01f)
 
                                     val newScale = (initialScale * scaleFactor).coerceIn(minScale, 100f)
-                                    element.view.scale = newScale
-                                    onElementChanged?.invoke(element)
+                                    element.scale = newScale
+                                    view.onElementChanged?.invoke(element)
                                 }
                             }
 
@@ -925,7 +924,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                             val rotationDelta = newPinchAngle - initialPinchAngle
                             view.selectedElements.filter { !it.isLocked }.forEach { element ->
                                 element.rotation = (initialRotation + rotationDelta) % 360
-                                onElementChanged?.invoke(element)
+                                view.onElementChanged?.invoke(element)
                             }
 
                             checkDragSnap()
@@ -980,7 +979,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                             element.x = initialGroupPivotX + rotatedRelativeX.toFloat()
                             element.y = initialGroupPivotY + rotatedRelativeY.toFloat()
 
-                            onElementChanged?.invoke(element)
+                            view.onElementChanged?.invoke(element)
                         }
 
                         // After rotating, re-calculate the combined bounds to check for clamping
@@ -1006,7 +1005,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                             elementsToModify.forEach { element ->
                                 element.x += translationX
                                 element.y += translationY
-                                onElementChanged?.invoke(element)
+                                view.onElementChanged?.invoke(element)
                             }
                             // Also adjust the initialGroupPivotX and Y to reflect the new clamped position
                             initialGroupPivotX += translationX
@@ -1033,7 +1032,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                         val currentDist = hypot(x - pivotX, y - pivotY)
 
                         // ── Absolute view.scale math (matches MULTI_TOUCH pinch) ───────────
-                        // OLD incremental: newScale = element.view.scale * (currentDist/startDist)
+                        // OLD incremental: newScale = element.scale * (currentDist/startDist)
                         //   — resets startDist each frame via touchStartX=x, causing drift
                         //     and different zoom sensitivity than pinch.
                         // NEW absolute:   newScale = initialScale * (currentDist/resizeStartDist)
@@ -1042,25 +1041,25 @@ class CanvasTouchHandler(private val view: CanvasView) {
                         if (resizeStartDist > 0) {
                             val scaleFactor = currentDist / resizeStartDist
                             elementsToModify.forEach { element ->
-                                val initialScale = resizeInitialScales[element.id] ?: element.view.scale
+                                val initialScale = resizeInitialScales[element.id] ?: element.scale
 
                                 // ── Dynamic minimum view.scale ─────────────────────────────────
                                 // Hard-coding 0.1f as min breaks large bitmaps: a 4000px image
                                 // at view.scale=0.1 is still 400 canvas units wide — too large to
                                 // call "minimum". Compute min from a 20dp on-screen threshold.
-                                val minOnScreenPx = 20f * resources.displayMetrics.density
+                                val minOnScreenPx = 20f * view.resources.displayMetrics.density
                                 val logicalW = element.getLocalContentWidth().takeIf { it > 0 } ?: 1f
                                 val minScale = (minOnScreenPx / (logicalW * view.scale * view.overallScale))
                                     .coerceAtMost(0.01f) // never go above 0.01 as floor
 
                                 val newScale = (initialScale * scaleFactor).coerceIn(minScale, 100f)
-                                element.view.scale = newScale
+                                element.scale = newScale
 
                                 val lastSignX = resizeLastSignX[element.id] ?: 0f
                                 val currSignX = (x - pivotX).sign
                                 if (currSignX != 0f && currSignX != lastSignX) {
                                     element.isFlippedX = !element.isFlippedX
-                                    onElementChanged?.invoke(element)
+                                    view.onElementChanged?.invoke(element)
                                     resizeLastSignX[element.id] = currSignX
                                 }
 
@@ -1068,11 +1067,11 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                 val currSignY = (y - pivotY).sign
                                 if (currSignY != 0f && currSignY != lastSignY) {
                                     element.isFlippedY = !element.isFlippedY
-                                    onElementChanged?.invoke(element)
+                                    view.onElementChanged?.invoke(element)
                                     resizeLastSignY[element.id] = currSignY
                                 }
 
-                                onElementChanged?.invoke(element)
+                                view.onElementChanged?.invoke(element)
                             }
                         }
 
@@ -1089,7 +1088,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                     }
 
                     Mode.CANVAS_PAN -> {
-                        if (!isCanvasPanLocked) {
+                        if (!view.isCanvasPanLocked) {
                             if (event.pointerCount == 2) {
                                 val newDist = getPinchDistance(event)
                                 val factor = newDist / initialPinchDistance
@@ -1109,17 +1108,17 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                 //   screenPos = view.overallScale*(p - pivot) + pivot + overallOffset
                                 // Setting screenPos equal before/after view.scale change gives:
                                 //   newOffset = initialOffset + (focus - pivot) * (1 - newScale/initialScale)
-                                val pivotX = width / 2f
-                                val pivotY = height / 2f
+                                val pivotX = view.width / 2f
+                                val pivotY = view.height / 2f
                                 val scaleFactor = newScale / initialOverallScale
                                 view.overallOffsetX = initialOffsetXAtPinch + (pinchFocusX - pivotX) * (1f - scaleFactor)
                                 view.overallOffsetY = initialOffsetYAtPinch + (pinchFocusY - pivotY) * (1f - scaleFactor)
 
                                 view.overallScale = newScale
                                 view.clampOverallPan()
-                                suppressZoomCallback = true
+                                view.suppressZoomCallback = true
                                 view.onZoomChanged?.invoke(view.overallScale)
-                                suppressZoomCallback = false
+                                view.suppressZoomCallback = false
                                 view.invalidate()
                             } else if (event.pointerCount == 1) {
                                 val dx = event.x - touchStartX
@@ -1142,7 +1141,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                         val dy = y - touchStartY
 
                         view.selectedElements.forEach { element ->
-                            val (initialW, initialH) = initialElementSizes[element.id]
+                            val (initialW, initialH) = view.initialElementSizes[element.id]
                                 ?: return@forEach
 
                             val newW = (initialW - dx).coerceAtLeast(10f)
@@ -1150,7 +1149,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
 
                             element.logicalContentWidth = newW
                             element.logicalContentHeight = newH
-                            onElementChanged?.invoke(element)
+                            view.onElementChanged?.invoke(element)
                         }
 
                         view.invalidate()
@@ -1199,15 +1198,15 @@ class CanvasTouchHandler(private val view: CanvasView) {
 
                 if (view.currentMode == Mode.TRANSFORM) {
                     view.selectedElements.forEach {
-                        onElementChanged?.invoke(it)
-                        onEndBatchUpdate?.invoke(it.id)
+                        view.onElementChanged?.invoke(it)
+                        view.onEndBatchUpdate?.invoke(it.id)
                     }
                 }
 
                 if (view.currentMode == Mode.DRAG || view.currentMode == Mode.ROTATE || view.currentMode == Mode.RESIZE) {
                     view.selectedElements.filter { !it.isLocked }.forEach {
-                        onElementChanged?.invoke(it)
-                        onEndBatchUpdate?.invoke(it.id)
+                        view.onElementChanged?.invoke(it)
+                        view.onEndBatchUpdate?.invoke(it.id)
                     }
                 }
                 if (isDragCandidate && touchedDownElement != null) {

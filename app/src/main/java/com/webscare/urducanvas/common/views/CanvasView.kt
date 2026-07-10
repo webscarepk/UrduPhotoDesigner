@@ -160,8 +160,8 @@ class CanvasView @JvmOverloads constructor(
 
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
 
-    private val initialElementSizes = mutableMapOf<String, Pair<Float, Float>>()
-
+    internal val initialElementSizes = mutableMapOf<String, Pair<Float, Float>>()
+    internal var suppressZoomCallback = false
 
     private val checkerShader: BitmapShader by lazy {
         // create a 2×2 tile
@@ -371,7 +371,7 @@ class CanvasView @JvmOverloads constructor(
 
     // ── Pan mode (single-finger pan without selecting elements) ───
     private var isPanMode = false
-    private var isCanvasPanLocked = false
+    internal var isCanvasPanLocked = false
     internal val removeIcon: Drawable by lazy {
         AppCompatResources.getDrawable(context, R.drawable.ic_cross)!!
     }
@@ -398,7 +398,6 @@ class CanvasView @JvmOverloads constructor(
     override fun onTouchEvent(event: MotionEvent): Boolean {
         return touchHandler.onTouchEvent(event)
     }
-    internal val elementManager = CanvasElementManager(this)
 
     private fun Float.dpToPx(): Float = this * resources.displayMetrics.density
 
@@ -856,15 +855,88 @@ class CanvasView @JvmOverloads constructor(
      * Returns an empty RectF if no elements are selected.
      */
     /** Returns an axis-aligned bounding box that covers all rotated elements */
-    internal fun getCombinedSelectedBounds(): RectF = elementManager.getCombinedSelectedBounds()
+    private fun getCombinedSelectedBounds(): RectF {
+        val drawableSelected = selectedElements.filter { it.type != ElementType.GROUP }
+        if (drawableSelected.isEmpty()) return RectF()
+
+        var minX = Float.MAX_VALUE
+        var minY = Float.MAX_VALUE
+        var maxX = Float.MIN_VALUE
+        var maxY = Float.MIN_VALUE
+
+        drawableSelected.forEach { element ->
+            val corners = element.getRotatedCorners()
+            for (i in corners.indices step 2) {
+                val x = corners[i]
+                val y = corners[i + 1]
+                if (x < minX) minX = x
+                if (y < minY) minY = y
+                if (x > maxX) maxX = x
+                if (y > maxY) maxY = y
+            }
+        }
+
+        return RectF(minX, minY, maxX, maxY)
+    }
 
     /** Returns a straight rectangular path around all selected rotated elements. */
-    internal fun getGroupRotatedBounds(): FloatArray = elementManager.getGroupRotatedBounds()
+    private fun getGroupRotatedBounds(): FloatArray {
+        // Collect all rotated corners from all selected elements
+        val allPoints = mutableListOf<Float>()
+        selectedElements.forEach { el ->
+            allPoints.addAll(el.getRotatedCorners().toList())
+        }
+
+        var minX = Float.MAX_VALUE
+        var minY = Float.MAX_VALUE
+        var maxX = Float.MIN_VALUE
+        var maxY = Float.MIN_VALUE
+
+        for (i in allPoints.indices step 2) {
+            val x = allPoints[i]
+            val y = allPoints[i + 1]
+            if (x < minX) minX = x
+            if (y < minY) minY = y
+            if (x > maxX) maxX = x
+            if (y > maxY) maxY = y
+        }
+
+        // Straight axis-aligned bounding box (no extra rotation)
+        return floatArrayOf(minX, minY, maxX, maxY)
+    }
 
     /** Returns a non-rotated rectangular path that covers all selected elements. */
-    internal fun getGroupRotatedPath(): Path? = elementManager.getGroupRotatedPath()
+    private fun getGroupRotatedPath(): Path? {
+        if (selectedElements.size <= 1) return null
 
-    internal fun getSelectionPath(): Path? = elementManager.getSelectionPath()
+        val b = getGroupRotatedBounds()
+        return Path().apply {
+            moveTo(b[0], b[1])
+            lineTo(b[2], b[1])
+            lineTo(b[2], b[3])
+            lineTo(b[0], b[3])
+            close()
+        }
+    }
+
+    private fun getSelectionPath(): Path? {
+        if (selectedElements.isEmpty()) return null
+        if (selectedElements.size == 1) {
+            val c = selectedElements.first().getRotatedCorners()
+            return Path().apply {
+                moveTo(c[0], c[1])
+                lineTo(c[2], c[3])
+                lineTo(c[4], c[5])
+                lineTo(c[6], c[7])
+                close()
+            }
+        }
+        // Multi-selection → fallback to axis aligned for now
+        val b = getCombinedSelectedBounds()
+        return Path().apply {
+            addRect(b, Path.Direction.CW)
+        }
+    }
 
     internal fun removeSelectedElement() {
         if (currentMode == Mode.GROUP_EDIT &&
@@ -1854,7 +1926,30 @@ class CanvasView @JvmOverloads constructor(
 
     fun colorFilterFor(filter: ImageFilter?): ColorFilter? = ColorFilterFactory.colorFilterFor(filter)
 
-    fun getGroupTrueBounds(): FloatArray = elementManager.getGroupTrueBounds()
+    fun getGroupTrueBounds(): FloatArray {
+        if (selectedElements.isEmpty()) return floatArrayOf(0f, 0f, 0f, 0f)
+
+        val allPoints = mutableListOf<Float>()
+        selectedElements.forEach { el ->
+            allPoints.addAll(el.getRotatedCorners().toList())
+        }
+
+        var minX = Float.MAX_VALUE
+        var minY = Float.MAX_VALUE
+        var maxX = Float.MIN_VALUE
+        var maxY = Float.MIN_VALUE
+
+        for (i in allPoints.indices step 2) {
+            val x = allPoints[i]
+            val y = allPoints[i + 1]
+            if (x < minX) minX = x
+            if (x > maxX) maxX = x
+            if (y < minY) minY = y
+            if (y > maxY) maxY = y
+        }
+
+        return floatArrayOf(minX, minY, maxX, maxY)
+    }
 
     
 
@@ -2541,9 +2636,48 @@ class CanvasView @JvmOverloads constructor(
 
     
 
-    fun CanvasElement.containsPoint(px: Float, py: Float): Boolean = with(elementManager) { containsPoint(px, py) }
+    fun CanvasElement.containsPoint(
+        px: Float,
+        py: Float,
+    ): Boolean {
+        val bounds = getTightTextBounds()
+        val corners = floatArrayOf(
+            bounds.left,
+            bounds.top,
+            bounds.right,
+            bounds.top,
+            bounds.right,
+            bounds.bottom,
+            bounds.left,
+            bounds.bottom,
+        )
+        val m = Matrix().apply {
+            postScale(
+                scale * if (isFlippedX) -1f else 1f,
+                scale * if (isFlippedY) -1f else 1f,
+            )
+            postRotate(rotation)
+            postTranslate(x, y)
+        }
+        m.mapPoints(corners)
+        return pointInPolygon(px, py, corners)
+    }
 
-    
+    private fun pointInPolygon(px: Float, py: Float, pts: FloatArray): Boolean {
+        var result = false
+        var j = pts.size - 2
+        for (i in pts.indices step 2) {
+            val xi = pts[i]
+            val yi = pts[i + 1]
+            val xj = pts[j]
+            val yj = pts[j + 1]
+            val intersect =
+                ((yi > py) != (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi)
+            if (intersect) result = !result
+            j = i
+        }
+        return result
+    }
 
     
 
