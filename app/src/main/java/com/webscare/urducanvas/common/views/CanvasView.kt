@@ -123,7 +123,7 @@ class CanvasView @JvmOverloads constructor(
             com.webscare.urducanvas.di.GsonEntryPoint::class.java,
         ).gson()
     }
-    private var gestureDetector: GestureDetector
+    
     internal var isRotating = false
     override var colorPickerBitmap: Bitmap? = null
     override var isColorPickerMode = false
@@ -390,7 +390,7 @@ class CanvasView @JvmOverloads constructor(
     }
 
     override val selectedElements: CopyOnWriteArrayList<CanvasElement> = CopyOnWriteArrayList()
-    private var lastTouchedElement: CanvasElement? = null
+
     private val canvasRenderer = CanvasRenderer(this)
     private val touchHandler = CanvasTouchHandler(this)
 
@@ -1584,7 +1584,7 @@ class CanvasView @JvmOverloads constructor(
      * Checks if the element's rotation is close to 0, 90, 180, or 270 degrees
      * and sets the rotation alignment guide flags accordingly.
      */
-    private fun checkRotationAlignment(element: CanvasElement) {
+    internal fun checkRotationAlignment(element: CanvasElement) {
         val rotationThreshold = 5f
         val normalizedRotation = (element.rotation % 360 + 360) % 360
 
@@ -1610,7 +1610,7 @@ class CanvasView @JvmOverloads constructor(
             (element.rotation == 90f || element.rotation == 270f)
     }
 
-    private fun checkDragSnap() {
+    internal fun checkDragSnap() {
         if (selectedElements.isEmpty()) return
 
         val snapThreshold = 5f
@@ -1681,7 +1681,7 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
-    private fun checkGroupRotationAlignment() {
+    internal fun checkGroupRotationAlignment() {
         if (selectedElements.size <= 1) return
 
         val rotationThreshold = 5f
@@ -1746,7 +1746,7 @@ class CanvasView @JvmOverloads constructor(
         return luminance < 128
     }
 
-    private fun computeBackgroundPanBounds(e: CanvasElement): Pair<ClosedFloatingPointRange<Float>, ClosedFloatingPointRange<Float>> {
+    internal fun computeBackgroundPanBounds(e: CanvasElement): Pair<ClosedFloatingPointRange<Float>, ClosedFloatingPointRange<Float>> {
         val w = canvasWidth.toFloat()
         val h = canvasHeight.toFloat()
         val bmp = e.bitmap!!

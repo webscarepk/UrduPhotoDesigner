@@ -55,6 +55,10 @@ class CanvasTouchHandler(private val view: CanvasView) {
     private var resizeStartDist = 0f
     private var touchedDownElement: CanvasElement? = null
     private var isDragCandidate = false
+    private var initialScale = 1f
+    private var initialRotation = 0f
+    private var lastTouchedElement: CanvasElement? = null
+    private var iconTouched: String? = null
     
     private val touchSlop = ViewConfiguration.get(view.context).scaledTouchSlop
     private val gestureDetector = GestureDetector(view.context, GestureListener())
@@ -165,7 +169,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                         view.selectedElements.add(it)
                     }
                     sentinel?.isSelected = true // mark sentinel for ViewModel only
-                    vibrateSoft()
+                    view.vibrateSoft()
                     view.onRequestOpenLayers?.invoke()
                 } else {
                     val alreadySelected = canvasItems.all { it.isSelected }
@@ -197,7 +201,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                 // Long press away from any art-board element → canvas options popup.
                 val isOutsideArtboard = x < 0f || y < 0f || x > view.canvasWidth || y > view.canvasHeight
                 if (isOutsideArtboard) {
-                    vibrateSoft()
+                    view.vibrateSoft()
                     view.onCanvasLongPressed?.invoke(e.rawX, e.rawY)
                 }
             }
@@ -362,10 +366,10 @@ class CanvasTouchHandler(private val view: CanvasView) {
             MotionEvent.ACTION_DOWN -> {
                 view.iconTouched = null
                 lastTouchedElement = null
-                showVerticalGuide = false
-                showHorizontalGuide = false
-                showRotationVerticalGuide = false
-                showRotationHorizontalGuide = false
+                view.showVerticalGuide = false
+                view.showHorizontalGuide = false
+                view.showRotationVerticalGuide = false
+                view.showRotationHorizontalGuide = false
 
                 if (view.currentMode == Mode.GROUP_EDIT && view.activeGroupId != null) {
                     // Check if the tap is within the combined bounds of the group
@@ -690,7 +694,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                             touchStartX = x
                             touchStartY = y
                             view.currentMode = Mode.DRAG
-                            vibrateSoft()
+                            view.vibrateSoft()
                         }
                     } else {
                         if (view.inSelectionMode) {
@@ -704,7 +708,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                 touchedElement.isSelected = true
                                 view.selectedElements.add(touchedElement)
                                 view.onElementSelected?.invoke(view.selectedElements)
-                                vibrateSoft()
+                                view.vibrateSoft()
                             }
                         } else {
                             if (touchedElement.isSelected) {
@@ -722,7 +726,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                 touchStartX = x
                                 touchStartY = y
                             }
-                            vibrateSoft()
+                            view.vibrateSoft()
                         }
                     }
                     view.onStartBatchUpdate?.invoke(touchedElement.id, "drag")
@@ -799,7 +803,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                     val snappedTarget =
                                         snapTargets.firstOrNull { abs(newScale - it) <= snapThreshold }
                                     if (snappedTarget != null) {
-                                        if (view.overallScale != snappedTarget) vibrateSoft()
+                                        if (view.overallScale != snappedTarget) view.vibrateSoft()
                                         newScale = snappedTarget
                                     }
 
@@ -858,7 +862,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
 
                         elementsToModify.forEach { element ->
                             if (element.type == ElementType.BACKGROUND && element.bitmap != null) {
-                                val (xRange, yRange) = computeBackgroundPanBounds(element)
+                                val (xRange, yRange) = view.computeBackgroundPanBounds(element)
                                 val newX = element.x + dx
                                 val newY = element.y + dy
 
@@ -888,10 +892,10 @@ class CanvasTouchHandler(private val view: CanvasView) {
 
                         // Check alignment for the first selected element (if only one is selected for single drag)
                         if (view.selectedElements.isNotEmpty()) {
-                            checkDragSnap()
+                            view.checkDragSnap()
                         } else {
-                            showVerticalGuide = false
-                            showHorizontalGuide = false
+                            view.showVerticalGuide = false
+                            view.showHorizontalGuide = false
                         }
 
                         touchStartX = x // Update touch start for continuous drag
@@ -927,12 +931,12 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                 view.onElementChanged?.invoke(element)
                             }
 
-                            checkDragSnap()
+                            view.checkDragSnap()
 
                             if (view.selectedElements.size == 1) {
-                                checkRotationAlignment(view.selectedElements.first())
+                                view.checkRotationAlignment(view.selectedElements.first())
                             } else {
-                                checkGroupRotationAlignment()
+                                view.checkGroupRotationAlignment()
                             }
                             view.invalidate()
                         }
@@ -1014,9 +1018,9 @@ class CanvasTouchHandler(private val view: CanvasView) {
 
                         // Check rotation alignment for the first selected element
                         if (view.selectedElements.size == 1) {
-                            checkRotationAlignment(view.selectedElements.first())
+                            view.checkRotationAlignment(view.selectedElements.first())
                         } else if (view.selectedElements.size > 1) {
-                            checkGroupRotationAlignment()
+                            view.checkGroupRotationAlignment()
                         }
 
                         view.invalidate()
@@ -1099,7 +1103,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                 val snappedTarget =
                                     snapTargets.firstOrNull { abs(newScale - it) <= snapThreshold }
                                 if (snappedTarget != null) {
-                                    if (view.overallScale != snappedTarget) vibrateSoft()
+                                    if (view.overallScale != snappedTarget) view.vibrateSoft()
                                     newScale = snappedTarget
                                 }
 
@@ -1186,12 +1190,12 @@ class CanvasTouchHandler(private val view: CanvasView) {
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                showVerticalGuide = false
-                showHorizontalGuide = false
-                showRotationVerticalGuide = false // Reset rotation guides on ACTION_UP
-                showRotationHorizontalGuide = false // Reset rotation guides on ACTION_UP
-                showCanvasCenterVerticalSnap = false
-                showCanvasCenterHorizontalSnap = false
+                view.showVerticalGuide = false
+                view.showHorizontalGuide = false
+                view.showRotationVerticalGuide = false // Reset rotation guides on ACTION_UP
+                view.showRotationHorizontalGuide = false // Reset rotation guides on ACTION_UP
+                view.showCanvasCenterVerticalSnap = false
+                view.showCanvasCenterHorizontalSnap = false
                 if (view.currentMode == Mode.CANVAS_PAN) {
                     view.currentMode = Mode.NONE
                 }
