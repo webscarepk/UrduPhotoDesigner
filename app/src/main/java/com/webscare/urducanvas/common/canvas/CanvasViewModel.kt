@@ -604,7 +604,7 @@ class CanvasViewModel @Inject constructor(
         val updatedList = currentList.map { element ->
             if (element.id == updatedElement.id) {
                 val oldElement = element.copy()
-                _canvasActions.push(
+                undoRedoManager.pushAction(
                     CanvasAction.UpdateElement(
                         element.id,
                         updatedElement,
@@ -848,7 +848,7 @@ class CanvasViewModel @Inject constructor(
                 val currentList = _canvasElements.value.orEmpty().toMutableList()
                 currentList.add(rasterized)
                 _canvasElements.postValue(currentList)
-                _canvasActions.push(
+                undoRedoManager.pushAction(
                     CanvasAction.AddDrawStroke(rasterized.copy(context = null, bitmap = null)),
                 )
                 undoRedoManager.clearRedo()
@@ -906,7 +906,7 @@ class CanvasViewModel @Inject constructor(
             _canvasElements.value = updatedList
 
             // Push to undo/redo stack
-            _canvasActions.push(
+            undoRedoManager.pushAction(
                 CanvasAction.UpdateElement(
                     elementId = selected.id,
                     newElement = updatedElement.copy(context = null, bitmap = null),
@@ -998,7 +998,7 @@ class CanvasViewModel @Inject constructor(
             if (element.isSelected) {
                 val old = element.copy(context = null, bitmap = null)
                 element.featherDirection = direction
-                _canvasActions.push(
+                undoRedoManager.pushAction(
                     CanvasAction.UpdateElement(
                         elementId = element.id,
                         newElement = element.copy(context = null, bitmap = null),
@@ -1025,7 +1025,7 @@ class CanvasViewModel @Inject constructor(
                 element.hasFeather = value > 0f
                 // Feather is composited on the GPU in CanvasView — no pixel processing,
                 // no adjustment cache to invalidate. Just push the value and redraw.
-                _canvasActions.push(
+                undoRedoManager.pushAction(
                     CanvasAction.UpdateElement(
                         elementId = element.id,
                         newElement = element.copy(context = null, bitmap = null),
@@ -1051,7 +1051,7 @@ class CanvasViewModel @Inject constructor(
                 element.featherWidth = value
                 if (element.featherRadius > 0f) element.hasFeather = true
                 // Feather softness is GPU compositing — no cache to clear, just redraw.
-                _canvasActions.push(
+                undoRedoManager.pushAction(
                     CanvasAction.UpdateElement(
                         elementId = element.id,
                         newElement = element.copy(context = null, bitmap = null),
@@ -1133,7 +1133,7 @@ class CanvasViewModel @Inject constructor(
                 updated.cachedAdjustedBitmap?.recycle()
                 updated.cachedAdjustedBitmap = null
 
-                _canvasActions.push(
+                undoRedoManager.pushAction(
                     CanvasAction.UpdateElement(
                         elementId = element.id,
                         newElement = updated.copy(context = null, bitmap = null),
@@ -1609,7 +1609,7 @@ class CanvasViewModel @Inject constructor(
             copied
         }
 
-        _canvasActions.push(
+        undoRedoManager.pushAction(
             CanvasAction.UpdateCanvasElementsOrder(
                 oldList.map { it.copy(context = null, bitmap = null) },
                 updatedList.map { it.copy(context = null, bitmap = null) },
@@ -2151,7 +2151,7 @@ class CanvasViewModel @Inject constructor(
         // Push the undo action for all updated elements
         selectedElements.forEachIndexed { idx, oldElement ->
             val newElement = updatedList.find { it.id == oldElement.id }!!
-            _canvasActions.push(
+            undoRedoManager.pushAction(
                 CanvasAction.UpdateElement(
                     elementId = newElement.id,
                     newElement = newElement.copy(context = null, bitmap = null),
@@ -2366,7 +2366,7 @@ class CanvasViewModel @Inject constructor(
         }
 
         if (oldElement != null && newElement != null && targetId != null) {
-            _canvasActions.push(
+            undoRedoManager.pushAction(
                 CanvasAction.UpdateElement(
                     targetId!!,
                     newElement!!,
@@ -2455,7 +2455,7 @@ class CanvasViewModel @Inject constructor(
     fun setCanvasSize(newSize: CanvasSize) {
         val oldSize = _canvasSize.value
         if (oldSize != newSize) {
-            _canvasActions.push(
+            undoRedoManager.pushAction(
                 CanvasAction.SetCanvasSize(newSize, oldSize ?: newSize),
             )
             undoRedoManager.clearRedo()
@@ -2510,7 +2510,7 @@ class CanvasViewModel @Inject constructor(
                     val initialElement =
                         (currentBatchAction as BatchedCanvasAction.DragBatch).initialElement
                     if (initialElement.x != finalElement.x || initialElement.y != finalElement.y) { // Only push if position changed
-                        _canvasActions.push(
+                        undoRedoManager.pushAction(
                             CanvasAction.UpdateElement(
                                 elementId = elementId,
                                 newElement = finalElement,
@@ -2524,7 +2524,7 @@ class CanvasViewModel @Inject constructor(
                     val initialElement =
                         (currentBatchAction as BatchedCanvasAction.RotateBatch).initialElement
                     if (initialElement.rotation != finalElement.rotation) { // Only push if rotation changed
-                        _canvasActions.push(
+                        undoRedoManager.pushAction(
                             CanvasAction.UpdateElement(
                                 elementId = elementId,
                                 newElement = finalElement,
@@ -2538,7 +2538,7 @@ class CanvasViewModel @Inject constructor(
                     val initialElement =
                         (currentBatchAction as BatchedCanvasAction.ResizeBatch).initialElement
                     if (initialElement.scale != finalElement.scale) { // Only push if scale changed
-                        _canvasActions.push(
+                        undoRedoManager.pushAction(
                             CanvasAction.UpdateElement(
                                 elementId = elementId,
                                 newElement = finalElement,
@@ -2627,7 +2627,7 @@ class CanvasViewModel @Inject constructor(
                         ?.toMutableList(),
                 )
 
-                _canvasActions.push(
+                undoRedoManager.pushAction(
                     CanvasAction.UpdateElement(
                         elementId = elementToUpdate.id,
                         newElement = newCopy,
@@ -2698,7 +2698,7 @@ class CanvasViewModel @Inject constructor(
             copiedElement
         }
 
-        _canvasActions.push(
+        undoRedoManager.pushAction(
             CanvasAction.UpdateCanvasElementsOrder(
                 oldList.map { it.copy(context = null, bitmap = null) },
                 updatedList.map { it.copy(context = null, bitmap = null) },
@@ -2783,7 +2783,7 @@ class CanvasViewModel @Inject constructor(
                 bitmapData = newBitmapData,
             ).apply { updatePaintProperties() }
 
-            _canvasActions.push(
+            undoRedoManager.pushAction(
                 CanvasAction.UpdateElement(
                     elementId = selected.id,
                     newElement = newElement.copy(context = null, bitmap = null),
@@ -3354,7 +3354,7 @@ class CanvasViewModel @Inject constructor(
                 element.overlayColor,
                 opacity,
             )
-            _canvasActions.push(
+            undoRedoManager.pushAction(
                 action,
             )
 
@@ -3578,7 +3578,7 @@ class CanvasViewModel @Inject constructor(
 
         element.updatePaintProperties()
 
-        _canvasActions.push(
+        undoRedoManager.pushAction(
             CanvasAction.AddSticker(
                 element.copy(context = null, bitmap = null),
             ),
@@ -3912,7 +3912,7 @@ class CanvasViewModel @Inject constructor(
         if (targetElementId != null) {
             _currentTextColor.value = color
             _canvasElements.value = updatedList
-            _canvasActions.push(
+            undoRedoManager.pushAction(
                 CanvasAction.SetTextColor(color, oldColor ?: Color.BLACK, targetElementId!!),
             )
             undoRedoManager.clearRedo()
@@ -3949,7 +3949,7 @@ class CanvasViewModel @Inject constructor(
         if (targetElementId != null) {
             _opacity.value = opacity
             _canvasElements.value = updatedList
-            _canvasActions.push(
+            undoRedoManager.pushAction(
                 CanvasAction.SetOpacity(
                     opacity,
                     oldOpacity ?: 255,
@@ -3974,7 +3974,7 @@ class CanvasViewModel @Inject constructor(
         }
 
         _canvasElements.value = currentList.map { if (it.id == element.id) updatedElement else it }
-        _canvasActions.push(
+        undoRedoManager.pushAction(
             CanvasAction.UpdateText(
                 elementId = element.id,
                 text = updatedElement.text,
@@ -4056,7 +4056,7 @@ class CanvasViewModel @Inject constructor(
         // Push undo actions for each element changed
         selected.forEachIndexed { idx, oldElem ->
             val newElem = updatedList.find { it.id == oldElem.id }!!
-            _canvasActions.push(
+            undoRedoManager.pushAction(
                 CanvasAction.UpdateElement(
                     elementId = newElem.id,
                     newElement = newElem.copy(context = null, bitmap = null),
@@ -4120,7 +4120,7 @@ class CanvasViewModel @Inject constructor(
         // Push undo actions
         oldCopies.forEachIndexed { _, oldElem ->
             val newElem = updatedList.first { it.id == oldElem.id }
-            _canvasActions.push(
+            undoRedoManager.pushAction(
                 CanvasAction.UpdateElement(
                     elementId = newElem.id,
                     newElement = newElem.copy(context = null, bitmap = null),
@@ -4164,7 +4164,7 @@ class CanvasViewModel @Inject constructor(
         refreshSelectedElements()
 
         // Push undo action
-        _canvasActions.push(
+        undoRedoManager.pushAction(
             CanvasAction.UpdateElement(
                 elementId = updatedElem.id,
                 newElement = updatedElem.copy(context = null, bitmap = null),
