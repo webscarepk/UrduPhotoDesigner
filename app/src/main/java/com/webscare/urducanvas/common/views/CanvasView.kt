@@ -502,8 +502,7 @@ class CanvasView @JvmOverloads constructor(
         invalidate()
     }
 
-    /** Returns the groupId currently being edited, or null. */
-    fun getActiveGroupId(): String? = activeGroupId
+
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
