@@ -78,6 +78,7 @@ class CanvasViewModel @Inject constructor(
     private val dataStore: PreferencesDataStoreHelper,
     private val fontGate: FontGate,
     private val billingManager: BillingManager,
+    private val templateRepository: TemplateRepository,
 ) : ViewModel() {
 
     private val _fontPanelState = MutableLiveData(FontPanelState())
@@ -4805,101 +4806,29 @@ class CanvasViewModel @Inject constructor(
     fun loadTemplateFromJsonFile(exportResult: ExportResult, context: Context) {
         viewModelScope.launch(Dispatchers.Default) {
             _isLoadingTemplate.postValue(true)
-
             try {
-                _loadingStage.postValue("Reading file" to 10)
-                val jsonFilePath = exportResult.jsonPath
-                val sourceFile = File(jsonFilePath)
-
-                if (!sourceFile.exists()) {
-                    Log.e("CanvasViewModel", "Template file not found: $jsonFilePath")
-                    return@launch
-                }
-
-                _loadingStage.postValue("Parsing JSON" to 30)
-
-                // Decode .urdc -> plain JSON temp file, OR pass an old plain-JSON file through
-                // unchanged (auto-detected by magic bytes). Streams to disk so we never build a
-                // giant String — preserves the OOM protection noted below.
-                val tempJson = File(context.cacheDir, "open_${System.currentTimeMillis()}.json")
-                val jsonFile = try {
-                    com.webscare.urducanvas.common.canvas.io.ProjectCodec
-                        .toPlainJsonFile(sourceFile, tempJson)
-                } catch (e: com.webscare.urducanvas.common.canvas.io.ProjectCodec.BadProjectFileException) {
-                    Log.e("CanvasViewModel", "Bad/foreign project file: ${e.message}")
-                    tempJson.delete()
-                    return@launch
-                }
-
-                // Stream the JSON file directly into Gson — never load it as a String.
-                // readText() on a large project file (many images stored as base64) can
-                // allocate 50–250 MB as a single String, causing the ANR/OOM on load.
-                val elements: List<CanvasElement> = jsonFile.bufferedReader().use { reader ->
-                    gson.fromJson(reader, Array<CanvasElement>::class.java).toList()
-                }
-                // Clean up the temp file if we created one (jsonFile == sourceFile for plain JSON).
-                if (jsonFile.absolutePath == tempJson.absolutePath) tempJson.delete()
-
-                val requiredFontIds =
-                    elements.filter { it.type == ElementType.TEXT }.mapNotNull { it.fontId }
-                        .distinct()
-
-                _loadingStage.postValue("Preparing fonts" to 40)
-                fontGate.ensureFonts(requiredFontIds)
-
-                _loadingStage.postValue("Fonts ready" to 55)
-
-                // ── Hydrate elements — all heavy work stays on Dispatchers.Default ──────
-                // base64ToBitmap is PNG decode and can take hundreds of ms per image.
-                // Doing it here (background thread) instead of on the main thread is what
-                // prevents the ANR.
-                _loadingStage.postValue("Hydrating elements" to 60)
-
-                val hydratedElements = elements.mapIndexed { index, raw ->
-                    val fixed = if (raw.adjustments == null) raw.copy(adjustments = AdjustmentValues()) else raw
-                    val element = fixed.copy(context = context).apply {
-                        if (type == ElementType.DRAW && !drawStrokes.isNullOrEmpty()) {
-                            drawStrokes?.forEach { stroke -> stroke.restorePath() }
-                        }
+                val hydratedWithFonts = templateRepository.parseAndHydrateTemplate(
+                    exportResult = exportResult,
+                    context = context,
+                    localFonts = _localFonts.value ?: emptyList(),
+                    onProgress = { stage, progress ->
+                        _loadingStage.postValue(stage to progress)
                     }
-                    // Decode bitmap on background thread — this is the expensive step
-                    element.restoreWithContextBackground(context)
-                }
+                ) ?: return@launch
 
-                _loadingStage.postValue("Applying fonts" to 70)
-
-                val currentFonts = _localFonts.value
-                val hydratedWithFonts = hydratedElements.map { element ->
-                    if (element.type == ElementType.TEXT && element.fontId != null) {
-                        val font = currentFonts.find { it.id.toString() == element.fontId }
-                        if (font?.file_path?.isNotBlank() == true) {
-                            try {
-                                element.paint.typeface = Typeface.createFromFile(font.file_path)
-                            } catch (e: Exception) {
-                                Log.e("CanvasViewModel", "Failed to load typeface during template load: ${font.file_path}", e)
-                                element.paint.typeface =
-                                    ResourcesCompat.getFont(context, R.font.default_canvas)
-                                        ?: Typeface.DEFAULT
-                            }
-                        }
-                    }
-                    element
-                }
-
-                // ── Decode background bitmap on background thread ──────────────────────
+                // â”€â”€ Decode background bitmap on background thread â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 _loadingStage.postValue("Loading background" to 80)
-
-                val bgElement = if (elements.isNotEmpty() && elements[0].type == ElementType.BACKGROUND) {
-                    elements[0]
+                val bgElement = if (hydratedWithFonts.isNotEmpty() && hydratedWithFonts[0].type == ElementType.BACKGROUND) {
+                    hydratedWithFonts[0]
                 } else {
                     null
                 }
 
                 val bgBitmap = bgElement?.bitmapData?.let { data ->
-                    ImageProcessor.base64ToBitmap(data) // ← background thread, not main
+                    ImageProcessor.base64ToBitmap(data)
                 }
 
-                // ── Only switch to Main for LiveData writes — zero heavy work here ────
+                // â”€â”€ Only switch to Main for LiveData writes â€” zero heavy work here â”€â”€â”€â”€
                 _loadingStage.postValue("Applying to canvas" to 90)
                 withContext(Dispatchers.Main) {
                     if (bgElement != null) {
@@ -4929,8 +4858,6 @@ class CanvasViewModel @Inject constructor(
                             }
                     }
 
-                    // Bitmaps are already decoded — just wire up adjustment LiveData for
-                    // the selected element. No more base64ToBitmap calls on the main thread.
                     val selected = hydratedWithFonts.find { it.isSelected && it.type != ElementType.TEXT }
                     selected?.let {
                         _currentFont.postValue(_localFonts.value.find { font -> font.id.toString() == it.fontId })
@@ -4947,7 +4874,7 @@ class CanvasViewModel @Inject constructor(
                     }
                     _exportResult.value = exportResult
                 }
-                Log.e("CanvasViewModel", "Successful")
+                Log.d("CanvasViewModel", "Successful")
             } catch (e: Exception) {
                 Log.e("CanvasViewModel", "Error loading template", e)
             } finally {
