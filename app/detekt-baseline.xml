@@ -1,0 +1,1063 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CastToNullableType:CanvasView.kt$CanvasView$as</ID>
+    <ID>CollapsibleIfStatements:LayersFragment.kt$LayersFragment.&lt;no name provided&gt;$if (!decided) { if (kotlin.math.abs(dy) &gt;= slop || kotlin.math.abs(dx) &gt;= slop) { // Downward swipe when already at the top of the list val isAtTop = !binding.layers.canScrollVertically(-1) if (dy &gt; 0f &amp;&amp; isAtTop &amp;&amp; kotlin.math.abs(dy) &gt; kotlin.math.abs(dx)) { trackingPanel = true decided = true intercept = true } else { decided = true } } }</ID>
+    <ID>ComplexCondition:CanvasViewModel.kt$CanvasViewModel$element.isSelected &amp;&amp; (element.type == ElementType.IMAGE || element.type == ElementType.STICKER || element.type == ElementType.SHAPE || (element.type == ElementType.BACKGROUND &amp;&amp; element.bitmap != null))</ID>
+    <ID>ConstructorParameterNaming:AdjustmentPanelTabs.kt$AdjustmentPanelTabs$val tab_name: String</ID>
+    <ID>ConstructorParameterNaming:AdjustmentPanelTabs.kt$AdjustmentPanelTabs$var is_enabled: Boolean = false</ID>
+    <ID>ConstructorParameterNaming:AdjustmentPanelTabs.kt$AdjustmentPanelTabs$var is_selected: Boolean = false</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$val alt_text: String? = null</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$val created_at: String? = null</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$val file_name: String</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$val file_size: String</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$val file_url: String</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$val font_category: String</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$val font_image: String? = null</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$val font_language: String</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$val font_name: String</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$val image_url: String</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$val is_premium: Boolean = false</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$val is_subscribed: Boolean = false</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$val updated_at: String? = null</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$val user_id: Int</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$var download_progress: Int = 0</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$var file_path: String? = null</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$var is_downloaded: Boolean = false</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$var is_downloading: Boolean = false</ID>
+    <ID>ConstructorParameterNaming:FontEntity.kt$FontEntity$var is_selected: Boolean = false</ID>
+    <ID>ConstructorParameterNaming:FontLanguages.kt$FontLanguages$var is_selected: Boolean = false</ID>
+    <ID>ConstructorParameterNaming:ImageEntity.kt$ImageEntity$val alt_text: String? = null</ID>
+    <ID>ConstructorParameterNaming:ImageEntity.kt$ImageEntity$val file_name: String</ID>
+    <ID>ConstructorParameterNaming:ImageEntity.kt$ImageEntity$val file_size: String</ID>
+    <ID>ConstructorParameterNaming:ImageEntity.kt$ImageEntity$val file_url: String</ID>
+    <ID>ConstructorParameterNaming:ImageEntity.kt$ImageEntity$val is_premium: Boolean = false</ID>
+    <ID>ConstructorParameterNaming:ImageEntity.kt$ImageEntity$val is_recent: Boolean = false</ID>
+    <ID>ConstructorParameterNaming:ImageEntity.kt$ImageEntity$val is_subscribed: Boolean = false</ID>
+    <ID>ConstructorParameterNaming:ImageEntity.kt$ImageEntity$val parent_category: String? = null</ID>
+    <ID>ConstructorParameterNaming:ImageEntity.kt$ImageEntity$val user_id: Int</ID>
+    <ID>ConstructorParameterNaming:ImageEntity.kt$ImageEntity$var created_at: String? = null</ID>
+    <ID>ConstructorParameterNaming:ImageEntity.kt$ImageEntity$var is_selected: Boolean = false</ID>
+    <ID>ConstructorParameterNaming:PanelTabs.kt$PanelTabs$val tab_name: String</ID>
+    <ID>ConstructorParameterNaming:PanelTabs.kt$PanelTabs$var is_selected: Boolean = false</ID>
+    <ID>ConstructorParameterNaming:PexelsResponse.kt$PexelsResponse$val next_page: String?</ID>
+    <ID>ConstructorParameterNaming:PexelsResponse.kt$PexelsResponse$val per_page: Int</ID>
+    <ID>ConstructorParameterNaming:PexelsResponse.kt$PexelsResponse$val total_results: Int</ID>
+    <ID>ConstructorParameterNaming:TemplateEntity.kt$TemplateEntity$val canvas_height: Int</ID>
+    <ID>ConstructorParameterNaming:TemplateEntity.kt$TemplateEntity$val canvas_width: Int</ID>
+    <ID>ConstructorParameterNaming:TemplateEntity.kt$TemplateEntity$val created_at: String? = null</ID>
+    <ID>ConstructorParameterNaming:TemplateEntity.kt$TemplateEntity$val is_popular: Boolean = false</ID>
+    <ID>ConstructorParameterNaming:TemplateEntity.kt$TemplateEntity$val is_premium: Boolean = false</ID>
+    <ID>ConstructorParameterNaming:TemplateEntity.kt$TemplateEntity$val is_subscribed: Boolean = false</ID>
+    <ID>ConstructorParameterNaming:TemplateEntity.kt$TemplateEntity$val json_url: String</ID>
+    <ID>ConstructorParameterNaming:TemplateEntity.kt$TemplateEntity$val template_name: String</ID>
+    <ID>ConstructorParameterNaming:TemplateEntity.kt$TemplateEntity$val thumbnail_url: String</ID>
+    <ID>ConstructorParameterNaming:TemplateEntity.kt$TemplateEntity$val updated_at: String? = null</ID>
+    <ID>ConstructorParameterNaming:TemplateEntity.kt$TemplateEntity$var download_progress: Int = 0</ID>
+    <ID>ConstructorParameterNaming:TemplateEntity.kt$TemplateEntity$var file_path: String? = null</ID>
+    <ID>ConstructorParameterNaming:TemplateEntity.kt$TemplateEntity$var is_downloaded: Boolean = false</ID>
+    <ID>ConstructorParameterNaming:TemplateEntity.kt$TemplateEntity$var is_downloading: Boolean = false</ID>
+    <ID>ConstructorParameterNaming:TemplateEntity.kt$TemplateEntity$var json_size: Long = 0</ID>
+    <ID>ConstructorParameterNaming:TrendApi.kt$TrendApi$val is_active: Boolean</ID>
+    <ID>ConstructorParameterNaming:TrendEntity.kt$TrendEntity$val is_active: Boolean</ID>
+    <ID>CyclomaticComplexMethod:CanvasView.kt$CanvasView$@SuppressLint("ClickableViewAccessibility") override fun onTouchEvent(event: MotionEvent): Boolean</ID>
+    <ID>CyclomaticComplexMethod:CanvasView.kt$CanvasView$private fun drawCanvasElements( canvas: Canvas, showOverlays: Boolean = true, showCheckerboard: Boolean = true, // When non-null, only elements whose id is in this set are drawn. // Used by GROUP_EDIT isolation mode to re-draw only the active group at full opacity. isolatedIds: Set&lt;String&gt;? = null, )</ID>
+    <ID>CyclomaticComplexMethod:CanvasView.kt$CanvasView$private fun drawElementOverlays(canvas: Canvas, showOverlays: Boolean = true)</ID>
+    <ID>CyclomaticComplexMethod:CanvasView.kt$CanvasView$private fun drawShapeElement(canvas: Canvas, element: CanvasElement)</ID>
+    <ID>CyclomaticComplexMethod:CanvasView.kt$CanvasView$private fun drawTextElement( canvas: Canvas, element: CanvasElement, )</ID>
+    <ID>CyclomaticComplexMethod:CanvasViewModel.kt$CanvasViewModel$fun loadTemplateFromJsonFile(exportResult: ExportResult, context: Context)</ID>
+    <ID>CyclomaticComplexMethod:CanvasViewModel.kt$CanvasViewModel$private fun CanvasElement.restoreWithContext(context: Context?): CanvasElement</ID>
+    <ID>CyclomaticComplexMethod:CanvasViewModel.kt$CanvasViewModel$private fun CanvasElement.restoreWithContextBackground(context: Context?): CanvasElement</ID>
+    <ID>CyclomaticComplexMethod:CanvasViewModel.kt$CanvasViewModel$private fun applyAction(action: CanvasAction, isRedo: Boolean)</ID>
+    <ID>CyclomaticComplexMethod:CanvasViewModel.kt$CanvasViewModel$private fun applyChangesToSelectedTextElements()</ID>
+    <ID>CyclomaticComplexMethod:CanvasViewModel.kt$CanvasViewModel$private fun applyChangesToSelectedTextElementsPreview()</ID>
+    <ID>CyclomaticComplexMethod:CreateFragment.kt$CreateFragment$@SuppressLint("DefaultLocale") private fun setEvents()</ID>
+    <ID>CyclomaticComplexMethod:EditorFragment.kt$EditorFragment$private fun observeAfterCanvasReady()</ID>
+    <ID>CyclomaticComplexMethod:FilesListFragment.kt$FilesListFragment$private fun initObservers()</ID>
+    <ID>CyclomaticComplexMethod:FinishExportFragment.kt$FinishExportFragment$private fun setEvents()</ID>
+    <ID>CyclomaticComplexMethod:FormattingFragment.kt$FormattingFragment$private fun setEvents()</ID>
+    <ID>CyclomaticComplexMethod:ImageAdjustmentHelper.kt$ImageAdjustmentHelper$fun applyAllAdjustments(context: Context, source: Bitmap, element: CanvasElement): Bitmap</ID>
+    <ID>CyclomaticComplexMethod:ImageProcessor.kt$ImageProcessor$fun applyFilter(src: Bitmap, filter: ImageFilter?): Bitmap</ID>
+    <ID>CyclomaticComplexMethod:MainActivity.kt$MainActivity$private fun setupBottomNav()</ID>
+    <ID>CyclomaticComplexMethod:MainViewModel.kt$MainViewModel$private fun buildImagesData(images: List&lt;ImageEntity&gt;): ImagesData</ID>
+    <ID>DataClassShouldBeImmutable:AdjustmentPanelTabs.kt$AdjustmentPanelTabs$var is_enabled: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:AdjustmentPanelTabs.kt$AdjustmentPanelTabs$var is_selected: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:AdjustmentValues.kt$AdjustmentValues$var brightness: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:AdjustmentValues.kt$AdjustmentValues$var clarity: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:AdjustmentValues.kt$AdjustmentValues$var contrast: Float = 1f</ID>
+    <ID>DataClassShouldBeImmutable:AdjustmentValues.kt$AdjustmentValues$var fade: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:AdjustmentValues.kt$AdjustmentValues$var highlights: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:AdjustmentValues.kt$AdjustmentValues$var saturation: Float = 1f</ID>
+    <ID>DataClassShouldBeImmutable:AdjustmentValues.kt$AdjustmentValues$var shadows: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:AdjustmentValues.kt$AdjustmentValues$var sharpness: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:AdjustmentValues.kt$AdjustmentValues$var temperature: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:AdjustmentValues.kt$AdjustmentValues$var tint: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:AdjustmentValues.kt$AdjustmentValues$var vibrance: Float = 1f</ID>
+    <ID>DataClassShouldBeImmutable:BrushSettings.kt$BrushSettings$var defaultColor: Int</ID>
+    <ID>DataClassShouldBeImmutable:BrushSettings.kt$BrushSettings$var defaultHardness: Float</ID>
+    <ID>DataClassShouldBeImmutable:BrushSettings.kt$BrushSettings$var defaultThickness: Float</ID>
+    <ID>DataClassShouldBeImmutable:BrushSettings.kt$BrushSettings$var gradient: GradientItem? = null</ID>
+    <ID>DataClassShouldBeImmutable:BrushSettings.kt$BrushSettings$var style: BrushStyle</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("adjustments") var adjustments: AdjustmentValues = AdjustmentValues()</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("alignment") var alignment: TextAlignment = TextAlignment.CENTER</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("allowsStrokeEditing") var allowsStrokeEditing: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("applyWhiteTintInDarkMode") var applyWhiteTintInDarkMode: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("backgroundColor") var backgroundColor: Int = Color.WHITE</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("bitmap") @field:Transient var bitmap: Bitmap? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("bitmapData") var bitmapData: String? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("blendType") var blendType: BlendType = BlendType.NORMAL</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("blurValue") var blurValue: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("brushSettings") var brushSettings: BrushSettings? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("currentIndent") var currentIndent: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("customName") var customName: String? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("drawStrokes") var drawStrokes: MutableList&lt;StrokeData&gt;? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("featherDirection") var featherDirection: FeatherDirection? = FeatherDirection.ALL</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("featherRadius") var featherRadius: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("featherWidth") var featherWidth: Float = 50f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("fillGradient") var fillGradient: GradientItem? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("fontId") var fontId: String? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("groupId") var groupId: String? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("hasBlur") var hasBlur: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("hasColor") var hasColor: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("hasDetail") var hasDetail: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("hasFeather") var hasFeather: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("hasLabel") var hasLabel: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("hasLight") var hasLight: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("hasMask") var hasMask: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("hasOverlay") var hasOverlay: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("hasShadow") var hasShadow: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("hasStroke") var hasStroke: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("imageFilter") var imageFilter: ImageFilter = ImageFilter.None</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("imageFitMode") var imageFitMode: String? = "cover"</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("imagePanX") var imagePanX: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("imagePanY") var imagePanY: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("imageScale") var imageScale: Float = 1f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("isFlippedX") var isFlippedX: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("isFlippedY") var isFlippedY: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("isGroupCollapsed") var isGroupCollapsed: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("isLocked") var isLocked: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("isPremium") var isPremium: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("isSelected") var isSelected: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("isSubscribed") var isSubscribed: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("isVisible") var isVisible: Boolean = true</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("kashidaSize") var kashidaSize: Int = 0</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("labelColor") var labelColor: Int = Color.YELLOW</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("labelGradient") var labelGradient: GradientItem? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("labelShape") var labelShape: LabelShape = LabelShape.RECTANGLE_FILL</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("letterCasing") var letterCasing: LetterCasing = LetterCasing.NONE</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("letterSpacing") var letterSpacing: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("lineSpacing") var lineSpacing: Float = 1.0f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("listStyle") var listStyle: ListStyle = ListStyle.NONE</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("logicalContentHeight") var logicalContentHeight: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("logicalContentWidth") var logicalContentWidth: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("originalTypeface") @field:Transient var originalTypeface: Typeface? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("overlayColor") var overlayColor: Int = Color.YELLOW</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("overlayGradient") var overlayGradient: GradientItem? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("overlayOpacity") var overlayOpacity: Int = 255</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("paintAlpha") var paintAlpha: Int = 255</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("paintColor") var paintColor: Int = Color.BLACK</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("paintTextSize") var paintTextSize: Float = 80f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("rotation") var rotation: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("scale") var scale: Float = 1f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("shadowColor") var shadowColor: Int = Color.GRAY</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("shadowDx") var shadowDx: Float = 1f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("shadowDy") var shadowDy: Float = 1f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("shadowOpacity") var shadowOpacity: Int = 1</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("shadowRadius") var shadowRadius: Float = 1f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("shapeCornerRadius") var shapeCornerRadius: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("shapeFillColor") var shapeFillColor: Int = Color.TRANSPARENT</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("shapeFillGradient") var shapeFillGradient: GradientItem? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("shapeHasCorner") var shapeHasCorner: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("shapeHasFill") var shapeHasFill: Boolean = true</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("shapeHasStroke") var shapeHasStroke: Boolean = true</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("shapeStrokeColor") var shapeStrokeColor: Int = Color.BLACK</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("shapeStrokeGradient") var shapeStrokeGradient: GradientItem? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("shapeStrokeWidth") var shapeStrokeWidth: Float = 6f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("shapeType") var shapeType: ShapeType? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("strokeColor") var strokeColor: Int = Color.BLACK</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("strokeGradient") var strokeGradient: GradientItem? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("strokeWidth") var strokeWidth: Float = 1f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("svgData") var svgData: String? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("text") var text: String = ""</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("textDecoration") var textDecoration: Set&lt;TextDecoration&gt; = emptySet()</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("type") var type: ElementType?</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("x") var x: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("y") var y: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@SerializedName("zIndex") var zIndex: Int = 0</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@Transient // or @Exclude if using Gson's @Expose @com.google.gson.annotations.JsonAdapter(value = Nothing::class) // skip serialization var svgDrawable: android.graphics.drawable.PictureDrawable? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@field:Transient lateinit var paint: TextPaint</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@field:Transient var cachedAdjustedBitmap: Bitmap? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@field:Transient var context: Context? = null</ID>
+    <ID>DataClassShouldBeImmutable:CanvasElement.kt$CanvasElement$@field:Transient var isAdjustmentDirty: Boolean = true</ID>
+    <ID>DataClassShouldBeImmutable:ColorItem.kt$ColorItem$var isSelected: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:ExportFormat.kt$ExportFormat$var isPremium: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:ExportFormat.kt$ExportFormat$var isSelected: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:ExportQuality.kt$ExportQuality$var isPremium: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:ExportQuality.kt$ExportQuality$var isSelected: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:ExportResolution.kt$ExportResolution$var isPremium: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:ExportResolution.kt$ExportResolution$var isSelected: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:ExportResult.kt$ExportResult$@PrimaryKey(autoGenerate = true) var id: Long = 0</ID>
+    <ID>DataClassShouldBeImmutable:ExportResult.kt$ExportResult$var canvasSize: com.webscare.urducanvas.common.canvas.model.CanvasSize</ID>
+    <ID>DataClassShouldBeImmutable:ExportResult.kt$ExportResult$var fileName: String</ID>
+    <ID>DataClassShouldBeImmutable:ExportResult.kt$ExportResult$var fileSizeMB: Double</ID>
+    <ID>DataClassShouldBeImmutable:ExportResult.kt$ExportResult$var format: String</ID>
+    <ID>DataClassShouldBeImmutable:ExportResult.kt$ExportResult$var imagePath: String</ID>
+    <ID>DataClassShouldBeImmutable:ExportResult.kt$ExportResult$var isExported: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:ExportResult.kt$ExportResult$var jsonPath: String</ID>
+    <ID>DataClassShouldBeImmutable:ExportResult.kt$ExportResult$var pdfPath: String? = null</ID>
+    <ID>DataClassShouldBeImmutable:ExportResult.kt$ExportResult$var quality: String</ID>
+    <ID>DataClassShouldBeImmutable:ExportResult.kt$ExportResult$var resolution: String</ID>
+    <ID>DataClassShouldBeImmutable:ExportResult.kt$ExportResult$var thumbnailPath: String? = null</ID>
+    <ID>DataClassShouldBeImmutable:ExportResult.kt$ExportResult$var updatedDate: String</ID>
+    <ID>DataClassShouldBeImmutable:FilterItem.kt$FilterItem$var isSelected: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:FontEntity.kt$FontEntity$var download_progress: Int = 0</ID>
+    <ID>DataClassShouldBeImmutable:FontEntity.kt$FontEntity$var file_path: String? = null</ID>
+    <ID>DataClassShouldBeImmutable:FontEntity.kt$FontEntity$var is_downloaded: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:FontEntity.kt$FontEntity$var is_downloading: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:FontEntity.kt$FontEntity$var is_selected: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:FontLanguages.kt$FontLanguages$var is_selected: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:GradientItem.kt$GradientItem$var colors: List&lt;Int&gt; = listOf(Color.BLACK, Color.GRAY)</ID>
+    <ID>DataClassShouldBeImmutable:GradientItem.kt$GradientItem$var id: Long = 0</ID>
+    <ID>DataClassShouldBeImmutable:GradientItem.kt$GradientItem$var isSelected: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:GradientItem.kt$GradientItem$var positions: List&lt;Float&gt; = listOf(0f, 1f)</ID>
+    <ID>DataClassShouldBeImmutable:ImageEntity.kt$ImageEntity$var bitmapData: String? = null</ID>
+    <ID>DataClassShouldBeImmutable:ImageEntity.kt$ImageEntity$var created_at: String? = null</ID>
+    <ID>DataClassShouldBeImmutable:ImageEntity.kt$ImageEntity$var is_selected: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:PanelTabs.kt$PanelTabs$var is_selected: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:StrokeData.kt$StrokeData$@Transient var path: Path? = Path()</ID>
+    <ID>DataClassShouldBeImmutable:StrokeData.kt$StrokeData$var color: Int = 0</ID>
+    <ID>DataClassShouldBeImmutable:StrokeData.kt$StrokeData$var gradient: GradientItem? = null</ID>
+    <ID>DataClassShouldBeImmutable:StrokeData.kt$StrokeData$var hardness: Float = 1f</ID>
+    <ID>DataClassShouldBeImmutable:StrokeData.kt$StrokeData$var pathData: List&lt;Float&gt;? = null</ID>
+    <ID>DataClassShouldBeImmutable:StrokeData.kt$StrokeData$var style: BrushStyle</ID>
+    <ID>DataClassShouldBeImmutable:StrokeData.kt$StrokeData$var thickness: Float = 0f</ID>
+    <ID>DataClassShouldBeImmutable:SubscriptionPlan.kt$SubscriptionPlan$var isSelected: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:TemplateEntity.kt$TemplateEntity$var download_progress: Int = 0</ID>
+    <ID>DataClassShouldBeImmutable:TemplateEntity.kt$TemplateEntity$var file_path: String? = null</ID>
+    <ID>DataClassShouldBeImmutable:TemplateEntity.kt$TemplateEntity$var is_downloaded: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:TemplateEntity.kt$TemplateEntity$var is_downloading: Boolean = false</ID>
+    <ID>DataClassShouldBeImmutable:TemplateEntity.kt$TemplateEntity$var json_size: Long = 0</ID>
+    <ID>FunctionOnlyReturningConstant:EmojiAdapter.kt$EmojiAdapter$fun getPaint(): android.graphics.Paint?</ID>
+    <ID>ImplicitDefaultLocale:AdvancedAdjustmentsFragment.kt$AdvancedAdjustmentsFragment$String.format("%.2f", value ?: 0f)</ID>
+    <ID>ImplicitDefaultLocale:AdvancedAdjustmentsFragment.kt$AdvancedAdjustmentsFragment.&lt;no name provided&gt;$String.format("%.2f", value)</ID>
+    <ID>ImplicitDefaultLocale:ColorAdjustmentsFragment.kt$ColorAdjustmentsFragment$String.format("%.2f", value ?: 1f)</ID>
+    <ID>ImplicitDefaultLocale:ColorAdjustmentsFragment.kt$ColorAdjustmentsFragment.&lt;no name provided&gt;$String.format("%.2f", value)</ID>
+    <ID>ImplicitDefaultLocale:ColorPickerBar.kt$ColorPickerBar$String.format("#%06X", 0xFFFFFF and color)</ID>
+    <ID>ImplicitDefaultLocale:ColorPickerFragment.kt$ColorPickerFragment$String.format("#%06X", 0xFFFFFF and color)</ID>
+    <ID>ImplicitDefaultLocale:CreateFragment.kt$CreateFragment$String.format( "%.1f", Converter.pxToCm(oldHeightPx.toFloat()), )</ID>
+    <ID>ImplicitDefaultLocale:CreateFragment.kt$CreateFragment$String.format( "%.1f", Converter.pxToCm(oldWidthPx.toFloat()), )</ID>
+    <ID>ImplicitDefaultLocale:CreateFragment.kt$CreateFragment$String.format( "%.1f", Converter.pxToInches(oldHeightPx.toFloat()), )</ID>
+    <ID>ImplicitDefaultLocale:CreateFragment.kt$CreateFragment$String.format( "%.1f", Converter.pxToInches(oldWidthPx.toFloat()), )</ID>
+    <ID>ImplicitDefaultLocale:CreateFragment.kt$CreateFragment$String.format("%.1f", Converter.pxToCm(size.height))</ID>
+    <ID>ImplicitDefaultLocale:CreateFragment.kt$CreateFragment$String.format("%.1f", Converter.pxToCm(size.width))</ID>
+    <ID>ImplicitDefaultLocale:CreateFragment.kt$CreateFragment$String.format("%.1f", Converter.pxToInches(size.height))</ID>
+    <ID>ImplicitDefaultLocale:CreateFragment.kt$CreateFragment$String.format("%.1f", Converter.pxToInches(size.width))</ID>
+    <ID>ImplicitDefaultLocale:CreateFragment.kt$CreateFragment$String.format("%.1f", h)</ID>
+    <ID>ImplicitDefaultLocale:CreateFragment.kt$CreateFragment$String.format("%.1f", newHeight)</ID>
+    <ID>ImplicitDefaultLocale:CreateFragment.kt$CreateFragment$String.format("%.1f", newWidth)</ID>
+    <ID>ImplicitDefaultLocale:CreateFragment.kt$CreateFragment$String.format("%.1f", w)</ID>
+    <ID>ImplicitDefaultLocale:ExportOptionAdapter.kt$ExportOptionAdapter.ResolutionViewHolder$String.format("~%.1f MB", item.estimatedSizeKb / 1000f)</ID>
+    <ID>ImplicitDefaultLocale:FilesAdapter.kt$FilesAdapter$String.format("%.2f MB", bytes / (1024f * 1024f))</ID>
+    <ID>ImplicitDefaultLocale:GradientSettingFragment.kt$GradientSettingFragment$String.format("%.2f", pendingScale)</ID>
+    <ID>ImplicitDefaultLocale:GradientSettingFragment.kt$GradientSettingFragment$String.format("%.2f°", pendingRadius)</ID>
+    <ID>ImplicitDefaultLocale:GradientSettingFragment.kt$GradientSettingFragment$String.format("%.2f°", pendingX)</ID>
+    <ID>ImplicitDefaultLocale:GradientSettingFragment.kt$GradientSettingFragment$String.format("%.2f°", pendingY)</ID>
+    <ID>ImplicitDefaultLocale:GradientSettingFragment.kt$GradientSettingFragment$String.format("%d°", pendingAngle.toInt())</ID>
+    <ID>ImplicitDefaultLocale:GradientSettingFragment.kt$GradientSettingFragment$String.format("%d°", pendingSweepAngle.toInt())</ID>
+    <ID>ImplicitDefaultLocale:GradientSettingFragment.kt$GradientSettingFragment.&lt;no name provided&gt;$String.format("%.2f", pendingRadius)</ID>
+    <ID>ImplicitDefaultLocale:GradientSettingFragment.kt$GradientSettingFragment.&lt;no name provided&gt;$String.format("%.2f", pendingScale)</ID>
+    <ID>ImplicitDefaultLocale:GradientSettingFragment.kt$GradientSettingFragment.&lt;no name provided&gt;$String.format("%.2f", pendingX)</ID>
+    <ID>ImplicitDefaultLocale:GradientSettingFragment.kt$GradientSettingFragment.&lt;no name provided&gt;$String.format("%.2f", pendingY)</ID>
+    <ID>ImplicitDefaultLocale:ImportedFontsAdapter.kt$ImportedFontsAdapter$String.format("%.2f MB", bytes / (1024f * 1024f))</ID>
+    <ID>ImplicitDefaultLocale:MaskFragment.kt$MaskFragment$String.format("%.1f", panX)</ID>
+    <ID>ImplicitDefaultLocale:MaskFragment.kt$MaskFragment$String.format("%.1f", panY)</ID>
+    <ID>ImplicitDefaultLocale:MaskFragment.kt$MaskFragment$String.format("%.2fx", scale)</ID>
+    <ID>ImplicitDefaultLocale:MaskFragment.kt$MaskFragment.&lt;no name provided&gt;$String.format("%.2fx", scale)</ID>
+    <ID>ImplicitDefaultLocale:PopularFontsAdapter.kt$PopularFontsAdapter$String.format("%.2f MB", bytes / (1024f * 1024f))</ID>
+    <ID>ImplicitDefaultLocale:ToneAdjustmentsFragment.kt$ToneAdjustmentsFragment$String.format("%.2f", value ?: 1f)</ID>
+    <ID>ImplicitDefaultLocale:ToneAdjustmentsFragment.kt$ToneAdjustmentsFragment.&lt;no name provided&gt;$String.format("%.2f", contrastValue)</ID>
+    <ID>LargeClass:BgRemovalCanvas.kt$BgRemovalCanvas : View</ID>
+    <ID>LargeClass:CanvasView.kt$CanvasView : View</ID>
+    <ID>LargeClass:CanvasViewModel.kt$CanvasViewModel : ViewModel</ID>
+    <ID>LargeClass:EditorFragment.kt$EditorFragment : Fragment</ID>
+    <ID>LargeClass:ExportFragment.kt$ExportFragment : Fragment</ID>
+    <ID>LargeClass:FilesListFragment.kt$FilesListFragment : Fragment</ID>
+    <ID>LargeClass:GradientPresets.kt$GradientPresets</ID>
+    <ID>LargeClass:ImageProcessor.kt$ImageProcessor</ID>
+    <ID>LargeClass:MainViewModel.kt$MainViewModel : ViewModel</ID>
+    <ID>LargeClass:TextFragment.kt$TextFragment : Fragment</ID>
+    <ID>LongMethod:CanvasView.kt$CanvasView$@SuppressLint("ClickableViewAccessibility") override fun onTouchEvent(event: MotionEvent): Boolean</ID>
+    <ID>LongMethod:CanvasView.kt$CanvasView$@SuppressLint("DrawAllocation") override fun onDraw(canvas: Canvas)</ID>
+    <ID>LongMethod:CanvasView.kt$CanvasView$fun alignHorizontal( align: HAlign, mode: MultiAlignMode = MultiAlignMode.CANVAS, )</ID>
+    <ID>LongMethod:CanvasView.kt$CanvasView$fun colorFilterFor(filter: ImageFilter?): ColorFilter?</ID>
+    <ID>LongMethod:CanvasView.kt$CanvasView$fun exportCanvasThumbnail( maxWidth: Int = 300, maxHeight: Int = 300, onProgress: ((percent: Int, stage: String) -&gt; Unit)? = null, ): Pair&lt;Bitmap, File&gt;</ID>
+    <ID>LongMethod:CanvasView.kt$CanvasView$fun exportCanvasThumbnailBitmap( maxWidth: Int = 300, maxHeight: Int = 300, onProgress: ((percent: Int, stage: String) -&gt; Unit)? = null, ): Pair&lt;Bitmap, File&gt;</ID>
+    <ID>LongMethod:CanvasView.kt$CanvasView$private fun drawBackgroundElement( canvas: Canvas, e: CanvasElement, )</ID>
+    <ID>LongMethod:CanvasView.kt$CanvasView$private fun drawCanvasElements( canvas: Canvas, showOverlays: Boolean = true, showCheckerboard: Boolean = true, // When non-null, only elements whose id is in this set are drawn. // Used by GROUP_EDIT isolation mode to re-draw only the active group at full opacity. isolatedIds: Set&lt;String&gt;? = null, )</ID>
+    <ID>LongMethod:CanvasView.kt$CanvasView$private fun drawElementOverlays(canvas: Canvas, showOverlays: Boolean = true)</ID>
+    <ID>LongMethod:CanvasView.kt$CanvasView$private fun drawRuler(canvas: Canvas)</ID>
+    <ID>LongMethod:CanvasView.kt$CanvasView$private fun drawShapeElement(canvas: Canvas, element: CanvasElement)</ID>
+    <ID>LongMethod:CanvasView.kt$CanvasView$private fun drawTextElement( canvas: Canvas, element: CanvasElement, )</ID>
+    <ID>LongMethod:CanvasViewModel.kt$CanvasViewModel$fun commitDrawSession()</ID>
+    <ID>LongMethod:CanvasViewModel.kt$CanvasViewModel$fun loadTemplateFromJsonFile(exportResult: ExportResult, context: Context)</ID>
+    <ID>LongMethod:CanvasViewModel.kt$CanvasViewModel$fun onCanvasSelectionChanged(selectedListFromCanvas: List&lt;CanvasElement&gt;)</ID>
+    <ID>LongMethod:CanvasViewModel.kt$CanvasViewModel$private fun applyAction(action: CanvasAction, isRedo: Boolean)</ID>
+    <ID>LongMethod:CreateFragment.kt$CreateFragment$@SuppressLint("DefaultLocale") private fun setEvents()</ID>
+    <ID>LongMethod:EditorFragment.kt$EditorFragment$@SuppressLint("ClickableViewAccessibility") private fun initFab()</ID>
+    <ID>LongMethod:EditorFragment.kt$EditorFragment$override fun onViewCreated(view: View, savedInstanceState: Bundle?)</ID>
+    <ID>LongMethod:EditorFragment.kt$EditorFragment$private fun initUIControls()</ID>
+    <ID>LongMethod:EditorFragment.kt$EditorFragment$private fun observeAfterCanvasReady()</ID>
+    <ID>LongMethod:ExportFragment.kt$ExportFragment$private fun exportCanvasInternal()</ID>
+    <ID>LongMethod:ExportFragment.kt$ExportFragment$private suspend fun saveImageOrPdf( bitmap: Bitmap, options: ExportOptions, ): Uri?</ID>
+    <ID>LongMethod:FilesAdapter.kt$FilesAdapter$@SuppressLint("ClickableViewAccessibility") private fun bindItem(binding: Any, item: Any)</ID>
+    <ID>LongMethod:FilesListFragment.kt$FilesListFragment$private fun initObservers()</ID>
+    <ID>LongMethod:FilesListFragment.kt$FilesListFragment$private fun showFilePopup(anchorView: View, item: Any)</ID>
+    <ID>LongMethod:FilesListFragment.kt$FilesListFragment$private suspend fun handlePickedFile(uri: Uri): Boolean</ID>
+    <ID>LongMethod:FillStrokeFragment.kt$FillStrokeFragment$private fun setupRecyclerView()</ID>
+    <ID>LongMethod:FinishExportFragment.kt$FinishExportFragment$private fun setEvents()</ID>
+    <ID>LongMethod:FormattingFragment.kt$FormattingFragment$private fun setEvents()</ID>
+    <ID>LongMethod:GradientBarView.kt$GradientBarView$override fun onTouchEvent(ev: MotionEvent): Boolean</ID>
+    <ID>LongMethod:HomeFragment.kt$HomeFragment$@SuppressLint("ClickableViewAccessibility") private fun setEvents()</ID>
+    <ID>LongMethod:HomeFragment.kt$HomeFragment$private fun initObservers()</ID>
+    <ID>LongMethod:ImageAdjustmentHelper.kt$ImageAdjustmentHelper$fun applyAllAdjustments(context: Context, source: Bitmap, element: CanvasElement): Bitmap</ID>
+    <ID>LongMethod:ImageProcessor.kt$ImageProcessor$fun applyFilter(src: Bitmap, filter: ImageFilter?): Bitmap</ID>
+    <ID>LongMethod:LabelsFragment.kt$LabelsFragment$private fun setEvents()</ID>
+    <ID>LongMethod:LayersAdapter.kt$LayersAdapter.ExpandedItem$@SuppressLint("ClickableViewAccessibility") override fun bind( displayItem: DisplayItem, isChild: Boolean, isFirst: Boolean, isLast: Boolean, inSelectionMode: Boolean, slideOffset: Float, rvWidth: Int, rvPadding: Int, )</ID>
+    <ID>LongMethod:MainActivity.kt$MainActivity$private fun setupBottomNav()</ID>
+    <ID>LongMethod:ManageSubscriptionFragment.kt$ManageSubscriptionFragment$private fun render(snap: BillingManager.PlayBillingSnapshot)</ID>
+    <ID>LongMethod:OverlayColorListFragment.kt$OverlayColorListFragment$private fun setupRecyclerView()</ID>
+    <ID>LongMethod:PopularFontsListFragment.kt$PopularFontsListFragment$private fun observeData()</ID>
+    <ID>LongMethod:SearchFragment.kt$SearchFragment$private fun setupAdapters()</ID>
+    <ID>LongMethod:ShapePanelFragment.kt$ShapePanelFragment$private fun setupRecyclerView()</ID>
+    <ID>LongMethod:ShapeRenderUtils.kt$ShapeRenderUtils$fun buildShapePath(shapeType: ShapeType, rect: RectF, cornerRadius: Float = 0f): Path</ID>
+    <ID>LongMethod:SvgLoader.kt$SvgLoader$fun isSingleColorDarkSvg(xml: String): Boolean</ID>
+    <ID>LongMethod:TemplateCategoriesFragment.kt$TemplateCategoriesFragment$private fun observeTemplateCategories()</ID>
+    <ID>LongMethod:TemplatesFragment.kt$TemplatesFragment$private fun observeData()</ID>
+    <ID>LongMethod:TemplatesListFragment.kt$TemplatesListFragment$private fun observeData()</ID>
+    <ID>LongParameterList:BrushRenderUtils.kt$BrushRenderUtils$( canvas: Canvas, stroke: StrokeData, paintAlpha: Int, width: Int, height: Int, makePaint: (StrokeData, Int, Int) -&gt; Paint, drawBrush: (Canvas, StrokeData, Int) -&gt; Unit, drawPen: (Canvas, StrokeData, Int) -&gt; Unit, )</ID>
+    <ID>LongParameterList:CanvasView.kt$CanvasView$( canvas: Canvas, elementId: String, left: Float, top: Float, right: Float, bottom: Float, featherRadius: Float, featherWidth: Float, direction: FeatherDirection = FeatherDirection.ALL, )</ID>
+    <ID>LongParameterList:LayersAdapter.kt$LayersAdapter.Collapsed$( private val binding: LayoutLayersItemCollapsedBinding, adapter: LayersAdapter, onLockToggle: (element: CanvasElement) -&gt; Unit, onMoreOptions: (element: CanvasElement, anchorView: View) -&gt; Unit, onItemClick: (element: CanvasElement) -&gt; Unit, onItemLongClick: (element: CanvasElement) -&gt; Unit, onStartDrag: (RecyclerView.ViewHolder) -&gt; Unit, onGroupHeaderClick: (element: CanvasElement) -&gt; Unit, onToggleCollapse: (element: CanvasElement) -&gt; Unit, )</ID>
+    <ID>LongParameterList:LayersAdapter.kt$LayersAdapter.ExpandedGroupHeader$( private val binding: LayoutLayersGroupHeaderBinding, adapter: LayersAdapter, onLockToggle: (element: CanvasElement) -&gt; Unit, onMoreOptions: (element: CanvasElement, anchorView: View) -&gt; Unit, onItemClick: (element: CanvasElement) -&gt; Unit, onItemLongClick: (element: CanvasElement) -&gt; Unit, onStartDrag: (RecyclerView.ViewHolder) -&gt; Unit, onGroupHeaderClick: (element: CanvasElement) -&gt; Unit, onToggleCollapse: (element: CanvasElement) -&gt; Unit, )</ID>
+    <ID>LongParameterList:LayersAdapter.kt$LayersAdapter.ExpandedItem$( private val binding: LayoutLayersItemBinding, adapter: LayersAdapter, onLockToggle: (element: CanvasElement) -&gt; Unit, onMoreOptions: (element: CanvasElement, anchorView: View) -&gt; Unit, onItemClick: (element: CanvasElement) -&gt; Unit, onItemLongClick: (element: CanvasElement) -&gt; Unit, onStartDrag: (RecyclerView.ViewHolder) -&gt; Unit, onGroupHeaderClick: (element: CanvasElement) -&gt; Unit, onToggleCollapse: (element: CanvasElement) -&gt; Unit, )</ID>
+    <ID>LongParameterList:LayersAdapter.kt$LayersAdapter.LayerViewHolder$( displayItem: DisplayItem, isChild: Boolean, isFirst: Boolean, isLast: Boolean, inSelectionMode: Boolean, slideOffset: Float, rvWidth: Int, rvPadding: Int, )</ID>
+    <ID>LongParameterList:LayersAdapter.kt$LayersAdapter.LayerViewHolder$( itemView: View, protected val adapter: LayersAdapter, protected val onLockToggle: (element: CanvasElement) -&gt; Unit, protected val onMoreOptions: (element: CanvasElement, anchorView: View) -&gt; Unit, protected val onItemClick: (element: CanvasElement) -&gt; Unit, protected val onItemLongClick: (element: CanvasElement) -&gt; Unit, protected val onStartDrag: (RecyclerView.ViewHolder) -&gt; Unit, protected val onGroupHeaderClick: (element: CanvasElement) -&gt; Unit, protected val onToggleCollapse: (element: CanvasElement) -&gt; Unit, )</ID>
+    <ID>LongParameterList:MainViewModel.kt$MainViewModel$( private val fetchAPITemplatesUseCase: FetchAPITemplatesUseCase, private val getTemplatesUseCase: GetTemplatesUseCase, private val insertTemplatesUseCase: InsertTemplatesUseCase, private val updateTemplatesUseCase: UpdateTemplatesUseCase, private val fetchAPIFontsUseCase: FetchAPIFontsUseCase, private val deleteImagesUseCase: DeleteImagesUseCase, private val updateImagesUseCase: UpdateImagesUseCase, private val deleteFontsUseCase: DeleteFontsUseCase, private val insertFontsUseCase: InsertFontsUseCase, private val getFontsUseCase: GetFontsUseCase, private val fetchAPIImagesUseCase: FetchAPIImagesUseCase, private val insertImagesUseCase: InsertImagesUseCase, private val getImagesUseCase: GetImagesUseCase, private val downloadRepository: DownloadRepo, private val updateFontsUseCase: UpdateFontsUseCase, private val updateFontStatusUseCase: UpdateFontStatusUseCase, private val getAll: GetAllGradientsUseCase, private val seed: SeedGradientsUseCase, private val delete: DeleteGradientUseCase, private val insert: InsertGradientUseCase, private val update: UpdateGradientUseCase, private val exportResultsUseCase: ExportResultsUseCase, private val fetchAPITrendsUseCase: FetchAPITrendsUseCase, private val getTrendsUseCase: GetTrendsUseCase, private val insertTrendsUseCase: InsertTrendsUseCase, private val billingManager: BillingManager, private val fetchAPICanvasSizesUseCase: FetchAPICanvasSizesUseCase, private val getCanvasSizesUseCase: GetCanvasSizesUseCase, private val pexelsRepo: PexelsRepo, private val imagesRepo: ImagesRepo, private val dataStore: com.webscare.urducanvas.common.datastore.PreferencesDataStoreHelper, @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context, )</ID>
+    <ID>LoopWithTooManyJumpStatements:MainViewModel.kt$MainViewModel$for</ID>
+    <ID>MagicNumber:AdjustmentsParentFragment.kt$AdjustmentsParentFragment$0.9f</ID>
+    <ID>MagicNumber:AdjustmentsParentFragment.kt$AdjustmentsParentFragment.&lt;no name provided&gt;$0.9f</ID>
+    <ID>MagicNumber:AdjustmentsParentFragment.kt$AdjustmentsParentFragment.&lt;no name provided&gt;$150</ID>
+    <ID>MagicNumber:AdvancedAdjustmentsFragment.kt$AdvancedAdjustmentsFragment$100</ID>
+    <ID>MagicNumber:AdvancedAdjustmentsFragment.kt$AdvancedAdjustmentsFragment$500</ID>
+    <ID>MagicNumber:AppearanceFragment.kt$AppearanceFragment$5</ID>
+    <ID>MagicNumber:AppearanceFragment.kt$AppearanceFragment.&lt;no name provided&gt;$5</ID>
+    <ID>MagicNumber:AppearancePagerAdapter.kt$AppearancePagerAdapter$5</ID>
+    <ID>MagicNumber:BgRemovalCanvas.kt$BgRemovalCanvas$127</ID>
+    <ID>MagicNumber:BgRemovalCanvas.kt$BgRemovalCanvas$16f</ID>
+    <ID>MagicNumber:BgRemovalCanvas.kt$BgRemovalCanvas$200</ID>
+    <ID>MagicNumber:BgRemovalCanvas.kt$BgRemovalCanvas$24</ID>
+    <ID>MagicNumber:BgRemovalCanvas.kt$BgRemovalCanvas$250</ID>
+    <ID>MagicNumber:BgRemovalCanvas.kt$BgRemovalCanvas$400</ID>
+    <ID>MagicNumber:BgRemovalCanvas.kt$BgRemovalCanvas$6</ID>
+    <ID>MagicNumber:BgRemovalCanvas.kt$BgRemovalCanvas$8</ID>
+    <ID>MagicNumber:BgRemovalCanvas.kt$BgRemovalCanvas$8f</ID>
+    <ID>MagicNumber:BgRemovalFragment.kt$BgRemovalFragment$0.8</ID>
+    <ID>MagicNumber:BgRemovalFragment.kt$BgRemovalFragment$2000</ID>
+    <ID>MagicNumber:BgRemovalFragment.kt$BgRemovalFragment$250</ID>
+    <ID>MagicNumber:BillingManager.kt$BillingManager$2000L</ID>
+    <ID>MagicNumber:BillingManager.kt$BillingManager$6</ID>
+    <ID>MagicNumber:BillingManager.kt$BillingManager.&lt;no name provided&gt;$2000L</ID>
+    <ID>MagicNumber:BillingManager.kt$BillingManager.&lt;no name provided&gt;$60000L</ID>
+    <ID>MagicNumber:BlendFragment.kt$BlendFragment$20</ID>
+    <ID>MagicNumber:BlurFragment.kt$BlurFragment$25</ID>
+    <ID>MagicNumber:BrushPanelFragment.kt$BrushPanelFragment$120L</ID>
+    <ID>MagicNumber:BrushPanelFragment.kt$BrushPanelFragment$99</ID>
+    <ID>MagicNumber:BrushRenderUtils.kt$BrushRenderUtils$0.012f</ID>
+    <ID>MagicNumber:BrushRenderUtils.kt$BrushRenderUtils$0.025f</ID>
+    <ID>MagicNumber:BrushRenderUtils.kt$BrushRenderUtils$0.9f</ID>
+    <ID>MagicNumber:BrushRenderUtils.kt$BrushRenderUtils$120</ID>
+    <ID>MagicNumber:BrushRenderUtils.kt$BrushRenderUtils$135</ID>
+    <ID>MagicNumber:BrushRenderUtils.kt$BrushRenderUtils$150</ID>
+    <ID>MagicNumber:BrushRenderUtils.kt$BrushRenderUtils$160</ID>
+    <ID>MagicNumber:BrushRenderUtils.kt$BrushRenderUtils$200</ID>
+    <ID>MagicNumber:BrushRenderUtils.kt$BrushRenderUtils$25f</ID>
+    <ID>MagicNumber:BrushRenderUtils.kt$BrushRenderUtils$55</ID>
+    <ID>MagicNumber:BrushRenderUtils.kt$BrushRenderUtils$5f</ID>
+    <ID>MagicNumber:BrushRenderUtils.kt$BrushRenderUtils$60</ID>
+    <ID>MagicNumber:BrushRenderUtils.kt$BrushRenderUtils$90</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$0.131f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$0.168f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$0.189f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$0.1f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$0.272f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$0.2f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$0.349f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$0.393f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$0.3f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$0.534f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$0.686f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$0.6f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$0.769f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$0.7f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$0.8f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$0.9f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$1.1f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$1.2f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$1.3f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$1.5f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$10</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$10f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$128</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$128f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$12f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$140</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$15f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$180f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$20f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$270f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$30</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$30f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$40</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$400L</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$40f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$5</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$50</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$50f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$5f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$6</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$60</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$7</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$70</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$90</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$90f</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$92</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$95</ID>
+    <ID>MagicNumber:CanvasView.kt$CanvasView$96</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$0.1f</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$0x00010000</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$0x4F54544F</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$0x74727565</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$0x74797031</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$1.1f</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$10</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$10f</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$15f</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$30</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$30f</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$40</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$50</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$50f</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$55</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$5f</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$60</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$70</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$80</ID>
+    <ID>MagicNumber:CanvasViewModel.kt$CanvasViewModel$90</ID>
+    <ID>MagicNumber:ColorAdjustmentsFragment.kt$ColorAdjustmentsFragment$200</ID>
+    <ID>MagicNumber:ColorPickerBar.kt$ColorPickerBar$0xFFFFFF</ID>
+    <ID>MagicNumber:ColorPickerBar.kt$ColorPickerBar$128</ID>
+    <ID>MagicNumber:ColorPickerFragment.kt$ColorPickerFragment$0xFFFFFF</ID>
+    <ID>MagicNumber:ColorsAdapter.kt$ColorsAdapter.ColorViewHolder$0.8</ID>
+    <ID>MagicNumber:Converter.kt$Converter$37.8</ID>
+    <ID>MagicNumber:Converter.kt$Converter$37.8f</ID>
+    <ID>MagicNumber:Converter.kt$Converter$96</ID>
+    <ID>MagicNumber:Converter.kt$Converter$96f</ID>
+    <ID>MagicNumber:CreateFragment.kt$CreateFragment$0.45f</ID>
+    <ID>MagicNumber:CreateFragment.kt$CreateFragment$0.75f</ID>
+    <ID>MagicNumber:CreateFragment.kt$CreateFragment$180f</ID>
+    <ID>MagicNumber:CreateFragment.kt$CreateFragment$2.5f</ID>
+    <ID>MagicNumber:CreateFragment.kt$CreateFragment$200f</ID>
+    <ID>MagicNumber:CreateFragment.kt$CreateFragment$256f</ID>
+    <ID>MagicNumber:CreateFragment.kt$CreateFragment$8000f</ID>
+    <ID>MagicNumber:CreateFragment.kt$CreateFragment$80f</ID>
+    <ID>MagicNumber:DialogUtils.kt$DialogUtils$0.8</ID>
+    <ID>MagicNumber:EditorFragment.kt$EditorFragment$0.8</ID>
+    <ID>MagicNumber:EditorFragment.kt$EditorFragment$10</ID>
+    <ID>MagicNumber:EditorFragment.kt$EditorFragment$10f</ID>
+    <ID>MagicNumber:EditorFragment.kt$EditorFragment$11f</ID>
+    <ID>MagicNumber:EditorFragment.kt$EditorFragment$180f</ID>
+    <ID>MagicNumber:EditorFragment.kt$EditorFragment$200</ID>
+    <ID>MagicNumber:EditorFragment.kt$EditorFragment$250</ID>
+    <ID>MagicNumber:EditorFragment.kt$EditorFragment$300</ID>
+    <ID>MagicNumber:EditorFragment.kt$EditorFragment$40</ID>
+    <ID>MagicNumber:EditorFragment.kt$EditorFragment$45f</ID>
+    <ID>MagicNumber:EditorFragment.kt$EditorFragment$50</ID>
+    <ID>MagicNumber:EditorFragment.kt$EditorFragment$85</ID>
+    <ID>MagicNumber:EditorFragment.kt$EditorFragment$8f</ID>
+    <ID>MagicNumber:EditorFragment.kt$EditorFragment$96</ID>
+    <ID>MagicNumber:EditorFragment.kt$EditorFragment$97</ID>
+    <ID>MagicNumber:EditorFragment.kt$EditorFragment$99</ID>
+    <ID>MagicNumber:EffectsPagerAdapter.kt$EffectsPagerAdapter$32</ID>
+    <ID>MagicNumber:ExportFragment.kt$ExportFragment$0.15</ID>
+    <ID>MagicNumber:ExportFragment.kt$ExportFragment$0.25</ID>
+    <ID>MagicNumber:ExportFragment.kt$ExportFragment$0.6f</ID>
+    <ID>MagicNumber:ExportFragment.kt$ExportFragment$0.7f</ID>
+    <ID>MagicNumber:ExportFragment.kt$ExportFragment$2000</ID>
+    <ID>MagicNumber:ExportFragment.kt$ExportFragment$30</ID>
+    <ID>MagicNumber:ExportFragment.kt$ExportFragment$300</ID>
+    <ID>MagicNumber:ExportFragment.kt$ExportFragment$350</ID>
+    <ID>MagicNumber:ExportFragment.kt$ExportFragment$50</ID>
+    <ID>MagicNumber:ExportFragment.kt$ExportFragment$75</ID>
+    <ID>MagicNumber:ExportFragment.kt$ExportFragment$80f</ID>
+    <ID>MagicNumber:ExportFragment.kt$ExportFragment$85</ID>
+    <ID>MagicNumber:ExportFragment.kt$ExportFragment$95</ID>
+    <ID>MagicNumber:ExportOptionsFragment.kt$ExportOptionsFragment$0.45f</ID>
+    <ID>MagicNumber:ExportOptionsFragment.kt$ExportOptionsFragment$500</ID>
+    <ID>MagicNumber:FeatherFragment.kt$FeatherFragment$50</ID>
+    <ID>MagicNumber:FilesAdapter.kt$FilesAdapter$0.1f</ID>
+    <ID>MagicNumber:FilesAdapter.kt$FilesAdapter$1024</ID>
+    <ID>MagicNumber:FilesAdapter.kt$FilesAdapter$1024f</ID>
+    <ID>MagicNumber:FilesListFragment.kt$FilesListFragment$0.8</ID>
+    <ID>MagicNumber:FilesListFragment.kt$FilesListFragment$1080f</ID>
+    <ID>MagicNumber:FilesListFragment.kt$FilesListFragment$2000f</ID>
+    <ID>MagicNumber:FilesListFragment.kt$FilesListFragment$500</ID>
+    <ID>MagicNumber:FillStrokeFragment.kt$FillStrokeFragment$10</ID>
+    <ID>MagicNumber:FinishExportFragment.kt$FinishExportFragment$2000</ID>
+    <ID>MagicNumber:FinishExportFragment.kt$FinishExportFragment$350</ID>
+    <ID>MagicNumber:FinishExportFragment.kt$FinishExportFragment$80</ID>
+    <ID>MagicNumber:FinishExportFragment.kt$FinishExportFragment$80f</ID>
+    <ID>MagicNumber:FontsAdapter.kt$FontsAdapter.VH$0.1f</ID>
+    <ID>MagicNumber:GestureFrameLayout.kt$GestureFrameLayout$1.5f</ID>
+    <ID>MagicNumber:GradientBarView.kt$GradientBarView$128</ID>
+    <ID>MagicNumber:GradientEditorFragment.kt$GradientEditorFragment$10f</ID>
+    <ID>MagicNumber:GradientSettingFragment.kt$GradientSettingFragment$0.1f</ID>
+    <ID>MagicNumber:HomeFragment.kt$HomeFragment$0.8</ID>
+    <ID>MagicNumber:HomeFragment.kt$HomeFragment$2000f</ID>
+    <ID>MagicNumber:HomeFragment.kt$HomeFragment$500</ID>
+    <ID>MagicNumber:ImageAdjustmentHelper.kt$ImageAdjustmentHelper$0.1f</ID>
+    <ID>MagicNumber:ImageAdjustmentHelper.kt$ImageAdjustmentHelper$0.2f</ID>
+    <ID>MagicNumber:ImageAdjustmentHelper.kt$ImageAdjustmentHelper$0xFF</ID>
+    <ID>MagicNumber:ImageAdjustmentHelper.kt$ImageAdjustmentHelper$10f</ID>
+    <ID>MagicNumber:ImageAdjustmentHelper.kt$ImageAdjustmentHelper$16</ID>
+    <ID>MagicNumber:ImageAdjustmentHelper.kt$ImageAdjustmentHelper$20f</ID>
+    <ID>MagicNumber:ImageAdjustmentHelper.kt$ImageAdjustmentHelper$24</ID>
+    <ID>MagicNumber:ImageAdjustmentHelper.kt$ImageAdjustmentHelper$25f</ID>
+    <ID>MagicNumber:ImageAdjustmentHelper.kt$ImageAdjustmentHelper$8</ID>
+    <ID>MagicNumber:ImageAdjustmentHelper.kt$ImageAdjustmentHelper$9f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$0.131f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$0.168f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$0.189f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$0.1f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$0.272f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$0.2f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$0.349f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$0.393f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$0.3f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$0.534f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$0.686f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$0.6f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$0.769f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$0.7f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$0.8f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$0.9f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$1.1f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$1.2f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$1.3f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$1.5f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$10f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$15f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$20f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$30</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$30f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$40f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$50f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$5f</ID>
+    <ID>MagicNumber:ImageProcessor.kt$ImageProcessor$80</ID>
+    <ID>MagicNumber:ImageStrokeFragment.kt$ImageStrokeFragment$50</ID>
+    <ID>MagicNumber:ImagesAdapter.kt$ImagesAdapter$250</ID>
+    <ID>MagicNumber:ImagesFragment.kt$ImagesFragment$1.5f</ID>
+    <ID>MagicNumber:ImagesFragment.kt$ImagesFragment$180</ID>
+    <ID>MagicNumber:ImagesFragment.kt$ImagesFragment$240</ID>
+    <ID>MagicNumber:ImagesListFragment.kt$ImagesListFragment$0.95f</ID>
+    <ID>MagicNumber:ImagesListFragment.kt$ImagesListFragment$20</ID>
+    <ID>MagicNumber:ImagesListFragment.kt$ImagesListFragment$25</ID>
+    <ID>MagicNumber:ImagesListFragment.kt$ImagesListFragment.&lt;no name provided&gt;$12</ID>
+    <ID>MagicNumber:ImportedFontsAdapter.kt$ImportedFontsAdapter$1024</ID>
+    <ID>MagicNumber:ImportedFontsAdapter.kt$ImportedFontsAdapter$1024f</ID>
+    <ID>MagicNumber:ImportedFontsBottomSheet.kt$ImportedFontsBottomSheet$0.45f</ID>
+    <ID>MagicNumber:KasheedaFragment.kt$KasheedaFragment$7</ID>
+    <ID>MagicNumber:KeyProvider.kt$KeyProvider$32</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$16f</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$22</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$250</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$300</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$400</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$40f</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$8f</ID>
+    <ID>MagicNumber:MainViewModel.kt$MainViewModel$20</ID>
+    <ID>MagicNumber:ManageSubscriptionFragment.kt$ManageSubscriptionFragment$12</ID>
+    <ID>MagicNumber:ManageSubscriptionFragment.kt$ManageSubscriptionFragment$1300</ID>
+    <ID>MagicNumber:ManageSubscriptionFragment.kt$ManageSubscriptionFragment$420</ID>
+    <ID>MagicNumber:MaskFragment.kt$MaskFragment$200</ID>
+    <ID>MagicNumber:ObjectsFragment.kt$ObjectsFragment$1.5f</ID>
+    <ID>MagicNumber:ObjectsFragment.kt$ObjectsFragment$180</ID>
+    <ID>MagicNumber:ObjectsFragment.kt$ObjectsFragment$240</ID>
+    <ID>MagicNumber:ObjectsListFragment.kt$ObjectsListFragment$0.95f</ID>
+    <ID>MagicNumber:ObjectsListFragment.kt$ObjectsListFragment$20</ID>
+    <ID>MagicNumber:ObjectsListFragment.kt$ObjectsListFragment$25</ID>
+    <ID>MagicNumber:PanelSheetBehavior.kt$PanelSheetBehavior$0.01f</ID>
+    <ID>MagicNumber:PanelSheetBehavior.kt$PanelSheetBehavior$0.15f</ID>
+    <ID>MagicNumber:PanelSheetBehavior.kt$PanelSheetBehavior$0.4f</ID>
+    <ID>MagicNumber:PanelSheetBehavior.kt$PanelSheetBehavior$0.6f</ID>
+    <ID>MagicNumber:PanelSheetBehavior.kt$PanelSheetBehavior$0.85f</ID>
+    <ID>MagicNumber:PexelsNetworkModule.kt$PexelsNetworkModule$30</ID>
+    <ID>MagicNumber:PexelsViewModel.kt$PexelsViewModel$30</ID>
+    <ID>MagicNumber:PexelsViewModel.kt$PexelsViewModel$5</ID>
+    <ID>MagicNumber:PopularFontsAdapter.kt$PopularFontsAdapter$1024</ID>
+    <ID>MagicNumber:PopularFontsAdapter.kt$PopularFontsAdapter$1024f</ID>
+    <ID>MagicNumber:PopularFontsAdapter.kt$PopularFontsAdapter.GridVH$0.1f</ID>
+    <ID>MagicNumber:PopularFontsAdapter.kt$PopularFontsAdapter.ListVH$0.1f</ID>
+    <ID>MagicNumber:PopularFontsListFragment.kt$PopularFontsListFragment$2000f</ID>
+    <ID>MagicNumber:PopularFontsListFragment.kt$PopularFontsListFragment$24</ID>
+    <ID>MagicNumber:PopularTemplatesAdapter.kt$PopularTemplatesAdapter.VH$0.1f</ID>
+    <ID>MagicNumber:PremiumAssetsAdapter.kt$PremiumAssetsAdapter$0.1f</ID>
+    <ID>MagicNumber:PremiumAssetsSheet.kt$PremiumAssetsSheet$0.45f</ID>
+    <ID>MagicNumber:ProjectCodec.kt$ProjectCodec$8</ID>
+    <ID>MagicNumber:RecentAdapter.kt$RecentAdapter.RecentViewHolder$0.2f</ID>
+    <ID>MagicNumber:RippleView.kt$RippleView$0x1A</ID>
+    <ID>MagicNumber:RippleView.kt$RippleView$2f</ID>
+    <ID>MagicNumber:SearchFragment.kt$SearchFragment$0.8</ID>
+    <ID>MagicNumber:SearchFragment.kt$SearchFragment$150</ID>
+    <ID>MagicNumber:SearchFragment.kt$SearchFragment$2000f</ID>
+    <ID>MagicNumber:SearchFragment.kt$SearchFragment$250</ID>
+    <ID>MagicNumber:SearchFragment.kt$SearchFragment$500</ID>
+    <ID>MagicNumber:ShadowsFragment.kt$ShadowsFragment$50</ID>
+    <ID>MagicNumber:ShapeRenderUtils.kt$ShapeRenderUtils$10</ID>
+    <ID>MagicNumber:ShapeRenderUtils.kt$ShapeRenderUtils$5</ID>
+    <ID>MagicNumber:ShapeRenderUtils.kt$ShapeRenderUtils$6</ID>
+    <ID>MagicNumber:ShapeRenderUtils.kt$ShapeRenderUtils$7</ID>
+    <ID>MagicNumber:ShapeRenderUtils.kt$ShapeRenderUtils$8</ID>
+    <ID>MagicNumber:ShapesListFragment.kt$ShapesListFragment$24</ID>
+    <ID>MagicNumber:ShapesListFragment.kt$ShapesListFragment$32</ID>
+    <ID>MagicNumber:ShapesParentFragment.kt$ShapesParentFragment$1.5f</ID>
+    <ID>MagicNumber:ShapesParentFragment.kt$ShapesParentFragment$180</ID>
+    <ID>MagicNumber:ShapesParentFragment.kt$ShapesParentFragment$240</ID>
+    <ID>MagicNumber:SplashFragment.kt$SplashFragment$1.7f</ID>
+    <ID>MagicNumber:SpringEdgeEffectFactory.kt$HorizontalSpringEdgeEffectFactory.&lt;no name provided&gt;$0.45f</ID>
+    <ID>MagicNumber:SpringEdgeEffectFactory.kt$SpringEdgeEffectFactory.&lt;no name provided&gt;$0.3f</ID>
+    <ID>MagicNumber:SpringNestedScrollView.kt$SpringNestedScrollView$0.3f</ID>
+    <ID>MagicNumber:SpringRecyclerView.kt$SpringRecyclerView.SpringEdgeEffect$0.45f</ID>
+    <ID>MagicNumber:SubscriptionSheetConfig.kt$SubscriptionBottomSheet$0.45f</ID>
+    <ID>MagicNumber:SubscriptionsAdapter.kt$SubscriptionsAdapter.VH$0.6f</ID>
+    <ID>MagicNumber:SubscriptionsAdapter.kt$SubscriptionsAdapter.VH$1.5f</ID>
+    <ID>MagicNumber:SubscriptionsAdapter.kt$SubscriptionsAdapter.VH$9f</ID>
+    <ID>MagicNumber:SubscriptionsFragment.kt$SubscriptionsFragment$0.94f</ID>
+    <ID>MagicNumber:SubscriptionsFragment.kt$SubscriptionsFragment$14</ID>
+    <ID>MagicNumber:SubscriptionsFragment.kt$SubscriptionsFragment$160</ID>
+    <ID>MagicNumber:SubscriptionsFragment.kt$SubscriptionsFragment$18</ID>
+    <ID>MagicNumber:SubscriptionsFragment.kt$SubscriptionsFragment$2.2f</ID>
+    <ID>MagicNumber:SubscriptionsFragment.kt$SubscriptionsFragment$24</ID>
+    <ID>MagicNumber:SubscriptionsFragment.kt$SubscriptionsFragment$260</ID>
+    <ID>MagicNumber:SubscriptionsFragment.kt$SubscriptionsFragment$3200</ID>
+    <ID>MagicNumber:SubscriptionsFragment.kt$SubscriptionsFragment$380</ID>
+    <ID>MagicNumber:SubscriptionsFragment.kt$SubscriptionsFragment$420</ID>
+    <ID>MagicNumber:SubscriptionsFragment.kt$SubscriptionsFragment$60L</ID>
+    <ID>MagicNumber:SubscriptionsFragment.kt$SubscriptionsFragment$70L</ID>
+    <ID>MagicNumber:SubscriptionsFragment.kt$SubscriptionsFragment$720</ID>
+    <ID>MagicNumber:SubscriptionsViewModel.kt$SubscriptionsViewModel$12</ID>
+    <ID>MagicNumber:SubscriptionsViewModel.kt$SubscriptionsViewModel$6</ID>
+    <ID>MagicNumber:SvgLoader.kt$SvgLoader$180</ID>
+    <ID>MagicNumber:SvgLoader.kt$SvgLoader$40</ID>
+    <ID>MagicNumber:SvgLoader.kt$SvgLoader$40.0</ID>
+    <ID>MagicNumber:SvgLoader.kt$SvgLoader$512f</ID>
+    <ID>MagicNumber:SvgLoader.kt$SvgLoader$80.0</ID>
+    <ID>MagicNumber:SvgModule.kt$SvgModule$1024</ID>
+    <ID>MagicNumber:SvgModule.kt$SvgModule$1024L</ID>
+    <ID>MagicNumber:SvgModule.kt$SvgModule$50</ID>
+    <ID>MagicNumber:SvgModule.kt$SvgModule$500</ID>
+    <ID>MagicNumber:TemplateCategoriesFragment.kt$TemplateCategoriesFragment$2.2f</ID>
+    <ID>MagicNumber:TemplateCategoriesFragment.kt$TemplateCategoriesFragment$240</ID>
+    <ID>MagicNumber:TemplateCategoriesFragment.kt$TemplateCategoriesFragment$300</ID>
+    <ID>MagicNumber:TemplatesAdapter.kt$TemplatesAdapter.VH$0.1f</ID>
+    <ID>MagicNumber:TemplatesFragment.kt$TemplatesFragment$2.2f</ID>
+    <ID>MagicNumber:TemplatesFragment.kt$TemplatesFragment$240</ID>
+    <ID>MagicNumber:TemplatesFragment.kt$TemplatesFragment$300</ID>
+    <ID>MagicNumber:TemplatesListFragment.kt$TemplatesListFragment$180</ID>
+    <ID>MagicNumber:TemplatesListFragment.kt$TemplatesListFragment$200</ID>
+    <ID>MagicNumber:TemplatesListFragment.kt$TemplatesListFragment$24</ID>
+    <ID>MagicNumber:TemplatesMiniAdapter.kt$TemplatesMiniAdapter.VH$0.1f</ID>
+    <ID>MagicNumber:TextAdjustmentsFragment.kt$TextAdjustmentsFragment$0.9f</ID>
+    <ID>MagicNumber:TextAdjustmentsFragment.kt$TextAdjustmentsFragment.&lt;no name provided&gt;$0.9f</ID>
+    <ID>MagicNumber:TextAdjustmentsFragment.kt$TextAdjustmentsFragment.&lt;no name provided&gt;$150</ID>
+    <ID>MagicNumber:TextFragment.kt$TextFragment$0.9f</ID>
+    <ID>MagicNumber:ToneAdjustmentsFragment.kt$ToneAdjustmentsFragment$100</ID>
+    <ID>MagicNumber:ToneAdjustmentsFragment.kt$ToneAdjustmentsFragment$200</ID>
+    <ID>MagicNumber:UpdateDialog.kt$UpdateDialog$0.70</ID>
+    <ID>MagicNumber:UpdateManager.kt$UpdateManager$10</ID>
+    <ID>MagicNumber:UpdateManager.kt$UpdateManager$7</ID>
+    <ID>MagicNumber:Utils.kt$Utils$0.9f</ID>
+    <ID>MagicNumber:Utils.kt$Utils$120</ID>
+    <ID>MagicNumber:Utils.kt$Utils$80</ID>
+    <ID>MagicNumber:ZoomableImageView.kt$ZoomableImageView$0.4f</ID>
+    <ID>MagicNumber:ZoomableImageView.kt$ZoomableImageView$1.08f</ID>
+    <ID>MagicNumber:ZoomableImageView.kt$ZoomableImageView$1.2f</ID>
+    <ID>MagicNumber:ZoomableImageView.kt$ZoomableImageView$1.5f</ID>
+    <ID>MagicNumber:ZoomableImageView.kt$ZoomableImageView$220</ID>
+    <ID>MagicNumber:ZoomableImageView.kt$ZoomableImageView$280</ID>
+    <ID>MagicNumber:ZoomableImageView.kt$ZoomableImageView.ScaleListener$250</ID>
+    <ID>MaxLineLength:AdjustmentsPagerAdapter.kt$AdjustmentsPagerAdapter$class</ID>
+    <ID>MaxLineLength:AllTemplatesDao.kt$AllTemplatesDao$"UPDATE templates SET is_downloaded = :isDownloaded, is_downloading = :isDownloading, download_progress = :progress, file_path = :filePath WHERE id = :id"</ID>
+    <ID>MaxLineLength:AppDatabase.kt$AppDatabase$FontEntity::class</ID>
+    <ID>MaxLineLength:AppModule.kt$AppModule$fun</ID>
+    <ID>MaxLineLength:BgRemovalCanvas.kt$BgRemovalCanvas$private suspend</ID>
+    <ID>MaxLineLength:BgRemovalFragment.kt$BgRemovalFragment$Log.d(TAG, "MLKit success — maskBuffer=${maskBuffer != null} maskBitmap=${maskBitmap?.width}x${maskBitmap?.height}")</ID>
+    <ID>MaxLineLength:BgRemovalFragment.kt$BgRemovalFragment$android.widget.Toast.makeText(requireContext(), "Background removal failed: ${e.localizedMessage}", android.widget.Toast.LENGTH_LONG).show()</ID>
+    <ID>MaxLineLength:BgRemovalFragment.kt$BgRemovalFragment$android.widget.Toast.makeText(requireContext(), "No clear subject detected in this image.", android.widget.Toast.LENGTH_LONG).show()</ID>
+    <ID>MaxLineLength:BrushPagerAdapter.kt$BrushPagerAdapter$class</ID>
+    <ID>MaxLineLength:CanvasSizeAdapter.kt$CanvasSizeAdapter.FilterViewHolder$inner</ID>
+    <ID>MaxLineLength:CanvasSizeRepoImpl.kt$CanvasSizeRepoImpl$class</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$"Touch region icon=$iconName Rect(${rect.left}, ${rect.top}, ${rect.right}, ${rect.bottom})"</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$Log.e("CanvasView", "SVG parsing to bitmap failed, falling back to PictureDrawable", e)</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$drawCanvasElements(this, showOverlays = true, showCheckerboard = false, isolatedIds = groupChildIds)</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$element.featherRadius</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$fun</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$if</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$maskCanvas.drawBitmap(strokeAlpha, strokeWidthInt + dx, strokeWidthInt + dy, maskPaint)</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$overlayPaint.shader = createGradientShader(e.overlayGradient!!, bmp.width.toFloat(), bmp.height.toFloat())</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$private</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$private fun isRTL(text: String): Boolean</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$reusableDrawPaint.maskFilter = BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$reusableRectF.set(bl - strokeWidth, bt - strokeWidth, br + strokeWidth, bb + strokeWidth)</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$reusableRectF.set(dstLeft, dstTop, dstLeft + entry.bitmap.width, dstTop + entry.bitmap.height)</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$reusableRectF.set(left - strokeWidth, top - strokeWidth, left + w + strokeWidth, top + h + strokeWidth)</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$reusableStrokePaint.shader = createGradientShader(element.strokeGradient!!, w, h)</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$rotateLinePaint.pathEffect = DashPathEffect(floatArrayOf(10f / (scale * overallScale), 10f / (scale * overallScale)), 0f)</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$val botRamp = if (doBottom &amp;&amp; bandY &gt; 0f) smoothStep(((maskH - 1 - py) / bandY).coerceIn(0f, 1f), exponent) else 1f</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$val rightRamp = if (doRight &amp;&amp; bandX &gt; 0f) smoothStep(((maskW - 1 - px) / bandX).coerceIn(0f, 1f), exponent) else 1f</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$val rotateIcon = floatArrayOf(bounds.centerX(), bounds.top - (fixedHandleLengthPx / (scale * overallScale)))</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$val rotateIcon = floatArrayOf(centerX, topY - (fixedHandleLengthPx / (scale * overallScale)))</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView$val rotateIcon = floatArrayOf(pivotX, topY - (fixedHandleLengthPx / (scale * overallScale)))</ID>
+    <ID>MaxLineLength:CanvasView.kt$CanvasView.GestureListener$if</ID>
+    <ID>MaxLineLength:CanvasViewModel.kt$CanvasViewModel$Log.e("CanvasViewModel", "Error re-applying typeface in observeLocalFonts: ${font.file_path}", e)</ID>
+    <ID>MaxLineLength:CanvasViewModel.kt$CanvasViewModel$Log.e("CanvasViewModel", "Error re-applying typeface in updateCanvasElementsOrderAndZIndex: ${font.file_path}", e)</ID>
+    <ID>MaxLineLength:CanvasViewModel.kt$CanvasViewModel$Log.e("CanvasViewModel", "Failed to load typeface during template load: ${font.file_path}", e)</ID>
+    <ID>MaxLineLength:CanvasViewModel.kt$CanvasViewModel$Log.e("CanvasViewModel", "SVG restore in restoreWithContext failed, falling back to bitmapData", e)</ID>
+    <ID>MaxLineLength:CanvasViewModel.kt$CanvasViewModel$Log.e("CanvasViewModel", "SVG restore in restoreWithContextBackground failed, falling back to bitmapData", e)</ID>
+    <ID>MaxLineLength:CanvasViewModel.kt$CanvasViewModel$element.type == ElementType.IMAGE || element.type == ElementType.STICKER || element.type == ElementType.SHAPE || (element.type == ElementType.BACKGROUND &amp;&amp; element.bitmap != null)</ID>
+    <ID>MaxLineLength:CanvasViewModel.kt$CanvasViewModel$if</ID>
+    <ID>MaxLineLength:CanvasViewModel.kt$CanvasViewModel$val actualTint = applyWhiteTintInDarkMode &amp;&amp; (svgXml == null || com.webscare.urducanvas.common.utils.SvgLoader.isSingleColorDarkSvg(svgXml))</ID>
+    <ID>MaxLineLength:CanvasViewModel.kt$CanvasViewModel$val isNightMode = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES</ID>
+    <ID>MaxLineLength:CanvasViewModel.kt$CanvasViewModel$var h = if (vb != null &amp;&amp; vb.width() &gt; 0f &amp;&amp; vb.height() &gt; 0f) vb.height() else svg.documentHeight</ID>
+    <ID>MaxLineLength:CanvasViewModel.kt$CanvasViewModel$var w = if (vb != null &amp;&amp; vb.width() &gt; 0f &amp;&amp; vb.height() &gt; 0f) vb.width() else svg.documentWidth</ID>
+    <ID>MaxLineLength:ColorPickerBar.kt$ColorPickerBar$class</ID>
+    <ID>MaxLineLength:ColorsAdapter.kt$ColorsAdapter.ColorPickerViewHolder$inner</ID>
+    <ID>MaxLineLength:Converters.kt$Converters$fun</ID>
+    <ID>MaxLineLength:CreateFragment.kt$CreateFragment$View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY</ID>
+    <ID>MaxLineLength:CreateFragment.kt$CreateFragment$private fun getSafeIntValue(editText: EditText): Float</ID>
+    <ID>MaxLineLength:DownloadRepo.kt$DownloadRepo$suspend</ID>
+    <ID>MaxLineLength:EditorFragment.kt$EditorFragment$PickerTarget.EYE_DROPPER_LABEL</ID>
+    <ID>MaxLineLength:EditorFragment.kt$EditorFragment$binding.panelNavContainer.dragListener</ID>
+    <ID>MaxLineLength:EditorFragment.kt$EditorFragment$val isNightMode = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES</ID>
+    <ID>MaxLineLength:EditorFragment.kt$EditorFragment$}</ID>
+    <ID>MaxLineLength:EffectsPagerAdapter.kt$EffectsPagerAdapter$class</ID>
+    <ID>MaxLineLength:EmojiAdapter.kt$EmojiAdapter$override</ID>
+    <ID>MaxLineLength:ExportFragment.kt$ExportFragment$"This design contains premium fonts, stickers, or images. Upgrade to export without restrictions."</ID>
+    <ID>MaxLineLength:ExportFragment.kt$ExportFragment$options.format.format == Bitmap.CompressFormat.JPEG || options.format.format == Bitmap.CompressFormat.WEBP</ID>
+    <ID>MaxLineLength:ExportOptionAdapter.kt$ExportOptionAdapter.CompactViewHolder$inner</ID>
+    <ID>MaxLineLength:ExportOptionAdapter.kt$ExportOptionAdapter.FormatViewHolder$inner</ID>
+    <ID>MaxLineLength:ExportOptionAdapter.kt$ExportOptionAdapter.QualityViewHolder$inner</ID>
+    <ID>MaxLineLength:ExportOptionAdapter.kt$ExportOptionAdapter.ResolutionViewHolder$inner</ID>
+    <ID>MaxLineLength:ExportOptionsFragment.kt$ExportOptionsFragment$is com.webscare.urducanvas.common.canvas.model.ExportResolution</ID>
+    <ID>MaxLineLength:ExportResultsRepositoryImpl.kt$ExportResultsRepositoryImpl$override fun getAllExportResults(): Flow&lt;List&lt;com.webscare.urducanvas.data.model.ExportResult&gt;&gt;</ID>
+    <ID>MaxLineLength:ExportResultsRepositoryImpl.kt$ExportResultsRepositoryImpl$override suspend fun getExportResultById(id: Long): com.webscare.urducanvas.data.model.ExportResult?</ID>
+    <ID>MaxLineLength:ExportResultsRepositoryImpl.kt$ExportResultsRepositoryImpl$override suspend fun insertExportResult(exportResult: com.webscare.urducanvas.data.model.ExportResult): Long</ID>
+    <ID>MaxLineLength:ExportResultsUseCase.kt$ExportResultsUseCase$fun getAllExportResults(): Flow&lt;List&lt;com.webscare.urducanvas.data.model.ExportResult&gt;&gt;</ID>
+    <ID>MaxLineLength:ExportResultsUseCase.kt$ExportResultsUseCase$suspend fun getExportResultById(id: Long): com.webscare.urducanvas.data.model.ExportResult?</ID>
+    <ID>MaxLineLength:ExportResultsUseCase.kt$ExportResultsUseCase$suspend fun insertExportResult(exportResult: com.webscare.urducanvas.data.model.ExportResult): Long</ID>
+    <ID>MaxLineLength:FetchAPIFontsUseCase.kt$FetchAPIFontsUseCase$class</ID>
+    <ID>MaxLineLength:FetchAPIFontsUseCase.kt$FetchAPIFontsUseCase$operator fun invoke(): Flow&lt;com.webscare.urducanvas.common.sealed.Response&lt;com.webscare.urducanvas.data.model.FontsResponse&gt;&gt;</ID>
+    <ID>MaxLineLength:FetchAPIImagesUseCase.kt$FetchAPIImagesUseCase$class</ID>
+    <ID>MaxLineLength:FetchAPIImagesUseCase.kt$FetchAPIImagesUseCase$operator fun invoke(): Flow&lt;com.webscare.urducanvas.common.sealed.Response&lt;com.webscare.urducanvas.data.model.ImageResponse&gt;&gt;</ID>
+    <ID>MaxLineLength:FetchAPITemplatesUseCase.kt$FetchAPITemplatesUseCase$class</ID>
+    <ID>MaxLineLength:FetchAPITemplatesUseCase.kt$FetchAPITemplatesUseCase$operator fun invoke(): Flow&lt;com.webscare.urducanvas.common.sealed.Response&lt;com.webscare.urducanvas.data.model.TemplatesResponse&gt;&gt;</ID>
+    <ID>MaxLineLength:FetchAPITrendsUseCase.kt$FetchAPITrendsUseCase$operator fun invoke(): Flow&lt;com.webscare.urducanvas.common.sealed.Response&lt;com.webscare.urducanvas.data.model.TrendResponse&gt;&gt;</ID>
+    <ID>MaxLineLength:FetchImagesRepoImpl.kt$FetchImagesRepoImpl$override</ID>
+    <ID>MaxLineLength:FetchImagesRepoImpl.kt$FetchImagesRepoImpl$trySend(_root_ide_package_.com.webscare.urducanvas.common.sealed.Response.Error("Unexpected Error Occurred ${e.message}"))</ID>
+    <ID>MaxLineLength:FetchImagesRepoImpl.kt$FetchImagesRepoImpl$trySend(_root_ide_package_.com.webscare.urducanvas.common.sealed.Response.Error("Unstable Internet Connection!"))</ID>
+    <ID>MaxLineLength:FetchTemplatesRepoImpl.kt$FetchTemplatesRepoImpl$override</ID>
+    <ID>MaxLineLength:FetchTemplatesRepoImpl.kt$FetchTemplatesRepoImpl$trySend(_root_ide_package_.com.webscare.urducanvas.common.sealed.Response.Error("Unexpected Error Occurred ${e.message}"))</ID>
+    <ID>MaxLineLength:FetchTemplatesRepoImpl.kt$FetchTemplatesRepoImpl$trySend(_root_ide_package_.com.webscare.urducanvas.common.sealed.Response.Error("Unstable Internet Connection!"))</ID>
+    <ID>MaxLineLength:FetchTrendsRepoImpl.kt$FetchTrendsRepoImpl$override</ID>
+    <ID>MaxLineLength:FilesAdapter.kt$FilesAdapter$binding.selection.setImageResource(if (isSelected) R.drawable.ic_selected_radio else R.drawable.ic_unselected_radio)</ID>
+    <ID>MaxLineLength:FilesAdapter.kt$FilesAdapter$editText.context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager</ID>
+    <ID>MaxLineLength:FilesAdapter.kt$FilesAdapter$if (isPng) android.widget.ImageView.ScaleType.FIT_CENTER else android.widget.ImageView.ScaleType.CENTER_CROP</ID>
+    <ID>MaxLineLength:FilesAdapter.kt$FilesAdapter$override</ID>
+    <ID>MaxLineLength:FilesAdapter.kt$FilesAdapter$v.context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager</ID>
+    <ID>MaxLineLength:FilesAdapter.kt$FilesAdapter$val isPng = item.file_name.endsWith(".png", ignoreCase = true) || item.file_name.endsWith(".svg", ignoreCase = true)</ID>
+    <ID>MaxLineLength:FilesAdapter.kt$FilesAdapter$view.context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager</ID>
+    <ID>MaxLineLength:FilesListFragment.kt$FilesListFragment$BitmapFactory.decodeFile(item.bitmapData)?.let { exportToGallery(it, item.file_name, Bitmap.CompressFormat.PNG) }</ID>
+    <ID>MaxLineLength:FilesListFragment.kt$FilesListFragment$BitmapFactory.decodeFile(item.font_image)?.let { exportToGallery(it, item.font_name!!, Bitmap.CompressFormat.PNG) }</ID>
+    <ID>MaxLineLength:FilesListFragment.kt$FilesListFragment$BitmapFactory.decodeFile(item.imagePath)?.let { exportToGallery(it, item.fileName, Bitmap.CompressFormat.PNG) }</ID>
+    <ID>MaxLineLength:FilesListFragment.kt$FilesListFragment$_binding?.root?.let { Snackbar.make(it, "Not a valid Urdu Canvas project file", Snackbar.LENGTH_SHORT).show() }</ID>
+    <ID>MaxLineLength:FilesListFragment.kt$FilesListFragment$canvasViewModel.addTextWithFont(requireActivity().getString(R.string.dummyText), item, requireActivity())</ID>
+    <ID>MaxLineLength:FilesListFragment.kt$FilesListFragment$canvasViewModel.setCanvasSize(CanvasSize(id = 0, "From Image", bitmap.width.toFloat(), bitmap.height.toFloat()))</ID>
+    <ID>MaxLineLength:FilesListFragment.kt$FilesListFragment$is ExportResult -&gt; getString(R.string.delete_project) to getString(R.string.your_asset_will_be_permanently_deleted)</ID>
+    <ID>MaxLineLength:FilesListFragment.kt$FilesListFragment$is FontEntity -&gt; getString(R.string.delete_font) to getString(R.string.your_asset_will_be_permanently_deleted)</ID>
+    <ID>MaxLineLength:FilesListFragment.kt$FilesListFragment$is ImageEntity -&gt; getString(R.string.delete_image) to getString(R.string.your_asset_will_be_permanently_deleted)</ID>
+    <ID>MaxLineLength:FilesListFragment.kt$FilesListFragment$it.category == "Backgrounds Imported" &amp;&amp; (q.isEmpty() || it.file_name.lowercase().contains(q))</ID>
+    <ID>MaxLineLength:FilesListFragment.kt$FilesListFragment$it.category == "Images Imported" &amp;&amp; (q.isEmpty() || it.file_name.lowercase().contains(q))</ID>
+    <ID>MaxLineLength:FilesListFragment.kt$FilesListFragment$it.font_category == "Imported" &amp;&amp; (q.isEmpty() || it.font_name!!.lowercase().contains(q))</ID>
+    <ID>MaxLineLength:FilesListFragment.kt$FilesListFragment$put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/${getString(R.string.app_name)}")</ID>
+    <ID>MaxLineLength:FilesPagerAdapter.kt$FilesPagerAdapter$class</ID>
+    <ID>MaxLineLength:FillStrokeFragment.kt$FillStrokeFragment$_root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment()</ID>
+    <ID>MaxLineLength:FiltersViewModel.kt$FiltersViewModel$fun setSize(size: com.webscare.urducanvas.common.canvas.model.CanvasSize?)</ID>
+    <ID>MaxLineLength:FinishExportFragment.kt$FinishExportFragment$binding.fileLocationDetail.setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, copyDrawable, null)</ID>
+    <ID>MaxLineLength:FinishExportFragment.kt$FinishExportFragment$requireActivity().copyToClipboard(requireView(), "Exported Path", binding.fileLocationDetail.text.toString())</ID>
+    <ID>MaxLineLength:FontCategoriesAdapter.kt$FontCategoriesAdapter$class</ID>
+    <ID>MaxLineLength:FontDao.kt$FontDao$"UPDATE fonts SET is_downloaded = :isDownloaded, is_downloading = :isDownloading, file_path = :filePath WHERE id = :id"</ID>
+    <ID>MaxLineLength:FontLanguagesAdapter.kt$FontLanguagesAdapter.FontViewHolder$inner</ID>
+    <ID>MaxLineLength:FontsAdapter.kt$FontsAdapter$class</ID>
+    <ID>MaxLineLength:FontsAdapter.kt$FontsAdapter.Collapsed$class</ID>
+    <ID>MaxLineLength:FontsAdapter.kt$FontsAdapter.Expanded$class</ID>
+    <ID>MaxLineLength:FontsAdapter.kt$FontsAdapter.FontViewHolder$sealed</ID>
+    <ID>MaxLineLength:FontsRepoImpl.kt$FontsRepoImpl$class</ID>
+    <ID>MaxLineLength:FontsRepoImpl.kt$FontsRepoImpl$override fun fetchFonts(): Flow&lt;List&lt;com.webscare.urducanvas.data.model.FontEntity&gt;&gt;</ID>
+    <ID>MaxLineLength:FormatPagerAdapter.kt$FormatPagerAdapter$class</ID>
+    <ID>MaxLineLength:FramePreviewView.kt$FramePreviewView$class</ID>
+    <ID>MaxLineLength:FramePreviewView.kt$FramePreviewView$private fun dpToPx(dp: Float): Float</ID>
+    <ID>MaxLineLength:GetTemplatesUseCase.kt$GetTemplatesUseCase$operator fun invoke(): Flow&lt;List&lt;com.webscare.urducanvas.data.model.TemplateEntity&gt;&gt;</ID>
+    <ID>MaxLineLength:GetTrendsUseCase.kt$GetTrendsUseCase$operator fun invoke(): Flow&lt;List&lt;com.webscare.urducanvas.data.model.TrendWithTemplates&gt;&gt;</ID>
+    <ID>MaxLineLength:GradientBarView.kt$GradientBarView$class</ID>
+    <ID>MaxLineLength:GradientItem.kt$GradientItem$fun</ID>
+    <ID>MaxLineLength:GradientRepositoryImpl.kt$GradientRepositoryImpl$override suspend</ID>
+    <ID>MaxLineLength:HomeFragment.kt$HomeFragment$.</ID>
+    <ID>MaxLineLength:HomeFragment.kt$HomeFragment$if</ID>
+    <ID>MaxLineLength:HomeFragment.kt$HomeFragment$val exportResult = t.toExportResultFinal().copy(fileName = viewModel.buildProjectFileName())</ID>
+    <ID>MaxLineLength:ImageAdjustmentHelper.kt$ImageAdjustmentHelper$fun</ID>
+    <ID>MaxLineLength:ImageProcessor.kt$ImageProcessor$fun</ID>
+    <ID>MaxLineLength:ImagesFragment.kt$ImagesFragment$downsampleIfNeeded(raw, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)</ID>
+    <ID>MaxLineLength:ImagesFragment.kt$ImagesFragment$if</ID>
+    <ID>MaxLineLength:ImagesFragment.kt$ImagesFragment$val bitmap = downsampleIfNeeded(rawBitmap, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)</ID>
+    <ID>MaxLineLength:ImagesListFragment.kt$ImagesListFragment$private</ID>
+    <ID>MaxLineLength:ImportedFontsAdapter.kt$ImportedFontsAdapter$class</ID>
+    <ID>MaxLineLength:ImportedFontsAdapter.kt$ImportedFontsAdapter.FontViewHolder$inner</ID>
+    <ID>MaxLineLength:InsertGradientUseCase.kt$InsertGradientUseCase$suspend operator fun invoke(gradient: com.webscare.urducanvas.common.canvas.model.GradientItem)</ID>
+    <ID>MaxLineLength:LabelsFragment.kt$LabelsFragment$_root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient</ID>
+    <ID>MaxLineLength:LabelsFragment.kt$LabelsFragment$_root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment()</ID>
+    <ID>MaxLineLength:LabelsFragment.kt$LabelsFragment$_root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment()</ID>
+    <ID>MaxLineLength:LabelsFragment.kt$LabelsFragment$private lateinit var gradientsAdapter: com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientsAdapter</ID>
+    <ID>MaxLineLength:LayersAdapter.kt$LayersAdapter$override fun getItemViewType(position: Int): Int</ID>
+    <ID>MaxLineLength:LayersAdapter.kt$LayersAdapter$this</ID>
+    <ID>MaxLineLength:LayersAdapter.kt$LayersAdapter.Collapsed$)</ID>
+    <ID>MaxLineLength:LayersAdapter.kt$LayersAdapter.ExpandedGroupHeader$)</ID>
+    <ID>MaxLineLength:LayersAdapter.kt$LayersAdapter.ExpandedItem$)</ID>
+    <ID>MaxLineLength:LayersAdapter.kt$LayersAdapter.LayerViewHolder$protected fun Float.dpToPx(context: android.content.Context): Float</ID>
+    <ID>MaxLineLength:LayersAdapter.kt$LayersAdapter.LayerViewHolder$protected fun Int.dpToPx(context: android.content.Context): Int</ID>
+    <ID>MaxLineLength:MainActivity.kt$MainActivity$.</ID>
+    <ID>MaxLineLength:MainActivity.kt$MainActivity$View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY</ID>
+    <ID>MaxLineLength:MainActivity.kt$MainActivity$androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO)</ID>
+    <ID>MaxLineLength:MainActivity.kt$MainActivity$androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES)</ID>
+    <ID>MaxLineLength:MainActivity.kt$MainActivity$val isNightMode = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES</ID>
+    <ID>MaxLineLength:MainViewModel.kt$MainViewModel$suspend fun insertExportResult(exportResult: ExportResult): Long</ID>
+    <ID>MaxLineLength:MaskFragment.kt$MaskFragment$if</ID>
+    <ID>MaxLineLength:MorphGridLayoutManager.kt$MorphGridLayoutManager$private</ID>
+    <ID>MaxLineLength:ObjectsFragment.kt$ObjectsFragment$downsampleIfNeeded(raw, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)</ID>
+    <ID>MaxLineLength:ObjectsFragment.kt$ObjectsFragment$val bitmap = downsampleIfNeeded(rawBitmap, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)</ID>
+    <ID>MaxLineLength:ObjectsListFragment.kt$ObjectsListFragment$private</ID>
+    <ID>MaxLineLength:PanelTabsAdapter.kt$PanelTabsAdapter$class</ID>
+    <ID>MaxLineLength:PexelsCategories.kt$PexelsCategories$Subcategory("Architecture", listOf("architecture", "building", "skyscraper", "bridge", "interior", "corridor"))</ID>
+    <ID>MaxLineLength:PexelsCategories.kt$PexelsCategories$Subcategory("Calligraphy", listOf("calligraphy", "arabic calligraphy", "quran", "arabic text", "bismillah", "allah"))</ID>
+    <ID>MaxLineLength:PexelsCategories.kt$PexelsCategories$Subcategory("Fairy Lights", listOf("fairy light", "string light", "twinkle", "bokeh light", "warm light", "candle"))</ID>
+    <ID>MaxLineLength:PexelsCategories.kt$PexelsCategories$Subcategory("Flowers", listOf("flower", "rose", "floral", "blossom", "petal", "bouquet", "bloom", "tulip"))</ID>
+    <ID>MaxLineLength:PexelsCategories.kt$PexelsCategories$Subcategory("Gold Texture", listOf("gold texture", "golden texture", "metallic", "gold foil", "gold leaf"))</ID>
+    <ID>MaxLineLength:PexelsCategories.kt$PexelsCategories$Subcategory("Islamic Pattern", listOf("arabesque", "islamic pattern", "geometric", "ornament", "moroccan", "mandala"))</ID>
+    <ID>MaxLineLength:PexelsCategories.kt$PexelsCategories$Subcategory("Landscape", listOf("mountain", "ocean", "beach", "valley", "forest", "lake", "river", "waterfall"))</ID>
+    <ID>MaxLineLength:PexelsCategories.kt$PexelsCategories$Subcategory("Marble &amp; Stone", listOf("marble", "granite", "stone", "slate", "concrete", "rock surface"))</ID>
+    <ID>MaxLineLength:PexelsCategories.kt$PexelsCategories$Subcategory("Night City", listOf("night city", "neon", "city lights", "urban night", "skyline", "light trail"))</ID>
+    <ID>MaxLineLength:PexelsCategories.kt$PexelsCategories$Subcategory("Party", listOf("party", "birthday", "confetti", "balloon", "festive", "celebration", "anniversary"))</ID>
+    <ID>MaxLineLength:PexelsCategories.kt$PexelsCategories$Subcategory("Pastel", listOf("pastel", "soft", "baby pink", "mint", "lavender", "peach", "light color"))</ID>
+    <ID>MaxLineLength:PexelsCategories.kt$PexelsCategories$Subcategory("Silhouette", listOf("silhouette", "shadow", "backlit", "outline person", "sunset silhouette"))</ID>
+    <ID>MaxLineLength:PexelsCategories.kt$PexelsCategories$Subcategory("Stars &amp; Galaxy", listOf("star", "galaxy", "milky way", "space", "nebula", "night sky", "cosmos"))</ID>
+    <ID>MaxLineLength:PexelsCategories.kt$PexelsCategories$Subcategory("Sunset &amp; Sky", listOf("sunset", "sunrise", "sky", "cloud", "dawn", "dusk", "golden hour", "horizon"))</ID>
+    <ID>MaxLineLength:PexelsCategories.kt$PexelsCategories$Subcategory("Watercolor", listOf("watercolor", "watercolour", "paint splash", "brush stroke", "aquarelle"))</ID>
+    <ID>MaxLineLength:PexelsCategories.kt$PexelsCategories$Subcategory("Wedding Decor", listOf("wedding decor", "bridal", "reception", "wedding flowers", "wedding stage"))</ID>
+    <ID>MaxLineLength:PexelsRepoImpl.kt$PexelsRepoImpl$override suspend fun searchLocal(query: String): List&lt;ImageEntity&gt;</ID>
+    <ID>MaxLineLength:PopularFontsAdapter.kt$PopularFontsAdapter$override</ID>
+    <ID>MaxLineLength:PopularFontsListFragment.kt$PopularFontsListFragment$if</ID>
+    <ID>MaxLineLength:PopularFontsPagerAdapter.kt$PopularFontsPagerAdapter$class</ID>
+    <ID>MaxLineLength:PopularTemplatesAdapter.kt$PopularTemplatesAdapter$class</ID>
+    <ID>MaxLineLength:PopularTemplatesAdapter.kt$PopularTemplatesAdapter$override fun onCreateViewHolder(p: ViewGroup, vt: Int)</ID>
+    <ID>MaxLineLength:PreferencesDataStoreHelper.kt$PreferencesDataStoreHelper$override suspend</ID>
+    <ID>MaxLineLength:PreferencesFragment.kt$PreferencesFragment$androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO)</ID>
+    <ID>MaxLineLength:PreferencesFragment.kt$PreferencesFragment$androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES)</ID>
+    <ID>MaxLineLength:PreferencesFragment.kt$PreferencesFragment$is com.webscare.urducanvas.common.canvas.model.ExportQuality</ID>
+    <ID>MaxLineLength:PreferencesFragment.kt$PreferencesFragment$is com.webscare.urducanvas.common.canvas.model.ExportResolution</ID>
+    <ID>MaxLineLength:RecentAdapter.kt$RecentAdapter$)</ID>
+    <ID>MaxLineLength:RecentAdapter.kt$RecentAdapter.Companion.&lt;no name provided&gt;$override</ID>
+    <ID>MaxLineLength:RecentAdapter.kt$RecentAdapter.RecentViewHolder$inner</ID>
+    <ID>MaxLineLength:RippleView.kt$RippleView$class</ID>
+    <ID>MaxLineLength:SearchFragment.kt$SearchFragment$val exportResult = template.toExportResultFinal().copy(fileName = canvasViewModel.buildProjectFileName())</ID>
+    <ID>MaxLineLength:SeedGradientsUseCase.kt$SeedGradientsUseCase$suspend operator fun invoke(defaults: List&lt;com.webscare.urducanvas.common.canvas.model.GradientItem&gt;)</ID>
+    <ID>MaxLineLength:SettingsFragment.kt$SettingsFragment$body = "Hi, I'd like to report the following bug:\n\nDevice: ${android.os.Build.MODEL}\nAndroid: ${android.os.Build.VERSION.RELEASE}\n\nDescription:\n"</ID>
+    <ID>MaxLineLength:ShapeAdapter.kt$ShapeAdapter.ShapeViewHolder$sealed</ID>
+    <ID>MaxLineLength:ShapeAdapter.kt$ShapeAdapter.ShapeViewHolder.Collapsed$class</ID>
+    <ID>MaxLineLength:ShapeAdapter.kt$ShapeAdapter.ShapeViewHolder.Expanded$class</ID>
+    <ID>MaxLineLength:ShapeFragment.kt$ShapeFragment$.</ID>
+    <ID>MaxLineLength:ShapePanelPagerAdapter.kt$ShapePanelPagerAdapter$class</ID>
+    <ID>MaxLineLength:ShapeRenderUtils.kt$ShapeRenderUtils$fun</ID>
+    <ID>MaxLineLength:ShapesListFragment.kt$ShapesListFragment$Log.d("SVG", "${svgDrawable.intrinsicWidth}x${svgDrawable.intrinsicHeight} → ${trimmed.intrinsicWidth}x${trimmed.intrinsicHeight}")</ID>
+    <ID>MaxLineLength:ShapesListFragment.kt$ShapesListFragment$private</ID>
+    <ID>MaxLineLength:ShapesListFragment.kt$ShapesListFragment$viewModel.addSticker(bitmap.trimTransparentEdges(), requireActivity(), ElementType.IMAGE, entity.is_premium)</ID>
+    <ID>MaxLineLength:ShapesParentFragment.kt$ShapesParentFragment$if</ID>
+    <ID>MaxLineLength:SpringRecyclerView.kt$SpringRecyclerView$class</ID>
+    <ID>MaxLineLength:SubscriptionsAdapter.kt$SubscriptionsAdapter$class</ID>
+    <ID>MaxLineLength:SubscriptionsViewModel.kt$SubscriptionsViewModel$private fun symbolOf(currencyCode: String): String</ID>
+    <ID>MaxLineLength:TemplateCategoriesAdapter.kt$TemplateCategoriesAdapter.Diff$override fun areItemsTheSame(old: HomeRow, new: HomeRow): Boolean</ID>
+    <ID>MaxLineLength:TemplateCategoriesFragment.kt$TemplateCategoriesFragment$categoryAdapter.notifyTemplateStateChanged(t.copy(is_downloading = false, is_downloaded = true))</ID>
+    <ID>MaxLineLength:TemplateCategoriesFragment.kt$TemplateCategoriesFragment$lifecycleScope.launch { withContext(Dispatchers.Default) { viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) } }</ID>
+    <ID>MaxLineLength:TemplateCategoriesFragment.kt$TemplateCategoriesFragment$private</ID>
+    <ID>MaxLineLength:TemplateCategoriesFragment.kt$TemplateCategoriesFragment$private fun TemplateEntity.matchesSize(s: CanvasSize)</ID>
+    <ID>MaxLineLength:TemplateCategoriesFragment.kt$TemplateCategoriesFragment$templatesAdapter.updateProgress(it.id, com.webscare.urducanvas.data.model.ProgressUi(0, false, false))</ID>
+    <ID>MaxLineLength:TemplatesAdapter.kt$TemplatesAdapter$class</ID>
+    <ID>MaxLineLength:TemplatesAdapter.kt$TemplatesAdapter.VH$class</ID>
+    <ID>MaxLineLength:TemplatesFragment.kt$TemplatesFragment$lifecycleScope.launch { withContext(Dispatchers.Default) { viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) } }</ID>
+    <ID>MaxLineLength:TemplatesFragment.kt$TemplatesFragment$private</ID>
+    <ID>MaxLineLength:TemplatesFragment.kt$TemplatesFragment$private fun TemplateEntity.matchesSize(s: CanvasSize)</ID>
+    <ID>MaxLineLength:TemplatesFragment.kt$TemplatesFragment$subcategoryAdapter.updateTemplateProgress(state.template.id, state.progress, true, false)</ID>
+    <ID>MaxLineLength:TemplatesFragment.kt$TemplatesFragment$templatesAdapter.updateProgress(it.id, com.webscare.urducanvas.data.model.ProgressUi(0, false, false))</ID>
+    <ID>MaxLineLength:TemplatesListFragment.kt$TemplatesListFragment$all.filter { it.id in ids &amp;&amp; it.subcategory?.trim()!!.equals(currentSubcategory!!.trim(), true) }</ID>
+    <ID>MaxLineLength:TemplatesListFragment.kt$TemplatesListFragment$lifecycleScope.launch { withContext(Dispatchers.Default) { viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) } }</ID>
+    <ID>MaxLineLength:TemplatesListFragment.kt$TemplatesListFragment$private</ID>
+    <ID>MaxLineLength:TemplatesListFragment.kt$TemplatesListFragment$private fun TemplateEntity.matchesSize(s: CanvasSize)</ID>
+    <ID>MaxLineLength:TemplatesMiniAdapter.kt$TemplatesMiniAdapter$)</ID>
+    <ID>MaxLineLength:TemplatesMiniAdapter.kt$TemplatesMiniAdapter$override fun onCreateViewHolder(p: ViewGroup, vt: Int)</ID>
+    <ID>MaxLineLength:TemplatesMiniAdapter.kt$TemplatesMiniAdapter.Diff$override</ID>
+    <ID>MaxLineLength:TemplatesMiniAdapter.kt$TemplatesMiniAdapter.Diff$override fun areItemsTheSame(o: com.webscare.urducanvas.data.model.TemplateEntity, n: com.webscare.urducanvas.data.model.TemplateEntity)</ID>
+    <ID>MaxLineLength:TemplatesPagerAdapter.kt$TemplatesPagerAdapter$class</ID>
+    <ID>MaxLineLength:TemplatesRepoImpl.kt$TemplatesRepoImpl$class</ID>
+    <ID>MaxLineLength:TemplatesRepoImpl.kt$TemplatesRepoImpl$override fun fetchTemplates(): Flow&lt;List&lt;com.webscare.urducanvas.data.model.TemplateEntity&gt;&gt;</ID>
+    <ID>MaxLineLength:TextFragment.kt$TextFragment$if</ID>
+    <ID>MaxLineLength:ThumbnailAdapter.kt$ThumbnailAdapter.ThumbnailViewHolder$SvgLoader.load(url, binding.thumbImage, scope, entity.bitmapData, applyWhiteTint = binding.thumbImage.context.isDarkModeEnabled()) { _, _ -&gt; }</ID>
+    <ID>MaxLineLength:TrendsAdapter.kt$TrendsAdapter.Diff$override fun areContentsTheSame(old: HomeRow, new: HomeRow): Boolean</ID>
+    <ID>MaxLineLength:TrendsRepoImpl.kt$TrendsRepoImpl$override fun fetchCachedTrends(): Flow&lt;List&lt;com.webscare.urducanvas.data.model.TrendWithTemplates&gt;&gt;</ID>
+    <ID>MaxLineLength:UpdateGradientUseCase.kt$UpdateGradientUseCase$suspend operator fun invoke(gradient: com.webscare.urducanvas.common.canvas.model.GradientItem)</ID>
+    <ID>MaxLineLength:Utils.kt$fun</ID>
+    <ID>MaxLineLength:ZoomableImageView.kt$ZoomableImageView$class</ID>
+    <ID>MaxLineLength:toDomain.kt$fun</ID>
+    <ID>NestedBlockDepth:CanvasView.kt$CanvasView$@SuppressLint("ClickableViewAccessibility") override fun onTouchEvent(event: MotionEvent): Boolean</ID>
+    <ID>NestedBlockDepth:CanvasView.kt$CanvasView$private fun drawElementOverlays(canvas: Canvas, showOverlays: Boolean = true)</ID>
+    <ID>NestedBlockDepth:CanvasView.kt$CanvasView$private fun resolveSelectedForCanvas(elements: List&lt;CanvasElement&gt;): List&lt;CanvasElement&gt;</ID>
+    <ID>NestedBlockDepth:CanvasView.kt$CanvasView.GestureListener$override fun onLongPress(e: MotionEvent)</ID>
+    <ID>NestedBlockDepth:CanvasViewModel.kt$CanvasViewModel$private fun CanvasElement.restoreWithContext(context: Context?): CanvasElement</ID>
+    <ID>NestedBlockDepth:CanvasViewModel.kt$CanvasViewModel$private fun CanvasElement.restoreWithContextBackground(context: Context?): CanvasElement</ID>
+    <ID>ReturnCount:CanvasView.kt$CanvasView$@SuppressLint("ClickableViewAccessibility") override fun onTouchEvent(event: MotionEvent): Boolean</ID>
+    <ID>StringLiteralDuplication:CanvasView.kt$CanvasView$"CanvasView"</ID>
+    <ID>StringLiteralDuplication:CanvasView.kt$CanvasView$"_img_shadow"</ID>
+    <ID>StringLiteralDuplication:CanvasView.kt$CanvasView$"delete"</ID>
+    <ID>StringLiteralDuplication:CanvasView.kt$CanvasView$"resize"</ID>
+    <ID>StringLiteralDuplication:CanvasView.kt$CanvasView$"rotate"</ID>
+    <ID>StringLiteralDuplication:CanvasView.kt$CanvasView$"transform"</ID>
+    <ID>StringLiteralDuplication:CanvasViewModel.kt$CanvasViewModel$"CanvasViewModel"</ID>
+    <ID>StringLiteralDuplication:CanvasViewModel.kt$CanvasViewModel$"Color"</ID>
+    <ID>StringLiteralDuplication:CanvasViewModel.kt$CanvasViewModel$"Detail"</ID>
+    <ID>StringLiteralDuplication:CanvasViewModel.kt$CanvasViewModel$"Feather"</ID>
+    <ID>StringLiteralDuplication:CanvasViewModel.kt$CanvasViewModel$"Light"</ID>
+    <ID>StringLiteralDuplication:CanvasViewModel.kt$CanvasViewModel$"Overlay"</ID>
+    <ID>StringLiteralDuplication:CanvasViewModel.kt$CanvasViewModel$"Shadow"</ID>
+    <ID>StringLiteralDuplication:CanvasViewModel.kt$CanvasViewModel$"Stroke"</ID>
+    <ID>StringLiteralDuplication:ColorAdjustmentsFragment.kt$ColorAdjustmentsFragment.&lt;no name provided&gt;$"Color"</ID>
+    <ID>StringLiteralDuplication:CreateFragment.kt$CreateFragment$"Centimeters"</ID>
+    <ID>StringLiteralDuplication:CreateFragment.kt$CreateFragment$"Inches"</ID>
+    <ID>StringLiteralDuplication:CreateFragment.kt$CreateFragment$"Pixels"</ID>
+    <ID>StringLiteralDuplication:EffectsFragment.kt$EffectsFragment$"Color"</ID>
+    <ID>StringLiteralDuplication:FilesListFragment.kt$FilesListFragment$"FilesListFragment"</ID>
+    <ID>StringLiteralDuplication:FilesListFragment.kt$FilesListFragment$"Imported"</ID>
+    <ID>StringLiteralDuplication:FillStrokeFragment.kt$FillStrokeFragment$"stroke"</ID>
+    <ID>StringLiteralDuplication:FinishExportFragment.kt$FinishExportFragment$"${requireContext().packageName}.fileprovider"</ID>
+    <ID>StringLiteralDuplication:FontsFragment.kt$FontsFragment$"Imported"</ID>
+    <ID>StringLiteralDuplication:HomeFragment.kt$HomeFragment$"HomeState"</ID>
+    <ID>StringLiteralDuplication:ImagesListFragment.kt$ImagesListFragment$"Recents"</ID>
+    <ID>StringLiteralDuplication:MainViewModel.kt$MainViewModel$"MainViewModel"</ID>
+    <ID>StringLiteralDuplication:MainViewModel.kt$MainViewModel$"My Backgrounds"</ID>
+    <ID>StringLiteralDuplication:MainViewModel.kt$MainViewModel$"My Images"</ID>
+    <ID>StringLiteralDuplication:OverlayColorListFragment.kt$OverlayColorListFragment$"Overlay"</ID>
+    <ID>StringLiteralDuplication:SettingsFragment.kt$SettingsFragment$"support@urducanvas.com"</ID>
+    <ID>StringLiteralDuplication:TextFragment.kt$TextFragment.&lt;no name provided&gt;$"Imported"</ID>
+    <ID>StringLiteralDuplication:TextFragment.kt$TextFragment.&lt;no name provided&gt;$"Recents"</ID>
+    <ID>StringLiteralDuplication:ToneAdjustmentsFragment.kt$ToneAdjustmentsFragment.&lt;no name provided&gt;$"Light"</ID>
+    <ID>SwallowedException:CanvasElement.kt$CanvasElement$e: Exception</ID>
+    <ID>ThrowsCount:ProjectCodec.kt$ProjectCodec$private fun decryptStream(ins: InputStream, tempJsonOut: File)</ID>
+    <ID>TooGenericExceptionCaught:AdjustmentsParentFragment.kt$AdjustmentsParentFragment$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:CanvasElement.kt$CanvasElement$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:CanvasSizeRepoImpl.kt$CanvasSizeRepoImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:CanvasView.kt$CanvasView$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:CanvasViewModel.kt$CanvasViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ColorPickerDialog.kt$ColorPickerDialog$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:EditorFragment.kt$EditorFragment$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ExportFragment.kt$ExportFragment$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ExportResultsRepositoryImpl.kt$ExportResultsRepositoryImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:FetchFontsRepoImpl.kt$FetchFontsRepoImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:FetchImagesRepoImpl.kt$FetchImagesRepoImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:FetchTemplatesRepoImpl.kt$FetchTemplatesRepoImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:FetchTrendsRepoImpl.kt$FetchTrendsRepoImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:FilesListFragment.kt$FilesListFragment$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:FinishExportFragment.kt$FinishExportFragment$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ImageAdjustmentHelper.kt$ImageAdjustmentHelper$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ImageProcessor.kt$ImageProcessor$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ImagesFragment.kt$ImagesFragment$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ImportedFontsBottomSheet.kt$ImportedFontsBottomSheet$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:KashidaProcessor.kt$KashidaProcessor$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MainActivity.kt$MainActivity$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MainViewModel.kt$MainViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ObjectsFragment.kt$ObjectsFragment$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:PexelsRepoImpl.kt$PexelsRepoImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:PreferencesDataStoreHelper.kt$PreferencesDataStoreHelper$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ProjectCodec.kt$ProjectCodec$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SettingsFragment.kt$SettingsFragment$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ShapeFragment.kt$ShapeFragment$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SvgDecoder.kt$SvgDecoder$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:VectorsTabFragment.kt$VectorsTabFragment$e: Exception</ID>
+    <ID>TooGenericExceptionThrown:DownloadRepo.kt$DownloadRepo$throw Exception("Failed to download font: ${response.code}")</ID>
+    <ID>TooGenericExceptionThrown:DownloadRepo.kt$DownloadRepo$throw Exception("Failed to download template: ${response.code()}")</ID>
+    <ID>TooManyFunctions:AppModule.kt$AppModule</ID>
+    <ID>TooManyFunctions:BgRemovalCanvas.kt$BgRemovalCanvas : View</ID>
+    <ID>TooManyFunctions:CanvasView.kt$CanvasView : View</ID>
+    <ID>TooManyFunctions:CanvasViewModel.kt$CanvasViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:Converters.kt$Converters</ID>
+    <ID>TooManyFunctions:EditorFragment.kt$EditorFragment : Fragment</ID>
+    <ID>TooManyFunctions:ExportFragment.kt$ExportFragment : Fragment</ID>
+    <ID>TooManyFunctions:ImageProcessor.kt$ImageProcessor</ID>
+    <ID>TooManyFunctions:ImagesFragment.kt$ImagesFragment : Fragment</ID>
+    <ID>TooManyFunctions:LayersFragment.kt$LayersFragment : Fragment</ID>
+    <ID>TooManyFunctions:MainActivity.kt$MainActivity : AppCompatActivity</ID>
+    <ID>TooManyFunctions:MainViewModel.kt$MainViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:ObjectsFragment.kt$ObjectsFragment : Fragment</ID>
+    <ID>TooManyFunctions:ShapesParentFragment.kt$ShapesParentFragment : Fragment</ID>
+    <ID>TooManyFunctions:SubscriptionsFragment.kt$SubscriptionsFragment : Fragment</ID>
+    <ID>TooManyFunctions:TemplatesFragment.kt$TemplatesFragment : Fragment</ID>
+    <ID>TooManyFunctions:TextFragment.kt$TextFragment : Fragment</ID>
+    <ID>UnusedParameter:CanvasViewModel.kt$CanvasViewModel$context: Context</ID>
+    <ID>UnusedParameter:LayersAdapter.kt$LayersAdapter.LayerViewHolder$rvPadding: Int</ID>
+    <ID>UnusedParameter:LayersAdapter.kt$LayersAdapter.LayerViewHolder$rvWidth: Int</ID>
+    <ID>UnusedParameter:LayersAdapter.kt$LayersAdapter.LayerViewHolder$slideOffset: Float</ID>
+    <ID>UnusedParameter:MorphGridLayoutManager.kt$MorphGridLayoutManager$f: Float</ID>
+    <ID>UnusedParameter:SubscriptionDialogHelper.kt$SubscriptionDialogHelper$iconRes: Int</ID>
+    <ID>UnusedParameter:SubscriptionDialogHelper.kt$SubscriptionDialogHelper$iconTint: Int? = null</ID>
+    <ID>UnusedParameter:SvgLoader.kt$SvgLoader$applyWhiteTint: Boolean = false</ID>
+    <ID>UnusedPrivateMember:CanvasView.kt$CanvasView$private fun addWatermark(canvas: Canvas, width: Int, height: Int)</ID>
+    <ID>UnusedPrivateMember:CanvasViewModel.kt$CanvasViewModel$private fun updateSelectedElementValue(updateBlock: (CanvasElement) -&gt; Unit)</ID>
+    <ID>UnusedPrivateMember:FilesListFragment.kt$FilesListFragment$private fun createFontSampleBitmap(typeface: Typeface): Bitmap</ID>
+    <ID>UnusedPrivateMember:FontsListFragment.kt$FontsListFragment$private fun findPanelSheet(): PanelSheetBehavior?</ID>
+    <ID>UnusedPrivateMember:MorphGridLayoutManager.kt$MorphGridLayoutManager$private fun lerp(a: Int, b: Int, t: Float): Int</ID>
+    <ID>UnusedPrivateProperty:BgRemovalCanvas.kt$BgRemovalCanvas$private var subjectMaskBitmap: Bitmap? = null</ID>
+    <ID>UnusedPrivateProperty:CanvasViewModel.kt$CanvasViewModel$val bgZIndex = currentList.firstOrNull { it.type == ElementType.BACKGROUND }?.zIndex ?: 0</ID>
+    <ID>UnusedPrivateProperty:CreateFragment.kt$CreateFragment$private val unitList = listOf("Pixels", "Inches", "Centimeters")</ID>
+    <ID>UnusedPrivateProperty:FilesListFragment.kt$FilesListFragment$private val binding get() = _binding</ID>
+    <ID>UnusedPrivateProperty:PanelSheetBehavior.kt$PanelSheetBehavior.Companion$/** * Minimum launch velocity as a fraction of screen height per second. * Drives the spring past the target so it overshoots ~5 % before bouncing back. * Increase for a more dramatic bounce, decrease for subtler feel. */ private const val OVERSHOOT_VELOCITY_FACTOR = 1.5f // 1.5 × screenHeight px/s</ID>
+    <ID>UnusedPrivateProperty:PopularFontsListFragment.kt$PopularFontsListFragment$private val binding get() = _binding</ID>
+    <ID>UnusedPrivateProperty:SpringNestedScrollView.kt$SpringNestedScrollView$private val RUBBER_EXPONENT = 0.50</ID>
+    <ID>UnusedPrivateProperty:TemplateCategoriesFragment.kt$TemplateCategoriesFragment$private var suppressPriceChipClicks = false</ID>
+    <ID>UnusedPrivateProperty:TemplatesFragment.kt$TemplatesFragment$private var suppressPriceChipClicks = false</ID>
+    <ID>UnusedPrivateProperty:TemplatesListFragment.kt$TemplatesListFragment$private var suppressPriceChipClicks = false</ID>
+    <ID>UseCheckOrError:ExportFragment.kt$ExportFragment$throw IllegalStateException("Failed to save file")</ID>
+    <ID>VariableNaming:BillingManager.kt$BillingManager$val DEBUG_MODE = BuildConfig.DEBUG</ID>
+    <ID>VariableNaming:ColorsAdapter.kt$ColorsAdapter$// Define view types private val VIEW_TYPE_EYEDROPPER = 0</ID>
+    <ID>VariableNaming:ColorsAdapter.kt$ColorsAdapter$private val VIEW_TYPE_COLOR_ITEM = 3</ID>
+    <ID>VariableNaming:ColorsAdapter.kt$ColorsAdapter$private val VIEW_TYPE_COLOR_PICKER = 2</ID>
+    <ID>VariableNaming:ColorsAdapter.kt$ColorsAdapter$private val VIEW_TYPE_NONE = 1</ID>
+    <ID>VariableNaming:FiltersViewModel.kt$FiltersViewModel$private val KEY = "templates_filters"</ID>
+    <ID>VariableNaming:MainActivity.kt$MainActivity$private val CENTER_INDEX = 2 // nav_add_images slot (FAB), indicator skips it</ID>
+    <ID>VariableNaming:SpringNestedScrollView.kt$SpringNestedScrollView$private val MAX_OVERSCROLL_FRACTION = 0.30f</ID>
+    <ID>VariableNaming:SpringNestedScrollView.kt$SpringNestedScrollView$private val RUBBER_EXPONENT = 0.50</ID>
+  </CurrentIssues>
+</SmellBaseline>

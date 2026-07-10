@@ -32,42 +32,18 @@ class TemplateRepository @Inject constructor(
     ): List<CanvasElement>? = withContext(Dispatchers.Default) {
         try {
             onProgress("Reading file", 10)
-            val jsonFilePath = exportResult.jsonPath
-            val sourceFile = File(jsonFilePath)
+            val elements = readAndParseJsonFile(context, exportResult.jsonPath, onProgress) ?: return@withContext null
 
-            if (!sourceFile.exists()) {
-                Log.e("TemplateRepository", "Template file not found: $jsonFilePath")
-                return@withContext null
-            }
-
-            onProgress("Parsing JSON", 30)
-            val tempJson = File(context.cacheDir, "open_${System.currentTimeMillis()}.json")
-            val jsonFile = try {
-                com.webscare.urducanvas.common.canvas.io.ProjectCodec
-                    .toPlainJsonFile(sourceFile, tempJson)
-            } catch (e: com.webscare.urducanvas.common.canvas.io.ProjectCodec.BadProjectFileException) {
-                Log.e("TemplateRepository", "Bad/foreign project file: ${e.message}")
-                tempJson.delete()
-                return@withContext null
-            }
-
-            val elements: List<CanvasElement> = jsonFile.bufferedReader().use { reader ->
-                gson.fromJson(reader, Array<CanvasElement>::class.java).toList()
-            }
-            if (jsonFile.absolutePath == tempJson.absolutePath) tempJson.delete()
-
+            onProgress("Preparing fonts", 40)
             val requiredFontIds = elements.filter { it.type == ElementType.TEXT }
                 .mapNotNull { it.fontId }
                 .distinct()
-
-            onProgress("Preparing fonts", 40)
             fontGate.ensureFonts(requiredFontIds)
             onProgress("Fonts ready", 55)
 
             onProgress("Hydrating elements", 60)
-            val hydratedElements = elements.mapIndexed { index, raw ->
-                val fixed = if (raw.adjustments == null) raw.copy(adjustments = AdjustmentValues()) else raw
-                val element = fixed.copy(context = context).apply {
+            val hydratedElements = elements.map { raw ->
+                val element = raw.copy(context = context).apply {
                     if (type == ElementType.DRAW && !drawStrokes.isNullOrEmpty()) {
                         drawStrokes?.forEach { stroke -> stroke.restorePath() }
                     }
@@ -76,26 +52,62 @@ class TemplateRepository @Inject constructor(
             }
 
             onProgress("Applying fonts", 70)
-            val hydratedWithFonts = hydratedElements.map { element ->
-                if (element.type == ElementType.TEXT && element.fontId != null) {
-                    val font = localFonts.find { it.id.toString() == element.fontId }
-                    if (font?.file_path?.isNotBlank() == true) {
-                        try {
-                            element.paint.typeface = Typeface.createFromFile(font.file_path)
-                        } catch (e: Exception) {
-                            Log.e("TemplateRepository", "Failed to load typeface during template load", e)
-                            element.paint.typeface = ResourcesCompat.getFont(context, R.font.default_canvas) ?: Typeface.DEFAULT
-                        }
-                    }
-                }
-                element
-            }
+            applyTextFontTypefaces(hydratedElements, context, localFonts)
 
             onProgress("Loading background", 80)
-            hydratedWithFonts
+            hydratedElements
         } catch (e: Exception) {
             Log.e("TemplateRepository", "parseAndHydrateTemplate failed: ${e.message}", e)
             null
+        }
+    }
+
+    private fun readAndParseJsonFile(
+        context: Context,
+        jsonFilePath: String,
+        onProgress: (String, Int) -> Unit
+    ): List<CanvasElement>? {
+        val sourceFile = File(jsonFilePath)
+        if (!sourceFile.exists()) {
+            Log.e("TemplateRepository", "Template file not found: $jsonFilePath")
+            return null
+        }
+
+        onProgress("Parsing JSON", 30)
+        val tempJson = File(context.cacheDir, "open_${System.currentTimeMillis()}.json")
+        val jsonFile = try {
+            com.webscare.urducanvas.common.canvas.io.ProjectCodec
+                .toPlainJsonFile(sourceFile, tempJson)
+        } catch (e: com.webscare.urducanvas.common.canvas.io.ProjectCodec.BadProjectFileException) {
+            Log.e("TemplateRepository", "Bad/foreign project file: ${e.message}")
+            tempJson.delete()
+            return null
+        }
+
+        val elements: List<CanvasElement> = jsonFile.bufferedReader().use { reader ->
+            gson.fromJson(reader, Array<CanvasElement>::class.java).toList()
+        }
+        if (jsonFile.absolutePath == tempJson.absolutePath) tempJson.delete()
+        return elements
+    }
+
+    private fun applyTextFontTypefaces(
+        elements: List<CanvasElement>,
+        context: Context,
+        localFonts: List<FontEntity>
+    ) {
+        elements.forEach { element ->
+            if (element.type == ElementType.TEXT && element.fontId != null) {
+                val font = localFonts.find { it.id.toString() == element.fontId }
+                if (font?.file_path?.isNotBlank() == true) {
+                    try {
+                        element.paint.typeface = Typeface.createFromFile(font.file_path)
+                    } catch (e: Exception) {
+                        Log.e("TemplateRepository", "Failed to load typeface during template load", e)
+                        element.paint.typeface = ResourcesCompat.getFont(context, R.font.default_canvas) ?: Typeface.DEFAULT
+                    }
+                }
+            }
         }
     }
 
@@ -112,58 +124,24 @@ class TemplateRepository @Inject constructor(
                 }
 
                 ElementType.IMAGE -> {
-                    bitmapData?.let { data ->
-                        bitmap = ImageProcessor.base64ToBitmap(data)
-                    }
+                    restoreBitmapData(this)
                 }
 
                 ElementType.STICKER -> {
-                    if (svgData != null) {
-                        try {
-                            val svg = com.caverock.androidsvg.SVG.getFromString(svgData)
-                            val vb = svg.documentViewBox
-                            var w = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.width() else svg.documentWidth
-                            var h = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.height() else svg.documentHeight
-                            if (w <= 0f || h <= 0f) {
-                                w = 512f
-                                h = 512f
-                            }
-                            svg.documentWidth = w
-                            svg.documentHeight = h
-
-                            svgDrawable = PictureDrawable(svg.renderToPicture())
-                                .trimTransparentEdges()
-                            bitmap = null
-                        } catch (e: Exception) {
-                            Log.e("TemplateRepository", "SVG restore in restoreWithContextBackground failed, falling back to bitmapData", e)
-                            bitmapData?.let { data ->
-                                bitmap = ImageProcessor.base64ToBitmap(data)
-                            }
-                        }
-                    } else {
-                        bitmapData?.let { data ->
-                            bitmap = ImageProcessor.base64ToBitmap(data)
-                        }
-                    }
+                    restoreStickerElement(this)
                 }
 
                 ElementType.SHAPE -> {
-                    bitmapData?.let { data ->
-                        bitmap = ImageProcessor.base64ToBitmap(data)
-                    }
+                    restoreBitmapData(this)
                 }
 
                 ElementType.BACKGROUND -> {
-                    bitmapData?.let { data ->
-                        bitmap = ImageProcessor.base64ToBitmap(data)
-                    }
+                    restoreBitmapData(this)
                 }
 
                 ElementType.DRAW -> {
                     if (drawStrokes.isNullOrEmpty()) {
-                        bitmapData?.let { data ->
-                            bitmap = ImageProcessor.base64ToBitmap(data)
-                        }
+                        restoreBitmapData(this)
                     } else {
                         drawStrokes?.forEach { stroke -> stroke.restorePath() }
                     }
@@ -173,5 +151,41 @@ class TemplateRepository @Inject constructor(
             }
         }
         return restored
+    }
+
+    private fun restoreBitmapData(element: CanvasElement) {
+        element.bitmapData?.let { data ->
+            element.bitmap = ImageProcessor.base64ToBitmap(data)
+        }
+    }
+
+    private fun restoreStickerElement(element: CanvasElement) {
+        val svgData = element.svgData
+        if (svgData != null) {
+            try {
+                val svg = com.caverock.androidsvg.SVG.getFromString(svgData)
+                val vb = svg.documentViewBox
+                var w = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.width() else svg.documentWidth
+                var h = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.height() else svg.documentHeight
+                if (w <= 0f || h <= 0f) {
+                    w = 512f
+                    h = 512f
+                }
+                svg.documentWidth = w
+                svg.documentHeight = h
+
+                element.svgDrawable = PictureDrawable(svg.renderToPicture()).trimTransparentEdges()
+                element.bitmap = null
+            } catch (e: Exception) {
+                Log.e("TemplateRepository", "SVG restore in restoreWithContextBackground failed, falling back to bitmapData", e)
+                element.bitmapData?.let { data ->
+                    element.bitmap = ImageProcessor.base64ToBitmap(data)
+                }
+            }
+        } else {
+            element.bitmapData?.let { data ->
+                element.bitmap = ImageProcessor.base64ToBitmap(data)
+            }
+        }
     }
 }

@@ -757,6 +757,29 @@ class CanvasViewModel @Inject constructor(
         val fullBitmap = createBitmap(canvasW, canvasH)
         val fullCanvas = android.graphics.Canvas(fullBitmap)
 
+        drawStrokesToCanvas(fullCanvas, strokes, canvasW, canvasH)
+
+        val cropX = bounds.left.toInt().coerceIn(0, fullBitmap.width - 1)
+        val cropY = bounds.top.toInt().coerceIn(0, fullBitmap.height - 1)
+        val cropW = bounds.width().toInt().coerceIn(1, fullBitmap.width - cropX)
+        val cropH = bounds.height().toInt().coerceIn(1, fullBitmap.height - cropY)
+        val croppedBitmap = Bitmap.createBitmap(
+            fullBitmap,
+            cropX,
+            cropY,
+            cropW,
+            cropH,
+        )
+        fullBitmap.recycle()
+        return croppedBitmap
+    }
+
+    private fun drawStrokesToCanvas(
+        fullCanvas: android.graphics.Canvas,
+        strokes: List<StrokeData>,
+        canvasW: Int,
+        canvasH: Int
+    ) {
         strokes.forEach { stroke ->
             when (stroke.style) {
                 BrushStyle.BRUSH ->
@@ -801,20 +824,6 @@ class CanvasViewModel @Inject constructor(
                 }
             }
         }
-
-        val cropX = bounds.left.toInt().coerceIn(0, fullBitmap.width - 1)
-        val cropY = bounds.top.toInt().coerceIn(0, fullBitmap.height - 1)
-        val cropW = bounds.width().toInt().coerceIn(1, fullBitmap.width - cropX)
-        val cropH = bounds.height().toInt().coerceIn(1, fullBitmap.height - cropY)
-        val croppedBitmap = Bitmap.createBitmap(
-            fullBitmap,
-            cropX,
-            cropY,
-            cropW,
-            cropH,
-        )
-        fullBitmap.recycle()
-        return croppedBitmap
     }
 
     fun commitDrawSession() {
@@ -1526,22 +1535,16 @@ class CanvasViewModel @Inject constructor(
     //   - GroupHeader moved               → its children stay attached (no groupId change)
     // After resolving memberships, auto-removes any sentinel left with 0 children,
     // then assigns fresh z-indices (top of list = highest z).
-    fun applyLayerReorder(displayItems: List<com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem>) {
-        val oldList = _canvasElements.value ?: return
+    private fun elementOf(di: com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem): CanvasElement = when (di) {
+        is com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem.GroupHeader -> di.element
+        is com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem.Child -> di.element
+        is com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem.Standalone -> di.element
+    }
 
-        // Resolve groupId from DisplayItem type — onMove already mutated types correctly:
-        //   Child     → el.groupId is correct (set by retypeItem or unchanged within group)
-        //   Standalone → el.groupId is null (cleared by retypeItem when exiting group)
-        //   GroupHeader → always null (sentinel has no parent group)
-        // No position scanning needed.
-
-        // Local helper: extract CanvasElement from any DisplayItem type
-        fun elementOf(di: com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem): CanvasElement = when (di) {
-            is com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem.GroupHeader -> di.element
-            is com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem.Child -> di.element
-            is com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem.Standalone -> di.element
-        }
-
+    private fun buildFullOrderedList(
+        displayItems: List<com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem>,
+        oldList: List<CanvasElement>
+    ): List<CanvasElement> {
         val resolvedGroupIdMap = mutableMapOf<String, String?>()
         for (item in displayItems) {
             val el = elementOf(item)
@@ -1551,10 +1554,7 @@ class CanvasViewModel @Inject constructor(
             }
         }
 
-        // Step 3: Build full ordered list including collapsed children.
-        // Collapsed children are absent from displayItems; re-insert them under their sentinel.
         val displayIds = displayItems.map { elementOf(it).id }.toSet()
-
         val collapsedByGroup = oldList
             .filter { it.groupId != null && it.id !in displayIds }
             .groupBy { it.groupId!! }
@@ -1562,61 +1562,65 @@ class CanvasViewModel @Inject constructor(
         val fullOrderedList = mutableListOf<CanvasElement>()
         for (item in displayItems) {
             val el = elementOf(item)
-            // Apply resolved groupId
             val newGid = resolvedGroupIdMap[el.id]
             fullOrderedList.add(if (newGid != el.groupId) el.copy(groupId = newGid) else el)
 
-            // Re-insert collapsed children right after their sentinel
             if (item is com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem.GroupHeader) {
                 collapsedByGroup[el.id]?.sortedByDescending { it.zIndex }?.forEach { child ->
                     fullOrderedList.add(child)
                 }
             }
         }
+        return fullOrderedList
+    }
 
-        // Step 4: Auto-remove sentinels that now have 0 children.
-        val memberCountBySentinel = fullOrderedList
+    private fun removeEmptySentinels(fullList: List<CanvasElement>): List<CanvasElement> {
+        val memberCountBySentinel = fullList
             .filter { it.groupId != null }
             .groupingBy { it.groupId!! }
             .eachCount()
 
-        val finalList = fullOrderedList.filter { el ->
+        return fullList.filter { el ->
             if (el.type == ElementType.GROUP) {
                 (memberCountBySentinel[el.id] ?: 0) > 0
             } else {
                 true
             }
         }
+    }
 
-        // Step 5: Assign z-indices. Top of panel = highest z.
-        val total = finalList.size
-        val context = oldList.firstOrNull()?.context
-        val updatedList = finalList.mapIndexed { index, el ->
-            val newZ = total - 1 - index
-            val copied = el.copy(zIndex = newZ, context = context ?: el.context)
-            if (copied.type == ElementType.TEXT && copied.fontId != null) {
-                val font = localFonts.value.find { it.id.toString() == copied.fontId }
-                if (font?.file_path?.isNotBlank() == true) {
-                    try {
-                        copied.paint.typeface = Typeface.createFromFile(font.file_path)
-                    } catch (e: Exception) {
-                        Log.e("CanvasViewModel", "Failed to load typeface from file: ${font.file_path}", e)
-                        copied.paint.typeface = context?.let {
-                            ResourcesCompat.getFont(it, R.font.default_canvas)
-                        } ?: Typeface.DEFAULT
-                    }
-                } else {
-                    copied.paint.typeface = context?.let {
-                        ResourcesCompat.getFont(it, R.font.default_canvas)
-                    } ?: Typeface.DEFAULT
+    private fun assignTypefaceForElement(copied: CanvasElement, context: android.content.Context?) {
+        if (copied.type == ElementType.TEXT && copied.fontId != null) {
+            val font = localFonts.value.find { it.id.toString() == copied.fontId }
+            if (font?.file_path?.isNotBlank() == true) {
+                try {
+                    copied.paint.typeface = Typeface.createFromFile(font.file_path)
+                    return
+                } catch (e: Exception) {
+                    Log.e("CanvasViewModel", "Failed to load typeface: ${font.file_path}", e)
                 }
-            } else {
-                copied.paint.typeface = context?.let {
-                    ResourcesCompat.getFont(it, R.font.default_canvas)
-                } ?: Typeface.DEFAULT
             }
+        }
+        copied.paint.typeface = context?.let {
+            ResourcesCompat.getFont(it, R.font.default_canvas)
+        } ?: Typeface.DEFAULT
+    }
+
+    private fun reassignZIndicesAndTypefaces(list: List<CanvasElement>, context: android.content.Context?): List<CanvasElement> {
+        val total = list.size
+        return list.mapIndexed { index, el ->
+            val copied = el.copy(zIndex = total - 1 - index, context = context ?: el.context)
+            assignTypefaceForElement(copied, context)
             copied
         }
+    }
+
+    fun applyLayerReorder(displayItems: List<com.webscare.urducanvas.ui.editor.panels.layers.DisplayItem>) {
+        val oldList = _canvasElements.value ?: return
+        val fullList = buildFullOrderedList(displayItems, oldList)
+        val filteredList = removeEmptySentinels(fullList)
+        val context = oldList.firstOrNull()?.context
+        val updatedList = reassignZIndicesAndTypefaces(filteredList, context)
 
         undoRedoManager.pushAction(
             CanvasAction.UpdateCanvasElementsOrder(
@@ -2148,67 +2152,49 @@ class CanvasViewModel @Inject constructor(
 
     fun getFontPanelState(): FontPanelState = _fontPanelState.value ?: FontPanelState()
 
-    /**
-     * Applies the current LiveData values to selected text elements WITHOUT pushing to the
-     * undo stack. Use this during continuous gestures (seekbar drag) so every intermediate
-     * value doesn't pollute undo history. Call [applyChangesToSelectedTextElements] once on
-     * finger-up to commit a single undoable action.
-     */
+    private fun createTextElementCopy(element: CanvasElement): CanvasElement {
+        return element.copy(
+            lineSpacing = _lineSpacing.value ?: element.lineSpacing,
+            letterSpacing = _letterSpacing.value ?: element.letterSpacing,
+            letterCasing = _letterCasing.value ?: element.letterCasing,
+            textDecoration = _textDecoration.value ?: element.textDecoration,
+            alignment = _textAlignment.value ?: element.alignment,
+            currentIndent = _paragraphIndentation.value ?: element.currentIndent,
+            listStyle = _listStyle.value ?: element.listStyle,
+            hasShadow = _hasShadow.value ?: element.hasShadow,
+            shadowColor = _shadowColor.value ?: element.shadowColor,
+            shadowDx = _shadowDx.value ?: element.shadowDx,
+            shadowDy = _shadowDy.value ?: element.shadowDy,
+            shadowRadius = _shadowRadius.value ?: element.shadowRadius,
+            shadowOpacity = _shadowOpacity.value ?: element.shadowOpacity,
+            hasStroke = _hasBorder.value ?: element.hasStroke,
+            strokeColor = _borderColor.value ?: element.strokeColor,
+            strokeWidth = _borderWidth.value ?: element.strokeWidth,
+            hasLabel = _hasLabel.value ?: element.hasLabel,
+            labelColor = _labelColor.value ?: element.labelColor,
+            labelShape = _labelShape.value ?: element.labelShape,
+            fillGradient = if (_fillGradient.value == null) null else _fillGradient.value ?: element.fillGradient,
+            strokeGradient = if (_strokeGradient.value == null) null else _strokeGradient.value ?: element.strokeGradient,
+            labelGradient = if (_labelGradient.value == null) null else _labelGradient.value ?: element.labelGradient,
+            blurValue = _blurValue.value ?: element.blurValue,
+            hasBlur = _hasBlur.value ?: element.hasBlur,
+            paintAlpha = _opacity.value ?: element.paintAlpha,
+            blendType = _blendingType.value ?: element.blendType,
+            kashidaSize = _kasheeda.value ?: element.kashidaSize,
+        ).apply {
+            paint.typeface = element.applyTypefaceFromFontList()
+        }
+    }
+
     private fun applyChangesToSelectedTextElementsPreview() {
         val currentList = _canvasElements.value?.toMutableList() ?: return
         val updatedList = currentList.map { element ->
             if (element.isSelected && element.type == ElementType.TEXT) {
-                element.copy(
-                    lineSpacing = _lineSpacing.value ?: element.lineSpacing,
-                    letterSpacing = _letterSpacing.value ?: element.letterSpacing,
-                    letterCasing = _letterCasing.value ?: element.letterCasing,
-                    textDecoration = _textDecoration.value ?: element.textDecoration,
-                    alignment = _textAlignment.value ?: element.alignment,
-                    currentIndent = _paragraphIndentation.value ?: element.currentIndent,
-                    listStyle = _listStyle.value ?: element.listStyle,
-                    hasShadow = _hasShadow.value ?: element.hasShadow,
-                    shadowColor = _shadowColor.value ?: element.shadowColor,
-                    shadowDx = _shadowDx.value ?: element.shadowDx,
-                    shadowDy = _shadowDy.value ?: element.shadowDy,
-                    shadowRadius = _shadowRadius.value ?: element.shadowRadius,
-                    shadowOpacity = _shadowOpacity.value ?: element.shadowOpacity,
-                    hasStroke = _hasBorder.value ?: element.hasStroke,
-                    strokeColor = _borderColor.value ?: element.strokeColor,
-                    strokeWidth = _borderWidth.value ?: element.strokeWidth,
-                    hasLabel = _hasLabel.value ?: element.hasLabel,
-                    labelColor = _labelColor.value ?: element.labelColor,
-                    labelShape = _labelShape.value ?: element.labelShape,
-                    fillGradient = if (_fillGradient.value == null) {
-                        null
-                    } else {
-                        _fillGradient.value
-                            ?: element.fillGradient
-                    },
-                    strokeGradient = if (_strokeGradient.value == null) {
-                        null
-                    } else {
-                        _strokeGradient.value
-                            ?: element.strokeGradient
-                    },
-                    labelGradient = if (_labelGradient.value == null) {
-                        null
-                    } else {
-                        _labelGradient.value
-                            ?: element.labelGradient
-                    },
-                    blurValue = _blurValue.value ?: element.blurValue,
-                    hasBlur = _hasBlur.value ?: element.hasBlur,
-                    paintAlpha = _opacity.value ?: element.paintAlpha,
-                    blendType = _blendingType.value ?: element.blendType,
-                    kashidaSize = _kasheeda.value ?: element.kashidaSize,
-                ).apply {
-                    paint.typeface = element.applyTypefaceFromFontList()
-                }
+                createTextElementCopy(element)
             } else {
                 element
             }
         }
-        // Update canvas visuals immediately, no undo entry
         _canvasElements.value = updatedList
     }
 
@@ -2222,61 +2208,7 @@ class CanvasViewModel @Inject constructor(
             if (element.isSelected && element.type == ElementType.TEXT) {
                 oldElement = element.copy(context = null, bitmap = null)
                 targetId = element.id
-
-                val updated = element.copy(
-                    lineSpacing = _lineSpacing.value ?: element.lineSpacing,
-                    letterSpacing = _letterSpacing.value ?: element.letterSpacing,
-                    letterCasing = _letterCasing.value ?: element.letterCasing,
-                    textDecoration = _textDecoration.value ?: element.textDecoration,
-                    alignment = _textAlignment.value ?: element.alignment,
-                    currentIndent = _paragraphIndentation.value ?: element.currentIndent,
-                    listStyle = _listStyle.value ?: element.listStyle,
-
-                    hasShadow = _hasShadow.value ?: element.hasShadow,
-                    shadowColor = _shadowColor.value ?: element.shadowColor,
-                    shadowDx = _shadowDx.value ?: element.shadowDx,
-                    shadowDy = _shadowDy.value ?: element.shadowDy,
-                    shadowRadius = _shadowRadius.value ?: element.shadowRadius,
-                    shadowOpacity = _shadowOpacity.value ?: element.shadowOpacity,
-
-                    hasStroke = _hasBorder.value ?: element.hasStroke,
-                    strokeColor = _borderColor.value ?: element.strokeColor,
-                    strokeWidth = _borderWidth.value ?: element.strokeWidth,
-
-                    hasLabel = _hasLabel.value ?: element.hasLabel,
-                    labelColor = _labelColor.value ?: element.labelColor,
-                    labelShape = _labelShape.value ?: element.labelShape,
-
-                    fillGradient = if (_fillGradient.value == null) {
-                        null
-                    } else {
-                        _fillGradient.value
-                            ?: element.fillGradient
-                    },
-
-                    strokeGradient = if (_strokeGradient.value == null) {
-                        null
-                    } else {
-                        _strokeGradient.value
-                            ?: element.strokeGradient
-                    },
-
-                    labelGradient = if (_labelGradient.value == null) {
-                        null
-                    } else {
-                        _labelGradient.value
-                            ?: element.labelGradient
-                    },
-
-                    blurValue = _blurValue.value ?: element.blurValue,
-                    hasBlur = _hasBlur.value ?: element.hasBlur,
-                    paintAlpha = _opacity.value ?: element.paintAlpha,
-                    blendType = _blendingType.value ?: element.blendType,
-                    kashidaSize = _kasheeda.value ?: element.kashidaSize,
-                ).apply {
-                    paint.typeface = element.applyTypefaceFromFontList()
-                }
-
+                val updated = createTextElementCopy(element)
                 newElement = updated.copy(context = null, bitmap = null)
                 updated
             } else {
@@ -2299,9 +2231,33 @@ class CanvasViewModel @Inject constructor(
         _canvasElements.value = updatedList
     }
 
-    /**
-     * Copies all currently selected elements as a group, offset by a fixed delta.
-     */
+    private fun buildCopiedElements(
+        allToCopy: List<CanvasElement>,
+        idRemapSentinels: Map<String, String>,
+        offsetX: Float,
+        offsetY: Float
+    ): List<CanvasElement> {
+        return allToCopy.map { element ->
+            val newId = if (element.type == ElementType.GROUP && element.id in idRemapSentinels) {
+                idRemapSentinels[element.id]!!
+            } else {
+                UUID.randomUUID().toString()
+            }
+
+            val newGroupId = element.groupId?.let { idRemapSentinels[it] }
+
+            val copied = element.copy(
+                id = newId,
+                isSelected = false,
+                groupId = newGroupId,
+                x = if (element.type != ElementType.GROUP) element.x + offsetX else element.x,
+                y = if (element.type != ElementType.GROUP) element.y + offsetY else element.y,
+            )
+            copied.paint.typeface = copied.applyTypefaceFromFontList()
+            copied
+        }
+    }
+
     fun copySelectedElementsGroup() {
         val currentList = _canvasElements.value ?: return
         val selected = currentList.filter { it.isSelected }
@@ -2310,13 +2266,7 @@ class CanvasViewModel @Inject constructor(
         val offsetX = 20f
         val offsetY = 20f
 
-        // Collect GROUP sentinel ids among the selection so we can include their children.
-        val selectedGroupIds = selected
-            .filter { it.type == ElementType.GROUP }
-            .map { it.id }.toSet()
-
-        // Build the full set to copy: selected items + any children of selected groups
-        // that are not already directly selected (avoids duplicates).
+        val selectedGroupIds = selected.filter { it.type == ElementType.GROUP }.map { it.id }.toSet()
         val selectedIds = selected.map { it.id }.toSet()
         val groupChildren = if (selectedGroupIds.isNotEmpty()) {
             currentList.filter { el ->
@@ -2330,39 +2280,14 @@ class CanvasViewModel @Inject constructor(
         }
 
         val allToCopy = selected + groupChildren
-
-        // Map old element id → new element id so children can reference the new sentinel id.
         val idRemapSentinels = selectedGroupIds.associateWith { UUID.randomUUID().toString() }
-
-        val copiedElements = allToCopy.map { element ->
-            val newId = if (element.type == ElementType.GROUP && element.id in idRemapSentinels) {
-                idRemapSentinels[element.id]!!
-            } else {
-                UUID.randomUUID().toString()
-            }
-
-            // Remap groupId: if the element's groupId points to a copied sentinel, use the new id
-            val newGroupId = element.groupId?.let { idRemapSentinels[it] } ?: run {
-                // If a selected non-group element has no groupId (standalone), keep null
-                if (element.type != ElementType.GROUP) null else null
-            }
-
-            val copied = element.copy(
-                id = newId,
-                isSelected = false,
-                groupId = newGroupId,
-                x = if (element.type != ElementType.GROUP) element.x + offsetX else element.x,
-                y = if (element.type != ElementType.GROUP) element.y + offsetY else element.y,
-            )
-            copied.paint.typeface = copied.applyTypefaceFromFontList()
-            copied
-        }
+        val copiedElements = buildCopiedElements(allToCopy, idRemapSentinels, offsetX, offsetY)
 
         _canvasElements.value = currentList + copiedElements
 
         copiedElements.forEach { copied ->
             when {
-                copied.type == ElementType.GROUP -> { /* sentinel — no undo action needed separately */ }
+                copied.type == ElementType.GROUP -> { /* sentinel */ }
                 copied.type == ElementType.TEXT -> pushAction(CanvasAction.AddText(copied.text, copied))
                 else -> pushAction(CanvasAction.AddSticker(copied))
             }
@@ -2492,70 +2417,55 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
+    private fun updateElementFontTypeface(element: CanvasElement) {
+        if (element.type == ElementType.TEXT && element.fontId != null) {
+            val font = localFonts.value.find { it.id.toString() == element.fontId }
+            if (font != null && font.file_path?.isNotBlank() == true) {
+                element.paint.typeface = element.applyTypefaceFromFontList()
+                return
+            }
+        }
+        element.paint.typeface = element.context?.let {
+            ResourcesCompat.getFont(it, R.font.default_canvas)
+        } ?: Typeface.DEFAULT
+    }
+
+    private fun pushUpdateElementUndoAction(oldElement: CanvasElement, newElement: CanvasElement) {
+        val oldCopy = oldElement.copy(
+            context = null,
+            bitmap = null,
+            drawStrokes = oldElement.drawStrokes?.map { it.copy(path = Path(it.path)) }?.toMutableList(),
+        )
+        val newCopy = newElement.copy(
+            context = null,
+            bitmap = null,
+            drawStrokes = newElement.drawStrokes?.map { it.copy(path = Path(it.path)) }?.toMutableList(),
+        )
+
+        undoRedoManager.pushAction(
+            CanvasAction.UpdateElement(
+                elementId = newElement.id,
+                newElement = newCopy,
+                oldElement = oldCopy,
+            ),
+        )
+        undoRedoManager.clearRedo()
+        notifyUndoRedoChanged()
+    }
+
     fun updateElement(updated: CanvasElement) {
         val currentList = _canvasElements.value ?: emptyList()
-        val oldElement = currentList.find { it.id == updated.id }
+        val oldElement = currentList.find { it.id == updated.id } ?: return
 
-        if (oldElement != null) {
-            // Create a mutable copy to work with.
-            // Pass the original context to ensure the paint's init block has it.
-            val elementToUpdate = updated.copy(context = oldElement.context)
+        val elementToUpdate = updated.copy(context = oldElement.context)
+        updateElementFontTypeface(elementToUpdate)
 
-            // Explicitly re-apply the typeface if it's a TEXT element with a fontId
-            if (elementToUpdate.type == ElementType.TEXT && elementToUpdate.fontId != null) {
-                val font = localFonts.value.find { it.id.toString() == elementToUpdate.fontId }
-                if (font != null && font.file_path?.isNotBlank() == true) {
-                    elementToUpdate.paint.typeface = elementToUpdate.applyTypefaceFromFontList()
-                } else {
-                    // If font not found or path is blank, revert to default system font
-                    elementToUpdate.paint.typeface = elementToUpdate.context?.let {
-                        ResourcesCompat.getFont(
-                            it,
-                            R.font.default_canvas,
-                        )
-                    } ?: Typeface.DEFAULT
-                }
-            } else {
-                // Ensure non-text elements or text elements without fontId also have a default typeface if applicable
-                elementToUpdate.paint.typeface = elementToUpdate.context?.let {
-                    ResourcesCompat.getFont(
-                        it,
-                        R.font.default_canvas,
-                    )
-                } ?: Typeface.DEFAULT
-            }
+        _canvasElements.value = currentList.map {
+            if (it.id == elementToUpdate.id) elementToUpdate else it
+        }
 
-            // Replace the entire element with the updated version (now with the correct typeface)
-            _canvasElements.value = currentList.map {
-                if (it.id == elementToUpdate.id) elementToUpdate else it // Use elementToUpdate here
-            }
-
-            // Only push to undo stack if no batch action is in progress.
-            // Continuous actions (drag, rotate, resize) will be handled by endBatchUpdate.
-            if (currentBatchAction == null) {
-                val oldCopy = oldElement.copy(
-                    context = null,
-                    bitmap = null,
-                    drawStrokes = oldElement.drawStrokes?.map { it.copy(path = Path(it.path)) }
-                        ?.toMutableList(),
-                )
-                val newCopy = elementToUpdate.copy(
-                    context = null,
-                    bitmap = null,
-                    drawStrokes = elementToUpdate.drawStrokes?.map { it.copy(path = Path(it.path)) }
-                        ?.toMutableList(),
-                )
-
-                undoRedoManager.pushAction(
-                    CanvasAction.UpdateElement(
-                        elementId = elementToUpdate.id,
-                        newElement = newCopy,
-                        oldElement = oldCopy,
-                    ),
-                )
-                undoRedoManager.clearRedo()
-                notifyUndoRedoChanged()
-            }
+        if (currentBatchAction == null) {
+            pushUpdateElementUndoAction(oldElement, elementToUpdate)
         }
     }
 
@@ -2717,6 +2627,45 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
+    private fun syncUiImageAdjustments(imageElement: CanvasElement) {
+        syncUiFormattingWithSelectedTextElement(imageElement)
+        _currentImageFilter.value = imageElement.imageFilter
+        val adj = imageElement.adjustments
+        _brightness.value = adj.brightness
+        _contrast.value = adj.contrast
+        _saturation.value = adj.saturation
+        _shadows.value = adj.shadows
+        _temperature.value = adj.temperature
+        _tint.value = adj.tint
+        _vibrance.value = adj.vibrance
+        _sharpness.value = adj.sharpness
+        _highlights.value = adj.highlights
+        _clarity.value = adj.clarity
+        _fade.value = adj.fade
+        _featherRadius.value = imageElement.featherRadius
+        _featherWidth.value = imageElement.featherWidth
+        _blur.value = imageElement.blurValue
+        _blurValue.value = imageElement.blurValue
+        _hasBlur.value = imageElement.hasBlur
+        _opacity.value = imageElement.paintAlpha
+    }
+
+    private fun syncUiDrawProperties(drawElement: CanvasElement) {
+        _brushColor.value = drawElement.drawStrokes?.lastOrNull()?.color ?: Color.BLACK
+        _brushThickness.value = drawElement.drawStrokes?.lastOrNull()?.thickness ?: 10f
+        _brushHardness.value = drawElement.drawStrokes?.lastOrNull()?.hardness ?: 1f
+        _currentBrushStyle.value = drawElement.drawStrokes?.lastOrNull()?.style ?: BrushStyle.BRUSH
+        _brushGradient.value = drawElement.drawStrokes?.lastOrNull()?.gradient
+    }
+
+    private fun resetUiDrawPropertiesToDefaults() {
+        _brushColor.value = Color.BLACK
+        _brushThickness.value = 10f
+        _brushHardness.value = 1f
+        _currentBrushStyle.value = BrushStyle.BRUSH
+        _brushGradient.value = null
+    }
+
     private fun syncUiWithSelectedElement(selectedListFromCanvas: List<CanvasElement>) {
         val firstText = selectedListFromCanvas.firstOrNull { it.type == ElementType.TEXT }
         val firstImage = selectedListFromCanvas.firstOrNull { it.type == ElementType.IMAGE || it.type == ElementType.STICKER }
@@ -2728,40 +2677,12 @@ class CanvasViewModel @Inject constructor(
                 syncUiFormattingWithSelectedTextElement(firstText)
                 _currentImageFilter.value = null
             }
-
             firstImage != null -> {
-                syncUiFormattingWithSelectedTextElement(firstImage)
-                _currentImageFilter.value = firstImage.imageFilter
-                val adj = firstImage.adjustments
-                if (adj != null) {
-                    _brightness.value = adj.brightness
-                    _contrast.value = adj.contrast
-                    _saturation.value = adj.saturation
-                    _shadows.value = adj.shadows
-                    _temperature.value = adj.temperature
-                    _tint.value = adj.tint
-                    _vibrance.value = adj.vibrance
-                    _sharpness.value = adj.sharpness
-                    _highlights.value = adj.highlights
-                    _clarity.value = adj.clarity
-                    _fade.value = adj.fade
-                    _featherRadius.value = firstImage.featherRadius
-                    _featherWidth.value = firstImage.featherWidth
-                }
-                _blur.value = firstImage.blurValue
-                _blurValue.value = firstImage.blurValue
-                _hasBlur.value = firstImage.hasBlur
-                _opacity.value = firstImage.paintAlpha
+                syncUiImageAdjustments(firstImage)
             }
-
             firstDraw != null -> {
-                _brushColor.value = firstDraw.drawStrokes?.lastOrNull()?.color ?: Color.BLACK
-                _brushThickness.value = firstDraw.drawStrokes?.lastOrNull()?.thickness ?: 10f
-                _brushHardness.value = firstDraw.drawStrokes?.lastOrNull()?.hardness ?: 1f
-                _currentBrushStyle.value = firstDraw.drawStrokes?.lastOrNull()?.style ?: BrushStyle.BRUSH
-                _brushGradient.value = firstDraw.drawStrokes?.lastOrNull()?.gradient
+                syncUiDrawProperties(firstDraw)
             }
-
             firstShape != null -> {
                 if (firstShape.bitmap != null) {
                     _imagePanX.value = firstShape.imagePanX
@@ -2770,13 +2691,8 @@ class CanvasViewModel @Inject constructor(
                     _imageFitMode.value = firstShape.imageFitMode ?: "cover"
                 }
             }
-
             else -> {
-                _brushColor.value = Color.BLACK
-                _brushThickness.value = 10f
-                _brushHardness.value = 1f
-                _currentBrushStyle.value = BrushStyle.BRUSH
-                _brushGradient.value = null
+                resetUiDrawPropertiesToDefaults()
             }
         }
     }
@@ -4363,145 +4279,163 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
+    private fun applySetOverlayGradientAction(action: CanvasAction.SetOverlayGradient, isRedo: Boolean) {
+        val targetGradient = if (isRedo) action.newGradient else action.oldGradient
+        val currentList = _canvasElements.value.orEmpty()
+        _canvasElements.value = currentList.map { element ->
+            if (element.id == action.elementId) {
+                element.overlayGradient = targetGradient
+                if (targetGradient != null) {
+                    element.overlayColor = Color.TRANSPARENT
+                    if (element.overlayOpacity == 0) element.overlayOpacity = 255
+                    element.hasOverlay = true
+                } else {
+                    element.hasOverlay = element.overlayOpacity > 0 && element.overlayColor != Color.TRANSPARENT
+                }
+                element
+            } else {
+                element
+            }
+        }
+    }
+
+    private fun applySetImageShadowAction(action: CanvasAction.SetImageShadow, isRedo: Boolean) {
+        findElementById(action.elementId)?.let { el ->
+            if (isRedo) {
+                el.hasShadow = action.newEnabled
+                el.shadowColor = action.newColor
+                el.shadowDx = action.newDx
+                el.shadowDy = action.newDy
+                el.shadowRadius = action.newRadius
+                el.shadowOpacity = action.newOpacity
+            } else {
+                el.hasShadow = action.oldEnabled
+                el.shadowColor = action.oldColor
+                el.shadowDx = action.oldDx
+                el.shadowDy = action.oldDy
+                el.shadowRadius = action.oldRadius
+                el.shadowOpacity = action.oldOpacity
+            }
+        }
+    }
+
+    private fun applySetOverlayAction(action: CanvasAction.SetOverlay, isRedo: Boolean) {
+        findElementById(action.elementId)?.let { el ->
+            if (isRedo) {
+                el.hasOverlay = action.newHasOverlay
+                el.overlayColor = action.newColor
+                el.overlayOpacity = action.newOpacity
+            } else {
+                el.hasOverlay = action.oldHasOverlay
+                el.overlayColor = action.oldColor
+                el.overlayOpacity = action.oldOpacity
+            }
+        }
+    }
+
+    private fun applyImageFilterAction(action: CanvasAction.ApplyImageFilter, isRedo: Boolean) {
+        updateSingleElement(elementId = action.elementId, getNewValue = {
+            if (isRedo) action.newFilter else action.oldFilter
+        }, applyValue = { elem, raw ->
+            (raw as? ImageFilter)?.let {
+                elem.copy(context = elem.context, imageFilter = it)
+            } ?: elem
+        })
+        _canvasElements.value?.find { it.id == action.elementId && it.isSelected }?.let {
+            _currentImageFilter.value = if (isRedo) action.newFilter else action.oldFilter
+        }
+    }
+
     private fun applyStyleAction(action: CanvasAction, isRedo: Boolean) {
         when (action) {
-            is CanvasAction.SetOverlayGradient -> {
-                val targetGradient = if (isRedo) action.newGradient else action.oldGradient
-                val currentList = _canvasElements.value.orEmpty()
-                _canvasElements.value = currentList.map { element ->
-                    if (element.id == action.elementId) {
-                        element.overlayGradient = targetGradient
-                        if (targetGradient != null) {
-                            element.overlayColor = Color.TRANSPARENT
-                            if (element.overlayOpacity == 0) element.overlayOpacity = 255
-                            element.hasOverlay = true
-                        } else {
-                            element.hasOverlay = element.overlayOpacity > 0 && element.overlayColor != Color.TRANSPARENT
-                        }
-                        element
-                    } else {
-                        element
-                    }
-                }
-            }
-            is CanvasAction.SetImageShadow -> {
-                findElementById(action.elementId)?.let { el ->
-                    if (isRedo) {
-                        el.hasShadow = action.newEnabled
-                        el.shadowColor = action.newColor
-                        el.shadowDx = action.newDx
-                        el.shadowDy = action.newDy
-                        el.shadowRadius = action.newRadius
-                        el.shadowOpacity = action.newOpacity
-                    } else {
-                        el.hasShadow = action.oldEnabled
-                        el.shadowColor = action.oldColor
-                        el.shadowDx = action.oldDx
-                        el.shadowDy = action.oldDy
-                        el.shadowRadius = action.oldRadius
-                        el.shadowOpacity = action.oldOpacity
-                    }
-                }
-            }
-            is CanvasAction.SetOverlay -> {
-                findElementById(action.elementId)?.let { el ->
-                    if (isRedo) {
-                        el.hasOverlay = action.newHasOverlay
-                        el.overlayColor = action.newColor
-                        el.overlayOpacity = action.newOpacity
-                    } else {
-                        el.hasOverlay = action.oldHasOverlay
-                        el.overlayColor = action.oldColor
-                        el.overlayOpacity = action.oldOpacity
-                    }
-                }
-            }
-            is CanvasAction.ApplyImageFilter -> {
-                updateSingleElement(elementId = action.elementId, getNewValue = {
-                    if (isRedo) action.newFilter else action.oldFilter
-                }, applyValue = { elem, raw ->
-                    (raw as? ImageFilter)?.let {
-                        elem.copy(context = elem.context, imageFilter = it)
-                    } ?: elem
-                })
-                _canvasElements.value?.find { it.id == action.elementId && it.isSelected }?.let {
-                    _currentImageFilter.value = if (isRedo) action.newFilter else action.oldFilter
-                }
-            }
+            is CanvasAction.SetOverlayGradient -> applySetOverlayGradientAction(action, isRedo)
+            is CanvasAction.SetImageShadow -> applySetImageShadowAction(action, isRedo)
+            is CanvasAction.SetOverlay -> applySetOverlayAction(action, isRedo)
+            is CanvasAction.ApplyImageFilter -> applyImageFilterAction(action, isRedo)
             else -> {}
         }
     }
 
+    private fun applySetTextColorAction(action: CanvasAction.SetTextColor, isRedo: Boolean) {
+        updateSingleElement(
+            elementId = action.elementId,
+            getNewValue = { if (isRedo) action.color else action.previousColor },
+            applyValue = { elem, raw ->
+                (raw as? Int)?.let {
+                    elem.apply {
+                        paint.color = it
+                        paintColor = it
+                    }
+                } ?: elem
+            },
+        )
+        _currentTextColor.value = if (isRedo) action.color else action.previousColor
+    }
+
+    private fun applySetTextSizeAction(action: CanvasAction.SetTextSize, isRedo: Boolean) {
+        updateSingleElement(
+            elementId = action.elementId,
+            getNewValue = { if (isRedo) action.size else action.previousSize },
+            applyValue = { elem, raw ->
+                (raw as? Float)?.let {
+                    elem.apply {
+                        paint.textSize = it
+                        paintTextSize = it
+                    }
+                } ?: elem
+            },
+        )
+        _currentTextSize.value = if (isRedo) action.size else action.previousSize
+    }
+
+    private fun applySetTextAlignmentAction(action: CanvasAction.SetTextAlignment, isRedo: Boolean) {
+        updateSingleElement(
+            elementId = action.elementId,
+            getNewValue = { if (isRedo) action.alignment else action.previousAlignment },
+            applyValue = { elem, raw ->
+                (raw as? TextAlignment)?.let {
+                    elem.apply { alignment = it }
+                } ?: elem
+            },
+        )
+        _currentTextAlignment.value = if (isRedo) action.alignment else action.previousAlignment
+    }
+
+    private fun applySetOpacityAction(action: CanvasAction.SetOpacity, isRedo: Boolean) {
+        updateSingleElement(
+            elementId = action.elementId,
+            getNewValue = { if (isRedo) action.opacity else action.previousOpacity },
+            applyValue = { elem, raw ->
+                (raw as? Int)?.let {
+                    elem.apply {
+                        paint.alpha = it
+                        paintAlpha = it
+                    }
+                } ?: elem
+            },
+        )
+        _opacity.value = if (isRedo) action.opacity else action.previousOpacity
+    }
+
+    private fun applyUpdateTextAction(action: CanvasAction.UpdateText, isRedo: Boolean) {
+        updateSingleElement(
+            elementId = action.elementId,
+            getNewValue = { if (isRedo) action.text else action.previousText },
+            applyValue = { elem, raw ->
+                (raw as? String)?.let {
+                    elem.apply { text = it }
+                } ?: elem
+            },
+        )
+    }
+
     private fun applyFormattingAction(action: CanvasAction, isRedo: Boolean) {
         when (action) {
-            is CanvasAction.SetTextColor -> {
-                updateSingleElement(
-                    elementId = action.elementId,
-                    getNewValue = { if (isRedo) action.color else action.previousColor },
-                    applyValue = { elem, raw ->
-                        (raw as? Int)?.let {
-                            elem.apply {
-                                paint.color = it
-                                paintColor = it
-                            }
-                        } ?: elem
-                    },
-                )
-                _currentTextColor.value = if (isRedo) action.color else action.previousColor
-            }
-            is CanvasAction.SetTextSize -> {
-                updateSingleElement(
-                    elementId = action.elementId,
-                    getNewValue = { if (isRedo) action.size else action.previousSize },
-                    applyValue = { elem, raw ->
-                        (raw as? Float)?.let {
-                            elem.apply {
-                                paint.textSize = it
-                                paintTextSize = it
-                            }
-                        } ?: elem
-                    },
-                )
-                _currentTextSize.value = if (isRedo) action.size else action.previousSize
-            }
-            is CanvasAction.SetTextAlignment -> {
-                updateSingleElement(
-                    elementId = action.elementId,
-                    getNewValue = { if (isRedo) action.alignment else action.previousAlignment },
-                    applyValue = { elem, raw ->
-                        (raw as? TextAlignment)?.let {
-                            elem.apply { alignment = it }
-                        } ?: elem
-                    },
-                )
-                _currentTextAlignment.value = if (isRedo) action.alignment else action.previousAlignment
-            }
-            is CanvasAction.SetOpacity -> {
-                updateSingleElement(
-                    elementId = action.elementId,
-                    getNewValue = { if (isRedo) action.opacity else action.previousOpacity },
-                    applyValue = { elem, raw ->
-                        (raw as? Int)?.let {
-                            elem.apply {
-                                paint.alpha = it
-                                paintAlpha = it
-                            }
-                        } ?: elem
-                    },
-                )
-                _opacity.value = if (isRedo) action.opacity else action.previousOpacity
-            }
-            is CanvasAction.UpdateText -> {
-                updateSingleElement(
-                    elementId = action.elementId,
-                    getNewValue = { if (isRedo) action.text else action.previousText },
-                    applyValue = { elem, raw ->
-                        (raw as? String)?.let {
-                            elem.apply { text = it }
-                        } ?: elem
-                    },
-                )
-            }
+            is CanvasAction.SetTextColor -> applySetTextColorAction(action, isRedo)
+            is CanvasAction.SetTextSize -> applySetTextSizeAction(action, isRedo)
+            is CanvasAction.SetTextAlignment -> applySetTextAlignmentAction(action, isRedo)
+            is CanvasAction.SetOpacity -> applySetOpacityAction(action, isRedo)
+            is CanvasAction.UpdateText -> applyUpdateTextAction(action, isRedo)
             else -> {}
         }
     }
@@ -4667,6 +4601,56 @@ class CanvasViewModel @Inject constructor(
         projectSourceName = null
     }
 
+    private fun applyHydratedTemplateToCanvas(
+        hydratedWithFonts: List<CanvasElement>,
+        bgBitmap: Bitmap?,
+        bgElement: CanvasElement?,
+        exportResult: ExportResult
+    ) {
+        if (bgElement != null) {
+            _backgroundColor.value = bgElement.backgroundColor
+            _backgroundGradient.value = bgElement.fillGradient
+
+            if (bgBitmap != null) {
+                _backgroundImage.value = bgBitmap
+            } else if (bgElement.bitmapData != null) {
+                Log.e("CanvasViewModel", "Bitmap decoding failed for background")
+            }
+
+            if (_backgroundGradient.value == null && _backgroundImage.value == null) {
+                _backgroundColor.value = bgElement.backgroundColor ?: Color.WHITE
+            }
+        }
+
+        _canvasSize.value = exportResult.canvasSize
+        val subscribed = billingManager.isSubscribed.value
+
+        _canvasElements.value = hydratedWithFonts.map { element ->
+            element.copy(isSubscribed = subscribed && element.isPremium)
+                .also { copied ->
+                    if (copied.type == ElementType.TEXT) {
+                        copied.paint.typeface = copied.applyTypefaceFromFontList()
+                    }
+                }
+        }
+
+        val selected = hydratedWithFonts.find { it.isSelected && it.type != ElementType.TEXT }
+        selected?.let {
+            _currentFont.postValue(_localFonts.value.find { font -> font.id.toString() == it.fontId })
+            _brightness.postValue(it.adjustments.brightness)
+            _contrast.postValue(it.adjustments.contrast)
+            _saturation.postValue(it.adjustments.saturation)
+            _shadows.postValue(it.adjustments.shadows)
+            _temperature.postValue(it.adjustments.temperature)
+            _tint.postValue(it.adjustments.tint)
+            _vibrance.postValue(it.adjustments.vibrance)
+            _sharpness.postValue(it.adjustments.sharpness)
+            _clarity.postValue(it.adjustments.clarity)
+            _fade.postValue(it.adjustments.fade)
+        }
+        _exportResult.value = exportResult
+    }
+
     fun loadTemplateFromJsonFile(exportResult: ExportResult, context: Context) {
         viewModelScope.launch(Dispatchers.Default) {
             _isLoadingTemplate.postValue(true)
@@ -4680,7 +4664,6 @@ class CanvasViewModel @Inject constructor(
                     }
                 ) ?: return@launch
 
-                // â”€â”€ Decode background bitmap on background thread â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 _loadingStage.postValue("Loading background" to 80)
                 val bgElement = if (hydratedWithFonts.isNotEmpty() && hydratedWithFonts[0].type == ElementType.BACKGROUND) {
                     hydratedWithFonts[0]
@@ -4692,51 +4675,9 @@ class CanvasViewModel @Inject constructor(
                     ImageProcessor.base64ToBitmap(data)
                 }
 
-                // â”€â”€ Only switch to Main for LiveData writes â€” zero heavy work here â”€â”€â”€â”€
                 _loadingStage.postValue("Applying to canvas" to 90)
                 withContext(Dispatchers.Main) {
-                    if (bgElement != null) {
-                        _backgroundColor.value = bgElement.backgroundColor
-                        _backgroundGradient.value = bgElement.fillGradient
-
-                        if (bgBitmap != null) {
-                            _backgroundImage.value = bgBitmap
-                        } else if (bgElement.bitmapData != null) {
-                            Log.e("CanvasViewModel", "Bitmap decoding failed for background")
-                        }
-
-                        if (_backgroundGradient.value == null && _backgroundImage.value == null) {
-                            _backgroundColor.value = bgElement.backgroundColor ?: Color.WHITE
-                        }
-                    }
-
-                    _canvasSize.value = exportResult.canvasSize
-                    val subscribed = billingManager.isSubscribed.value
-
-                    _canvasElements.value = hydratedWithFonts.map { element ->
-                        element.copy(isSubscribed = subscribed && element.isPremium)
-                            .also { copied ->
-                                if (copied.type == ElementType.TEXT) {
-                                    copied.paint.typeface = copied.applyTypefaceFromFontList()
-                                }
-                            }
-                    }
-
-                    val selected = hydratedWithFonts.find { it.isSelected && it.type != ElementType.TEXT }
-                    selected?.let {
-                        _currentFont.postValue(_localFonts.value.find { font -> font.id.toString() == it.fontId })
-                        _brightness.postValue(it.adjustments.brightness)
-                        _contrast.postValue(it.adjustments.contrast)
-                        _saturation.postValue(it.adjustments.saturation)
-                        _shadows.postValue(it.adjustments.shadows)
-                        _temperature.postValue(it.adjustments.temperature)
-                        _tint.postValue(it.adjustments.tint)
-                        _vibrance.postValue(it.adjustments.vibrance)
-                        _sharpness.postValue(it.adjustments.sharpness)
-                        _clarity.postValue(it.adjustments.clarity)
-                        _fade.postValue(it.adjustments.fade)
-                    }
-                    _exportResult.value = exportResult
+                    applyHydratedTemplateToCanvas(hydratedWithFonts, bgBitmap, bgElement, exportResult)
                 }
                 Log.d("CanvasViewModel", "Successful")
             } catch (e: Exception) {

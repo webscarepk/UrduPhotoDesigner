@@ -40,7 +40,7 @@ class TextElementRenderer(private val view: CanvasView) {
         var yOffset = -((lines.size - 1) * lineHeight / 2f) - baselineShift
 
         lines.forEachIndexed { i, rawLine ->
-            drawTextLine(canvas, element, rawLine, i, yOffset, lineHeight, fm)
+            drawTextLine(canvas, element, rawLine, i, yOffset)
             yOffset += lineHeight
         }
     }
@@ -78,7 +78,18 @@ class TextElementRenderer(private val view: CanvasView) {
         val prevAlpha = labelPaint.alpha
         labelPaint.alpha = element.paintAlpha
 
-        when (element.labelShape) {
+        drawSpecificLabelShape(canvas, element.labelShape, labelRect, labelPaint)
+
+        labelPaint.alpha = prevAlpha
+    }
+
+    private fun drawSpecificLabelShape(
+        canvas: Canvas,
+        labelShape: LabelShape,
+        labelRect: RectF,
+        labelPaint: Paint
+    ) {
+        when (labelShape) {
             LabelShape.RECTANGLE_FILL -> canvas.drawRect(labelRect, labelPaint)
             LabelShape.RECTANGLE_STROKE -> {
                 labelPaint.style = Paint.Style.STROKE
@@ -110,8 +121,6 @@ class TextElementRenderer(private val view: CanvasView) {
                 canvas.drawRoundRect(labelRect, 20f, 20f, labelPaint)
             }
         }
-
-        labelPaint.alpha = prevAlpha
     }
 
     private fun drawTextLine(
@@ -119,11 +128,36 @@ class TextElementRenderer(private val view: CanvasView) {
         element: CanvasElement,
         rawLine: String,
         index: Int,
-        yOffset: Float,
-        lineHeight: Float,
-        fm: Paint.FontMetrics
+        yOffset: Float
     ) {
-        val fillPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+        val fillPaint = prepareTextPaint(element)
+        val displayText = applyCasingAndListStyle(element, rawLine, index)
+
+        val alignment = when (element.alignment) {
+            TextAlignment.LEFT -> Paint.Align.LEFT
+            TextAlignment.CENTER -> Paint.Align.CENTER
+            TextAlignment.RIGHT -> Paint.Align.RIGHT
+            TextAlignment.JUSTIFY -> Paint.Align.LEFT
+        }
+        fillPaint.textAlign = alignment
+
+        val indentOffset = if (index == 0) element.currentIndent else 0f
+        val xPos = when (alignment) {
+            Paint.Align.LEFT -> -element.getLocalContentWidth() / 2f + indentOffset
+            Paint.Align.CENTER -> 0f
+            Paint.Align.RIGHT -> element.getLocalContentWidth() / 2f + indentOffset
+        }
+
+        if (element.fillGradient != null) {
+            val w = fillPaint.measureText(displayText)
+            fillPaint.shader = view.createGradientShader(element.fillGradient!!, w, fillPaint.textSize)
+        }
+
+        drawStrokeAndFillText(canvas, element, displayText, xPos, yOffset, fillPaint)
+    }
+
+    private fun prepareTextPaint(element: CanvasElement): TextPaint {
+        return TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = element.paintColor
             textSize = element.paintTextSize
             letterSpacing = element.letterSpacing
@@ -141,48 +175,37 @@ class TextElementRenderer(private val view: CanvasView) {
                 else -> Typeface.NORMAL
             }
             typeface = Typeface.create(baseTf, style)
-        }
 
+            if (element.hasBlur) {
+                maskFilter = BlurMaskFilter(element.blurValue, BlurMaskFilter.Blur.NORMAL)
+            }
+            xfermode = view.drawWithBlend(element)
+        }
+    }
+
+    private fun applyCasingAndListStyle(element: CanvasElement, rawLine: String, index: Int): String {
         val text = when (element.listStyle) {
             ListStyle.BULLETED -> "• $rawLine"
             ListStyle.NUMBERED -> "${index + 1}. $rawLine"
             else -> rawLine
         }
 
-        val displayText = when (element.letterCasing) {
+        return when (element.letterCasing) {
             LetterCasing.ALL_CAPS -> text.uppercase()
             LetterCasing.LOWER_CASE -> text.lowercase()
-            LetterCasing.TITLE_CASE -> text.split(" ")
-                .joinToString(" ") { it.replaceFirstChar(Char::uppercase) }
+            LetterCasing.TITLE_CASE -> text.split(" ").joinToString(" ") { it.replaceFirstChar(Char::uppercase) }
             else -> text
         }
+    }
 
-        val alignment = when (element.alignment) {
-            TextAlignment.LEFT -> Paint.Align.LEFT
-            TextAlignment.CENTER -> Paint.Align.CENTER
-            TextAlignment.RIGHT -> Paint.Align.RIGHT
-            TextAlignment.JUSTIFY -> Paint.Align.LEFT
-            else -> Paint.Align.LEFT
-        }
-        fillPaint.textAlign = alignment
-
-        val indentOffset = if (index == 0) element.currentIndent else 0f
-        val xPos = when (alignment) {
-            Paint.Align.LEFT -> -element.getLocalContentWidth() / 2f + indentOffset
-            Paint.Align.CENTER -> 0f
-            Paint.Align.RIGHT -> element.getLocalContentWidth() / 2f + indentOffset
-        }
-
-        if (element.fillGradient != null) {
-            val w = fillPaint.measureText(displayText)
-            fillPaint.shader = view.createGradientShader(element.fillGradient!!, w, fillPaint.textSize)
-        }
-
-        if (element.hasBlur) {
-            fillPaint.maskFilter = BlurMaskFilter(element.blurValue, BlurMaskFilter.Blur.NORMAL)
-        }
-        fillPaint.xfermode = view.drawWithBlend(element)
-
+    private fun drawStrokeAndFillText(
+        canvas: Canvas,
+        element: CanvasElement,
+        displayText: String,
+        xPos: Float,
+        yOffset: Float,
+        fillPaint: TextPaint
+    ) {
         if (element.hasShadow) {
             val sc = (element.shadowColor and 0x00FFFFFF) or (element.shadowOpacity shl 24)
             val sp = TextPaint(fillPaint).apply {
@@ -201,20 +224,7 @@ class TextElementRenderer(private val view: CanvasView) {
             view.justifyText(canvas, displayText, yOffset, element)
         } else {
             if (element.hasStroke && element.strokeWidth > 0f) {
-                val strokePaint = TextPaint(fillPaint).apply {
-                    style = Paint.Style.STROKE
-                    strokeWidth = element.strokeWidth
-                }
-                if (element.strokeGradient != null) {
-                    val w = fillPaint.measureText(displayText)
-                    strokePaint.shader = view.createGradientShader(element.strokeGradient!!, w, fillPaint.textSize)
-                } else {
-                    strokePaint.color = element.strokeColor
-                }
-                val old = strokePaint.alpha
-                strokePaint.alpha = element.paintAlpha
-                canvas.drawText(displayText, xPos, yOffset, strokePaint)
-                strokePaint.alpha = old
+                drawTextStroke(canvas, element, displayText, xPos, yOffset, fillPaint)
             }
 
             val oldFillAlpha = fillPaint.alpha
@@ -222,5 +232,29 @@ class TextElementRenderer(private val view: CanvasView) {
             canvas.drawText(displayText, xPos, yOffset, fillPaint)
             fillPaint.alpha = oldFillAlpha
         }
+    }
+
+    private fun drawTextStroke(
+        canvas: Canvas,
+        element: CanvasElement,
+        displayText: String,
+        xPos: Float,
+        yOffset: Float,
+        fillPaint: TextPaint
+    ) {
+        val strokePaint = TextPaint(fillPaint).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = element.strokeWidth
+        }
+        if (element.strokeGradient != null) {
+            val w = fillPaint.measureText(displayText)
+            strokePaint.shader = view.createGradientShader(element.strokeGradient!!, w, fillPaint.textSize)
+        } else {
+            strokePaint.color = element.strokeColor
+        }
+        val old = strokePaint.alpha
+        strokePaint.alpha = element.paintAlpha
+        canvas.drawText(displayText, xPos, yOffset, strokePaint)
+        strokePaint.alpha = old
     }
 }
