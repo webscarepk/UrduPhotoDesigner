@@ -1725,182 +1725,92 @@ class CanvasViewModel @Inject constructor(
     }
 
     /** Call this when the CanvasView fires “I just picked this color: 0xAARRGGBB” */
+    private fun handleTextPickerTarget(target: PickerTarget, color: Int) {
+        when (target) {
+            PickerTarget.EYE_DROPPER_TEXT_FILL, PickerTarget.COLOR_PICKER_TEXT_FILL -> setTextColor(color)
+            PickerTarget.EYE_DROPPER_TEXT_STROKE, PickerTarget.COLOR_PICKER_TEXT_STROKE ->
+                setTextBorder(true, color, _borderWidth.value!!)
+            PickerTarget.EYE_DROPPER_SHADOW, PickerTarget.COLOR_PICKER_SHADOW, PickerTarget.COLOR_PICKER_IMAGE_SHADOW ->
+                setTextShadow(true, color, _shadowDx.value!!, _shadowDy.value!!)
+            PickerTarget.EYE_DROPPER_LABEL, PickerTarget.COLOR_PICKER_LABEL ->
+                setTextLabel(true, color, _labelShape.value!!)
+            else -> {}
+        }
+    }
+
+    private fun handleShapeAndImagePickerTarget(target: PickerTarget, color: Int) {
+        when (target) {
+            PickerTarget.EYE_DROPPER_SHAPE_STROKE, PickerTarget.COLOR_PICKER_SHAPE_STROKE -> setStrokeColor(color)
+            PickerTarget.EYE_DROPPER_SHAPE_FILL, PickerTarget.COLOR_PICKER_SHAPE_FILL -> setFillColor(color)
+            PickerTarget.EYE_DROPPER_IMAGE_STROKE, PickerTarget.COLOR_PICKER_IMAGE_STROKE ->
+                setImageBorder(true, color, _borderWidth.value ?: 1f)
+            else -> {}
+        }
+    }
+
+    /** Call this when the CanvasView fires “I just picked this color: 0xAARRGGBB” */
     fun finishPicking(color: Int) {
-        when (_activePicker.value) {
-            PickerTarget.EYE_DROPPER_BACKGROUND -> setCanvasBackgroundColor(color)
-            PickerTarget.EYE_DROPPER_OVERLAY -> setElementOverlay(color)
-            PickerTarget.EYE_DROPPER_TEXT_FILL -> setTextColor(color)
-            PickerTarget.EYE_DROPPER_TEXT_STROKE -> setTextBorder(
-                true,
-                color,
-                _borderWidth.value!!,
-            )
-
-            PickerTarget.EYE_DROPPER_SHADOW -> setTextShadow(
-                true,
-                color,
-                _shadowDx.value!!,
-                _shadowDy.value!!,
-            )
-
-            PickerTarget.EYE_DROPPER_LABEL -> setTextLabel(true, color, _labelShape.value!!)
-            PickerTarget.COLOR_PICKER_BACKGROUND -> setCanvasBackgroundColor(color)
-            PickerTarget.COLOR_PICKER_OVERLAY -> setElementOverlay(color)
-            PickerTarget.COLOR_PICKER_TEXT_FILL -> setTextColor(color)
-            PickerTarget.COLOR_PICKER_TEXT_STROKE -> setTextBorder(
-                true,
-                color,
-                _borderWidth.value!!,
-            )
-
-            PickerTarget.COLOR_PICKER_SHADOW -> setTextShadow(
-                true,
-                color,
-                _shadowDx.value!!,
-                _shadowDy.value!!,
-            )
-
-            PickerTarget.COLOR_PICKER_IMAGE_SHADOW -> setTextShadow(
-                true,
-                color,
-                _shadowDx.value!!,
-                _shadowDy.value!!,
-            )
-
-            PickerTarget.COLOR_PICKER_LABEL -> setTextLabel(true, color, _labelShape.value!!)
-            PickerTarget.COLOR_PICKER_GRADIENT -> {
-                updateSelectedStopColor(color)
-            }
-
-            PickerTarget.EYE_DROPPER_GRADIENT -> {
-                updateSelectedStopColor(color) // same fix
-            }
-
-            PickerTarget.EYE_DROPPER_DRAW_STROKE -> {
-                setBrushColor(color)
-            }
-
-            PickerTarget.EYE_DROPPER_DRAW_FILL -> {
-                setBrushColor(color)
-            }
-
-            PickerTarget.COLOR_PICKER_DRAW_STROKE -> {
-                setBrushColor(color)
-            }
-
-            PickerTarget.COLOR_PICKER_DRAW_FILL -> {
-                setBrushColor(color)
-            }
-
-            PickerTarget.EYE_DROPPER_SHAPE_STROKE -> setStrokeColor(color)
-            PickerTarget.EYE_DROPPER_SHAPE_FILL -> setFillColor(color)
-            PickerTarget.COLOR_PICKER_SHAPE_STROKE -> setStrokeColor(color)
-            PickerTarget.COLOR_PICKER_SHAPE_FILL -> setFillColor(color)
-
-            PickerTarget.EYE_DROPPER_IMAGE_STROKE -> setImageBorder(
-                true,
-                color,
-                _borderWidth.value ?: 1f,
-            )
-
-            PickerTarget.COLOR_PICKER_IMAGE_STROKE -> setImageBorder(
-                true,
-                color,
-                _borderWidth.value ?: 1f,
-            )
-
-            null -> {
-                /* nothing to do */
+        val target = _activePicker.value ?: return
+        when (target) {
+            PickerTarget.EYE_DROPPER_BACKGROUND, PickerTarget.COLOR_PICKER_BACKGROUND -> setCanvasBackgroundColor(color)
+            PickerTarget.EYE_DROPPER_OVERLAY, PickerTarget.COLOR_PICKER_OVERLAY -> setElementOverlay(color)
+            PickerTarget.COLOR_PICKER_GRADIENT, PickerTarget.EYE_DROPPER_GRADIENT -> updateSelectedStopColor(color)
+            PickerTarget.EYE_DROPPER_DRAW_STROKE, PickerTarget.EYE_DROPPER_DRAW_FILL,
+            PickerTarget.COLOR_PICKER_DRAW_STROKE, PickerTarget.COLOR_PICKER_DRAW_FILL -> setBrushColor(color)
+            else -> {
+                handleTextPickerTarget(target, color)
+                handleShapeAndImagePickerTarget(target, color)
             }
         }
     }
 
-    fun finishPickingGradient(gradientItem: GradientItem?) {
-        when (_activeGradientPicker.value) {
+    private fun handleTextGradientTarget(target: GradientPickerTarget, gradientItem: GradientItem?) {
+        when (target) {
             GradientPickerTarget.TEXT_FILL -> if (gradientItem != null) {
-                setTextFillGradient(
-                    gradientItem,
-                )
+                setTextFillGradient(gradientItem)
             } else {
                 clearFillGradients()
             }
-
             GradientPickerTarget.TEXT_STROKE -> if (gradientItem != null) {
-                setTextStrokeGradient(
-                    gradientItem,
-                    _borderWidth.value ?: 1f,
-                )
+                setTextStrokeGradient(gradientItem, _borderWidth.value ?: 1f)
             } else {
                 clearStrokeGradients()
             }
-
             GradientPickerTarget.TEXT_LABEL -> if (gradientItem != null) {
-                setTextLabelGradient(
-                    true,
-                    _labelShape.value ?: LabelShape.RECTANGLE_FILL,
-                    gradientItem,
-                )
+                setTextLabelGradient(true, _labelShape.value ?: LabelShape.RECTANGLE_FILL, gradientItem)
             } else {
                 clearLabelGradients()
             }
+            else -> {}
+        }
+    }
 
-            GradientPickerTarget.BACKGROUND -> if (gradientItem != null) {
-                setCanvasGradient(
-                    gradientItem,
-                )
-            } else {
-                removeCanvasGradient()
-            }
-
-            GradientPickerTarget.DRAW_STROKE -> if (gradientItem != null) {
-                setBrushGradient(
-                    gradientItem,
-                )
-            } else {
-                setBrushGradient(null)
-            }
-
-            GradientPickerTarget.DRAW_FILL -> if (gradientItem != null) {
-                setBrushGradient(
-                    gradientItem,
-                )
-            } else {
-                setBrushGradient(null)
-            }
-
-            null -> {}
-            GradientPickerTarget.SHAPE_STROKE -> if (gradientItem != null) {
-                setStrokeGradient(
-                    gradientItem,
-                )
-            } else {
-                setStrokeGradient(null)
-            }
-
-            GradientPickerTarget.SHAPE_FILL -> if (gradientItem != null) {
-                setFillGradient(
-                    gradientItem,
-                )
-            } else {
-                setFillGradient(null)
-            }
-
-            GradientPickerTarget.OVERLAY -> if (gradientItem != null) {
-                setElementOverlayGradient(
-                    gradientItem,
-                )
-            } else {
-                setElementOverlayGradient(null)
-            }
-
+    private fun handleShapeAndDrawGradientTarget(target: GradientPickerTarget, gradientItem: GradientItem?) {
+        when (target) {
+            GradientPickerTarget.DRAW_STROKE, GradientPickerTarget.DRAW_FILL -> setBrushGradient(gradientItem)
+            GradientPickerTarget.SHAPE_STROKE -> setStrokeGradient(gradientItem)
+            GradientPickerTarget.SHAPE_FILL -> setFillGradient(gradientItem)
+            GradientPickerTarget.OVERLAY -> setElementOverlayGradient(gradientItem)
             GradientPickerTarget.IMAGE_STROKE -> if (gradientItem != null) {
-                setImageStrokeGradient(
-                    gradientItem,
-                    _borderWidth.value ?: 1f,
-                )
+                setImageStrokeGradient(gradientItem, _borderWidth.value ?: 1f)
             } else {
                 clearImageStrokeGradients()
             }
+            else -> {}
+        }
+    }
+
+    fun finishPickingGradient(gradientItem: GradientItem?) {
+        val target = _activeGradientPicker.value ?: return
+        if (target == GradientPickerTarget.BACKGROUND) {
+            if (gradientItem != null) {
+                setCanvasGradient(gradientItem)
+            } else {
+                removeCanvasGradient()
+            }
+        } else {
+            handleTextGradientTarget(target, gradientItem)
+            handleShapeAndDrawGradientTarget(target, gradientItem)
         }
     }
 
