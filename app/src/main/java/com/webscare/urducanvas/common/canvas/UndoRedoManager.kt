@@ -1,6 +1,6 @@
 package com.webscare.urducanvas.common.canvas
 
-import com.webscare.urducanvas.common.canvas.model.CanvasAction
+import com.webscare.urducanvas.common.canvas.sealed.CanvasAction
 import java.util.Stack
 
 class UndoRedoManager {

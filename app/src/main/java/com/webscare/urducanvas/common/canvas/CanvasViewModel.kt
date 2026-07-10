@@ -88,8 +88,12 @@ class CanvasViewModel @Inject constructor(
     val isLoadingTemplate: LiveData<Boolean?> = _isLoadingTemplate
     private val _loadingStage = MutableLiveData<Pair<String, Int>>()
     val loadingStage: LiveData<Pair<String, Int>> = _loadingStage
-    private val _canvasActions = Stack<CanvasAction>()
-    private val _redoStack = Stack<CanvasAction>()
+    private val undoRedoManager = UndoRedoManager()
+
+    private fun pushAction(action: CanvasAction) {
+        undoRedoManager.pushAction(action)
+        notifyUndoRedoChanged()
+    }
     private val _canvasElements = MutableLiveData<List<CanvasElement>>(emptyList())
     val canvasElements: MutableLiveData<List<CanvasElement>> = _canvasElements
     private val _selectedElements = MutableLiveData<List<CanvasElement>>(emptyList())
