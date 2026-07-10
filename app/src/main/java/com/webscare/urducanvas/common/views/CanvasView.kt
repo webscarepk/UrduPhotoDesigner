@@ -124,7 +124,7 @@ class CanvasView @JvmOverloads constructor(
         ).gson()
     }
     private var gestureDetector: GestureDetector
-    private var isRotating = false
+    internal var isRotating = false
     override var colorPickerBitmap: Bitmap? = null
     override var isColorPickerMode = false
 
@@ -132,36 +132,36 @@ class CanvasView @JvmOverloads constructor(
 
     override var currentStrokePath: Path? = null
     override var currentStrokePaint: Paint? = null
-    private var currentStrokePoints = mutableListOf<Pair<Float, Float>>()
+    internal var currentStrokePoints = mutableListOf<Pair<Float, Float>>()
     override var isDrawing = false
-    private var currentBrushColor: Int = Color.BLACK
-    private var currentBrushThickness: Float = 20f
-    private var currentBrushHardness: Float = 1f
-    private var currentBrushStyle: BrushStyle = BrushStyle.PEN
-    private var currentBrushGradient: GradientItem? = null
+    internal var currentBrushColor: Int = Color.BLACK
+    internal var currentBrushThickness: Float = 20f
+    internal var currentBrushHardness: Float = 1f
+    internal var currentBrushStyle: BrushStyle = BrushStyle.PEN
+    internal var currentBrushGradient: GradientItem? = null
 
     override var pickerX = 0f
     override var pickerY = 0f
-    private var isDraggingPicker = false
+    internal var isDraggingPicker = false
     override val desiredPickerIconSizePx = 64f
     private val desiredIconSizeDp = 20f
     private val desiredIconScreenSizePx: Float
         get() = desiredIconSizeDp * resources.displayMetrics.density
 
-    private var iconTouched: String? = null
+
     override var allowFreeDrag: Boolean = false
     private val checkerSize = 20
     private val light = "#F5F5F5".toColorInt()
     private val dark = "#DDDDDD".toColorInt()
 
     override var activeGroupId: String? = null
-    private var inSelectionMode = false
-    private var touchedDownElement: CanvasElement? = null
-    private var isDragCandidate = false
+    internal var inSelectionMode = false
+
+
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
 
     private val initialElementSizes = mutableMapOf<String, Pair<Float, Float>>()
-    private var suppressZoomCallback = false
+
 
     private val checkerShader: BitmapShader by lazy {
         // create a 2×2 tile
@@ -189,7 +189,7 @@ class CanvasView @JvmOverloads constructor(
     }
     internal val checkerPaint = Paint().apply { shader = checkerShader }
 
-    private val rotateLinePaint = Paint().apply {
+    internal val rotateLinePaint = Paint().apply {
         color = Color.GRAY
         style = Paint.Style.STROKE
         isAntiAlias = true
@@ -198,41 +198,41 @@ class CanvasView @JvmOverloads constructor(
     override val canvasElements = CopyOnWriteArrayList<CanvasElement>()
     private lateinit var backgroundElement: CanvasElement
 
-    private var touchStartX = 0f
-    private var touchStartY = 0f
+
+
     override var currentMode: Mode = Mode.NONE
 
-    private var initialElementRotations = mutableMapOf<String, Float>()
 
-    private var initialElementPositionsRelativeToGroupPivot =
-        mutableMapOf<String, Pair<Float, Float>>()
-    private var initialAngle = 0f
-    private var initialGroupPivotX = 0f
-    private var initialGroupPivotY = 0f
 
-    private var initialPinchDistance = 0f
-    private var initialPinchAngle = 0f
-    private var initialScale = 1f
-    private var initialRotation = 0f
+
+
+
+
+
+
+
+
+
+
 
     // Finger midpoint (screen coords) at the moment the pinch started.
     // Used to zoom around the actual finger position, not the screen centre.
-    private var pinchFocusX = 0f
-    private var pinchFocusY = 0f
+
+
 
     // Canvas offset captured at pinch-start — combined with pinchFocusX/Y for
     // pivot-correct zoom math so the canvas never jumps when fingers lift.
-    private var initialOffsetXAtPinch = 0f
-    private var initialOffsetYAtPinch = 0f
 
-    private val resizeLastSignX = mutableMapOf<String, Float>()
-    private val resizeLastSignY = mutableMapOf<String, Float>()
+
+
+
+
 
     // Stores each element's scale at the START of a RESIZE handle gesture.
     // Used for absolute scale math (same approach as MULTI_TOUCH pinch) so both
     // resize mechanisms produce identical zoom levels for the same finger movement.
-    private val resizeInitialScales = mutableMapOf<String, Float>()
-    private var resizeStartDist = 0f // distance from finger to pivot at gesture start
+
+
 
     override var scale = 1f
     override var offsetX = 0f
@@ -284,7 +284,7 @@ class CanvasView @JvmOverloads constructor(
     }
 
     init {
-        gestureDetector = GestureDetector(context, GestureListener())
+        
     }
 
     private val alignmentPaint = Paint().apply {
@@ -372,26 +372,32 @@ class CanvasView @JvmOverloads constructor(
     // ── Pan mode (single-finger pan without selecting elements) ───
     private var isPanMode = false
     private var isCanvasPanLocked = false
-    private val removeIcon: Drawable by lazy {
+    internal val removeIcon: Drawable by lazy {
         AppCompatResources.getDrawable(context, R.drawable.ic_cross)!!
     }
-    private val resizeIcon: Drawable by lazy {
+    internal val resizeIcon: Drawable by lazy {
         AppCompatResources.getDrawable(context, R.drawable.ic_resize)!!
     }
-    private val rotateIcon: Drawable by lazy {
+    internal val rotateIcon: Drawable by lazy {
         AppCompatResources.getDrawable(context, R.drawable.ic_rotate)!!
     }
-    private val editIcon: Drawable by lazy {
+    internal val editIcon: Drawable by lazy {
         AppCompatResources.getDrawable(context, R.drawable.ic_edit_text)!!
     }
 
-    private val transformIcon: Drawable by lazy {
+    internal val transformIcon: Drawable by lazy {
         AppCompatResources.getDrawable(context, R.drawable.ic_transform)!!
     }
 
     override val selectedElements: CopyOnWriteArrayList<CanvasElement> = CopyOnWriteArrayList()
     private var lastTouchedElement: CanvasElement? = null
     private val canvasRenderer = CanvasRenderer(this)
+    private val touchHandler = CanvasTouchHandler(this)
+
+    @SuppressLint("ClickableViewAccessibility")
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        return touchHandler.onTouchEvent(event)
+    }
     internal val elementManager = CanvasElementManager(this)
 
     private fun Float.dpToPx(): Float = this * resources.displayMetrics.density
@@ -860,7 +866,7 @@ class CanvasView @JvmOverloads constructor(
 
     internal fun getSelectionPath(): Path? = elementManager.getSelectionPath()
 
-    private fun removeSelectedElement() {
+    internal fun removeSelectedElement() {
         if (currentMode == Mode.GROUP_EDIT &&
             activeGroupId != null &&
             selectedElements.size == 1 &&
@@ -2531,154 +2537,17 @@ class CanvasView @JvmOverloads constructor(
     }
 
     // Helper functions for pinch distance and angle
-    private fun getPinchDistance(event: MotionEvent): Float {
-        val x = event.getX(0) - event.getX(1)
-        val y = event.getY(0) - event.getY(1)
-        return hypot(x.toDouble(), y.toDouble()).toFloat()
-    }
+    
 
-    private fun getPinchAngle(event: MotionEvent): Float {
-        val x = event.getX(0) - event.getX(1)
-        val y = event.getY(0) - event.getY(1)
-        return Math.toDegrees(atan2(y.toDouble(), x.toDouble())).toFloat()
-    }
+    
 
     fun CanvasElement.containsPoint(px: Float, py: Float): Boolean = with(elementManager) { containsPoint(px, py) }
 
     
 
-    private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
-        override fun onDoubleTap(e: MotionEvent): Boolean {
-            if (isPanMode) {
-                stepZoomOverall()
-                return true
-            }
+    
 
-            val (x, y) = screenToCanvas(e.x, e.y)
-
-            val touchedElement =
-                canvasElements.filter { !it.isLocked && it.type != ElementType.GROUP }
-                    .sortedByDescending { it.zIndex }
-                    .firstOrNull { element ->
-                        val matrix = Matrix()
-                        matrix.postTranslate(-element.x, -element.y)
-                        matrix.postRotate(-element.rotation)
-                        matrix.postScale(1f / element.scale, 1f / element.scale)
-
-                        val touchPoint = floatArrayOf(x, y)
-                        matrix.mapPoints(touchPoint)
-
-                        val tightBounds = element.getTightTextBounds()
-                        tightBounds.contains(touchPoint[0], touchPoint[1])
-                    }
-
-            if (touchedElement != null && currentMode == Mode.GROUP_EDIT && touchedElement.groupId == activeGroupId && touchedElement.type != ElementType.BACKGROUND) {
-                canvasElements.forEach { it.isSelected = false }
-                selectedElements.clear()
-                touchedElement.isSelected = true
-                selectedElements.add(touchedElement)
-                onElementSelected?.invoke(selectedElements)
-                onEditTextRequested?.invoke(touchedElement)
-                invalidate()
-                return true
-            }
-            if (touchedElement?.groupId != null) {
-                activeGroupId = touchedElement.groupId
-                // Enter GROUP_EDIT and immediately select the tapped child --
-                // don't select all children, just the one that was double-tapped.
-                canvasElements.forEach { it.isSelected = false }
-                selectedElements.clear()
-                touchedElement.isSelected = true
-                selectedElements.add(touchedElement)
-                currentMode = Mode.GROUP_EDIT
-                onElementSelected?.invoke(selectedElements)
-                onEditTextRequested?.invoke(touchedElement)
-                invalidate()
-                return true
-            } else if (touchedElement != null) {
-                canvasElements.forEach { it.isSelected = false }
-                selectedElements.clear()
-                touchedElement.isSelected = true
-                selectedElements.add(touchedElement)
-                onElementSelected?.invoke(selectedElements)
-                onEditTextRequested?.invoke(touchedElement)
-                invalidate()
-                return true
-            }
-
-            stepZoomOverall()
-            return true
-        }
-
-        override fun onLongPress(e: MotionEvent) {
-            val (x, y) = screenToCanvas(e.x, e.y)
-
-            val touchedElement = canvasElements.filter { !it.isLocked } // ignore locked
-                .sortedByDescending { it.zIndex }.firstOrNull { it.containsPoint(x, y) }
-
-            if (touchedElement != null && touchedElement.type != ElementType.BACKGROUND) {
-                // Resolve grouped child -> its children for canvas bounds,
-                // but mark the sentinel selected so ViewModel counts it as 1.
-                val groupId = touchedElement.groupId
-                val sentinel = if (groupId != null) {
-                    canvasElements.firstOrNull { it.type == ElementType.GROUP && it.id == groupId }
-                } else {
-                    null
-                }
-                val canvasItems: List<CanvasElement> = if (sentinel != null) {
-                    canvasElements.filter { it.groupId == groupId } // children for bounds
-                } else {
-                    listOf(touchedElement)
-                }
-
-                if (!inSelectionMode) {
-                    inSelectionMode = true
-                    clearSelection()
-                    canvasItems.forEach {
-                        it.isSelected = true
-                        selectedElements.add(it)
-                    }
-                    sentinel?.isSelected = true // mark sentinel for ViewModel only
-                    vibrateSoft()
-                    onRequestOpenLayers?.invoke()
-                } else {
-                    val alreadySelected = canvasItems.all { it.isSelected }
-                    if (alreadySelected) {
-                        canvasItems.forEach {
-                            it.isSelected = false
-                            selectedElements.remove(it)
-                        }
-                        sentinel?.isSelected = false
-                        if (selectedElements.isEmpty()) {
-                            inSelectionMode = false
-                            onExitSelectionMode?.invoke()
-                        }
-                    } else {
-                        canvasItems.forEach {
-                            if (!it.isSelected) {
-                                it.isSelected = true
-                                selectedElements.add(it)
-                            }
-                        }
-                        sentinel?.isSelected = true
-                    }
-                }
-                // Report sentinel (or real element) to ViewModel so count = 1 per group
-                val reportList = if (sentinel != null) listOf(sentinel) else selectedElements.toList()
-                onElementSelected?.invoke(reportList)
-                invalidate()
-            } else {
-                // Long press away from any art-board element → canvas options popup.
-                val isOutsideArtboard = x < 0f || y < 0f || x > canvasWidth || y > canvasHeight
-                if (isOutsideArtboard) {
-                    vibrateSoft()
-                    onCanvasLongPressed?.invoke(e.rawX, e.rawY)
-                }
-            }
-        }
-    }
-
-    private fun stepZoomOverall() {
+    internal fun stepZoomOverall() {
         // 50% → 100% → 200% → 300% → 50% cycle
         val next = when {
             overallScale < 0.9f -> 1.0f // 50%  → 100%
@@ -2690,7 +2559,7 @@ class CanvasView @JvmOverloads constructor(
         onZoomChanged?.invoke(next) // popup label update karo
     }
 
-    private fun animateOverallZoom(toScale: Float) {
+    internal fun animateOverallZoom(toScale: Float) {
         val fromScale = overallScale
         ValueAnimator.ofFloat(fromScale, toScale).apply {
             duration = 400L
@@ -2704,7 +2573,7 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
-    private fun screenToCanvas(sx: Float, sy: Float): Pair<Float, Float> {
+    internal fun screenToCanvas(sx: Float, sy: Float): Pair<Float, Float> {
         val pt = floatArrayOf(sx, sy)
 
         val transform = Matrix().apply {
@@ -2723,1064 +2592,7 @@ class CanvasView @JvmOverloads constructor(
     }
 
     @SuppressLint("ClickableViewAccessibility")
-    override fun onTouchEvent(event: MotionEvent): Boolean {
-        // Only forward single-pointer events to GestureDetector.
-        // Forwarding ACTION_POINTER_DOWN/UP causes TouchTarget double-recycle
-        // on Android 14 (SDK 34), triggering IllegalStateException: already recycled once.
-        val maskedAction = event.actionMasked
-        if (maskedAction == MotionEvent.ACTION_DOWN ||
-            maskedAction == MotionEvent.ACTION_MOVE ||
-            maskedAction == MotionEvent.ACTION_UP ||
-            maskedAction == MotionEvent.ACTION_CANCEL
-        ) {
-            gestureDetector.onTouchEvent(event)
-        }
-
-        val (x, y) = screenToCanvas(event.x, event.y)
-
-        if (isDrawing) {
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    currentStrokePath = Path().apply {
-                        moveTo(x, y)
-                    }
-                    currentStrokePoints.clear()
-                    currentStrokePoints.add(x to y)
-
-                    // Paint for live preview (scaled thickness)
-                    currentStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                        color = currentBrushColor
-                        strokeWidth = currentBrushThickness // ✅ scale-aware preview
-                        style = Paint.Style.STROKE
-                        strokeCap = Paint.Cap.ROUND
-                        strokeJoin = Paint.Join.ROUND
-                        alpha = (currentBrushHardness * 255).toInt()
-
-                        if (currentBrushStyle == BrushStyle.BRUSH) {
-                            val blurRadius = max(0.1f, (1f - currentBrushHardness) * 25f)
-                            maskFilter = try {
-                                BlurMaskFilter(blurRadius, BlurMaskFilter.Blur.NORMAL)
-                            } catch (e: IllegalArgumentException) {
-                                Log.e("CanvasView", "Invalid blur radius: $blurRadius", e)
-                                null
-                            }
-                        }
-
-                        currentBrushGradient?.let {
-                            shader =
-                                createBackgroundGradientShader(
-                                    it,
-                                    width.toFloat(),
-                                    height.toFloat(),
-                                )
-                        }
-                    }
-
-                    invalidate()
-                }
-
-                MotionEvent.ACTION_MOVE -> {
-                    val clampedX = x.coerceIn(0f, canvasWidth.toFloat())
-                    val clampedY = y.coerceIn(0f, canvasHeight.toFloat())
-
-                    currentStrokePath?.lineTo(clampedX, clampedY)
-                    currentStrokePoints.add(clampedX to clampedY)
-                    invalidate()
-                }
-
-                MotionEvent.ACTION_UP -> {
-                    currentStrokePath?.lineTo(x, y)
-
-                    val path = currentStrokePath
-                    if (path != null && activeSessionElement != null) {
-                        // Store path in ABSOLUTE canvas coordinates — no normalization
-                        val strokeData = StrokeData(
-                            path = Path(path),
-                            color = currentBrushColor,
-                            thickness = currentBrushThickness,
-                            hardness = currentBrushHardness,
-                            style = currentBrushStyle,
-                            gradient = currentBrushGradient,
-                        )
-                        activeSessionElement!!.drawStrokes?.add(strokeData)
-                        onStrokeCompleted?.invoke(strokeData)
-                    }
-
-                    // Cleanup live preview
-                    currentStrokePath = null
-                    currentStrokePaint = null
-                    currentStrokePoints.clear()
-                    invalidate()
-                }
-            }
-
-            return true
-        }
-
-        if (isColorPickerMode) {
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
-                    pickerX = x.coerceIn(0f, canvasWidth.toFloat())
-                    pickerY = y.coerceIn(0f, canvasHeight.toFloat())
-                    isDraggingPicker = true
-                    invalidate()
-                    return true
-                }
-
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    if (isDraggingPicker) {
-                        val bmp = colorPickerBitmap
-                        if (bmp != null && !bmp.isRecycled) {
-                            val px = pickerX.roundToInt().coerceIn(0, bmp.width - 1)
-                            val py = pickerY.roundToInt().coerceIn(0, bmp.height - 1)
-                            val color = bmp.getPixel(px, py)
-                            onColorPicked?.invoke(color)
-                        }
-                        isDraggingPicker = false
-                        invalidate()
-                    }
-                    return true
-                }
-            }
-        }
-
-        when (event.actionMasked) {
-            MotionEvent.ACTION_POINTER_DOWN -> {
-                if (event.pointerCount == 2) {
-                    initialPinchDistance = getPinchDistance(event)
-                    initialPinchAngle = getPinchAngle(event)
-                    initialOverallScale = overallScale
-
-                    // Capture the midpoint between the two fingers in screen coords.
-                    // All subsequent CANVAS_PAN pinch-zoom frames use this as the
-                    // fixed pivot so the canvas content under the fingers never moves.
-                    pinchFocusX = (event.getX(0) + event.getX(1)) / 2f
-                    pinchFocusY = (event.getY(0) + event.getY(1)) / 2f
-                    initialOffsetXAtPinch = overallOffsetX
-                    initialOffsetYAtPinch = overallOffsetY
-
-                    when {
-                        // Elements selected → element scale/rotate (pan mode OFF only)
-                        selectedElements.isNotEmpty() && !isPanMode -> {
-                            currentMode = Mode.MULTI_TOUCH
-                            initialScale = selectedElements.firstOrNull()?.scale ?: 1f
-                            initialRotation = selectedElements.firstOrNull()?.rotation ?: 0f
-                        }
-                        // Pan locked — block two-finger zoom/pan
-                        isCanvasPanLocked -> { /* consume but do nothing */ }
-                        // Empty canvas (ya pan mode ON) → overall canvas zoom
-                        else -> {
-                            currentMode = Mode.CANVAS_PAN
-                        }
-                    }
-                }
-            }
-
-            MotionEvent.ACTION_DOWN -> {
-                iconTouched = null
-                lastTouchedElement = null
-                showVerticalGuide = false
-                showHorizontalGuide = false
-                showRotationVerticalGuide = false
-                showRotationHorizontalGuide = false
-
-                if (currentMode == Mode.GROUP_EDIT && activeGroupId != null) {
-                    // Check if the tap is within the combined bounds of the group
-                    val groupChildren = canvasElements.filter { it.groupId == activeGroupId }
-                    val groupBounds = run {
-                        var minX = Float.MAX_VALUE
-                        var minY = Float.MAX_VALUE
-                        var maxX = -Float.MAX_VALUE
-                        var maxY = -Float.MAX_VALUE
-                        groupChildren.forEach { el ->
-                            el.getRotatedCorners().toList().chunked(2).forEach { (cx, cy) ->
-                                if (cx < minX) minX = cx
-                                if (cx > maxX) maxX = cx
-                                if (cy < minY) minY = cy
-                                if (cy > maxY) maxY = cy
-                            }
-                        }
-                        RectF(minX, minY, maxX, maxY)
-                    }
-
-                    val tapInsideGroup = groupBounds.contains(x, y)
-
-                    if (!tapInsideGroup) {
-                        // Tap outside group bounds -- exit GROUP_EDIT completely
-                        currentMode = Mode.NONE
-                        activeGroupId = null
-                        canvasElements.forEach { it.isSelected = false }
-                        selectedElements.clear()
-                        onElementSelected?.invoke(selectedElements)
-                        // Don't return -- let the tap fall through to select whatever is there
-                    } else {
-                        // ── Icon check FIRST — rotate/resize/delete/edit handles ─────────
-                        // If a child is already selected, its handles are drawn and must
-                        // respond to touch before we do any hit-test on children below.
-                        if (selectedElements.isNotEmpty()) {
-                            val touchedIconEntry = lastDrawnIconRect.entries
-                                .firstOrNull { (_, rect) -> rect.contains(x, y) }
-                            if (touchedIconEntry != null) {
-                                iconTouched = touchedIconEntry.key
-                                when (iconTouched) {
-                                    "delete" -> {
-                                        removeSelectedElement()
-                                        return true
-                                    }
-                                    "rotate" -> {
-                                        currentMode = Mode.ROTATE
-                                        touchStartX = x
-                                        touchStartY = y
-                                        isRotating = true
-                                        initialElementRotations.clear()
-                                        initialElementPositionsRelativeToGroupPivot.clear()
-                                        val bounds = getCombinedSelectedBounds()
-                                        initialGroupPivotX = bounds.centerX()
-                                        initialGroupPivotY = bounds.centerY()
-                                        selectedElements.forEach { el ->
-                                            initialElementRotations[el.id] = el.rotation
-                                            initialElementPositionsRelativeToGroupPivot[el.id] =
-                                                Pair(el.x - initialGroupPivotX, el.y - initialGroupPivotY)
-                                        }
-                                        initialAngle = atan2(
-                                            touchStartY - initialGroupPivotY,
-                                            touchStartX - initialGroupPivotX,
-                                        )
-                                        selectedElements.firstOrNull()?.let {
-                                            onStartBatchUpdate?.invoke(it.id, "rotate")
-                                        }
-                                        return true
-                                    }
-                                    "resize" -> {
-                                        currentMode = Mode.RESIZE
-                                        touchStartX = x
-                                        touchStartY = y
-                                        val combined = getCombinedSelectedBounds()
-                                        val pivotX = combined.centerX()
-                                        val pivotY = combined.centerY()
-                                        resizeStartDist = hypot(x - pivotX, y - pivotY)
-                                        selectedElements.forEach { el ->
-                                            resizeLastSignX[el.id] = (touchStartX - pivotX).sign
-                                            resizeLastSignY[el.id] = (touchStartY - pivotY).sign
-                                            resizeInitialScales[el.id] = el.scale
-                                            onStartBatchUpdate?.invoke(el.id, "resize")
-                                        }
-                                        return true
-                                    }
-                                    "edit" -> {
-                                        if (selectedElements.size == 1) {
-                                            onEditTextRequested?.invoke(selectedElements.first())
-                                        }
-                                        return true
-                                    }
-                                    "transform" -> {
-                                        currentMode = Mode.TRANSFORM
-                                        touchStartX = x
-                                        touchStartY = y
-                                        selectedElements.forEach { el ->
-                                            initialElementSizes[el.id] = Pair(
-                                                el.logicalContentWidth,
-                                                el.logicalContentHeight,
-                                            )
-                                            onStartBatchUpdate?.invoke(el.id, "transform")
-                                        }
-                                        return true
-                                    }
-                                }
-                            }
-                        }
-
-                        // ── No icon hit — do child hit-test ──────────────────────────────
-                        val hitChild = groupChildren.filter { !it.isLocked }
-                            .sortedByDescending { it.zIndex }.firstOrNull { element ->
-                                val matrix = Matrix().apply {
-                                    postTranslate(-element.x, -element.y)
-                                    postRotate(-element.rotation)
-                                    postScale(1f / element.scale, 1f / element.scale)
-                                }
-                                val pt = floatArrayOf(x, y).also { matrix.mapPoints(it) }
-                                element.getTightTextBounds().contains(pt[0], pt[1])
-                            }
-
-                        if (hitChild != null) {
-                            // Already selected same child — start drag immediately
-                            // Otherwise switch selection to the new child
-                            if (selectedElements.size != 1 || selectedElements.first().id != hitChild.id) {
-                                canvasElements.forEach { it.isSelected = false }
-                                selectedElements.clear()
-                                hitChild.isSelected = true
-                                selectedElements.add(hitChild)
-                                onElementSelected?.invoke(selectedElements)
-                            }
-                            lastTouchedElement = hitChild
-                            currentMode = Mode.DRAG
-                            touchStartX = x
-                            touchStartY = y
-                            onStartBatchUpdate?.invoke(hitChild.id, "drag")
-                            invalidate()
-                            return true
-                        } else {
-                            // Tapped inside group area but missed all children --
-                            // select all children for bounds, mark sentinel for ViewModel
-                            val sentinel = canvasElements.firstOrNull {
-                                it.type == ElementType.GROUP && it.id == activeGroupId
-                            }
-                            canvasElements.forEach { it.isSelected = false }
-                            selectedElements.clear()
-                            groupChildren.forEach {
-                                it.isSelected = true
-                                selectedElements.add(it)
-                            }
-                            sentinel?.isSelected = true
-                            currentMode = Mode.DRAG
-                            touchStartX = x
-                            touchStartY = y
-                            val report = if (sentinel != null) listOf(sentinel) else selectedElements.toList()
-                            onElementSelected?.invoke(report)
-                            invalidate()
-                            return true
-                        }
-                    }
-                }
-
-                if (selectedElements.isNotEmpty()) {
-                    val touchedIconEntry =
-                        lastDrawnIconRect.entries.firstOrNull { (iconName, rect) ->
-                            Log.d(
-                                "IconTouch",
-                                "Touch region icon=$iconName Rect(${rect.left}, ${rect.top}, ${rect.right}, ${rect.bottom})",
-                            )
-                            rect.contains(x, y)
-                        }
-
-                    if (touchedIconEntry != null) {
-                        Log.d(
-                            "IconHit",
-                            "User tapped inside icon=${touchedIconEntry.key} at ($x,$y)",
-                        )
-                        iconTouched = touchedIconEntry.key
-                        when (iconTouched) {
-                            "delete" -> {
-                                removeSelectedElement() // Handles removing all selected
-                                return true // Consume the event immediately
-                            }
-
-                            "rotate" -> {
-                                currentMode = Mode.ROTATE
-                                touchStartX = x
-                                touchStartY = y
-
-                                isRotating = true
-                                initialElementRotations.clear()
-                                initialElementPositionsRelativeToGroupPivot.clear() // Clear previous initial positions
-                                val combinedBoundsAtStart =
-                                    getCombinedSelectedBounds() // Get bounds at start of interaction
-                                initialGroupPivotX = combinedBoundsAtStart.centerX()
-                                initialGroupPivotY = combinedBoundsAtStart.centerY()
-
-                                selectedElements.forEach { element ->
-                                    initialElementRotations[element.id] = element.rotation
-                                    // Store initial position relative to the group's center
-                                    initialElementPositionsRelativeToGroupPivot[element.id] = Pair(
-                                        element.x - initialGroupPivotX,
-                                        element.y - initialGroupPivotY,
-                                    )
-                                }
-                                initialAngle = atan2(
-                                    touchStartY - initialGroupPivotY,
-                                    touchStartX - initialGroupPivotX,
-                                )
-                                selectedElements.firstOrNull()?.let { element ->
-                                    onStartBatchUpdate?.invoke(element.id, "rotate")
-                                }
-                                return true
-                            }
-
-                            "resize" -> {
-                                currentMode = Mode.RESIZE
-                                touchStartX = x
-                                touchStartY = y
-                                val combined = getCombinedSelectedBounds()
-                                val pivotX = combined.centerX()
-                                val pivotY = combined.centerY()
-                                // Capture the distance from finger to pivot at gesture start.
-                                // MOVE frames compute newScale = initialScale * (currentDist / startDist)
-                                // — absolute math, same as MULTI_TOUCH pinch, so zoom levels match.
-                                resizeStartDist = hypot(x - pivotX, y - pivotY)
-                                selectedElements.forEach { element ->
-                                    resizeLastSignX[element.id] = (touchStartX - pivotX).sign
-                                    resizeLastSignY[element.id] = (touchStartY - pivotY).sign
-                                    resizeInitialScales[element.id] = element.scale
-                                    onStartBatchUpdate?.invoke(element.id, "resize")
-                                }
-                                return true
-                            }
-
-                            "edit" -> {
-                                if (selectedElements.size == 1) {
-                                    onEditTextRequested?.invoke(selectedElements.first())
-                                }
-                                return true
-                            }
-
-                            "transform" -> {
-                                currentMode = Mode.TRANSFORM
-                                touchStartX = x
-                                touchStartY = y
-
-                                // Store initial logical sizes for direct geometry resize
-                                selectedElements.forEach { element ->
-                                    initialElementSizes[element.id] = Pair(
-                                        element.logicalContentWidth,
-                                        element.logicalContentHeight,
-                                    )
-                                    onStartBatchUpdate?.invoke(element.id, "transform")
-                                }
-                                return true
-                            }
-                        }
-                    }
-                }
-
-                // 2. If no icon was touched, check for element touch (single or multi-selection)
-                val touchedElement =
-                    canvasElements.filter { !it.isLocked && it.type != ElementType.GROUP }
-                        .sortedByDescending { it.zIndex }
-                        .firstOrNull { element ->
-                            val matrix = Matrix()
-                            matrix.postTranslate(-element.x, -element.y)
-                            matrix.postRotate(-element.rotation)
-                            matrix.postScale(1f / element.scale, 1f / element.scale)
-
-                            val touchPoint = floatArrayOf(x, y)
-                            matrix.mapPoints(touchPoint)
-
-                            val tightBounds = element.getTightTextBounds()
-                            tightBounds.contains(touchPoint[0], touchPoint[1])
-                        }
-
-                if (touchedElement != null && !isPanMode) {
-                    if (touchedElement.groupId != null) {
-                        val gid = touchedElement.groupId!!
-
-                        // Is this child already individually selected (e.g. from layers panel)?
-                        // Also treat GROUP_EDIT mode as "child already entered".
-                        val isChildAlreadySelectedAlone =
-                            (selectedElements.size == 1 && selectedElements.first().id == touchedElement.id) ||
-                                (currentMode == Mode.GROUP_EDIT && activeGroupId == gid)
-
-                        if (isChildAlreadySelectedAlone) {
-                            // ── Group-edit mode: drag just this child ────────────────────────
-                            // Enter GROUP_EDIT if not already in it, so tapping outside exits.
-                            if (currentMode != Mode.GROUP_EDIT) {
-                                activeGroupId = gid
-                                currentMode = Mode.GROUP_EDIT
-                            }
-                            // Ensure only this child is selected
-                            canvasElements.forEach { it.isSelected = false }
-                            selectedElements.clear()
-                            touchedElement.isSelected = true
-                            selectedElements.add(touchedElement)
-                            lastTouchedElement = touchedElement
-                            touchStartX = x
-                            touchStartY = y
-                            currentMode = Mode.DRAG // drag takes over until ACTION_UP
-                            onStartBatchUpdate?.invoke(touchedElement.id, "drag")
-                            // Report just the child — NOT the sentinel — so ViewModel keeps
-                            // the child individually selected and doesn't collapse to whole group.
-                            onElementSelected?.invoke(selectedElements.toList())
-                            invalidate()
-                            return true
-                        } else {
-                            // Fresh tap on a grouped child → select whole group as one unit
-                            val groupMembers = canvasElements.filter { it.groupId == gid }
-                            val sentinel = canvasElements.firstOrNull {
-                                it.type == ElementType.GROUP && it.id == gid
-                            }
-                            canvasElements.forEach { it.isSelected = false }
-                            selectedElements.clear()
-                            groupMembers.forEach { element ->
-                                element.isSelected = true
-                                selectedElements.add(element)
-                            }
-                            sentinel?.isSelected = true
-                            touchStartX = x
-                            touchStartY = y
-                            currentMode = Mode.DRAG
-                            vibrateSoft()
-                        }
-                    } else {
-                        if (inSelectionMode) {
-                            if (touchedElement.isSelected) {
-                                touchedDownElement = touchedElement
-                                isDragCandidate = true
-                                touchStartX = x
-                                touchStartY = y
-                                currentMode = Mode.NONE
-                            } else {
-                                touchedElement.isSelected = true
-                                selectedElements.add(touchedElement)
-                                onElementSelected?.invoke(selectedElements)
-                                vibrateSoft()
-                            }
-                        } else {
-                            if (touchedElement.isSelected) {
-                                lastTouchedElement = touchedElement
-                                currentMode = Mode.DRAG
-                                touchStartX = x
-                                touchStartY = y
-                            } else {
-                                canvasElements.forEach { it.isSelected = false }
-                                selectedElements.clear()
-                                touchedElement.isSelected = true
-                                selectedElements.add(touchedElement)
-                                lastTouchedElement = touchedElement
-                                currentMode = Mode.DRAG
-                                touchStartX = x
-                                touchStartY = y
-                            }
-                            vibrateSoft()
-                        }
-                    }
-                    onStartBatchUpdate?.invoke(touchedElement.id, "drag")
-                    // Report sentinel to ViewModel when a group is selected,
-                    // so it sees 1 unit not N children.
-                    val reportForSelection = if (touchedElement.groupId != null) {
-                        val sent = canvasElements.firstOrNull {
-                            it.type == ElementType.GROUP && it.id == touchedElement.groupId
-                        }
-                        if (sent != null) listOf(sent) else selectedElements.toList()
-                    } else {
-                        selectedElements.toList()
-                    }
-                    onElementSelected?.invoke(reportForSelection)
-                    invalidate()
-                    return true
-                } else {
-                    // isPanMode ON hai, ya empty canvas tap — pan mode set karo
-                    val bg =
-                        canvasElements.firstOrNull { it.type == ElementType.BACKGROUND && !it.isLocked }
-                    if (!isPanMode && bg?.bitmap != null) {
-                        canvasElements.forEach { it.isSelected = false }
-                        selectedElements.clear()
-                        bg.isSelected = true
-                        selectedElements.add(bg)
-                        onElementSelected?.invoke(selectedElements)
-                        currentMode = Mode.DRAG
-                        touchStartX = x
-                        touchStartY = y
-                        invalidate()
-                        return true
-                    }
-                    if (selectedElements.isNotEmpty() && !isPanMode) {
-                        canvasElements.forEach { it.isSelected = false }
-                        selectedElements.clear()
-                        inSelectionMode = false
-                        onExitSelectionMode?.invoke()
-                        onElementSelected?.invoke(selectedElements)
-                        invalidate()
-                    } else {
-                        // Pan mode ON, ya zoomed in — canvas pan karo
-                        if (isCanvasPanLocked) {
-                            currentMode = Mode.NONE
-                            return true
-                        }
-                        currentMode = Mode.CANVAS_PAN
-                        touchStartX = event.x
-                        touchStartY = event.y
-                        return true
-                    }
-                    currentMode = Mode.NONE
-                    return true
-                }
-            }
-
-            MotionEvent.ACTION_MOVE -> {
-                // Determine which elements to modify based on current mode and touch context
-                val elementsToModify = selectedElements.filter {
-                    !it.isLocked
-                }
-                if (elementsToModify.isEmpty()) {
-                    // allow overall canvas pan/zoom
-                    when (currentMode) {
-                        Mode.CANVAS_PAN -> {
-                            if (!isCanvasPanLocked) {
-                                if (event.pointerCount == 2) {
-                                    // Empty canvas ya pan mode → overall zoom
-                                    val newDist = getPinchDistance(event)
-                                    val factor = newDist / initialPinchDistance
-                                    var newScale = (initialOverallScale * factor).coerceIn(0.5f, 3.0f)
-                                    // Snap to 50%, 100%, 150%, 200%, 250%, 300%
-                                    val snapTargets = listOf(0.5f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f)
-                                    val snapThreshold = 0.03f
-                                    val snappedTarget =
-                                        snapTargets.firstOrNull { abs(newScale - it) <= snapThreshold }
-                                    if (snappedTarget != null) {
-                                        if (overallScale != snappedTarget) vibrateSoft()
-                                        newScale = snappedTarget
-                                    }
-
-                                    // Keep the canvas point under the finger midpoint fixed.
-                                    // Derived from onDraw transform:
-                                    //   screenPos = overallScale*(p - pivot) + pivot + overallOffset
-                                    // Setting screenPos equal before/after scale change gives:
-                                    //   newOffset = initialOffset + (focus - pivot) * (1 - newScale/initialScale)
-                                    val pivotX = width / 2f
-                                    val pivotY = height / 2f
-                                    val scaleFactor = newScale / initialOverallScale
-                                    overallOffsetX = initialOffsetXAtPinch + (pinchFocusX - pivotX) * (1f - scaleFactor)
-                                    overallOffsetY = initialOffsetYAtPinch + (pinchFocusY - pivotY) * (1f - scaleFactor)
-
-                                    overallScale = newScale
-                                    clampOverallPan()
-                                    suppressZoomCallback = true
-                                    onZoomChanged?.invoke(overallScale)
-                                    suppressZoomCallback = false
-                                    invalidate()
-                                } else if (event.pointerCount == 1) {
-                                    val dx = event.x - touchStartX
-                                    val dy = event.y - touchStartY
-                                    overallOffsetX += dx
-                                    overallOffsetY += dy
-                                    checkCanvasPanSnap()
-                                    clampOverallPan()
-                                    touchStartX = event.x
-                                    touchStartY = event.y
-                                    invalidate()
-                                }
-                            }
-                        }
-
-                        else -> return true
-                    }
-                    return true
-                }
-
-                if (isDragCandidate && touchedDownElement != null) {
-                    val dx = abs(x - touchStartX)
-                    val dy = abs(y - touchStartY)
-                    if (dx > touchSlop || dy > touchSlop) {
-                        // start drag instead of deselect
-                        lastTouchedElement = touchedDownElement
-                        currentMode = Mode.DRAG
-                        isDragCandidate = false
-                        touchedDownElement = null
-                    }
-                }
-
-                when (currentMode) {
-                    Mode.DRAG -> {
-                        val dx = x - touchStartX
-                        val dy = y - touchStartY
-
-                        elementsToModify.forEach { element ->
-                            if (element.type == ElementType.BACKGROUND && element.bitmap != null) {
-                                val (xRange, yRange) = computeBackgroundPanBounds(element)
-                                val newX = element.x + dx
-                                val newY = element.y + dy
-
-                                if (!allowFreeDrag) {
-                                    // are we still within “no-blank” pan?
-                                    if (newX in xRange && newY in yRange) {
-                                        element.x = newX.coerceIn(xRange)
-                                        element.y = newY.coerceIn(yRange)
-                                    } else {
-                                        // user pushed past the edge: switch to free-drag from now on
-                                        allowFreeDrag = true
-                                        element.x = newX
-                                        element.y = newY
-                                    }
-                                } else {
-                                    // already in free-drag, just move like normal
-                                    element.x = newX
-                                    element.y = newY
-                                }
-                            } else {
-                                // non-background elements: regular drag
-                                element.x += dx
-                                element.y += dy
-                            }
-                            onElementChanged?.invoke(element)
-                        }
-
-                        // Check alignment for the first selected element (if only one is selected for single drag)
-                        if (selectedElements.isNotEmpty()) {
-                            checkDragSnap()
-                        } else {
-                            showVerticalGuide = false
-                            showHorizontalGuide = false
-                        }
-
-                        touchStartX = x // Update touch start for continuous drag
-                        touchStartY = y
-                        invalidate()
-                    }
-
-                    Mode.MULTI_TOUCH -> {
-                        if (event.pointerCount >= 2) {
-                            val newPinchDistance = getPinchDistance(event)
-                            val newPinchAngle = getPinchAngle(event)
-
-                            // Scale
-                            if (initialPinchDistance > 0) {
-                                val scaleFactor = newPinchDistance / initialPinchDistance
-                                selectedElements.filter { !it.isLocked }.forEach { element ->
-                                    // ── Dynamic minimum scale (matches RESIZE handle) ─────────
-                                    val minOnScreenPx = 20f * resources.displayMetrics.density
-                                    val logicalW = element.getLocalContentWidth().takeIf { it > 0 } ?: 1f
-                                    val minScale = (minOnScreenPx / (logicalW * scale * overallScale))
-                                        .coerceAtMost(0.01f)
-
-                                    val newScale = (initialScale * scaleFactor).coerceIn(minScale, 100f)
-                                    element.scale = newScale
-                                    onElementChanged?.invoke(element)
-                                }
-                            }
-
-                            // Rotate
-                            val rotationDelta = newPinchAngle - initialPinchAngle
-                            selectedElements.filter { !it.isLocked }.forEach { element ->
-                                element.rotation = (initialRotation + rotationDelta) % 360
-                                onElementChanged?.invoke(element)
-                            }
-
-                            checkDragSnap()
-
-                            if (selectedElements.size == 1) {
-                                checkRotationAlignment(selectedElements.first())
-                            } else {
-                                checkGroupRotationAlignment()
-                            }
-                            invalidate()
-                        }
-                    }
-
-                    Mode.ROTATE -> {
-                        if (selectedElements.isEmpty()) return true
-
-                        isRotating = true
-                        val currentAngle = atan2(
-                            y - initialGroupPivotY,
-                            x - initialGroupPivotX,
-                        ) // Calculate angle relative to initial group pivot
-                        val deltaAngle =
-                            Math.toDegrees((currentAngle - initialAngle).toDouble()).toFloat()
-
-                        elementsToModify.forEach { element ->
-                            val initialRotation =
-                                initialElementRotations[element.id] ?: element.rotation
-                            element.rotation =
-                                (initialRotation + deltaAngle) % 360 // Update element's own rotation
-
-                            // Rotate element's initial position relative to the group pivot
-                            val initialRelativeX =
-                                initialElementPositionsRelativeToGroupPivot[element.id]?.first ?: 0f
-                            val initialRelativeY =
-                                initialElementPositionsRelativeToGroupPivot[element.id]?.second
-                                    ?: 0f
-
-                            val rotatedRelativeX =
-                                (initialRelativeX * cos(Math.toRadians(deltaAngle.toDouble()))) - (
-                                    initialRelativeY * sin(
-                                        Math.toRadians(deltaAngle.toDouble()),
-                                    )
-                                    )
-                            val rotatedRelativeY =
-                                (initialRelativeX * sin(Math.toRadians(deltaAngle.toDouble()))) + (
-                                    initialRelativeY * cos(
-                                        Math.toRadians(deltaAngle.toDouble()),
-                                    )
-                                    )
-
-                            // Update element's position based on the rotated relative position from the *initial* group pivot
-                            element.x = initialGroupPivotX + rotatedRelativeX.toFloat()
-                            element.y = initialGroupPivotY + rotatedRelativeY.toFloat()
-
-                            onElementChanged?.invoke(element)
-                        }
-
-                        // After rotating, re-calculate the combined bounds to check for clamping
-                        val newCombinedBounds = getCombinedSelectedBounds()
-
-                        // Clamp the rotated group back into the canvas if it went out
-                        var translationX = 0f
-                        var translationY = 0f
-
-                        if (newCombinedBounds.left < 0) {
-                            translationX = -newCombinedBounds.left
-                        } else if (newCombinedBounds.right > canvasWidth) {
-                            translationX = canvasWidth - newCombinedBounds.right
-                        }
-
-                        if (newCombinedBounds.top < 0) {
-                            translationY = -newCombinedBounds.top
-                        } else if (newCombinedBounds.bottom > canvasHeight) {
-                            translationY = canvasHeight - newCombinedBounds.bottom
-                        }
-
-                        if (translationX != 0f || translationY != 0f) {
-                            elementsToModify.forEach { element ->
-                                element.x += translationX
-                                element.y += translationY
-                                onElementChanged?.invoke(element)
-                            }
-                            // Also adjust the initialGroupPivotX and Y to reflect the new clamped position
-                            initialGroupPivotX += translationX
-                            initialGroupPivotY += translationY
-                        }
-
-                        // Check rotation alignment for the first selected element
-                        if (selectedElements.size == 1) {
-                            checkRotationAlignment(selectedElements.first())
-                        } else if (selectedElements.size > 1) {
-                            checkGroupRotationAlignment()
-                        }
-
-                        invalidate()
-                    }
-
-                    Mode.RESIZE -> {
-                        if (selectedElements.isEmpty()) return true
-
-                        val combined = getCombinedSelectedBounds()
-                        val pivotX = combined.centerX()
-                        val pivotY = combined.centerY()
-
-                        val currentDist = hypot(x - pivotX, y - pivotY)
-
-                        // ── Absolute scale math (matches MULTI_TOUCH pinch) ───────────
-                        // OLD incremental: newScale = element.scale * (currentDist/startDist)
-                        //   — resets startDist each frame via touchStartX=x, causing drift
-                        //     and different zoom sensitivity than pinch.
-                        // NEW absolute:   newScale = initialScale * (currentDist/resizeStartDist)
-                        //   — same formula as MULTI_TOUCH scaleFactor = newPinchDist/initialPinchDist
-                        //   — identical zoom level for the same physical finger movement.
-                        if (resizeStartDist > 0) {
-                            val scaleFactor = currentDist / resizeStartDist
-                            elementsToModify.forEach { element ->
-                                val initialScale = resizeInitialScales[element.id] ?: element.scale
-
-                                // ── Dynamic minimum scale ─────────────────────────────────
-                                // Hard-coding 0.1f as min breaks large bitmaps: a 4000px image
-                                // at scale=0.1 is still 400 canvas units wide — too large to
-                                // call "minimum". Compute min from a 20dp on-screen threshold.
-                                val minOnScreenPx = 20f * resources.displayMetrics.density
-                                val logicalW = element.getLocalContentWidth().takeIf { it > 0 } ?: 1f
-                                val minScale = (minOnScreenPx / (logicalW * scale * overallScale))
-                                    .coerceAtMost(0.01f) // never go above 0.01 as floor
-
-                                val newScale = (initialScale * scaleFactor).coerceIn(minScale, 100f)
-                                element.scale = newScale
-
-                                val lastSignX = resizeLastSignX[element.id] ?: 0f
-                                val currSignX = (x - pivotX).sign
-                                if (currSignX != 0f && currSignX != lastSignX) {
-                                    element.isFlippedX = !element.isFlippedX
-                                    onElementChanged?.invoke(element)
-                                    resizeLastSignX[element.id] = currSignX
-                                }
-
-                                val lastSignY = resizeLastSignY[element.id] ?: 0f
-                                val currSignY = (y - pivotY).sign
-                                if (currSignY != 0f && currSignY != lastSignY) {
-                                    element.isFlippedY = !element.isFlippedY
-                                    onElementChanged?.invoke(element)
-                                    resizeLastSignY[element.id] = currSignY
-                                }
-
-                                onElementChanged?.invoke(element)
-                            }
-                        }
-
-                        // NOTE: touchStartX/Y are NOT reset here — absolute math doesn't need it.
-                        invalidate()
-                    }
-
-                    Mode.NONE -> {
-                        // This block handles potential tap-and-hold to drag if not immediately picking up an icon/element
-                    }
-
-                    Mode.GROUP_EDIT -> {
-                        // This block handles potential tap-and-hold to drag if not immediately picking up an icon/element
-                    }
-
-                    Mode.CANVAS_PAN -> {
-                        if (!isCanvasPanLocked) {
-                            if (event.pointerCount == 2) {
-                                val newDist = getPinchDistance(event)
-                                val factor = newDist / initialPinchDistance
-                                var newScale = (initialOverallScale * factor).coerceIn(0.5f, 3.0f)
-                                // Snap to 50%, 100%, 150%, 200%, 250%, 300%
-                                val snapTargets = listOf(0.5f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f)
-                                val snapThreshold = 0.03f
-                                val snappedTarget =
-                                    snapTargets.firstOrNull { abs(newScale - it) <= snapThreshold }
-                                if (snappedTarget != null) {
-                                    if (overallScale != snappedTarget) vibrateSoft()
-                                    newScale = snappedTarget
-                                }
-
-                                // Keep the canvas point under the finger midpoint fixed.
-                                // Derived from onDraw transform:
-                                //   screenPos = overallScale*(p - pivot) + pivot + overallOffset
-                                // Setting screenPos equal before/after scale change gives:
-                                //   newOffset = initialOffset + (focus - pivot) * (1 - newScale/initialScale)
-                                val pivotX = width / 2f
-                                val pivotY = height / 2f
-                                val scaleFactor = newScale / initialOverallScale
-                                overallOffsetX = initialOffsetXAtPinch + (pinchFocusX - pivotX) * (1f - scaleFactor)
-                                overallOffsetY = initialOffsetYAtPinch + (pinchFocusY - pivotY) * (1f - scaleFactor)
-
-                                overallScale = newScale
-                                clampOverallPan()
-                                suppressZoomCallback = true
-                                onZoomChanged?.invoke(overallScale)
-                                suppressZoomCallback = false
-                                invalidate()
-                            } else if (event.pointerCount == 1) {
-                                val dx = event.x - touchStartX
-                                val dy = event.y - touchStartY
-                                overallOffsetX += dx
-                                overallOffsetY += dy
-                                checkCanvasPanSnap()
-                                clampOverallPan()
-                                touchStartX = event.x
-                                touchStartY = event.y
-                                invalidate()
-                            }
-                        }
-                    }
-
-                    Mode.TRANSFORM -> {
-                        if (selectedElements.isEmpty()) return true
-
-                        val dx = x - touchStartX
-                        val dy = y - touchStartY
-
-                        selectedElements.forEach { element ->
-                            val (initialW, initialH) = initialElementSizes[element.id]
-                                ?: return@forEach
-
-                            val newW = (initialW - dx).coerceAtLeast(10f)
-                            val newH = (initialH + dy).coerceAtLeast(10f)
-
-                            element.logicalContentWidth = newW
-                            element.logicalContentHeight = newH
-                            onElementChanged?.invoke(element)
-                        }
-
-                        invalidate()
-                        return true
-                    }
-                }
-                return true
-            }
-
-            MotionEvent.ACTION_POINTER_UP -> {
-                // A second (or later) finger lifted — only reset pinch state.
-                // Do NOT run the full ACTION_UP logic here; doing so causes the
-                // framework to recycle the same TouchTarget twice, which throws
-                // IllegalStateException: already recycled once on Android 15.
-                if (currentMode == Mode.CANVAS_PAN || currentMode == Mode.MULTI_TOUCH) {
-                    initialPinchDistance = 0f
-                    initialPinchAngle = 0f
-                    initialOverallScale = overallScale
-                    pinchFocusX = 0f
-                    pinchFocusY = 0f
-                    initialOffsetXAtPinch = overallOffsetX
-                    initialOffsetYAtPinch = overallOffsetY
-
-                    // Update touchStart points to the remaining finger's coordinates
-                    // if we were in CANVAS_PAN mode to prevent a jump/snap when the remaining finger moves.
-                    if (currentMode == Mode.CANVAS_PAN && event.pointerCount == 2) {
-                        val remainingIndex = if (event.actionIndex == 0) 1 else 0
-                        touchStartX = event.getX(remainingIndex)
-                        touchStartY = event.getY(remainingIndex)
-                    }
-                }
-                invalidate()
-                return true
-            }
-
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                showVerticalGuide = false
-                showHorizontalGuide = false
-                showRotationVerticalGuide = false // Reset rotation guides on ACTION_UP
-                showRotationHorizontalGuide = false // Reset rotation guides on ACTION_UP
-                showCanvasCenterVerticalSnap = false
-                showCanvasCenterHorizontalSnap = false
-                if (currentMode == Mode.CANVAS_PAN) {
-                    currentMode = Mode.NONE
-                }
-
-                if (currentMode == Mode.TRANSFORM) {
-                    selectedElements.forEach {
-                        onElementChanged?.invoke(it)
-                        onEndBatchUpdate?.invoke(it.id)
-                    }
-                }
-
-                if (currentMode == Mode.DRAG || currentMode == Mode.ROTATE || currentMode == Mode.RESIZE) {
-                    selectedElements.filter { !it.isLocked }.forEach {
-                        onElementChanged?.invoke(it)
-                        onEndBatchUpdate?.invoke(it.id)
-                    }
-                }
-                if (isDragCandidate && touchedDownElement != null) {
-                    val element = touchedDownElement!!
-                    element.isSelected = false
-                    selectedElements.remove(element)
-                    if (selectedElements.isEmpty()) {
-                        inSelectionMode = false
-                        onExitSelectionMode?.invoke()
-                    }
-                    onElementSelected?.invoke(selectedElements)
-                    invalidate()
-                }
-                isDragCandidate = false
-                touchedDownElement = null
-
-                iconTouched = null
-                initialPinchDistance = 0f
-                initialPinchAngle = 0f
-                initialScale = 1f
-                initialRotation = 0f
-                pinchFocusX = 0f
-                pinchFocusY = 0f
-                initialOffsetXAtPinch = 0f
-                initialOffsetYAtPinch = 0f
-                resizeInitialScales.clear()
-                resizeStartDist = 0f
-                initialElementRotations.clear()
-                initialElementPositionsRelativeToGroupPivot.clear() // Clear initial positions on action up
-                initialAngle = 0f
-                initialGroupPivotX = 0f
-                initialGroupPivotY = 0f
-                if (currentMode != Mode.GROUP_EDIT) {
-                    lastTouchedElement = null
-                    // If we just finished dragging a single group child, restore GROUP_EDIT
-                    // so the user stays "inside" the group (Photoshop behaviour).
-                    // Tap outside will exit GROUP_EDIT via the existing bounds check.
-                    if (activeGroupId != null &&
-                        selectedElements.size == 1 &&
-                        selectedElements.first().groupId == activeGroupId
-                    ) {
-                        currentMode = Mode.GROUP_EDIT
-                    } else {
-                        currentMode = Mode.NONE
-                    }
-                }
-                clampOverallPan()
-                isRotating = false
-                invalidate()
-                return true
-            }
-        }
-        // This view handles all touch events — never fall through to super,
-        // as that can re-enter the parent's touch dispatch chain and contribute
-        // to the TouchTarget double-recycle crash on Android 14.
-        return true
-    }
+    
 
     /**
      * Called during CANVAS_PAN single-finger drag.
@@ -3788,7 +2600,7 @@ class CanvasView @JvmOverloads constructor(
      * comes within [canvasSnapThresholdPx] of the view center, and shows the
      * dashed cyan guide lines.  Vibrates once when snapping occurs.
      */
-    private fun checkCanvasPanSnap() {
+    internal fun checkCanvasPanSnap() {
         val prevSnapV = showCanvasCenterVerticalSnap
         val prevSnapH = showCanvasCenterHorizontalSnap
 
@@ -3810,7 +2622,7 @@ class CanvasView @JvmOverloads constructor(
         showCanvasCenterHorizontalSnap = snapY
     }
 
-    private fun clampOverallPan() {
+    internal fun clampOverallPan() {
         val screenW = width.toFloat()
         val screenH = height.toFloat()
 
@@ -3834,7 +2646,7 @@ class CanvasView @JvmOverloads constructor(
         overallOffsetY = overallOffsetY.coerceIn(-finalMaxOffsetY, finalMaxOffsetY)
     }
 
-    private fun canvasToView(cx: Float, cy: Float): Pair<Float, Float> {
+    internal fun canvasToView(cx: Float, cy: Float): Pair<Float, Float> {
         val scaledWidth = canvasWidth * scale
         val scaledHeight = canvasHeight * scale
         val ox = (width - scaledWidth) / 2f // offsetX
