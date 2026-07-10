@@ -6,7 +6,12 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.view.*
+import android.view.LayoutInflater
+import android.view.Surface
+import android.view.TextureView
+import android.view.View
+import android.view.ViewGroup
+import android.view.WindowInsets
 import androidx.fragment.app.Fragment
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
@@ -15,7 +20,9 @@ import com.webscare.urducanvas.databinding.FragmentSplashBinding
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class SplashFragment : Fragment(), TextureView.SurfaceTextureListener {
+class SplashFragment :
+    Fragment(),
+    TextureView.SurfaceTextureListener {
 
     private var _binding: FragmentSplashBinding? = null
     private val binding get() = _binding!!
@@ -23,8 +30,9 @@ class SplashFragment : Fragment(), TextureView.SurfaceTextureListener {
     private var mediaPlayer: MediaPlayer? = null
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentSplashBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -41,17 +49,17 @@ class SplashFragment : Fragment(), TextureView.SurfaceTextureListener {
         // Hide system bars
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             requireActivity().window.insetsController?.hide(
-                WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars()
+                WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars(),
             )
         } else {
             @Suppress("DEPRECATION")
             requireActivity().window.decorView.systemUiVisibility = (
-                    View.SYSTEM_UI_FLAG_FULLSCREEN
-                            or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                            or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    )
+                View.SYSTEM_UI_FLAG_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                )
         }
 
         binding.splashVideo.surfaceTextureListener = this
@@ -60,7 +68,7 @@ class SplashFragment : Fragment(), TextureView.SurfaceTextureListener {
     // Called when TextureView is ready
     override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
         val videoUri = Uri.parse(
-            "android.resource://${requireContext().packageName}/${R.raw.splash_video}"
+            "android.resource://${requireContext().packageName}/${R.raw.splash_video}",
         )
 
         mediaPlayer = MediaPlayer().apply {

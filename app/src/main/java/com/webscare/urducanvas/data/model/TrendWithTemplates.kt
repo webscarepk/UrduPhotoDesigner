@@ -12,8 +12,8 @@ data class TrendWithTemplates(
         associateBy = Junction(
             value = TrendTemplateCrossRef::class,
             parentColumn = "trendId",
-            entityColumn = "templateId"
-        )
+            entityColumn = "templateId",
+        ),
     )
-    val templates: List<TemplateEntity>
+    val templates: List<TemplateEntity>,
 )

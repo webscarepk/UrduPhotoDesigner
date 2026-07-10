@@ -23,7 +23,6 @@ import com.webscare.urducanvas.common.canvas.enums.BrushStyle
 import com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget
 import com.webscare.urducanvas.common.canvas.enums.PickerTarget
 import com.webscare.urducanvas.common.utils.BrushRenderUtils
-import com.webscare.urducanvas.common.utils.ColorPickerDialog
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentBrushPanelBinding
@@ -53,7 +52,9 @@ class BrushPanelFragment : Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentBrushPanelBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -91,10 +92,10 @@ class BrushPanelFragment : Fragment() {
             // SeekBar.setMin() was added in API 26 — calling it on API 25 (Android 7.1)
             // throws NoSuchMethodError. Keep min=0 (the default) and add +1 offset when
             // reading/writing so the effective range is still 1–100.
-            max = 99   // 0..99 on the bar → displayed as 1..100
+            max = 99 // 0..99 on the bar → displayed as 1..100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                    val thickness = (progress + 1).toFloat()   // offset: bar 0 → thickness 1
+                    val thickness = (progress + 1).toFloat() // offset: bar 0 → thickness 1
                     binding.thickness.text = (progress + 1).toString()
                     if (fromUser) {
                         viewModel.setBrushThickness(thickness)
@@ -107,13 +108,12 @@ class BrushPanelFragment : Fragment() {
         }
 
         binding.hardnessBar.apply {
-
             max = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                     binding.hardness.text = "$progress%"
                     if (fromUser) {
-                        val hardness = progress.toFloat() / 100f   // normalized 0.0–1.0
+                        val hardness = progress.toFloat() / 100f // normalized 0.0–1.0
                         viewModel.setBrushHardness(hardness)
                     }
                 }
@@ -187,15 +187,22 @@ class BrushPanelFragment : Fragment() {
                     cubicTo(width * 0.3f, height * 0.3f, width * 0.7f, height * 0.7f, width * 0.9f, height * 0.5f)
                 }
                 val stroke = com.webscare.urducanvas.common.canvas.model.StrokeData(
-                    path = path, color = color, thickness = thickness,
-                    hardness = hardness, style = style, gradient = gradient
+                    path = path,
+                    color = color,
+                    thickness = thickness,
+                    hardness = hardness,
+                    style = style,
+                    gradient = gradient,
                 )
                 BrushRenderUtils.drawStrokePreview(
-                    canvas = canvas, stroke = stroke, paintAlpha = 255,
-                    width = width, height = height,
+                    canvas = canvas,
+                    stroke = stroke,
+                    paintAlpha = 255,
+                    width = width,
+                    height = height,
                     makePaint = BrushRenderUtils::makeStrokePaint,
                     drawBrush = BrushRenderUtils::drawBrushStroke,
-                    drawPen = BrushRenderUtils::drawTaperedPenStroke
+                    drawPen = BrushRenderUtils::drawTaperedPenStroke,
                 )
                 bmp
             }
@@ -229,7 +236,7 @@ class BrushPanelFragment : Fragment() {
         }
 
         viewModel.brushThickness.observe(viewLifecycleOwner) { thickness ->
-            val progressValue = (thickness.toInt() - 1).coerceIn(0, 99)  // reverse the +1 offset
+            val progressValue = (thickness.toInt() - 1).coerceIn(0, 99) // reverse the +1 offset
             binding.thicknessBar.progress = progressValue
             binding.thickness.text = thickness.toInt().toString()
             animatePreview()
@@ -244,7 +251,6 @@ class BrushPanelFragment : Fragment() {
             gradientsAdapter.selectedItem = gradient
             animatePreview()
         }
-
     }
 
     private fun updateBrushStyleUI(style: BrushStyle) {
@@ -258,7 +264,7 @@ class BrushPanelFragment : Fragment() {
             binding.marker to BrushStyle.MARKER,
             binding.brush to BrushStyle.BRUSH,
             binding.highlighter to BrushStyle.HIGHLIGHTER,
-            binding.pencil to BrushStyle.PENCIL
+            binding.pencil to BrushStyle.PENCIL,
         )
 
         styleCards.forEach { (card, brushType) ->
@@ -274,10 +280,10 @@ class BrushPanelFragment : Fragment() {
                 styleCards.forEach { (otherCard, otherType) ->
                     val isSelected = otherType == viewModel.currentBrushStyle.value
                     otherCard.backgroundTintList = ColorStateList.valueOf(
-                        if (isSelected) appColor else contrastColor
+                        if (isSelected) appColor else contrastColor,
                     )
                     otherCard.imageTintList = ColorStateList.valueOf(
-                        if (isSelected) whiteTint else grayTint
+                        if (isSelected) whiteTint else grayTint,
                     )
                 }
             }
@@ -285,10 +291,10 @@ class BrushPanelFragment : Fragment() {
             // Also handle visual update when LiveData triggers externally
             val isSelected = brushType == style
             card.backgroundTintList = ColorStateList.valueOf(
-                if (isSelected) appColor else contrastColor
+                if (isSelected) appColor else contrastColor,
             )
             card.imageTintList = ColorStateList.valueOf(
-                if (isSelected) whiteTint else grayTint
+                if (isSelected) whiteTint else grayTint,
             )
         }
     }
@@ -311,13 +317,15 @@ class BrushPanelFragment : Fragment() {
                     viewModel.setBrushGradient(null)
                     viewModel.setPagingLocked(true)
                     childFragmentManager.beginTransaction().replace(
-                        R.id.brushPanel, ColorPickerFragment()
+                        R.id.brushPanel,
+                        ColorPickerFragment(),
                     ).addToBackStack(null).commit()
                 },
                 onEyeDropperClicked = {
                     viewModel.setBrushGradient(null)
                     viewModel.startPicking(PickerTarget.EYE_DROPPER_DRAW_STROKE)
-                })
+                },
+            )
 
         gradientsAdapter =
             GradientsAdapter(gradientList = emptyList(), onGradientSelected = { _, item ->
@@ -327,22 +335,26 @@ class BrushPanelFragment : Fragment() {
                 viewModel.setGradient(item)
                 viewModel.setPagingLocked(true)
                 childFragmentManager.beginTransaction().replace(
-                    R.id.brushPanel, GradientEditorFragment().apply {
+                    R.id.brushPanel,
+                    GradientEditorFragment().apply {
                         arguments = Bundle().apply {
                             putBoolean("IS_EDIT", true)
                         }
-                    }).addToBackStack(null).commit()
+                    },
+                ).addToBackStack(null).commit()
             }, onNoneSelected = {
                 viewModel.setBrushGradient(null)
             }, onGradientPickerClicked = {
                 viewModel.startPickingGradient(GradientPickerTarget.DRAW_STROKE)
                 viewModel.setPagingLocked(true)
                 childFragmentManager.beginTransaction().replace(
-                    R.id.brushPanel, GradientEditorFragment().apply {
+                    R.id.brushPanel,
+                    GradientEditorFragment().apply {
                         arguments = Bundle().apply {
                             putBoolean("IS_EDIT", false)
                         }
-                    }).addToBackStack(null).commit()
+                    },
+                ).addToBackStack(null).commit()
             })
 
         binding.colors.apply {

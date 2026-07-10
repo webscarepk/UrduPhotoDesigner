@@ -10,21 +10,21 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GradientDao {
-  @Query("SELECT * FROM gradient_presets ORDER BY id DESC")
-  fun getAll(): Flow<List<GradientEntity>>
+    @Query("SELECT * FROM gradient_presets ORDER BY id DESC")
+    fun getAll(): Flow<List<GradientEntity>>
 
-  @Insert(onConflict = OnConflictStrategy.IGNORE)
-  suspend fun insertAll(presets: List<GradientEntity>)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(presets: List<GradientEntity>)
 
-  @Insert(onConflict = OnConflictStrategy.IGNORE)
-  suspend fun insert(entity: GradientEntity)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(entity: GradientEntity)
 
-  @Query("DELETE FROM gradient_presets WHERE id = :id")
-  suspend fun deleteById(id: Long)
+    @Query("DELETE FROM gradient_presets WHERE id = :id")
+    suspend fun deleteById(id: Long)
 
-  @Update
-  suspend fun updateGradient(entity: GradientEntity)
+    @Update
+    suspend fun updateGradient(entity: GradientEntity)
 
-  @Query("SELECT COUNT(*) FROM gradient_presets")
-  suspend fun count(): Int
+    @Query("SELECT COUNT(*) FROM gradient_presets")
+    suspend fun count(): Int
 }

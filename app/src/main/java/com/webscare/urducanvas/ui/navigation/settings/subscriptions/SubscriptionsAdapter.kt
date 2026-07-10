@@ -11,9 +11,7 @@ import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.SubscriptionPlan
 import com.webscare.urducanvas.databinding.LayoutSubscriptionsItemBinding
 
-class SubscriptionsAdapter(
-    private val onSelect: (SubscriptionPlan) -> Unit
-) : RecyclerView.Adapter<SubscriptionsAdapter.VH>() {
+class SubscriptionsAdapter(private val onSelect: (SubscriptionPlan) -> Unit) : RecyclerView.Adapter<SubscriptionsAdapter.VH>() {
 
     private val items = mutableListOf<SubscriptionPlan>()
 
@@ -48,12 +46,10 @@ class SubscriptionsAdapter(
     }
 
     /** Index of the plan with the highest discount — that one gets the "BEST VALUE" ribbon. */
-    private fun bestValueIndex(): Int =
-        items.indices.filter { items[it].hasDiscount }
-            .maxByOrNull { items[it].discountPercent } ?: -1
+    private fun bestValueIndex(): Int = items.indices.filter { items[it].hasDiscount }
+        .maxByOrNull { items[it].discountPercent } ?: -1
 
-    inner class VH(val binding: LayoutSubscriptionsItemBinding) :
-        RecyclerView.ViewHolder(binding.root) {
+    inner class VH(val binding: LayoutSubscriptionsItemBinding) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: SubscriptionPlan) = with(binding) {
             title.text = item.title
@@ -78,7 +74,7 @@ class SubscriptionsAdapter(
                 saveBadge.text = ctx.getString(R.string.sub_save_percent, item.discountPercent)
                 saveBadge.background = ContextCompat.getDrawable(ctx, R.drawable.sub_discount_pill)
                 saveBadge.backgroundTintList = ColorStateList.valueOf(
-                    ContextCompat.getColor(ctx, R.color.contrast)
+                    ContextCompat.getColor(ctx, R.color.contrast),
                 )
                 saveBadge.setTextColor(ContextCompat.getColor(ctx, R.color.appColor))
                 saveBadge.setPadding(dp(9f), dp(3f), dp(9f), dp(3f))
@@ -99,17 +95,18 @@ class SubscriptionsAdapter(
             mainCard.strokeWidth = if (isSelected) dp(1.5f) else dp(1f)
             mainCard.strokeColor = ContextCompat.getColor(
                 root.context,
-                if (isSelected) R.color.appColor else R.color.sub_divider
+                if (isSelected) R.color.appColor else R.color.sub_divider,
             )
         }
 
-        private fun dp(v: Float) =
-            (v * itemView.resources.displayMetrics.density).toInt()
+        private fun dp(v: Float) = (v * itemView.resources.displayMetrics.density).toInt()
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
         val binding = LayoutSubscriptionsItemBinding.inflate(
-            LayoutInflater.from(parent.context), parent, false
+            LayoutInflater.from(parent.context),
+            parent,
+            false,
         )
         return VH(binding)
     }

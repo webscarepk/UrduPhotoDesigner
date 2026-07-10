@@ -24,12 +24,12 @@ import kotlinx.coroutines.withContext
 class ShapeAdapter(
     private val context: Context,
     shapes: List<ShapeType>,
-    private val onShapeSelected: (ShapeType) -> Unit
+    private val onShapeSelected: (ShapeType) -> Unit,
 ) : RecyclerView.Adapter<ShapeAdapter.ShapeViewHolder>() {
 
     companion object {
         const val TYPE_COLLAPSED = 0
-        const val TYPE_EXPANDED  = 1
+        const val TYPE_EXPANDED = 1
         private const val BITMAP_SIZE = 300
         private const val PAD = 0.32f
     }
@@ -67,16 +67,16 @@ class ShapeAdapter(
     }
 
     private fun renderShapeBitmap(shape: ShapeType): Bitmap {
-        val size   = BITMAP_SIZE
+        val size = BITMAP_SIZE
         val bitmap = createBitmap(size, size)
         val canvas = Canvas(bitmap)
-        val paint  = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color       = context.getColor(R.color.black)
-            strokeWidth = size * 0.025f  // 2.5%
-            style       = Paint.Style.STROKE
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = context.getColor(R.color.black)
+            strokeWidth = size * 0.025f // 2.5%
+            style = Paint.Style.STROKE
         }
-        val pad    = size * PAD
-        val rect   = RectF(pad, pad, size - pad, size - pad)
+        val pad = size * PAD
+        val rect = RectF(pad, pad, size - pad, size - pad)
         drawShape(canvas, paint, shape, rect, 0f)
         return bitmap
     }
@@ -87,20 +87,19 @@ class ShapeAdapter(
         notifyDataSetChanged()
     }
 
-    override fun getItemViewType(position: Int): Int =
-        if (isExpanded) TYPE_EXPANDED else TYPE_COLLAPSED
+    override fun getItemViewType(position: Int): Int = if (isExpanded) TYPE_EXPANDED else TYPE_COLLAPSED
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ShapeViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         return if (viewType == TYPE_EXPANDED) {
             ShapeViewHolder.Expanded(
                 LayoutImagesItemExpandedBinding.inflate(inflater, parent, false),
-                ::handleShapeClick
+                ::handleShapeClick,
             )
         } else {
             ShapeViewHolder.Collapsed(
                 LayoutImagesItemBinding.inflate(inflater, parent, false),
-                ::handleShapeClick
+                ::handleShapeClick,
             )
         }
     }
@@ -115,15 +114,16 @@ class ShapeAdapter(
     }
 
     override fun onBindViewHolder(holder: ShapeViewHolder, position: Int) {
-        val shape  = shapes[position]
+        val shape = shapes[position]
         holder.bind(shape, shape == selectedShape, bitmaps[shape], slideOffset, recyclerViewWidth, recyclerViewPadding)
     }
 
-    override fun onBindViewHolder(
-        holder: ShapeViewHolder, position: Int, payloads: MutableList<Any>
-    ) {
-        if (payloads.isEmpty()) { onBindViewHolder(holder, position); return }
-        val shape  = shapes[position]
+    override fun onBindViewHolder(holder: ShapeViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isEmpty()) {
+            onBindViewHolder(holder, position)
+            return
+        }
+        val shape = shapes[position]
         if (payloads.contains("selection_changed")) {
             holder.updateSelectionOnly(shape == selectedShape)
         }
@@ -138,10 +138,7 @@ class ShapeAdapter(
 
     // ── ViewHolder ────────────────────────────────────────────────────────────
 
-    sealed class ShapeViewHolder(
-        itemView: android.view.View,
-        private val onShapeSelected: (ShapeType) -> Unit
-    ) : RecyclerView.ViewHolder(itemView) {
+    sealed class ShapeViewHolder(itemView: android.view.View, private val onShapeSelected: (ShapeType) -> Unit) : RecyclerView.ViewHolder(itemView) {
 
         abstract val imageView: android.widget.ImageView
         abstract val cardRoot: com.google.android.material.card.MaterialCardView
@@ -154,7 +151,7 @@ class ShapeAdapter(
             bitmap: Bitmap?,
             slideOffset: Float,
             rvWidth: Int,
-            rvPadding: Int
+            rvPadding: Int,
         ) {
             boundShape = shape
             imageView.scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
@@ -183,7 +180,9 @@ class ShapeAdapter(
                 // Calculate vertical clamping when horizontal orientation to prevent overlapping rows
                 val recyclerView = itemView.parent as? androidx.recyclerview.widget.RecyclerView
                 val lm = recyclerView?.layoutManager as? androidx.recyclerview.widget.GridLayoutManager
-                val finalSize = if (lm != null && lm.orientation == androidx.recyclerview.widget.GridLayoutManager.HORIZONTAL) {
+                val finalSize = if (lm != null &&
+                    lm.orientation == androidx.recyclerview.widget.GridLayoutManager.HORIZONTAL
+                ) {
                     val rvHeight = recyclerView.height
                     val rvPaddingY = recyclerView.paddingTop + recyclerView.paddingBottom
                     val availHeight = rvHeight - rvPaddingY
@@ -195,7 +194,11 @@ class ShapeAdapter(
                     currentSize
                 }
 
-                if (lp.width != finalSize || lp.height != finalSize || lp.rightMargin != marginEndPx || lp.bottomMargin != marginBottomPx) {
+                if (lp.width != finalSize ||
+                    lp.height != finalSize ||
+                    lp.rightMargin != marginEndPx ||
+                    lp.bottomMargin != marginBottomPx
+                ) {
                     lp.width = finalSize
                     lp.height = finalSize
                     lp.rightMargin = marginEndPx
@@ -212,7 +215,7 @@ class ShapeAdapter(
 
         fun updateSelectionOnly(isSelected: Boolean) {
             cardRoot.setCardBackgroundColor(
-                ContextCompat.getColor(itemView.context, R.color.contrast)
+                ContextCompat.getColor(itemView.context, R.color.contrast),
             )
             cardRoot.strokeWidth = if (isSelected) 4 else 0
             if (isSelected) {
@@ -220,29 +223,23 @@ class ShapeAdapter(
             }
         }
 
-        class Collapsed(
-            private val binding: LayoutImagesItemBinding,
-            onShapeSelected: (ShapeType) -> Unit
-        ) : ShapeViewHolder(binding.root, onShapeSelected) {
+        class Collapsed(private val binding: LayoutImagesItemBinding, onShapeSelected: (ShapeType) -> Unit) : ShapeViewHolder(binding.root, onShapeSelected) {
             override val imageView get() = binding.image
-            override val cardRoot  get() = binding.root
+            override val cardRoot get() = binding.root
             init {
                 binding.isPremium.visibility = android.view.View.GONE
-                binding.loading.visibility   = android.view.View.GONE
+                binding.loading.visibility = android.view.View.GONE
                 binding.shimmerLayout.stopShimmer()
                 binding.shimmerLayout.setShimmer(null)
             }
         }
 
-        class Expanded(
-            private val binding: LayoutImagesItemExpandedBinding,
-            onShapeSelected: (ShapeType) -> Unit
-        ) : ShapeViewHolder(binding.root, onShapeSelected) {
+        class Expanded(private val binding: LayoutImagesItemExpandedBinding, onShapeSelected: (ShapeType) -> Unit) : ShapeViewHolder(binding.root, onShapeSelected) {
             override val imageView get() = binding.image
-            override val cardRoot  get() = binding.root
+            override val cardRoot get() = binding.root
             init {
                 binding.isPremium.visibility = android.view.View.GONE
-                binding.loading.visibility   = android.view.View.GONE
+                binding.loading.visibility = android.view.View.GONE
                 binding.checkIcon.visibility = android.view.View.GONE
                 binding.shimmerLayout.stopShimmer()
                 binding.shimmerLayout.setShimmer(null)

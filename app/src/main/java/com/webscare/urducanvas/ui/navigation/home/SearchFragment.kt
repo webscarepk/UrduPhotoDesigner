@@ -5,7 +5,6 @@ import android.animation.ValueAnimator
 import android.app.Dialog
 import android.content.Context
 import android.graphics.BitmapFactory
-import android.graphics.Canvas
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -35,10 +34,8 @@ import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.data.model.ProgressUi
 import com.webscare.urducanvas.data.model.toExportResultFinal
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.data.model.ImageEntity
-import com.webscare.urducanvas.data.model.toExportResultFinal
 import com.webscare.urducanvas.databinding.DialogLoadingProgressBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -66,7 +63,9 @@ class SearchFragment : Fragment() {
     private var bundle: Bundle = Bundle()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentSearchBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -89,7 +88,6 @@ class SearchFragment : Fragment() {
         observeSearchResults()
     }
 
-
     private fun setupAdapters() {
         // Templates
         templatesAdapter = PopularTemplatesAdapter(onClick = { template, isDownloaded ->
@@ -99,8 +97,10 @@ class SearchFragment : Fragment() {
                     templatesAdapter.updateProgress(
                         template.id,
                         ProgressUi(
-                            progress = 0, isDownloading = true, isDownloaded = false
-                        )
+                            progress = 0,
+                            isDownloading = true,
+                            isDownloaded = false,
+                        ),
                     )
                     mainViewModel.downloadTemplate(template)
                     return@PopularTemplatesAdapter
@@ -115,9 +115,12 @@ class SearchFragment : Fragment() {
                 }
             } else {
                 templatesAdapter.updateProgress(
-                    template.id, ProgressUi(
-                        progress = 0, isDownloading = true, isDownloaded = false
-                    )
+                    template.id,
+                    ProgressUi(
+                        progress = 0,
+                        isDownloading = true,
+                        isDownloaded = false,
+                    ),
                 )
                 mainViewModel.downloadTemplate(template)
             }
@@ -136,11 +139,16 @@ class SearchFragment : Fragment() {
             } else {
                 canvasViewModel.setCanvasSize(
                     CanvasSize(
-                        id = 0,"", 2000f, 2000f
-                    )
+                        id = 0,
+                        "",
+                        2000f,
+                        2000f,
+                    ),
                 )
                 canvasViewModel.addTextWithFont(
-                    requireActivity().getString(R.string.dummyText), font, requireActivity()
+                    requireActivity().getString(R.string.dummyText),
+                    font,
+                    requireActivity(),
                 )
 
                 view?.post { findNavController().navigate(R.id.editorFragment, null, navOptions) }
@@ -162,7 +170,8 @@ class SearchFragment : Fragment() {
             onItemLongClick = {},
             onOptionsClick = { _, _ -> },
             onRename = { _, _ -> },
-            onSelectionChanged = {})
+            onSelectionChanged = {},
+        )
         binding.filesRV.apply {
             adapter = filesAdapter
             layoutManager = LinearLayoutManager(requireContext())
@@ -185,13 +194,13 @@ class SearchFragment : Fragment() {
                         id = 0,
                         "",
                         2000f,
-                        2000f
-                    )
+                        2000f,
+                    ),
                 )
                 canvasViewModel.addTextWithFont(
                     requireActivity().getString(R.string.dummyText),
                     item,
-                    requireActivity()
+                    requireActivity(),
                 )
                 view?.post {
                     findNavController().navigate(R.id.editorFragment, null, navOptions)
@@ -210,7 +219,7 @@ class SearchFragment : Fragment() {
                             id = 0,
                             "From Image",
                             widthVal,
-                            heightVal
+                            heightVal,
                         )
 
                     canvasViewModel.clearCanvas()
@@ -248,7 +257,7 @@ class SearchFragment : Fragment() {
                 mainViewModel.localFonts,
                 mainViewModel.localImages,
                 mainViewModel.exportResults.asFlow(),
-                mainViewModel.queryDebounced.debounce(250).distinctUntilChanged()
+                mainViewModel.queryDebounced.debounce(250).distinctUntilChanged(),
             ) { templates, fonts, images, exports, query ->
                 val q = query.trim().lowercase()
 
@@ -271,7 +280,7 @@ class SearchFragment : Fragment() {
                 SearchResults(
                     templates = filteredTemplates,
                     fonts = filteredFonts,
-                    files = filteredFiles + filteredImages
+                    files = filteredFiles + filteredImages,
                 )
             }.collectLatest { result ->
                 updateUI(result)
@@ -288,7 +297,9 @@ class SearchFragment : Fragment() {
                     if (findNavController().currentDestination?.id != R.id.editorFragment) {
                         view?.post {
                             findNavController().navigate(
-                                R.id.editorFragment, bundle, navOptions
+                                R.id.editorFragment,
+                                bundle,
+                                navOptions,
                             )
                         }
                     }
@@ -375,7 +386,9 @@ class SearchFragment : Fragment() {
     }
 
     data class SearchResults(
-        val templates: List<TemplateEntity>, val fonts: List<FontEntity>, val files: List<Any>
+        val templates: List<TemplateEntity>,
+        val fonts: List<FontEntity>,
+        val files: List<Any>,
     )
 
     override fun onDestroyView() {

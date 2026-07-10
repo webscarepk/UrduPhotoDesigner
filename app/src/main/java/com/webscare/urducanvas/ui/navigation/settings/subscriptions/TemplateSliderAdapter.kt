@@ -14,15 +14,12 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.webscare.urducanvas.common.utils.Constants
-import com.webscare.urducanvas.common.utils.startShimmerSoft
 import com.webscare.urducanvas.common.utils.isDarkModeEnabled
+import com.webscare.urducanvas.common.utils.startShimmerSoft
 import com.webscare.urducanvas.databinding.LayoutSubscriptionsTemplateSlideBinding
 
 /** One slide of the popular-templates slideshow. */
-data class TemplateSlide(
-    val imageUrl: String,
-    val title: String
-)
+data class TemplateSlide(val imageUrl: String, val title: String)
 
 /**
  * Feeds popular/premium templates into the ViewPager2 slideshow behind the
@@ -69,12 +66,13 @@ class TemplateSliderAdapter : RecyclerView.Adapter<TemplateSliderAdapter.VH>() {
         notifyDataSetChanged()
     }
 
-    inner class VH(val binding: LayoutSubscriptionsTemplateSlideBinding) :
-        RecyclerView.ViewHolder(binding.root)
+    inner class VH(val binding: LayoutSubscriptionsTemplateSlideBinding) : RecyclerView.ViewHolder(binding.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
         val binding = LayoutSubscriptionsTemplateSlideBinding.inflate(
-            LayoutInflater.from(parent.context), parent, false
+            LayoutInflater.from(parent.context),
+            parent,
+            false,
         )
         return VH(binding)
     }
@@ -104,7 +102,7 @@ class TemplateSliderAdapter : RecyclerView.Adapter<TemplateSliderAdapter.VH>() {
                     e: GlideException?,
                     model: Any?,
                     target: Target<Drawable>,
-                    isFirstResource: Boolean
+                    isFirstResource: Boolean,
                 ): Boolean {
                     Log.e("TemplateSlider", "Failed to load thumbnail: $url", e)
                     stopShimmer(holder)
@@ -116,7 +114,7 @@ class TemplateSliderAdapter : RecyclerView.Adapter<TemplateSliderAdapter.VH>() {
                     model: Any,
                     target: Target<Drawable>?,
                     dataSource: DataSource,
-                    isFirstResource: Boolean
+                    isFirstResource: Boolean,
                 ): Boolean {
                     stopShimmer(holder)
                     return false

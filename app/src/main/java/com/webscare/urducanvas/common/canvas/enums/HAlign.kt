@@ -10,5 +10,5 @@ enum class HAlign {
     CENTER,
 
     @SerializedName("Right")
-    RIGHT
+    RIGHT,
 }

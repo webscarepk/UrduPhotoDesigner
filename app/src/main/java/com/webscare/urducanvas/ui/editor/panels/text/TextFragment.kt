@@ -21,7 +21,6 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
@@ -96,7 +95,9 @@ class TextFragment : Fragment() {
     // ─────────────────────────────────────────────────────────────────────────
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentTextBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -113,7 +114,6 @@ class TextFragment : Fragment() {
         observeFontData()
         observeDownloadStates()
         observeCurrentFont()
-
     }
 
     // Reads persisted tab/scroll state from ViewModel back into local fields.
@@ -145,7 +145,7 @@ class TextFragment : Fragment() {
             layoutManager = MorphGridLayoutManager(
                 context = requireContext(),
                 collapsedSpan = 3,
-                expandedSpan = 3
+                expandedSpan = 3,
             ).apply {
                 applyFraction(binding.fontsRV, if (isPanelExpanded) 1f else 0f)
             }
@@ -159,7 +159,7 @@ class TextFragment : Fragment() {
         // disabled in collapsed so it doesn't conflict with horizontal RV scroll
         binding.swipeRefresh.isEnabled = isPanelExpanded
         binding.swipeRefresh.setColorSchemeColors(
-            androidx.core.content.ContextCompat.getColor(requireContext(), R.color.appColor)
+            androidx.core.content.ContextCompat.getColor(requireContext(), R.color.appColor),
         )
         binding.swipeRefresh.setOnRefreshListener {
             val shuffled = fontsAdapter.currentList.shuffled()
@@ -169,8 +169,6 @@ class TextFragment : Fragment() {
             }
         }
     }
-
-
 
     // ─────────────────────────────────────────────────────────────────────────
     // LANGUAGE state  →  "All | Urdu | English | Imported"
@@ -223,7 +221,7 @@ class TextFragment : Fragment() {
         // so selectedCategory is correct when rebindFonts() runs later.
         val targetCat: String? = when {
             selectedCategory != null && categories.contains(selectedCategory) -> selectedCategory
-            else -> null  // null = "All"
+            else -> null // null = "All"
         }
         selectedCategory = targetCat
 
@@ -250,13 +248,16 @@ class TextFragment : Fragment() {
             }
 
             // Pinned tab (pos 0) always stays full scale
-            tl.getTabAt(0)?.view?.apply { scaleX = 1f; scaleY = 1f }
+            tl.getTabAt(0)?.view?.apply {
+                scaleX = 1f
+                scaleY = 1f
+            }
 
             // Select correct position:
             // targetCat == null → "All" → pos 1
             // targetCat != null → find in allCategories (+1 for pinned tab offset)
             val selectPos = if (targetCat == null) {
-                1  // "All" tab
+                1 // "All" tab
             } else {
                 val idx = allCategories.indexOf(targetCat)
                 if (idx >= 0) idx + 1 else 1
@@ -412,13 +413,18 @@ class TextFragment : Fragment() {
         // "Recents" tab — show recently used fonts in recency order
         if (selectedLanguage == "Recents") {
             val recent = mainViewModel.recentFonts.value
-            return if (q.isEmpty()) recent else {
+            return if (q.isEmpty()) {
+                recent
+            } else {
                 val tokens = q.split(Regex("\\s+")).filter { it.isNotEmpty() }
                 recent.filter { f ->
                     val hay = buildString {
-                        append(f.font_name); append(' ')
-                        append(f.file_name); append(' ')
-                        append(f.font_category); append(' ')
+                        append(f.font_name)
+                        append(' ')
+                        append(f.file_name)
+                        append(' ')
+                        append(f.font_category)
+                        append(' ')
                         append(f.alt_text ?: "")
                     }.lowercase()
                     tokens.all { it in hay }
@@ -429,10 +435,11 @@ class TextFragment : Fragment() {
         val byLanguage = when (selectedLanguage) {
             "All" -> fonts
             "Imported" -> fonts.filter {
-                it.font_language.equals("Imported", true) && it.font_category.equals(
-                    "Imported",
-                    true
-                )
+                it.font_language.equals("Imported", true) &&
+                    it.font_category.equals(
+                        "Imported",
+                        true,
+                    )
             }
 
             else -> fonts.filter {
@@ -445,13 +452,18 @@ class TextFragment : Fragment() {
             else -> byLanguage.filter { it.font_category.equals(cat, ignoreCase = true) }
         }
 
-        val filtered = if (q.isEmpty()) byCategory else {
+        val filtered = if (q.isEmpty()) {
+            byCategory
+        } else {
             val tokens = q.split(Regex("\\s+")).filter { it.isNotEmpty() }
             byCategory.filter { f ->
                 val hay = buildString {
-                    append(f.font_name); append(' ')
-                    append(f.file_name); append(' ')
-                    append(f.font_category); append(' ')
+                    append(f.font_name)
+                    append(' ')
+                    append(f.file_name)
+                    append(' ')
+                    append(f.font_category)
+                    append(' ')
                     append(f.alt_text ?: "")
                 }.lowercase()
                 tokens.all { it in hay }
@@ -503,7 +515,7 @@ class TextFragment : Fragment() {
                     if (_binding == null) return@submitList
                     (binding.fontsRV.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(
                         pos,
-                        0
+                        0,
                     )
                 }
                 if (pendingScrollToFontId == scrollTo) pendingScrollToFontId = null
@@ -515,7 +527,7 @@ class TextFragment : Fragment() {
                 if (_binding == null) return@submitList
                 (binding.fontsRV.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(
                     restoreIdx,
-                    restoreOff
+                    restoreOff,
                 )
             }
         }
@@ -550,7 +562,7 @@ class TextFragment : Fragment() {
                 combine(
                     mainViewModel.localFonts,
                     mainViewModel.queryDebounced.onStart { emit("") },
-                    mainViewModel.recentFonts
+                    mainViewModel.recentFonts,
                 ) { fonts, query, _ -> Pair(fonts, query) }.collect { (fonts, query) ->
                     currentQuery = query
                     languageCategoryMap = buildLanguageCategoryMap(fonts)
@@ -561,8 +573,11 @@ class TextFragment : Fragment() {
                     // rebuild category tabs instead so the UI matches state.
                     if (inCategoryMode) {
                         val cats = languageCategoryMap[selectedLanguage] ?: emptyList()
-                        if (cats.isNotEmpty()) showCategoryTabs(cats)
-                        else showLanguageTabs()
+                        if (cats.isNotEmpty()) {
+                            showCategoryTabs(cats)
+                        } else {
+                            showLanguageTabs()
+                        }
                     } else {
                         showLanguageTabs()
                     }
@@ -599,7 +614,9 @@ class TextFragment : Fragment() {
     /** language → sorted distinct category list; "All", "Recents", and "Imported" → empty */
     private fun buildLanguageCategoryMap(fonts: List<FontEntity>): Map<String, List<String>> {
         val map = mutableMapOf(
-            "All" to emptyList<String>(), "Recents" to emptyList(), "Imported" to emptyList()
+            "All" to emptyList<String>(),
+            "Recents" to emptyList(),
+            "Imported" to emptyList(),
         )
         fonts.groupBy { it.font_language.trim() }.filter { (lang, _) ->
             lang.isNotBlank() && !lang.equals("Imported", ignoreCase = true)
@@ -803,7 +820,7 @@ class TextFragment : Fragment() {
             // Sync expanded search bar with whatever is in collapsed bar
             binding.searchBarExpanded.setText(currentQuery)
             binding.searchBarExpanded.setSelection(
-                binding.searchBarExpanded.text?.length ?: 0
+                binding.searchBarExpanded.text?.length ?: 0,
             )
             updateExpandedSearchCross(currentQuery)
         } else {
@@ -888,7 +905,7 @@ class TextFragment : Fragment() {
                 if (_binding == null) return@post
                 binding.searchBarExpanded.requestFocus()
                 binding.searchBarExpanded.setSelection(
-                    binding.searchBarExpanded.text?.length ?: 0
+                    binding.searchBarExpanded.text?.length ?: 0,
                 )
                 showKeyboard(binding.searchBarExpanded)
             }
@@ -901,8 +918,11 @@ class TextFragment : Fragment() {
         binding.searchBarExpanded.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 applySearch(binding.searchBarExpanded.text.toString())
-                hideKeyboard(); true
-            } else false
+                hideKeyboard()
+                true
+            } else {
+                false
+            }
         }
 
         binding.searchBarExpanded.addTextChangedListener(object : TextWatcher {
@@ -928,7 +948,6 @@ class TextFragment : Fragment() {
             }
             false
         }
-
     }
 
     private fun applySearch(query: String) {
@@ -941,9 +960,12 @@ class TextFragment : Fragment() {
         binding.searchBarExpanded.setCompoundDrawablesWithIntrinsicBounds(
             null,
             null,
-            if (text.isNotEmpty()) ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close)
-            else null,
-            null
+            if (text.isNotEmpty()) {
+                ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close)
+            } else {
+                null
+            },
+            null,
         )
     }
 
@@ -954,7 +976,7 @@ class TextFragment : Fragment() {
     private fun showKeyboard(v: View) {
         (requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).showSoftInput(
             v,
-            InputMethodManager.SHOW_IMPLICIT
+            InputMethodManager.SHOW_IMPLICIT,
         )
     }
 

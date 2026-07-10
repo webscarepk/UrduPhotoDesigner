@@ -28,7 +28,7 @@ data class SubscriptionSheetConfig(
     val secondaryText: String? = null,
     val cancelable: Boolean = true,
     val onPrimary: () -> Unit = {},
-    val onSecondary: (() -> Unit)? = null
+    val onSecondary: (() -> Unit)? = null,
 )
 
 @AndroidEntryPoint
@@ -40,7 +40,9 @@ class SubscriptionBottomSheet : BottomSheetDialogFragment() {
     var config: SubscriptionSheetConfig? = null
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentSubscriptionBottomSheetBinding.inflate(inflater, container, false)
         return binding.root
@@ -84,7 +86,8 @@ class SubscriptionBottomSheet : BottomSheetDialogFragment() {
         dialog?.window?.let { window ->
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 window.insetsController?.apply {
-                    hide(WindowInsets.Type.navigationBars()
+                    hide(
+                        WindowInsets.Type.navigationBars(),
                     )
                     systemBarsBehavior =
                         WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -93,10 +96,10 @@ class SubscriptionBottomSheet : BottomSheetDialogFragment() {
                 @Suppress("DEPRECATION")
                 window.decorView.systemUiVisibility =
                     View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-                            View.SYSTEM_UI_FLAG_FULLSCREEN or
-                            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             }
         }
     }
@@ -110,7 +113,7 @@ class SubscriptionBottomSheet : BottomSheetDialogFragment() {
             setDimAmount(0.45f)
             setFlags(
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             )
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 setDecorFitsSystemWindows(false)
@@ -122,7 +125,7 @@ class SubscriptionBottomSheet : BottomSheetDialogFragment() {
         }
 
         val bottomSheet = dialog?.findViewById<View>(
-            com.google.android.material.R.id.design_bottom_sheet
+            com.google.android.material.R.id.design_bottom_sheet,
         ) ?: return
 
         bottomSheet.background = ContextCompat.getDrawable(requireContext(), R.drawable.bottom_sheet_bg)
@@ -146,9 +149,7 @@ class SubscriptionBottomSheet : BottomSheetDialogFragment() {
         forceImmersiveMode()
     }
 
-    override fun getTheme(): Int {
-        return R.style.CustomBottomSheetDialog
-    }
+    override fun getTheme(): Int = R.style.CustomBottomSheetDialog
 
     override fun onResume() {
         super.onResume()
@@ -156,7 +157,6 @@ class SubscriptionBottomSheet : BottomSheetDialogFragment() {
     }
 
     companion object {
-        fun newInstance(config: SubscriptionSheetConfig) =
-            SubscriptionBottomSheet().apply { this.config = config }
+        fun newInstance(config: SubscriptionSheetConfig) = SubscriptionBottomSheet().apply { this.config = config }
     }
 }

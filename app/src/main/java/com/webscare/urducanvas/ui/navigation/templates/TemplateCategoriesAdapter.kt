@@ -10,7 +10,7 @@ import com.webscare.urducanvas.databinding.LayoutCategoryRowBinding
 
 class TemplateCategoriesAdapter(
     private val onSeeAll: (String) -> Unit,
-    private val onTemplateClick: (com.webscare.urducanvas.data.model.TemplateEntity, Boolean) -> Unit
+    private val onTemplateClick: (com.webscare.urducanvas.data.model.TemplateEntity, Boolean) -> Unit,
 ) : androidx.recyclerview.widget.ListAdapter<HomeRow, TemplateCategoriesAdapter.CategoryVH>(Diff()) {
 
     init {
@@ -37,7 +37,9 @@ class TemplateCategoriesAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CategoryVH {
         val binding = LayoutCategoryRowBinding.inflate(
-            LayoutInflater.from(parent.context), parent, false
+            LayoutInflater.from(parent.context),
+            parent,
+            false,
         )
         return CategoryVH(binding)
     }
@@ -55,11 +57,10 @@ class TemplateCategoriesAdapter(
         }
     }
 
-    inner class CategoryVH(private val b: LayoutCategoryRowBinding) :
-        RecyclerView.ViewHolder(b.root) {
+    inner class CategoryVH(private val b: LayoutCategoryRowBinding) : RecyclerView.ViewHolder(b.root) {
 
         private val miniAdapter = TemplatesMiniAdapter(
-            onClick = onTemplateClick
+            onClick = onTemplateClick,
         )
 
         init {
@@ -79,9 +80,7 @@ class TemplateCategoriesAdapter(
             }
         }
 
-        fun updateChildProgress(
-            templateId: Int, state: com.webscare.urducanvas.data.model.ProgressUi
-        ) {
+        fun updateChildProgress(templateId: Int, state: com.webscare.urducanvas.data.model.ProgressUi) {
             // This updates the internal cache so new binds get the state
             progressById[templateId] = state
             miniAdapter.updateProgress(templateId, state) // Pass payload to child
@@ -90,14 +89,13 @@ class TemplateCategoriesAdapter(
         fun notifyChildChanged(template: com.webscare.urducanvas.data.model.TemplateEntity) {
             miniAdapter.updateItem(template)
         }
-
     }
 
-    fun updateTemplateProgress(
-        templateId: Int, progress: Int, isDownloading: Boolean, isDownloaded: Boolean
-    ) {
+    fun updateTemplateProgress(templateId: Int, progress: Int, isDownloading: Boolean, isDownloaded: Boolean) {
         val state = _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
-            progress, isDownloading, isDownloaded
+            progress,
+            isDownloading,
+            isDownloaded,
         )
         progressById[templateId] = state
 
@@ -124,13 +122,9 @@ class TemplateCategoriesAdapter(
     }
 
     class Diff : DiffUtil.ItemCallback<HomeRow>() {
-        override fun areItemsTheSame(old: HomeRow, new: HomeRow): Boolean {
-            return (old as? HomeRow.CategoryRow)?.title == (new as? HomeRow.CategoryRow)?.title
-        }
+        override fun areItemsTheSame(old: HomeRow, new: HomeRow): Boolean = (old as? HomeRow.CategoryRow)?.title == (new as? HomeRow.CategoryRow)?.title
 
-        override fun areContentsTheSame(old: HomeRow, new: HomeRow): Boolean {
-            return old == new
-        }
+        override fun areContentsTheSame(old: HomeRow, new: HomeRow): Boolean = old == new
 
         override fun getChangePayload(oldItem: HomeRow, newItem: HomeRow): Any? {
             return Any() // Empty payload to trigger partial bind

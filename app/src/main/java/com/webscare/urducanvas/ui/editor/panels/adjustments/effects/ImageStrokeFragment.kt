@@ -12,7 +12,6 @@ import androidx.core.graphics.toColorInt
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
@@ -27,7 +26,6 @@ import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientsAdapter
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class ImageStrokeFragment : Fragment() {
@@ -40,7 +38,9 @@ class ImageStrokeFragment : Fragment() {
     private val mainViewModel: MainViewModel by activityViewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentImageStrokeBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -69,7 +69,8 @@ class ImageStrokeFragment : Fragment() {
 
             viewModel.setPagingLocked(true)
             childFragmentManager.beginTransaction().replace(
-                R.id.imageStroke, ColorPickerFragment()
+                R.id.imageStroke,
+                ColorPickerFragment(),
             ).addToBackStack(null).commit()
         }, onEyeDropperClicked = {
             viewModel.clearLabelGradients()
@@ -85,9 +86,11 @@ class ImageStrokeFragment : Fragment() {
                 viewModel.setGradient(item)
                 viewModel.setPagingLocked(true)
                 childFragmentManager.beginTransaction().replace(
-                    R.id.imageStroke, GradientEditorFragment().apply {
+                    R.id.imageStroke,
+                    GradientEditorFragment().apply {
                         arguments = Bundle().apply { putBoolean("IS_EDIT", true) }
-                    }).addToBackStack(null).commit()
+                    },
+                ).addToBackStack(null).commit()
             }, onNoneSelected = {
                 viewModel.clearStrokeGradients()
                 viewModel.setImageBorder(false, Color.TRANSPARENT, 0f)
@@ -95,11 +98,13 @@ class ImageStrokeFragment : Fragment() {
                 viewModel.startPickingGradient(GradientPickerTarget.IMAGE_STROKE)
                 viewModel.setPagingLocked(true)
                 childFragmentManager.beginTransaction().replace(
-                    R.id.imageStroke, GradientEditorFragment().apply {
-                            arguments = Bundle().apply {
-                                putBoolean("IS_EDIT", false)
-                            }
-                        }).addToBackStack(null).commit()
+                    R.id.imageStroke,
+                    GradientEditorFragment().apply {
+                        arguments = Bundle().apply {
+                            putBoolean("IS_EDIT", false)
+                        }
+                    },
+                ).addToBackStack(null).commit()
             })
 
         binding.colors.apply {
@@ -114,7 +119,6 @@ class ImageStrokeFragment : Fragment() {
     }
 
     private fun initObservers() {
-
         viewModel.borderWidth.observe(viewLifecycleOwner) { width ->
             binding.borderSize.text = "${width?.toInt() ?: 0}"
             binding.border.progress = width?.toInt() ?: 0
@@ -134,7 +138,6 @@ class ImageStrokeFragment : Fragment() {
     }
 
     private fun setEvents() {
-
         binding.border.apply {
             min = 1
             max = 50
@@ -143,7 +146,7 @@ class ImageStrokeFragment : Fragment() {
                     viewModel.setImageBorder(
                         enabled = progress > 0,
                         color = viewModel.borderColor.value ?: Color.BLACK,
-                        width = progress.toFloat()
+                        width = progress.toFloat(),
                     )
                     binding.borderSize.text = progress.toString()
                 }

@@ -1,7 +1,6 @@
 package com.webscare.urducanvas.ui.navigation.home
 
 import android.graphics.drawable.Drawable
-import android.graphics.drawable.PictureDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -23,9 +22,9 @@ import com.webscare.urducanvas.databinding.LayoutPopularFontItemBinding
 
 class FontsAdapter(
     private val onFontClick: (FontEntity, Boolean) -> Unit,
-    private val onDownload: (FontEntity) -> Unit
+    private val onDownload: (FontEntity) -> Unit,
 ) : androidx.recyclerview.widget.ListAdapter<FontEntity, FontsAdapter.VH>(
-    Diff()
+    Diff(),
 ) {
 
     private val progressById = mutableMapOf<Int, ProgressUi>()
@@ -40,7 +39,9 @@ class FontsAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
         val binding = LayoutPopularFontItemBinding.inflate(
-            LayoutInflater.from(parent.context), parent, false
+            LayoutInflater.from(parent.context),
+            parent,
+            false,
         )
         return VH(binding, onFontClick, onDownload)
     }
@@ -48,11 +49,12 @@ class FontsAdapter(
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = getItem(position)
         holder.bind(
-            item, progressById[item.id] ?: ProgressUi(
+            item,
+            progressById[item.id] ?: ProgressUi(
                 progress = item.download_progress,
                 isDownloading = item.is_downloading,
-                isDownloaded = item.is_downloaded
-            )
+                isDownloaded = item.is_downloaded,
+            ),
         )
     }
 
@@ -60,22 +62,21 @@ class FontsAdapter(
         if (payloads.isNotEmpty()) {
             (payloads.lastOrNull() as? ProgressUi)?.let {
                 holder.applyProgress(
-                    it
+                    it,
                 )
             }
-        } else super.onBindViewHolder(holder, position, payloads)
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
     }
 
     class VH(
         private val binding: LayoutPopularFontItemBinding,
         private val onFontClick: (FontEntity, Boolean) -> Unit,
-        private val onDownload: (FontEntity) -> Unit
+        private val onDownload: (FontEntity) -> Unit,
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(
-            item: FontEntity,
-            progress: ProgressUi
-        ) {
+        fun bind(item: FontEntity, progress: ProgressUi) {
             val isDarkMode = itemView.context.isDarkModeEnabled()
             if (isDarkMode) {
                 binding.image.setColorFilter(android.graphics.Color.WHITE, android.graphics.PorterDuff.Mode.SRC_IN)
@@ -87,10 +88,24 @@ class FontsAdapter(
                 // Parse font_image from Base64 to Bitmap
                 Glide.with(itemView.context).load(item.font_image)
                     .listener(object : RequestListener<Drawable> {
-                        override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean): Boolean = false
-                        override fun onResourceReady(resource: Drawable, model: Any, target: Target<Drawable>?, dataSource: DataSource, isFirstResource: Boolean): Boolean {
+                        override fun onLoadFailed(
+                            e: GlideException?,
+                            model: Any?,
+                            target: Target<Drawable>,
+                            isFirstResource: Boolean,
+                        ): Boolean = false
+                        override fun onResourceReady(
+                            resource: Drawable,
+                            model: Any,
+                            target: Target<Drawable>?,
+                            dataSource: DataSource,
+                            isFirstResource: Boolean,
+                        ): Boolean {
                             if (itemView.context.isDarkModeEnabled()) {
-                                binding.image.setColorFilter(android.graphics.Color.WHITE, android.graphics.PorterDuff.Mode.SRC_IN)
+                                binding.image.setColorFilter(
+                                    android.graphics.Color.WHITE,
+                                    android.graphics.PorterDuff.Mode.SRC_IN,
+                                )
                             }
                             return false
                         }
@@ -108,7 +123,7 @@ class FontsAdapter(
                         scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main),
                         cachedXml = null,
                         maxPx = 512,
-                        applyWhiteTint = isDarkMode
+                        applyWhiteTint = isDarkMode,
                     ) { _, _ ->
                         binding.shimmerLayout.hideShimmer()
                     }
@@ -120,9 +135,12 @@ class FontsAdapter(
                                 e: GlideException?,
                                 model: Any?,
                                 target: Target<Drawable>,
-                                isFirstResource: Boolean
+                                isFirstResource: Boolean,
                             ): Boolean {
-                                android.util.Log.e("FontsAdapter", "Image load failed | url: $model | error: ${e?.message}")
+                                android.util.Log.e(
+                                    "FontsAdapter",
+                                    "Image load failed | url: $model | error: ${e?.message}",
+                                )
                                 e?.logRootCauses("FontsAdapter_RootCause")
                                 binding.shimmerLayout.hideShimmer()
                                 return false
@@ -133,10 +151,13 @@ class FontsAdapter(
                                 model: Any,
                                 target: Target<Drawable>?,
                                 dataSource: DataSource,
-                                isFirstResource: Boolean
+                                isFirstResource: Boolean,
                             ): Boolean {
                                 if (binding.root.context.isDarkModeEnabled()) {
-                                    binding.image.setColorFilter(android.graphics.Color.WHITE, android.graphics.PorterDuff.Mode.SRC_IN)
+                                    binding.image.setColorFilter(
+                                        android.graphics.Color.WHITE,
+                                        android.graphics.PorterDuff.Mode.SRC_IN,
+                                    )
                                 }
                                 binding.shimmerLayout.hideShimmer()
                                 return false

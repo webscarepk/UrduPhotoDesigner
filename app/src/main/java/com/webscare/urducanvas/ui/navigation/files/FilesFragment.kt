@@ -37,8 +37,9 @@ class FilesFragment : Fragment() {
     private var isSelectionActive = false
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentFilesBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -70,7 +71,7 @@ class FilesFragment : Fragment() {
         val adapter = FilesPagerAdapter(
             childFragmentManager,
             viewLifecycleOwner.lifecycle,
-            tabs
+            tabs,
         )
         binding.viewPager.adapter = adapter
 
@@ -139,7 +140,7 @@ class FilesFragment : Fragment() {
         val tabName = tabs.getOrNull(position) ?: return
 
         if (isSelectionActive) {
-            binding.importBtn.visibility    = View.GONE
+            binding.importBtn.visibility = View.GONE
             binding.deleteAllBtn.visibility = View.VISIBLE
         } else {
             binding.deleteAllBtn.visibility = View.GONE
@@ -148,11 +149,11 @@ class FilesFragment : Fragment() {
             } else {
                 binding.importBtn.visibility = View.VISIBLE
                 binding.importBtn.text = when (tabName) {
-                    "Projects"    -> "Import Project"
-                    "Fonts"       -> "Import Font"
-                    "Stickers"    -> "Import Sticker"
+                    "Projects" -> "Import Project"
+                    "Fonts" -> "Import Font"
+                    "Stickers" -> "Import Sticker"
                     "Backgrounds" -> "Import Background"
-                    else          -> "Import"
+                    else -> "Import"
                 }
             }
         }
@@ -163,8 +164,8 @@ class FilesFragment : Fragment() {
     fun updateTabStyles(selectedPosition: Int) {
         for (i in 0 until binding.tabLayout.tabCount) {
             val tabView = binding.tabLayout.getTabAt(i)?.customView
-            val root    = tabView?.findViewById<MaterialCardView>(R.id.tabRoot)
-            val text    = tabView?.findViewById<TextView>(R.id.tabTitle)
+            val root = tabView?.findViewById<MaterialCardView>(R.id.tabRoot)
+            val text = tabView?.findViewById<TextView>(R.id.tabTitle)
 
             if (i == selectedPosition) {
                 root?.setCardBackgroundColor(ContextCompat.getColor(requireContext(), R.color.appColor))

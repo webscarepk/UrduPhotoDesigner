@@ -6,5 +6,5 @@ enum class PanelType {
     SHAPES,
     LAYERS,
     FONTS,
-    DRAW
+    DRAW,
 }

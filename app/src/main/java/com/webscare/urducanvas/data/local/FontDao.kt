@@ -3,8 +3,8 @@ package com.webscare.urducanvas.data.local
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
-import androidx.room.Query
 import androidx.room.OnConflictStrategy
+import androidx.room.Query
 import androidx.room.Update
 import com.webscare.urducanvas.data.model.FontEntity
 import kotlinx.coroutines.flow.Flow
@@ -17,7 +17,9 @@ interface FontDao {
     @Query("SELECT * FROM fonts ORDER BY id DESC")
     fun getAllFonts(): Flow<List<FontEntity>>
 
-    @Query("UPDATE fonts SET is_downloaded = :isDownloaded, is_downloading = :isDownloading, file_path = :filePath WHERE id = :id")
+    @Query(
+        "UPDATE fonts SET is_downloaded = :isDownloaded, is_downloading = :isDownloading, file_path = :filePath WHERE id = :id",
+    )
     suspend fun updateFont(id: String, isDownloaded: Boolean, isDownloading: Boolean, filePath: String)
 
     @Query("UPDATE fonts SET is_downloading = :isDownloading WHERE id = :id")

@@ -14,7 +14,7 @@ import com.webscare.urducanvas.databinding.LayoutTabsFontLanguagesItemBinding
 
 class FontLanguagesAdapter(
     private val onLanguageExpanded: (language: String, collapse: Boolean) -> Unit,
-    private val onCategorySelected: (language: String, category: String) -> Unit
+    private val onCategorySelected: (language: String, category: String) -> Unit,
 ) : RecyclerView.Adapter<FontLanguagesAdapter.FontViewHolder>() {
 
     private val fonts = mutableListOf<FontLanguages>()
@@ -31,19 +31,18 @@ class FontLanguagesAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FontViewHolder {
         val binding = LayoutTabsFontLanguagesItemBinding.inflate(
-            LayoutInflater.from(parent.context), parent, false
+            LayoutInflater.from(parent.context),
+            parent,
+            false,
         )
         return FontViewHolder(binding)
     }
 
-    override fun onBindViewHolder(holder: FontViewHolder, position: Int) =
-        holder.bind(fonts[position])
+    override fun onBindViewHolder(holder: FontViewHolder, position: Int) = holder.bind(fonts[position])
 
     override fun getItemCount() = fonts.size
 
-    inner class FontViewHolder(
-        private val binding: LayoutTabsFontLanguagesItemBinding
-    ) : RecyclerView.ViewHolder(binding.root) {
+    inner class FontViewHolder(private val binding: LayoutTabsFontLanguagesItemBinding) : RecyclerView.ViewHolder(binding.root) {
 
         private val catAdapter: FontCategoriesAdapter = FontCategoriesAdapter { cat ->
             val pos = adapterPosition
@@ -68,7 +67,7 @@ class FontLanguagesAdapter(
 
                 if (isExpandedMode) {
                     // Radio behaviour: select this one, deselect all others
-                    if (row.is_selected) return@addPressEffect   // already selected — no-op
+                    if (row.is_selected) return@addPressEffect // already selected — no-op
                     fonts.forEachIndexed { i, lang ->
                         val shouldSelect = i == pos
                         if (lang.is_selected != shouldSelect) {
@@ -76,7 +75,7 @@ class FontLanguagesAdapter(
                             notifyItemChanged(i)
                         }
                     }
-                    onLanguageExpanded(row.name, false)           // false = "expand/select"
+                    onLanguageExpanded(row.name, false) // false = "expand/select"
                 } else {
                     // Original toggle behaviour (collapsed panel)
                     // Reset category selection when language row toggles
@@ -108,8 +107,8 @@ class FontLanguagesAdapter(
 
             // Category list visibility
             val showCategories = font.is_selected &&
-                    font.name != "All" &&
-                    font.name != "Imported"
+                font.name != "All" &&
+                font.name != "Imported"
             binding.rvCategories.visibility = if (showCategories) View.VISIBLE else View.GONE
             catAdapter.submit(font.categories)
 
@@ -117,17 +116,20 @@ class FontLanguagesAdapter(
             if (isExpandedMode) {
                 // Remove background fill; left border is handled by the layout drawable
                 binding.tabTitle.backgroundTintList = ColorStateList.valueOf(
-                    ContextCompat.getColor(binding.root.context, android.R.color.transparent)
+                    ContextCompat.getColor(binding.root.context, android.R.color.transparent),
                 )
                 // Swap a left-border indicator drawable on the root
                 binding.tabRoot.setBackgroundResource(
-                    if (font.is_selected) R.drawable.button_bg_small
-                    else android.R.color.transparent
+                    if (font.is_selected) {
+                        R.drawable.button_bg_small
+                    } else {
+                        android.R.color.transparent
+                    },
                 )
             } else {
                 val color = if (font.is_selected) R.color.selection else android.R.color.transparent
                 binding.tabTitle.backgroundTintList = ColorStateList.valueOf(
-                    ContextCompat.getColor(binding.root.context, color)
+                    ContextCompat.getColor(binding.root.context, color),
                 )
                 binding.tabRoot.setBackgroundResource(android.R.color.transparent)
             }

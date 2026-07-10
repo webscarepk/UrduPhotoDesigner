@@ -36,12 +36,14 @@ interface ImageDao {
     // CASE gives own images a sort_group of 0 and Pexels a sort_group of 1,
     // so own images always appear before Pexels in the combined list.
     // Within each group the secondary sort preserves the correct order.
-    @Query("""
+    @Query(
+        """
         SELECT * FROM images
         ORDER BY
             CASE WHEN id < 10000000 THEN 0 ELSE 1 END ASC,
             CASE WHEN id < 10000000 THEN -id ELSE id END ASC
-    """)
+    """,
+    )
     fun getAllImages(): Flow<List<ImageEntity>>
 
     @Delete
@@ -62,7 +64,8 @@ interface ImageDao {
 
     // ── Pexels search ─────────────────────────────────────────────────────────
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM images
         WHERE id >= 10000000
         AND (
@@ -72,7 +75,8 @@ interface ImageDao {
         )
         ORDER BY id ASC
         LIMIT 80
-    """)
+    """,
+    )
     suspend fun searchPexelsImages(query: String): List<ImageEntity>
 
     // ── Pexels management ─────────────────────────────────────────────────────

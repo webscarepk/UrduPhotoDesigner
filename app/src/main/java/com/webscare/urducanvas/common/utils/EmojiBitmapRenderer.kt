@@ -30,7 +30,7 @@ object EmojiBitmapRenderer {
      */
     fun render(emojiChar: String, sizePx: Int = 512): Bitmap {
         val paint = TextPaint().apply {
-            textSize    = sizePx.toFloat()
+            textSize = sizePx.toFloat()
             isAntiAlias = true
         }
 
@@ -43,7 +43,7 @@ object EmojiBitmapRenderer {
             android.text.Layout.Alignment.ALIGN_NORMAL,
             1f,
             0f,
-            false
+            false,
         )
 
         // ── Square output ─────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ object EmojiBitmapRenderer {
 
         val glyphW = layout.getLineWidth(0).toInt().coerceAtLeast(1)
         val glyphH = layout.height.coerceAtLeast(1)
-        val side   = maxOf(glyphW, glyphH)   // square — 1:1 artboard
+        val side = maxOf(glyphW, glyphH) // square — 1:1 artboard
 
         val bitmap = Bitmap.createBitmap(side, side, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)

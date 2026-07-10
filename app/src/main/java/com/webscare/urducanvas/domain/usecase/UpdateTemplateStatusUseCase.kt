@@ -4,7 +4,7 @@ import com.webscare.urducanvas.domain.repo.TemplatesRepo
 import javax.inject.Inject
 
 class UpdateTemplateStatusUseCase @Inject constructor(
-    private val templatesRepo: com.webscare.urducanvas.domain.repo.TemplatesRepo
+    private val templatesRepo: com.webscare.urducanvas.domain.repo.TemplatesRepo,
 ) {
 
     suspend operator fun invoke(id: String, isDownloading: Boolean) {

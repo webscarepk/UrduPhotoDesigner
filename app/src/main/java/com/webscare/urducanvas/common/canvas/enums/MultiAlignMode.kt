@@ -7,5 +7,5 @@ enum class MultiAlignMode {
     CANVAS,
 
     @SerializedName("Selection")
-    SELECTION
+    SELECTION,
 }

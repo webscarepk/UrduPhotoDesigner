@@ -82,7 +82,7 @@ class CanvasRenderer(private val view: CanvasView) {
         view.drawGuides(canvas)
     }
 
-    private fun drawCanvasElements(
+    internal fun drawCanvasElements(
         canvas: Canvas,
         showOverlays: Boolean = true,
         showCheckerboard: Boolean = true,

@@ -36,12 +36,7 @@ object ShapeRenderUtils {
      *  - [radius] is 0 or negative
      *  - [shapeType] is in [NON_ROUNDABLE] (already round or irrelevant)
      */
-    inline fun withCornerEffect(
-        paint: Paint,
-        radius: Float,
-        shapeType: ShapeType,
-        block: () -> Unit
-    ) {
+    inline fun withCornerEffect(paint: Paint, radius: Float, shapeType: ShapeType, block: () -> Unit) {
         if (radius <= 0f || shapeType in NON_ROUNDABLE) {
             block()
             return
@@ -52,18 +47,13 @@ object ShapeRenderUtils {
         paint.pathEffect = original
     }
 
-    fun drawShape(
-        canvas: Canvas,
-        paint: Paint,
-        shapeType: ShapeType,
-        rect: RectF,
-        cornerRadius: Float = 0f
-    ) {
+    fun drawShape(canvas: Canvas, paint: Paint, shapeType: ShapeType, rect: RectF, cornerRadius: Float = 0f) {
         val cy = rect.centerY()
 
         when (shapeType) {
             ShapeType.RECTANGLE,
-            ShapeType.ROUNDED_RECTANGLE ->
+            ShapeType.ROUNDED_RECTANGLE,
+            ->
                 canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint)
 
             ShapeType.ELLIPSE -> canvas.drawOval(rect, paint)
@@ -137,14 +127,14 @@ object ShapeRenderUtils {
                 path.close()
             }
 
-            ShapeType.PENTAGON  -> buildPolygonPath(path, 5,  cx, cy, rect.width() / 2)
-            ShapeType.HEXAGON   -> buildPolygonPath(path, 6,  cx, cy, rect.width() / 2)
-            ShapeType.OCTAGON   -> buildPolygonPath(path, 8,  cx, cy, rect.width() / 2)
+            ShapeType.PENTAGON -> buildPolygonPath(path, 5, cx, cy, rect.width() / 2)
+            ShapeType.HEXAGON -> buildPolygonPath(path, 6, cx, cy, rect.width() / 2)
+            ShapeType.OCTAGON -> buildPolygonPath(path, 8, cx, cy, rect.width() / 2)
 
-            ShapeType.STAR_FIVE  -> buildStarPath(path, cx, cy, rect.width() / 2, 5)
-            ShapeType.STAR_SIX   -> buildStarPath(path, cx, cy, rect.width() / 2, 6)
+            ShapeType.STAR_FIVE -> buildStarPath(path, cx, cy, rect.width() / 2, 5)
+            ShapeType.STAR_SIX -> buildStarPath(path, cx, cy, rect.width() / 2, 6)
             ShapeType.STAR_SEVEN -> buildStarPath(path, cx, cy, rect.width() / 2, 7)
-            ShapeType.STAR_TEN   -> buildStarPath(path, cx, cy, rect.width() / 2, 10)
+            ShapeType.STAR_TEN -> buildStarPath(path, cx, cy, rect.width() / 2, 10)
 
             ShapeType.DIAMOND -> {
                 path.moveTo(cx, rect.top)
@@ -200,14 +190,20 @@ object ShapeRenderUtils {
                 val curveRadius = rect.width() / 2f
                 path.moveTo(cx, rect.bottom)
                 path.cubicTo(
-                    rect.left, rect.bottom - curveRadius,
-                    rect.left, rect.top,
-                    cx, rect.top + curveRadius / 2f
+                    rect.left,
+                    rect.bottom - curveRadius,
+                    rect.left,
+                    rect.top,
+                    cx,
+                    rect.top + curveRadius / 2f,
                 )
                 path.cubicTo(
-                    rect.right, rect.top,
-                    rect.right, rect.bottom - curveRadius,
-                    cx, rect.bottom
+                    rect.right,
+                    rect.top,
+                    rect.right,
+                    rect.bottom - curveRadius,
+                    cx,
+                    rect.bottom,
                 )
             }
         }
@@ -253,34 +249,28 @@ object ShapeRenderUtils {
      * @param strokeWidth the shape's stroke thickness (for line-like shapes)
      * @return tight visual bounds centered at (0,0)
      */
-    fun computeVisualBounds(
-        shapeType: ShapeType,
-        logicalW: Float,
-        logicalH: Float,
-        strokeWidth: Float = 0f
-    ): RectF {
-        return when (shapeType) {
-            // LINE: only the stroke thickness has visual presence vertically.
-            ShapeType.LINE -> {
-                val halfH = (strokeWidth.coerceAtLeast(1f)) / 2f
-                RectF(-logicalW / 2f, -halfH, logicalW / 2f, halfH)
-            }
-
-            // Polygons & stars: drawn as inscribed in width — height equals width visually.
-            ShapeType.PENTAGON,
-            ShapeType.HEXAGON,
-            ShapeType.OCTAGON,
-            ShapeType.STAR_FIVE,
-            ShapeType.STAR_SIX,
-            ShapeType.STAR_SEVEN,
-            ShapeType.STAR_TEN -> {
-                // These use rect.width()/2 as radius — bounds = square of side = width.
-                val side = logicalW
-                RectF(-side / 2f, -side / 2f, side / 2f, side / 2f)
-            }
-
-            // Everything else uses full logical rect.
-            else -> RectF(-logicalW / 2f, -logicalH / 2f, logicalW / 2f, logicalH / 2f)
+    fun computeVisualBounds(shapeType: ShapeType, logicalW: Float, logicalH: Float, strokeWidth: Float = 0f): RectF = when (shapeType) {
+        // LINE: only the stroke thickness has visual presence vertically.
+        ShapeType.LINE -> {
+            val halfH = (strokeWidth.coerceAtLeast(1f)) / 2f
+            RectF(-logicalW / 2f, -halfH, logicalW / 2f, halfH)
         }
+
+        // Polygons & stars: drawn as inscribed in width — height equals width visually.
+        ShapeType.PENTAGON,
+        ShapeType.HEXAGON,
+        ShapeType.OCTAGON,
+        ShapeType.STAR_FIVE,
+        ShapeType.STAR_SIX,
+        ShapeType.STAR_SEVEN,
+        ShapeType.STAR_TEN,
+        -> {
+            // These use rect.width()/2 as radius — bounds = square of side = width.
+            val side = logicalW
+            RectF(-side / 2f, -side / 2f, side / 2f, side / 2f)
+        }
+
+        // Everything else uses full logical rect.
+        else -> RectF(-logicalW / 2f, -logicalH / 2f, logicalW / 2f, logicalH / 2f)
     }
 }

@@ -114,7 +114,9 @@ class FilesListFragment : Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentFilesListBinding.inflate(layoutInflater, container, false)
         return _binding!!.root
@@ -153,14 +155,14 @@ class FilesListFragment : Fragment() {
         DialogUtils.showDeleteDialog(
             requireActivity(),
             getString(R.string.delete_permanently),
-            getString(R.string.your_asset_will_be_permanently_deleted)
+            getString(R.string.your_asset_will_be_permanently_deleted),
         ) {
             lifecycleScope.launch {
                 selectedItems.forEach { item ->
                     when (item) {
                         is ExportResult -> viewModel.deleteExportResult(item)
-                        is ImageEntity  -> viewModel.deleteImage(item)
-                        is FontEntity   -> viewModel.deleteFont(item)
+                        is ImageEntity -> viewModel.deleteImage(item)
+                        is FontEntity -> viewModel.deleteFont(item)
                     }
                 }
                 adapter.clearSelection()
@@ -175,25 +177,25 @@ class FilesListFragment : Fragment() {
     @SuppressLint("ClickableViewAccessibility")
     private fun setEvents() {
         adapter = FilesAdapter(
-            items           = emptyList(),
-            isGrid          = false,
-            onItemClick     = { item -> openItem(item) },
+            items = emptyList(),
+            isGrid = false,
+            onItemClick = { item -> openItem(item) },
             onItemLongClick = {},
-            onOptionsClick  = { item, anchorView -> showFilePopup(anchorView, item) },
-            onRename        = { item, newName ->
+            onOptionsClick = { item, anchorView -> showFilePopup(anchorView, item) },
+            onRename = { item, newName ->
                 if (newName.isNotEmpty()) {
                     lifecycleScope.launch {
                         when (item) {
                             is ExportResult -> viewModel.insertExportResult(item.copy(fileName = newName))
-                            is ImageEntity  -> viewModel.updateImage(item.copy(file_name = newName))
-                            is FontEntity   -> viewModel.updateFont(item.copy(font_name = newName))
+                            is ImageEntity -> viewModel.updateImage(item.copy(file_name = newName))
+                            is FontEntity -> viewModel.updateFont(item.copy(font_name = newName))
                         }
                     }
                 }
             },
             onSelectionChanged = { active ->
                 (parentFragment as? FilesFragment)?.onSelectionModeChanged(active)
-            }
+            },
         )
 
         _binding!!.filesRV.adapter = adapter
@@ -203,7 +205,7 @@ class FilesListFragment : Fragment() {
             if (event.action == android.view.MotionEvent.ACTION_DOWN && adapter.isEditing()) {
                 val imm = requireContext()
                     .getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
-                        as android.view.inputmethod.InputMethodManager
+                    as android.view.inputmethod.InputMethodManager
                 imm.hideSoftInputFromWindow(v.windowToken, 0)
                 requireActivity().currentFocus?.clearFocus()
                 adapter.stopEditing()
@@ -221,7 +223,7 @@ class FilesListFragment : Fragment() {
     private fun handlePickedFiles(uris: List<Uri>) {
         lifecycleScope.launch(Dispatchers.IO) {
             var imported = 0
-            var skipped  = 0
+            var skipped = 0
             uris.forEach { uri ->
                 if (handlePickedFile(uri)) imported++ else skipped++
             }
@@ -229,8 +231,11 @@ class FilesListFragment : Fragment() {
                 val root = _binding?.root ?: return@withContext
                 val msg = when {
                     imported > 0 && skipped == 0 ->
-                        if (imported == 1) "File imported successfully"
-                        else "$imported files imported successfully"
+                        if (imported == 1) {
+                            "File imported successfully"
+                        } else {
+                            "$imported files imported successfully"
+                        }
                     imported > 0 ->
                         "$imported imported, $skipped skipped (unsupported type)"
                     else -> "No supported files found"
@@ -251,98 +256,116 @@ class FilesListFragment : Fragment() {
      */
     private suspend fun handlePickedFile(uri: Uri): Boolean {
         val name = getFileName(uri)
-        val ext  = name.substringAfterLast('.', "").lowercase()
+        val ext = name.substringAfterLast('.', "").lowercase()
 
         return when (ext) {
-
             // ── Fonts ────────────────────────────────────────────────────────
             "ttf", "otf" -> try {
-                val fontFile   = copyToTemp(uri, ".$ext")
+                val fontFile = copyToTemp(uri, ".$ext")
                 val exportDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                viewModel.insertFont(FontEntity(
-                    id             = System.currentTimeMillis().toInt(),
-                    file_name      = fontFile.name,
-                    font_name      = fontFile.nameWithoutExtension,
-                    font_category  = "Imported",
-                    font_language  = "Imported",
-                    file_url       = "",
-                    file_size      = fontFile.length().toString(),
-                    font_image     = null,
-                    image_url      = "",
-                    alt_text       = "Font sample image",
-                    user_id        = 0,
-                    created_at     = exportDate,
-                    updated_at     = exportDate,
-                    is_selected    = false,
-                    is_downloaded  = true,
-                    is_downloading = false,
-                    file_path      = fontFile.absolutePath
-                ))
+                viewModel.insertFont(
+                    FontEntity(
+                        id = System.currentTimeMillis().toInt(),
+                        file_name = fontFile.name,
+                        font_name = fontFile.nameWithoutExtension,
+                        font_category = "Imported",
+                        font_language = "Imported",
+                        file_url = "",
+                        file_size = fontFile.length().toString(),
+                        font_image = null,
+                        image_url = "",
+                        alt_text = "Font sample image",
+                        user_id = 0,
+                        created_at = exportDate,
+                        updated_at = exportDate,
+                        is_selected = false,
+                        is_downloaded = true,
+                        is_downloading = false,
+                        file_path = fontFile.absolutePath,
+                    ),
+                )
                 true
             } catch (e: Exception) {
-                Log.e("FilesListFragment", "Font import failed: $name", e); false
+                Log.e("FilesListFragment", "Font import failed: $name", e)
+                false
             }
 
             // ── Backgrounds (JPEG / WEBP) ─────────────────────────────────
             "jpg", "jpeg", "webp" -> try {
-                val filePath  = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath ?: return false
-                val rawBitmap = ImageProcessor.filePathToBitmap(filePath) ?: return false
-                val bitmap    = downsampleIfNeeded(rawBitmap, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)
-                val fmt       = if (ext == "webp") Bitmap.CompressFormat.WEBP else Bitmap.CompressFormat.JPEG
-                val outFile   = File(filePath)
-                outFile.outputStream().use { bitmap.compress(fmt, 100, it) }
-                val exportDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                viewModel.insertImage(ImageEntity(
-                    id              = System.currentTimeMillis().toInt(),
-                    file_name       = outFile.name,
-                    file_url        = "",
-                    file_size       = outFile.length().toString(),
-                    alt_text        = "",
-                    category        = "Backgrounds Imported",
-                    parent_category = "Images",
-                    user_id         = 0,
-                    is_selected     = false,
-                    bitmapData      = filePath,
-                    created_at      = exportDate
-                ))
-                true
+                val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                val rawBitmap = filePath?.let { ImageProcessor.filePathToBitmap(it) }
+                if (filePath != null && rawBitmap != null) {
+                    val bitmap = downsampleIfNeeded(rawBitmap, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)
+                    val fmt = if (ext == "webp") Bitmap.CompressFormat.WEBP else Bitmap.CompressFormat.JPEG
+                    val outFile = File(filePath)
+                    outFile.outputStream().use { bitmap.compress(fmt, 100, it) }
+                    val exportDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                    viewModel.insertImage(
+                        ImageEntity(
+                            id = System.currentTimeMillis().toInt(),
+                            file_name = outFile.name,
+                            file_url = "",
+                            file_size = outFile.length().toString(),
+                            alt_text = "",
+                            category = "Backgrounds Imported",
+                            parent_category = "Images",
+                            user_id = 0,
+                            is_selected = false,
+                            bitmapData = filePath,
+                            created_at = exportDate,
+                        ),
+                    )
+                    true
+                } else {
+                    false
+                }
             } catch (e: Exception) {
-                Log.e("FilesListFragment", "Background import failed: $name", e); false
+                Log.e("FilesListFragment", "Background import failed: $name", e)
+                false
             }
 
             // ── Stickers (PNG) ────────────────────────────────────────────
             "png" -> try {
-                val filePath  = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath ?: return false
-                val rawBitmap = ImageProcessor.filePathToBitmap(filePath) ?: return false
-                val bitmap    = downsampleIfNeeded(rawBitmap, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)
-                val outFile   = File(filePath)
-                outFile.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-                val exportDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                viewModel.insertImage(ImageEntity(
-                    id              = System.currentTimeMillis().toInt(),
-                    file_name       = outFile.name,
-                    file_url        = "",
-                    file_size       = outFile.length().toString(),
-                    alt_text        = "",
-                    category        = "Images Imported",
-                    parent_category = "Images",
-                    user_id         = 0,
-                    is_selected     = false,
-                    bitmapData      = filePath,
-                    created_at      = exportDate
-                ))
-                true
+                val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
+                val rawBitmap = filePath?.let { ImageProcessor.filePathToBitmap(it) }
+                if (filePath != null && rawBitmap != null) {
+                    val bitmap = downsampleIfNeeded(rawBitmap, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)
+                    val outFile = File(filePath)
+                    outFile.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                    val exportDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                    viewModel.insertImage(
+                        ImageEntity(
+                            id = System.currentTimeMillis().toInt(),
+                            file_name = outFile.name,
+                            file_url = "",
+                            file_size = outFile.length().toString(),
+                            alt_text = "",
+                            category = "Images Imported",
+                            parent_category = "Images",
+                            user_id = 0,
+                            is_selected = false,
+                            bitmapData = filePath,
+                            created_at = exportDate,
+                        ),
+                    )
+                    true
+                } else {
+                    false
+                }
             } catch (e: Exception) {
-                Log.e("FilesListFragment", "Sticker import failed: $name", e); false
+                Log.e("FilesListFragment", "Sticker import failed: $name", e)
+                false
             }
 
             // ── Projects (.urdc / .json) ──────────────────────────────────
             ProjectCodec.FILE_EXTENSION, "json" -> {
-                importProjectFile(uri); true
+                importProjectFile(uri)
+                true
             }
 
             else -> {
-                Log.w("FilesListFragment", "Unsupported extension: $ext ($name)"); false
+                Log.w("FilesListFragment", "Unsupported extension: $ext ($name)")
+                false
             }
         }
     }
@@ -352,11 +375,12 @@ class FilesListFragment : Fragment() {
     private suspend fun importProjectFile(uri: Uri) {
         try {
             val displayName = getFileName(uri).ifBlank { "imported_${System.currentTimeMillis()}" }
-            val baseName    = displayName.substringBeforeLast('.')
+            val baseName = displayName.substringBeforeLast('.')
 
             // 1. Copy to permanent app storage.
             val destJson = ImageProcessor.newExportJsonFile(
-                requireActivity(), "$baseName.${ProjectCodec.FILE_EXTENSION}"
+                requireActivity(),
+                "$baseName.${ProjectCodec.FILE_EXTENSION}",
             )
             requireContext().contentResolver.openInputStream(uri)?.use { input ->
                 destJson.outputStream().use { input.copyTo(it) }
@@ -368,8 +392,8 @@ class FilesListFragment : Fragment() {
             }
 
             // 2. Validate.
-            val isUrdc      = ProjectCodec.isUrdcFile(destJson)
-            val firstByte   = if (!isUrdc) destJson.inputStream().use { it.read() } else -1
+            val isUrdc = ProjectCodec.isUrdcFile(destJson)
+            val firstByte = if (!isUrdc) destJson.inputStream().use { it.read() } else -1
             val isPlainJson = !isUrdc && (firstByte == '['.code || firstByte == '{'.code)
             if (!isUrdc && !isPlainJson) {
                 destJson.delete()
@@ -380,8 +404,8 @@ class FilesListFragment : Fragment() {
             }
 
             // 3. Extract thumbnail.
-            val thumb      = ProjectCodec.readThumbnail(destJson)
-            val thumbPath  = thumb?.let {
+            val thumb = ProjectCodec.readThumbnail(destJson)
+            val thumbPath = thumb?.let {
                 val f = File(destJson.parentFile, "$baseName.jpg")
                 f.outputStream().use { out -> it.compress(Bitmap.CompressFormat.JPEG, 85, out) }
                 f.absolutePath
@@ -389,21 +413,23 @@ class FilesListFragment : Fragment() {
 
             // 4. Insert into Room.
             val now = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
-            viewModel.insertExportResult(ExportResult(
-                id            = 0,
-                imagePath     = thumbPath ?: "",
-                jsonPath      = destJson.absolutePath,
-                fileName      = baseName,
-                fileSizeMB    = destJson.length() / (1024.0 * 1024.0),
-                resolution    = "",
-                format        = if (isUrdc) "URDC" else "JSON",
-                quality       = "",
-                canvasSize    = canvasViewModel.canvasSize.value
-                    ?: CanvasSize(id = 0, "Imported", 1080f, 1080f),
-                exportDate    = now,
-                updatedDate   = now,
-                thumbnailPath = thumbPath
-            ))
+            viewModel.insertExportResult(
+                ExportResult(
+                    id = 0,
+                    imagePath = thumbPath ?: "",
+                    jsonPath = destJson.absolutePath,
+                    fileName = baseName,
+                    fileSizeMB = destJson.length() / (1024.0 * 1024.0),
+                    resolution = "",
+                    format = if (isUrdc) "URDC" else "JSON",
+                    quality = "",
+                    canvasSize = canvasViewModel.canvasSize.value
+                        ?: CanvasSize(id = 0, "Imported", 1080f, 1080f),
+                    exportDate = now,
+                    updatedDate = now,
+                    thumbnailPath = thumbPath,
+                ),
+            )
         } catch (e: Exception) {
             Log.e("FilesListFragment", "importProjectFile failed", e)
             withContext(Dispatchers.Main) {
@@ -417,8 +443,9 @@ class FilesListFragment : Fragment() {
     private fun getFileName(uri: Uri): String {
         var name: String? = null
         requireContext().contentResolver.query(uri, null, null, null, null)?.use {
-            if (it.moveToFirst())
+            if (it.moveToFirst()) {
                 name = it.getString(it.getColumnIndexOrThrow(android.provider.OpenableColumns.DISPLAY_NAME))
+            }
         }
         return name ?: uri.lastPathSegment ?: "file"
     }
@@ -462,9 +489,11 @@ class FilesListFragment : Fragment() {
                 rawBitmap?.let { bmp ->
                     val canvasW = canvasViewModel.canvasSize.value?.width ?: bmp.width.toFloat()
                     val canvasH = canvasViewModel.canvasSize.value?.height ?: bmp.height.toFloat()
-                    val bitmap  = downsampleIfNeeded(bmp,
+                    val bitmap = downsampleIfNeeded(
+                        bmp,
                         (canvasW * 2).toInt().coerceIn(1024, MAX_IMAGE_DIMENSION),
-                        (canvasH * 2).toInt().coerceIn(1024, MAX_IMAGE_DIMENSION))
+                        (canvasH * 2).toInt().coerceIn(1024, MAX_IMAGE_DIMENSION),
+                    )
                     canvasViewModel.clearCanvas()
                     canvasViewModel.setCanvasSize(CanvasSize(id = 0, "From Image", bitmap.width.toFloat(), bitmap.height.toFloat()))
                     canvasViewModel.setCanvasBackgroundImage(bitmap, requireActivity())
@@ -478,11 +507,11 @@ class FilesListFragment : Fragment() {
 
     private fun showFilePopup(anchorView: View, item: Any) {
         val popupBinding = LayoutFilesPopupBinding.inflate(LayoutInflater.from(requireActivity()))
-        val popupWindow  = PopupWindow(
+        val popupWindow = PopupWindow(
             popupBinding.root,
             (180 * requireActivity().resources.displayMetrics.density).toInt(),
             LinearLayout.LayoutParams.WRAP_CONTENT,
-            true
+            true,
         ).apply {
             elevation = 2f
             isOutsideTouchable = true
@@ -490,12 +519,12 @@ class FilesListFragment : Fragment() {
 
         anchorView.post {
             val screenHeight = resources.displayMetrics.heightPixels
-            val loc          = IntArray(2).also { anchorView.getLocationOnScreen(it) }
-            val anchorTop    = loc[1]
+            val loc = IntArray(2).also { anchorView.getLocationOnScreen(it) }
+            val anchorTop = loc[1]
             val anchorBottom = anchorTop + anchorView.height
             popupBinding.root.measure(
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
             )
             val popupHeight = popupBinding.root.measuredHeight
             if (screenHeight - anchorBottom >= popupHeight) {
@@ -525,7 +554,10 @@ class FilesListFragment : Fragment() {
             }
         }
 
-        popupBinding.actionShare.addPressEffect { popupWindow.dismiss(); shareItem(item) }
+        popupBinding.actionShare.addPressEffect {
+            popupWindow.dismiss()
+            shareItem(item)
+        }
 
         popupBinding.actionSelect.addPressEffect {
             popupWindow.dismiss()
@@ -539,35 +571,48 @@ class FilesListFragment : Fragment() {
                 when (item) {
                     is ExportResult -> {
                         val newImage = ImageProcessor.newExportImageFile(requireActivity(), File(item.imagePath).name)
-                        val newJson  = ImageProcessor.newExportJsonFile(requireActivity(), File(item.jsonPath).name)
+                        val newJson = ImageProcessor.newExportJsonFile(requireActivity(), File(item.jsonPath).name)
                         ImageProcessor.copyFile(File(item.imagePath), newImage)
-                        ImageProcessor.copyFile(File(item.jsonPath),  newJson)
-                        viewModel.insertExportResult(item.copy(
-                            id = 0, imagePath = newImage.absolutePath, jsonPath = newJson.absolutePath,
-                            fileName = "${item.fileName}_copy", updatedDate = System.currentTimeMillis().toString()
-                        ))
+                        ImageProcessor.copyFile(File(item.jsonPath), newJson)
+                        viewModel.insertExportResult(
+                            item.copy(
+                                id = 0,
+                                imagePath = newImage.absolutePath,
+                                jsonPath = newJson.absolutePath,
+                                fileName = "${item.fileName}_copy",
+                                updatedDate = System.currentTimeMillis().toString(),
+                            ),
+                        )
                     }
                     is ImageEntity -> {
-                        val src  = File(item.bitmapData ?: item.file_url)
+                        val src = File(item.bitmapData ?: item.file_url)
                         val dest = ImageProcessor.newImageFile(requireContext(), src.name)
                         if (src.exists()) ImageProcessor.copyFile(src, dest)
-                        viewModel.insertImage(item.copy(
-                            id = 0, file_name = "${item.file_name}_copy",
-                            bitmapData = dest.absolutePath, created_at = System.currentTimeMillis().toString()
-                        ))
+                        viewModel.insertImage(
+                            item.copy(
+                                id = 0,
+                                file_name = "${item.file_name}_copy",
+                                bitmapData = dest.absolutePath,
+                                created_at = System.currentTimeMillis().toString(),
+                            ),
+                        )
                     }
                     is FontEntity -> {
-                        val srcFont    = File(item.file_path ?: item.file_url)
-                        val destFont   = ImageProcessor.newFontFile(requireContext(), srcFont.name)
+                        val srcFont = File(item.file_path ?: item.file_url)
+                        val destFont = ImageProcessor.newFontFile(requireContext(), srcFont.name)
                         if (srcFont.exists()) ImageProcessor.copyFile(srcFont, destFont)
-                        val srcPrev    = File(item.font_image)
-                        val destPrev   = ImageProcessor.newFontPreviewFile(requireContext(), srcPrev.name)
+                        val srcPrev = File(item.font_image)
+                        val destPrev = ImageProcessor.newFontPreviewFile(requireContext(), srcPrev.name)
                         if (srcPrev.exists()) ImageProcessor.copyFile(srcPrev, destPrev)
-                        viewModel.insertFont(item.copy(
-                            id = 0, font_name = "${item.font_name}_copy",
-                            font_image = destPrev.absolutePath, file_path = destFont.absolutePath,
-                            created_at = System.currentTimeMillis().toString()
-                        ))
+                        viewModel.insertFont(
+                            item.copy(
+                                id = 0,
+                                font_name = "${item.font_name}_copy",
+                                font_image = destPrev.absolutePath,
+                                file_path = destFont.absolutePath,
+                                created_at = System.currentTimeMillis().toString(),
+                            ),
+                        )
                     }
                 }
             }
@@ -575,27 +620,29 @@ class FilesListFragment : Fragment() {
 
         popupBinding.actionRename.addPressEffect {
             popupWindow.dismiss()
-            adapter.startEditing(when (item) {
-                is ImageEntity  -> item.id.toLong()
-                is FontEntity   -> item.id.toLong()
-                is ExportResult -> item.id
-                else            -> 0
-            })
+            adapter.startEditing(
+                when (item) {
+                    is ImageEntity -> item.id.toLong()
+                    is FontEntity -> item.id.toLong()
+                    is ExportResult -> item.id
+                    else -> 0
+                },
+            )
         }
 
         popupBinding.actionDelete.addPressEffect {
             popupWindow.dismiss()
             val (title, subtitle) = when (item) {
                 is ExportResult -> getString(R.string.delete_project) to getString(R.string.your_asset_will_be_permanently_deleted)
-                is ImageEntity  -> getString(R.string.delete_image)   to getString(R.string.your_asset_will_be_permanently_deleted)
-                is FontEntity   -> getString(R.string.delete_font)    to getString(R.string.your_asset_will_be_permanently_deleted)
-                else            -> getString(R.string.delete)         to getString(R.string.your_asset_will_be_permanently_deleted)
+                is ImageEntity -> getString(R.string.delete_image) to getString(R.string.your_asset_will_be_permanently_deleted)
+                is FontEntity -> getString(R.string.delete_font) to getString(R.string.your_asset_will_be_permanently_deleted)
+                else -> getString(R.string.delete) to getString(R.string.your_asset_will_be_permanently_deleted)
             }
             DialogUtils.showDeleteDialog(requireActivity(), title, subtitle) {
                 when (item) {
                     is ExportResult -> viewModel.deleteExportResult(item)
-                    is ImageEntity  -> viewModel.deleteImage(item)
-                    is FontEntity   -> viewModel.deleteFont(item)
+                    is ImageEntity -> viewModel.deleteImage(item)
+                    is FontEntity -> viewModel.deleteFont(item)
                 }
             }
         }
@@ -604,8 +651,16 @@ class FilesListFragment : Fragment() {
     // ─── Export / Share ───────────────────────────────────────────────────────
 
     private fun exportToGallery(bitmap: Bitmap, fileName: String, format: Bitmap.CompressFormat) {
-        val ext      = when (format) { Bitmap.CompressFormat.PNG -> "png"; Bitmap.CompressFormat.JPEG -> "jpg"; else -> "webp" }
-        val mimeType = when (format) { Bitmap.CompressFormat.PNG -> "image/png"; Bitmap.CompressFormat.JPEG -> "image/jpeg"; else -> "image/webp" }
+        val ext = when (format) {
+            Bitmap.CompressFormat.PNG -> "png"
+            Bitmap.CompressFormat.JPEG -> "jpg"
+            else -> "webp"
+        }
+        val mimeType = when (format) {
+            Bitmap.CompressFormat.PNG -> "image/png"
+            Bitmap.CompressFormat.JPEG -> "image/jpeg"
+            else -> "image/webp"
+        }
 
         val cv = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, "${fileName}_${System.currentTimeMillis()}.$ext")
@@ -622,25 +677,39 @@ class FilesListFragment : Fragment() {
     private fun shareItem(item: Any) {
         val authority = "${requireContext().packageName}.fileprovider"
         fun share(file: File, mime: String) {
-            if (!file.exists()) { Snackbar.make(requireView(), "File not found", Snackbar.LENGTH_SHORT).show(); return }
-            val uri = runCatching { FileProvider.getUriForFile(requireContext(), authority, file) }.getOrElse {
-                Snackbar.make(requireView(), "Cannot share this file", Snackbar.LENGTH_SHORT).show(); return
+            if (!file.exists()) {
+                Snackbar.make(requireView(), "File not found", Snackbar.LENGTH_SHORT).show()
+                return
             }
-            startActivity(Intent.createChooser(
-                Intent(Intent.ACTION_SEND).apply {
-                    type = mime; putExtra(Intent.EXTRA_STREAM, uri)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }, "Share"
-            ))
+            val uri = runCatching { FileProvider.getUriForFile(requireContext(), authority, file) }.getOrElse {
+                Snackbar.make(requireView(), "Cannot share this file", Snackbar.LENGTH_SHORT).show()
+                return
+            }
+            startActivity(
+                Intent.createChooser(
+                    Intent(Intent.ACTION_SEND).apply {
+                        type = mime
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    },
+                    "Share",
+                ),
+            )
         }
         when (item) {
             is ExportResult -> share(File(item.jsonPath), "application/octet-stream")
-            is ImageEntity  -> {
+            is ImageEntity -> {
                 val file = File(item.bitmapData?.takeIf { it.isNotBlank() } ?: item.file_url)
-                share(file, when (file.extension.lowercase()) {
-                    "png" -> "image/png"; "jpg", "jpeg" -> "image/jpeg"
-                    "webp" -> "image/webp"; "svg" -> "image/svg+xml"; else -> "image/*"
-                })
+                share(
+                    file,
+                    when (file.extension.lowercase()) {
+                        "png" -> "image/png"
+                        "jpg", "jpeg" -> "image/jpeg"
+                        "webp" -> "image/webp"
+                        "svg" -> "image/svg+xml"
+                        else -> "image/*"
+                    },
+                )
             }
             is FontEntity -> {
                 val path = item.file_path?.takeIf { it.isNotBlank() } ?: return
@@ -678,10 +747,11 @@ class FilesListFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 filtersViewModel.isGrid.collect { isGrid ->
                     val b = _binding ?: return@collect
-                    b.filesRV.layoutManager = if (isGrid)
+                    b.filesRV.layoutManager = if (isGrid) {
                         GridLayoutManager(requireContext(), 2)
-                    else
+                    } else {
                         LinearLayoutManager(requireContext())
+                    }
                     adapter.toggleViewType(isGrid)
                 }
             }
@@ -695,7 +765,7 @@ class FilesListFragment : Fragment() {
                             viewModel.localFonts,
                             viewModel.localImages,
                             viewModel.exportResults.asFlow(),
-                            filtersViewModel.searchQuery
+                            filtersViewModel.searchQuery,
                         ) { fonts, images, results, query ->
                             val q = query.trim().lowercase()
                             fonts.filter {
@@ -742,21 +812,26 @@ class FilesListFragment : Fragment() {
                             adapter.updateList(list)
                             if (list.isEmpty()) {
                                 b.noEmojis.visibility = View.VISIBLE
-                                val fullText      = "No imported fonts.\nBrowse in-app fonts."
+                                val fullText = "No imported fonts.\nBrowse in-app fonts."
                                 val clickablePart = "in-app fonts"
-                                val spannable     = android.text.SpannableString(fullText)
-                                val start         = fullText.indexOf(clickablePart)
-                                spannable.setSpan(object : android.text.style.ClickableSpan() {
-                                    override fun onClick(widget: View) {
-                                        findNavController().navigate(R.id.popularFontsFragment)
-                                    }
-                                    override fun updateDrawState(ds: android.text.TextPaint) {
-                                        super.updateDrawState(ds)
-                                        ds.isUnderlineText = true
-                                        ds.typeface = ResourcesCompat.getFont(requireContext(), R.font.medium)
-                                        ds.color    = requireContext().getColor(R.color.appColor)
-                                    }
-                                }, start, start + clickablePart.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                                val spannable = android.text.SpannableString(fullText)
+                                val start = fullText.indexOf(clickablePart)
+                                spannable.setSpan(
+                                    object : android.text.style.ClickableSpan() {
+                                        override fun onClick(widget: View) {
+                                            findNavController().navigate(R.id.popularFontsFragment)
+                                        }
+                                        override fun updateDrawState(ds: android.text.TextPaint) {
+                                            super.updateDrawState(ds)
+                                            ds.isUnderlineText = true
+                                            ds.typeface = ResourcesCompat.getFont(requireContext(), R.font.medium)
+                                            ds.color = requireContext().getColor(R.color.appColor)
+                                        }
+                                    },
+                                    start,
+                                    start + clickablePart.length,
+                                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+                                )
                                 b.noImagesText.text = spannable
                                 b.noImagesText.movementMethod = android.text.method.LinkMovementMethod.getInstance()
                             } else {
@@ -816,7 +891,7 @@ class FilesListFragment : Fragment() {
             setOnCancelListener { canvasViewModel.clearLoading() }
             window?.setBackgroundDrawableResource(android.R.color.transparent)
             val params = window?.attributes
-            params?.width  = (resources.displayMetrics.widthPixels * 0.8).toInt()
+            params?.width = (resources.displayMetrics.widthPixels * 0.8).toInt()
             params?.height = ViewGroup.LayoutParams.WRAP_CONTENT
             window?.attributes = params
             window?.setGravity(Gravity.CENTER)
@@ -829,15 +904,18 @@ class FilesListFragment : Fragment() {
     private fun startIconRotation() {
         dialogBinding?.view4?.let { icon ->
             rotationAnimator = ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, 360f).apply {
-                duration     = 1000L
-                repeatCount  = ValueAnimator.INFINITE
+                duration = 1000L
+                repeatCount = ValueAnimator.INFINITE
                 interpolator = LinearInterpolator()
                 start()
             }
         }
     }
 
-    private fun stopIconRotation() { rotationAnimator?.cancel(); rotationAnimator = null }
+    private fun stopIconRotation() {
+        rotationAnimator?.cancel()
+        rotationAnimator = null
+    }
 
     private fun dismissLoadingDialog() {
         stopIconRotation()
@@ -863,10 +941,8 @@ class FilesListFragment : Fragment() {
     companion object {
         private const val MAX_IMAGE_DIMENSION = 4899
 
-        fun newInstance(tabName: String): FilesListFragment {
-            return FilesListFragment().apply {
-                arguments = Bundle().apply { putString("TAB_NAME", tabName) }
-            }
+        fun newInstance(tabName: String): FilesListFragment = FilesListFragment().apply {
+            arguments = Bundle().apply { putString("TAB_NAME", tabName) }
         }
     }
 }

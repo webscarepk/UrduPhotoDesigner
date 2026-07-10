@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.channelFlow
 import javax.inject.Inject
 
 class FetchTemplatesRepoImpl @Inject constructor(
-    private val api: com.webscare.urducanvas.data.remote.EndPointsInterface
+    private val api: com.webscare.urducanvas.data.remote.EndPointsInterface,
 ) : com.webscare.urducanvas.domain.repo.FetchTemplatesRepo {
 
     override fun fetchTemplates(): Flow<com.webscare.urducanvas.common.sealed.Response<com.webscare.urducanvas.data.model.TemplatesResponse>> = channelFlow {
@@ -23,9 +23,9 @@ class FetchTemplatesRepoImpl @Inject constructor(
             trySend(_root_ide_package_.com.webscare.urducanvas.common.sealed.Response.Success(response))
         } catch (e: Exception) {
             Log.e(TAG, "fetchTemplates: $e")
-            if (e.message?.contains("Connection reset") == true){
+            if (e.message?.contains("Connection reset") == true) {
                 trySend(_root_ide_package_.com.webscare.urducanvas.common.sealed.Response.Error("Unstable Internet Connection!"))
-            }else{
+            } else {
                 trySend(_root_ide_package_.com.webscare.urducanvas.common.sealed.Response.Error("Unexpected Error Occurred ${e.message}"))
             }
         }

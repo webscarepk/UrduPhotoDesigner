@@ -23,7 +23,9 @@ class KasheedaFragment : androidx.fragment.app.Fragment() {
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentKasheedaBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -42,7 +44,7 @@ class KasheedaFragment : androidx.fragment.app.Fragment() {
                 binding.defaultKasheeda to KashidaSize.NONE,
                 binding.small to KashidaSize.SMALL,
                 binding.medium to KashidaSize.MEDIUM,
-                binding.large to KashidaSize.LARGE
+                binding.large to KashidaSize.LARGE,
             )
 
             kasheedaCards.forEach { (card, kasheedaSize) ->
@@ -55,7 +57,7 @@ class KasheedaFragment : androidx.fragment.app.Fragment() {
             binding.kashidaValue.text = "$kasheeda"
 
             val isPremiumKasheeda = kasheeda > 1
-            val isSubscribed = subscriptionViewModel.isSubscribed.value  // inject BillingManager, or read via ViewModel
+            val isSubscribed = subscriptionViewModel.isSubscribed.value // inject BillingManager, or read via ViewModel
             binding.isPremiumKasheeda.isVisible = isPremiumKasheeda && !isSubscribed
         }
     }
@@ -65,7 +67,7 @@ class KasheedaFragment : androidx.fragment.app.Fragment() {
             binding.defaultKasheeda to KashidaSize.NONE,
             binding.small to KashidaSize.SMALL,
             binding.medium to KashidaSize.MEDIUM,
-            binding.large to KashidaSize.LARGE
+            binding.large to KashidaSize.LARGE,
         )
 
         // Handle clicks on Kashida size cards (predefined sizes)
@@ -95,23 +97,19 @@ class KasheedaFragment : androidx.fragment.app.Fragment() {
     }
 
     // Map SeekBar progress to Kashida frequency (scale from 0 to 10)
-    private fun mapProgressToFrequency(progress: Int): Int {
-        return when (progress) {
-            in 1..3 -> 1  // SMALL range
-            in 4..6 -> 4  // MEDIUM range
-            in 7..10 -> 7 // LARGE range
-            else -> 0     // NONE
-        }
+    private fun mapProgressToFrequency(progress: Int): Int = when (progress) {
+        in 1..3 -> 1 // SMALL range
+        in 4..6 -> 4 // MEDIUM range
+        in 7..10 -> 7 // LARGE range
+        else -> 0 // NONE
     }
 
     // Map KashidaSize to integer frequency (predefined Kashida sizes mapped to frequency values)
-    private fun mapKasheedaSizeToFrequency(kasheedaSize: KashidaSize): Int {
-        return when (kasheedaSize) {
-            KashidaSize.SMALL -> 1
-            KashidaSize.MEDIUM -> 4
-            KashidaSize.LARGE -> 7
-            KashidaSize.NONE -> 0
-        }
+    private fun mapKasheedaSizeToFrequency(kasheedaSize: KashidaSize): Int = when (kasheedaSize) {
+        KashidaSize.SMALL -> 1
+        KashidaSize.MEDIUM -> 4
+        KashidaSize.LARGE -> 7
+        KashidaSize.NONE -> 0
     }
 
     override fun onDestroyView() {

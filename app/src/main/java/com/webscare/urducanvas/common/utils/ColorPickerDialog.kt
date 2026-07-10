@@ -7,14 +7,11 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
+import androidx.core.graphics.toColorInt
 import androidx.core.widget.addTextChangedListener
 import com.webscare.urducanvas.databinding.DialogColorPickerBinding
-import androidx.core.graphics.toColorInt
 
-class ColorPickerDialog(
-    context: Context,
-    private val onColorSelected: (Int) -> Unit
-) : Dialog(context) {
+class ColorPickerDialog(context: Context, private val onColorSelected: (Int) -> Unit) : Dialog(context) {
 
     private lateinit var binding: DialogColorPickerBinding
 
@@ -29,7 +26,9 @@ class ColorPickerDialog(
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 tryApplyColor()
                 true
-            } else false
+            } else {
+                false
+            }
         }
 
         binding.colorCode.addTextChangedListener(afterTextChanged = { editable ->
@@ -44,7 +43,7 @@ class ColorPickerDialog(
             setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
             setLayout(
                 WindowManager.LayoutParams.MATCH_PARENT,
-                WindowManager.LayoutParams.WRAP_CONTENT
+                WindowManager.LayoutParams.WRAP_CONTENT,
             )
         }
 
@@ -64,9 +63,9 @@ class ColorPickerDialog(
     private fun parseColor(input: String): Int? {
         var trimmed = input.trim()
 
-        if (!trimmed.startsWith("#")
-            && !trimmed.startsWith("rgb")
-            && trimmed.matches(Regex("[0-9a-fA-F]{3,8}"))
+        if (!trimmed.startsWith("#") &&
+            !trimmed.startsWith("rgb") &&
+            trimmed.matches(Regex("[0-9a-fA-F]{3,8}"))
         ) {
             trimmed = "#$trimmed"
         }
@@ -86,12 +85,17 @@ class ColorPickerDialog(
                         .split(",").map { it.trim() }
                     Color.argb(
                         (v[3].toFloat() * 255).toInt(),
-                        v[0].toInt(), v[1].toInt(), v[2].toInt()
+                        v[0].toInt(),
+                        v[1].toInt(),
+                        v[2].toInt(),
                     )
                 }
 
                 else -> trimmed.toColorInt()
             }
-        } catch (e: Exception) { null }
+        } catch (e: Exception) {
+            android.util.Log.e("ColorPickerDialog", "Failed to parse color: $input", e)
+            null
+        }
     }
 }

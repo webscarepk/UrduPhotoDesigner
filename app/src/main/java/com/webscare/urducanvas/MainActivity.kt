@@ -2,12 +2,11 @@ package com.webscare.urducanvas
 
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import android.content.res.Configuration
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.util.DisplayMetrics
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
@@ -74,7 +73,10 @@ class MainActivity : AppCompatActivity() {
 
                         withContext(Dispatchers.Main) {
                             val canvasSize = CanvasSize(
-                                id = 0, "From Image", widthVal, heightVal
+                                id = 0,
+                                "From Image",
+                                widthVal,
+                                heightVal,
                             )
                             viewModel.clearCanvas()
                             viewModel.setCanvasSize(canvasSize)
@@ -116,13 +118,12 @@ class MainActivity : AppCompatActivity() {
      * during an active touch sequence.  The entire stack trace is
      * framework-internal, so catching here is the only viable fix.
      */
-    override fun dispatchTouchEvent(ev: android.view.MotionEvent?): Boolean {
-        return try {
-            super.dispatchTouchEvent(ev)
-        } catch (e: IllegalStateException) {
-            // Swallow only the specific "already recycled" crash
-            true
-        }
+    override fun dispatchTouchEvent(ev: android.view.MotionEvent?): Boolean = try {
+        super.dispatchTouchEvent(ev)
+    } catch (e: IllegalStateException) {
+        // Swallow only the specific "already recycled" crash
+        Log.w("MainActivity", "Swallowed framework touch target recycling exception", e)
+        true
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         val sharedPrefs = getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
@@ -189,24 +190,28 @@ class MainActivity : AppCompatActivity() {
 
             when (item.itemId) {
                 R.id.nav_home -> {
-                    if (navController.currentDestination?.id != R.id.homeFragment)
+                    if (navController.currentDestination?.id != R.id.homeFragment) {
                         navController.navigate(R.id.homeFragment, null, navOptions)
+                    }
                     true
                 }
                 R.id.nav_templates -> {
-                    if (navController.currentDestination?.id != R.id.templateCategoriesFragment)
+                    if (navController.currentDestination?.id != R.id.templateCategoriesFragment) {
                         navController.navigate(R.id.templateCategoriesFragment, null, navOptions)
+                    }
                     true
                 }
                 R.id.nav_add_images -> false // center FAB slot, never selectable
                 R.id.nav_fav -> {
-                    if (navController.currentDestination?.id != R.id.filesFragment)
+                    if (navController.currentDestination?.id != R.id.filesFragment) {
                         navController.navigate(R.id.filesFragment, null, navOptions)
+                    }
                     true
                 }
                 R.id.nav_settings -> {
-                    if (navController.currentDestination?.id != R.id.settingsFragment)
+                    if (navController.currentDestination?.id != R.id.settingsFragment) {
                         navController.navigate(R.id.settingsFragment, null, navOptions)
+                    }
                     true
                 }
                 else -> false
@@ -225,7 +230,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.homeFragment,
                 R.id.templateCategoriesFragment,
                 R.id.filesFragment,
-                R.id.settingsFragment
+                R.id.settingsFragment,
             )
 
             if (destination.id in visibleDestinations) {
@@ -265,10 +270,22 @@ class MainActivity : AppCompatActivity() {
 
             // Sync selected tab + indicator with the actual destination.
             val index = when (destination.id) {
-                R.id.homeFragment -> { nav.selectedItemId = R.id.nav_home; 0 }
-                R.id.templateCategoriesFragment -> { nav.selectedItemId = R.id.nav_templates; 1 }
-                R.id.filesFragment -> { nav.selectedItemId = R.id.nav_fav; 3 }
-                R.id.settingsFragment -> { nav.selectedItemId = R.id.nav_settings; 4 }
+                R.id.homeFragment -> {
+                    nav.selectedItemId = R.id.nav_home
+                    0
+                }
+                R.id.templateCategoriesFragment -> {
+                    nav.selectedItemId = R.id.nav_templates
+                    1
+                }
+                R.id.filesFragment -> {
+                    nav.selectedItemId = R.id.nav_fav
+                    3
+                }
+                R.id.settingsFragment -> {
+                    nav.selectedItemId = R.id.nav_settings
+                    4
+                }
                 else -> -1
             }
             if (index != -1) nav.post { moveIndicatorTo(nav, index) }
@@ -280,7 +297,8 @@ class MainActivity : AppCompatActivity() {
                 R.id.homeFragment -> finish()
                 R.id.templateCategoriesFragment,
                 R.id.filesFragment,
-                R.id.settingsFragment ->
+                R.id.settingsFragment,
+                ->
                     navController.navigate(R.id.homeFragment, null, navOptions)
                 else -> { /* do nothing */ }
             }
@@ -328,7 +346,7 @@ class MainActivity : AppCompatActivity() {
         scrollView.setOnScrollChangeListener(
             androidx.core.widget.NestedScrollView.OnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
                 onContentScrolled(scrollY, oldScrollY)
-            }
+            },
         )
     }
 
@@ -360,8 +378,14 @@ class MainActivity : AppCompatActivity() {
         accumulatedDy += dy
 
         when {
-            accumulatedDy > hideThreshold -> { setNavAndFabHidden(true); accumulatedDy = 0 }
-            accumulatedDy < -showThreshold -> { setNavAndFabHidden(false); accumulatedDy = 0 }
+            accumulatedDy > hideThreshold -> {
+                setNavAndFabHidden(true)
+                accumulatedDy = 0
+            }
+            accumulatedDy < -showThreshold -> {
+                setNavAndFabHidden(false)
+                accumulatedDy = 0
+            }
         }
 
         // RecyclerView top par hai? (koi item upar scroll na ho sake)
@@ -378,7 +402,7 @@ class MainActivity : AppCompatActivity() {
         val nav = binding.bottomNavigation
         val fab = binding.fabAddImage
         val density = resources.displayMetrics.density
-        val margin = 20 * density   // right aur bottom dono ke liye same margin
+        val margin = 20 * density // right aur bottom dono ke liye same margin
 
         val screenW = resources.displayMetrics.widthPixels
         val screenH = resources.displayMetrics.heightPixels
@@ -390,8 +414,8 @@ class MainActivity : AppCompatActivity() {
         // Y: FAB ko screen bottom se `margin` upar le jao taaki bottom gap = right gap
         val fabLocation = IntArray(2)
         fab.getLocationOnScreen(fabLocation)
-        val fabCurrentBottom = fabLocation[1] + fab.height   // current absolute bottom
-        val fabTargetBottom = screenH - margin               // desired bottom
+        val fabCurrentBottom = fabLocation[1] + fab.height // current absolute bottom
+        val fabTargetBottom = screenH - margin // desired bottom
         val fabTargetY = (fabTargetBottom - fabCurrentBottom).toFloat()
 
         if (hidden) {
@@ -433,7 +457,7 @@ class MainActivity : AppCompatActivity() {
     private var indicatorSpringX: SpringAnimation? = null
     private var indicatorW: Int = 0
 
-    private val CENTER_INDEX = 2  // nav_add_images slot (FAB), indicator skips it
+    private val CENTER_INDEX = 2 // nav_add_images slot (FAB), indicator skips it
 
     private fun indexForMenuItem(itemId: Int): Int = when (itemId) {
         R.id.nav_home -> 0
@@ -465,7 +489,7 @@ class MainActivity : AppCompatActivity() {
     /** Keep the indicator glued to the nav while the nav slides in/out. */
     private fun syncIndicatorToNav(nav: BottomNavigationView) {
         val iv = indicatorView ?: return
-        iv.translationY = nav.translationY      // match the slide
+        iv.translationY = nav.translationY // match the slide
         iv.y = yForIndicator(nav) + nav.translationY
     }
 
@@ -476,12 +500,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun attachSpringIndicator(nav: BottomNavigationView) {
-        if (indicatorView != null) return  // guard against double-attach
+        if (indicatorView != null) return // guard against double-attach
 
         val ctx = nav.context
         val density = resources.displayMetrics.density
-        val indicatorH = (3 * density).toInt()   // 3dp tall
-        indicatorW = (22 * density).toInt()      // 22dp wide
+        val indicatorH = (3 * density).toInt() // 3dp tall
+        indicatorW = (22 * density).toInt() // 22dp wide
 
         val indicator = View(ctx).apply {
             layoutParams = android.widget.FrameLayout.LayoutParams(indicatorW, indicatorH)
@@ -524,7 +548,7 @@ class MainActivity : AppCompatActivity() {
             R.id.homeFragment,
             R.id.templateCategoriesFragment,
             R.id.filesFragment,
-            R.id.settingsFragment
+            R.id.settingsFragment,
         )
         indicator.visibility = if (navVisibleNow) View.VISIBLE else View.GONE
         binding.fabAddImage.visibility = if (navVisibleNow) View.VISIBLE else View.GONE
@@ -554,7 +578,8 @@ class MainActivity : AppCompatActivity() {
                         WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 }
             } else {
-                @Suppress("DEPRECATION") w.decorView.systemUiVisibility =
+                @Suppress("DEPRECATION")
+                w.decorView.systemUiVisibility =
                     View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             }
             applyStatusBarColor()
@@ -586,10 +611,15 @@ class MainActivity : AppCompatActivity() {
                 // tryOpenProject does a magic-byte check internally — it rejects non-URDC files
                 // silently, so false positives just fall through to the image handler below.
                 val name = queryDisplayName(uri)
-                val looksLikeProject = name?.endsWith(".urdc", true) == true || name?.endsWith(
-                    ".bin", true
-                ) == true ||   // WhatsApp renames .urdc -> .bin
-                        intent.type == "application/octet-stream" || intent.type == "application/octet_stream" || intent.type == null   // some share sources send no MIME type at all
+                val looksLikeProject = name?.endsWith(".urdc", true) == true ||
+                    name?.endsWith(
+                        ".bin",
+                        true,
+                    ) == true ||
+                    // WhatsApp renames .urdc -> .bin
+                    intent.type == "application/octet-stream" ||
+                    intent.type == "application/octet_stream" ||
+                    intent.type == null // some share sources send no MIME type at all
                 if (looksLikeProject && tryOpenProjectAsync(uri)) {
                     return@launch
                 }
@@ -600,19 +630,22 @@ class MainActivity : AppCompatActivity() {
                         contentResolver,
                         uri,
                         com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX,
-                        com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX
+                        com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX,
                     )
                     if (rawBitmap != null) {
                         val bitmap = com.webscare.urducanvas.common.utils.ImageProcessor.downsampleIfNeeded(
                             rawBitmap,
                             com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX,
-                            com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX
+                            com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX,
                         )
                         val widthVal = bitmap.width.toFloat()
                         val heightVal = bitmap.height.toFloat()
                         withContext(Dispatchers.Main) {
                             val canvasSize = CanvasSize(
-                                id = 0, "From Image", widthVal, heightVal
+                                id = 0,
+                                "From Image",
+                                widthVal,
+                                heightVal,
                             )
                             viewModel.clearCanvas()
                             viewModel.setCanvasSize(canvasSize)
@@ -643,7 +676,8 @@ class MainActivity : AppCompatActivity() {
                 // Could still be a plain .json shared from a debug/authoring build — allow that.
                 val firstByte = cached.inputStream().use { it.read() }
                 if (firstByte != '['.code && firstByte != '{'.code) {
-                    cached.delete(); return false
+                    cached.delete()
+                    return false
                 }
             }
 
@@ -657,10 +691,13 @@ class MainActivity : AppCompatActivity() {
                 format = "URDC",
                 quality = "",
                 canvasSize = viewModel.canvasSize.value ?: CanvasSize(
-                    id = 0, "Project", 1080f, 1080f
+                    id = 0,
+                    "Project",
+                    1080f,
+                    1080f,
                 ),
                 exportDate = "",
-                updatedDate = ""
+                updatedDate = "",
             )
 
             withContext(Dispatchers.Main) {
@@ -671,16 +708,25 @@ class MainActivity : AppCompatActivity() {
             }
             true
         } catch (e: Exception) {
-            e.printStackTrace(); false
+            Log.e("MainActivity", "Failed to open project asynchronously", e)
+            false
         }
     }
 
     private fun queryDisplayName(uri: Uri): String? = try {
-        if (uri.scheme == "file") uri.lastPathSegment
-        else contentResolver.query(
-            uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
-        )?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+        if (uri.scheme == "file") {
+            uri.lastPathSegment
+        } else {
+            contentResolver.query(
+                uri,
+                arrayOf(android.provider.OpenableColumns.DISPLAY_NAME),
+                null,
+                null,
+                null,
+            )?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+        }
     } catch (e: Exception) {
+        Log.e("MainActivity", "Failed to query display name for URI: $uri", e)
         null
     }
 

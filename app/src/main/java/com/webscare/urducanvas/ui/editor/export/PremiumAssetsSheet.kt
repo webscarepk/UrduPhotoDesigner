@@ -12,7 +12,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.activityViewModels
-import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.webscare.urducanvas.R
@@ -54,7 +53,8 @@ class PremiumAssetsSheet : BottomSheetDialogFragment() {
         dialog?.window?.let { window ->
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 window.insetsController?.apply {
-                    hide(WindowInsets.Type.navigationBars()
+                    hide(
+                        WindowInsets.Type.navigationBars(),
                     )
                     systemBarsBehavior =
                         WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -63,10 +63,10 @@ class PremiumAssetsSheet : BottomSheetDialogFragment() {
                 @Suppress("DEPRECATION")
                 window.decorView.systemUiVisibility =
                     View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-                            View.SYSTEM_UI_FLAG_FULLSCREEN or
-                            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             }
         }
     }
@@ -80,7 +80,7 @@ class PremiumAssetsSheet : BottomSheetDialogFragment() {
             setDimAmount(0.45f)
             setFlags(
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             )
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 setDecorFitsSystemWindows(false)
@@ -92,7 +92,7 @@ class PremiumAssetsSheet : BottomSheetDialogFragment() {
         }
 
         val bottomSheet = dialog?.findViewById<View>(
-            com.google.android.material.R.id.design_bottom_sheet
+            com.google.android.material.R.id.design_bottom_sheet,
         ) ?: return
 
         bottomSheet.background = ContextCompat.getDrawable(requireContext(), R.drawable.bottom_sheet_bg)
@@ -116,9 +116,7 @@ class PremiumAssetsSheet : BottomSheetDialogFragment() {
         forceImmersiveMode()
     }
 
-    override fun getTheme(): Int {
-        return R.style.CustomBottomSheetDialog
-    }
+    override fun getTheme(): Int = R.style.CustomBottomSheetDialog
 
     companion object {
         fun newInstance() = PremiumAssetsSheet()

@@ -10,7 +10,7 @@ import com.webscare.urducanvas.databinding.LayoutCategoryRowBinding
 
 class TrendsAdapter(
     private val onSeeAll: (String) -> Unit,
-    private val onTemplateClick: (com.webscare.urducanvas.data.model.TemplateEntity, Boolean) -> Unit
+    private val onTemplateClick: (com.webscare.urducanvas.data.model.TemplateEntity, Boolean) -> Unit,
 ) : androidx.recyclerview.widget.ListAdapter<HomeRow, TrendsAdapter.TrendVH>(Diff()) {
 
     init {
@@ -35,13 +35,13 @@ class TrendsAdapter(
         hostRv = null
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TrendVH {
-        return TrendVH(
-            LayoutCategoryRowBinding.inflate(
-                LayoutInflater.from(parent.context), parent, false
-            )
-        )
-    }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TrendVH = TrendVH(
+        LayoutCategoryRowBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false,
+        ),
+    )
 
     override fun onBindViewHolder(holder: TrendVH, position: Int) {
         holder.bind(getItem(position) as HomeRow.TrendRow)
@@ -60,7 +60,7 @@ class TrendsAdapter(
     inner class TrendVH(private val b: LayoutCategoryRowBinding) : RecyclerView.ViewHolder(b.root) {
         private val miniAdapter =
             _root_ide_package_.com.webscare.urducanvas.ui.navigation.templates.TemplatesMiniAdapter(
-                onClick = onTemplateClick
+                onClick = onTemplateClick,
             )
 
         init {
@@ -81,9 +81,7 @@ class TrendsAdapter(
             }
         }
 
-        fun updateChildProgress(
-            templateId: Int, state: com.webscare.urducanvas.data.model.ProgressUi
-        ) {
+        fun updateChildProgress(templateId: Int, state: com.webscare.urducanvas.data.model.ProgressUi) {
             progressById[templateId] = state
             miniAdapter.updateProgress(templateId, state)
         }
@@ -93,11 +91,11 @@ class TrendsAdapter(
         }
     }
 
-    fun updateTemplateProgress(
-        templateId: Int, progress: Int, isDownloading: Boolean, isDownloaded: Boolean
-    ) {
+    fun updateTemplateProgress(templateId: Int, progress: Int, isDownloading: Boolean, isDownloaded: Boolean) {
         val state = _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
-            progress, isDownloading, isDownloaded
+            progress,
+            isDownloading,
+            isDownloaded,
         )
         progressById[templateId] = state
 
@@ -127,17 +125,13 @@ class TrendsAdapter(
     }
 
     class Diff : DiffUtil.ItemCallback<HomeRow>() {
-        override fun areItemsTheSame(old: HomeRow, new: HomeRow): Boolean {
-            return when {
-                old is HomeRow.TrendRow && new is HomeRow.TrendRow -> true // Ya unique ID agar hai
-                old is HomeRow.CategoryRow && new is HomeRow.CategoryRow -> old.title == new.title
-                else -> false
-            }
+        override fun areItemsTheSame(old: HomeRow, new: HomeRow): Boolean = when {
+            old is HomeRow.TrendRow && new is HomeRow.TrendRow -> true // Ya unique ID agar hai
+            old is HomeRow.CategoryRow && new is HomeRow.CategoryRow -> old.title == new.title
+            else -> false
         }
 
         override fun getChangePayload(oldItem: HomeRow, newItem: HomeRow): Any? = Any()
-        override fun areContentsTheSame(old: HomeRow, new: HomeRow): Boolean {
-            return old is HomeRow.TrendRow && new is HomeRow.TrendRow && old.templates.size == new.templates.size
-        }
+        override fun areContentsTheSame(old: HomeRow, new: HomeRow): Boolean = old is HomeRow.TrendRow && new is HomeRow.TrendRow && old.templates.size == new.templates.size
     }
 }

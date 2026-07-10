@@ -16,5 +16,5 @@ enum class TextDecoration {
     UNDERLINE,
 
     @SerializedName("StrikeThrough")
-    STRIKE_THROUGH
+    STRIKE_THROUGH,
 }

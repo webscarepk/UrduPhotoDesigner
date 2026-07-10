@@ -17,33 +17,30 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object PexelsNetworkModule {
- 
+
     @Provides
     @Singleton
     @Named("pexels")
-    fun providePexelsOkHttp(): OkHttpClient =
-        OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .addInterceptor(
-                HttpLoggingInterceptor().apply {
-                    level = HttpLoggingInterceptor.Level.BASIC
-                }
-            )
-            .build()
- 
+    fun providePexelsOkHttp(): OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .addInterceptor(
+            HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BASIC
+            },
+        )
+        .build()
+
     @Provides
     @Singleton
     @Named("pexels")
-    fun providePexelsRetrofit(@Named("pexels") okHttpClient: OkHttpClient): Retrofit =
-        Retrofit.Builder()
-            .baseUrl(Constants.PEXELS_BASE_URL)   // "https://api.pexels.com/"
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
- 
+    fun providePexelsRetrofit(@Named("pexels") okHttpClient: OkHttpClient): Retrofit = Retrofit.Builder()
+        .baseUrl(Constants.PEXELS_BASE_URL) // "https://api.pexels.com/"
+        .client(okHttpClient)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
     @Provides
     @Singleton
-    fun providePexelsApi(@Named("pexels") retrofit: Retrofit): PexelsApi =
-        retrofit.create(PexelsApi::class.java)
+    fun providePexelsApi(@Named("pexels") retrofit: Retrofit): PexelsApi = retrofit.create(PexelsApi::class.java)
 }

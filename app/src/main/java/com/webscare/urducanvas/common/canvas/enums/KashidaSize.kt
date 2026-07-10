@@ -13,5 +13,5 @@ enum class KashidaSize {
     MEDIUM,
 
     @SerializedName("Large")
-    LARGE
+    LARGE,
 }

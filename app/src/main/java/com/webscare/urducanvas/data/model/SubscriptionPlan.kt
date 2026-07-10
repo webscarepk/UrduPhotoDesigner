@@ -39,10 +39,11 @@ data class SubscriptionPlan(
     val save: Double = 0.0,
     val months: Int = 1,
     val billed: String = "",
-    val currencySymbol: String = "Rs"
+    val currencySymbol: String = "Rs",
 ) {
     val hasDiscount: Boolean get() = discountPercent > 0
     val hasSave: Boolean get() = save > 0.0
+
     /** Show the strike-through original only when this term beats the monthly rate. */
     val showStrike: Boolean get() = origPerMonth > perMonth && origPerMonth > 0.0
 }

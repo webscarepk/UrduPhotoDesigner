@@ -12,7 +12,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.DecelerateInterpolator
-import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
@@ -62,12 +61,14 @@ class ShapesParentFragment : Fragment() {
     private var lastShapesData: ShapesData? = null
     private var tabListenerAttached = false
 
-    private var lastSlideExpanded: Boolean? = null  // guards applySlideOffset thrash
+    private var lastSlideExpanded: Boolean? = null // guards applySlideOffset thrash
 
     private var thumbnailAdapter: ThumbnailAdapter? = null
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentShapesParentBinding.inflate(inflater, container, false)
         return binding.root
@@ -75,7 +76,6 @@ class ShapesParentFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
 
         setEvents()
         attachDragHandleSwipe()
@@ -116,7 +116,8 @@ class ShapesParentFragment : Fragment() {
                 if (item is SelectedItem.Image) {
                     mainViewModel.toggleShapesSelection(item.entity.id)
                 }
-            })
+            },
+        )
         binding.selectedThumbnails.apply {
             layoutManager =
                 LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
@@ -190,10 +191,10 @@ class ShapesParentFragment : Fragment() {
         // Collapsed header: fully visible at 0, fades out by 0.4
         val collapsedAlpha = (1f - offset / 0.4f).coerceIn(0f, 1f)
         // Expanded header: invisible until 0.3, fully visible at 1.0
-        val expandedAlpha  = ((offset - 0.3f) / 0.7f).coerceIn(0f, 1f)
+        val expandedAlpha = ((offset - 0.3f) / 0.7f).coerceIn(0f, 1f)
 
         binding.headerCollapsed.alpha = collapsedAlpha
-        binding.headerExpanded.alpha  = expandedAlpha
+        binding.headerExpanded.alpha = expandedAlpha
 
         // GONE when fully hidden (takes no space), INVISIBLE only mid-fade
         binding.headerCollapsed.visibility =
@@ -204,14 +205,13 @@ class ShapesParentFragment : Fragment() {
         // Tab layouts mirror their respective headers
         val isSearchActive = currentQuery.isNotBlank()
         if (!isSearchActive) {
-            binding.tabLayout.alpha         = collapsedAlpha
+            binding.tabLayout.alpha = collapsedAlpha
             binding.tabLayoutExpanded.alpha = expandedAlpha
             binding.tabLayout.visibility =
                 if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
             binding.tabLayoutExpanded.visibility =
                 if (expandedAlpha > 0f) View.VISIBLE else View.GONE
         }
-
 
         // Forward live offset to child fragments to drive morph transition on every frame
         for ((_, fragment) in fragmentCache) {
@@ -223,17 +223,15 @@ class ShapesParentFragment : Fragment() {
     }
 
     private fun applyExpandedUi(expanded: Boolean) {
-
         // Snap headers/tabs to final state
-        binding.headerCollapsed.alpha      = if (!expanded) 1f else 0f
-        binding.headerExpanded.alpha       = if (expanded)  1f else 0f
+        binding.headerCollapsed.alpha = if (!expanded) 1f else 0f
+        binding.headerExpanded.alpha = if (expanded) 1f else 0f
         binding.headerCollapsed.visibility = if (!expanded) View.VISIBLE else View.GONE
-        binding.headerExpanded.visibility  = if (expanded)  View.VISIBLE else View.GONE
-        binding.tabLayout.alpha            = if (!expanded) 1f else 0f
-        binding.tabLayoutExpanded.alpha    = if (expanded)  1f else 0f
-        binding.tabLayout.visibility       = if (!expanded) View.VISIBLE else View.GONE
+        binding.headerExpanded.visibility = if (expanded) View.VISIBLE else View.GONE
+        binding.tabLayout.alpha = if (!expanded) 1f else 0f
+        binding.tabLayoutExpanded.alpha = if (expanded) 1f else 0f
+        binding.tabLayout.visibility = if (!expanded) View.VISIBLE else View.GONE
         binding.tabLayoutExpanded.visibility = if (expanded) View.VISIBLE else View.GONE
-
 
         if (expanded) {
             binding.searchBarExpanded.setText(currentQuery)
@@ -330,7 +328,7 @@ class ShapesParentFragment : Fragment() {
                             xml,
                             requireActivity(),
                             entity.is_premium,
-                            applyWhiteTintInDarkMode = true
+                            applyWhiteTintInDarkMode = true,
                         )
                     }
                 } else {
@@ -345,7 +343,7 @@ class ShapesParentFragment : Fragment() {
                             it.trimTransparentEdges(),
                             requireActivity(),
                             com.webscare.urducanvas.common.canvas.enums.ElementType.IMAGE,
-                            entity.is_premium
+                            entity.is_premium,
                         )
                     }
                 }
@@ -372,8 +370,11 @@ class ShapesParentFragment : Fragment() {
 
         // Idempotent: if this tab is already the visible one, do nothing.
         val existing = fragmentCache[category]
-        if (currentTabIndex == position && existing != null &&
-            existing.isAdded && !existing.isHidden) {
+        if (currentTabIndex == position &&
+            existing != null &&
+            existing.isAdded &&
+            !existing.isHidden
+        ) {
             return
         }
 
@@ -396,8 +397,11 @@ class ShapesParentFragment : Fragment() {
             for ((_, f) in fragmentCache) {
                 if (f !== target && f.isAdded && !f.isHidden) hide(f)
             }
-            if (!target.isAdded) add(R.id.fragmentContainer, target, category)
-            else if (target.isHidden) show(target)
+            if (!target.isAdded) {
+                add(R.id.fragmentContainer, target, category)
+            } else if (target.isHidden) {
+                show(target)
+            }
         }.commit()
 
         val expanded = mainViewModel.isPanelExpanded(PanelType.SHAPES)
@@ -465,8 +469,11 @@ class ShapesParentFragment : Fragment() {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 val pos = tab?.position ?: return
                 // Keep the other layout visually in sync WITHOUT firing its listener.
-                val other = if (tab.parent === binding.tabLayout)
-                    binding.tabLayoutExpanded else binding.tabLayout
+                val other = if (tab.parent === binding.tabLayout) {
+                    binding.tabLayoutExpanded
+                } else {
+                    binding.tabLayout
+                }
                 if (other.selectedTabPosition != pos) {
                     other.setScrollPosition(pos, 0f, true)
                     other.getTabAt(pos)?.let { otherTab ->
@@ -536,7 +543,8 @@ class ShapesParentFragment : Fragment() {
         }
 
         if (query.isBlank()) {
-            showAllTabs(); return
+            showAllTabs()
+            return
         }
 
         val data = mainViewModel.shapesData.value
@@ -602,7 +610,7 @@ class ShapesParentFragment : Fragment() {
                 if (_binding == null) return@post
                 binding.searchBarExpanded.requestFocus()
                 binding.searchBarExpanded.setSelection(
-                    binding.searchBarExpanded.text?.length ?: 0
+                    binding.searchBarExpanded.text?.length ?: 0,
                 )
                 showKeyboard(binding.searchBarExpanded)
             }
@@ -615,8 +623,11 @@ class ShapesParentFragment : Fragment() {
         binding.searchBarExpanded.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 applySearch(binding.searchBarExpanded.text.toString())
-                hideKeyboard(); true
-            } else false
+                hideKeyboard()
+                true
+            } else {
+                false
+            }
         }
 
         binding.searchBarExpanded.addTextChangedListener(object : TextWatcher {
@@ -648,9 +659,12 @@ class ShapesParentFragment : Fragment() {
         binding.searchBarExpanded.setCompoundDrawablesWithIntrinsicBounds(
             null,
             null,
-            if (text.isNotEmpty()) ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close)
-            else null,
-            null
+            if (text.isNotEmpty()) {
+                ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close)
+            } else {
+                null
+            },
+            null,
         )
     }
 

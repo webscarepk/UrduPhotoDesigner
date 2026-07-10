@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
@@ -30,8 +29,9 @@ class AppearanceFragment : Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentAppearanceBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -58,7 +58,7 @@ class AppearanceFragment : Fragment() {
         pagerAdapter =
             AppearancePagerAdapter(
                 this,
-                tabs
+                tabs,
             )
         binding.viewPager.adapter = pagerAdapter
 
@@ -70,7 +70,7 @@ class AppearanceFragment : Fragment() {
 
                 if (position >= 2) {
                     binding.categories.smoothScrollToPosition(5)
-                }else{
+                } else {
                     binding.categories.smoothScrollToPosition(0)
                 }
             }
@@ -87,11 +87,11 @@ class AppearanceFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 tabs.add(PanelTabs(0, "Kasheeda", true))
-                tabs.add(PanelTabs(1, "Fill",     false))
-                tabs.add(PanelTabs(2, "Stroke",   false))
-                tabs.add(PanelTabs(3, "Shadow",   false))
-                tabs.add(PanelTabs(4, "Label",    false))
-                tabs.add(PanelTabs(5, "Effect",   false))
+                tabs.add(PanelTabs(1, "Fill", false))
+                tabs.add(PanelTabs(2, "Stroke", false))
+                tabs.add(PanelTabs(3, "Shadow", false))
+                tabs.add(PanelTabs(4, "Label", false))
+                tabs.add(PanelTabs(5, "Effect", false))
 
                 adapter.submitList(ArrayList(tabs))
                 handleAppearanceTabSelection(tabs.firstOrNull())
@@ -123,8 +123,6 @@ class AppearanceFragment : Fragment() {
     }
 
     companion object {
-        fun newInstance(): AppearanceFragment {
-            return AppearanceFragment()
-        }
+        fun newInstance(): AppearanceFragment = AppearanceFragment()
     }
 }

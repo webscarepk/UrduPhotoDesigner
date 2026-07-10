@@ -6,11 +6,7 @@ import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
 
-class RippleView @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null,
-    defStyle: Int = 0
-) : View(context, attrs, defStyle) {
+class RippleView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) : View(context, attrs, defStyle) {
 
     companion object {
         private const val RIPPLE_COUNT = 4
@@ -21,7 +17,7 @@ class RippleView @JvmOverloads constructor(
     // Pure fill only — no stroke at all
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = 0x1AFFFFFF.toInt()  // exactly 0x1A alpha (~10%) white
+        color = 0x1AFFFFFF.toInt() // exactly 0x1A alpha (~10%) white
     }
 
     private val startTimes = LongArray(RIPPLE_COUNT) { index ->
@@ -62,8 +58,9 @@ class RippleView @JvmOverloads constructor(
         postInvalidateOnAnimation()
     }
 
-    private fun easeInOutCubic(t: Float): Float {
-        return if (t < 0.5f) 4f * t * t * t
-        else 1f - (-2f * t + 2f).let { it * it * it } / 2f
+    private fun easeInOutCubic(t: Float): Float = if (t < 0.5f) {
+        4f * t * t * t
+    } else {
+        1f - (-2f * t + 2f).let { it * it * it } / 2f
     }
 }

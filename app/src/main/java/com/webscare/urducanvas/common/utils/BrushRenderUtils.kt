@@ -26,9 +26,7 @@ import kotlin.math.pow
 import kotlin.math.sin
 
 object BrushRenderUtils {
-    fun createBackgroundGradientShader(
-        gradientItem: GradientItem, width: Float, height: Float
-    ): Shader {
+    fun createBackgroundGradientShader(gradientItem: GradientItem, width: Float, height: Float): Shader {
         val colors = gradientItem.colors.toIntArray()
         val positions = gradientItem.positions.toFloatArray()
 
@@ -46,7 +44,13 @@ object BrushRenderUtils {
                 val dy = (sin(theta) * halfLen).toFloat()
 
                 LinearGradient(
-                    cx - dx, cy - dy, cx + dx, cy + dy, colors, positions, Shader.TileMode.CLAMP
+                    cx - dx,
+                    cy - dy,
+                    cx + dx,
+                    cy + dy,
+                    colors,
+                    positions,
+                    Shader.TileMode.CLAMP,
                 )
             }
 
@@ -55,7 +59,12 @@ object BrushRenderUtils {
                 val radius =
                     min(width, height) / 2f * gradientItem.radialRadiusFactor * gradientItem.scale
                 RadialGradient(
-                    cx, cy, radius, colors, positions, Shader.TileMode.CLAMP
+                    cx,
+                    cy,
+                    radius,
+                    colors,
+                    positions,
+                    Shader.TileMode.CLAMP,
                 )
             }
 
@@ -73,64 +82,60 @@ object BrushRenderUtils {
         return baseShader
     }
 
-    fun makeStrokePaint(stroke: StrokeData, width: Int, height: Int): Paint {
-        return Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeJoin = Paint.Join.ROUND
-            strokeCap = Paint.Cap.ROUND
-            strokeWidth = stroke.thickness
+    fun makeStrokePaint(stroke: StrokeData, width: Int, height: Int): Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+        strokeWidth = stroke.thickness
 
-            // 🌈 Gradient or solid color
-            stroke.gradient?.let {
-                shader = createBackgroundGradientShader(it, width.toFloat(), height.toFloat())
-            } ?: run { color = stroke.color }
+        // 🌈 Gradient or solid color
+        stroke.gradient?.let {
+            shader = createBackgroundGradientShader(it, width.toFloat(), height.toFloat())
+        } ?: run { color = stroke.color }
 
-            val hardness = stroke.hardness.coerceIn(0f, 1f)
-            // 🖌️ Style-dependent look
-            when (stroke.style) {
-                BrushStyle.PENCIL -> {
-                    alpha = (150 + 90 * hardness).toInt()
-                    pathEffect = DashPathEffect(floatArrayOf(4f, 5f, 1f, 3f), 0f)
-                    maskFilter = null
+        val hardness = stroke.hardness.coerceIn(0f, 1f)
+        // 🖌️ Style-dependent look
+        when (stroke.style) {
+            BrushStyle.PENCIL -> {
+                alpha = (150 + 90 * hardness).toInt()
+                pathEffect = DashPathEffect(floatArrayOf(4f, 5f, 1f, 3f), 0f)
+                maskFilter = null
+            }
+
+            BrushStyle.MARKER -> {
+                strokeCap = Paint.Cap.BUTT
+                alpha = (90 + 160 * hardness).toInt()
+                maskFilter = null
+            }
+
+            BrushStyle.HIGHLIGHTER -> {
+                strokeCap = Paint.Cap.BUTT
+                alpha = (60 + 100 * hardness).toInt()
+                maskFilter = null
+            }
+
+            BrushStyle.BRUSH -> {
+                maskFilter = if (hardness < 0.9f) {
+                    BlurMaskFilter((1f - hardness) * 25f, BlurMaskFilter.Blur.NORMAL)
+                } else {
+                    null
                 }
+                alpha = (200 + 55 * hardness).toInt()
+            }
 
-                BrushStyle.MARKER -> {
-                    strokeCap = Paint.Cap.BUTT
-                    alpha = (90 + 160 * hardness).toInt()
-                    maskFilter = null
-                }
+            BrushStyle.PEN -> {
+                alpha = (120 + 135 * hardness).toInt() // softer = lighter
+                maskFilter = null
+            }
 
-                BrushStyle.HIGHLIGHTER -> {
-                    strokeCap = Paint.Cap.BUTT
-                    alpha = (60 + 100 * hardness).toInt()
-                    maskFilter = null
-                }
-
-                BrushStyle.BRUSH -> {
-                    maskFilter = if (hardness < 0.9f)
-                        BlurMaskFilter((1f - hardness) * 25f, BlurMaskFilter.Blur.NORMAL)
-                    else null
-                    alpha = (200 + 55 * hardness).toInt()
-                }
-
-                BrushStyle.PEN -> {
-                    alpha = (120 + 135 * hardness).toInt() // softer = lighter
-                    maskFilter = null
-                }
-
-                BrushStyle.ERASER -> {
-                    xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
-                    maskFilter = null
-                }
+            BrushStyle.ERASER -> {
+                xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+                maskFilter = null
             }
         }
     }
 
-    fun drawTaperedStroke(
-        canvas: Canvas,
-        stroke: StrokeData,
-        paint: Paint
-    ) {
+    fun drawTaperedStroke(canvas: Canvas, stroke: StrokeData, paint: Paint) {
         val pathMeasure = PathMeasure(stroke.path, false)
         val length = pathMeasure.length
         val pos = FloatArray(2)
@@ -145,8 +150,8 @@ object BrushRenderUtils {
             val t = i / smoothness.toFloat()
 
             // 🟢 NEW: Smooth continuous taper (start → end)
-            val baseFactor = 1f - 0.45f * t      // starts reducing right from beginning
-            val endEase = (1f - t).pow(0.6f)     // softens tail
+            val baseFactor = 1f - 0.45f * t // starts reducing right from beginning
+            val endEase = (1f - t).pow(0.6f) // softens tail
             val factor = (baseFactor * endEase).coerceIn(0.3f, 1f)
 
             val width = stroke.thickness * factor
@@ -251,7 +256,7 @@ object BrushRenderUtils {
         height: Int,
         makePaint: (StrokeData, Int, Int) -> Paint,
         drawBrush: (Canvas, StrokeData, Int) -> Unit,
-        drawPen: (Canvas, StrokeData, Int) -> Unit
+        drawPen: (Canvas, StrokeData, Int) -> Unit,
     ) {
         when (stroke.style) {
             BrushStyle.BRUSH -> drawBrush(canvas, stroke, paintAlpha)

@@ -25,8 +25,7 @@ object Converters {
     // Convert comma-separated string back to List<Int>
     @TypeConverter
     @JvmStatic
-    fun toIntList(data: String?): List<Int> =
-        data?.takeIf { it.isNotEmpty() }?.split(",")?.map { it.toInt() } ?: emptyList()
+    fun toIntList(data: String?): List<Int> = data?.takeIf { it.isNotEmpty() }?.split(",")?.map { it.toInt() } ?: emptyList()
 
     // Convert List<Float> to a comma-separated string
     @TypeConverter
@@ -36,8 +35,7 @@ object Converters {
     // Convert comma-separated string back to List<Float>
     @TypeConverter
     @JvmStatic
-    fun toFloatList(data: String?): List<Float> =
-        data?.takeIf { it.isNotEmpty() }?.split(",")?.map { it.toFloat() } ?: emptyList()
+    fun toFloatList(data: String?): List<Float> = data?.takeIf { it.isNotEmpty() }?.split(",")?.map { it.toFloat() } ?: emptyList()
 
     // Convert GradientType enum to a string
     @TypeConverter
@@ -47,13 +45,10 @@ object Converters {
     // Convert string back to GradientType enum
     @TypeConverter
     @JvmStatic
-    fun toGradientType(name: String?): GradientType =
-        name?.let { GradientType.valueOf(it) } ?: GradientType.LINEAR
+    fun toGradientType(name: String?): GradientType = name?.let { GradientType.valueOf(it) } ?: GradientType.LINEAR
 
     @TypeConverter
-    fun fromCanvasSize(canvasSize: CanvasSize?): String? {
-        return canvasSize?.let { gson.toJson(it) }
-    }
+    fun fromCanvasSize(canvasSize: CanvasSize?): String? = canvasSize?.let { gson.toJson(it) }
 
     @TypeConverter
     fun toCanvasSize(data: String?): CanvasSize? {
@@ -65,9 +60,7 @@ object Converters {
 
     @TypeConverter
     @JvmStatic
-    fun fromGradientItem(item: GradientItem?): String? {
-        return item?.let { gson.toJson(it) }
-    }
+    fun fromGradientItem(item: GradientItem?): String? = item?.let { gson.toJson(it) }
 
     @TypeConverter
     @JvmStatic
@@ -75,6 +68,7 @@ object Converters {
         if (data.isNullOrBlank()) return null
         return gson.fromJson(data, GradientItem::class.java)
     }
+
     // Convert List<String> <-> JSON
     @TypeConverter
     @JvmStatic
@@ -89,9 +83,7 @@ object Converters {
     }
 
     @TypeConverter
-    fun fromAdjustmentValues(value: AdjustmentValues?): String? {
-        return value?.let { gson.toJson(it) }
-    }
+    fun fromAdjustmentValues(value: AdjustmentValues?): String? = value?.let { gson.toJson(it) }
 
     @TypeConverter
     fun toAdjustmentValues(data: String?): AdjustmentValues? {
@@ -100,9 +92,7 @@ object Converters {
     }
 
     @TypeConverter
-    fun fromImageFilter(value: ImageFilter?): String? {
-        return value?.let { gson.toJson(it) }
-    }
+    fun fromImageFilter(value: ImageFilter?): String? = value?.let { gson.toJson(it) }
 
     @TypeConverter
     fun toImageFilter(data: String?): ImageFilter? {
@@ -111,9 +101,7 @@ object Converters {
     }
 
     @TypeConverter
-    fun fromTextDecorationSet(set: Set<TextDecoration>?): String? {
-        return set?.joinToString(",") { it.name }
-    }
+    fun fromTextDecorationSet(set: Set<TextDecoration>?): String? = set?.joinToString(",") { it.name }
 
     @TypeConverter
     fun toTextDecorationSet(data: String?): Set<TextDecoration> {
@@ -122,9 +110,7 @@ object Converters {
     }
 
     @TypeConverter
-    fun fromStrokeList(list: MutableList<StrokeData>?): String? {
-        return list?.let { gson.toJson(it) }
-    }
+    fun fromStrokeList(list: MutableList<StrokeData>?): String? = list?.let { gson.toJson(it) }
 
     @TypeConverter
     fun toStrokeList(data: String?): MutableList<StrokeData>? {
@@ -134,9 +120,7 @@ object Converters {
     }
 
     @TypeConverter
-    fun fromBrushSettings(value: BrushSettings?): String? {
-        return value?.let { gson.toJson(it) }
-    }
+    fun fromBrushSettings(value: BrushSettings?): String? = value?.let { gson.toJson(it) }
 
     @TypeConverter
     fun toBrushSettings(data: String?): BrushSettings? {
@@ -145,12 +129,8 @@ object Converters {
     }
 
     @TypeConverter
-    fun fromBlendType(type: BlendType?): String? {
-        return type?.name
-    }
+    fun fromBlendType(type: BlendType?): String? = type?.name
 
     @TypeConverter
-    fun toBlendType(name: String?): BlendType? {
-        return name?.let { BlendType.valueOf(it) }
-    }
+    fun toBlendType(name: String?): BlendType? = name?.let { BlendType.valueOf(it) }
 }

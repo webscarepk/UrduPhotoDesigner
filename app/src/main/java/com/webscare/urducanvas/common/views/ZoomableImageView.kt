@@ -15,10 +15,7 @@ import androidx.appcompat.widget.AppCompatImageView
 import kotlin.math.abs
 import kotlin.math.min
 
-class ZoomableImageView @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null
-) : AppCompatImageView(context, attrs) {
+class ZoomableImageView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : AppCompatImageView(context, attrs) {
 
     private val matrixScale = Matrix()
     private val savedMatrix = Matrix()
@@ -104,7 +101,6 @@ class ZoomableImageView @JvmOverloads constructor(
         scaleDetector.onTouchEvent(event)
 
         when (event.actionMasked) {
-
             MotionEvent.ACTION_DOWN -> {
                 parent?.requestDisallowInterceptTouchEvent(true)
                 savedMatrix.set(matrixScale)
@@ -129,7 +125,7 @@ class ZoomableImageView @JvmOverloads constructor(
                 // Only update imageMatrix when NOT in dismiss mode
                 // During dismiss the view is moved via translationX/Y, not the matrix
                 if (!isDismissing) imageMatrix = matrixScale
-                return true  // early return — skip the bottom imageMatrix assign
+                return true // early return — skip the bottom imageMatrix assign
             }
 
             MotionEvent.ACTION_POINTER_UP -> {
@@ -142,8 +138,11 @@ class ZoomableImageView @JvmOverloads constructor(
 
             MotionEvent.ACTION_UP -> {
                 if (isDismissing) {
-                    if (dismissDragY >= dismissThreshold) animateDismiss()
-                    else cancelDismissDrag(animated = true)
+                    if (dismissDragY >= dismissThreshold) {
+                        animateDismiss()
+                    } else {
+                        cancelDismissDrag(animated = true)
+                    }
                 } else if (!isScaling) {
                     handleTap(event)
                 }
@@ -230,7 +229,7 @@ class ZoomableImageView @JvmOverloads constructor(
                 duration = 280
                 interpolator = DecelerateInterpolator(2f)
                 addUpdateListener { va ->
-                    val t = va.animatedValue as Float   // 1 → 0
+                    val t = va.animatedValue as Float // 1 → 0
                     translationY = fromY * t
                     translationX = fromX * t
                     val s = fromScale + (1f - fromScale) * (1f - t)
@@ -327,7 +326,7 @@ class ZoomableImageView @JvmOverloads constructor(
             matrixScale.setScale(scale, scale)
             matrixScale.postTranslate(
                 (vw - scale * d.intrinsicWidth) / 2f,
-                (vh - scale * d.intrinsicHeight) / 2f
+                (vh - scale * d.intrinsicHeight) / 2f,
             )
             imageMatrix = matrixScale
         }
@@ -337,7 +336,7 @@ class ZoomableImageView @JvmOverloads constructor(
         val rect = getMatrixRect()
         matrixScale.postTranslate(
             getFixTranslation(rect.left, rect.right, width.toFloat()),
-            getFixTranslation(rect.top, rect.bottom, height.toFloat())
+            getFixTranslation(rect.top, rect.bottom, height.toFloat()),
         )
     }
 
@@ -348,13 +347,11 @@ class ZoomableImageView @JvmOverloads constructor(
         return rect
     }
 
-    private fun getFixTranslation(minEdge: Float, maxEdge: Float, viewSize: Float): Float {
-        return when {
-            maxEdge - minEdge < viewSize -> (viewSize - (maxEdge - minEdge)) / 2f - minEdge
-            minEdge > 0f -> -minEdge
-            maxEdge < viewSize -> viewSize - maxEdge
-            else -> 0f
-        }
+    private fun getFixTranslation(minEdge: Float, maxEdge: Float, viewSize: Float): Float = when {
+        maxEdge - minEdge < viewSize -> (viewSize - (maxEdge - minEdge)) / 2f - minEdge
+        minEdge > 0f -> -minEdge
+        maxEdge < viewSize -> viewSize - maxEdge
+        else -> 0f
     }
 
     private fun getCurrentScale(): Float {
@@ -390,11 +387,7 @@ class ZoomableImageView @JvmOverloads constructor(
 
     private var currentAnimator: ValueAnimator? = null
 
-    private fun animateZoom(
-        from: Float, to: Float,
-        focusX: Float, focusY: Float,
-        duration: Long = 280
-    ) {
+    private fun animateZoom(from: Float, to: Float, focusX: Float, focusY: Float, duration: Long = 280) {
         currentAnimator?.cancel()
         currentAnimator = ValueAnimator.ofFloat(from, to).apply {
             this.duration = duration

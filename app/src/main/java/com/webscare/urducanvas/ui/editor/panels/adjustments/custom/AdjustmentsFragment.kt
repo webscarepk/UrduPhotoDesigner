@@ -6,7 +6,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
@@ -14,7 +13,6 @@ import com.webscare.urducanvas.data.model.AdjustmentPanelTabs
 import com.webscare.urducanvas.databinding.FragmentAdjustmentsBinding
 import com.webscare.urducanvas.ui.editor.panels.adjustments.AdjustmentPanelTabsAdapter
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class AdjustmentsFragment : Fragment() {
@@ -27,8 +25,9 @@ class AdjustmentsFragment : Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentAdjustmentsBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -82,14 +81,13 @@ class AdjustmentsFragment : Fragment() {
     }
 
     private fun setupRecyclerViews() {
-
         tabs = arrayListOf(
             AdjustmentPanelTabs(0, "Light", true),
             AdjustmentPanelTabs(1, "Color", false),
-            AdjustmentPanelTabs(2, "Detail", false)
+            AdjustmentPanelTabs(2, "Detail", false),
         )
 
-        adapter = AdjustmentPanelTabsAdapter ({ tab ->
+        adapter = AdjustmentPanelTabsAdapter({ tab ->
             handleTabSelection(tab)
         })
 
@@ -117,8 +115,6 @@ class AdjustmentsFragment : Fragment() {
     }
 
     companion object {
-        fun newInstance(): AdjustmentsFragment {
-            return AdjustmentsFragment()
-        }
+        fun newInstance(): AdjustmentsFragment = AdjustmentsFragment()
     }
 }

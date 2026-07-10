@@ -7,7 +7,7 @@ import com.webscare.urducanvas.data.model.FontLanguages
 class FontsPagerAdapter(
     fragment: Fragment,
     categories: List<FontLanguages>,
-    private val standaloneMode: Boolean = false
+    private val standaloneMode: Boolean = false,
 ) : FragmentStateAdapter(fragment) {
 
     var categories: List<FontLanguages> = categories
@@ -15,12 +15,10 @@ class FontsPagerAdapter(
 
     override fun getItemCount() = categories.size
 
-    override fun createFragment(position: Int): Fragment {
-        return FontsListFragment.newInstance(
-            fontLanguage  = categories[position].name,
-            standaloneMode = standaloneMode
-        )
-    }
+    override fun createFragment(position: Int): Fragment = FontsListFragment.newInstance(
+        fontLanguage = categories[position].name,
+        standaloneMode = standaloneMode,
+    )
 
     /**
      * Update the category list with surgical notifications.
@@ -37,7 +35,7 @@ class FontsPagerAdapter(
         when {
             newSize == oldSize -> {
                 for (i in 0 until newSize) {
-                    if (oldCategories[i].id   != newCategories[i].id ||
+                    if (oldCategories[i].id != newCategories[i].id ||
                         oldCategories[i].name != newCategories[i].name
                     ) {
                         notifyItemChanged(i)
@@ -45,12 +43,11 @@ class FontsPagerAdapter(
                 }
             }
             newSize > oldSize -> notifyItemRangeInserted(oldSize, newSize - oldSize)
-            else              -> notifyItemRangeRemoved(newSize, oldSize - newSize)
+            else -> notifyItemRangeRemoved(newSize, oldSize - newSize)
         }
     }
 
     override fun getItemId(position: Int): Long = categories[position].id.toLong()
 
-    override fun containsItem(itemId: Long): Boolean =
-        categories.any { it.id.toLong() == itemId }
+    override fun containsItem(itemId: Long): Boolean = categories.any { it.id.toLong() == itemId }
 }

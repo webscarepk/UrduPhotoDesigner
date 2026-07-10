@@ -4,9 +4,9 @@ import com.webscare.urducanvas.common.canvas.model.GradientItem
 import kotlinx.coroutines.flow.Flow
 
 interface GradientRepo {
-  fun getAllGradients(): Flow<List<GradientItem>>
-  suspend fun seedDefaultGradients(defaults: List<GradientItem>)
-  suspend fun insertNewGradient(gradient: GradientItem)
-  suspend fun deleteGradientById(id: Long)
-  suspend fun updateGradient(gradient: GradientItem)
+    fun getAllGradients(): Flow<List<GradientItem>>
+    suspend fun seedDefaultGradients(defaults: List<GradientItem>)
+    suspend fun insertNewGradient(gradient: GradientItem)
+    suspend fun deleteGradientById(id: Long)
+    suspend fun updateGradient(gradient: GradientItem)
 }

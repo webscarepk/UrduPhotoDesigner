@@ -12,14 +12,14 @@ import kotlin.math.abs
 class SpringNestedScrollView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
-    defStyle: Int = 0
+    defStyle: Int = 0,
 ) : NestedScrollView(context, attrs, defStyle) {
 
     private val MAX_OVERSCROLL_FRACTION = 0.30f
-    private val RUBBER_EXPONENT         = 0.50
+    private val RUBBER_EXPONENT = 0.50
 
     private var velocityTracker: VelocityTracker? = null
-    private var lastY      = 0f
+    private var lastY = 0f
     private var isBouncing = false
     private var lastFlingVelocity = 0f
 
@@ -30,7 +30,7 @@ class SpringNestedScrollView @JvmOverloads constructor(
     // never overlaps the header/card above it.
     private val scrollChild get() = getChildAt(0)
 
-    private val isAtTop    get() = scrollY <= 0
+    private val isAtTop get() = scrollY <= 0
     private val isAtBottom get(): Boolean {
         val child = scrollChild ?: return false
         val maxScroll = child.height - (height - paddingTop - paddingBottom)
@@ -61,7 +61,7 @@ class SpringNestedScrollView @JvmOverloads constructor(
                 val dy = lastY - ev.rawY
                 lastY = ev.rawY
 
-                val pullUp   = dy < 0 && isAtTop    && !canScrollVertically(-1)
+                val pullUp = dy < 0 && isAtTop && !canScrollVertically(-1)
                 val pullDown = dy > 0 && isAtBottom && !canScrollVertically(1)
 
                 if (pullUp || pullDown || isBouncing) {
@@ -71,7 +71,8 @@ class SpringNestedScrollView @JvmOverloads constructor(
             }
 
             MotionEvent.ACTION_UP,
-            MotionEvent.ACTION_CANCEL -> {
+            MotionEvent.ACTION_CANCEL,
+            -> {
                 val velocityY = captureVelocityY()
                 recycleVelocity()
 
@@ -125,7 +126,7 @@ class SpringNestedScrollView @JvmOverloads constructor(
         springAnim = SpringAnimation(child, SpringAnimation.TRANSLATION_Y, 0f).apply {
             spring = SpringForce(0f).apply {
                 dampingRatio = SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY
-                stiffness    = SpringForce.STIFFNESS_LOW
+                stiffness = SpringForce.STIFFNESS_LOW
             }
             setStartVelocity(velocity * 0.3f)
             addEndListener { _, _, _, _ ->
@@ -150,7 +151,7 @@ class SpringNestedScrollView @JvmOverloads constructor(
         springAnim = SpringAnimation(child, SpringAnimation.TRANSLATION_Y, 0f).apply {
             spring = SpringForce(0f).apply {
                 dampingRatio = SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY
-                stiffness    = SpringForce.STIFFNESS_LOW
+                stiffness = SpringForce.STIFFNESS_LOW
             }
             setStartVelocity(velocityY * 0.3f)
             addEndListener { _, _, _, _ ->

@@ -10,10 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import javax.inject.Inject
 
-class CanvasSizeRepoImpl @Inject constructor(
-    private val api: EndPointsInterface,
-    private val dao: CanvasSizeDao
-) : CanvasSizeRepo {
+class CanvasSizeRepoImpl @Inject constructor(private val api: EndPointsInterface, private val dao: CanvasSizeDao) : CanvasSizeRepo {
 
     override fun fetchAndStoreSizes(): Flow<Response<CanvasSizeResponse>> = channelFlow {
         try {
@@ -25,9 +22,9 @@ class CanvasSizeRepoImpl @Inject constructor(
             dao.insertAll(entities)
             trySend(Response.Success(response))
         } catch (e: Exception) {
-            if (e.message?.contains("Connection reset") == true){
+            if (e.message?.contains("Connection reset") == true) {
                 trySend(Response.Error("Unstable Internet Connection!"))
-            }else{
+            } else {
                 trySend(Response.Error("Unexpected Error Occurred ${e.message}"))
             }
         }

@@ -91,7 +91,9 @@ class HomeFragment : androidx.fragment.app.Fragment() {
         }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentHomeBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -154,7 +156,6 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
     @SuppressLint("ClickableViewAccessibility")
     private fun setEvents() {
-
         binding.searchBar.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_UP) {
                 val options = NavOptions.Builder().setEnterAnim(R.anim.slide_in_up).setExitAnim(0)
@@ -182,11 +183,16 @@ class HomeFragment : androidx.fragment.app.Fragment() {
             } else {
                 viewModel.setCanvasSize(
                     _root_ide_package_.com.webscare.urducanvas.common.canvas.model.CanvasSize(
-                        id = 0,"", 2000f, 2000f
-                    )
+                        id = 0,
+                        "",
+                        2000f,
+                        2000f,
+                    ),
                 )
                 viewModel.addTextWithFont(
-                    requireActivity().getString(R.string.dummyText), font, requireActivity()
+                    requireActivity().getString(R.string.dummyText),
+                    font,
+                    requireActivity(),
                 )
 
                 view?.post { findNavController().navigate(R.id.editorFragment, null, navOptions) }
@@ -205,7 +211,10 @@ class HomeFragment : androidx.fragment.app.Fragment() {
             if (!isDownloaded) {
                 downloadingTemplate = template
                 trendsAdapter.updateTemplateProgress(
-                    template.id, progress = 0, isDownloading = true, isDownloaded = false
+                    template.id,
+                    progress = 0,
+                    isDownloading = true,
+                    isDownloaded = false,
                 )
                 mainViewModel.downloadTemplate(template)
                 return@TrendsAdapter
@@ -233,8 +242,10 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                     popularTemplatesAdapter.updateProgress(
                         template.id,
                         ProgressUi(
-                            progress = 0, isDownloading = true, isDownloaded = false
-                        )
+                            progress = 0,
+                            isDownloading = true,
+                            isDownloaded = false,
+                        ),
                     )
                     mainViewModel.downloadTemplate(template)
                     return@PopularTemplatesAdapter
@@ -250,9 +261,12 @@ class HomeFragment : androidx.fragment.app.Fragment() {
             } else {
                 downloadingTemplate = template
                 popularTemplatesAdapter.updateProgress(
-                    template.id, ProgressUi(
-                        progress = 0, isDownloading = true, isDownloaded = false
-                    )
+                    template.id,
+                    ProgressUi(
+                        progress = 0,
+                        isDownloading = true,
+                        isDownloaded = false,
+                    ),
                 )
                 mainViewModel.downloadTemplate(template)
             }
@@ -291,7 +305,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
         binding.recentProjects.addPressEffect {
             val bundle = Bundle().apply {
-                putInt("targetPage", 1)  // 1 = "Projects"
+                putInt("targetPage", 1) // 1 = "Projects"
             }
             view?.post { findNavController().navigate(R.id.filesFragment, bundle) }
         }
@@ -355,7 +369,6 @@ class HomeFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun initObservers() {
-
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.homeUiState.collect { state ->
@@ -367,19 +380,21 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-
                 mainViewModel.templateDownloadStates.collect { downloadState ->
                     downloadState.values.forEach { state ->
                         when (state) {
                             is TemplateDownloadState.Progress -> {
                                 val ui =
                                     ProgressUi(
-                                        state.progress, isDownloading = true, isDownloaded = false
+                                        state.progress,
+                                        isDownloading = true,
+                                        isDownloaded = false,
                                     )
                                 trendsAdapter.updateTemplateProgress(
-                                    state.template.id, state.progress,
+                                    state.template.id,
+                                    state.progress,
                                     isDownloading = true,
-                                    isDownloaded = false
+                                    isDownloaded = false,
                                 )
                                 popularTemplatesAdapter.updateProgress(state.template.id, ui)
                             }
@@ -388,10 +403,15 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                                 val t = state.template
                                 val ui =
                                     ProgressUi(
-                                        100, isDownloading = false, isDownloaded = true
+                                        100,
+                                        isDownloading = false,
+                                        isDownloaded = true,
                                     )
                                 trendsAdapter.updateTemplateProgress(
-                                    t.id, 100, isDownloading = false, isDownloaded = true
+                                    t.id,
+                                    100,
+                                    isDownloading = false,
+                                    isDownloaded = true,
                                 )
                                 trendsAdapter.notifyTemplateStateChanged(t)
                                 popularTemplatesAdapter.updateProgress(state.template.id, ui)
@@ -407,7 +427,8 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                                     val exportResult = t.toExportResultFinal().copy(fileName = viewModel.buildProjectFileName())
                                     lifecycleScope.launch {
                                         viewModel.loadTemplateFromJsonFile(
-                                            exportResult, requireContext()
+                                            exportResult,
+                                            requireContext(),
                                         )
                                     }
                                 }
@@ -416,14 +437,20 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                             is TemplateDownloadState.Error -> {
                                 val ui =
                                     ProgressUi(
-                                        0, isDownloading = false, isDownloaded = false
+                                        0,
+                                        isDownloading = false,
+                                        isDownloaded = false,
                                     )
                                 downloadingTemplate?.let { t ->
                                     trendsAdapter.updateTemplateProgress(
-                                        t.id, 0, isDownloading = false, isDownloaded = false
+                                        t.id,
+                                        0,
+                                        isDownloading = false,
+                                        isDownloaded = false,
                                     )
                                     popularTemplatesAdapter.updateProgress(
-                                        t.id, ui
+                                        t.id,
+                                        ui,
                                     )
                                 }
                             }
@@ -434,23 +461,19 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                         }
                     }
                 }
-
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-
                 mainViewModel.trendRows.collect { rows ->
                     trendsAdapter.submitList(rows)
                 }
-
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-
                 mainViewModel.localTemplates.collect { all ->
                     val premiumTemplates = all.filter { it.is_popular }
 
@@ -459,13 +482,11 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                     binding.popularTemplate.visibility =
                         if (premiumTemplates.isEmpty()) View.GONE else View.VISIBLE
                 }
-
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-
                 mainViewModel.localFonts.collect { fonts ->
                     val filteredFonts = fonts.filter { !it.font_category.equals("Imported", true) }
                     fontsAdapter.submitList(filteredFonts.reversed())
@@ -477,7 +498,6 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-
                 mainViewModel.fontDownloadStates.collect { downloadState ->
                     downloadState.values.forEach { state ->
                         when (state) {
@@ -488,8 +508,8 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                                     ProgressUi(
                                         progress = state.progress,
                                         isDownloading = true,
-                                        isDownloaded = false
-                                    )
+                                        isDownloaded = false,
+                                    ),
                                 )
                             }
 
@@ -499,8 +519,10 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                                 fontsAdapter.updateProgress(
                                     font.id,
                                     ProgressUi(
-                                        100, isDownloading = false, isDownloaded = true
-                                    )
+                                        100,
+                                        isDownloading = false,
+                                        isDownloaded = true,
+                                    ),
                                 )
 
                                 showGlobalSuccessSnack("Font downloaded") {
@@ -511,19 +533,24 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
                                         viewModel.setCanvasSize(
                                             CanvasSize(
-                                                id = 0,"", 2000f, 2000f
-                                            )
+                                                id = 0,
+                                                "",
+                                                2000f,
+                                                2000f,
+                                            ),
                                         )
                                         viewModel.addTextWithFont(
                                             requireActivity().getString(R.string.dummyText),
                                             font,
-                                            requireActivity()
+                                            requireActivity(),
                                         )
 
                                         if (isAdded && findNavController().currentDestination?.id != R.id.editorFragment) {
                                             view?.post {
                                                 findNavController().navigate(
-                                                    R.id.editorFragment, bundle, navOptions
+                                                    R.id.editorFragment,
+                                                    bundle,
+                                                    navOptions,
                                                 )
                                             }
                                         }
@@ -537,14 +564,18 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                                 fontsAdapter.updateProgress(
                                     font.id,
                                     ProgressUi(
-                                        progress = 0, isDownloading = false, isDownloaded = false
-                                    )
+                                        progress = 0,
+                                        isDownloading = false,
+                                        isDownloaded = false,
+                                    ),
                                 )
 
                                 mainViewModel.clearFontDownloadState()
                                 if (isAdded) {
                                     Snackbar.make(
-                                        requireView(), "Download failed!", Snackbar.LENGTH_SHORT
+                                        requireView(),
+                                        "Download failed!",
+                                        Snackbar.LENGTH_SHORT,
                                     ).show()
                                 }
                             }
@@ -553,7 +584,6 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                         }
                     }
                 }
-
             }
         }
 
@@ -581,7 +611,9 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                     if (findNavController().currentDestination?.id != R.id.editorFragment) {
                         view?.post {
                             findNavController().navigate(
-                                R.id.editorFragment, bundle, navOptions
+                                R.id.editorFragment,
+                                bundle,
+                                navOptions,
                             )
                         }
                     }
@@ -602,6 +634,4 @@ class HomeFragment : androidx.fragment.app.Fragment() {
         _binding = null
     }
 
-    companion object {
-    }
 }

@@ -11,7 +11,6 @@ import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
@@ -19,7 +18,6 @@ import com.google.android.material.tabs.TabLayoutMediator
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.ElementType
-import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import com.webscare.urducanvas.common.utils.BitmapCache
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
@@ -55,7 +53,9 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentAdjustmentsParentBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -94,7 +94,8 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
                 // instance lifetime, so the adapter is torn down with the view on back-stack.
                 childFragmentManager,
                 viewLifecycleOwner.lifecycle,
-                tabs, it
+                tabs,
+                it,
             )
             viewModel.populateAdjustmentsFromElement(it)
             binding.viewPager.adapter = adapter
@@ -118,7 +119,7 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
         mediator?.attach()
 
         binding.tabLayout.viewTreeObserver.addOnGlobalLayoutListener {
-            if (isAdded && _binding!=null) {
+            if (isAdded && _binding != null) {
                 for (i in 0 until binding.tabLayout.tabCount) {
                     val tabView = (binding.tabLayout.getChildAt(0) as? ViewGroup)?.getChildAt(i)
                     tabView?.scaleX = 0.9f
@@ -164,7 +165,7 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
                         val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
                         viewModel.replaceSticker(
                             ImageProcessor.filePathToBitmap(filePath!!),
-                            requireActivity()
+                            requireActivity(),
                         )
                     }
                 }

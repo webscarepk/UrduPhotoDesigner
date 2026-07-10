@@ -18,14 +18,14 @@ class ColorsAdapter(
     private val onColorSelected: (com.webscare.urducanvas.common.canvas.model.ColorItem) -> Unit,
     private val onNoneSelected: () -> Unit,
     private val onColorPickerClicked: () -> Unit,
-    private val onEyeDropperClicked: () -> Unit
+    private val onEyeDropperClicked: () -> Unit,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     // Define view types
-    private val VIEW_TYPE_EYEDROPPER    = 0
-    private val VIEW_TYPE_NONE          = 1
-    private val VIEW_TYPE_COLOR_PICKER  = 2
-    private val VIEW_TYPE_COLOR_ITEM    = 3
+    private val VIEW_TYPE_EYEDROPPER = 0
+    private val VIEW_TYPE_NONE = 1
+    private val VIEW_TYPE_COLOR_PICKER = 2
+    private val VIEW_TYPE_COLOR_ITEM = 3
 
     var selectedColor: Int = Color.BLACK
         set(value) {
@@ -87,37 +87,32 @@ class ColorsAdapter(
                 }
             }
             binding.root.addPressEffect { onColorSelected.invoke(colorItem) }
-
         }
     }
 
-    override fun getItemViewType(position: Int): Int {
-        return when (position) {
-            0 -> VIEW_TYPE_EYEDROPPER
-            1 -> VIEW_TYPE_NONE
-            2 -> VIEW_TYPE_COLOR_PICKER
-            else -> VIEW_TYPE_COLOR_ITEM
-        }
+    override fun getItemViewType(position: Int): Int = when (position) {
+        0 -> VIEW_TYPE_EYEDROPPER
+        1 -> VIEW_TYPE_NONE
+        2 -> VIEW_TYPE_COLOR_PICKER
+        else -> VIEW_TYPE_COLOR_ITEM
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return when (viewType) {
-            VIEW_TYPE_EYEDROPPER -> {
-                val binding = LayoutEyeDropperItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-                EyeDropperViewHolder(binding)
-            }
-            VIEW_TYPE_NONE -> {
-                val binding = LayoutColorPickerItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-                NoneViewHolder(binding)
-            }
-            VIEW_TYPE_COLOR_PICKER -> {
-                val binding = LayoutColorPickerItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-                ColorPickerViewHolder(binding)
-            }
-            else -> {
-                val binding = LayoutColorItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-                ColorViewHolder(binding)
-            }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder = when (viewType) {
+        VIEW_TYPE_EYEDROPPER -> {
+            val binding = LayoutEyeDropperItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            EyeDropperViewHolder(binding)
+        }
+        VIEW_TYPE_NONE -> {
+            val binding = LayoutColorPickerItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            NoneViewHolder(binding)
+        }
+        VIEW_TYPE_COLOR_PICKER -> {
+            val binding = LayoutColorPickerItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            ColorPickerViewHolder(binding)
+        }
+        else -> {
+            val binding = LayoutColorItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            ColorViewHolder(binding)
         }
     }
 

@@ -52,7 +52,9 @@ class CreateFragment : BottomSheetDialogFragment() {
     private lateinit var adapter: CanvasSizeAdapter
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentCreateBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -76,12 +78,12 @@ class CreateFragment : BottomSheetDialogFragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             mainViewModel.localCanvasSizes.collect { entities ->
-                    if (entities.isEmpty()) return@collect
-                    val sizes = entities.map {
-                        CanvasSize(id = it.id, name = it.name, width = it.width, height = it.height)
-                    }
-                    adapter.submitList(sizes)
+                if (entities.isEmpty()) return@collect
+                val sizes = entities.map {
+                    CanvasSize(id = it.id, name = it.name, width = it.width, height = it.height)
                 }
+                adapter.submitList(sizes)
+            }
         }
     }
 
@@ -90,7 +92,6 @@ class CreateFragment : BottomSheetDialogFragment() {
         val isResizeMode = arguments?.getBoolean(ARG_RESIZE_MODE, false) == true
 
         binding.apply {
-
             // 🔹 Unit selection (same as before)
             unitBox.addPressEffect {
                 showUnitPopup(unitBox)
@@ -103,7 +104,7 @@ class CreateFragment : BottomSheetDialogFragment() {
             // 🔹 Adapter setup
             adapter = CanvasSizeAdapter(emptyList(), onClick = { selected ->
                 if (isResizeMode) {
-                    viewModel.resizeCanvas(selected)   // ← no clearCanvas, no navigate
+                    viewModel.resizeCanvas(selected) // ← no clearCanvas, no navigate
                     dismiss()
                 } else {
                     viewModel.clearCanvas()
@@ -216,7 +217,7 @@ class CreateFragment : BottomSheetDialogFragment() {
                 val newSize = CanvasSize(id = 0, "Custom", wPx, hPx)
 
                 if (isResizeMode) {
-                    viewModel.resizeCanvas(newSize)   // ← no clearCanvas, no navigate
+                    viewModel.resizeCanvas(newSize) // ← no clearCanvas, no navigate
                     dismiss()
                 } else {
                     viewModel.clearCanvas()
@@ -238,7 +239,7 @@ class CreateFragment : BottomSheetDialogFragment() {
             popupBinding.root,
             (140 * requireContext().resources.displayMetrics.density).toInt(),
             LinearLayout.LayoutParams.WRAP_CONTENT,
-            true
+            true,
         ).apply {
             elevation = 8f
             isOutsideTouchable = true
@@ -279,26 +280,30 @@ class CreateFragment : BottomSheetDialogFragment() {
                 UnitType.INCHES -> {
                     binding.width.setText(
                         String.format(
-                            "%.1f", Converter.pxToInches(oldWidthPx.toFloat())
-                        )
+                            "%.1f",
+                            Converter.pxToInches(oldWidthPx.toFloat()),
+                        ),
                     )
                     binding.height.setText(
                         String.format(
-                            "%.1f", Converter.pxToInches(oldHeightPx.toFloat())
-                        )
+                            "%.1f",
+                            Converter.pxToInches(oldHeightPx.toFloat()),
+                        ),
                     )
                 }
 
                 UnitType.CENTIMETERS -> {
                     binding.width.setText(
                         String.format(
-                            "%.1f", Converter.pxToCm(oldWidthPx.toFloat())
-                        )
+                            "%.1f",
+                            Converter.pxToCm(oldWidthPx.toFloat()),
+                        ),
                     )
                     binding.height.setText(
                         String.format(
-                            "%.1f", Converter.pxToCm(oldHeightPx.toFloat())
-                        )
+                            "%.1f",
+                            Converter.pxToCm(oldHeightPx.toFloat()),
+                        ),
                     )
                 }
             }
@@ -321,7 +326,7 @@ class CreateFragment : BottomSheetDialogFragment() {
 
             popupBinding.root.measure(
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
             )
             val popupHeight = popupBinding.root.measuredHeight
             val spaceBelow = screenHeight - anchorBottom
@@ -330,7 +335,10 @@ class CreateFragment : BottomSheetDialogFragment() {
                 popupWindow.showAsDropDown(anchorView)
             } else if (anchorTop >= popupHeight) {
                 popupWindow.showAtLocation(
-                    anchorView, Gravity.NO_GRAVITY, location[0], anchorTop - popupHeight
+                    anchorView,
+                    Gravity.NO_GRAVITY,
+                    location[0],
+                    anchorTop - popupHeight,
                 )
             } else {
                 popupWindow.showAsDropDown(anchorView)
@@ -354,7 +362,9 @@ class CreateFragment : BottomSheetDialogFragment() {
                 "Minimum allowed is $min $unitLabel"
             }
             Snackbar.make(
-                requireActivity().findViewById(android.R.id.content), msg, Snackbar.LENGTH_SHORT
+                requireActivity().findViewById(android.R.id.content),
+                msg,
+                Snackbar.LENGTH_SHORT,
             ).setAnchorView(binding.create).show()
         }
 
@@ -371,21 +381,19 @@ class CreateFragment : BottomSheetDialogFragment() {
                 UnitType.PIXELS -> size.copy()
                 UnitType.INCHES -> size.copy(
                     width = String.format("%.1f", Converter.pxToInches(size.width)).toFloat(),
-                    height = String.format("%.1f", Converter.pxToInches(size.height)).toFloat()
+                    height = String.format("%.1f", Converter.pxToInches(size.height)).toFloat(),
                 )
 
                 UnitType.CENTIMETERS -> size.copy(
                     width = String.format("%.1f", Converter.pxToCm(size.width)).toFloat(),
-                    height = String.format("%.1f", Converter.pxToCm(size.height)).toFloat()
+                    height = String.format("%.1f", Converter.pxToCm(size.height)).toFloat(),
                 )
             }
         }
         adapter.submitList(convertedList)
     }
 
-    private fun getSafeIntValue(editText: EditText): Float {
-        return editText.text.toString().toFloatOrNull()?.coerceAtLeast(1f) ?: 1f
-    }
+    private fun getSafeIntValue(editText: EditText): Float = editText.text.toString().toFloatOrNull()?.coerceAtLeast(1f) ?: 1f
 
     override fun onResume() {
         super.onResume()
@@ -397,7 +405,7 @@ class CreateFragment : BottomSheetDialogFragment() {
             UnitType.PIXELS -> "Pixels"
         }
         binding.link.setImageResource(
-            if (isLinked) R.drawable.ic_linked else R.drawable.ic_unlinked
+            if (isLinked) R.drawable.ic_linked else R.drawable.ic_unlinked,
         )
     }
 
@@ -406,13 +414,14 @@ class CreateFragment : BottomSheetDialogFragment() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 window.insetsController?.apply {
                     hide(
-                        WindowInsets.Type.navigationBars()
+                        WindowInsets.Type.navigationBars(),
                     )
                     systemBarsBehavior =
                         WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 }
             } else {
-                @Suppress("DEPRECATION") window.decorView.systemUiVisibility =
+                @Suppress("DEPRECATION")
+                window.decorView.systemUiVisibility =
                     View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             }
         }
@@ -426,7 +435,7 @@ class CreateFragment : BottomSheetDialogFragment() {
             setDimAmount(0.45f)
             setFlags(
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             )
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 setDecorFitsSystemWindows(false)
@@ -438,7 +447,7 @@ class CreateFragment : BottomSheetDialogFragment() {
         }
 
         val bottomSheet = dialog?.findViewById<View>(
-            com.google.android.material.R.id.design_bottom_sheet
+            com.google.android.material.R.id.design_bottom_sheet,
         ) ?: return
 
         bottomSheet.background =
@@ -463,9 +472,7 @@ class CreateFragment : BottomSheetDialogFragment() {
         forceImmersiveMode()
     }
 
-    override fun getTheme(): Int {
-        return R.style.CustomBottomSheetDialog
-    }
+    override fun getTheme(): Int = R.style.CustomBottomSheetDialog
 
     override fun onDestroyView() {
         super.onDestroyView()
@@ -475,11 +482,9 @@ class CreateFragment : BottomSheetDialogFragment() {
     companion object {
         private const val ARG_RESIZE_MODE = "resize_mode"
 
-        fun newResizeInstance(): CreateFragment {
-            return CreateFragment().apply {
-                arguments = Bundle().apply {
-                    putBoolean(ARG_RESIZE_MODE, true)
-                }
+        fun newResizeInstance(): CreateFragment = CreateFragment().apply {
+            arguments = Bundle().apply {
+                putBoolean(ARG_RESIZE_MODE, true)
             }
         }
     }

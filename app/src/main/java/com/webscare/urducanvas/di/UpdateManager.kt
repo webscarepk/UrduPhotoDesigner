@@ -26,7 +26,7 @@ import javax.inject.Singleton
 @Singleton
 class UpdateManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val dataStore: PreferenceDataStoreAPI
+    private val dataStore: PreferenceDataStoreAPI,
 ) {
 
     private var updateDialog: UpdateDialog? = null
@@ -59,14 +59,14 @@ class UpdateManager @Inject constructor(
         appUpdateManager.appUpdateInfo
             .addOnSuccessListener { appUpdateInfo ->
                 when {
-                    appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
-                            && appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE) -> {
+                    appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+                        appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE) -> {
                         showUpdateDialog(activity, appUpdateInfo, isForced = false)
                     }
 
-                    appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
-                            && (appUpdateInfo.clientVersionStalenessDays() ?: 0) >= 7
-                            && appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE) -> {
+                    appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+                        (appUpdateInfo.clientVersionStalenessDays() ?: 0) >= 7 &&
+                        appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE) -> {
                         showUpdateDialog(activity, appUpdateInfo, isForced = true)
                     }
                 }
@@ -74,35 +74,33 @@ class UpdateManager @Inject constructor(
             .addOnFailureListener { it.printStackTrace() }
     }
 
-    private fun showUpdateDialog(
-        activity: AppCompatActivity,
-        appUpdateInfo: AppUpdateInfo,
-        isForced: Boolean
-    ) {
+    private fun showUpdateDialog(activity: AppCompatActivity, appUpdateInfo: AppUpdateInfo, isForced: Boolean) {
         updateDialog = UpdateDialog(
             context = activity,
             onUpdateNow = { startUpdate(activity, appUpdateInfo, isForced) },
-            onRemindLater = if (isForced) null else ({
-                CoroutineScope(Dispatchers.IO).launch {
-                    dataStore.putPreference(REMIND_LATER_TIMESTAMP, System.currentTimeMillis())
-                }
-            }),
-            isCancelable = !isForced
+            onRemindLater = if (isForced) {
+                null
+            } else {
+                (
+                    {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            dataStore.putPreference(REMIND_LATER_TIMESTAMP, System.currentTimeMillis())
+                        }
+                    }
+                    )
+            },
+            isCancelable = !isForced,
         )
         updateDialog?.show()
     }
 
-    private fun startUpdate(
-        activity: AppCompatActivity,
-        appUpdateInfo: AppUpdateInfo,
-        isForced: Boolean
-    ) {
+    private fun startUpdate(activity: AppCompatActivity, appUpdateInfo: AppUpdateInfo, isForced: Boolean) {
         val updateType = if (isForced) AppUpdateType.IMMEDIATE else AppUpdateType.FLEXIBLE
         appUpdateManager.startUpdateFlowForResult(
             appUpdateInfo,
             updateType,
             activity,
-            REQUEST_CODE_UPDATE
+            REQUEST_CODE_UPDATE,
         )
     }
 
@@ -110,7 +108,8 @@ class UpdateManager @Inject constructor(
         when (state.installStatus()) {
             InstallStatus.DOWNLOADED -> currentActivity?.runOnUiThread { showRestartSnackbar() }
             InstallStatus.FAILED,
-            InstallStatus.CANCELED -> currentActivity?.runOnUiThread {
+            InstallStatus.CANCELED,
+            -> currentActivity?.runOnUiThread {
                 currentActivity?.let { fetchAndShowUpdate(it) }
             }
 
@@ -129,7 +128,7 @@ class UpdateManager @Inject constructor(
             actionText = "Restart",
             duration = Snackbar.LENGTH_INDEFINITE,
             anchor = null,
-            onAction = { appUpdateManager.completeUpdate() }
+            onAction = { appUpdateManager.completeUpdate() },
         )
     }
 
@@ -144,7 +143,7 @@ class UpdateManager @Inject constructor(
                     info,
                     AppUpdateType.IMMEDIATE,
                     activity,
-                    REQUEST_CODE_UPDATE
+                    REQUEST_CODE_UPDATE,
                 )
             }
         }

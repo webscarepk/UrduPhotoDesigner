@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class FiltersViewModel @Inject constructor(
-    private val saved: SavedStateHandle
+    private val saved: SavedStateHandle,
 ) : ViewModel() {
 
 //    For Files Filtering
@@ -30,12 +30,16 @@ class FiltersViewModel @Inject constructor(
         _searchQuery.value = query
     }
 
-    //For Templates Filtering
+    // For Templates Filtering
     data class Filters(
         val category: String = "All",
         val query: String = "",
-        val size: com.webscare.urducanvas.common.canvas.model.CanvasSize? = null
-    ) : Serializable
+        val size: com.webscare.urducanvas.common.canvas.model.CanvasSize? = null,
+    ) : Serializable {
+        companion object {
+            private const val serialVersionUID: Long = 1L
+        }
+    }
 
     private val KEY = "templates_filters"
 
@@ -50,9 +54,8 @@ class FiltersViewModel @Inject constructor(
     }
 
     fun setCategory(cat: String) = commit(_filters.value.copy(category = cat))
-    fun setQuery(q: String)      = commit(_filters.value.copy(query = q))
+    fun setQuery(q: String) = commit(_filters.value.copy(query = q))
     fun setSize(size: com.webscare.urducanvas.common.canvas.model.CanvasSize?) = commit(_filters.value.copy(size = size))
 
     fun clearFilters() = commit(Filters())
-
 }

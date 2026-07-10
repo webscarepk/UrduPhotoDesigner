@@ -1,6 +1,5 @@
 package com.webscare.urducanvas.ui.editor.panels.text.fonts
 
-import android.graphics.drawable.PictureDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,20 +17,17 @@ import com.bumptech.glide.request.target.Target
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import com.webscare.urducanvas.common.utils.startShimmerSoft
 import com.webscare.urducanvas.common.utils.isDarkModeEnabled
+import com.webscare.urducanvas.common.utils.startShimmerSoft
 import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.databinding.LayoutFontItemBinding
-
 import com.webscare.urducanvas.databinding.LayoutFontItemExpandedBinding
 
-class FontsAdapter(
-    private val onFontSelected: (FontEntity, Boolean) -> Unit
-) : ListAdapter<FontEntity, FontsAdapter.FontViewHolder>(DiffCallback()) {
+class FontsAdapter(private val onFontSelected: (FontEntity, Boolean) -> Unit) : ListAdapter<FontEntity, FontsAdapter.FontViewHolder>(DiffCallback()) {
 
     companion object {
         const val TYPE_COLLAPSED = 0
-        const val TYPE_EXPANDED  = 1
+        const val TYPE_EXPANDED = 1
     }
 
     private val downloadingIds = mutableSetOf<Int>()
@@ -77,20 +73,19 @@ class FontsAdapter(
             }
         }
 
-    override fun getItemViewType(position: Int): Int =
-        if (isExpanded) TYPE_EXPANDED else TYPE_COLLAPSED
+    override fun getItemViewType(position: Int): Int = if (isExpanded) TYPE_EXPANDED else TYPE_COLLAPSED
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FontViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         return if (viewType == TYPE_EXPANDED) {
             Expanded(
                 LayoutFontItemExpandedBinding.inflate(inflater, parent, false),
-                onFontSelected
+                onFontSelected,
             )
         } else {
             Collapsed(
                 LayoutFontItemBinding.inflate(inflater, parent, false),
-                onFontSelected
+                onFontSelected,
             )
         }
     }
@@ -103,10 +98,7 @@ class FontsAdapter(
 
     // ── ViewHolder ──────────────────────────────────────────────────────────
 
-    sealed class FontViewHolder(
-        itemView: View,
-        private val onFontSelected: (FontEntity, Boolean) -> Unit
-    ) : RecyclerView.ViewHolder(itemView) {
+    sealed class FontViewHolder(itemView: View, private val onFontSelected: (FontEntity, Boolean) -> Unit) : RecyclerView.ViewHolder(itemView) {
 
         abstract val cardRoot: com.google.android.material.card.MaterialCardView
         abstract val fontImage: android.widget.ImageView
@@ -121,13 +113,14 @@ class FontsAdapter(
             isDownloading: Boolean,
             slideOffset: Float,
             rvWidth: Int,
-            rvPadding: Int
+            rvPadding: Int,
         ) {
             val isSelected = font.id.toString() == selectedFontId
 
             cardRoot.strokeWidth = if (isSelected) 2 else 0
             cardRoot.strokeColor = ContextCompat.getColor(
-                cardRoot.context, R.color.appColor
+                cardRoot.context,
+                R.color.appColor,
             )
 
             premiumBadge.isVisible = font.is_premium && !font.is_subscribed
@@ -167,7 +160,9 @@ class FontsAdapter(
                 // Calculate vertical clamping when horizontal orientation to prevent overlapping rows
                 val recyclerView = itemView.parent as? androidx.recyclerview.widget.RecyclerView
                 val lm = recyclerView?.layoutManager as? androidx.recyclerview.widget.GridLayoutManager
-                val finalSize = if (lm != null && lm.orientation == androidx.recyclerview.widget.GridLayoutManager.HORIZONTAL) {
+                val finalSize = if (lm != null &&
+                    lm.orientation == androidx.recyclerview.widget.GridLayoutManager.HORIZONTAL
+                ) {
                     val rvHeight = recyclerView.height
                     val rvPaddingY = recyclerView.paddingTop + recyclerView.paddingBottom
                     val availHeight = rvHeight - rvPaddingY
@@ -179,7 +174,11 @@ class FontsAdapter(
                     currentSize
                 }
 
-                if (lp.width != finalSize || lp.height != finalSize || lp.rightMargin != marginEndPx || lp.bottomMargin != marginBottomPx) {
+                if (lp.width != finalSize ||
+                    lp.height != finalSize ||
+                    lp.rightMargin != marginEndPx ||
+                    lp.bottomMargin != marginBottomPx
+                ) {
                     lp.width = finalSize
                     lp.height = finalSize
                     lp.rightMargin = marginEndPx
@@ -192,7 +191,7 @@ class FontsAdapter(
         private fun loadImage(
             font: FontEntity,
             imageView: android.widget.ImageView,
-            shimmer: com.facebook.shimmer.ShimmerFrameLayout
+            shimmer: com.facebook.shimmer.ShimmerFrameLayout,
         ) {
             val isDarkMode = imageView.context.isDarkModeEnabled()
             shimmer.startShimmerSoft(isDarkMode)
@@ -208,10 +207,24 @@ class FontsAdapter(
                     Glide.with(imageView.context)
                         .load(font.font_image)
                         .listener(object : RequestListener<android.graphics.drawable.Drawable> {
-                            override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<android.graphics.drawable.Drawable>, isFirstResource: Boolean): Boolean = false
-                            override fun onResourceReady(resource: android.graphics.drawable.Drawable, model: Any, target: Target<android.graphics.drawable.Drawable>?, dataSource: DataSource, isFirstResource: Boolean): Boolean {
+                            override fun onLoadFailed(
+                                e: GlideException?,
+                                model: Any?,
+                                target: Target<android.graphics.drawable.Drawable>,
+                                isFirstResource: Boolean,
+                            ): Boolean = false
+                            override fun onResourceReady(
+                                resource: android.graphics.drawable.Drawable,
+                                model: Any,
+                                target: Target<android.graphics.drawable.Drawable>?,
+                                dataSource: DataSource,
+                                isFirstResource: Boolean,
+                            ): Boolean {
                                 if (imageView.context.isDarkModeEnabled()) {
-                                    imageView.setColorFilter(android.graphics.Color.WHITE, android.graphics.PorterDuff.Mode.SRC_IN)
+                                    imageView.setColorFilter(
+                                        android.graphics.Color.WHITE,
+                                        android.graphics.PorterDuff.Mode.SRC_IN,
+                                    )
                                 }
                                 return false
                             }
@@ -234,7 +247,7 @@ class FontsAdapter(
                     scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main),
                     cachedXml = null,
                     maxPx = 1024,
-                    applyWhiteTint = isDarkMode
+                    applyWhiteTint = isDarkMode,
                 ) { _, _ ->
                     shimmer.stopShimmer()
                     shimmer.setShimmer(null)
@@ -248,14 +261,32 @@ class FontsAdapter(
                     .centerInside()
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .listener(object : RequestListener<android.graphics.drawable.Drawable> {
-                        override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<android.graphics.drawable.Drawable>, isFirstResource: Boolean): Boolean {
-                            shimmer.stopShimmer(); shimmer.setShimmer(null); return false
+                        override fun onLoadFailed(
+                            e: GlideException?,
+                            model: Any?,
+                            target: Target<android.graphics.drawable.Drawable>,
+                            isFirstResource: Boolean,
+                        ): Boolean {
+                            shimmer.stopShimmer()
+                            shimmer.setShimmer(null)
+                            return false
                         }
-                        override fun onResourceReady(resource: android.graphics.drawable.Drawable, model: Any, target: Target<android.graphics.drawable.Drawable>?, dataSource: DataSource, isFirstResource: Boolean): Boolean {
+                        override fun onResourceReady(
+                            resource: android.graphics.drawable.Drawable,
+                            model: Any,
+                            target: Target<android.graphics.drawable.Drawable>?,
+                            dataSource: DataSource,
+                            isFirstResource: Boolean,
+                        ): Boolean {
                             if (imageView.context.isDarkModeEnabled()) {
-                                imageView.setColorFilter(android.graphics.Color.WHITE, android.graphics.PorterDuff.Mode.SRC_IN)
+                                imageView.setColorFilter(
+                                    android.graphics.Color.WHITE,
+                                    android.graphics.PorterDuff.Mode.SRC_IN,
+                                )
                             }
-                            shimmer.stopShimmer(); shimmer.setShimmer(null); return false
+                            shimmer.stopShimmer()
+                            shimmer.setShimmer(null)
+                            return false
                         }
                     })
                     .into(imageView)
@@ -263,35 +294,27 @@ class FontsAdapter(
         }
     }
 
-    class Collapsed(
-        private val binding: LayoutFontItemBinding,
-        onFontSelected: (FontEntity, Boolean) -> Unit
-    ) : FontViewHolder(binding.root, onFontSelected) {
-        override val cardRoot     get() = binding.root
-        override val fontImage    get() = binding.font
-        override val shimmer      get() = binding.shimmerLayout
-        override val loadingAnim  get() = binding.loading
+    class Collapsed(private val binding: LayoutFontItemBinding, onFontSelected: (FontEntity, Boolean) -> Unit) : FontViewHolder(binding.root, onFontSelected) {
+        override val cardRoot get() = binding.root
+        override val fontImage get() = binding.font
+        override val shimmer get() = binding.shimmerLayout
+        override val loadingAnim get() = binding.loading
         override val premiumBadge get() = binding.isPremium
         override val downloadIcon get() = binding.download
     }
 
-    class Expanded(
-        private val binding: LayoutFontItemExpandedBinding,
-        onFontSelected: (FontEntity, Boolean) -> Unit
-    ) : FontViewHolder(binding.root, onFontSelected) {
-        override val cardRoot     get() = binding.root
-        override val fontImage    get() = binding.font
-        override val shimmer      get() = binding.shimmerLayout
-        override val loadingAnim  get() = binding.loading
+    class Expanded(private val binding: LayoutFontItemExpandedBinding, onFontSelected: (FontEntity, Boolean) -> Unit) : FontViewHolder(binding.root, onFontSelected) {
+        override val cardRoot get() = binding.root
+        override val fontImage get() = binding.font
+        override val shimmer get() = binding.shimmerLayout
+        override val loadingAnim get() = binding.loading
         override val premiumBadge get() = binding.isPremium
         override val downloadIcon get() = binding.download
     }
 
     class DiffCallback : DiffUtil.ItemCallback<FontEntity>() {
-        override fun areItemsTheSame(oldItem: FontEntity, newItem: FontEntity) =
-            oldItem.id == newItem.id
+        override fun areItemsTheSame(oldItem: FontEntity, newItem: FontEntity) = oldItem.id == newItem.id
 
-        override fun areContentsTheSame(oldItem: FontEntity, newItem: FontEntity) =
-            oldItem == newItem
+        override fun areContentsTheSame(oldItem: FontEntity, newItem: FontEntity) = oldItem == newItem
     }
 }

@@ -1,7 +1,6 @@
 package com.webscare.urducanvas.ui.editor.panels.shape
 
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -12,17 +11,13 @@ import androidx.core.graphics.toColorInt
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget
 import com.webscare.urducanvas.common.canvas.enums.PickerTarget
 import com.webscare.urducanvas.common.canvas.enums.ShapeType
-import com.webscare.urducanvas.common.utils.ColorPickerDialog
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentShapePanelBinding
@@ -32,7 +27,6 @@ import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientsAdapter
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @AndroidEntryPoint
@@ -54,7 +48,9 @@ class ShapePanelFragment : Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentShapePanelBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -97,14 +93,13 @@ class ShapePanelFragment : Fragment() {
         }
 
         binding.cornerRadiusBar.apply {
-
             max = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                    binding.cornerRadius.text = "$progress"  // Show the progress directly as the value
+                    binding.cornerRadius.text = "$progress" // Show the progress directly as the value
                     if (fromUser) {
-                        val radius = progress.toFloat()  // Get the radius directly in the range 0-300
-                        viewModel.updateCornerRadius(radius)  // Pass the radius to the viewModel
+                        val radius = progress.toFloat() // Get the radius directly in the range 0-300
+                        viewModel.updateCornerRadius(radius) // Pass the radius to the viewModel
                     }
                 }
 
@@ -206,7 +201,7 @@ class ShapePanelFragment : Fragment() {
                     viewModel.setPagingLocked(true)
                     childFragmentManager.beginTransaction().replace(
                         R.id.shapePanel,
-                        ColorPickerFragment()
+                        ColorPickerFragment(),
                     )
                         .addToBackStack(null).commit()
                 },
@@ -218,7 +213,8 @@ class ShapePanelFragment : Fragment() {
                         viewModel.setFillGradient(null)
                         viewModel.startPicking(PickerTarget.EYE_DROPPER_SHAPE_FILL)
                     }
-                })
+                },
+            )
 
         gradientsAdapter =
             GradientsAdapter(
@@ -246,7 +242,8 @@ class ShapePanelFragment : Fragment() {
                                     arguments = Bundle().apply {
                                         putBoolean("IS_EDIT", true)
                                     }
-                                }).addToBackStack(null).commit()
+                                },
+                        ).addToBackStack(null).commit()
                 },
                 onNoneSelected = {
                     if (selectColorFor) {
@@ -270,8 +267,10 @@ class ShapePanelFragment : Fragment() {
                                     arguments = Bundle().apply {
                                         putBoolean("IS_EDIT", false)
                                     }
-                                }).addToBackStack(null).commit()
-                })
+                                },
+                        ).addToBackStack(null).commit()
+                },
+            )
 
         shapesAdapter = ShapeAdapter(requireContext(), ShapeType.entries) { shape ->
             val elements = viewModel.canvasElements.value
@@ -299,16 +298,24 @@ class ShapePanelFragment : Fragment() {
         }
 
         binding.colors.apply {
-            layoutManager = GridLayoutManager(requireActivity(), 3,
-                GridLayoutManager.HORIZONTAL, false)
+            layoutManager = GridLayoutManager(
+                requireActivity(),
+                3,
+                GridLayoutManager.HORIZONTAL,
+                false,
+            )
 
             setHasFixedSize(true)
             adapter = colorsAdapter
         }
 
         binding.gradients.apply {
-            layoutManager = GridLayoutManager(requireActivity(), 3,
-                GridLayoutManager.HORIZONTAL, false)
+            layoutManager = GridLayoutManager(
+                requireActivity(),
+                3,
+                GridLayoutManager.HORIZONTAL,
+                false,
+            )
 
             setHasFixedSize(true)
             adapter = gradientsAdapter

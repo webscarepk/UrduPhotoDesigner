@@ -9,29 +9,20 @@ import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.KasheedaF
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.LabelsFragment
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.ShadowsFragment
 
-class AppearancePagerAdapter(
-    fragment: Fragment,
-    private var tabs: List<PanelTabs>
-) : FragmentStateAdapter(fragment) {
+class AppearancePagerAdapter(fragment: Fragment, private var tabs: List<PanelTabs>) : FragmentStateAdapter(fragment) {
 
     override fun getItemCount() = tabs.size
 
-    override fun createFragment(position: Int): Fragment {
-        return when (position) {
-            0 -> KasheedaFragment.Companion.newInstance()
-            1, 2 -> FillStrokeFragment.Companion.newInstance(tabs[position].tab_name)
-            3 -> ShadowsFragment.Companion.newInstance()
-            4 -> LabelsFragment.Companion.newInstance()
-            5 -> BlendFragment.Companion.newInstance()
-            else -> BlendFragment.Companion.newInstance()
-        }
+    override fun createFragment(position: Int): Fragment = when (position) {
+        0 -> KasheedaFragment.Companion.newInstance()
+        1, 2 -> FillStrokeFragment.Companion.newInstance(tabs[position].tab_name)
+        3 -> ShadowsFragment.Companion.newInstance()
+        4 -> LabelsFragment.Companion.newInstance()
+        5 -> BlendFragment.Companion.newInstance()
+        else -> BlendFragment.Companion.newInstance()
     }
 
-    override fun getItemId(position: Int): Long {
-        return tabs[position].id.toLong()
-    }
+    override fun getItemId(position: Int): Long = tabs[position].id.toLong()
 
-    override fun containsItem(itemId: Long): Boolean {
-        return tabs.any { it.id.toLong() == itemId }
-    }
+    override fun containsItem(itemId: Long): Boolean = tabs.any { it.id.toLong() == itemId }
 }

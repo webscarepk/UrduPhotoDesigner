@@ -50,11 +50,9 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
     companion object {
         private const val ARG_CATEGORY = "arg_category"
 
-        fun newInstance(category: String): PopularFontsListFragment {
-            return PopularFontsListFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_CATEGORY, category)
-                }
+        fun newInstance(category: String): PopularFontsListFragment = PopularFontsListFragment().apply {
+            arguments = Bundle().apply {
+                putString(ARG_CATEGORY, category)
             }
         }
     }
@@ -65,7 +63,9 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentPopularFontsListBinding.inflate(inflater, container, false)
         return _binding!!.root
@@ -84,11 +84,16 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
             } else {
                 viewModel.setCanvasSize(
                     CanvasSize(
-                        id = 0,"", 2000f, 2000f
-                    )
+                        id = 0,
+                        "",
+                        2000f,
+                        2000f,
+                    ),
                 )
                 viewModel.addTextWithFont(
-                    requireActivity().getString(R.string.dummyText), font, requireActivity()
+                    requireActivity().getString(R.string.dummyText),
+                    font,
+                    requireActivity(),
                 )
                 view?.post { findNavController().navigate(R.id.editorFragment, bundle, navOptions) }
             }
@@ -111,7 +116,9 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
         }
 
         _binding!!.swipeRefresh.setColorSchemeResources(
-            R.color.appColor, R.color.black, R.color.gray
+            R.color.appColor,
+            R.color.black,
+            R.color.gray,
         )
         _binding!!.swipeRefresh.setOnRefreshListener {
             shuffleAfterRefresh = true
@@ -124,15 +131,24 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun filterFonts(
-        source: List<com.webscare.urducanvas.data.model.FontEntity>, category: String, query: String
+        source: List<com.webscare.urducanvas.data.model.FontEntity>,
+        category: String,
+        query: String,
     ): List<com.webscare.urducanvas.data.model.FontEntity> {
         val withoutImported = source.filter { !it.font_category.equals("Imported", true) }
-        val byCategory = if (category.equals("All", true)) withoutImported
-        else withoutImported.filter { it.font_category.equals(category, true) }
+        val byCategory = if (category.equals("All", true)) {
+            withoutImported
+        } else {
+            withoutImported.filter { it.font_category.equals(category, true) }
+        }
 
         val q = query.trim().lowercase()
-        return if (q.isBlank()) byCategory else byCategory.filter {
-            it.font_name!!.lowercase().contains(q)
+        return if (q.isBlank()) {
+            byCategory
+        } else {
+            byCategory.filter {
+                it.font_name!!.lowercase().contains(q)
+            }
         }
     }
 
@@ -210,8 +226,8 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
                                     _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
                                         progress = state.progress,
                                         isDownloading = true,
-                                        isDownloaded = false
-                                    )
+                                        isDownloaded = false,
+                                    ),
                                 )
                             }
 
@@ -221,27 +237,34 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
                                 adapter.updateProgress(
                                     font.id,
                                     _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
-                                        100, isDownloading = false, isDownloaded = true
-                                    )
+                                        100,
+                                        isDownloading = false,
+                                        isDownloaded = true,
+                                    ),
                                 )
 
                                 showGlobalSuccessSnack("Font downloaded") {
                                     viewLifecycleOwner.lifecycleScope.launch {
                                         viewModel.setCanvasSize(
                                             CanvasSize(
-                                                id = 0,"", 2000f, 2000f
-                                            )
+                                                id = 0,
+                                                "",
+                                                2000f,
+                                                2000f,
+                                            ),
                                         )
                                         viewModel.addTextWithFont(
                                             requireActivity().getString(R.string.dummyText),
                                             font,
-                                            requireActivity()
+                                            requireActivity(),
                                         )
 
                                         if (isAdded && findNavController().currentDestination?.id != R.id.editorFragment) {
                                             view?.post {
                                                 findNavController().navigate(
-                                                    R.id.editorFragment, bundle, navOptions
+                                                    R.id.editorFragment,
+                                                    bundle,
+                                                    navOptions,
                                                 )
                                             }
                                         }
@@ -255,8 +278,10 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
                                 adapter.updateProgress(
                                     font.id,
                                     _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
-                                        progress = 0, isDownloading = false, isDownloaded = false
-                                    )
+                                        progress = 0,
+                                        isDownloading = false,
+                                        isDownloaded = false,
+                                    ),
                                 )
 
                                 mainViewModel.clearFontDownloadState()

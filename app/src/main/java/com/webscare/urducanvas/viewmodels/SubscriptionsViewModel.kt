@@ -13,7 +13,7 @@ import kotlin.math.roundToInt
 
 @HiltViewModel
 class SubscriptionsViewModel @Inject constructor(
-    private val billingManager: BillingManager
+    private val billingManager: BillingManager,
 ) : ViewModel() {
 
     val billingState: StateFlow<BillingManager.BillingState> = billingManager.billingState
@@ -39,17 +39,22 @@ class SubscriptionsViewModel @Inject constructor(
             val (id, title, duration, badge) = when (p.productId) {
                 "urducanvas_monthly" -> Quad(1, "Monthly", "/Month", null as String?)
                 "urducanvas_6months" -> Quad(2, "6-Month", "/6 Months", "Save 25%")
-                "urducanvas_yearly"  -> Quad(3, "Yearly", "/ Year", "Save 35%")
+                "urducanvas_yearly" -> Quad(3, "Yearly", "/ Year", "Save 35%")
                 else -> return@mapNotNull null
             }
 
             val discount =
-                if (monthlyPerMonth > 0.0 && p.perMonth < monthlyPerMonth)
+                if (monthlyPerMonth > 0.0 && p.perMonth < monthlyPerMonth) {
                     ((1.0 - p.perMonth / monthlyPerMonth) * 100.0).roundToInt()
-                else 0
+                } else {
+                    0
+                }
             val save =
-                if (monthlyPerMonth > 0.0) (monthlyPerMonth * p.months - p.total).coerceAtLeast(0.0)
-                else 0.0
+                if (monthlyPerMonth > 0.0) {
+                    (monthlyPerMonth * p.months - p.total).coerceAtLeast(0.0)
+                } else {
+                    0.0
+                }
 
             SubscriptionPlan(
                 id = id,
@@ -65,14 +70,17 @@ class SubscriptionsViewModel @Inject constructor(
                 save = save,
                 months = p.months,
                 billed = billedLabel(p.months),
-                currencySymbol = p.symbol
+                currencySymbol = p.symbol,
             )
         }.sortedBy { it.id }
 
         // Hide the currently-active plan when changing plans (same as before).
         val activePlanProductId = billingManager.activePlan.value
-        val filtered = if (activePlanProductId != null)
-            allPlans.filter { it.productId != activePlanProductId } else allPlans
+        val filtered = if (activePlanProductId != null) {
+            allPlans.filter { it.productId != activePlanProductId }
+        } else {
+            allPlans
+        }
 
         // Pre-select the 6-Month term when present, else the middle item.
         val preselect = filtered.indexOfFirst { it.productId == "urducanvas_6months" }
@@ -88,7 +96,7 @@ class SubscriptionsViewModel @Inject constructor(
         val total: Double,
         val months: Int,
         val symbol: String,
-        val formattedTotal: String
+        val formattedTotal: String,
     )
 
     private fun priceOf(product: ProductDetails): Priced? {
@@ -105,12 +113,16 @@ class SubscriptionsViewModel @Inject constructor(
             total = total,
             months = months,
             symbol = symbolOf(phase.priceCurrencyCode),
-            formattedTotal = phase.formattedPrice
+            formattedTotal = phase.formattedPrice,
         )
     }
 
     private fun monthsOf(period: String?): Int = when (period) {
-        "P1M" -> 1; "P2M" -> 2; "P3M" -> 3; "P6M" -> 6; "P1Y" -> 12
+        "P1M" -> 1
+        "P2M" -> 2
+        "P3M" -> 3
+        "P6M" -> 6
+        "P1Y" -> 12
         else -> 1
     }
 
@@ -121,15 +133,13 @@ class SubscriptionsViewModel @Inject constructor(
         else -> "Every $months months"
     }
 
-    private fun symbolOf(currencyCode: String): String =
-        if (currencyCode.equals("PKR", ignoreCase = true)) "Rs" else currencyCode
+    private fun symbolOf(currencyCode: String): String = if (currencyCode.equals("PKR", ignoreCase = true)) "Rs" else currencyCode
 
-    fun subscribe(activity: Activity, planId: Int) =
-        if (billingManager.isSubscribed.value) {
-            billingManager.launchPlanChange(activity, planId)
-        } else {
-            billingManager.launchPurchase(activity, planId)
-        }
+    fun subscribe(activity: Activity, planId: Int) = if (billingManager.isSubscribed.value) {
+        billingManager.launchPlanChange(activity, planId)
+    } else {
+        billingManager.launchPurchase(activity, planId)
+    }
 
     fun resetState() = billingManager.resetState()
 

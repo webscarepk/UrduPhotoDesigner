@@ -121,7 +121,10 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
                     emptyState.retryButton.visibility = View.VISIBLE
                     (emptyState.retryButton.getChildAt(0) as? android.widget.TextView)?.text = "Clear filters"
                     emptyState.retryButton.setOnClickListener {
-                        activeQuery = ""; activeSize = null; activePrice = "All"; activeCategory = "All"
+                        activeQuery = ""
+                        activeSize = null
+                        activePrice = "All"
+                        activeCategory = "All"
                         binding.searchBar.setText("")
                         canvasSizeAdapter.selectedSizeName = ""
                         canvasSizeAdapter.notifyDataSetChanged()
@@ -155,11 +158,13 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun updateCatState() {
-        if (_binding == null) return   // view already destroyed — discard stale callback
+        if (_binding == null) return // view already destroyed — discard stale callback
         val status = mainViewModel.templatesStatus.value
         val hasData = allTemplates.isNotEmpty()
-        val hasFilters = !activeQuery.isBlank() || activeSize != null ||
-                !activePrice.equals("All", true) || !activeCategory.equals("All", true)
+        val hasFilters = !activeQuery.isBlank() ||
+            activeSize != null ||
+            !activePrice.equals("All", true) ||
+            !activeCategory.equals("All", true)
         val visibleCount = if (isGridMode()) templatesAdapter.itemCount else categoryAdapter.itemCount
 
         val state = when {
@@ -173,7 +178,9 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun dismissLoadingDialog() {
-        loadingDialog?.dismiss(); loadingDialog = null; dialogBinding = null
+        loadingDialog?.dismiss()
+        loadingDialog = null
+        dialogBinding = null
     }
 
     // ─── Price Chips (static — set up once) ──────────────────────────────────
@@ -214,7 +221,9 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
 
     private fun setEvents() {
         val f0 = filtersVM.filters.value
-        activeCategory = f0.category; activeQuery = f0.query; activeSize = f0.size
+        activeCategory = f0.category
+        activeQuery = f0.query
+        activeSize = f0.size
         binding.searchBar.setText(f0.query)
         setupHeaderUi()
 
@@ -244,7 +253,7 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
                     lifecycleScope.launch { withContext(Dispatchers.Default) { viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) } }
                     return@TemplateCategoriesAdapter
                 }
-            }
+            },
         )
         binding.categoriesRV.adapter = categoryAdapter
 
@@ -268,22 +277,27 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
         val rv = binding.categoriesRV
         if (rv.adapter !== categoryAdapter) {
             rv.layoutManager = LinearLayoutManager(requireContext())
-            rv.adapter = categoryAdapter; rv.itemAnimator = null
+            rv.adapter = categoryAdapter
+            rv.itemAnimator = null
             rv.isNestedScrollingEnabled = true
-            rv.setPadding(0, rv.paddingTop, 0, rv.paddingBottom); rv.clipToPadding = false
+            rv.setPadding(0, rv.paddingTop, 0, rv.paddingBottom)
+            rv.clipToPadding = false
         }
     }
 
     private fun switchToGrid() {
         val rv = binding.categoriesRV
-        if (rv.layoutManager !is StaggeredGridLayoutManager)
+        if (rv.layoutManager !is StaggeredGridLayoutManager) {
             rv.layoutManager = StaggeredGridLayoutManager(2, RecyclerView.VERTICAL).apply {
                 gapStrategy = StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS
             }
+        }
         if (rv.adapter !== templatesAdapter) rv.adapter = templatesAdapter
-        rv.itemAnimator = null; rv.isNestedScrollingEnabled = false
+        rv.itemAnimator = null
+        rv.isNestedScrollingEnabled = false
         val pad = resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._18sdp)
-        rv.setPadding(pad, rv.paddingTop, pad, rv.paddingBottom); rv.clipToPadding = false
+        rv.setPadding(pad, rv.paddingTop, pad, rv.paddingBottom)
+        rv.clipToPadding = false
     }
 
     private fun rebalanceSpans() {
@@ -303,15 +317,18 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun renderCategoryChips(categories: List<String>) {
-        val cg = binding.categoryChipGroup   // <-- inner ChipGroup, not the LinearLayout
-        cg.isSingleSelection = true; cg.isSelectionRequired = false
+        val cg = binding.categoryChipGroup // <-- inner ChipGroup, not the LinearLayout
+        cg.isSingleSelection = true
+        cg.isSelectionRequired = false
         cg.removeAllViews()
         val selectedCat = filtersVM.filters.value.category
 
         categories.forEach { label ->
             val chip = layoutInflater.inflate(R.layout.chip_filter_item, cg, false) as Chip
-            chip.id = View.generateViewId(); chip.text = label
-            chip.isCheckable = true; chip.isChecked = label.equals(selectedCat, true)
+            chip.id = View.generateViewId()
+            chip.text = label
+            chip.isCheckable = true
+            chip.isChecked = label.equals(selectedCat, true)
             cg.addView(chip)
 
             chip.addPressEffect {
@@ -320,15 +337,25 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
                 if (chip.isChecked) {
                     if (!clickedText.equals("All", true)) {
                         findChipByText(cg, "All")?.let {
-                            suppressChipClicks = true; cg.clearCheck(); it.isChecked = true
-                            suppressChipClicks = false; filtersVM.setCategory("All")
+                            suppressChipClicks = true
+                            cg.clearCheck()
+                            it.isChecked = true
+                            suppressChipClicks = false
+                            filtersVM.setCategory("All")
                         }
-                    } else if (filterPanelVisible) toggleFilterPanel()
+                    } else if (filterPanelVisible) {
+                        toggleFilterPanel()
+                    }
                 } else {
-                    suppressChipClicks = true; cg.clearCheck(); chip.isChecked = true
+                    suppressChipClicks = true
+                    cg.clearCheck()
+                    chip.isChecked = true
                     suppressChipClicks = false
-                    if (clickedText != filtersVM.filters.value.category) filtersVM.setCategory(clickedText)
-                    else if (filterPanelVisible) toggleFilterPanel()
+                    if (clickedText != filtersVM.filters.value.category) {
+                        filtersVM.setCategory(clickedText)
+                    } else if (filterPanelVisible) {
+                        toggleFilterPanel()
+                    }
                 }
             }
         }
@@ -340,9 +367,8 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    private fun findChipByText(group: ViewGroup, text: String): Chip? =
-        (0 until group.childCount).mapNotNull { group.getChildAt(it) as? Chip }
-            .firstOrNull { it.text.toString().equals(text, true) }
+    private fun findChipByText(group: ViewGroup, text: String): Chip? = (0 until group.childCount).mapNotNull { group.getChildAt(it) as? Chip }
+        .firstOrNull { it.text.toString().equals(text, true) }
 
     // ─── Header & Filter Panel ────────────────────────────────────────────────
 
@@ -351,11 +377,15 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) {
                 filtersVM.setQuery(binding.searchBar.text.toString())
                 binding.searchBar.clearFocus()
-                (requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
-                        as android.view.inputmethod.InputMethodManager)
+                (
+                    requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
+                        as android.view.inputmethod.InputMethodManager
+                    )
                     .hideSoftInputFromWindow(binding.searchBar.windowToken, 0)
                 true
-            } else false
+            } else {
+                false
+            }
         }
 
         binding.searchBar.doAfterTextChanged { text ->
@@ -366,22 +396,22 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun toggleFilterPanel() {
-        val panel   = binding.categoryChips
-        val bar     = binding.searchBar
+        val panel = binding.categoryChips
+        val bar = binding.searchBar
         val overlay = binding.topFadeOverlay
-        val root    = binding.root
+        val root = binding.root
 
         if (!filterPanelVisible) {
             // searchBar and its sibling filters button must sit ABOVE the panel
             bar.bringToFront()
             binding.filters.bringToFront()
-            bar.translationZ     = resources.getDimension(com.intuit.sdp.R.dimen._2sdp)
+            bar.translationZ = resources.getDimension(com.intuit.sdp.R.dimen._2sdp)
             binding.filters.translationZ = resources.getDimension(com.intuit.sdp.R.dimen._2sdp)
             // gradient overlay must NOT cover the chips panel
             overlay.translationZ = 0f
-            panel.translationZ   = 1f
+            panel.translationZ = 1f
 
-            root.clipChildren  = false
+            root.clipChildren = false
             root.clipToPadding = false
 
             panel.isVisible = true
@@ -406,10 +436,10 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
                     .setDuration(240)
                     .setInterpolator(android.view.animation.AccelerateInterpolator(2f))
                     .withEndAction {
-                        panel.isGone      = true
+                        panel.isGone = true
                         panel.translationY = 0f
                         overlay.translationZ = resources.getDimension(com.intuit.sdp.R.dimen._2sdp)
-                        root.clipChildren  = true
+                        root.clipChildren = true
                         root.clipToPadding = true
                     }
                     .start()
@@ -426,14 +456,13 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
         val byQuery = if (q.isBlank()) byCat else byCat.filter { it.matchesQuery(q) }
         val bySize = size?.let { s -> byQuery.filter { it.matchesSize(s) } } ?: byQuery
         return when (price) {
-            "Free"    -> bySize.filter { !it.is_premium }
+            "Free" -> bySize.filter { !it.is_premium }
             "Premium" -> bySize.filter { it.is_premium }
-            else      -> bySize
+            else -> bySize
         }
     }
 
-    private fun TemplateEntity.matchesSize(s: CanvasSize) =
-        canvas_width == s.width.roundToInt() && canvas_height == s.height.roundToInt()
+    private fun TemplateEntity.matchesSize(s: CanvasSize) = canvas_width == s.width.roundToInt() && canvas_height == s.height.roundToInt()
 
     private fun TemplateEntity.matchesQuery(q: String): Boolean {
         val h = buildString {
@@ -445,24 +474,28 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun applyFilters() {
-        if (_binding == null) return   // view already destroyed — discard stale callback
+        if (_binding == null) return // view already destroyed — discard stale callback
         val filtered = filterTemplates(allTemplates, activeCategory, activeQuery, activeSize, activePrice)
 
         if (activeCategory.equals("All", true)) {
-            listMode = ListMode.SECTIONS; switchToSections()
+            listMode = ListMode.SECTIONS
+            switchToSections()
             val rows = filtered.groupBy { it.category?.trim() ?: "Others" }
                 .map { (k, v) -> HomeRow.CategoryRow(k.ifEmpty { "Others" }, v.distinctBy { it.id }.take(10)) }
             categoryAdapter.submitList(rows) { updateCatState() }
         } else {
-            listMode = ListMode.GRID; switchToGrid()
-            templatesAdapter.submitList(filtered) { rebalanceSpans(); updateCatState() }
+            listMode = ListMode.GRID
+            switchToGrid()
+            templatesAdapter.submitList(filtered) {
+                rebalanceSpans()
+                updateCatState()
+            }
         }
     }
 
     // ─── Observations ─────────────────────────────────────────────────────────
 
     private fun observeTemplateCategories() {
-
         viewLifecycleOwner.lifecycleScope.launch {
             mainViewModel.localCanvasSizes.collect { entities ->
                 if (entities.isEmpty()) return@collect
@@ -476,12 +509,15 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
                 filtersVM.filters.collect { f ->
-                    activeCategory = f.category; activeQuery = f.query; activeSize = f.size
+                    activeCategory = f.category
+                    activeQuery = f.query
+                    activeSize = f.size
                     if (binding.searchBar.text?.toString() != f.query) binding.searchBar.setText(f.query)
                     if (::canvasSizeAdapter.isInitialized) {
                         val want = f.size?.name ?: ""
                         if (canvasSizeAdapter.selectedSizeName != want) {
-                            canvasSizeAdapter.selectedSizeName = want; canvasSizeAdapter.notifyDataSetChanged()
+                            canvasSizeAdapter.selectedSizeName = want
+                            canvasSizeAdapter.notifyDataSetChanged()
                         }
                     }
                     applyFilters()
@@ -501,24 +537,41 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
             }
         }
         viewModel.loadingStage.observe(viewLifecycleOwner) { (msg, pct) ->
-            dialogBinding?.apply { progressBar.progress = pct; subtitle.text = "$msg... $pct%"; tvProgressPercent.text = "$pct% complete" }
+            dialogBinding?.apply {
+                progressBar.progress = pct
+                subtitle.text = "$msg... $pct%"
+                tvProgressPercent.text = "$pct% complete"
+            }
         }
         viewModel.isLoadingTemplate.observe(viewLifecycleOwner) { isLoading ->
-            if (isLoading == true) showLoadingDialog()
-            else if (isLoading == false) { dismissLoadingDialog(); view?.post { findNavController().navigate(R.id.editorFragment, bundle) } }
+            if (isLoading == true) {
+                showLoadingDialog()
+            } else if (isLoading == false) {
+                dismissLoadingDialog()
+                view?.post { findNavController().navigate(R.id.editorFragment, bundle) }
+            }
         }
         viewLifecycleOwner.lifecycleScope.launch {
             mainViewModel.templateDownloadStates.collect { ds ->
                 ds.values.forEach { state ->
                     when (state) {
                         is TemplateDownloadState.Progress -> {
-                            if (isGridMode()) templatesAdapter.updateProgress(state.template.id,
-                                com.webscare.urducanvas.data.model.ProgressUi(state.progress, true, false))
-                            else categoryAdapter.updateTemplateProgress(state.template.id, state.progress, true, false)
+                            if (isGridMode()) {
+                                templatesAdapter.updateProgress(
+                                    state.template.id,
+                                    com.webscare.urducanvas.data.model.ProgressUi(state.progress, true, false),
+                                )
+                            } else {
+                                categoryAdapter.updateTemplateProgress(state.template.id, state.progress, true, false)
+                            }
                         }
                         is TemplateDownloadState.SuccessWithTemplate -> {
-                            val t = state.template; mainViewModel.clearTemplateDownloadState()
-                            if (!isGridMode()) { categoryAdapter.updateTemplateProgress(t.id, 100, false, true); categoryAdapter.notifyTemplateStateChanged(t.copy(is_downloading = false, is_downloaded = true)) }
+                            val t = state.template
+                            mainViewModel.clearTemplateDownloadState()
+                            if (!isGridMode()) {
+                                categoryAdapter.updateTemplateProgress(t.id, 100, false, true)
+                                categoryAdapter.notifyTemplateStateChanged(t.copy(is_downloading = false, is_downloaded = true))
+                            }
                             showGlobalSuccessSnack("Template ready") {
                                 val exportResult = t.toExportResultFinal()
                                 lifecycleScope.launch { withContext(Dispatchers.Default) { viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) } }
@@ -540,6 +593,11 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    override fun onDestroyView() { super.onDestroyView(); _binding = null }
-    override fun onDestroy() { super.onDestroy() }
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+    override fun onDestroy() {
+        super.onDestroy()
+    }
 }

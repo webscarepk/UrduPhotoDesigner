@@ -18,7 +18,7 @@ class ExportOptionAdapter<T>(
     private var items: List<T>,
     private val viewType: ExportViewType,
     private val displayMode: Boolean,
-    private val onItemSelected: (T) -> Unit
+    private val onItemSelected: (T) -> Unit,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     var isSubscribed: Boolean = false
@@ -37,27 +37,25 @@ class ExportOptionAdapter<T>(
         return when (displayMode) {
             true -> when (ExportViewType.entries[this.viewType.ordinal]) {
                 ExportViewType.RESOLUTION -> ResolutionViewHolder(
-                    LayoutResolutionsItemBinding.inflate(inflater, parent, false)
+                    LayoutResolutionsItemBinding.inflate(inflater, parent, false),
                 )
 
                 ExportViewType.QUALITY -> QualityViewHolder(
-                    LayoutQualityItemBinding.inflate(inflater, parent, false)
+                    LayoutQualityItemBinding.inflate(inflater, parent, false),
                 )
 
                 ExportViewType.FORMAT -> FormatViewHolder(
-                    LayoutFormatsItemBinding.inflate(inflater, parent, false)
+                    LayoutFormatsItemBinding.inflate(inflater, parent, false),
                 )
             }
 
             false -> CompactViewHolder(
-                LayoutResolutionsItemPrefsBinding.inflate(inflater, parent, false)
+                LayoutResolutionsItemPrefsBinding.inflate(inflater, parent, false),
             )
         }
     }
 
-    inner class CompactViewHolder(
-        private val binding: LayoutResolutionsItemPrefsBinding
-    ) : RecyclerView.ViewHolder(binding.root) {
+    inner class CompactViewHolder(private val binding: LayoutResolutionsItemPrefsBinding) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: Any) {
             var isSelected = false
@@ -79,10 +77,14 @@ class ExportOptionAdapter<T>(
             }
 
             // ✅ show drawableEnd checkmark if selected, else remove
-            val checkDrawable = if (isSelected) ContextCompat.getDrawable(
-                binding.root.context,
-                R.drawable.ic_done
-            ) else null
+            val checkDrawable = if (isSelected) {
+                ContextCompat.getDrawable(
+                    binding.root.context,
+                    R.drawable.ic_done,
+                )
+            } else {
+                null
+            }
             binding.title.setCompoundDrawablesWithIntrinsicBounds(null, null, checkDrawable, null)
 
             binding.root.addPressEffect {
@@ -93,16 +95,20 @@ class ExportOptionAdapter<T>(
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (holder) {
-            is ExportOptionAdapter<*>.ResolutionViewHolder -> holder.bind(items[position] as com.webscare.urducanvas.common.canvas.model.ExportResolution)
-            is ExportOptionAdapter<*>.QualityViewHolder -> holder.bind(items[position] as com.webscare.urducanvas.common.canvas.model.ExportQuality)
-            is ExportOptionAdapter<*>.FormatViewHolder -> holder.bind(items[position] as com.webscare.urducanvas.common.canvas.model.ExportFormat)
+            is ExportOptionAdapter<*>.ResolutionViewHolder -> holder.bind(
+                items[position] as com.webscare.urducanvas.common.canvas.model.ExportResolution,
+            )
+            is ExportOptionAdapter<*>.QualityViewHolder -> holder.bind(
+                items[position] as com.webscare.urducanvas.common.canvas.model.ExportQuality,
+            )
+            is ExportOptionAdapter<*>.FormatViewHolder -> holder.bind(
+                items[position] as com.webscare.urducanvas.common.canvas.model.ExportFormat,
+            )
             is ExportOptionAdapter<*>.CompactViewHolder -> holder.bind(items[position] as Any)
         }
     }
 
-    inner class ResolutionViewHolder(
-        private val binding: LayoutResolutionsItemBinding
-    ) : RecyclerView.ViewHolder(binding.root) {
+    inner class ResolutionViewHolder(private val binding: LayoutResolutionsItemBinding) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: com.webscare.urducanvas.common.canvas.model.ExportResolution) {
             binding.resolutionTitle.text = item.name
@@ -118,7 +124,7 @@ class ExportOptionAdapter<T>(
                 binding.view1.backgroundTintList =
                     ContextCompat.getColorStateList(binding.root.context, R.color.appColor)
                 binding.view1.setColorFilter(
-                    ContextCompat.getColor(binding.root.context, android.R.color.white)
+                    ContextCompat.getColor(binding.root.context, android.R.color.white),
                 )
             } else {
                 binding.root.setBackgroundResource(R.drawable.card_bg)
@@ -126,7 +132,7 @@ class ExportOptionAdapter<T>(
                 binding.view1.backgroundTintList =
                     ContextCompat.getColorStateList(binding.root.context, R.color.contrast)
                 binding.view1.setColorFilter(
-                    ContextCompat.getColor(binding.root.context, R.color.gray)
+                    ContextCompat.getColor(binding.root.context, R.color.gray),
                 )
             }
 
@@ -136,9 +142,7 @@ class ExportOptionAdapter<T>(
         }
     }
 
-    inner class QualityViewHolder(
-        private val binding: LayoutQualityItemBinding
-    ) : RecyclerView.ViewHolder(binding.root) {
+    inner class QualityViewHolder(private val binding: LayoutQualityItemBinding) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: com.webscare.urducanvas.common.canvas.model.ExportQuality) {
             binding.resolutionTitle.text = item.label
@@ -152,21 +156,20 @@ class ExportOptionAdapter<T>(
 
             when (adapterPosition) {
                 0 -> binding.view1.setColorFilter(
-                    ContextCompat.getColor(binding.root.context, R.color.quality_high_light)
+                    ContextCompat.getColor(binding.root.context, R.color.quality_high_light),
                 )
 
                 1 -> binding.view1.setColorFilter(
-                    ContextCompat.getColor(binding.root.context, R.color.quality_medium_light)
+                    ContextCompat.getColor(binding.root.context, R.color.quality_medium_light),
                 )
 
                 2 -> binding.view1.setColorFilter(
-                    ContextCompat.getColor(binding.root.context, R.color.quality_low_light)
+                    ContextCompat.getColor(binding.root.context, R.color.quality_low_light),
                 )
             }
             if (item.isSelected) {
                 binding.root.setBackgroundResource(R.drawable.card_bg_selected)
                 binding.done.visibility = View.VISIBLE
-
             } else {
                 binding.root.setBackgroundResource(R.drawable.card_bg)
                 binding.done.visibility = View.GONE
@@ -178,9 +181,7 @@ class ExportOptionAdapter<T>(
         }
     }
 
-    inner class FormatViewHolder(
-        private val binding: LayoutFormatsItemBinding
-    ) : RecyclerView.ViewHolder(binding.root) {
+    inner class FormatViewHolder(private val binding: LayoutFormatsItemBinding) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: com.webscare.urducanvas.common.canvas.model.ExportFormat) {
             binding.resolutionTitle.text = item.name
@@ -205,7 +206,7 @@ class ExportOptionAdapter<T>(
                 binding.view1.backgroundTintList =
                     ContextCompat.getColorStateList(binding.root.context, R.color.appColor)
                 binding.view1.setColorFilter(
-                    ContextCompat.getColor(binding.root.context, android.R.color.white)
+                    ContextCompat.getColor(binding.root.context, android.R.color.white),
                 )
             } else {
                 binding.root.setBackgroundResource(R.drawable.card_bg)
@@ -213,7 +214,7 @@ class ExportOptionAdapter<T>(
                 binding.view1.backgroundTintList =
                     ContextCompat.getColorStateList(binding.root.context, R.color.contrast)
                 binding.view1.setColorFilter(
-                    ContextCompat.getColor(binding.root.context, R.color.gray)
+                    ContextCompat.getColor(binding.root.context, R.color.gray),
                 )
             }
 
@@ -222,5 +223,4 @@ class ExportOptionAdapter<T>(
             }
         }
     }
-
 }

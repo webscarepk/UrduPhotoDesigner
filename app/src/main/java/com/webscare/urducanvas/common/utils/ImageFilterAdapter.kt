@@ -16,36 +16,33 @@ class ImageFilterAdapter : TypeAdapter<ImageFilter>() {
         }
     }
 
-    override fun read(reader: JsonReader): ImageFilter {
-        return when (reader.peek()) {
-            JsonToken.NULL -> {
-                reader.nextNull()
-                ImageFilter.None
-            }
-            JsonToken.STRING -> {
-                val name = reader.nextString()
-                ImageFilter.Companion.fromName(name)
-            }
-            JsonToken.BEGIN_OBJECT -> {
-                // Handle old object format: { "name": "Invert" }
-                reader.beginObject()
-                var name: String? = null
-                while (reader.hasNext()) {
-                    val fieldName = reader.nextName()
-                    if (fieldName == "name" && reader.peek() == JsonToken.STRING) {
-                        name = reader.nextString()
-                    } else {
-                        reader.skipValue()
-                    }
+    override fun read(reader: JsonReader): ImageFilter = when (reader.peek()) {
+        JsonToken.NULL -> {
+            reader.nextNull()
+            ImageFilter.None
+        }
+        JsonToken.STRING -> {
+            val name = reader.nextString()
+            ImageFilter.Companion.fromName(name)
+        }
+        JsonToken.BEGIN_OBJECT -> {
+            // Handle old object format: { "name": "Invert" }
+            reader.beginObject()
+            var name: String? = null
+            while (reader.hasNext()) {
+                val fieldName = reader.nextName()
+                if (fieldName == "name" && reader.peek() == JsonToken.STRING) {
+                    name = reader.nextString()
+                } else {
+                    reader.skipValue()
                 }
-                reader.endObject()
-                ImageFilter.Companion.fromName(name ?: "None")
             }
-            else -> {
-                reader.skipValue()
-                ImageFilter.None
-            }
+            reader.endObject()
+            ImageFilter.Companion.fromName(name ?: "None")
+        }
+        else -> {
+            reader.skipValue()
+            ImageFilter.None
         }
     }
 }
-

@@ -29,7 +29,9 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentFormattingBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -44,12 +46,11 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun setEvents() {
-
         val caseCards = listOf(
             binding.defaultCase to LetterCasing.NONE,
             binding.allCaps to LetterCasing.ALL_CAPS,
             binding.lowerCase to LetterCasing.LOWER_CASE,
-            binding.titleCase to LetterCasing.TITLE_CASE
+            binding.titleCase to LetterCasing.TITLE_CASE,
         )
 
         caseCards.forEach { (card, caseType) ->
@@ -70,7 +71,7 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
             binding.bold to TextDecoration.BOLD,
             binding.italic to TextDecoration.ITALIC,
             binding.underLine to TextDecoration.UNDERLINE,
-            binding.defaultStyle to TextDecoration.NONE
+            binding.defaultStyle to TextDecoration.NONE,
         )
 
         decorationCards.forEach { (card, decorationType) ->
@@ -105,7 +106,7 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
             binding.leftAlign to TextAlignment.LEFT,
             binding.centerAlignment to TextAlignment.CENTER,
             binding.rightAlign to TextAlignment.RIGHT,
-            binding.justify to TextAlignment.JUSTIFY
+            binding.justify to TextAlignment.JUSTIFY,
         )
 
         alignCards.forEach { (card, alignType) ->
@@ -123,7 +124,7 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
         val paraCards = listOf(
             binding.defaultIndent to ParagraphIndentation.NONE,
             binding.decreaseIndent to ParagraphIndentation.DECREASE_INDENT,
-            binding.increaseIndent to ParagraphIndentation.INCREASE_INDENT
+            binding.increaseIndent to ParagraphIndentation.INCREASE_INDENT,
         )
 
         paraCards.forEach { (card, indent) ->
@@ -153,7 +154,7 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
         val listCards = listOf(
             binding.defaultList to ListStyle.NONE,
             binding.numberedList to ListStyle.NUMBERED,
-            binding.bulletedList to ListStyle.BULLETED
+            binding.bulletedList to ListStyle.BULLETED,
         )
 
         listCards.forEach { (card, listType) ->
@@ -251,7 +252,7 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
             val listCards = listOf(
                 binding.defaultList to ListStyle.NONE,
                 binding.numberedList to ListStyle.NUMBERED,
-                binding.bulletedList to ListStyle.BULLETED
+                binding.bulletedList to ListStyle.BULLETED,
             )
 
             listCards.forEach { (card, list) ->
@@ -264,7 +265,7 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
                 binding.defaultCase to LetterCasing.NONE,
                 binding.allCaps to LetterCasing.ALL_CAPS,
                 binding.lowerCase to LetterCasing.LOWER_CASE,
-                binding.titleCase to LetterCasing.TITLE_CASE
+                binding.titleCase to LetterCasing.TITLE_CASE,
             )
 
             caseCards.forEach { (card, letterCase) ->
@@ -272,13 +273,12 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
             }
         }
 
-
         viewModel.textDecoration.observe(viewLifecycleOwner) { currentDecorations ->
             val decorationCards = listOf(
                 binding.bold to TextDecoration.BOLD,
                 binding.italic to TextDecoration.ITALIC,
                 binding.underLine to TextDecoration.UNDERLINE,
-                binding.defaultStyle to TextDecoration.NONE
+                binding.defaultStyle to TextDecoration.NONE,
             )
 
             decorationCards.forEach { (card, decorationType) ->
@@ -290,7 +290,7 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
             val paraCards = listOf(
                 binding.defaultIndent to ParagraphIndentation.NONE,
                 binding.decreaseIndent to ParagraphIndentation.DECREASE_INDENT,
-                binding.increaseIndent to ParagraphIndentation.INCREASE_INDENT
+                binding.increaseIndent to ParagraphIndentation.INCREASE_INDENT,
             )
 
             paraCards.forEach { (card, indent) ->

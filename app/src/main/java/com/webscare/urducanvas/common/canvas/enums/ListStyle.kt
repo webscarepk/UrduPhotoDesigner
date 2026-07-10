@@ -10,5 +10,5 @@ enum class ListStyle {
     BULLETED,
 
     @SerializedName("Numbered")
-    NUMBERED
+    NUMBERED,
 }

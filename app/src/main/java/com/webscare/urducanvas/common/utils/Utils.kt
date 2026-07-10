@@ -13,11 +13,11 @@ import android.os.VibratorManager
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
-import com.webscare.urducanvas.R
+import com.facebook.shimmer.Shimmer
+import com.facebook.shimmer.ShimmerFrameLayout
 import com.google.android.gms.tasks.Task
 import com.google.android.material.snackbar.Snackbar
-import com.facebook.shimmer.ShimmerFrameLayout
-import com.facebook.shimmer.Shimmer
+import com.webscare.urducanvas.R
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resumeWithException
@@ -75,9 +75,7 @@ object Utils {
     }
 
     @SuppressLint("ClickableViewAccessibility")
-    fun View.addPressEffectWithLongClick(
-        onClick: (() -> Unit)? = null, onLongClick: (() -> Unit)? = null
-    ) {
+    fun View.addPressEffectWithLongClick(onClick: (() -> Unit)? = null, onLongClick: (() -> Unit)? = null) {
         var isInside = false
         var longPressed = false
         val longPressTimeout = ViewConfiguration.getLongPressTimeout().toLong()
@@ -159,13 +157,16 @@ object Utils {
                 context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
             manager.defaultVibrator
         } else {
-            @Suppress("DEPRECATION") context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            @Suppress("DEPRECATION")
+            context.getSystemService(Context.VIBRATOR_SERVICE)
+                as Vibrator
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             vibrator.vibrate(VibrationEffect.createOneShot(durationMs, amplitude))
         } else {
-            @Suppress("DEPRECATION") vibrator.vibrate(durationMs)
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(durationMs)
         }
     }
 
@@ -175,22 +176,20 @@ object Utils {
         clipboard.setPrimaryClip(clip)
         Snackbar.make(
             view, // root view of your Activity
-            "Copied to clipboard", Snackbar.LENGTH_SHORT
+            "Copied to clipboard",
+            Snackbar.LENGTH_SHORT,
         ).show()
-
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    suspend fun <T> Task<T>.await(): T {
-        return suspendCancellableCoroutine { cont ->
-            addOnCompleteListener {
-                if (it.isCanceled) {
-                    cont.cancel()
-                } else if (it.isSuccessful) {
-                    cont.resume(it.result, null)
-                } else {
-                    cont.resumeWithException(it.exception!!)
-                }
+    suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { cont ->
+        addOnCompleteListener {
+            if (it.isCanceled) {
+                cont.cancel()
+            } else if (it.isSuccessful) {
+                cont.resume(it.result, null)
+            } else {
+                cont.resumeWithException(it.exception!!)
             }
         }
     }
@@ -206,19 +205,23 @@ object Utils {
 
             // Printing
             listOf(
-                "a4", "letter", "poster", "flyer", "business card", "invitation", "resume"
+                "a4",
+                "letter",
+                "poster",
+                "flyer",
+                "business card",
+                "invitation",
+                "resume",
             ).any { it in lower } -> R.drawable.ic_print
 
             // Fallback
             else -> R.drawable.ic_image_layer
         }
     }
-
 }
 
-fun Context.isDarkModeEnabled(): Boolean {
-    return (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-}
+fun Context.isDarkModeEnabled(): Boolean = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+    android.content.res.Configuration.UI_MODE_NIGHT_YES
 
 fun ShimmerFrameLayout.startShimmerSoft(isDarkMode: Boolean) {
     stopShimmer()

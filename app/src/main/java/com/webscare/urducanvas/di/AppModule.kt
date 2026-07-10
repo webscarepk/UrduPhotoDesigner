@@ -70,14 +70,16 @@ object AppModule {
         val gson = GsonBuilder().setLenient().create()
         val httpClient: OkHttpClient.Builder =
             OkHttpClient.Builder().socketFactory(SocketFactoryWithTcpNoDelay())
-                .addInterceptor(logging).addInterceptor(Interceptor {
-                    val original: Request = it.request()
-                    val originalHttpUrl: HttpUrl = original.url
-                    val url = originalHttpUrl.newBuilder().build()
-                    val requestBuilder: Request.Builder = original.newBuilder().url(url)
-                    val request: Request = requestBuilder.build()
-                    it.proceed(request)
-                }).readTimeout(120, TimeUnit.SECONDS).connectTimeout(120, TimeUnit.SECONDS)
+                .addInterceptor(logging).addInterceptor(
+                    Interceptor {
+                        val original: Request = it.request()
+                        val originalHttpUrl: HttpUrl = original.url
+                        val url = originalHttpUrl.newBuilder().build()
+                        val requestBuilder: Request.Builder = original.newBuilder().url(url)
+                        val request: Request = requestBuilder.build()
+                        it.proceed(request)
+                    },
+                ).readTimeout(120, TimeUnit.SECONDS).connectTimeout(120, TimeUnit.SECONDS)
                 .writeTimeout(120, TimeUnit.SECONDS)
         return Retrofit.Builder().baseUrl(Constants.BASE_URL)
             .addConverterFactory(GsonConverterFactory.create(gson)).client(httpClient.build())
@@ -86,83 +88,57 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideGson(): Gson {
-        return GsonBuilder().registerTypeAdapter(ImageFilter::class.java, ImageFilterAdapter())
-            .create()
-    }
+    fun provideGson(): Gson = GsonBuilder().registerTypeAdapter(ImageFilter::class.java, ImageFilterAdapter())
+        .create()
 
     @Provides
-    fun providesAppDatabase(@ApplicationContext context: Context): AppDatabase {
-        return AppDatabase.Companion(context)
-    }
+    fun providesAppDatabase(@ApplicationContext context: Context): AppDatabase = AppDatabase.Companion(context)
 
     @Provides
     @Singleton
-    fun provideDataStoreHelper(@ApplicationContext context: Context): PreferencesDataStoreHelper {
-        return PreferencesDataStoreHelper(context)
-    }
+    fun provideDataStoreHelper(@ApplicationContext context: Context): PreferencesDataStoreHelper = PreferencesDataStoreHelper(context)
 
     @Provides
     @Singleton
-    fun provideFetchFontsRepo(api: EndPointsInterface): FetchFontsRepo {
-        return FetchFontsRepoImpl(api)
-    }
+    fun provideFetchFontsRepo(api: EndPointsInterface): FetchFontsRepo = FetchFontsRepoImpl(api)
 
     @Provides
     @Singleton
-    fun provideFetchTemplatesRepo(api: EndPointsInterface): FetchTemplatesRepo {
-        return FetchTemplatesRepoImpl(api)
-    }
+    fun provideFetchTemplatesRepo(api: EndPointsInterface): FetchTemplatesRepo = FetchTemplatesRepoImpl(api)
 
     @Provides
-    fun provideOkHttpClient(): OkHttpClient {
-        return OkHttpClient.Builder().build()
-    }
+    fun provideOkHttpClient(): OkHttpClient = OkHttpClient.Builder().build()
 
     @Provides
     fun provideContext(@ApplicationContext context: Context): Context = context
 
     @Provides
     @Singleton
-    fun provideFontsRepo(appDatabase: AppDatabase): FontsRepo {
-        return FontsRepoImpl(appDatabase)
-    }
+    fun provideFontsRepo(appDatabase: AppDatabase): FontsRepo = FontsRepoImpl(appDatabase)
 
     @Provides
     @Singleton
-    fun provideTemplatesRepo(appDatabase: AppDatabase): TemplatesRepo {
-        return TemplatesRepoImpl(appDatabase)
-    }
+    fun provideTemplatesRepo(appDatabase: AppDatabase): TemplatesRepo = TemplatesRepoImpl(appDatabase)
 
     @Provides
     @Singleton
-    fun provideFetchImagesRepo(api: EndPointsInterface): FetchImagesRepo {
-        return FetchImagesRepoImpl(api)
-    }
+    fun provideFetchImagesRepo(api: EndPointsInterface): FetchImagesRepo = FetchImagesRepoImpl(api)
 
     @Provides
     @Singleton
-    fun provideImagesRepo(appDatabase: AppDatabase): ImagesRepo {
-        return ImagesRepoImpl(appDatabase)
-    }
+    fun provideImagesRepo(appDatabase: AppDatabase): ImagesRepo = ImagesRepoImpl(appDatabase)
 
     @Provides
     @Singleton
-    fun provideFetchTrendsRepo(api: EndPointsInterface): FetchTrendsRepo {
-        return FetchTrendsRepoImpl(api)
-    }
+    fun provideFetchTrendsRepo(api: EndPointsInterface): FetchTrendsRepo = FetchTrendsRepoImpl(api)
 
     @Provides
     @Singleton
-    fun provideTrendsRepo(appDatabase: AppDatabase, templatesRepo: TemplatesRepo): TrendsRepo {
-        return TrendsRepoImpl(appDatabase, templatesRepo)
-    }
+    fun provideTrendsRepo(appDatabase: AppDatabase, templatesRepo: TemplatesRepo): TrendsRepo = TrendsRepoImpl(appDatabase, templatesRepo)
 
     @Provides
     @Singleton
-    fun providePreferenceDataStoreAPI(@ApplicationContext context: Context): PreferenceDataStoreAPI {
-        return PreferencesDataStoreHelper(context)
-    }
+    fun providePreferenceDataStoreAPI(@ApplicationContext context: Context): PreferenceDataStoreAPI = PreferencesDataStoreHelper(context)
 
     @Provides
     @Singleton
@@ -194,30 +170,20 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideExportResultsDao(appDatabase: AppDatabase): ExportResultsDao {
-        return appDatabase.exportResultsDao()
-    }
+    fun provideExportResultsDao(appDatabase: AppDatabase): ExportResultsDao = appDatabase.exportResultsDao()
 
     @Provides
     @Singleton
-    fun provideExportResultsRepository(exportResultsDao: ExportResultsDao): ExportResultsRepo {
-        return ExportResultsRepositoryImpl(exportResultsDao)
-    }
+    fun provideExportResultsRepository(exportResultsDao: ExportResultsDao): ExportResultsRepo = ExportResultsRepositoryImpl(exportResultsDao)
 
     @Provides
     @Singleton
-    fun provideExportResultsUseCase(repository: ExportResultsRepo): ExportResultsUseCase {
-        return ExportResultsUseCase(repository)
-    }
+    fun provideExportResultsUseCase(repository: ExportResultsRepo): ExportResultsUseCase = ExportResultsUseCase(repository)
 
     @Provides
     fun provideCanvasSizeDao(db: AppDatabase): CanvasSizeDao = db.canvasSizeDao()
 
     @Provides
     @Singleton
-    fun provideCanvasSizeRepo(
-        api: EndPointsInterface, dao: CanvasSizeDao
-    ): CanvasSizeRepo {
-        return CanvasSizeRepoImpl(api, dao)
-    }
+    fun provideCanvasSizeRepo(api: EndPointsInterface, dao: CanvasSizeDao): CanvasSizeRepo = CanvasSizeRepoImpl(api, dao)
 }

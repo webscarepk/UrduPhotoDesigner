@@ -35,7 +35,7 @@ object PexelsCategories {
         val query: String,
         val subcategories: List<Subcategory>,
         val fallbackTab: String,
-        val lazyLoad: Boolean = false
+        val lazyLoad: Boolean = false,
     )
 
     val ALL: List<SuperQuery> = listOf(
@@ -46,10 +46,10 @@ object PexelsCategories {
         SuperQuery(
             query = "islamic architecture",
             subcategories = listOf(
-                Subcategory("Mosque",      listOf("mosque", "masjid", "minaret", "minar", "dome")),
-                Subcategory("Holy Places", listOf("kaaba", "mecca", "makkah", "medina", "haram", "kabah"))
+                Subcategory("Mosque", listOf("mosque", "masjid", "minaret", "minar", "dome")),
+                Subcategory("Holy Places", listOf("kaaba", "mecca", "makkah", "medina", "haram", "kabah")),
             ),
-            fallbackTab = "Islamic Architecture"
+            fallbackTab = "Islamic Architecture",
         ),
 
         // ── 2. RAMADAN & EID ─────────────────────────────────────────────────
@@ -58,10 +58,10 @@ object PexelsCategories {
         SuperQuery(
             query = "ramadan eid",
             subcategories = listOf(
-                Subcategory("Ramadan",     listOf("ramadan", "ramzan", "iftar", "suhoor", "kareem")),
-                Subcategory("Eid",         listOf("eid", "eid mubarak", "eid al fitr", "eid ul adha"))
+                Subcategory("Ramadan", listOf("ramadan", "ramzan", "iftar", "suhoor", "kareem")),
+                Subcategory("Eid", listOf("eid", "eid mubarak", "eid al fitr", "eid ul adha")),
             ),
-            fallbackTab = "Islamic"
+            fallbackTab = "Islamic",
         ),
 
         // ── 3. ISLAMIC ART & CALLIGRAPHY ─────────────────────────────────────
@@ -71,9 +71,9 @@ object PexelsCategories {
             query = "arabic calligraphy islamic",
             subcategories = listOf(
                 Subcategory("Calligraphy", listOf("calligraphy", "arabic calligraphy", "quran", "arabic text", "bismillah", "allah")),
-                Subcategory("Islamic Pattern", listOf("arabesque", "islamic pattern", "geometric", "ornament", "moroccan", "mandala"))
+                Subcategory("Islamic Pattern", listOf("arabesque", "islamic pattern", "geometric", "ornament", "moroccan", "mandala")),
             ),
-            fallbackTab = "Islamic Art"
+            fallbackTab = "Islamic Art",
         ),
 
         // ── 4. WEDDING & MEHNDI ──────────────────────────────────────────────
@@ -83,9 +83,9 @@ object PexelsCategories {
             query = "wedding",
             subcategories = listOf(
                 Subcategory("Wedding Decor", listOf("wedding decor", "bridal", "reception", "wedding flowers", "wedding stage")),
-                Subcategory("Mehndi",        listOf("mehndi", "henna", "henna hand", "mehendi", "bridal mehndi"))
+                Subcategory("Mehndi", listOf("mehndi", "henna", "henna hand", "mehendi", "bridal mehndi")),
             ),
-            fallbackTab = "Wedding"
+            fallbackTab = "Wedding",
         ),
 
         // ── 5. GOLD & LUXURY ─────────────────────────────────────────────────
@@ -96,9 +96,9 @@ object PexelsCategories {
             query = "gold background",
             subcategories = listOf(
                 Subcategory("Gold Texture", listOf("gold texture", "golden texture", "metallic", "gold foil", "gold leaf")),
-                Subcategory("Glitter",      listOf("glitter", "shimmer", "sparkle", "sequin", "bokeh", "glow"))
+                Subcategory("Glitter", listOf("glitter", "shimmer", "sparkle", "sequin", "bokeh", "glow")),
             ),
-            fallbackTab = "Gold"
+            fallbackTab = "Gold",
         ),
 
         // ── 6. NATURE ────────────────────────────────────────────────────────
@@ -108,10 +108,10 @@ object PexelsCategories {
         SuperQuery(
             query = "nature",
             subcategories = listOf(
-                Subcategory("Landscape",   listOf("mountain", "ocean", "beach", "valley", "forest", "lake", "river", "waterfall")),
-                Subcategory("Flowers",     listOf("flower", "rose", "floral", "blossom", "petal", "bouquet", "bloom", "tulip"))
+                Subcategory("Landscape", listOf("mountain", "ocean", "beach", "valley", "forest", "lake", "river", "waterfall")),
+                Subcategory("Flowers", listOf("flower", "rose", "floral", "blossom", "petal", "bouquet", "bloom", "tulip")),
             ),
-            fallbackTab = "Nature"
+            fallbackTab = "Nature",
         ),
 
         // ── 7. SKY & STARS ───────────────────────────────────────────────────
@@ -122,9 +122,9 @@ object PexelsCategories {
             query = "sky stars",
             subcategories = listOf(
                 Subcategory("Sunset & Sky", listOf("sunset", "sunrise", "sky", "cloud", "dawn", "dusk", "golden hour", "horizon")),
-                Subcategory("Stars & Galaxy", listOf("star", "galaxy", "milky way", "space", "nebula", "night sky", "cosmos"))
+                Subcategory("Stars & Galaxy", listOf("star", "galaxy", "milky way", "space", "nebula", "night sky", "cosmos")),
             ),
-            fallbackTab = "Night"
+            fallbackTab = "Night",
         ),
 
         // ── 8. COLORFUL BACKGROUNDS ──────────────────────────────────────────
@@ -134,10 +134,10 @@ object PexelsCategories {
         SuperQuery(
             query = "colorful background",
             subcategories = listOf(
-                Subcategory("Gradient",    listOf("gradient", "color blend", "ombre", "smooth", "transition")),
-                Subcategory("Pastel",      listOf("pastel", "soft", "baby pink", "mint", "lavender", "peach", "light color"))
+                Subcategory("Gradient", listOf("gradient", "color blend", "ombre", "smooth", "transition")),
+                Subcategory("Pastel", listOf("pastel", "soft", "baby pink", "mint", "lavender", "peach", "light color")),
             ),
-            fallbackTab = "Colors"
+            fallbackTab = "Colors",
         ),
 
         // ── 9. TEXTURE & SURFACE ─────────────────────────────────────────────
@@ -148,9 +148,9 @@ object PexelsCategories {
             query = "texture",
             subcategories = listOf(
                 Subcategory("Marble & Stone", listOf("marble", "granite", "stone", "slate", "concrete", "rock surface")),
-                Subcategory("Fabric & Silk",  listOf("fabric", "silk", "velvet", "satin", "cloth", "linen", "textile"))
+                Subcategory("Fabric & Silk", listOf("fabric", "silk", "velvet", "satin", "cloth", "linen", "textile")),
             ),
-            fallbackTab = "Texture"
+            fallbackTab = "Texture",
         ),
 
         // ── 10. PEOPLE & PORTRAITS — lazy ────────────────────────────────────
@@ -159,11 +159,11 @@ object PexelsCategories {
         SuperQuery(
             query = "portrait",
             subcategories = listOf(
-                Subcategory("Muslim",      listOf("hijab", "muslim", "hijabi", "abaya", "islamic woman", "niqab")),
-                Subcategory("Silhouette",  listOf("silhouette", "shadow", "backlit", "outline person", "sunset silhouette"))
+                Subcategory("Muslim", listOf("hijab", "muslim", "hijabi", "abaya", "islamic woman", "niqab")),
+                Subcategory("Silhouette", listOf("silhouette", "shadow", "backlit", "outline person", "sunset silhouette")),
             ),
             fallbackTab = "Portraits",
-            lazyLoad = true
+            lazyLoad = true,
         ),
 
         // ── 11. CELEBRATION & LIGHTS — lazy ──────────────────────────────────
@@ -173,10 +173,10 @@ object PexelsCategories {
             query = "celebration lights",
             subcategories = listOf(
                 Subcategory("Fairy Lights", listOf("fairy light", "string light", "twinkle", "bokeh light", "warm light", "candle")),
-                Subcategory("Party",        listOf("party", "birthday", "confetti", "balloon", "festive", "celebration", "anniversary"))
+                Subcategory("Party", listOf("party", "birthday", "confetti", "balloon", "festive", "celebration", "anniversary")),
             ),
             fallbackTab = "Celebration",
-            lazyLoad = true
+            lazyLoad = true,
         ),
 
         // ── 12. WATERCOLOR & ART — lazy ──────────────────────────────────────
@@ -185,11 +185,11 @@ object PexelsCategories {
         SuperQuery(
             query = "watercolor",
             subcategories = listOf(
-                Subcategory("Watercolor",  listOf("watercolor", "watercolour", "paint splash", "brush stroke", "aquarelle")),
-                Subcategory("Vintage",     listOf("vintage", "retro", "old paper", "aged", "antique", "grunge", "worn"))
+                Subcategory("Watercolor", listOf("watercolor", "watercolour", "paint splash", "brush stroke", "aquarelle")),
+                Subcategory("Vintage", listOf("vintage", "retro", "old paper", "aged", "antique", "grunge", "worn")),
             ),
             fallbackTab = "Artistic",
-            lazyLoad = true
+            lazyLoad = true,
         ),
 
         // ── 13. CITY & ARCHITECTURE — lazy ───────────────────────────────────
@@ -198,12 +198,12 @@ object PexelsCategories {
         SuperQuery(
             query = "city",
             subcategories = listOf(
-                Subcategory("Night City",  listOf("night city", "neon", "city lights", "urban night", "skyline", "light trail")),
-                Subcategory("Architecture", listOf("architecture", "building", "skyscraper", "bridge", "interior", "corridor"))
+                Subcategory("Night City", listOf("night city", "neon", "city lights", "urban night", "skyline", "light trail")),
+                Subcategory("Architecture", listOf("architecture", "building", "skyscraper", "bridge", "interior", "corridor")),
             ),
             fallbackTab = "City",
-            lazyLoad = true
-        )
+            lazyLoad = true,
+        ),
     )
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -226,10 +226,9 @@ object PexelsCategories {
 
     val BY_QUERY: Map<String, SuperQuery> by lazy { ALL.associateBy { it.query } }
 
-    fun superQueryForTab(tabName: String): SuperQuery? =
-        ALL.firstOrNull { sq ->
-            sq.subcategories.any { it.tabName == tabName } || sq.fallbackTab == tabName
-        }
+    fun superQueryForTab(tabName: String): SuperQuery? = ALL.firstOrNull { sq ->
+        sq.subcategories.any { it.tabName == tabName } || sq.fallbackTab == tabName
+    }
 
     fun isPexelsTab(tabName: String): Boolean = superQueryForTab(tabName) != null
 

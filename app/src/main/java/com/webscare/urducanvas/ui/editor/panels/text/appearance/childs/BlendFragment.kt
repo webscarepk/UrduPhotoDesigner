@@ -17,8 +17,9 @@ class BlendFragment : androidx.fragment.app.Fragment() {
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentBlendBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -32,7 +33,6 @@ class BlendFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun setEvents() {
-
         binding.opacity.apply {
             min = 1
             max = 255
@@ -49,7 +49,6 @@ class BlendFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.radius.apply {
-            
             max = 20
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
@@ -65,7 +64,6 @@ class BlendFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun initObservers() {
-
         viewModel.opacity.observe(viewLifecycleOwner) { opacity ->
             binding.opacitySize.text = "${opacity?.toInt() ?: 0}"
             binding.opacity.progress = opacity?.toInt() ?: 0

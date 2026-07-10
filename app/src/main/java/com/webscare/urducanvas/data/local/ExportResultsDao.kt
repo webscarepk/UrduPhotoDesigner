@@ -1,11 +1,11 @@
 package com.webscare.urducanvas.data.local
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import androidx.room.Delete
-import androidx.room.OnConflictStrategy
 import com.webscare.urducanvas.data.model.ExportResult
 import kotlinx.coroutines.flow.Flow
 
@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.Flow
 interface ExportResultsDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertCanvasTemplate(canvasTemplate: ExportResult):Long
+    suspend fun insertCanvasTemplate(canvasTemplate: ExportResult): Long
 
     @Update
     suspend fun updateCanvasTemplate(canvasTemplate: ExportResult)

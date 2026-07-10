@@ -10,9 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import javax.inject.Inject
 
-class FetchFontsRepoImpl @Inject constructor(
-    private val api: EndPointsInterface
-) : FetchFontsRepo {
+class FetchFontsRepoImpl @Inject constructor(private val api: EndPointsInterface) : FetchFontsRepo {
 
     override fun fetchFonts(): Flow<Response<FontsResponse>> = channelFlow {
         try {
@@ -23,9 +21,9 @@ class FetchFontsRepoImpl @Inject constructor(
             trySend(Response.Success(response))
         } catch (e: Exception) {
             Log.e(TAG, "fetchFontsAPI: $e")
-            if (e.message?.contains("Connection reset") == true){
+            if (e.message?.contains("Connection reset") == true) {
                 trySend(Response.Error("Unstable Internet Connection!"))
-            }else{
+            } else {
                 trySend(Response.Error("Unexpected Error Occurred ${e.message}"))
             }
         }

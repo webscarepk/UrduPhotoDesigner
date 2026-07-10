@@ -14,6 +14,7 @@ enum class Mode {
 
     @SerializedName("Resize")
     RESIZE,
+
     @SerializedName("TransForm")
     TRANSFORM,
 
@@ -24,5 +25,5 @@ enum class Mode {
     GROUP_EDIT,
 
     @SerializedName("CanvasPan")
-    CANVAS_PAN
+    CANVAS_PAN,
 }

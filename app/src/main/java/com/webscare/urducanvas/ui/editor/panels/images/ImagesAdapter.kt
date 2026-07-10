@@ -2,7 +2,6 @@ package com.webscare.urducanvas.ui.editor.panels.images
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.PictureDrawable
 import android.view.LayoutInflater
@@ -21,9 +20,9 @@ import com.bumptech.glide.request.target.Target
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.SvgLoader
-import com.webscare.urducanvas.common.utils.startShimmerSoft
-import com.webscare.urducanvas.common.utils.isDarkModeEnabled
 import com.webscare.urducanvas.common.utils.Utils.addPressEffectWithLongClick
+import com.webscare.urducanvas.common.utils.isDarkModeEnabled
+import com.webscare.urducanvas.common.utils.startShimmerSoft
 import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.databinding.LayoutImagesItemBinding
 import com.webscare.urducanvas.databinding.LayoutImagesItemExpandedBinding
@@ -31,27 +30,29 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 // ── Top-level URL resolver ────────────────────────────────────────────────────
 // Pexels images store full https:// URLs directly in file_url.
 // Your own images store relative paths that need BASE_URL_GLIDE prepended.
 // id >= PEXELS_ID_OFFSET (10_000_000) means it's a Pexels image.
-fun resolveUrl(image: ImageEntity): String =
-    if (image.id >= Constants.PEXELS_ID_OFFSET) image.file_url
-    else Constants.BASE_URL_GLIDE + image.file_url
+fun resolveUrl(image: ImageEntity): String = if (image.id >= Constants.PEXELS_ID_OFFSET) {
+    image.file_url
+} else {
+    Constants.BASE_URL_GLIDE + image.file_url
+}
 
 class ImagesAdapter(
     private val context: Context,
     private val onImageSelected: (Bitmap?, PictureDrawable?, svgXml: String?, ImageEntity) -> Unit,
-    private val onLongPress: (ImageEntity) -> Unit = {}
+    private val onLongPress: (ImageEntity) -> Unit = {},
 ) : RecyclerView.Adapter<ImagesAdapter.ImageViewHolder>() {
 
     companion object {
         const val TYPE_COLLAPSED = 0
-        const val TYPE_EXPANDED  = 1
+        const val TYPE_EXPANDED = 1
         const val PAYLOAD_SELECTION = "selection_changed"
         private const val PRELOAD_WINDOW = 15
     }
@@ -124,31 +125,44 @@ class ImagesAdapter(
         differ.submitList(differ.currentList + toAdd)
     }
 
-    override fun getItemViewType(position: Int): Int =
-        if (isExpanded) TYPE_EXPANDED else TYPE_COLLAPSED
+    override fun getItemViewType(position: Int): Int = if (isExpanded) TYPE_EXPANDED else TYPE_COLLAPSED
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ImageViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         return if (viewType == TYPE_EXPANDED) {
             ImageViewHolder.Expanded(
                 LayoutImagesItemExpandedBinding.inflate(inflater, parent, false),
-                this, onImageSelected, onLongPress
+                this,
+                onImageSelected,
+                onLongPress,
             )
         } else {
             ImageViewHolder.Collapsed(
                 LayoutImagesItemBinding.inflate(inflater, parent, false),
-                this, onImageSelected, onLongPress
+                this,
+                onImageSelected,
+                onLongPress,
             )
         }
     }
 
     override fun onBindViewHolder(holder: ImageViewHolder, position: Int) {
         val item = items[position]
-        holder.bind(item, isItemSelected(item.id), isInMultiSelectMode, slideOffset, recyclerViewWidth, recyclerViewPadding)
+        holder.bind(
+            item,
+            isItemSelected(item.id),
+            isInMultiSelectMode,
+            slideOffset,
+            recyclerViewWidth,
+            recyclerViewPadding,
+        )
     }
 
     override fun onBindViewHolder(holder: ImageViewHolder, position: Int, payloads: MutableList<Any>) {
-        if (payloads.isEmpty()) { onBindViewHolder(holder, position); return }
+        if (payloads.isEmpty()) {
+            onBindViewHolder(holder, position)
+            return
+        }
         if (payloads.contains(PAYLOAD_SELECTION)) {
             holder.updateSelectionOnly(isItemSelected(items[position].id), isInMultiSelectMode)
         }
@@ -193,7 +207,7 @@ class ImagesAdapter(
         itemView: android.view.View,
         private val adapter: ImagesAdapter,
         private val onImageSelected: (Bitmap?, PictureDrawable?, String?, ImageEntity) -> Unit,
-        private val onLongPress: (ImageEntity) -> Unit
+        private val onLongPress: (ImageEntity) -> Unit,
     ) : RecyclerView.ViewHolder(itemView) {
 
         abstract val imageView: android.widget.ImageView
@@ -224,7 +238,7 @@ class ImagesAdapter(
             inMultiSelectMode: Boolean,
             slideOffset: Float,
             rvWidth: Int,
-            rvPadding: Int
+            rvPadding: Int,
         ) {
             boundImage = image
             premiumBadge.isVisible = image.is_premium && !image.is_subscribed
@@ -254,7 +268,9 @@ class ImagesAdapter(
                 // Calculate vertical clamping when horizontal orientation to prevent overlapping rows
                 val recyclerView = itemView.parent as? androidx.recyclerview.widget.RecyclerView
                 val lm = recyclerView?.layoutManager as? androidx.recyclerview.widget.GridLayoutManager
-                val finalSize = if (lm != null && lm.orientation == androidx.recyclerview.widget.GridLayoutManager.HORIZONTAL) {
+                val finalSize = if (lm != null &&
+                    lm.orientation == androidx.recyclerview.widget.GridLayoutManager.HORIZONTAL
+                ) {
                     val rvHeight = recyclerView.height
                     val rvPaddingY = recyclerView.paddingTop + recyclerView.paddingBottom
                     val availHeight = rvHeight - rvPaddingY
@@ -266,7 +282,11 @@ class ImagesAdapter(
                     currentSize
                 }
 
-                if (lp.width != finalSize || lp.height != finalSize || lp.rightMargin != marginEndPx || lp.bottomMargin != marginBottomPx) {
+                if (lp.width != finalSize ||
+                    lp.height != finalSize ||
+                    lp.rightMargin != marginEndPx ||
+                    lp.bottomMargin != marginBottomPx
+                ) {
                     lp.width = finalSize
                     lp.height = finalSize
                     lp.rightMargin = marginEndPx
@@ -278,11 +298,17 @@ class ImagesAdapter(
 
         fun updateSelectionOnly(isSelected: Boolean, inMultiSelectMode: Boolean) {
             selectionIcon?.apply {
-                visibility = if (inMultiSelectMode) android.view.View.VISIBLE
-                else android.view.View.GONE
+                visibility = if (inMultiSelectMode) {
+                    android.view.View.VISIBLE
+                } else {
+                    android.view.View.GONE
+                }
                 setImageResource(
-                    if (isSelected) R.drawable.ic_selected_radio
-                    else R.drawable.ic_unselected_radio
+                    if (isSelected) {
+                        R.drawable.ic_selected_radio
+                    } else {
+                        R.drawable.ic_unselected_radio
+                    },
                 )
             }
             cardRoot.strokeWidth = if (isSelected) 2 else 0
@@ -298,15 +324,16 @@ class ImagesAdapter(
                     if (adapter.isInMultiSelectMode) {
                         onLongPress(currentImage)
                     } else {
-                        val url   = resolveUrl(currentImage)
+                        val url = resolveUrl(currentImage)
                         val isSvg = currentImage.file_name.endsWith(".svg", ignoreCase = true)
                         tapJob?.cancel()
                         tapJob = scope.launch { handleTap(currentImage, url, isSvg) }
                     }
-                }, {
+                },
+                {
                     val currentImage = boundImage ?: image
                     onLongPress(currentImage)
-                }
+                },
             )
         }
 
@@ -318,16 +345,31 @@ class ImagesAdapter(
             if (isSvg) {
                 val cached = SvgLoader.peekThumbnail(displayUrl, adapter.applyWhiteTint)
                 if (cached != null) {
-                    shimmer.stopShimmer(); shimmer.setShimmer(null)
+                    shimmer.stopShimmer()
+                    shimmer.setShimmer(null)
                     imageView.setImageBitmap(cached)
                 } else {
                     shimmer.startShimmerSoft(isDark)
-                    displayJob = SvgLoader.load(displayUrl, imageView, scope, image.bitmapData, applyWhiteTint = adapter.applyWhiteTint) { _, _ ->
-                        shimmer.stopShimmer(); shimmer.setShimmer(null)
-                    }
+                    displayJob =
+                        SvgLoader.load(
+                            displayUrl,
+                            imageView,
+                            scope,
+                            image.bitmapData,
+                            applyWhiteTint = adapter.applyWhiteTint,
+                        ) {
+                                _,
+                                _,
+                            ->
+                            shimmer.stopShimmer()
+                            shimmer.setShimmer(null)
+                        }
                     displayJob?.invokeOnCompletion {
                         itemView.post {
-                            if (shimmer.isShimmerStarted) { shimmer.stopShimmer(); shimmer.setShimmer(null) }
+                            if (shimmer.isShimmerStarted) {
+                                shimmer.stopShimmer()
+                                shimmer.setShimmer(null)
+                            }
                         }
                     }
                 }
@@ -338,11 +380,26 @@ class ImagesAdapter(
                     .centerInside()
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .listener(object : RequestListener<Drawable> {
-                        override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean): Boolean {
-                            shimmer.stopShimmer(); shimmer.setShimmer(null); return false
+                        override fun onLoadFailed(
+                            e: GlideException?,
+                            model: Any?,
+                            target: Target<Drawable>,
+                            isFirstResource: Boolean,
+                        ): Boolean {
+                            shimmer.stopShimmer()
+                            shimmer.setShimmer(null)
+                            return false
                         }
-                        override fun onResourceReady(resource: Drawable, model: Any, target: Target<Drawable>?, dataSource: DataSource, isFirstResource: Boolean): Boolean {
-                            shimmer.stopShimmer(); shimmer.setShimmer(null); return false
+                        override fun onResourceReady(
+                            resource: Drawable,
+                            model: Any,
+                            target: Target<Drawable>?,
+                            dataSource: DataSource,
+                            isFirstResource: Boolean,
+                        ): Boolean {
+                            shimmer.stopShimmer()
+                            shimmer.setShimmer(null)
+                            return false
                         }
                     }).into(imageView)
             }
@@ -351,7 +408,8 @@ class ImagesAdapter(
         private suspend fun handleTap(image: ImageEntity, url: String, isSvg: Boolean) {
             if (isSvg) {
                 loadingAnim.isVisible = true
-                val result = withContext(Dispatchers.IO) { SvgLoader.resolve(url, image.bitmapData, adapter.applyWhiteTint) }
+                val result =
+                    withContext(Dispatchers.IO) { SvgLoader.resolve(url, image.bitmapData, adapter.applyWhiteTint) }
                 loadingAnim.isVisible = false
                 result?.let { (d, xml) -> onImageSelected(null, d, xml, image) }
             } else {
@@ -375,26 +433,26 @@ class ImagesAdapter(
             private val binding: LayoutImagesItemBinding,
             adapter: ImagesAdapter,
             onImageSelected: (Bitmap?, PictureDrawable?, String?, ImageEntity) -> Unit,
-            onLongPress: (ImageEntity) -> Unit
+            onLongPress: (ImageEntity) -> Unit,
         ) : ImageViewHolder(binding.root, adapter, onImageSelected, onLongPress) {
-            override val imageView    get() = binding.image
-            override val shimmer      get() = binding.shimmerLayout
+            override val imageView get() = binding.image
+            override val shimmer get() = binding.shimmerLayout
             override val premiumBadge get() = binding.isPremium
-            override val loadingAnim  get() = binding.loading
-            override val cardRoot     get() = binding.root
+            override val loadingAnim get() = binding.loading
+            override val cardRoot get() = binding.root
         }
 
         class Expanded(
             private val binding: LayoutImagesItemExpandedBinding,
             adapter: ImagesAdapter,
             onImageSelected: (Bitmap?, PictureDrawable?, String?, ImageEntity) -> Unit,
-            onLongPress: (ImageEntity) -> Unit
+            onLongPress: (ImageEntity) -> Unit,
         ) : ImageViewHolder(binding.root, adapter, onImageSelected, onLongPress) {
-            override val imageView     get() = binding.image
-            override val shimmer       get() = binding.shimmerLayout
-            override val premiumBadge  get() = binding.isPremium
-            override val loadingAnim   get() = binding.loading
-            override val cardRoot      get() = binding.root
+            override val imageView get() = binding.image
+            override val shimmer get() = binding.shimmerLayout
+            override val premiumBadge get() = binding.isPremium
+            override val loadingAnim get() = binding.loading
+            override val cardRoot get() = binding.root
             override val selectionIcon get() = binding.checkIcon
         }
     }

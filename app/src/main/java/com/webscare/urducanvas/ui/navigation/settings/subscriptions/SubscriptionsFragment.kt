@@ -73,7 +73,9 @@ class SubscriptionsFragment : Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentSubscriptionsBinding.inflate(inflater, container, false)
         return binding.root
@@ -133,7 +135,6 @@ class SubscriptionsFragment : Fragment() {
 
     // ── Static feature grid (2x2) ───────────────────────────────────────────
     private fun bindFeatureGrid() {
-
         with(binding.featureFonts) {
             featureIcon.setImageResource(R.drawable.ic_font_size)
             featureTitle.text = getString(R.string.sub_feature_fonts_title)
@@ -170,12 +171,12 @@ class SubscriptionsFragment : Fragment() {
             featureSubtitle.text = getString(R.string.sub_feature_no_ads_subtitle)
         }
 
-        binding.featureFonts.root.addPressEffect {  }
-        binding.featureStickers.root.addPressEffect {  }
-        binding.featureCustom.root.addPressEffect {  }
-        binding.featureNoAds.root.addPressEffect {  }
-        binding.featureTemplates.root.addPressEffect {  }
-        binding.featureExport.root.addPressEffect {  }
+        binding.featureFonts.root.addPressEffect { }
+        binding.featureStickers.root.addPressEffect { }
+        binding.featureCustom.root.addPressEffect { }
+        binding.featureNoAds.root.addPressEffect { }
+        binding.featureTemplates.root.addPressEffect { }
+        binding.featureExport.root.addPressEffect { }
     }
 
     // ── Entrance animations ─────────────────────────────────────────────────
@@ -217,7 +218,12 @@ class SubscriptionsFragment : Fragment() {
         contentEntrancePlayed = true
 
         val sections = listOf(
-            binding.bannerCard, binding.planList, binding.ctaNote, binding.featureRow1, binding.featureRow2, binding.featureRow3
+            binding.bannerCard,
+            binding.planList,
+            binding.ctaNote,
+            binding.featureRow1,
+            binding.featureRow2,
+            binding.featureRow3,
         )
         sections.forEach {
             it.alpha = 0f
@@ -304,7 +310,7 @@ class SubscriptionsFragment : Fragment() {
         for (i in 0 until row.childCount) {
             val dot = row.getChildAt(i)
             (dot.background as? GradientDrawable)?.setColor(
-                if (i == activeIndex) color(R.color.white) else 0x66FFFFFF.toInt()
+                if (i == activeIndex) color(R.color.white) else 0x66FFFFFF.toInt(),
             )
         }
     }
@@ -395,12 +401,12 @@ class SubscriptionsFragment : Fragment() {
         binding.ctaNote.text = getString(
             R.string.sub_cta_note,
             money(plan.currencySymbol, total),
-            plan.billed.lowercase(Locale.getDefault())
+            plan.billed.lowercase(Locale.getDefault()),
         )
         binding.btnIdleText.text = getString(
             R.string.sub_cta_start_plan,
             plan.title,
-            money(plan.currencySymbol, perMonth)
+            money(plan.currencySymbol, perMonth),
         )
     }
 
@@ -477,7 +483,9 @@ class SubscriptionsFragment : Fragment() {
                 primaryText = "Try Again",
                 secondaryText = "Contact Support",
                 onPrimary = { },
-                onSecondary = { openUrl("mailto:support@urducanvas.com?subject=Purchase Issue") }))
+                onSecondary = { openUrl("mailto:support@urducanvas.com?subject=Purchase Issue") },
+            ),
+        )
             .show(childFragmentManager, "purchase_error")
     }
 
@@ -487,12 +495,10 @@ class SubscriptionsFragment : Fragment() {
      * - PKR (Rs): no decimals needed — "Rs 1,800"
      * - All other currencies (USD, AED, etc.): always 2 decimal places — "USD 4.99", "AED 5.49"
      */
-    private fun money(symbol: String, value: Double): String {
-        return if (symbol == "Rs") {
-            "$symbol ${String.format(Locale.US, "%,.0f", value)}"
-        } else {
-            "$symbol ${String.format(Locale.US, "%,.2f", value)}"
-        }
+    private fun money(symbol: String, value: Double): String = if (symbol == "Rs") {
+        "$symbol ${String.format(Locale.US, "%,.0f", value)}"
+    } else {
+        "$symbol ${String.format(Locale.US, "%,.2f", value)}"
     }
 
     private fun color(res: Int) = ContextCompat.getColor(requireContext(), res)

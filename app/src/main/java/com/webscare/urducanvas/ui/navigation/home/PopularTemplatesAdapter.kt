@@ -16,17 +16,14 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.utils.Constants
-import com.webscare.urducanvas.common.utils.startShimmerSoft
-import com.webscare.urducanvas.common.utils.isDarkModeEnabled
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.common.utils.isDarkModeEnabled
+import com.webscare.urducanvas.common.utils.startShimmerSoft
 import com.webscare.urducanvas.data.model.ProgressUi
 import com.webscare.urducanvas.data.model.TemplateEntity
 import com.webscare.urducanvas.databinding.LayoutTemplatePopularBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
-class PopularTemplatesAdapter(
-    private val onClick: (TemplateEntity, Boolean) -> Unit
-) : ListAdapter<TemplateEntity, PopularTemplatesAdapter.VH>(Diff()) {
+class PopularTemplatesAdapter(private val onClick: (TemplateEntity, Boolean) -> Unit) : ListAdapter<TemplateEntity, PopularTemplatesAdapter.VH>(Diff()) {
 
     init {
         setHasStableIds(true)
@@ -37,8 +34,7 @@ class PopularTemplatesAdapter(
         if (idx != -1) notifyItemChanged(idx, state)
     }
 
-    inner class VH(val binding: LayoutTemplatePopularBinding) :
-        RecyclerView.ViewHolder(binding.root) {
+    inner class VH(val binding: LayoutTemplatePopularBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(item: TemplateEntity) {
             val isDark = binding.root.context.isDarkModeEnabled()
             binding.shimmerLayout.startShimmerSoft(isDark)
@@ -76,7 +72,7 @@ class PopularTemplatesAdapter(
                         e: GlideException?,
                         model: Any?,
                         target: Target<Drawable>,
-                        isFirstResource: Boolean
+                        isFirstResource: Boolean,
                     ): Boolean {
                         binding.shimmerLayout.hideShimmer()
                         return false
@@ -87,7 +83,7 @@ class PopularTemplatesAdapter(
                         model: Any,
                         target: Target<Drawable>?,
                         dataSource: DataSource,
-                        isFirstResource: Boolean
+                        isFirstResource: Boolean,
                     ): Boolean {
                         binding.shimmerLayout.hideShimmer()
                         return false
@@ -131,8 +127,7 @@ class PopularTemplatesAdapter(
 
     override fun getItemId(position: Int) = getItem(position).id.toLong()
 
-    override fun onCreateViewHolder(p: ViewGroup, vt: Int) =
-        VH(LayoutTemplatePopularBinding.inflate(LayoutInflater.from(p.context), p, false))
+    override fun onCreateViewHolder(p: ViewGroup, vt: Int) = VH(LayoutTemplatePopularBinding.inflate(LayoutInflater.from(p.context), p, false))
 
     class Diff : DiffUtil.ItemCallback<TemplateEntity>() {
         override fun areItemsTheSame(o: TemplateEntity, n: TemplateEntity) = o.id == n.id

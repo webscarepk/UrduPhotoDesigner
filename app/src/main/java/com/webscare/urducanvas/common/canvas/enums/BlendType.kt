@@ -19,5 +19,5 @@ enum class BlendType {
     MULTIPLY,
 
     @SerializedName("Screen")
-    SCREEN
+    SCREEN,
 }

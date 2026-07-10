@@ -17,8 +17,9 @@ class AdvancedAdjustmentsFragment : androidx.fragment.app.Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentAdvancedAdjustmentsBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -32,10 +33,8 @@ class AdvancedAdjustmentsFragment : androidx.fragment.app.Fragment() {
 
     // 🎛 Initialize SeekBars
     private fun initSeekBars() {
-
         // 🟢 Sharpness (0 → 5)
         binding.sharpness.apply {
-            
             max = 500
             progress = 0
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -76,7 +75,6 @@ class AdvancedAdjustmentsFragment : androidx.fragment.app.Fragment() {
 
         // 🟣 Fade / Vignette (0 → 100)
         binding.fade.apply {
-            
             max = 100
             progress = 0
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -97,7 +95,6 @@ class AdvancedAdjustmentsFragment : androidx.fragment.app.Fragment() {
 
     // 🟢 Observe ViewModel LiveData to sync UI
     private fun initObservers() {
-
         viewModel.sharpness.observe(viewLifecycleOwner) { value ->
             val scaled = ((value ?: 0f) * 100).toInt() // map 0–5 to 0–500
             if (binding.sharpness.progress != scaled) {

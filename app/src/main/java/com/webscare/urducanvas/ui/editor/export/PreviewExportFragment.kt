@@ -19,7 +19,9 @@ class PreviewExportFragment : Fragment() {
     private val binding get() = _binding!!
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentPreviewExportBinding.inflate(inflater, container, false)
         return binding.root
@@ -59,7 +61,7 @@ class PreviewExportFragment : Fragment() {
                 override fun handleOnBackPressed() {
                     binding.zoomableImage.triggerDismiss()
                 }
-            }
+            },
         )
     }
 

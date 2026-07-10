@@ -5,5 +5,5 @@ import com.webscare.urducanvas.common.canvas.model.CanvasSize
 
 data class CanvasSizeResponse(
     @SerializedName("Message") val message: String,
-    @SerializedName("Canvas Sizes") val sizes: List<CanvasSize>
+    @SerializedName("Canvas Sizes") val sizes: List<CanvasSize>,
 )

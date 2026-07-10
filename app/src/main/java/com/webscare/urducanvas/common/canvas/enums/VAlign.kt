@@ -10,5 +10,5 @@ enum class VAlign {
     MIDDLE,
 
     @SerializedName("Bottom")
-    BOTTOM
+    BOTTOM,
 }

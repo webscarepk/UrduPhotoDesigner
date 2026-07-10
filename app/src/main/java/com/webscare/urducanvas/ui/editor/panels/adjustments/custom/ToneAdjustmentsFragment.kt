@@ -18,8 +18,9 @@ class ToneAdjustmentsFragment : androidx.fragment.app.Fragment() {
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentToneAdjustmentsBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -116,9 +117,7 @@ class ToneAdjustmentsFragment : androidx.fragment.app.Fragment() {
 
         // 🟢 Contrast
         binding.contrast.apply {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                
-            } else {
+            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) {
                 progress = 100
             }
             max = 200

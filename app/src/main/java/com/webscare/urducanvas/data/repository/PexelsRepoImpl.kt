@@ -2,8 +2,8 @@ package com.webscare.urducanvas.data.repository
 
 import android.util.Log
 import com.webscare.urducanvas.common.sealed.Response
-import com.webscare.urducanvas.common.utils.PexelsCategories
 import com.webscare.urducanvas.common.utils.Constants
+import com.webscare.urducanvas.common.utils.PexelsCategories
 import com.webscare.urducanvas.data.local.AppDatabase
 import com.webscare.urducanvas.data.mapper.toImageEntity
 import com.webscare.urducanvas.data.model.ImageEntity
@@ -17,10 +17,7 @@ import javax.inject.Inject
 private const val TAG = "PexelsRepo"
 private const val SEARCH_META_PREFIX = "search:"
 
-class PexelsRepoImpl @Inject constructor(
-    private val api: PexelsApi,
-    private val db: AppDatabase
-) : PexelsRepo {
+class PexelsRepoImpl @Inject constructor(private val api: PexelsApi, private val db: AppDatabase) : PexelsRepo {
 
     // ── Category browsing ─────────────────────────────────────────────────────
 
@@ -43,8 +40,8 @@ class PexelsRepoImpl @Inject constructor(
 
             val response = api.searchPhotos(
                 apiKey = Constants.PEXELS_API_KEY,
-                query  = superQuery,
-                page   = nextPage
+                query = superQuery,
+                page = nextPage,
             )
 
             val entities: List<ImageEntity> = response.photos.map { photo ->
@@ -56,29 +53,32 @@ class PexelsRepoImpl @Inject constructor(
             db.imagesDao().insertImages(entities)
 
             val hasMore = response.next_page != null &&
-                    response.photos.size >= response.per_page
+                response.photos.size >= response.per_page
 
             db.stockPhotoMetaDao().upsert(
                 StockPhotoMeta(
-                    superQuery   = superQuery,
-                    lastPage     = nextPage,
-                    cachedAt     = meta?.cachedAt ?: System.currentTimeMillis(),
+                    superQuery = superQuery,
+                    lastPage = nextPage,
+                    cachedAt = meta?.cachedAt ?: System.currentTimeMillis(),
                     totalResults = response.total_results,
-                    hasMore      = hasMore
-                )
+                    hasMore = hasMore,
+                ),
             )
 
             Log.d(TAG, "loadNextPage: ${entities.size} images for '$superQuery' p$nextPage hasMore=$hasMore")
             // Return entities so VM can appendItems() directly — no RV jump
             trySend(Response.Success(entities))
-
         } catch (e: Exception) {
             Log.e(TAG, "loadNextPage failed for '$superQuery': $e")
-            trySend(Response.Error(when {
-                e.message?.contains("Connection reset") == true      -> "Unstable Internet Connection!"
-                e.message?.contains("Unable to resolve host") == true -> "No Internet Connection"
-                else -> "Failed to load images: ${e.message}"
-            }))
+            trySend(
+                Response.Error(
+                    when {
+                        e.message?.contains("Connection reset") == true -> "Unstable Internet Connection!"
+                        e.message?.contains("Unable to resolve host") == true -> "No Internet Connection"
+                        else -> "Failed to load images: ${e.message}"
+                    },
+                ),
+            )
         }
     }
 
@@ -89,8 +89,8 @@ class PexelsRepoImpl @Inject constructor(
         try {
             val response = api.userSearch(
                 apiKey = Constants.PEXELS_API_KEY,
-                query  = query,
-                page   = page
+                query = query,
+                page = page,
             )
 
             // Normalise query → tab name: "mountain sunset" → "Mountain sunset"
@@ -109,18 +109,17 @@ class PexelsRepoImpl @Inject constructor(
                 val existingMeta = db.stockPhotoMetaDao().getMeta(metaKey)
                 db.stockPhotoMetaDao().upsert(
                     StockPhotoMeta(
-                        superQuery   = metaKey,
-                        lastPage     = page,
-                        cachedAt     = existingMeta?.cachedAt ?: System.currentTimeMillis(),
+                        superQuery = metaKey,
+                        lastPage = page,
+                        cachedAt = existingMeta?.cachedAt ?: System.currentTimeMillis(),
                         totalResults = response.total_results,
-                        hasMore      = response.next_page != null
-                    )
+                        hasMore = response.next_page != null,
+                    ),
                 )
             }
 
             Log.d(TAG, "search '$query' p$page: ${entities.size} saved under '$categoryName'")
             trySend(Response.Success(entities))
-
         } catch (e: Exception) {
             Log.e(TAG, "search failed: $e")
             trySend(Response.Error(e.message ?: "Search failed"))
@@ -145,8 +144,8 @@ class PexelsRepoImpl @Inject constructor(
 
                 val response = api.userSearch(
                     apiKey = Constants.PEXELS_API_KEY,
-                    query  = query,
-                    page   = nextPage
+                    query = query,
+                    page = nextPage,
                 )
 
                 val entities = response.photos.map { photo ->
@@ -157,12 +156,12 @@ class PexelsRepoImpl @Inject constructor(
                     db.imagesDao().insertImages(entities)
                     db.stockPhotoMetaDao().upsert(
                         StockPhotoMeta(
-                            superQuery   = metaKey,
-                            lastPage     = nextPage,
-                            cachedAt     = meta?.cachedAt ?: System.currentTimeMillis(),
+                            superQuery = metaKey,
+                            lastPage = nextPage,
+                            cachedAt = meta?.cachedAt ?: System.currentTimeMillis(),
                             totalResults = response.total_results,
-                            hasMore      = response.next_page != null
-                        )
+                            hasMore = response.next_page != null,
+                        ),
                     )
                 }
 
@@ -175,8 +174,7 @@ class PexelsRepoImpl @Inject constructor(
 
     // ── Local Room search — zero API cost ─────────────────────────────────────
 
-    override suspend fun searchLocal(query: String): List<ImageEntity> =
-        db.imagesDao().searchPexelsImages("%${query.trim()}%")
+    override suspend fun searchLocal(query: String): List<ImageEntity> = db.imagesDao().searchPexelsImages("%${query.trim()}%")
 
     // ── Search meta ───────────────────────────────────────────────────────────
 
@@ -187,8 +185,7 @@ class PexelsRepoImpl @Inject constructor(
 
     // ── Category meta ─────────────────────────────────────────────────────────
 
-    override suspend fun getMeta(superQuery: String): StockPhotoMeta? =
-        db.stockPhotoMetaDao().getMeta(superQuery)
+    override suspend fun getMeta(superQuery: String): StockPhotoMeta? = db.stockPhotoMetaDao().getMeta(superQuery)
 
     // ── No-op — cache kept forever ────────────────────────────────────────────
 

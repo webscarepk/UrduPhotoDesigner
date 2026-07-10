@@ -1,20 +1,14 @@
 package com.webscare.urducanvas.data.repository
 
-import android.content.ContentValues.TAG
-import android.util.Log
 import com.webscare.urducanvas.data.local.AppDatabase
 import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.domain.repo.ImagesRepo
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
-class ImagesRepoImpl @Inject constructor(
-    private val appDatabase: AppDatabase
-) : ImagesRepo {
+class ImagesRepoImpl @Inject constructor(private val appDatabase: AppDatabase) : ImagesRepo {
 
-    override fun fetchImages(): Flow<List<ImageEntity>> {
-        return appDatabase.imagesDao().getAllImages()
-    }
+    override fun fetchImages(): Flow<List<ImageEntity>> = appDatabase.imagesDao().getAllImages()
 
     override suspend fun insertImages(imageEntity: ImageEntity) {
         appDatabase.imagesDao().insertImage(imageEntity)

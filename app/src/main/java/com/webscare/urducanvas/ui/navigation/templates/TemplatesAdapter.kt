@@ -15,16 +15,14 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.webscare.urducanvas.common.utils.Constants
-import com.webscare.urducanvas.common.utils.startShimmerSoft
-import com.webscare.urducanvas.common.utils.isDarkModeEnabled
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.common.utils.isDarkModeEnabled
+import com.webscare.urducanvas.common.utils.startShimmerSoft
 import com.webscare.urducanvas.data.model.ProgressUi
 import com.webscare.urducanvas.data.model.TemplateEntity
 import com.webscare.urducanvas.databinding.LayoutTemplateItemBinding
 
-class TemplatesAdapter(
-    private val onTemplateSelected: (TemplateEntity, Boolean) -> Unit
-) : ListAdapter<TemplateEntity, TemplatesAdapter.VH>(Diff()) {
+class TemplatesAdapter(private val onTemplateSelected: (TemplateEntity, Boolean) -> Unit) : ListAdapter<TemplateEntity, TemplatesAdapter.VH>(Diff()) {
 
     init {
         setHasStableIds(true)
@@ -34,7 +32,9 @@ class TemplatesAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
         val binding = LayoutTemplateItemBinding.inflate(
-            LayoutInflater.from(parent.context), parent, false
+            LayoutInflater.from(parent.context),
+            parent,
+            false,
         )
         return VH(
             binding = binding,
@@ -68,13 +68,9 @@ class TemplatesAdapter(
         }
     }
 
-    class VH(
-        private val binding: LayoutTemplateItemBinding,
-        private val onClick: (TemplateEntity) -> Unit
-    ) : RecyclerView.ViewHolder(binding.root) {
+    class VH(private val binding: LayoutTemplateItemBinding, private val onClick: (TemplateEntity) -> Unit) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: TemplateEntity) {
-
             val width = item.canvas_width
             val height = item.canvas_height
 
@@ -109,14 +105,21 @@ class TemplatesAdapter(
                     .diskCacheStrategy(DiskCacheStrategy.ALL).thumbnail(0.1f)
                     .listener(object : RequestListener<Bitmap> {
                         override fun onLoadFailed(
-                            e: GlideException?, m: Any?, t: Target<Bitmap>, isFirst: Boolean
+                            e: GlideException?,
+                            m: Any?,
+                            t: Target<Bitmap>,
+                            isFirst: Boolean,
                         ): Boolean {
                             binding.shimmerLayout.hideShimmer()
                             return false
                         }
 
                         override fun onResourceReady(
-                            res: Bitmap, m: Any, t: Target<Bitmap>?, d: DataSource, isFirst: Boolean
+                            res: Bitmap,
+                            m: Any,
+                            t: Target<Bitmap>?,
+                            d: DataSource,
+                            isFirst: Boolean,
                         ): Boolean {
                             binding.shimmerLayout.hideShimmer()
                             binding.download.isVisible = !item.is_downloaded && !item.is_downloading
@@ -139,22 +142,21 @@ class TemplatesAdapter(
     private class Diff : DiffUtil.ItemCallback<TemplateEntity>() {
         override fun areItemsTheSame(o: TemplateEntity, n: TemplateEntity) = o.id == n.id
 
-        override fun areContentsTheSame(o: TemplateEntity, n: TemplateEntity): Boolean {
-            return o.id == n.id &&
-                    o.is_downloaded == n.is_downloaded &&
-                    o.is_downloading == n.is_downloading &&
-                    o.download_progress == n.download_progress
-        }
+        override fun areContentsTheSame(o: TemplateEntity, n: TemplateEntity): Boolean = o.id == n.id &&
+            o.is_downloaded == n.is_downloaded &&
+            o.is_downloading == n.is_downloading &&
+            o.download_progress == n.download_progress
 
         // Payload generator to prevent full rebind
         override fun getChangePayload(oldItem: TemplateEntity, newItem: TemplateEntity): Any? {
             if (oldItem.download_progress != newItem.download_progress ||
                 oldItem.is_downloading != newItem.is_downloading ||
-                oldItem.is_downloaded != newItem.is_downloaded) {
+                oldItem.is_downloaded != newItem.is_downloaded
+            ) {
                 return ProgressUi(
                     newItem.download_progress,
                     newItem.is_downloading,
-                    newItem.is_downloaded
+                    newItem.is_downloaded,
                 )
             }
             return super.getChangePayload(oldItem, newItem)

@@ -23,9 +23,9 @@ import kotlin.math.roundToInt
  */
 class MorphGridLayoutManager(
     context: Context,
-    private val collapsedSpan: Int = 3,   // rows in horizontal strip
-    private val expandedSpan: Int = 3,    // columns in vertical grid
-    private val orientationFlipThreshold: Float = 0.95f
+    private val collapsedSpan: Int = 3, // rows in horizontal strip
+    private val expandedSpan: Int = 3, // columns in vertical grid
+    private val orientationFlipThreshold: Float = 0.95f,
 ) : GridLayoutManager(context, collapsedSpan, HORIZONTAL, false) {
 
     // Track what we last set so we skip redundant requestLayout() calls
@@ -72,17 +72,14 @@ class MorphGridLayoutManager(
      * Vertical layout uses expandedSpan columns.
      * Changes orientation and span count in a single step at the flip threshold.
      */
-    private fun computeSpan(f: Float, orientation: Int): Int {
-        return if (orientation == HORIZONTAL) collapsedSpan else expandedSpan
-    }
+    private fun computeSpan(f: Float, orientation: Int): Int = if (orientation == HORIZONTAL) collapsedSpan else expandedSpan
 
-    private fun lerp(a: Int, b: Int, t: Float): Int =
-        (a + (b - a) * t).roundToInt().coerceAtLeast(1)
+    private fun lerp(a: Int, b: Int, t: Float): Int = (a + (b - a) * t).roundToInt().coerceAtLeast(1)
 
     // ── Scroll direction gates ───────────────────────────────────────────────
     // RecyclerView consults these before deciding whether to intercept touch events.
     // Mirror the actual orientation so swipe gestures work correctly throughout drag.
 
     override fun canScrollHorizontally(): Boolean = currentOrientation == HORIZONTAL
-    override fun canScrollVertically(): Boolean   = currentOrientation == VERTICAL
+    override fun canScrollVertically(): Boolean = currentOrientation == VERTICAL
 }

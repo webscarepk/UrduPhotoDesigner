@@ -24,13 +24,13 @@ class SvgModule : AppGlideModule() {
         builder.setDiskCache(
             com.bumptech.glide.load.engine.cache.InternalCacheDiskCacheFactory(
                 context,
-                500 * 1024 * 1024L // 500MB
-            )
+                500 * 1024 * 1024L, // 500MB
+            ),
         )
         builder.setMemoryCache(
             com.bumptech.glide.load.engine.cache.LruResourceCache(
-                50 * 1024 * 1024L // 50MB
-            )
+                50 * 1024 * 1024L, // 50MB
+            ),
         )
     }
 

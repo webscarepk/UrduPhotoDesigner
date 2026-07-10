@@ -29,8 +29,9 @@ class GradientEditorFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentGradientEditorBinding.inflate(inflater, container, false)
         return binding.root
@@ -53,7 +54,9 @@ class GradientEditorFragment : androidx.fragment.app.Fragment() {
             // Update the small preview thumbnail
             binding.preview.doOnLayout {
                 it.background = gradient.createGradientPreviewDrawable(
-                    gradient, width = it.width, height = it.height
+                    gradient,
+                    width = it.width,
+                    height = it.height,
                 )
             }
 
@@ -61,7 +64,7 @@ class GradientEditorFragment : androidx.fragment.app.Fragment() {
             when (gradient.type) {
                 GradientType.LINEAR -> updateButtonTints(binding.linear)
                 GradientType.RADIAL -> updateButtonTints(binding.radial)
-                else                -> updateButtonTints(binding.sweep)
+                else -> updateButtonTints(binding.sweep)
             }
 
             binding.gradientBar.invalidate()
@@ -83,17 +86,16 @@ class GradientEditorFragment : androidx.fragment.app.Fragment() {
 
     private fun updateButtonTints(selected: View) {
         val contrastColor = ContextCompat.getColor(requireContext(), R.color.selection)
-        val defaultColor  = ContextCompat.getColor(requireContext(), R.color.white)
+        val defaultColor = ContextCompat.getColor(requireContext(), R.color.white)
         listOf(binding.linear, binding.radial, binding.sweep).forEach { btn ->
             btn.backgroundTintList = ColorStateList.valueOf(
-                if (btn == selected) defaultColor else contrastColor
+                if (btn == selected) defaultColor else contrastColor,
             )
         }
         binding.previewCard.radius = if (selected == binding.linear) 10f else 100f
     }
 
     private fun setEvents() {
-
         binding.delete.visibility = if (isEdit) View.VISIBLE else View.GONE
 
         binding.delete.addPressEffect {

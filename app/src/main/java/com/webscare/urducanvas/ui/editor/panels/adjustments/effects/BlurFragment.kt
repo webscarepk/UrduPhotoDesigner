@@ -20,7 +20,9 @@ class BlurFragment : Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentBlurBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -46,7 +48,6 @@ class BlurFragment : Fragment() {
     private fun initSeekbars() {
         // 🟡 Blur (0 → 25)
         binding.blur.apply {
-            
             max = 25
             progress = 0
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -65,14 +66,11 @@ class BlurFragment : Fragment() {
         }
     }
 
-
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
     companion object {
-        fun newInstance(): BlurFragment {
-            return BlurFragment()
-        }
+        fun newInstance(): BlurFragment = BlurFragment()
     }
 }

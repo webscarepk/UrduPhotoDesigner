@@ -16,6 +16,7 @@ import com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState
 import com.webscare.urducanvas.common.sealed.Response
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.GradientPresets
+import com.webscare.urducanvas.common.utils.PexelsCategories
 import com.webscare.urducanvas.data.model.CanvasSizeEntity
 import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.data.model.FontEntity
@@ -31,6 +32,7 @@ import com.webscare.urducanvas.data.model.TrendResponse
 import com.webscare.urducanvas.di.BillingManager
 import com.webscare.urducanvas.domain.repo.DownloadRepo
 import com.webscare.urducanvas.domain.repo.ImagesRepo
+import com.webscare.urducanvas.domain.repo.PexelsRepo
 import com.webscare.urducanvas.domain.usecase.DeleteFontsUseCase
 import com.webscare.urducanvas.domain.usecase.DeleteGradientUseCase
 import com.webscare.urducanvas.domain.usecase.DeleteImagesUseCase
@@ -57,8 +59,6 @@ import com.webscare.urducanvas.domain.usecase.UpdateFontsUseCase
 import com.webscare.urducanvas.domain.usecase.UpdateGradientUseCase
 import com.webscare.urducanvas.domain.usecase.UpdateImagesUseCase
 import com.webscare.urducanvas.domain.usecase.UpdateTemplatesUseCase
-import com.webscare.urducanvas.domain.repo.PexelsRepo
-import com.webscare.urducanvas.common.utils.PexelsCategories
 import com.webscare.urducanvas.ui.editor.panels.objects.ObjectsFragment
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -120,7 +120,10 @@ class MainViewModel @Inject constructor(
     fun updateDarkMode(enabled: Boolean) {
         _isDarkMode.value = enabled
         viewModelScope.launch {
-            dataStore.putPreference(com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.KEY_DARK_MODE, enabled)
+            dataStore.putPreference(
+                com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.KEY_DARK_MODE,
+                enabled,
+            )
         }
         val sharedPrefs = context.getSharedPreferences("theme_prefs", android.content.Context.MODE_PRIVATE)
         sharedPrefs.edit().putBoolean("is_dark_mode", enabled).apply()
@@ -201,7 +204,7 @@ class MainViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
-            initialValue = ObjectsData.Initial
+            initialValue = ObjectsData.Initial,
         )
 
     private fun buildObjectsData(images: List<ImageEntity>): ObjectsData {
@@ -225,8 +228,8 @@ class MainViewModel @Inject constructor(
 
         val tabs = buildList {
             if (recents.isNotEmpty()) add("Recents")
-            addAll(extraTabs)                  // Vectors subcategories tabs
-            addAll(ObjectsFragment.BASE_TABS)  // Emoji tabs at end
+            addAll(extraTabs) // Vectors subcategories tabs
+            addAll(ObjectsFragment.BASE_TABS) // Emoji tabs at end
         }
 
         return ObjectsData(tabs, byCategory, recents)
@@ -240,7 +243,7 @@ class MainViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
-            initialValue = ImagesData.Initial
+            initialValue = ImagesData.Initial,
         )
 
     private fun buildImagesData(images: List<ImageEntity>): ImagesData {
@@ -254,18 +257,21 @@ class MainViewModel @Inject constructor(
             val parent = img.parent_category ?: continue
             if (!parent.equals("Images", ignoreCase = true) &&
                 !parent.equals("Backgrounds", ignoreCase = true)
-            ) continue
+            ) {
+                continue
+            }
 
             // Skip Pexels search result images from tab bucketing — they must NOT
             // appear as tabs. BUT still add them to recents if marked recent.
             if (img.id >= Constants.PEXELS_ID_OFFSET &&
-                img.category.trim() !in PexelsCategories.ALL_TAB_NAMES) {
-                if (img.is_recent) recents.add(img)   // still shows in Recents tab
+                img.category.trim() !in PexelsCategories.ALL_TAB_NAMES
+            ) {
+                if (img.is_recent) recents.add(img) // still shows in Recents tab
                 continue
             }
 
             val tabName = when {
-                img.category.equals("Images Imported", ignoreCase = true)      -> "My Images"
+                img.category.equals("Images Imported", ignoreCase = true) -> "My Images"
                 img.category.equals("Backgrounds Imported", ignoreCase = true) -> "My Backgrounds"
                 else -> img.category.trim()
             }
@@ -284,7 +290,10 @@ class MainViewModel @Inject constructor(
 
         val backgroundTabs = byCategory.keys
             .filter { it !in specialTabs && it !in pexelsTabNames }
-            .filter { tab -> byCategory[tab]?.any { it.parent_category.equals("Backgrounds", ignoreCase = true) } == true }
+            .filter { tab ->
+                byCategory[tab]?.any { it.parent_category.equals("Backgrounds", ignoreCase = true) } ==
+                    true
+            }
             .sorted()
 
         // Pexels category tabs — preserve PexelsCategories definition order (stable, no jumps).
@@ -305,9 +314,11 @@ class MainViewModel @Inject constructor(
         // Build the "Others" bucket if it has content
         if (othersImages.isNotEmpty()) {
             byCategory[PexelsCategories.OTHERS_TAB] =
-                (byCategory[PexelsCategories.OTHERS_TAB] ?: mutableListOf<ImageEntity>().also {
-                    byCategory[PexelsCategories.OTHERS_TAB] = it
-                }).apply { addAll(othersImages) } as MutableList<ImageEntity>
+                (
+                    byCategory[PexelsCategories.OTHERS_TAB] ?: mutableListOf<ImageEntity>().also {
+                        byCategory[PexelsCategories.OTHERS_TAB] = it
+                    }
+                    ).apply { addAll(othersImages) } as MutableList<ImageEntity>
         }
 
         // No search result tabs — search results are shown inline in the adapter overlay.
@@ -320,7 +331,7 @@ class MainViewModel @Inject constructor(
             if (byCategory.containsKey("My Images")) add("My Images")
             addAll(backgroundTabs)
             if (byCategory.containsKey("My Backgrounds")) add("My Backgrounds")
-            addAll(pexelsTabs)   // Main Pexels category tabs
+            addAll(pexelsTabs) // Main Pexels category tabs
             // "Others" goes last if it has enough images
             if ((byCategory[PexelsCategories.OTHERS_TAB]?.size ?: 0) >= PexelsCategories.MIN_IMAGES_FOR_OWN_TAB) {
                 add(PexelsCategories.OTHERS_TAB)
@@ -338,7 +349,7 @@ class MainViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
-            initialValue = ShapesData.initial()
+            initialValue = ShapesData.initial(),
         )
 
     private fun buildShapesData(images: List<ImageEntity>): ShapesData {
@@ -400,8 +411,8 @@ class MainViewModel @Inject constructor(
     /** Call whenever a font is successfully selected/applied. */
     fun recordRecentFont(fontId: Int) {
         val current = _recentFontIds.value.toMutableList()
-        current.remove(fontId)          // remove duplicate if already present
-        current.add(0, fontId)          // insert at front (most recent)
+        current.remove(fontId) // remove duplicate if already present
+        current.add(0, fontId) // insert at front (most recent)
         if (current.size > 20) current.subList(20, current.size).clear()
         _recentFontIds.value = current
     }
@@ -428,10 +439,12 @@ class MainViewModel @Inject constructor(
         _rawQuery.value = ""
     }
 
-
     init {
         viewModelScope.launch {
-            val dark = dataStore.getFirstPreference(com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.KEY_DARK_MODE, false)
+            val dark = dataStore.getFirstPreference(
+                com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.KEY_DARK_MODE,
+                false,
+            )
             _isDarkMode.value = dark
         }
         viewModelScope.launch {
@@ -469,20 +482,18 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun enableSubscription(){
+    fun enableSubscription() {
         billingManager.debugSetSubscription(true, planId = 1)
     }
 
-    fun disableSubscription(){
+    fun disableSubscription() {
         billingManager.debugSetSubscription(false)
     }
 
     fun deleteGradient(id: Long) = viewModelScope.launch { delete(id) }
-    fun updateGradient(g: GradientItem) =
-        viewModelScope.launch { update(g) }
+    fun updateGradient(g: GradientItem) = viewModelScope.launch { update(g) }
 
-    fun insertGradient(g: GradientItem) =
-        viewModelScope.launch { insert(g) }
+    fun insertGradient(g: GradientItem) = viewModelScope.launch { insert(g) }
 
     private fun recomputeHomeState() {
         val templates = _localTemplates.value
@@ -490,20 +501,22 @@ class MainViewModel @Inject constructor(
         val trends = _trendRows.value
         val recents = _exportResults.value.orEmpty()
 
-        val hasAnyData = templates.isNotEmpty() || fonts.isNotEmpty() ||
-                trends.isNotEmpty() || recents.isNotEmpty()
+        val hasAnyData = templates.isNotEmpty() ||
+            fonts.isNotEmpty() ||
+            trends.isNotEmpty() ||
+            recents.isNotEmpty()
 
         val tStatus = _templatesStatus.value
         val fStatus = _fontsStatus.value
         val trStatus = _trendsStatus.value
 
         val anyLoading = tStatus == SectionStatus.Loading ||
-                fStatus == SectionStatus.Loading ||
-                trStatus == SectionStatus.Loading
+            fStatus == SectionStatus.Loading ||
+            trStatus == SectionStatus.Loading
 
         val allFailed = tStatus == SectionStatus.Failed &&
-                fStatus == SectionStatus.Failed &&
-                trStatus == SectionStatus.Failed
+            fStatus == SectionStatus.Failed &&
+            trStatus == SectionStatus.Failed
 
         val newState = when {
             hasAnyData -> HomeUiState.Content
@@ -512,7 +525,10 @@ class MainViewModel @Inject constructor(
             else -> HomeUiState.Empty
         }
 
-        Log.d("HomeState", "templates=$tStatus fonts=$fStatus trends=$trStatus | hasData=$hasAnyData | newState=$newState")
+        Log.d(
+            "HomeState",
+            "templates=$tStatus fonts=$fStatus trends=$trStatus | hasData=$hasAnyData | newState=$newState",
+        )
 
         _homeUiState.value = newState
     }
@@ -546,7 +562,8 @@ class MainViewModel @Inject constructor(
             getTrendsUseCase().map { trendsWithTemplates ->
                 trendsWithTemplates.map { twt ->
                     HomeRow.TrendRow(
-                        title = twt.trend.name, templates = twt.templates
+                        title = twt.trend.name,
+                        templates = twt.templates,
                     )
                 }
             }.collect { rows ->
@@ -578,7 +595,7 @@ class MainViewModel @Inject constructor(
                             if (subscribed) template.copy(is_subscribed = true) else template
                         }
                         insertTemplatesUseCase.invoke(
-                            TemplatesResponse(templates = templatesToSave)
+                            TemplatesResponse(templates = templatesToSave),
                         )
                         recomputeHomeState()
                     }
@@ -614,8 +631,8 @@ class MainViewModel @Inject constructor(
                         insertFontsUseCase.invoke(
                             FontsResponse(
                                 message = response.data.message,
-                                fonts = fontsToSave
-                            )
+                                fonts = fontsToSave,
+                            ),
                         )
                         recomputeHomeState()
                     }
@@ -644,14 +661,17 @@ class MainViewModel @Inject constructor(
                         val trendsToSave = response.data!!.trends.map { trend ->
                             trend.copy(
                                 templates = trend.templates.map { template ->
-                                    if (subscribed) template.copy(is_subscribed = true)
-                                    else template
-                                }
+                                    if (subscribed) {
+                                        template.copy(is_subscribed = true)
+                                    } else {
+                                        template
+                                    }
+                                },
                             )
                         }
 
                         insertTrendsUseCase.invoke(
-                            TrendResponse(trends = trendsToSave)
+                            TrendResponse(trends = trendsToSave),
                         )
                         recomputeHomeState()
                     }
@@ -687,8 +707,8 @@ class MainViewModel @Inject constructor(
                         insertImagesUseCase.invoke(
                             ImageResponse(
                                 message = response.data.message,
-                                image = imagesToSave
-                            )
+                                image = imagesToSave,
+                            ),
                         )
                     }
 
@@ -710,11 +730,15 @@ class MainViewModel @Inject constructor(
         // Only seed SEED_ON_LAUNCH categories — lazy tabs load on first tap via PexelsViewModel
         viewModelScope.launch {
             PexelsCategories.SEED_ON_LAUNCH.forEach { superQuery ->
-                launch {  // parallel — one coroutine per super-query
+                launch {
+                    // parallel — one coroutine per super-query
                     pexelsRepo.invalidateIfStale(superQuery.query)
                     pexelsRepo.loadNextPage(superQuery.query).collect { response ->
                         when (response) {
-                            is Response.Error -> Log.w("MainViewModel", "Pexels seed failed for '${superQuery.query}': ${response.message}")
+                            is Response.Error -> Log.w(
+                                "MainViewModel",
+                                "Pexels seed failed for '${superQuery.query}': ${response.message}",
+                            )
                             else -> { /* Room observer picks up inserts automatically */ }
                         }
                     }
@@ -723,22 +747,23 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun fetchAndStoreCanvasSizesFromApi() {        viewModelScope.launch {
-        fetchAPICanvasSizesUseCase().collect { response ->
-            when (response) {
-                is Response.Loading -> { /* not part of home UI */ }
+    fun fetchAndStoreCanvasSizesFromApi() {
+        viewModelScope.launch {
+            fetchAPICanvasSizesUseCase().collect { response ->
+                when (response) {
+                    is Response.Loading -> { /* not part of home UI */ }
 
-                is Response.Success -> { /* Room observer picks it up */ }
+                    is Response.Success -> { /* Room observer picks it up */ }
 
-                is Response.Error -> {
-                    // silently fail — Room already has data from last successful fetch
-                    Log.w("MainViewModel", "Canvas sizes fetch failed: ${response.message}")
+                    is Response.Error -> {
+                        // silently fail — Room already has data from last successful fetch
+                        Log.w("MainViewModel", "Canvas sizes fetch failed: ${response.message}")
+                    }
+
+                    else -> {}
                 }
-
-                else -> {}
             }
         }
-    }
     }
 
     fun insertImage(imageEntity: ImageEntity) {
@@ -758,8 +783,8 @@ class MainViewModel @Inject constructor(
             insertImagesUseCase.invoke(
                 com.webscare.urducanvas.data.model.ImageResponse(
                     message = "",
-                    image   = listOf(imageEntity)
-                )
+                    image = listOf(imageEntity),
+                ),
             )
         }
     }
@@ -793,64 +818,75 @@ class MainViewModel @Inject constructor(
     }
 
     fun downloadTemplate(template: TemplateEntity) {
-
         val id = template.id.toString()
         templateJobs[id]?.cancel()
 
         val job = viewModelScope.launch {
-
             // DB: start
             updateTemplatesUseCase.invoke(
-                id, isDownloaded = false, isDownloading = true, progress = 0, filePath = null
+                id,
+                isDownloaded = false,
+                isDownloading = true,
+                progress = 0,
+                filePath = null,
             )
 
             updateTemplateState(
-                id, TemplateDownloadState.Progress(0, template)
+                id,
+                TemplateDownloadState.Progress(0, template),
             )
 
             try {
                 val file = downloadRepository.downloadTemplateById(
                     templateId = id,
-                    fileName = "template_${id}.json",
+                    fileName = "template_$id.json",
                     totalSizeFromApi = template.json_size,
                     onProgress = { progress ->
                         updateTemplateState(
-                            id, TemplateDownloadState.Progress(
-                                progress, template.copy(
-                                    is_downloading = true, download_progress = progress
-                                )
-                            )
+                            id,
+                            TemplateDownloadState.Progress(
+                                progress,
+                                template.copy(
+                                    is_downloading = true,
+                                    download_progress = progress,
+                                ),
+                            ),
                         )
-                    })
-
+                    },
+                )
 
                 updateTemplatesUseCase.invoke(
                     id,
                     isDownloaded = true,
                     isDownloading = false,
                     progress = 100,
-                    filePath = file.absolutePath
+                    filePath = file.absolutePath,
                 )
 
                 updateTemplateState(
-                    id, TemplateDownloadState.SuccessWithTemplate(
-                        file, template.copy(
+                    id,
+                    TemplateDownloadState.SuccessWithTemplate(
+                        file,
+                        template.copy(
                             is_downloaded = true,
                             is_downloading = false,
                             download_progress = 100,
-                            file_path = file.absolutePath
-                        )
-                    )
+                            file_path = file.absolutePath,
+                        ),
+                    ),
                 )
-
             } catch (e: Exception) {
-
                 updateTemplatesUseCase.invoke(
-                    id, isDownloaded = false, isDownloading = false, progress = 0, filePath = null
+                    id,
+                    isDownloaded = false,
+                    isDownloading = false,
+                    progress = 0,
+                    filePath = null,
                 )
 
                 updateTemplateState(
-                    id, TemplateDownloadState.Error(e.message ?: "Failed")
+                    id,
+                    TemplateDownloadState.Error(e.message ?: "Failed"),
                 )
             }
         }
@@ -865,13 +901,12 @@ class MainViewModel @Inject constructor(
     }
 
     fun downloadFont(font: FontEntity) {
-
         val fontId = font.id.toString()
         fontJobs[fontId]?.cancel()
         val job = viewModelScope.launch {
             updateFontState(
                 fontId,
-                FontDownloadState.Progress(0, font.copy(is_downloading = true))
+                FontDownloadState.Progress(0, font.copy(is_downloading = true)),
             )
 
             try {
@@ -887,41 +922,44 @@ class MainViewModel @Inject constructor(
                         }
 
                         updateFontState(
-                            fontId, FontDownloadState.Progress(
-                                progress, font.copy(
-                                    is_downloading = true, download_progress = progress
-                                )
-                            )
+                            fontId,
+                            FontDownloadState.Progress(
+                                progress,
+                                font.copy(
+                                    is_downloading = true,
+                                    download_progress = progress,
+                                ),
+                            ),
                         )
-                    })
+                    },
+                )
 
                 updateFontsUseCase.invoke(
                     fontId,
                     isDownloaded = true,
                     isDownloading = false,
-                    filePath = downloadedFile.absolutePath
+                    filePath = downloadedFile.absolutePath,
                 )
 
                 val updatedFont = font.copy(
                     is_downloaded = true,
                     is_downloading = false,
                     download_progress = 100,
-                    file_path = downloadedFile.absolutePath
+                    file_path = downloadedFile.absolutePath,
                 )
 
                 Log.d("FONT_DEBUG", "Before emitting SUCCESS for $fontId")
 
                 updateFontState(
                     fontId,
-                    FontDownloadState.SuccessWithTypeface(downloadedFile, updatedFont)
+                    FontDownloadState.SuccessWithTypeface(downloadedFile, updatedFont),
                 )
                 Log.d("FONT_DEBUG", "After emitting SUCCESS for $fontId")
-
             } catch (e: Exception) {
                 updateFontStatusUseCase.invoke(fontId, false)
                 updateFontState(
                     fontId,
-                    FontDownloadState.Error(e.message ?: "Download failed", font)
+                    FontDownloadState.Error(e.message ?: "Download failed", font),
                 )
             }
         }
@@ -941,9 +979,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    suspend fun insertExportResult(exportResult: ExportResult): Long {
-        return exportResultsUseCase.insertExportResult(exportResult)
-    }
+    suspend fun insertExportResult(exportResult: ExportResult): Long = exportResultsUseCase.insertExportResult(exportResult)
 
     fun deleteExportResult(exportResult: ExportResult) {
         viewModelScope.launch {
@@ -1003,9 +1039,18 @@ class MainViewModel @Inject constructor(
         fetchAndStoreTrendsFromApi()
     }
 
-    fun retryTemplates() { _templatesStatus.value = SectionStatus.Loading; fetchAndStoreTemplatesFromApi() }
-    fun retryFonts() { _fontsStatus.value = SectionStatus.Loading; fetchAndStoreFontsFromApi() }
-    fun retryTrends() { _trendsStatus.value = SectionStatus.Loading; fetchAndStoreTrendsFromApi() }
+    fun retryTemplates() {
+        _templatesStatus.value = SectionStatus.Loading
+        fetchAndStoreTemplatesFromApi()
+    }
+    fun retryFonts() {
+        _fontsStatus.value = SectionStatus.Loading
+        fetchAndStoreFontsFromApi()
+    }
+    fun retryTrends() {
+        _trendsStatus.value = SectionStatus.Loading
+        fetchAndStoreTrendsFromApi()
+    }
 
     val isInMultiSelectMode: StateFlow<Boolean> =
         combine(_selectedImageIds, _selectedEmojiChars) { imageIds, emojiChars ->
@@ -1069,16 +1114,22 @@ class MainViewModel @Inject constructor(
         _selectedShapesIds.value = emptySet()
     }
 
-    fun setPanelSlideOffset(offset: Float) { _panelSlideOffset.value = offset }
+    fun setPanelSlideOffset(offset: Float) {
+        _panelSlideOffset.value = offset
+    }
 
     /** Sets the expanded panel type directly (used by sheet behavior on settle). */
-    fun setPanelExpandedType(panel: PanelType) { _expandedPanel.value = panel }
+    fun setPanelExpandedType(panel: PanelType) {
+        _expandedPanel.value = panel
+    }
 
     fun isPanelExpanded(panel: PanelType): Boolean = _expandedPanel.value == panel
     fun togglePanel(panel: PanelType) {
         _expandedPanel.value = if (_expandedPanel.value == panel) null else panel
     }
-    fun collapsePanel() { _expandedPanel.value = null }
+    fun collapsePanel() {
+        _expandedPanel.value = null
+    }
     fun collapsePanelIfExpanded(panel: PanelType) {
         if (_expandedPanel.value == panel) _expandedPanel.value = null
     }

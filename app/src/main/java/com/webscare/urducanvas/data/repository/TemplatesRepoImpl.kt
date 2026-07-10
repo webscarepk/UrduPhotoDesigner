@@ -6,13 +6,9 @@ import com.webscare.urducanvas.domain.repo.TemplatesRepo
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
-class TemplatesRepoImpl @Inject constructor(
-    private val appDatabase: com.webscare.urducanvas.data.local.AppDatabase
-) : com.webscare.urducanvas.domain.repo.TemplatesRepo {
+class TemplatesRepoImpl @Inject constructor(private val appDatabase: com.webscare.urducanvas.data.local.AppDatabase) : com.webscare.urducanvas.domain.repo.TemplatesRepo {
 
-    override fun fetchTemplates(): Flow<List<com.webscare.urducanvas.data.model.TemplateEntity>> {
-        return appDatabase.allTemplatesDao().getAllTemplates()
-    }
+    override fun fetchTemplates(): Flow<List<com.webscare.urducanvas.data.model.TemplateEntity>> = appDatabase.allTemplatesDao().getAllTemplates()
 
     override suspend fun insertTemplates(templateEntity: com.webscare.urducanvas.data.model.TemplateEntity) {
         val dao = appDatabase.allTemplatesDao()
@@ -23,9 +19,11 @@ class TemplatesRepoImpl @Inject constructor(
                 is_downloaded = existing.is_downloaded,
                 is_downloading = existing.is_downloading,
                 file_path = existing.file_path,
-                download_progress = existing.download_progress
+                download_progress = existing.download_progress,
             )
-        } else templateEntity
+        } else {
+            templateEntity
+        }
 
         dao.insertTemplate(merged)
     }
@@ -35,9 +33,9 @@ class TemplatesRepoImpl @Inject constructor(
         isDownloaded: Boolean,
         isDownloading: Boolean,
         progress: Int,
-        filePath: String?
+        filePath: String?,
     ) {
-        appDatabase.allTemplatesDao().updateTemplate(id, isDownloaded, isDownloading,progress, filePath)
+        appDatabase.allTemplatesDao().updateTemplate(id, isDownloaded, isDownloading, progress, filePath)
     }
 
     override suspend fun updateStatusTemplates(id: String, isDownloading: Boolean) {
@@ -52,4 +50,3 @@ class TemplatesRepoImpl @Inject constructor(
         appDatabase.allTemplatesDao().updatePremiumEntitlement(subscribed)
     }
 }
-

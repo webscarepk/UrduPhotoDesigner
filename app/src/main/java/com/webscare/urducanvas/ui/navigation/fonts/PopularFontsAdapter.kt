@@ -15,20 +15,20 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
-import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.data.model.ProgressUi
 import com.webscare.urducanvas.databinding.LayoutFontsGridBinding
 import com.webscare.urducanvas.databinding.LayoutFontsRowBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class PopularFontsAdapter(
     private val onFontClick: (com.webscare.urducanvas.data.model.FontEntity, Boolean) -> Unit,
     private val onDownload: (com.webscare.urducanvas.data.model.FontEntity) -> Unit,
-    private var isGrid: Boolean = true
-) : androidx.recyclerview.widget.ListAdapter<com.webscare.urducanvas.data.model.FontEntity, RecyclerView.ViewHolder>(Diff()) {
+    private var isGrid: Boolean = true,
+) : androidx.recyclerview.widget.ListAdapter<com.webscare.urducanvas.data.model.FontEntity, RecyclerView.ViewHolder>(
+    Diff(),
+) {
 
     companion object {
         private const val VIEW_TYPE_GRID = 0
@@ -50,22 +50,22 @@ class PopularFontsAdapter(
         notifyDataSetChanged()
     }
 
-    override fun getItemViewType(position: Int): Int {
-        return if (isGrid) VIEW_TYPE_GRID else VIEW_TYPE_LIST
-    }
+    override fun getItemViewType(position: Int): Int = if (isGrid) VIEW_TYPE_GRID else VIEW_TYPE_LIST
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return if (viewType == VIEW_TYPE_GRID) {
-            val binding = LayoutFontsGridBinding.inflate(
-                LayoutInflater.from(parent.context), parent, false
-            )
-            GridVH(binding, onFontClick, onDownload)
-        } else {
-            val binding = LayoutFontsRowBinding.inflate(
-                LayoutInflater.from(parent.context), parent, false
-            )
-            ListVH(binding, onFontClick, onDownload)
-        }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder = if (viewType == VIEW_TYPE_GRID) {
+        val binding = LayoutFontsGridBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false,
+        )
+        GridVH(binding, onFontClick, onDownload)
+    } else {
+        val binding = LayoutFontsRowBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false,
+        )
+        ListVH(binding, onFontClick, onDownload)
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
@@ -73,7 +73,7 @@ class PopularFontsAdapter(
         val progress = progressById[item.id] ?: _root_ide_package_.com.webscare.urducanvas.data.model.ProgressUi(
             progress = item.download_progress,
             isDownloading = item.is_downloading,
-            isDownloaded = item.is_downloaded
+            isDownloaded = item.is_downloaded,
         )
         when (holder) {
             is GridVH -> holder.bind(item, progress)
@@ -89,17 +89,22 @@ class PopularFontsAdapter(
                     is ListVH -> holder.applyProgress(it)
                 }
             }
-        } else super.onBindViewHolder(holder, position, payloads)
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
     }
 
     // ---------------- Grid ViewHolder ----------------
     inner class GridVH(
         private val binding: LayoutFontsGridBinding,
         private val onFontClick: (com.webscare.urducanvas.data.model.FontEntity, Boolean) -> Unit,
-        private val onDownload: (com.webscare.urducanvas.data.model.FontEntity) -> Unit
+        private val onDownload: (com.webscare.urducanvas.data.model.FontEntity) -> Unit,
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(item: com.webscare.urducanvas.data.model.FontEntity, progress: com.webscare.urducanvas.data.model.ProgressUi) {
+        fun bind(
+            item: com.webscare.urducanvas.data.model.FontEntity,
+            progress: com.webscare.urducanvas.data.model.ProgressUi,
+        ) {
             loadImage(item)
 
             binding.isPremium.isVisible = item.is_premium && !item.is_subscribed
@@ -136,22 +141,42 @@ class PopularFontsAdapter(
 
         private fun svgListener() = object : RequestListener<PictureDrawable> {
             override fun onLoadFailed(
-                e: GlideException?, model: Any?, target: Target<PictureDrawable>, isFirstResource: Boolean
+                e: GlideException?,
+                model: Any?,
+                target: Target<PictureDrawable>,
+                isFirstResource: Boolean,
             ) = false.also { binding.shimmerLayout.hideShimmer() }
 
             override fun onResourceReady(
-                resource: PictureDrawable, model: Any, target: Target<PictureDrawable>?, dataSource: DataSource, isFirstResource: Boolean
+                resource: PictureDrawable,
+                model: Any,
+                target: Target<PictureDrawable>?,
+                dataSource: DataSource,
+                isFirstResource: Boolean,
             ) = false.also { binding.shimmerLayout.hideShimmer() }
         }
 
         private fun drawableListener() = object : RequestListener<Drawable> {
             override fun onLoadFailed(
-                e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean
-            ): Boolean { binding.shimmerLayout.hideShimmer(); return false }
+                e: GlideException?,
+                model: Any?,
+                target: Target<Drawable>,
+                isFirstResource: Boolean,
+            ): Boolean {
+                binding.shimmerLayout.hideShimmer()
+                return false
+            }
 
             override fun onResourceReady(
-                resource: Drawable, model: Any, target: Target<Drawable>?, dataSource: DataSource, isFirstResource: Boolean
-            ): Boolean { binding.shimmerLayout.hideShimmer(); return false }
+                resource: Drawable,
+                model: Any,
+                target: Target<Drawable>?,
+                dataSource: DataSource,
+                isFirstResource: Boolean,
+            ): Boolean {
+                binding.shimmerLayout.hideShimmer()
+                return false
+            }
         }
 
         fun applyProgress(ui: com.webscare.urducanvas.data.model.ProgressUi) {
@@ -176,10 +201,13 @@ class PopularFontsAdapter(
     inner class ListVH(
         private val binding: LayoutFontsRowBinding,
         private val onFontClick: (com.webscare.urducanvas.data.model.FontEntity, Boolean) -> Unit,
-        private val onDownload: (com.webscare.urducanvas.data.model.FontEntity) -> Unit
+        private val onDownload: (com.webscare.urducanvas.data.model.FontEntity) -> Unit,
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(item: com.webscare.urducanvas.data.model.FontEntity, progress: com.webscare.urducanvas.data.model.ProgressUi) {
+        fun bind(
+            item: com.webscare.urducanvas.data.model.FontEntity,
+            progress: com.webscare.urducanvas.data.model.ProgressUi,
+        ) {
             loadImage(item)
 
             binding.isPremium.isVisible = item.is_premium && !item.is_subscribed
@@ -192,22 +220,42 @@ class PopularFontsAdapter(
 
         private fun svgListener() = object : RequestListener<PictureDrawable> {
             override fun onLoadFailed(
-                e: GlideException?, model: Any?, target: Target<PictureDrawable>, isFirstResource: Boolean
+                e: GlideException?,
+                model: Any?,
+                target: Target<PictureDrawable>,
+                isFirstResource: Boolean,
             ) = false.also { binding.shimmerLayout.hideShimmer() }
 
             override fun onResourceReady(
-                resource: PictureDrawable, model: Any, target: Target<PictureDrawable>?, dataSource: DataSource, isFirstResource: Boolean
+                resource: PictureDrawable,
+                model: Any,
+                target: Target<PictureDrawable>?,
+                dataSource: DataSource,
+                isFirstResource: Boolean,
             ) = false.also { binding.shimmerLayout.hideShimmer() }
         }
 
         private fun drawableListener() = object : RequestListener<Drawable> {
             override fun onLoadFailed(
-                e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean
-            ): Boolean { binding.shimmerLayout.hideShimmer(); return false }
+                e: GlideException?,
+                model: Any?,
+                target: Target<Drawable>,
+                isFirstResource: Boolean,
+            ): Boolean {
+                binding.shimmerLayout.hideShimmer()
+                return false
+            }
 
             override fun onResourceReady(
-                resource: Drawable, model: Any, target: Target<Drawable>?, dataSource: DataSource, isFirstResource: Boolean
-            ): Boolean { binding.shimmerLayout.hideShimmer(); return false }
+                resource: Drawable,
+                model: Any,
+                target: Target<Drawable>?,
+                dataSource: DataSource,
+                isFirstResource: Boolean,
+            ): Boolean {
+                binding.shimmerLayout.hideShimmer()
+                return false
+            }
         }
 
         private fun loadImage(item: com.webscare.urducanvas.data.model.FontEntity) {
@@ -270,7 +318,13 @@ class PopularFontsAdapter(
     }
 
     private class Diff : DiffUtil.ItemCallback<com.webscare.urducanvas.data.model.FontEntity>() {
-        override fun areItemsTheSame(o: com.webscare.urducanvas.data.model.FontEntity, n: com.webscare.urducanvas.data.model.FontEntity) = o.id == n.id
-        override fun areContentsTheSame(o: com.webscare.urducanvas.data.model.FontEntity, n: com.webscare.urducanvas.data.model.FontEntity) = o == n
+        override fun areItemsTheSame(
+            o: com.webscare.urducanvas.data.model.FontEntity,
+            n: com.webscare.urducanvas.data.model.FontEntity,
+        ) = o.id == n.id
+        override fun areContentsTheSame(
+            o: com.webscare.urducanvas.data.model.FontEntity,
+            n: com.webscare.urducanvas.data.model.FontEntity,
+        ) = o == n
     }
 }

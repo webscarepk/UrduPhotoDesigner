@@ -28,8 +28,9 @@ class ShadowsFragment : Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentShadowsBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -63,13 +64,12 @@ class ShadowsFragment : Fragment() {
                     .addToBackStack(null)
                     .commit()
             },
-            { viewModel.startPicking(PickerTarget.EYE_DROPPER_SHADOW) }
+            { viewModel.startPicking(PickerTarget.EYE_DROPPER_SHADOW) },
         )
         binding.colors.adapter = colorsAdapter
     }
 
     private fun initSeekBars() {
-
         // ── ANGLE (replaces Shadow X) ─────────────────────────────────────────
         // 0–360°. ViewModel converts to dx/dy internally via setShadowAngle().
         // Canvas and serialization still use dx/dy — existing templates unaffected.
@@ -78,7 +78,7 @@ class ShadowsFragment : Fragment() {
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                     if (!fromUser) return
-                    binding.shadowXSize.text = "${progress}°"
+                    binding.shadowXSize.text = "$progress°"
                     viewModel.setShadowAngle(progress.toFloat())
                 }
                 override fun onStartTrackingTouch(sb: SeekBar) {}
@@ -148,7 +148,7 @@ class ShadowsFragment : Fragment() {
         // Angle seekbar (was shadowX)
         viewModel.shadowAngle.observe(viewLifecycleOwner) { angle ->
             val safeAngle = angle?.roundToInt() ?: 135
-            binding.shadowXSize.text = "${safeAngle}°"
+            binding.shadowXSize.text = "$safeAngle°"
             if (binding.shadowX.progress != safeAngle) binding.shadowX.progress = safeAngle
         }
 

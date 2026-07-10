@@ -23,19 +23,18 @@ import com.webscare.urducanvas.databinding.ItemPremiumAssetBinding
 
 class PremiumAssetsAdapter(
     private val items: List<PremiumAssetItem>,
-    private val localFonts: List<FontEntity> // your existing font list
+    private val localFonts: List<FontEntity>, // your existing font list
 ) : RecyclerView.Adapter<PremiumAssetsAdapter.VH>() {
 
-    class VH(val binding: ItemPremiumAssetBinding) :
-        RecyclerView.ViewHolder(binding.root)
+    class VH(val binding: ItemPremiumAssetBinding) : RecyclerView.ViewHolder(binding.root)
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
-        return VH(
-            ItemPremiumAssetBinding.inflate(
-                LayoutInflater.from(parent.context), parent, false
-            )
-        )
-    }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH = VH(
+        ItemPremiumAssetBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false,
+        ),
+    )
 
     override fun getItemCount() = items.size
 
@@ -53,7 +52,6 @@ class PremiumAssetsAdapter(
         holder.binding.shimmerLayout.startShimmerSoft(isDarkMode)
 
         when (item.type) {
-
             // ✅ TEXT — load font thumbnail
             ElementType.TEXT -> {
                 val font = localFonts.find { it.id.toString() == item.fontId }
@@ -71,7 +69,7 @@ class PremiumAssetsAdapter(
                                         e: GlideException?,
                                         model: Any?,
                                         target: Target<PictureDrawable>,
-                                        isFirstResource: Boolean
+                                        isFirstResource: Boolean,
                                     ): Boolean {
                                         holder.binding.shimmerLayout.hideShimmer()
                                         return false
@@ -82,7 +80,7 @@ class PremiumAssetsAdapter(
                                         model: Any,
                                         target: Target<PictureDrawable?>?,
                                         dataSource: DataSource,
-                                        isFirstResource: Boolean
+                                        isFirstResource: Boolean,
                                     ): Boolean {
                                         holder.binding.shimmerLayout.hideShimmer()
                                         return false
@@ -99,7 +97,7 @@ class PremiumAssetsAdapter(
                                         e: GlideException?,
                                         model: Any?,
                                         target: Target<Drawable?>,
-                                        isFirstResource: Boolean
+                                        isFirstResource: Boolean,
                                     ): Boolean {
                                         holder.binding.shimmerLayout.hideShimmer()
                                         return false
@@ -110,7 +108,7 @@ class PremiumAssetsAdapter(
                                         model: Any,
                                         target: Target<Drawable?>?,
                                         dataSource: DataSource,
-                                        isFirstResource: Boolean
+                                        isFirstResource: Boolean,
                                     ): Boolean {
                                         holder.binding.shimmerLayout.hideShimmer()
                                         return false

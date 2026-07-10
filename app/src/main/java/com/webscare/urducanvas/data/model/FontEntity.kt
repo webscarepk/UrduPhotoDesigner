@@ -20,9 +20,9 @@ data class FontEntity(
     val is_subscribed: Boolean = false,
     val created_at: String? = null,
     val updated_at: String? = null,
-    var is_selected:Boolean = false,
-    var is_downloaded:Boolean = false,
-    var is_downloading:Boolean = false,
+    var is_selected: Boolean = false,
+    var is_downloaded: Boolean = false,
+    var is_downloading: Boolean = false,
     var file_path: String? = null,
-    var download_progress: Int = 0
+    var download_progress: Int = 0,
 )

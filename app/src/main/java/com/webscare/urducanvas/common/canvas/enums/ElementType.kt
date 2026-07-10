@@ -8,6 +8,7 @@ enum class ElementType {
 
     @SerializedName("Image")
     IMAGE,
+
     @SerializedName("Sticker")
     STICKER,
 
@@ -21,5 +22,5 @@ enum class ElementType {
     SHAPE,
 
     @SerializedName("Group")
-    GROUP
+    GROUP,
 }

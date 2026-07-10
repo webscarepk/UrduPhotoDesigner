@@ -3,7 +3,6 @@ package com.webscare.urducanvas.ui.navigation.templates
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -14,31 +13,24 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
-import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.ProgressUi
 import com.webscare.urducanvas.data.model.TemplateEntity
 import com.webscare.urducanvas.databinding.LayoutTemplateCategoryBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class TemplatesMiniAdapter(
-    private val onClick: (com.webscare.urducanvas.data.model.TemplateEntity, Boolean) -> Unit
+    private val onClick: (com.webscare.urducanvas.data.model.TemplateEntity, Boolean) -> Unit,
 ) : androidx.recyclerview.widget.ListAdapter<com.webscare.urducanvas.data.model.TemplateEntity, TemplatesMiniAdapter.VH>(Diff()) {
 
     init {
         setHasStableIds(true)
     }
 
-    override fun getItemId(position: Int): Long {
-        return getItem(position).id.toLong()
-    }
+    override fun getItemId(position: Int): Long = getItem(position).id.toLong()
 
-    inner class VH(val binding: LayoutTemplateCategoryBinding) :
-        RecyclerView.ViewHolder(binding.root) {
+    inner class VH(val binding: LayoutTemplateCategoryBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(item: com.webscare.urducanvas.data.model.TemplateEntity) {
-
-
             binding.isPremium.isVisible = item.is_premium && !item.is_subscribed
             // CLICK
             binding.root.addPressEffect {
@@ -77,7 +69,7 @@ class TemplatesMiniAdapter(
                         e: GlideException?,
                         model: Any?,
                         target: Target<android.graphics.drawable.Drawable>,
-                        isFirstResource: Boolean
+                        isFirstResource: Boolean,
                     ): Boolean {
                         binding.shimmerLayout.hideShimmer()
                         return false
@@ -88,7 +80,7 @@ class TemplatesMiniAdapter(
                         model: Any,
                         target: Target<android.graphics.drawable.Drawable>?,
                         dataSource: DataSource,
-                        isFirstResource: Boolean
+                        isFirstResource: Boolean,
                     ): Boolean {
                         binding.shimmerLayout.hideShimmer()
                         return false
@@ -130,8 +122,7 @@ class TemplatesMiniAdapter(
         }
     }
 
-    override fun onCreateViewHolder(p: ViewGroup, vt: Int) =
-        VH(LayoutTemplateCategoryBinding.inflate(LayoutInflater.from(p.context), p, false))
+    override fun onCreateViewHolder(p: ViewGroup, vt: Int) = VH(LayoutTemplateCategoryBinding.inflate(LayoutInflater.from(p.context), p, false))
 
     override fun onBindViewHolder(h: VH, pos: Int) = h.bind(getItem(pos))
 
@@ -145,7 +136,7 @@ class TemplatesMiniAdapter(
         val idx = newList.indexOfFirst { it.id == updated.id }
         if (idx != -1) {
             newList[idx] = updated
-            submitList(newList){
+            submitList(newList) {
                 notifyItemChanged(idx)
             }
         }
@@ -153,10 +144,8 @@ class TemplatesMiniAdapter(
 
     class Diff : DiffUtil.ItemCallback<com.webscare.urducanvas.data.model.TemplateEntity>() {
         override fun areItemsTheSame(o: com.webscare.urducanvas.data.model.TemplateEntity, n: com.webscare.urducanvas.data.model.TemplateEntity) = o.id == n.id
-        override fun areContentsTheSame(o: com.webscare.urducanvas.data.model.TemplateEntity, n: com.webscare.urducanvas.data.model.TemplateEntity): Boolean {
-            return o.is_downloaded == n.is_downloaded &&
-                    o.is_downloading == n.is_downloading &&
-                    o.download_progress == n.download_progress
-        }
+        override fun areContentsTheSame(o: com.webscare.urducanvas.data.model.TemplateEntity, n: com.webscare.urducanvas.data.model.TemplateEntity): Boolean = o.is_downloaded == n.is_downloaded &&
+            o.is_downloading == n.is_downloading &&
+            o.download_progress == n.download_progress
     }
 }

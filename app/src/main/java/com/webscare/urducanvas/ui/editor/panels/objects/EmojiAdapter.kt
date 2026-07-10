@@ -25,12 +25,12 @@ class EmojiAdapter(
     private val context: Context,
     initialEmojis: List<EmojiMeta>,
     private val onEmojiClicked: (Bitmap) -> Unit,
-    private val onEmojiLongPress: ((EmojiMeta) -> Unit)? = null
+    private val onEmojiLongPress: ((EmojiMeta) -> Unit)? = null,
 ) : RecyclerView.Adapter<EmojiAdapter.EmojiViewHolder>() {
 
     companion object {
-        const val TYPE_COLLAPSED    = 0
-        const val TYPE_EXPANDED     = 1
+        const val TYPE_COLLAPSED = 0
+        const val TYPE_EXPANDED = 1
         const val PAYLOAD_SELECTION = "emoji_selection_changed"
     }
 
@@ -79,10 +79,8 @@ class EmojiAdapter(
         val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
             override fun getOldListSize() = emojis.size
             override fun getNewListSize() = newList.size
-            override fun areItemsTheSame(oldPos: Int, newPos: Int) =
-                emojis[oldPos].char == newList[newPos].char
-            override fun areContentsTheSame(oldPos: Int, newPos: Int) =
-                emojis[oldPos] == newList[newPos]
+            override fun areItemsTheSame(oldPos: Int, newPos: Int) = emojis[oldPos].char == newList[newPos].char
+            override fun areContentsTheSame(oldPos: Int, newPos: Int) = emojis[oldPos] == newList[newPos]
         })
         emojis.clear()
         emojis.addAll(newList)
@@ -94,42 +92,46 @@ class EmojiAdapter(
     // getPaint() is no longer used — EmojiBitmapRenderer handles rendering
     fun getPaint(): android.graphics.Paint? = null
 
-    override fun getItemViewType(position: Int): Int =
-        if (isExpanded) TYPE_EXPANDED else TYPE_COLLAPSED
+    override fun getItemViewType(position: Int): Int = if (isExpanded) TYPE_EXPANDED else TYPE_COLLAPSED
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): EmojiViewHolder =
-        if (viewType == TYPE_EXPANDED) {
-            EmojiViewHolder.Expanded(
-                ItemEmojiExpandedBinding.inflate(
-                    LayoutInflater.from(parent.context), parent, false
-                ),
-                adapter        = this,
-                onEmojiClicked = onEmojiClicked,
-                onLongPress    = onEmojiLongPress
-            )
-        } else {
-            EmojiViewHolder.Collapsed(
-                ItemEmojiBinding.inflate(
-                    LayoutInflater.from(parent.context), parent, false
-                ),
-                adapter        = this,
-                onEmojiClicked = onEmojiClicked,
-                onLongPress    = null   // no selection in collapsed
-            )
-        }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): EmojiViewHolder = if (viewType == TYPE_EXPANDED) {
+        EmojiViewHolder.Expanded(
+            ItemEmojiExpandedBinding.inflate(
+                LayoutInflater.from(parent.context),
+                parent,
+                false,
+            ),
+            adapter = this,
+            onEmojiClicked = onEmojiClicked,
+            onLongPress = onEmojiLongPress,
+        )
+    } else {
+        EmojiViewHolder.Collapsed(
+            ItemEmojiBinding.inflate(
+                LayoutInflater.from(parent.context),
+                parent,
+                false,
+            ),
+            adapter = this,
+            onEmojiClicked = onEmojiClicked,
+            onLongPress = null, // no selection in collapsed
+        )
+    }
 
     override fun onBindViewHolder(holder: EmojiViewHolder, position: Int) {
         val emoji = emojis[position]
         holder.bind(emoji, isEmojiSelected(emoji.char), isInMultiSelectMode)
     }
 
-    override fun onBindViewHolder(
-        holder: EmojiViewHolder, position: Int, payloads: MutableList<Any>
-    ) {
-        if (payloads.isEmpty()) { onBindViewHolder(holder, position); return }
+    override fun onBindViewHolder(holder: EmojiViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isEmpty()) {
+            onBindViewHolder(holder, position)
+            return
+        }
         if (payloads.contains(PAYLOAD_SELECTION)) {
             holder.updateSelectionOnly(
-                isEmojiSelected(emojis[position].char), isInMultiSelectMode
+                isEmojiSelected(emojis[position].char),
+                isInMultiSelectMode,
             )
         }
     }
@@ -142,7 +144,7 @@ class EmojiAdapter(
         itemView: View,
         private val adapter: EmojiAdapter,
         private val onEmojiClicked: (Bitmap) -> Unit,
-        private val onLongPress: ((EmojiMeta) -> Unit)?
+        private val onLongPress: ((EmojiMeta) -> Unit)?,
     ) : RecyclerView.ViewHolder(itemView) {
 
         protected abstract val emojiText: android.widget.TextView
@@ -159,7 +161,7 @@ class EmojiAdapter(
         fun bind(emoji: EmojiMeta, isSelected: Boolean, inMultiSelectMode: Boolean) {
             boundEmoji = emoji
             emojiText.text = emoji.char
-            loadingAnim.isVisible = false   // reset on rebind
+            loadingAnim.isVisible = false // reset on rebind
             updateSelectionOnly(isSelected, inMultiSelectMode)
             wireClicks(emoji)
         }
@@ -168,8 +170,11 @@ class EmojiAdapter(
             selectionIcon?.apply {
                 visibility = if (inMultiSelectMode) View.VISIBLE else View.GONE
                 setImageResource(
-                    if (isSelected) R.drawable.ic_selected_radio
-                    else R.drawable.ic_unselected_radio
+                    if (isSelected) {
+                        R.drawable.ic_selected_radio
+                    } else {
+                        R.drawable.ic_unselected_radio
+                    },
                 )
             }
             cardRoot?.strokeWidth = if (isSelected) 2 else 0
@@ -213,7 +218,11 @@ class EmojiAdapter(
             if (lp != null) {
                 val marginEndPx = (6 * density).toInt()
                 val marginBottomPx = (6 * density).toInt()
-                if (lp.width != size || lp.height != size || lp.rightMargin != marginEndPx || lp.bottomMargin != marginBottomPx) {
+                if (lp.width != size ||
+                    lp.height != size ||
+                    lp.rightMargin != marginEndPx ||
+                    lp.bottomMargin != marginBottomPx
+                ) {
                     lp.width = size
                     lp.height = size
                     lp.rightMargin = marginEndPx
@@ -242,24 +251,25 @@ class EmojiAdapter(
             private val binding: ItemEmojiBinding,
             adapter: EmojiAdapter,
             onEmojiClicked: (Bitmap) -> Unit,
-            onLongPress: ((EmojiMeta) -> Unit)?
+            onLongPress: ((EmojiMeta) -> Unit)?,
         ) : EmojiViewHolder(binding.root, adapter, onEmojiClicked, onLongPress) {
-            override val emojiText   get() = binding.emojiText
+            override val emojiText get() = binding.emojiText
+
             // Now has loadingAnim from updated item_emoji.xml layout
             override val loadingAnim get() = binding.loading
-            override val cardRoot    get() = binding.root
+            override val cardRoot get() = binding.root
         }
 
         class Expanded(
             private val binding: ItemEmojiExpandedBinding,
             adapter: EmojiAdapter,
             onEmojiClicked: (Bitmap) -> Unit,
-            onLongPress: ((EmojiMeta) -> Unit)?
+            onLongPress: ((EmojiMeta) -> Unit)?,
         ) : EmojiViewHolder(binding.root, adapter, onEmojiClicked, onLongPress) {
-            override val emojiText     get() = binding.emojiText
-            override val loadingAnim   get() = binding.loading
+            override val emojiText get() = binding.emojiText
+            override val loadingAnim get() = binding.loading
             override val selectionIcon get() = binding.selection
-            override val cardRoot      get() = binding.root
+            override val cardRoot get() = binding.root
         }
     }
 }

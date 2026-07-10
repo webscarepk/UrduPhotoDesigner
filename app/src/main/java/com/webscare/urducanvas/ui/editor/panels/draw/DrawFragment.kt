@@ -39,7 +39,9 @@ class DrawFragment : Fragment() {
     private lateinit var brushPagerAdapter: BrushPagerAdapter
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentDrawBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -61,7 +63,7 @@ class DrawFragment : Fragment() {
 
     private fun setupBrushTabs() {
         brushTabs.add(PanelTabs(0, "Style", true))
-        brushTabs.add(PanelTabs(1, "Size",  false))
+        brushTabs.add(PanelTabs(1, "Size", false))
         brushTabs.add(PanelTabs(2, "Color", false))
 
         categoriesAdapter = PanelTabsAdapter { tab -> handleBrushTabSelection(tab) }
@@ -89,9 +91,11 @@ class DrawFragment : Fragment() {
 
     private fun handleBrushTabSelection(tab: PanelTabs) {
         val index = brushTabs.indexOfFirst { it.tab_name == tab.tab_name }
-        categoriesAdapter.submitList(brushTabs.map {
-            it.copy(is_selected = it.tab_name == tab.tab_name)
-        })
+        categoriesAdapter.submitList(
+            brushTabs.map {
+                it.copy(is_selected = it.tab_name == tab.tab_name)
+            },
+        )
         binding.viewPager.setCurrentItem(index, true)
     }
 
@@ -99,7 +103,7 @@ class DrawFragment : Fragment() {
 
     private fun observeDrawingMode() {
         viewModel.isDrawingMode.observe(viewLifecycleOwner) { isDrawingMode ->
-            binding.done.isVisible         = isDrawingMode
+            binding.done.isVisible = isDrawingMode
             binding.doneExpanded.isVisible = isDrawingMode
             viewModel.getCanvasView()
                 ?.setDrawingMode(isDrawingMode, viewModel.getActiveDrawSession())
@@ -117,7 +121,7 @@ class DrawFragment : Fragment() {
                     .map { it == PanelType.DRAW }
                     .collect { expanded ->
                         binding.headerCollapsed.isVisible = !expanded
-                        binding.headerExpanded.isVisible  = expanded
+                        binding.headerExpanded.isVisible = expanded
                     }
             }
         }
@@ -142,10 +146,10 @@ class DrawFragment : Fragment() {
         // Collapsed header: fully visible at 0, fades out by 0.4
         val collapsedAlpha = (1f - offset / 0.4f).coerceIn(0f, 1f)
         // Expanded header: invisible until 0.3, fully visible at 1.0
-        val expandedAlpha  = ((offset - 0.3f) / 0.7f).coerceIn(0f, 1f)
+        val expandedAlpha = ((offset - 0.3f) / 0.7f).coerceIn(0f, 1f)
 
         binding.headerCollapsed.alpha = collapsedAlpha
-        binding.headerExpanded.alpha  = expandedAlpha
+        binding.headerExpanded.alpha = expandedAlpha
 
         // INVISIBLE not GONE — GONE causes layout shifts
         binding.headerCollapsed.visibility =
@@ -157,13 +161,13 @@ class DrawFragment : Fragment() {
     private fun setupEvents() {
         // Collapsed header
         binding.reset.addPressEffect { viewModel.resetBrushSettings() }
-        binding.done.addPressEffect  {
+        binding.done.addPressEffect {
             viewModel.exitDrawingMode(commit = true)
             mainViewModel.collapsePanelIfExpanded(PanelType.DRAW)
         }
         // Expanded header
         binding.resetExpanded.addPressEffect { viewModel.resetBrushSettings() }
-        binding.doneExpanded.addPressEffect  {
+        binding.doneExpanded.addPressEffect {
             viewModel.exitDrawingMode(commit = true)
             mainViewModel.collapsePanelIfExpanded(PanelType.DRAW)
         }
@@ -198,9 +202,19 @@ class DrawFragment : Fragment() {
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
-    override fun onPause()       { super.onPause();       viewModel.exitDrawingMode(commit = false) }
-    override fun onStop()        { super.onStop();        viewModel.exitDrawingMode(commit = false) }
-    override fun onDestroyView() { super.onDestroyView(); viewModel.exitDrawingMode(commit = false); _binding = null }
+    override fun onPause() {
+        super.onPause()
+        viewModel.exitDrawingMode(commit = false)
+    }
+    override fun onStop() {
+        super.onStop()
+        viewModel.exitDrawingMode(commit = false)
+    }
+    override fun onDestroyView() {
+        super.onDestroyView()
+        viewModel.exitDrawingMode(commit = false)
+        _binding = null
+    }
 
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)

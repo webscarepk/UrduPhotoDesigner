@@ -77,7 +77,9 @@ class ImagesFragment : Fragment() {
         }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentImagesBinding.inflate(inflater, container, false)
         return binding.root
@@ -88,7 +90,6 @@ class ImagesFragment : Fragment() {
         setEvents()
         attachDragHandleSwipe()
         setupThumbnailStrip()
-
 
         val initial = mainViewModel.imagesData.value
         tabs.clear()
@@ -125,10 +126,13 @@ class ImagesFragment : Fragment() {
                     is SelectedItem.Emoji -> {}
                     is SelectedItem.Shape -> {}
                 }
-            })
+            },
+        )
         binding.selectedThumbnails.apply {
             layoutManager = LinearLayoutManager(
-                requireContext(), LinearLayoutManager.HORIZONTAL, false
+                requireContext(),
+                LinearLayoutManager.HORIZONTAL,
+                false,
             )
             adapter = thumbnailAdapter
             isNestedScrollingEnabled = false
@@ -165,7 +169,6 @@ class ImagesFragment : Fragment() {
     // ── Panel expansion ───────────────────────────────────────────────────────
 
     private fun observePanelExpanded() {
-
         // ── 1. Final settled state: update headers only — do NOT touch child RVs ──
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -194,18 +197,18 @@ class ImagesFragment : Fragment() {
         if (_binding == null) return
 
         val collapsedAlpha = (1f - offset / 0.4f).coerceIn(0f, 1f)
-        val expandedAlpha  = ((offset - 0.3f) / 0.7f).coerceIn(0f, 1f)
+        val expandedAlpha = ((offset - 0.3f) / 0.7f).coerceIn(0f, 1f)
 
         binding.headerCollapsed.alpha = collapsedAlpha
-        binding.headerExpanded.alpha  = expandedAlpha
+        binding.headerExpanded.alpha = expandedAlpha
         binding.headerCollapsed.visibility = if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
-        binding.headerExpanded.visibility  = if (expandedAlpha  > 0f) View.VISIBLE else View.GONE
+        binding.headerExpanded.visibility = if (expandedAlpha > 0f) View.VISIBLE else View.GONE
 
         val isSearchActive = currentQuery.isNotBlank()
         if (!isSearchActive) {
-            binding.tabLayout.alpha          = collapsedAlpha
-            binding.tabLayoutExpanded.alpha  = expandedAlpha
-            binding.tabLayout.visibility     = if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
+            binding.tabLayout.alpha = collapsedAlpha
+            binding.tabLayoutExpanded.alpha = expandedAlpha
+            binding.tabLayout.visibility = if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
             binding.tabLayoutExpanded.visibility = if (expandedAlpha > 0f) View.VISIBLE else View.GONE
         }
 
@@ -216,20 +219,19 @@ class ImagesFragment : Fragment() {
     }
 
     private fun applyExpandedUi(expanded: Boolean) {
-
         // Snap headers/tabs to final state
-        binding.headerCollapsed.alpha      = if (!expanded) 1f else 0f
-        binding.headerExpanded.alpha       = if (expanded)  1f else 0f
+        binding.headerCollapsed.alpha = if (!expanded) 1f else 0f
+        binding.headerExpanded.alpha = if (expanded) 1f else 0f
         binding.headerCollapsed.visibility = if (!expanded) View.VISIBLE else View.GONE
-        binding.headerExpanded.visibility  = if (expanded)  View.VISIBLE else View.GONE
-        binding.tabLayout.alpha            = if (!expanded) 1f else 0f
-        binding.tabLayoutExpanded.alpha    = if (expanded)  1f else 0f
-        binding.tabLayout.visibility       = if (!expanded) View.VISIBLE else View.GONE
+        binding.headerExpanded.visibility = if (expanded) View.VISIBLE else View.GONE
+        binding.tabLayout.alpha = if (!expanded) 1f else 0f
+        binding.tabLayoutExpanded.alpha = if (expanded) 1f else 0f
+        binding.tabLayout.visibility = if (!expanded) View.VISIBLE else View.GONE
         binding.tabLayoutExpanded.visibility = if (expanded) View.VISIBLE else View.GONE
 
         // Images-specific: search results header swap
         val isSearchActive = currentQuery.isNotBlank()
-        val headerText = if (isSearchActive) "Results for '${currentQuery}'" else ""
+        val headerText = if (isSearchActive) "Results for '$currentQuery'" else ""
         binding.tabLayout.isVisible = !expanded && !isSearchActive
         binding.searchResultsHeader.isVisible = !expanded && isSearchActive
         if (!expanded && isSearchActive) binding.searchResultsHeader.text = headerText
@@ -342,7 +344,7 @@ class ImagesFragment : Fragment() {
                             drawable.trimTransparentEdges(),
                             xml,
                             requireActivity(),
-                            entity.is_premium
+                            entity.is_premium,
                         )
                     }
                 } else {
@@ -359,7 +361,7 @@ class ImagesFragment : Fragment() {
                             it.trimTransparentEdges(),
                             requireActivity(),
                             ElementType.IMAGE,
-                            entity.is_premium
+                            entity.is_premium,
                         )
                     }
                 }
@@ -388,8 +390,11 @@ class ImagesFragment : Fragment() {
             for (f in childFragmentManager.fragments) {
                 if (f !== target && !f.isHidden) hide(f)
             }
-            if (!target.isAdded) add(R.id.fragmentContainer, target, category)
-            else if (target.isHidden) show(target)
+            if (!target.isAdded) {
+                add(R.id.fragmentContainer, target, category)
+            } else if (target.isHidden) {
+                show(target)
+            }
         }.commitNow()
 
         currentFragment = target
@@ -488,7 +493,7 @@ class ImagesFragment : Fragment() {
         // Both headers (collapsed + expanded) match the height of their respective
         // tab layouts exactly — RecyclerView never shifts position.
         val isExpanded = mainViewModel.isPanelExpanded(PanelType.IMAGES)
-        val headerText = if (query.isNotBlank()) "Results for '${query}'" else ""
+        val headerText = if (query.isNotBlank()) "Results for '$query'" else ""
 
         // Search only happens in expanded mode now — collapsed has no search bar
         if (query.isNotBlank()) {
@@ -497,7 +502,7 @@ class ImagesFragment : Fragment() {
             if (isExpanded) binding.searchResultsHeaderExpanded.text = headerText
             // Also hide collapsed tab layout so header is consistent
             binding.tabLayout.isVisible = false
-            binding.searchResultsHeader.isVisible = false  // not used anymore
+            binding.searchResultsHeader.isVisible = false // not used anymore
         } else {
             binding.tabLayout.isVisible = true
             binding.searchResultsHeader.isVisible = false
@@ -521,7 +526,9 @@ class ImagesFragment : Fragment() {
         if (query.isNotBlank()) {
             val searchTab = if (isOnRecents) {
                 tabs.firstOrNull { pexelsViewModel.isPexelsTab(it) } ?: currentCategory
-            } else currentCategory
+            } else {
+                currentCategory
+            }
             pexelsViewModel.searchLocal(query, fromTab = searchTab)
         } else {
             pexelsViewModel.clearSearch()
@@ -562,7 +569,9 @@ class ImagesFragment : Fragment() {
         val isOnRecents = currentCategory.equals("Recents", ignoreCase = true)
         val searchTab = if (isOnRecents) {
             tabs.firstOrNull { pexelsViewModel.isPexelsTab(it) } ?: currentCategory
-        } else currentCategory
+        } else {
+            currentCategory
+        }
         pexelsViewModel.submitSearch(query, fromTab = searchTab)
     }
 
@@ -574,7 +583,6 @@ class ImagesFragment : Fragment() {
     }
 
     // ── Dispatch helpers — handles both fragment types cleanly ────────────────
-
 
     // ── Events ────────────────────────────────────────────────────────────────
 
@@ -590,7 +598,7 @@ class ImagesFragment : Fragment() {
         // Search icon in collapsed mode: expand panel → focus expanded search bar → keyboard
         // No search bar shown in collapsed mode at all — cleaner UX
         binding.searchIcon.addPressEffect {
-            mainViewModel.togglePanel(PanelType.IMAGES)   // expand
+            mainViewModel.togglePanel(PanelType.IMAGES) // expand
             // Post so the expanded header is visible before we focus
             binding.root.post {
                 binding.searchBarExpanded.requestFocus()
@@ -606,10 +614,12 @@ class ImagesFragment : Fragment() {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 val q = binding.searchBarExpanded.text.toString()
                 applySearch(q)
-                submitSearch(q)   // triggers API call if local results < 5
+                submitSearch(q) // triggers API call if local results < 5
                 hideKeyboard()
                 true
-            } else false
+            } else {
+                false
+            }
         }
 
         binding.searchBarExpanded.addTextChangedListener(object : TextWatcher {
@@ -641,9 +651,12 @@ class ImagesFragment : Fragment() {
         binding.searchBarExpanded.setCompoundDrawablesWithIntrinsicBounds(
             null,
             null,
-            if (text.isNotEmpty()) ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close)
-            else null,
-            null
+            if (text.isNotEmpty()) {
+                ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close)
+            } else {
+                null
+            },
+            null,
         )
     }
 
@@ -669,7 +682,7 @@ class ImagesFragment : Fragment() {
 
                 tabs.getOrNull(currentTabIndex).orEmpty()
                 // User picked image from gallery — always add as image element
-                 val bitmap = downsampleIfNeeded(rawBitmap, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)
+                val bitmap = downsampleIfNeeded(rawBitmap, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)
 
                 withContext(Dispatchers.Main) {
                     viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE)
@@ -680,6 +693,4 @@ class ImagesFragment : Fragment() {
         }
     }
 
-    companion object {
-    }
 }

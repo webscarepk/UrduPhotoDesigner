@@ -1,7 +1,9 @@
 package com.webscare.urducanvas.common.views
 
 import android.content.Context
-import android.graphics.*
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.util.TypedValue
@@ -10,9 +12,7 @@ import androidx.core.content.ContextCompat
 import com.webscare.urducanvas.R
 import kotlin.math.min
 
-class FramePreviewView @JvmOverloads constructor(
-    context: Context, attrs: AttributeSet? = null, defStyle: Int = 0
-) : android.view.View(context, attrs, defStyle) {
+class FramePreviewView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) : android.view.View(context, attrs, defStyle) {
 
     private var canvasWidth = 1080f
     private var canvasHeight = 1920f
@@ -29,7 +29,7 @@ class FramePreviewView @JvmOverloads constructor(
         strokeWidth = dpToPx(0.5f)
     }
 
-    private val maxSizePx = dpToPx(32f)  // max width or height
+    private val maxSizePx = dpToPx(32f) // max width or height
     private val cornerRadiusPx = dpToPx(3f)
 
     override fun onDraw(canvas: Canvas) {
@@ -59,14 +59,14 @@ class FramePreviewView @JvmOverloads constructor(
 
         // Draw icon in the center
         iconDrawable?.let { icon ->
-            val iconSize = min(frameW, frameH) * 0.7f  // increased to 60%
+            val iconSize = min(frameW, frameH) * 0.7f // increased to 60%
             val iconLeft = (viewW - iconSize) / 2
             val iconTop = (viewH - iconSize) / 2
             icon.setBounds(
                 iconLeft.toInt(),
                 iconTop.toInt(),
                 (iconLeft + iconSize).toInt(),
-                (iconTop + iconSize).toInt()
+                (iconTop + iconSize).toInt(),
             )
             icon.draw(canvas)
         }
@@ -83,7 +83,5 @@ class FramePreviewView @JvmOverloads constructor(
         invalidate()
     }
 
-    private fun dpToPx(dp: Float): Float {
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.displayMetrics)
-    }
+    private fun dpToPx(dp: Float): Float = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.displayMetrics)
 }

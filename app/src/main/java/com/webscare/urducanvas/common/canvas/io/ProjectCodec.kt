@@ -41,8 +41,12 @@ object ProjectCodec {
     const val FILE_EXTENSION = "urdc"
     const val MIME_TYPE = "application/octet-stream"
 
-    private val MAGIC = byteArrayOf('U'.code.toByte(), 'R'.code.toByte(),
-        'D'.code.toByte(), 'C'.code.toByte())
+    private val MAGIC = byteArrayOf(
+        'U'.code.toByte(),
+        'R'.code.toByte(),
+        'D'.code.toByte(),
+        'C'.code.toByte(),
+    )
     private const val VERSION: Byte = 0x01
     private const val IV_LEN = 12
     private const val TAG_BITS = 128
@@ -50,7 +54,7 @@ object ProjectCodec {
 
     private val KEY: ByteArray by lazy { KeyProvider.appKey() }
 
-    class BadProjectFileException(msg: String) : Exception(msg)
+    class BadProjectFileException(msg: String, cause: Throwable? = null) : Exception(msg, cause)
 
     // ──────────────────────────────────────────────────────────────────────
     // WRITE
@@ -69,11 +73,12 @@ object ProjectCodec {
         plainJsonFile: File,
         target: File,
         thumbnail: Bitmap? = null,
-        encrypted: Boolean = !BuildConfig.DEBUG
+        encrypted: Boolean = !BuildConfig.DEBUG,
     ) {
         if (!encrypted) {
-            if (plainJsonFile.absolutePath != target.absolutePath)
+            if (plainJsonFile.absolutePath != target.absolutePath) {
                 plainJsonFile.copyTo(target, overwrite = true)
+            }
             return
         }
 
@@ -113,7 +118,8 @@ object ProjectCodec {
      */
     fun toPlainJsonFile(source: File, tempJsonOut: File): File {
         val isUrdc = source.inputStream().use {
-            val h = ByteArray(4); it.readNBytesCompat(h, 4) == 4 && h.contentEquals(MAGIC)
+            val h = ByteArray(4)
+            it.readNBytesCompat(h, 4) == 4 && h.contentEquals(MAGIC)
         }
         if (!isUrdc) return source
         source.inputStream().buffered().use { decryptStream(it, tempJsonOut) }
@@ -136,15 +142,18 @@ object ProjectCodec {
     }
 
     private fun decryptStream(ins: InputStream, tempJsonOut: File) {
-        val magic = ByteArray(4); ins.readNBytesCompat(magic, 4)
+        val magic = ByteArray(4)
+        ins.readNBytesCompat(magic, 4)
         if (!magic.contentEquals(MAGIC)) throw BadProjectFileException("Not an Urdu Canvas project file")
         val version = ins.read()
         if (version.toByte() != VERSION) throw BadProjectFileException("Unsupported version: $version")
-        val lenBuf = ByteArray(4); ins.readNBytesCompat(lenBuf, 4)
+        val lenBuf = ByteArray(4)
+        ins.readNBytesCompat(lenBuf, 4)
         val thumbLen = ByteBuffer.wrap(lenBuf).int
         if (thumbLen < 0) throw BadProjectFileException("Corrupt header")
         ins.skipFully(thumbLen.toLong())
-        val iv = ByteArray(IV_LEN); ins.readNBytesCompat(iv, IV_LEN)
+        val iv = ByteArray(IV_LEN)
+        ins.readNBytesCompat(iv, IV_LEN)
 
         val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply {
             init(Cipher.DECRYPT_MODE, SecretKeySpec(KEY, "AES"), GCMParameterSpec(TAG_BITS, iv))
@@ -157,7 +166,7 @@ object ProjectCodec {
             }
         } catch (e: Exception) {
             tempJsonOut.delete()
-            throw BadProjectFileException("Corrupt or foreign file")
+            throw BadProjectFileException("Corrupt or foreign file", e)
         }
     }
 
@@ -165,34 +174,48 @@ object ProjectCodec {
     // THUMBNAIL  (cheap in-app gallery preview — no body decrypt, no Gson)
     // ──────────────────────────────────────────────────────────────────────
 
-    fun readThumbnail(source: File): Bitmap? =
-        source.inputStream().buffered().use { readThumbnail(it) }
+    fun readThumbnail(source: File): Bitmap? = source.inputStream().buffered().use { readThumbnail(it) }
 
     fun readThumbnail(stream: InputStream): Bitmap? {
         val s = stream.buffered()
         val header = ByteArray(HEADER_MIN)
-        if (s.readNBytesCompat(header, HEADER_MIN) < HEADER_MIN) return null
-        if (!header.copyOfRange(0, 4).contentEquals(MAGIC)) return null
-        val thumbLen = ByteBuffer.wrap(header, 5, 4).int
-        if (thumbLen <= 0) return null
-        val thumb = ByteArray(thumbLen)
-        if (s.readNBytesCompat(thumb, thumbLen) < thumbLen) return null
-        return BitmapFactory.decodeByteArray(thumb, 0, thumbLen)
+        if (s.readNBytesCompat(header, HEADER_MIN) == HEADER_MIN &&
+            header.copyOfRange(0, 4).contentEquals(MAGIC)
+        ) {
+            val thumbLen = ByteBuffer.wrap(header, 5, 4).int
+            if (thumbLen > 0) {
+                val thumb = ByteArray(thumbLen)
+                if (s.readNBytesCompat(thumb, thumbLen) == thumbLen) {
+                    return BitmapFactory.decodeByteArray(thumb, 0, thumbLen)
+                }
+            }
+        }
+        return null
     }
 
     fun isUrdcFile(file: File): Boolean = file.inputStream().use {
-        val b = ByteArray(4); it.readNBytesCompat(b, 4) == 4 && b.contentEquals(MAGIC)
+        val b = ByteArray(4)
+        it.readNBytesCompat(b, 4) == 4 && b.contentEquals(MAGIC)
     }
 
     // ── stream helpers ─────────────────────────────────────────────────────
     private fun InputStream.readNBytesCompat(buf: ByteArray, len: Int): Int {
         var off = 0
-        while (off < len) { val r = read(buf, off, len - off); if (r < 0) break; off += r }
+        while (off < len) {
+            val r = read(buf, off, len - off)
+            if (r < 0) break
+            off += r
+        }
         return off
     }
     private fun InputStream.skipFully(n: Long) {
-        var rem = n; val tmp = ByteArray(8192)
-        while (rem > 0) { val r = read(tmp, 0, minOf(tmp.size.toLong(), rem).toInt()); if (r < 0) break; rem -= r }
+        var rem = n
+        val tmp = ByteArray(8192)
+        while (rem > 0) {
+            val r = read(tmp, 0, minOf(tmp.size.toLong(), rem).toInt())
+            if (r < 0) break
+            rem -= r
+        }
     }
     private fun OutputStream.nonClosing(): OutputStream = object : OutputStream() {
         override fun write(b: Int) = this@nonClosing.write(b)

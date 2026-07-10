@@ -26,7 +26,7 @@ class FilesAdapter(
     private val onItemLongClick: (Any) -> Unit,
     private val onOptionsClick: (Any, View) -> Unit,
     private val onRename: ((Any, String) -> Unit)? = null,
-    var onSelectionChanged: ((Boolean) -> Unit)? = null
+    var onSelectionChanged: ((Boolean) -> Unit)? = null,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
@@ -68,22 +68,22 @@ class FilesAdapter(
 
     fun getSelectedItems() = selectedItems.toList()
 
-    override fun getItemViewType(position: Int): Int {
-        return if (isGrid) VIEW_TYPE_GRID else VIEW_TYPE_LIST
-    }
+    override fun getItemViewType(position: Int): Int = if (isGrid) VIEW_TYPE_GRID else VIEW_TYPE_LIST
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return if (viewType == VIEW_TYPE_GRID) {
-            val binding = LayoutFilesGridBinding.inflate(
-                LayoutInflater.from(parent.context), parent, false
-            )
-            GridViewHolder(binding)
-        } else {
-            val binding = LayoutFilesRowBinding.inflate(
-                LayoutInflater.from(parent.context), parent, false
-            )
-            ListViewHolder(binding)
-        }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder = if (viewType == VIEW_TYPE_GRID) {
+        val binding = LayoutFilesGridBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false,
+        )
+        GridViewHolder(binding)
+    } else {
+        val binding = LayoutFilesRowBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false,
+        )
+        ListViewHolder(binding)
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
@@ -123,10 +123,8 @@ class FilesAdapter(
         }
     }
 
-    inner class GridViewHolder(private val binding: LayoutFilesGridBinding) :
-        RecyclerView.ViewHolder(binding.root) {
+    inner class GridViewHolder(private val binding: LayoutFilesGridBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(item: Any) {
-
             bindItem(binding, item)
 
             binding.root.addPressEffectWithLongClick(onClick = {
@@ -155,8 +153,7 @@ class FilesAdapter(
         }
     }
 
-    inner class ListViewHolder(private val binding: LayoutFilesRowBinding) :
-        RecyclerView.ViewHolder(binding.root) {
+    inner class ListViewHolder(private val binding: LayoutFilesRowBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(item: Any) {
             bindItem(binding, item)
 
@@ -211,14 +208,15 @@ class FilesAdapter(
                             is FontEntity -> item.font_name
                             is ExportResult -> item.fileName
                             else -> ""
-                        }
+                        },
                     )
 
                     editText.requestFocus()
                     val imm =
                         editText.context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
                     imm.showSoftInput(
-                        editText, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT
+                        editText,
+                        android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT,
                     )
 
                     // IME Done
@@ -229,7 +227,9 @@ class FilesAdapter(
                             closeKeyboard(v)
                             stopEditing()
                             true
-                        } else false
+                        } else {
+                            false
+                        }
                     }
 
                     // DrawableEnd click
@@ -259,21 +259,38 @@ class FilesAdapter(
         when (binding) {
             is LayoutFilesGridBinding -> {
                 setupEditMode(
-                    binding.editName, binding.assetName, binding.metaData, binding.moreOptions
+                    binding.editName,
+                    binding.assetName,
+                    binding.metaData,
+                    binding.moreOptions,
                 )
-                if (!isEditing) bindFileData(
-                    binding.assetName, binding.metaData, binding.image, item
-                )
+                if (!isEditing) {
+                    bindFileData(
+                        binding.assetName,
+                        binding.metaData,
+                        binding.image,
+                        item,
+                    )
+                }
                 updateSelectionUI(binding, item, isEditing)
             }
 
             is LayoutFilesRowBinding -> {
                 setupEditMode(
-                    binding.editName, binding.assetName, binding.metaData, binding.moreOptions
+                    binding.editName,
+                    binding.assetName,
+                    binding.metaData,
+                    binding.moreOptions,
                 )
-                if (!isEditing) bindFileData(
-                    binding.assetName, binding.metaData, binding.image, item, binding.imageCard
-                )
+                if (!isEditing) {
+                    bindFileData(
+                        binding.assetName,
+                        binding.metaData,
+                        binding.image,
+                        item,
+                        binding.imageCard,
+                    )
+                }
                 updateSelectionUI(binding, item, isEditing)
             }
         }
@@ -291,7 +308,7 @@ class FilesAdapter(
         metaView: android.widget.TextView,
         imageView: android.widget.ImageView,
         item: Any,
-        card: com.google.android.material.card.MaterialCardView? = null
+        card: com.google.android.material.card.MaterialCardView? = null,
     ) {
         when (item) {
             is ImageEntity -> {
@@ -306,12 +323,9 @@ class FilesAdapter(
                     Glide.with(imageView).load(item.bitmapData).into(imageView)
                 } else {
                     if (url.endsWith(".svg", true)) {
-
                         Glide.with(imageView).`as`(PictureDrawable::class.java).load(url)
                             .diskCacheStrategy(DiskCacheStrategy.DATA).into(imageView)
-
                     } else {
-
                         Glide.with(imageView).load(url).diskCacheStrategy(DiskCacheStrategy.ALL)
                             .thumbnail(0.1f).into(imageView)
                     }
@@ -340,7 +354,8 @@ class FilesAdapter(
     }
 
     private fun setCardStyle(
-        card: com.google.android.material.card.MaterialCardView, isTransparent: Boolean
+        card: com.google.android.material.card.MaterialCardView,
+        isTransparent: Boolean,
     ) {
         if (isTransparent) {
             card.cardElevation = 0f
@@ -389,9 +404,7 @@ class FilesAdapter(
         }
     }
 
-    fun isEditing(): Boolean {
-        return editingItemId != null
-    }
+    fun isEditing(): Boolean = editingItemId != null
 
     private fun formatSize(size: Any?): String {
         if (size == null) return ""

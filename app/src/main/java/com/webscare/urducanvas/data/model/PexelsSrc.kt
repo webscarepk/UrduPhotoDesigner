@@ -6,5 +6,5 @@ data class PexelsSrc(
     val large: String,
     val medium: String,
     val small: String,
-    val tiny: String
+    val tiny: String,
 )

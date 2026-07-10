@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
-import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -25,8 +24,9 @@ class FeatherFragment : Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentFeatherBinding.inflate(inflater, container, false)
         return binding.root
@@ -42,32 +42,32 @@ class FeatherFragment : Fragment() {
     // ── Direction buttons ─────────────────────────────────────────────────────
 
     private fun initDirectionButtons() {
-        binding.all.addPressEffect    { viewModel.setFeatherDirection(FeatherDirection.ALL)    }
-        binding.left.addPressEffect   { viewModel.setFeatherDirection(FeatherDirection.LEFT)   }
-        binding.right.addPressEffect  { viewModel.setFeatherDirection(FeatherDirection.RIGHT)  }
-        binding.top.addPressEffect    { viewModel.setFeatherDirection(FeatherDirection.TOP)    }
+        binding.all.addPressEffect { viewModel.setFeatherDirection(FeatherDirection.ALL) }
+        binding.left.addPressEffect { viewModel.setFeatherDirection(FeatherDirection.LEFT) }
+        binding.right.addPressEffect { viewModel.setFeatherDirection(FeatherDirection.RIGHT) }
+        binding.top.addPressEffect { viewModel.setFeatherDirection(FeatherDirection.TOP) }
         binding.bottom.addPressEffect { viewModel.setFeatherDirection(FeatherDirection.BOTTOM) }
     }
 
     private fun applyDirectionSelection(selected: FeatherDirection) {
         val buttons = mapOf(
-            FeatherDirection.ALL    to binding.all,
-            FeatherDirection.LEFT   to binding.left,
-            FeatherDirection.RIGHT  to binding.right,
-            FeatherDirection.TOP    to binding.top,
-            FeatherDirection.BOTTOM to binding.bottom
+            FeatherDirection.ALL to binding.all,
+            FeatherDirection.LEFT to binding.left,
+            FeatherDirection.RIGHT to binding.right,
+            FeatherDirection.TOP to binding.top,
+            FeatherDirection.BOTTOM to binding.bottom,
         )
         buttons.forEach { (direction, button) ->
             val isSelected = direction == selected
             button.backgroundTintList = ContextCompat.getColorStateList(
                 requireContext(),
-                if (isSelected) R.color.appColor else R.color.contrast
+                if (isSelected) R.color.appColor else R.color.contrast,
             )
             button.setTextColor(
                 ContextCompat.getColor(
                     requireContext(),
-                    if (isSelected) R.color.white else R.color.black
-                )
+                    if (isSelected) R.color.white else R.color.black,
+                ),
             )
         }
     }
@@ -75,7 +75,6 @@ class FeatherFragment : Fragment() {
     // ── SeekBars ──────────────────────────────────────────────────────────────
 
     private fun initSeekBars() {
-
         binding.feather.apply {
             max = 100
             progress = 0
@@ -122,7 +121,6 @@ class FeatherFragment : Fragment() {
     // ── Observers ─────────────────────────────────────────────────────────────
 
     private fun initObservers() {
-
         // Direction — reflects selected element's current direction on element switch
         viewModel.featherDirection.observe(viewLifecycleOwner) { direction ->
             applyDirectionSelection(direction ?: FeatherDirection.ALL)

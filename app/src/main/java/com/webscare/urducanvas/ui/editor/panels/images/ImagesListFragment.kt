@@ -1,10 +1,8 @@
 package com.webscare.urducanvas.ui.editor.panels.images
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.os.bundleOf
@@ -32,7 +30,6 @@ import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @AndroidEntryPoint
@@ -49,7 +46,8 @@ class ImagesListFragment : Fragment() {
 
     private var imagesAdapter: ImagesAdapter? = null
 
-    var category: String = ""; private set
+    var category: String = ""
+        private set
     private var filterText: String = ""
     private var categoryImages: List<ImageEntity> = emptyList()
     private var lastImagesData: ImagesData? = null
@@ -69,13 +67,15 @@ class ImagesListFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
-            category   = it.getString(ARG_CATEGORY).orEmpty()
+            category = it.getString(ARG_CATEGORY).orEmpty()
             filterText = it.getString(ARG_FILTER).orEmpty()
         }
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentImagesListBinding.inflate(inflater, container, false)
         return binding.root
@@ -91,7 +91,7 @@ class ImagesListFragment : Fragment() {
             layoutManager = MorphGridLayoutManager(
                 context = requireContext(),
                 collapsedSpan = 3,
-                expandedSpan = 3
+                expandedSpan = 3,
             ).apply {
                 applyFraction(binding.backgrounds, if (mainViewModel.isPanelExpanded(PanelType.IMAGES)) 1f else 0f)
             }
@@ -140,8 +140,6 @@ class ImagesListFragment : Fragment() {
         submitImages(categoryImages)
     }
 
-
-
     // ── Selection observer ────────────────────────────────────────────────────
 
     private fun observeSelectionState() {
@@ -149,7 +147,7 @@ class ImagesListFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 combine(
                     mainViewModel.selectedImagesIds,
-                    mainViewModel.isInImagesMultiSelectMode
+                    mainViewModel.isInImagesMultiSelectMode,
                 ) { ids, inMode -> Pair(ids, inMode) }
                     .collect { (newIds, inMode) ->
                         val adapter = imagesAdapter ?: return@collect
@@ -166,9 +164,9 @@ class ImagesListFragment : Fragment() {
                             adapter.clearSelectionShadow()
                             prevSelectedIds = emptySet()
                         } else {
-                            val added   = newIds - prevSelectedIds
+                            val added = newIds - prevSelectedIds
                             val removed = prevSelectedIds - newIds
-                            added.forEach   { id -> adapter.updateSelectionForId(id, true)  }
+                            added.forEach { id -> adapter.updateSelectionForId(id, true) }
                             removed.forEach { id -> adapter.updateSelectionForId(id, false) }
                             prevSelectedIds = newIds
                         }
@@ -184,9 +182,11 @@ class ImagesListFragment : Fragment() {
             imagesAdapter = ImagesAdapter(
                 context = requireActivity(),
                 onImageSelected = { bitmap, svgDrawable, svgXml, entity ->
-                    val updated = if (svgXml != null && entity.bitmapData == null)
+                    val updated = if (svgXml != null && entity.bitmapData == null) {
                         entity.copy(is_recent = true, bitmapData = svgXml)
-                    else entity.copy(is_recent = true)
+                    } else {
+                        entity.copy(is_recent = true)
+                    }
 
                     // markImageAsRecent uses a direct SQL UPDATE by id —
                     // works for ALL images including Pexels search results
@@ -213,11 +213,11 @@ class ImagesListFragment : Fragment() {
                             resized?.trimTransparentEdges(),
                             requireActivity(),
                             ElementType.IMAGE,
-                            entity.is_premium
+                            entity.is_premium,
                         )
                     }
                 },
-                onLongPress = { entity -> mainViewModel.toggleImagesSelection(entity.id) }
+                onLongPress = { entity -> mainViewModel.toggleImagesSelection(entity.id) },
             )
         }
 
@@ -263,7 +263,7 @@ class ImagesListFragment : Fragment() {
 
         mainViewModel.clearImagesSelection()
         prevSelectedIds = emptySet()
-        prevWasInMode   = false
+        prevWasInMode = false
         imagesAdapter?.clearSelectionShadow()
         binding.swipeRefresh.isEnabled = expanded
 
@@ -280,7 +280,7 @@ class ImagesListFragment : Fragment() {
             binding.backgrounds.paddingLeft,
             binding.backgrounds.paddingTop,
             binding.backgrounds.paddingRight,
-            bottomPadding
+            bottomPadding,
         )
 
         // Sync item size on final settle state
@@ -311,7 +311,7 @@ class ImagesListFragment : Fragment() {
                 imagesAdapter?.isExpanded = effectiveExpanded
             }
         }
-        
+
         // Smoothly animate bottom padding during slide to avoid jerking
         val maxPadding = (64 * resources.displayMetrics.density).toInt()
         val currentPadding = (offset * maxPadding).toInt()
@@ -319,7 +319,7 @@ class ImagesListFragment : Fragment() {
             binding.backgrounds.paddingLeft,
             binding.backgrounds.paddingTop,
             binding.backgrounds.paddingRight,
-            currentPadding
+            currentPadding,
         )
 
         // Smoothly update size of all visible items in 60fps!
@@ -380,8 +380,11 @@ class ImagesListFragment : Fragment() {
     // ── Filtering ─────────────────────────────────────────────────────────────
 
     private fun submitImages(images: List<ImageEntity>) {
-        val final = if (filterText.isBlank()) images
-        else images.filter { it.matchesQuery(filterText) }
+        val final = if (filterText.isBlank()) {
+            images
+        } else {
+            images.filter { it.matchesQuery(filterText) }
+        }
 
         if (_binding == null) return
         binding.noEmojis.visibility = if (final.isEmpty()) View.VISIBLE else View.GONE
@@ -418,10 +421,10 @@ class ImagesListFragment : Fragment() {
                 kotlinx.coroutines.flow.combine(
                     pexelsViewModel.paginatingTabs,
                     pexelsViewModel.isSearching,
-                    pexelsViewModel.activeSearchTab
+                    pexelsViewModel.activeSearchTab,
                 ) { paginating, searching, activeTab ->
                     val categoryLoading = category in paginating
-                    val searchLoading   = searching && activeTab == category
+                    val searchLoading = searching && activeTab == category
                     // Only show when panel is expanded — no loader in collapsed horizontal mode
                     isPanelExpanded && (categoryLoading || searchLoading)
                 }.collect { shouldShow ->
@@ -492,9 +495,9 @@ class ImagesListFragment : Fragment() {
     private fun setupPaginationScroll() {
         val isPexels = PexelsCategories.isPexelsTab(category)
         val isSearchResultTab = !isPexels &&
-                category != "Recents" &&
-                category != "My Images" &&
-                category != "My Backgrounds"
+            category != "Recents" &&
+            category != "My Images" &&
+            category != "My Backgrounds"
 
         if (!isPexels && !isSearchResultTab) return
 
@@ -502,8 +505,8 @@ class ImagesListFragment : Fragment() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 // Only trigger when scrolling downward — dy > 0 means user is going towards bottom
                 if (!isPanelExpanded || dy <= 0) return
-                val lm          = recyclerView.layoutManager as? GridLayoutManager ?: return
-                val totalItems  = lm.itemCount
+                val lm = recyclerView.layoutManager as? GridLayoutManager ?: return
+                val totalItems = lm.itemCount
                 val lastVisible = lm.findLastVisibleItemPosition()
                 // Trigger when within 12 items of end
                 if (totalItems > 0 && lastVisible >= totalItems - 12) {
@@ -523,8 +526,8 @@ class ImagesListFragment : Fragment() {
         if (!isPanelExpanded) return
         when {
             isInSearchMode -> pexelsViewModel.loadMoreSearch()
-            isPexels       -> pexelsViewModel.loadMore(category)
-            else           -> pexelsViewModel.loadMoreSearch()
+            isPexels -> pexelsViewModel.loadMore(category)
+            else -> pexelsViewModel.loadMoreSearch()
         }
     }
 
@@ -535,8 +538,10 @@ class ImagesListFragment : Fragment() {
      */
     private fun checkAndFillIfNeeded() {
         val isPexels = PexelsCategories.isPexelsTab(category)
-        val isSearchResult = !isPexels && category != "Recents" &&
-                category != "My Images" && category != "My Backgrounds"
+        val isSearchResult = !isPexels &&
+            category != "Recents" &&
+            category != "My Images" &&
+            category != "My Backgrounds"
         if (!isPexels && !isSearchResult) return
         if (!isPanelExpanded) return
 
@@ -544,7 +549,7 @@ class ImagesListFragment : Fragment() {
             if (_binding == null) return@post
             val lm = binding.backgrounds.layoutManager as? GridLayoutManager ?: return@post
             val lastVisible = lm.findLastVisibleItemPosition()
-            val totalItems  = lm.itemCount
+            val totalItems = lm.itemCount
             // If all items are visible (nothing to scroll), trigger next page
             if (totalItems > 0 && lastVisible >= totalItems - 1) {
                 triggerPagination(isPexels)
@@ -572,7 +577,7 @@ class ImagesListFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 kotlinx.coroutines.flow.combine(
                     pexelsViewModel.searchQuery,
-                    pexelsViewModel.activeSearchTab
+                    pexelsViewModel.activeSearchTab,
                 ) { query, activeTab -> Pair(query, activeTab) }
                     .collect { (query, activeTab) ->
                         val isThisTabActive = activeTab == category
@@ -602,20 +607,21 @@ class ImagesListFragment : Fragment() {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private fun sliceFor(data: ImagesData, cat: String): List<ImageEntity> =
-        if (cat.equals("Recents", ignoreCase = true)) data.recents
-        else data.imagesByCategory[cat].orEmpty()
+    private fun sliceFor(data: ImagesData, cat: String): List<ImageEntity> = if (cat.equals("Recents", ignoreCase = true)) {
+        data.recents
+    } else {
+        data.imagesByCategory[cat].orEmpty()
+    }
 
     companion object {
         private const val ARG_CATEGORY = "arg_category"
-        private const val ARG_FILTER   = "arg_filter"
+        private const val ARG_FILTER = "arg_filter"
 
-        fun newInstance(category: String, initialFilter: String = "") =
-            ImagesListFragment().apply {
-                arguments = bundleOf(
-                    ARG_CATEGORY to category,
-                    ARG_FILTER   to initialFilter
-                )
-            }
+        fun newInstance(category: String, initialFilter: String = "") = ImagesListFragment().apply {
+            arguments = bundleOf(
+                ARG_CATEGORY to category,
+                ARG_FILTER to initialFilter,
+            )
+        }
     }
 }

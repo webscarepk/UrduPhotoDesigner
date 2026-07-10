@@ -1,7 +1,6 @@
 package com.webscare.urducanvas.ui.navigation.home
 
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -10,10 +9,8 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.signature.ObjectKey
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import com.webscare.urducanvas.common.utils.Utils.addPressEffectWithLongClick
 import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.databinding.LayoutRecentsItemBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import java.io.File
 
 class RecentAdapter(
@@ -38,7 +35,7 @@ class RecentAdapter(
         val binding = LayoutRecentsItemBinding.inflate(
             LayoutInflater.from(parent.context),
             parent,
-            false
+            false,
         )
         return RecentViewHolder(binding)
     }
@@ -48,8 +45,7 @@ class RecentAdapter(
         holder.bind(item)
     }
 
-    inner class RecentViewHolder(private val binding: LayoutRecentsItemBinding) :
-        RecyclerView.ViewHolder(binding.root) {
+    inner class RecentViewHolder(private val binding: LayoutRecentsItemBinding) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: com.webscare.urducanvas.data.model.ExportResult) {
             val file = File(item.imagePath)

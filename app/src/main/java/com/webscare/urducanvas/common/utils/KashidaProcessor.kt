@@ -4,28 +4,28 @@ import android.graphics.Typeface
 import android.text.TextPaint
 
 class KashidaProcessor(
-    private val insertionFreq: Int = 1   // default: 1 kashida per slot
+    private val insertionFreq: Int = 1, // default: 1 kashida per slot
 ) {
     companion object {
         const val KASHIDA = "ـ"
 
         // Non-connecting (isolated/final) characters → never take Kashida
         private val ISOLFINA = setOf(
-            "د","ذ","ڈ","ڌ","ڍ","ډ","ڊ","ڋ","ڎ","ڏ","ڐ","ۮ",
-            "ݙ","ݚ","ر","ز","ڑ","ڒ","ړ","ڔ","ڕ","ږ","ڗ","ژ","ڙ","ۯ","ݛ","ݫ","ݬ",
-            "ﻻ","ﻹ","و","ۄ","ۊ","ۏ","ؤ","ۅ","ۆ","ۇ","ۈ","ۉ","ۋ","ٷ","ﻷ"
+            "د", "ذ", "ڈ", "ڌ", "ڍ", "ډ", "ڊ", "ڋ", "ڎ", "ڏ", "ڐ", "ۮ",
+            "ݙ", "ݚ", "ر", "ز", "ڑ", "ڒ", "ړ", "ڔ", "ڕ", "ږ", "ڗ", "ژ", "ڙ", "ۯ", "ݛ", "ݫ", "ݬ",
+            "ﻻ", "ﻹ", "و", "ۄ", "ۊ", "ۏ", "ؤ", "ۅ", "ۆ", "ۇ", "ۈ", "ۉ", "ۋ", "ٷ", "ﻷ",
         )
 
         // Letters that can stretch with Kashida
         private val KASHIDA_ALLOWED = setOf(
-            "ب","پ","ت","ٹ","ث",
-            "ج","چ","ح","خ",
-            "س","ش","ص","ض",
-            "ط","ظ",
-            "ع","غ",
-            "ف","ق",
-            "ک","گ",
-            "ل","م","ن","ی"
+            "ب", "پ", "ت", "ٹ", "ث",
+            "ج", "چ", "ح", "خ",
+            "س", "ش", "ص", "ض",
+            "ط", "ظ",
+            "ع", "غ",
+            "ف", "ق",
+            "ک", "گ",
+            "ل", "م", "ن", "ی",
         )
     }
 
@@ -46,24 +46,20 @@ class KashidaProcessor(
         for (i in cleanWord.length - 1 downTo 0) {
             val ch = cleanWord[i].toString()
 
-            if (KASHIDA_ALLOWED.contains(ch)) {
-                if (i < cleanWord.length - 1) {
-                    val nextChar = cleanWord[i + 1].toString()
+            if (KASHIDA_ALLOWED.contains(ch) && i < cleanWord.length - 1) {
+                val nextChar = cleanWord[i + 1].toString()
 
-                    // Agar agla char Alif hai, to bhi Kashida allow karo
-                    if (!ISOLFINA.contains(nextChar) || nextChar == "ا") {
-                        val kashidaInsert = KASHIDA.repeat(freq)
-                        return cleanWord.substring(0, i + 1) + kashidaInsert + cleanWord.substring(i + 1)
-                    }
+                // Agar agla char Alif hai, to bhi Kashida allow karo
+                if (!ISOLFINA.contains(nextChar) || nextChar == "ا") {
+                    val kashidaInsert = KASHIDA.repeat(freq)
+                    return cleanWord.substring(0, i + 1) + kashidaInsert + cleanWord.substring(i + 1)
                 }
             }
         }
         return cleanWord
     }
 
-    fun remove(kashidaText: String): String {
-        return kashidaText.replace(KASHIDA, "")
-    }
+    fun remove(kashidaText: String): String = kashidaText.replace(KASHIDA, "")
 
     // ---- Safety Check for Current Font ----
     private fun isKasheedaSafe(typeface: Typeface): Boolean {
@@ -87,6 +83,7 @@ class KashidaProcessor(
 
             kasheedaWidths.size >= baseWidths.size
         } catch (e: Exception) {
+            android.util.Log.e("KashidaProcessor", "Error checking if Kashida is safe for font", e)
             false // corrupt font — skip kashida entirely
         }
     }

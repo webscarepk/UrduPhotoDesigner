@@ -1,6 +1,7 @@
 package com.webscare.urducanvas.ui.navigation.settings
 
 import android.content.Intent
+import android.util.Log
 import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Bundle
@@ -36,8 +37,9 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
     lateinit var billingManager: BillingManager
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
         return binding.root
@@ -61,6 +63,7 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
             requireContext().packageManager
                 .getPackageInfo(requireContext().packageName, 0).versionName
         } catch (e: Exception) {
+            Log.e("SettingsFragment", "Failed to retrieve package version name", e)
             "—"
         }
         binding.versionInfo.text = "Version $versionName"
@@ -70,8 +73,8 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 billingManager.snapshot.collect { snap ->
-                    val subscribed = snap.status != SubscriptionStatus.NOT_SUBSCRIBED
-                            && snap.status != SubscriptionStatus.PENDING
+                    val subscribed = snap.status != SubscriptionStatus.NOT_SUBSCRIBED &&
+                        snap.status != SubscriptionStatus.PENDING
 
                     if (subscribed) {
                         binding.subscriptionCard.visibility = View.GONE
@@ -98,10 +101,10 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
         val planName = planFriendlyName(snap.productId)
 
         val (accentRes, tintRes) = when (status) {
-            SubscriptionStatus.TRIAL    -> R.color.state_teal to R.color.state_teal_tint
-            SubscriptionStatus.ACTIVE   -> R.color.state_green to R.color.state_green_tint
+            SubscriptionStatus.TRIAL -> R.color.state_teal to R.color.state_teal_tint
+            SubscriptionStatus.ACTIVE -> R.color.state_green to R.color.state_green_tint
             SubscriptionStatus.CANCELED -> R.color.state_amber to R.color.state_amber_tint
-            else                        -> R.color.state_green to R.color.state_green_tint
+            else -> R.color.state_green to R.color.state_green_tint
         }
         val accent = color(accentRes)
         val tint = color(tintRes)
@@ -114,11 +117,13 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
 
         ViewCompat.setBackgroundTintList(binding.manageCardStatusBadge, ColorStateList.valueOf(tint))
         binding.manageCardStatusBadge.setTextColor(accent)
-        binding.manageCardStatusBadge.text = getString(when (status) {
-            SubscriptionStatus.TRIAL    -> R.string.mng_chip_trial
-            SubscriptionStatus.CANCELED -> R.string.mng_chip_canceled
-            else                        -> R.string.mng_chip_active
-        }).uppercase(Locale.getDefault())
+        binding.manageCardStatusBadge.text = getString(
+            when (status) {
+                SubscriptionStatus.TRIAL -> R.string.mng_chip_trial
+                SubscriptionStatus.CANCELED -> R.string.mng_chip_canceled
+                else -> R.string.mng_chip_active
+            },
+        ).uppercase(Locale.getDefault())
 
         binding.manageCardSubTitle.text = statusDetailLine(status, snap.expiryTimeMillis)
     }
@@ -129,18 +134,18 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
             SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(it))
         }
         return when (status) {
-            SubscriptionStatus.ACTIVE   -> if (date != null) "Renews $date" else "Auto-renews"
+            SubscriptionStatus.ACTIVE -> if (date != null) "Renews $date" else "Auto-renews"
             SubscriptionStatus.CANCELED -> if (date != null) "Access until $date" else "Auto-renew is off"
-            SubscriptionStatus.TRIAL    -> if (date != null) "Trial ends $date" else "Free trial"
-            else                        -> "Pro plan"
+            SubscriptionStatus.TRIAL -> if (date != null) "Trial ends $date" else "Free trial"
+            else -> "Pro plan"
         }
     }
 
     private fun planFriendlyName(productId: String?): String = when (productId) {
         "urducanvas_monthly" -> "Monthly"
         "urducanvas_6months" -> "6 Months"
-        "urducanvas_yearly"  -> "Yearly"
-        else                 -> "Pro"
+        "urducanvas_yearly" -> "Yearly"
+        else -> "Pro"
     }
 
     private fun goToSubscriptions() {
@@ -168,7 +173,7 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
             openEmail(
                 to = "support@urducanvas.com",
                 subject = "Support Request",
-                body = ""
+                body = "",
             )
         }
 
@@ -188,7 +193,7 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
             openEmail(
                 to = "support@urducanvas.com",
                 subject = "Feedback – Help Us Improve",
-                body = ""
+                body = "",
             )
         }
 
@@ -196,7 +201,7 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
             openEmail(
                 to = "support@urducanvas.com",
                 subject = "Feature Request",
-                body = "Hi, I'd like to request the following feature:\n\n"
+                body = "Hi, I'd like to request the following feature:\n\n",
             )
         }
 
@@ -204,7 +209,7 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
             openEmail(
                 to = "support@urducanvas.com",
                 subject = "Bug Report",
-                body = "Hi, I'd like to report the following bug:\n\nDevice: ${android.os.Build.MODEL}\nAndroid: ${android.os.Build.VERSION.RELEASE}\n\nDescription:\n"
+                body = "Hi, I'd like to report the following bug:\n\nDevice: ${android.os.Build.MODEL}\nAndroid: ${android.os.Build.VERSION.RELEASE}\n\nDescription:\n",
             )
         }
     }
@@ -213,7 +218,7 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
         try {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
         } catch (e: Exception) {
-            // no browser installed — silently ignore
+            Log.e("SettingsFragment", "No browser found to open URL: $url", e)
         }
     }
 
@@ -227,7 +232,7 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
             }
             startActivity(Intent.createChooser(intent, "Send Email"))
         } catch (e: Exception) {
-            // no email app installed — silently ignore
+            Log.e("SettingsFragment", "Failed to send email/no email app found", e)
         }
     }
 

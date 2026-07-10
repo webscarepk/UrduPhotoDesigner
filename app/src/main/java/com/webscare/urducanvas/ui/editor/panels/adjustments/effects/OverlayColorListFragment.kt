@@ -10,13 +10,11 @@ import androidx.core.graphics.toColorInt
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget
 import com.webscare.urducanvas.common.canvas.enums.PickerTarget
-import com.webscare.urducanvas.common.utils.ColorPickerDialog
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentFillStrokeBinding
@@ -25,9 +23,7 @@ import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientsAdapter
 import com.webscare.urducanvas.viewmodels.MainViewModel
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class OverlayColorListFragment : Fragment() {
@@ -39,8 +35,9 @@ class OverlayColorListFragment : Fragment() {
     private val mainViewModel: MainViewModel by activityViewModels()
     private val viewModel: CanvasViewModel by activityViewModels()
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentFillStrokeBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -55,7 +52,7 @@ class OverlayColorListFragment : Fragment() {
 
     private fun initObservers() {
         mainViewModel.gradients.observe(viewLifecycleOwner) { gradients ->
-            if (gradients.isNotEmpty()){
+            if (gradients.isNotEmpty()) {
                 gradientsAdapter.updateList(gradients.reversed())
             }
         }
@@ -80,7 +77,7 @@ class OverlayColorListFragment : Fragment() {
                         .beginTransaction()
                         .replace(
                             R.id.fillStroke,
-                            ColorPickerFragment()
+                            ColorPickerFragment(),
                         )
                         .addToBackStack(null)
                         .commit()
@@ -88,7 +85,8 @@ class OverlayColorListFragment : Fragment() {
                 {
                     viewModel.enableFeature("Overlay")
                     viewModel.startPicking(PickerTarget.EYE_DROPPER_OVERLAY)
-                })
+                },
+            )
         binding.colors.apply {
             layoutManager = GridLayoutManager(requireContext(), 4, GridLayoutManager.HORIZONTAL, false)
             adapter = colorsAdapter
@@ -118,7 +116,8 @@ class OverlayColorListFragment : Fragment() {
                                     arguments = Bundle().apply {
                                         putBoolean("IS_EDIT", true)
                                     }
-                                })
+                                },
+                        )
                         .addToBackStack(null)
                         .commit()
                 },
@@ -134,10 +133,11 @@ class OverlayColorListFragment : Fragment() {
                                     arguments = Bundle().apply {
                                         putBoolean("IS_EDIT", false)
                                     }
-                                })
+                                },
+                        )
                         .addToBackStack(null)
                         .commit()
-                }
+                },
             )
         binding.gradients.apply {
             layoutManager = GridLayoutManager(requireContext(), 4, GridLayoutManager.HORIZONTAL, false)
@@ -223,8 +223,6 @@ class OverlayColorListFragment : Fragment() {
     }
 
     companion object {
-        fun newInstance(): OverlayColorListFragment {
-            return OverlayColorListFragment()
-        }
+        fun newInstance(): OverlayColorListFragment = OverlayColorListFragment()
     }
 }

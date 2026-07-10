@@ -13,5 +13,5 @@ enum class LetterCasing {
     LOWER_CASE,
 
     @SerializedName("TitleCase")
-    TITLE_CASE
+    TITLE_CASE,
 }

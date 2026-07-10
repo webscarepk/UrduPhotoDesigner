@@ -26,7 +26,9 @@ class GradientSettingFragment : androidx.fragment.app.Fragment() {
     private var pendingRadius: Float = 0f
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentGradientSettingBinding.inflate(inflater, container, false)
         return binding.root
@@ -71,21 +73,26 @@ class GradientSettingFragment : androidx.fragment.app.Fragment() {
                 binding.sweepAngleCard,
                 binding.radiusCard,
                 binding.shadowXCard,
-                binding.shadowYCard
+                binding.shadowYCard,
             )
 
             val visibleCardsByType = mapOf(
                 GradientType.LINEAR to listOf(
                     binding.scaleCard,
                     binding.angleCard,
-                ), GradientType.RADIAL to listOf(
-                    binding.scaleCard, binding.radiusCard, binding.shadowXCard, binding.shadowYCard
-                ), GradientType.SWEEP to listOf(
+                ),
+                GradientType.RADIAL to listOf(
+                    binding.scaleCard,
+                    binding.radiusCard,
+                    binding.shadowXCard,
+                    binding.shadowYCard,
+                ),
+                GradientType.SWEEP to listOf(
                     binding.scaleCard,
                     binding.sweepAngleCard,
                     binding.shadowXCard,
-                    binding.shadowYCard
-                )
+                    binding.shadowYCard,
+                ),
             )
 
             val shouldShow = visibleCardsByType[gradient.type] ?: emptyList()
@@ -117,7 +124,7 @@ class GradientSettingFragment : androidx.fragment.app.Fragment() {
             override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
                     pendingAngle = progress.toFloat()
-                    binding.angleSize.text = "${progress}°"
+                    binding.angleSize.text = "$progress°"
                     updateGradient()
                 }
             }
@@ -130,7 +137,7 @@ class GradientSettingFragment : androidx.fragment.app.Fragment() {
             override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
                     pendingSweepAngle = progress.toFloat()
-                    binding.sweepAngleSize.text = "${progress}°"
+                    binding.sweepAngleSize.text = "$progress°"
                     updateGradient()
                 }
             }
@@ -177,7 +184,6 @@ class GradientSettingFragment : androidx.fragment.app.Fragment() {
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
-
     }
 
     private fun updateGradient() {

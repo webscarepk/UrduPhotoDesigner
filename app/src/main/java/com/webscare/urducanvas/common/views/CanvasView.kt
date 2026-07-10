@@ -113,7 +113,9 @@ class CanvasView @JvmOverloads constructor(
     var onStrokeCompleted: ((StrokeData) -> Unit)? = null,
     var onZoomChanged: ((Float) -> Unit)? = null,
     var onCanvasLongPressed: ((screenX: Float, screenY: Float) -> Unit)? = null,
-) : View(context, attrs) {
+) : View(context, attrs), CanvasStateAccess {
+
+    override val stateContext: Context get() = context
 
     private val gson: Gson by lazy {
         EntryPointAccessors.fromApplication(
@@ -185,7 +187,7 @@ class CanvasView @JvmOverloads constructor(
 
         BitmapShader(bmp, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
     }
-    private val checkerPaint = Paint().apply { shader = checkerShader }
+    internal val checkerPaint = Paint().apply { shader = checkerShader }
 
     private val rotateLinePaint = Paint().apply {
         color = Color.GRAY
@@ -315,7 +317,7 @@ class CanvasView @JvmOverloads constructor(
         maskFilter = BlurMaskFilter(100f, BlurMaskFilter.Blur.NORMAL)
     }
 
-    private val drawingModeOverlayPaint = Paint().apply {
+    internal val drawingModeOverlayPaint = Paint().apply {
         color = Color.argb(120, 255, 255, 255)
         style = Paint.Style.FILL
     }
@@ -1083,7 +1085,7 @@ class CanvasView @JvmOverloads constructor(
 
         canvas.withTranslation(offsetX, offsetY) {
             scale(scaleFactor, scaleFactor)
-            this@CanvasView.drawCanvasElements(this, showOverlays = false, showCheckerboard = false)
+            canvasRenderer.drawCanvasElements(this, showOverlays = false, showCheckerboard = false)
         }
     }
 

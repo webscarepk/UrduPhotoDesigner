@@ -21,6 +21,10 @@ data class ExportResult(
     var updatedDate: String,
     var isExported: Boolean = false,
     var thumbnailPath: String? = null,
-    val isFromPremiumTemplate: Boolean = false,  // NEW
-    val sourceTemplateId: Int? = null,           // NEW — for re-validation if needed
-) : Serializable
+    val isFromPremiumTemplate: Boolean = false, // NEW
+    val sourceTemplateId: Int? = null, // NEW — for re-validation if needed
+) : Serializable {
+    companion object {
+        private const val serialVersionUID: Long = 1L
+    }
+}

@@ -18,12 +18,12 @@ data class ImageEntity(
     var is_selected: Boolean = false,
     var bitmapData: String? = null,
     var created_at: String? = null,
-    val is_recent: Boolean = false
-){
+    val is_recent: Boolean = false,
+) {
     fun matchesQuery(query: String): Boolean {
         if (query.isBlank()) return true
-        return alt_text?.contains(query, ignoreCase = true) == true
-                || file_name.contains(query, ignoreCase = true)
-                || category.contains(query, ignoreCase = true)
+        return alt_text?.contains(query, ignoreCase = true) == true ||
+            file_name.contains(query, ignoreCase = true) ||
+            category.contains(query, ignoreCase = true)
     }
 }

@@ -56,7 +56,9 @@ class ImportedFontsBottomSheet : BottomSheetDialogFragment() {
     // ── Lifecycle ────────────────────────────────────────────────────────────
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = BottomSheetImportedFontsBinding.inflate(inflater, container, false)
         return binding.root
@@ -82,7 +84,7 @@ class ImportedFontsBottomSheet : BottomSheetDialogFragment() {
 
     private fun setupFab() {
         binding.importFont.addPressEffect {
-            pickFont.launch("*/*")  // same as TextFragment
+            pickFont.launch("*/*") // same as TextFragment
         }
 
         binding.back.addPressEffect {
@@ -135,7 +137,8 @@ class ImportedFontsBottomSheet : BottomSheetDialogFragment() {
                 val fontFile = copyToTempWithExtension(uri, ".$ext")
 
                 val exportDate = SimpleDateFormat(
-                    "yyyy-MM-dd", Locale.getDefault()
+                    "yyyy-MM-dd",
+                    Locale.getDefault(),
                 ).format(Date())
 
                 val fontEntity = FontEntity(
@@ -155,7 +158,7 @@ class ImportedFontsBottomSheet : BottomSheetDialogFragment() {
                     is_selected = false,
                     is_downloaded = true,
                     is_downloading = false,
-                    file_path = fontFile.absolutePath
+                    file_path = fontFile.absolutePath,
                 )
 
                 // 1. Save to Room
@@ -226,7 +229,9 @@ class ImportedFontsBottomSheet : BottomSheetDialogFragment() {
 
     private fun copyToTempWithExtension(uri: Uri, dotExt: String): File {
         val tempFile = File.createTempFile(
-            "font_${System.currentTimeMillis()}", dotExt, requireContext().cacheDir
+            "font_${System.currentTimeMillis()}",
+            dotExt,
+            requireContext().cacheDir,
         )
         requireContext().contentResolver.openInputStream(uri).use { input ->
             tempFile.outputStream().use { out -> input?.copyTo(out) }
@@ -250,12 +255,13 @@ class ImportedFontsBottomSheet : BottomSheetDialogFragment() {
             setDimAmount(0.45f)
             setFlags(
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             )
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 setDecorFitsSystemWindows(false)
             }
-            @Suppress("DEPRECATION") decorView.setOnSystemUiVisibilityChangeListener { forceImmersiveMode() }
+            @Suppress("DEPRECATION")
+            decorView.setOnSystemUiVisibilityChangeListener { forceImmersiveMode() }
         }
 
         val bottomSheet =
@@ -318,10 +324,10 @@ class ImportedFontsBottomSheet : BottomSheetDialogFragment() {
                 @Suppress("DEPRECATION")
                 window.decorView.systemUiVisibility =
                     View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-                            View.SYSTEM_UI_FLAG_FULLSCREEN or
-                            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             }
         }
     }

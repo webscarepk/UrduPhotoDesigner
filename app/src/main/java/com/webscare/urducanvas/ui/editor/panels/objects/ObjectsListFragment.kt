@@ -1,10 +1,8 @@
 package com.webscare.urducanvas.ui.editor.panels.objects
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.os.bundleOf
@@ -31,7 +29,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.abs
 
 @AndroidEntryPoint
 class ObjectsListFragment : androidx.fragment.app.Fragment() {
@@ -42,14 +39,15 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
     var onFilterResult: ((category: String, count: Int) -> Unit)? = null
 
     private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel
-            by activityViewModels()
+        by activityViewModels()
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel
-            by activityViewModels()
+        by activityViewModels()
 
     private var imagesAdapter: ImagesAdapter? = null
     private var emojiAdapter: EmojiAdapter? = null
 
-    var category: String = ""; private set
+    var category: String = ""
+        private set
     private var filterText: String = ""
     private var categoryImages: List<ImageEntity> = emptyList()
     private var lastObjectsData: ObjectsData? = null
@@ -70,13 +68,15 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
-            category   = it.getString(ARG_CATEGORY).orEmpty()
+            category = it.getString(ARG_CATEGORY).orEmpty()
             filterText = it.getString(ARG_FILTER).orEmpty()
         }
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentObjectsListBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -92,7 +92,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
             layoutManager = MorphGridLayoutManager(
                 context = requireContext(),
                 collapsedSpan = 3,
-                expandedSpan = 3
+                expandedSpan = 3,
             ).apply {
                 applyFraction(binding.objects, if (mainViewModel.isPanelExpanded(PanelType.OBJECTS)) 1f else 0f)
             }
@@ -149,8 +149,6 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-
-
     // ── Image selection observer ──────────────────────────────────────────────
 
     private fun observeSelectionState() {
@@ -158,7 +156,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 combine(
                     mainViewModel.selectedImageIds,
-                    mainViewModel.isInMultiSelectMode
+                    mainViewModel.isInMultiSelectMode,
                 ) { ids, inMode -> Pair(ids, inMode) }
                     .collect { (newIds, inMode) ->
                         val adapter = imagesAdapter ?: return@collect
@@ -175,9 +173,9 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                             adapter.clearSelectionShadow()
                             prevSelectedIds = emptySet()
                         } else {
-                            val added   = newIds - prevSelectedIds
+                            val added = newIds - prevSelectedIds
                             val removed = prevSelectedIds - newIds
-                            added.forEach   { id -> adapter.updateSelectionForId(id, true)  }
+                            added.forEach { id -> adapter.updateSelectionForId(id, true) }
                             removed.forEach { id -> adapter.updateSelectionForId(id, false) }
                             prevSelectedIds = newIds
                         }
@@ -193,7 +191,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 combine(
                     mainViewModel.selectedEmojiChars,
-                    mainViewModel.isInMultiSelectMode
+                    mainViewModel.isInMultiSelectMode,
                 ) { chars, inMode -> Pair(chars, inMode) }
                     .collect { (newChars, inMode) ->
                         val adapter = emojiAdapter ?: return@collect
@@ -209,9 +207,9 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                             adapter.clearSelectionShadow()
                             prevSelectedEmojiChars = emptySet()
                         } else {
-                            val added   = newChars - prevSelectedEmojiChars
+                            val added = newChars - prevSelectedEmojiChars
                             val removed = prevSelectedEmojiChars - newChars
-                            added.forEach   { char -> adapter.updateSelectionForChar(char, true)  }
+                            added.forEach { char -> adapter.updateSelectionForChar(char, true) }
                             removed.forEach { char -> adapter.updateSelectionForChar(char, false) }
                             prevSelectedEmojiChars = newChars
                         }
@@ -225,15 +223,15 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
     private fun setupEmojiTab() {
         if (emojiAdapter == null) {
             emojiAdapter = EmojiAdapter(
-                context        = requireActivity(),
-                initialEmojis  = emptyList(),
+                context = requireActivity(),
+                initialEmojis = emptyList(),
                 onEmojiClicked = { bmp ->
                     if (isPanelExpanded) mainViewModel.togglePanel(PanelType.OBJECTS)
                     viewModel.addSticker(bmp, requireActivity(), ElementType.STICKER)
                 },
                 onEmojiLongPress = { emoji ->
                     mainViewModel.toggleEmojiSelection(emoji.char)
-                }
+                },
             )
         }
         binding.objects.adapter = emojiAdapter
@@ -261,35 +259,42 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                 onImageSelected = { bitmap, svgDrawable, svgXml, entity ->
                     if (isPanelExpanded) mainViewModel.togglePanel(PanelType.OBJECTS)
 
-                    val updated = if (svgXml != null && entity.bitmapData == null)
+                    val updated = if (svgXml != null && entity.bitmapData == null) {
                         entity.copy(is_recent = true, bitmapData = svgXml)
-                    else entity.copy(is_recent = true)
+                    } else {
+                        entity.copy(is_recent = true)
+                    }
 
                     mainViewModel.updateImage(updated)
 
                     if (isAdded) {
                         if (svgDrawable != null) {
                             val trimmed = svgDrawable.trimTransparentEdges()
-                            Log.d("SVG",
+                            Log.d(
+                                "SVG",
                                 "${svgDrawable.intrinsicWidth}x${svgDrawable.intrinsicHeight}" +
-                                        " → ${trimmed.intrinsicWidth}x${trimmed.intrinsicHeight}")
+                                    " → ${trimmed.intrinsicWidth}x${trimmed.intrinsicHeight}",
+                            )
                             viewModel.addSvgSticker(
-                                trimmed, svgXml, requireActivity(), entity.is_premium,
-                                applyWhiteTintInDarkMode = true
+                                trimmed,
+                                svgXml,
+                                requireActivity(),
+                                entity.is_premium,
+                                applyWhiteTintInDarkMode = true,
                             )
                         } else {
                             viewModel.addSticker(
                                 bitmap?.trimTransparentEdges(),
                                 requireActivity(),
                                 ElementType.IMAGE,
-                                entity.is_premium
+                                entity.is_premium,
                             )
                         }
                     }
                 },
                 onLongPress = { entity ->
                     mainViewModel.toggleImageSelection(entity.id)
-                }
+                },
             )
         }
         imagesAdapter?.applyWhiteTint = requireContext().isDarkModeEnabled()
@@ -337,10 +342,10 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
 
         mainViewModel.clearImageSelection()
         mainViewModel.clearEmojiSelection()
-        prevSelectedIds        = emptySet()
-        prevWasInMode          = false
+        prevSelectedIds = emptySet()
+        prevWasInMode = false
         prevSelectedEmojiChars = emptySet()
-        prevEmojiWasInMode     = false
+        prevEmojiWasInMode = false
         imagesAdapter?.clearSelectionShadow()
         emojiAdapter?.clearSelectionShadow()
 
@@ -362,27 +367,27 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
         }
 
         // Sync item size on final settle state
-        val rvWidth   = binding.objects.width
+        val rvWidth = binding.objects.width
         val rvPadding = binding.objects.paddingLeft + binding.objects.paddingRight
-        val offset    = if (expanded) 1f else 0f
+        val offset = if (expanded) 1f else 0f
 
         if (isBaseTab(category)) {
             val ea = emojiAdapter ?: return
-            ea.slideOffset         = offset
-            ea.recyclerViewWidth   = rvWidth
+            ea.slideOffset = offset
+            ea.recyclerViewWidth = rvWidth
             ea.recyclerViewPadding = rvPadding
             for (i in 0 until binding.objects.childCount) {
-                val child  = binding.objects.getChildAt(i)
+                val child = binding.objects.getChildAt(i)
                 val holder = binding.objects.getChildViewHolder(child) as? EmojiAdapter.EmojiViewHolder
                 holder?.updateSize(offset, rvWidth, rvPadding)
             }
         } else {
             val ia = imagesAdapter ?: return
-            ia.slideOffset         = offset
-            ia.recyclerViewWidth   = rvWidth
+            ia.slideOffset = offset
+            ia.recyclerViewWidth = rvWidth
             ia.recyclerViewPadding = rvPadding
             for (i in 0 until binding.objects.childCount) {
-                val child  = binding.objects.getChildAt(i)
+                val child = binding.objects.getChildAt(i)
                 val holder = binding.objects.getChildViewHolder(child) as? ImagesAdapter.ImageViewHolder
                 holder?.updateSize(offset, rvWidth, rvPadding)
             }
@@ -409,27 +414,27 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
             }
         }
 
-        val rvWidth   = binding.objects.width
+        val rvWidth = binding.objects.width
         val rvPadding = binding.objects.paddingLeft + binding.objects.paddingRight
 
         // Smoothly update size of all visible items in 60fps!
         if (isBaseTab(category)) {
             val ea = emojiAdapter ?: return
-            ea.slideOffset         = offset
-            ea.recyclerViewWidth   = rvWidth
+            ea.slideOffset = offset
+            ea.recyclerViewWidth = rvWidth
             ea.recyclerViewPadding = rvPadding
             for (i in 0 until binding.objects.childCount) {
-                val child  = binding.objects.getChildAt(i)
+                val child = binding.objects.getChildAt(i)
                 val holder = binding.objects.getChildViewHolder(child) as? EmojiAdapter.EmojiViewHolder
                 holder?.updateSize(offset, rvWidth, rvPadding)
             }
         } else {
             val ia = imagesAdapter ?: return
-            ia.slideOffset         = offset
-            ia.recyclerViewWidth   = rvWidth
+            ia.slideOffset = offset
+            ia.recyclerViewWidth = rvWidth
             ia.recyclerViewPadding = rvPadding
             for (i in 0 until binding.objects.childCount) {
-                val child  = binding.objects.getChildAt(i)
+                val child = binding.objects.getChildAt(i)
                 val holder = binding.objects.getChildViewHolder(child) as? ImagesAdapter.ImageViewHolder
                 holder?.updateSize(offset, rvWidth, rvPadding)
             }
@@ -502,8 +507,11 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun submitImages(images: List<ImageEntity>) {
-        val final = if (filterText.isBlank()) images
-        else images.filter { it.matchesQuery(filterText) }
+        val final = if (filterText.isBlank()) {
+            images
+        } else {
+            images.filter { it.matchesQuery(filterText) }
+        }
 
         if (_binding == null) return
         binding.noEmojis.visibility = if (final.isEmpty()) View.VISIBLE else View.GONE
@@ -522,41 +530,41 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private fun sliceFor(data: ObjectsData, cat: String): List<ImageEntity> =
-        if (cat.equals("Recents", ignoreCase = true)) data.recents
-        else data.imagesByCategory[cat].orEmpty()
+    private fun sliceFor(data: ObjectsData, cat: String): List<ImageEntity> = if (cat.equals("Recents", ignoreCase = true)) {
+        data.recents
+    } else {
+        data.imagesByCategory[cat].orEmpty()
+    }
 
     companion object {
         private const val ARG_CATEGORY = "arg_category"
-        private const val ARG_FILTER   = "arg_filter"
+        private const val ARG_FILTER = "arg_filter"
 
-        fun isBaseTab(tab: String) =
-            ObjectsFragment.BASE_TABS.any { it.equals(tab, ignoreCase = true) }
+        fun isBaseTab(tab: String) = ObjectsFragment.BASE_TABS.any { it.equals(tab, ignoreCase = true) }
 
         fun emojiDataForCategory(
-            category: String
+            category: String,
         ): List<com.webscare.urducanvas.common.canvas.model.EmojiMeta> = when (category) {
-            "Emoticons"  -> com.webscare.urducanvas.common.utils.Constants.META_EMOTICONS
-            "Animals"    -> com.webscare.urducanvas.common.utils.Constants.META_ANIMALS
-            "Nature"     -> com.webscare.urducanvas.common.utils.Constants.META_NATURE
-            "Food"       -> com.webscare.urducanvas.common.utils.Constants.META_FOOD
-            "Sports"     -> com.webscare.urducanvas.common.utils.Constants.META_SPORTS
-            "Transport"  -> com.webscare.urducanvas.common.utils.Constants.META_TRANSPORT
-            "Objects"    -> com.webscare.urducanvas.common.utils.Constants.META_OBJECTS
-            "Alchemy"    -> com.webscare.urducanvas.common.utils.Constants.META_ALCHEMY
-            "Shapes"     -> com.webscare.urducanvas.common.utils.Constants.META_SHAPES
-            "Arrows"     -> com.webscare.urducanvas.common.utils.Constants.META_ARROWS
-            "Letters"    -> com.webscare.urducanvas.common.utils.Constants.META_LETTERS
-            "Flags"      -> com.webscare.urducanvas.common.utils.Constants.META_FLAGS
-            else         -> emptyList()
+            "Emoticons" -> com.webscare.urducanvas.common.utils.Constants.META_EMOTICONS
+            "Animals" -> com.webscare.urducanvas.common.utils.Constants.META_ANIMALS
+            "Nature" -> com.webscare.urducanvas.common.utils.Constants.META_NATURE
+            "Food" -> com.webscare.urducanvas.common.utils.Constants.META_FOOD
+            "Sports" -> com.webscare.urducanvas.common.utils.Constants.META_SPORTS
+            "Transport" -> com.webscare.urducanvas.common.utils.Constants.META_TRANSPORT
+            "Objects" -> com.webscare.urducanvas.common.utils.Constants.META_OBJECTS
+            "Alchemy" -> com.webscare.urducanvas.common.utils.Constants.META_ALCHEMY
+            "Shapes" -> com.webscare.urducanvas.common.utils.Constants.META_SHAPES
+            "Arrows" -> com.webscare.urducanvas.common.utils.Constants.META_ARROWS
+            "Letters" -> com.webscare.urducanvas.common.utils.Constants.META_LETTERS
+            "Flags" -> com.webscare.urducanvas.common.utils.Constants.META_FLAGS
+            else -> emptyList()
         }
 
-        fun newInstance(category: String, initialFilter: String = "") =
-            ObjectsListFragment().apply {
-                arguments = bundleOf(
-                    ARG_CATEGORY to category,
-                    ARG_FILTER   to initialFilter
-                )
-            }
+        fun newInstance(category: String, initialFilter: String = "") = ObjectsListFragment().apply {
+            arguments = bundleOf(
+                ARG_CATEGORY to category,
+                ARG_FILTER to initialFilter,
+            )
+        }
     }
 }

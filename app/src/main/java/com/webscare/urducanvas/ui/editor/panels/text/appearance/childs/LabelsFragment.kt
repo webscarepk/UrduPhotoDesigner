@@ -15,7 +15,6 @@ import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget
 import com.webscare.urducanvas.common.canvas.enums.LabelShape
 import com.webscare.urducanvas.common.canvas.enums.PickerTarget
-import com.webscare.urducanvas.common.utils.ColorPickerDialog
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentLabelsBinding
@@ -34,32 +33,47 @@ class LabelsFragment : androidx.fragment.app.Fragment() {
 
     private val shapesList = listOf(
         _root_ide_package_.com.webscare.urducanvas.data.model.ShapeItem(
-            LabelShape.RECTANGLE_FILL, R.drawable.ic_rect_fill
-        ), _root_ide_package_.com.webscare.urducanvas.data.model.ShapeItem(
-            LabelShape.RECTANGLE_STROKE, R.drawable.ic_rect_stroke
-        ), _root_ide_package_.com.webscare.urducanvas.data.model.ShapeItem(
-            LabelShape.OVAL_FILL, R.drawable.ic_oval_fill
-        ), _root_ide_package_.com.webscare.urducanvas.data.model.ShapeItem(
-            LabelShape.OVAL_STROKE, R.drawable.ic_oval_stroke
-        ), _root_ide_package_.com.webscare.urducanvas.data.model.ShapeItem(
-            LabelShape.CIRCLE_FILL, R.drawable.ic_circle_fill
-        ), _root_ide_package_.com.webscare.urducanvas.data.model.ShapeItem(
-            LabelShape.CIRCLE_STROKE, R.drawable.ic_circle_stroke
-        )
+            LabelShape.RECTANGLE_FILL,
+            R.drawable.ic_rect_fill,
+        ),
+        _root_ide_package_.com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.RECTANGLE_STROKE,
+            R.drawable.ic_rect_stroke,
+        ),
+        _root_ide_package_.com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.OVAL_FILL,
+            R.drawable.ic_oval_fill,
+        ),
+        _root_ide_package_.com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.OVAL_STROKE,
+            R.drawable.ic_oval_stroke,
+        ),
+        _root_ide_package_.com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.CIRCLE_FILL,
+            R.drawable.ic_circle_fill,
+        ),
+        _root_ide_package_.com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.CIRCLE_STROKE,
+            R.drawable.ic_circle_stroke,
+        ),
     )
 
     private val shapesAdapter =
         _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ShapesAdapter(
-            shapesList
+            shapesList,
         ) { selectedShape ->
             // When a shape is selected, apply the label to the text element
             viewModel.setTextLabel(
-                true, viewModel.labelColor.value!!, selectedShape
+                true,
+                viewModel.labelColor.value!!,
+                selectedShape,
             ) // Use selected shape
         }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentLabelsBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -80,12 +94,16 @@ class LabelsFragment : androidx.fragment.app.Fragment() {
                     val selectedColor = color.colorCode.toColorInt()
                     viewModel.clearLabelGradients()
                     viewModel.setTextLabel(
-                        true, selectedColor, viewModel.labelShape.value!!
+                        true,
+                        selectedColor,
+                        viewModel.labelShape.value!!,
                     )
                 },
                 {
                     viewModel.setTextLabel(
-                        false, android.R.color.transparent, viewModel.labelShape.value!!
+                        false,
+                        android.R.color.transparent,
+                        viewModel.labelShape.value!!,
                     )
                 },
                 {
@@ -93,14 +111,15 @@ class LabelsFragment : androidx.fragment.app.Fragment() {
                     viewModel.startPicking(PickerTarget.COLOR_PICKER_LABEL)
                     viewModel.setPagingLocked(true)
                     childFragmentManager.beginTransaction().replace(
-                            R.id.labelsFragment,
-                            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment()
-                        ).addToBackStack(null).commit()
+                        R.id.labelsFragment,
+                        _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment(),
+                    ).addToBackStack(null).commit()
                 },
                 {
                     viewModel.clearLabelGradients()
                     viewModel.startPicking(PickerTarget.EYE_DROPPER_LABEL)
-                })
+                },
+            )
 
         gradientsAdapter =
             _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientsAdapter(
@@ -113,13 +132,14 @@ class LabelsFragment : androidx.fragment.app.Fragment() {
                     viewModel.setGradient(item)
                     viewModel.startPickingGradient(GradientPickerTarget.TEXT_LABEL)
                     childFragmentManager.beginTransaction().replace(
-                            R.id.labelsFragment,
-                            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment()
-                                .apply {
-                                    arguments = Bundle().apply {
-                                        putBoolean("IS_EDIT", true)
-                                    }
-                                }).addToBackStack(null).commit()
+                        R.id.labelsFragment,
+                        _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment()
+                            .apply {
+                                arguments = Bundle().apply {
+                                    putBoolean("IS_EDIT", true)
+                                }
+                            },
+                    ).addToBackStack(null).commit()
                 },
                 onNoneSelected = {
                     viewModel.clearLabelGradients()
@@ -128,14 +148,16 @@ class LabelsFragment : androidx.fragment.app.Fragment() {
                     viewModel.startPickingGradient(GradientPickerTarget.TEXT_LABEL)
                     viewModel.setPagingLocked(true)
                     childFragmentManager.beginTransaction().replace(
-                            R.id.labelsFragment,
-                            _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment()
-                                .apply {
-                                    arguments = Bundle().apply {
-                                        putBoolean("IS_EDIT", false)
-                                    }
-                                }).addToBackStack(null).commit()
-                })
+                        R.id.labelsFragment,
+                        _root_ide_package_.com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment()
+                            .apply {
+                                arguments = Bundle().apply {
+                                    putBoolean("IS_EDIT", false)
+                                }
+                            },
+                    ).addToBackStack(null).commit()
+                },
+            )
 
         binding.colors.apply {
             adapter = colorsAdapter
@@ -175,12 +197,12 @@ class LabelsFragment : androidx.fragment.app.Fragment() {
         if (showGradients) {
             // Fade out gradient and hide it
             binding.gradients.animate().alpha(0f).setDuration(fadeDuration).withEndAction {
-                    binding.gradients.visibility = View.GONE
-                    // Now fade in solid after gradient is hidden
-                    binding.colors.alpha = 0f
-                    binding.colors.visibility = View.VISIBLE
-                    binding.colors.animate().alpha(1f).setDuration(fadeDuration).start()
-                }.start()
+                binding.gradients.visibility = View.GONE
+                // Now fade in solid after gradient is hidden
+                binding.colors.alpha = 0f
+                binding.colors.visibility = View.VISIBLE
+                binding.colors.animate().alpha(1f).setDuration(fadeDuration).start()
+            }.start()
 
             binding.gradient.backgroundTintList =
                 ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.contrast))
@@ -189,12 +211,12 @@ class LabelsFragment : androidx.fragment.app.Fragment() {
         } else {
             // Fade out solid and hide it
             binding.colors.animate().alpha(0f).setDuration(fadeDuration).withEndAction {
-                    binding.colors.visibility = View.GONE
-                    // Now fade in gradient after solid is hidden
-                    binding.gradients.alpha = 0f
-                    binding.gradients.visibility = View.VISIBLE
-                    binding.gradients.animate().alpha(1f).setDuration(fadeDuration).start()
-                }.start()
+                binding.colors.visibility = View.GONE
+                // Now fade in gradient after solid is hidden
+                binding.gradients.alpha = 0f
+                binding.gradients.visibility = View.VISIBLE
+                binding.gradients.animate().alpha(1f).setDuration(fadeDuration).start()
+            }.start()
             binding.gradient.backgroundTintList =
                 ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white))
             binding.solid.backgroundTintList =

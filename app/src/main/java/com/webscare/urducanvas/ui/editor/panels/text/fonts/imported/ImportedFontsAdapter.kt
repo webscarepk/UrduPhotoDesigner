@@ -1,24 +1,19 @@
 package com.webscare.urducanvas.ui.editor.panels.text.fonts.imported
 
-import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.webscare.urducanvas.R
 import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.databinding.LayoutImportedFontsGridBinding
-import java.io.File
 
 /**
  * Standalone adapter for [ImportedFontsBottomSheet].
  * Displays imported fonts only — no selection mode, no rename, no options menu.
  * Reuses item_file.xml layout (same as FilesAdapter) for visual consistency.
  */
-class ImportedFontsAdapter(
-    private val onFontClick: (FontEntity) -> Unit
-) : ListAdapter<FontEntity, ImportedFontsAdapter.FontViewHolder>(DIFF) {
+class ImportedFontsAdapter(private val onFontClick: (FontEntity) -> Unit) : ListAdapter<FontEntity, ImportedFontsAdapter.FontViewHolder>(DIFF) {
 
     var selectedFontId: String? = null
         set(value) {
@@ -42,8 +37,7 @@ class ImportedFontsAdapter(
         holder.bind(getItem(position))
     }
 
-    inner class FontViewHolder(private val binding: LayoutImportedFontsGridBinding) :
-        RecyclerView.ViewHolder(binding.root) {
+    inner class FontViewHolder(private val binding: LayoutImportedFontsGridBinding) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(font: FontEntity) {
             binding.assetName.text = font.font_name

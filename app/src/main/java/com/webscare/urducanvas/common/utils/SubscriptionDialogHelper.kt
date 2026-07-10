@@ -1,7 +1,6 @@
 package com.webscare.urducanvas.common.utils
 
 import android.content.Context
-import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.View
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -19,7 +18,7 @@ object SubscriptionDialogHelper {
         cancelText: String? = null,
         cancelable: Boolean = true,
         onConfirm: () -> Unit,
-        onCancel: (() -> Unit)? = null
+        onCancel: (() -> Unit)? = null,
     ) {
         val binding = LayoutSubscriptionDialogBinding.inflate(LayoutInflater.from(context))
 

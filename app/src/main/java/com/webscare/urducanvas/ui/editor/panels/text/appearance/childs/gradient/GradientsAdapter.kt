@@ -16,14 +16,13 @@ import com.webscare.urducanvas.common.canvas.model.GradientItem
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.LayoutColorItemBinding
 import com.webscare.urducanvas.databinding.LayoutColorPickerItemBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class GradientsAdapter(
     private var gradientList: List<GradientItem>,
     private val onGradientSelected: (Bitmap, GradientItem) -> Unit,
     private val onGradientEditSelected: (Bitmap, GradientItem) -> Unit,
     private val onNoneSelected: () -> Unit,
-    private val onGradientPickerClicked: () -> Unit
+    private val onGradientPickerClicked: () -> Unit,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var selectedPosition: Int = RecyclerView.NO_POSITION
@@ -41,14 +40,12 @@ class GradientsAdapter(
         private const val VIEW_TYPE_GRADIENT = 2
     }
 
-    inner class GradientViewHolder(val binding: LayoutColorItemBinding) :
-        RecyclerView.ViewHolder(binding.root) {
+    inner class GradientViewHolder(val binding: LayoutColorItemBinding) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: GradientItem, isSelected: Boolean) {
-
             binding.colorView.background = GradientDrawable(
                 GradientDrawable.Orientation.RIGHT_LEFT,
-                item.colors.toIntArray()
+                item.colors.toIntArray(),
             )
             val gradientDrawable = GradientDrawable(GradientDrawable.Orientation.RIGHT_LEFT, item.colors.toIntArray())
 
@@ -69,17 +66,17 @@ class GradientsAdapter(
                 val drawable = item.createGradientPreviewDrawable(
                     item,
                     width = width,
-                    height = height
+                    height = height,
                 )
                 val bmp = createBitmap(width, height, Bitmap.Config.ARGB_8888)
                 val canvas = Canvas(bmp)
                 drawable.setBounds(0, 0, canvas.width, canvas.height)
                 drawable.draw(canvas)
 
-                if (binding.edit.isVisible){
+                if (binding.edit.isVisible) {
                     onGradientEditSelected(bmp, item)
                     selectedItem = item
-                }else{
+                } else {
                     onGradientSelected(bmp, item)
                     selectedItem = item
                 }
@@ -91,8 +88,7 @@ class GradientsAdapter(
         }
     }
 
-    inner class NoneViewHolder(val binding: LayoutColorPickerItemBinding) :
-        RecyclerView.ViewHolder(binding.root) {
+    inner class NoneViewHolder(val binding: LayoutColorPickerItemBinding) : RecyclerView.ViewHolder(binding.root) {
 
         init {
             binding.colorView.setImageResource(R.drawable.ic_none) // your "none" icon
@@ -106,8 +102,7 @@ class GradientsAdapter(
         }
     }
 
-    inner class PickerViewHolder(val binding: LayoutColorPickerItemBinding) :
-        RecyclerView.ViewHolder(binding.root) {
+    inner class PickerViewHolder(val binding: LayoutColorPickerItemBinding) : RecyclerView.ViewHolder(binding.root) {
 
         init {
             binding.colorView.setImageResource(R.drawable.ic_add)
@@ -117,28 +112,24 @@ class GradientsAdapter(
         }
     }
 
-    override fun getItemViewType(position: Int): Int {
-        return when (position) {
-            0 -> VIEW_TYPE_NONE
-            1 -> VIEW_TYPE_PICKER
-            else -> VIEW_TYPE_GRADIENT
-        }
+    override fun getItemViewType(position: Int): Int = when (position) {
+        0 -> VIEW_TYPE_NONE
+        1 -> VIEW_TYPE_PICKER
+        else -> VIEW_TYPE_GRADIENT
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return when (viewType) {
-            VIEW_TYPE_NONE -> {
-                val binding = LayoutColorPickerItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-                NoneViewHolder(binding)
-            }
-            VIEW_TYPE_PICKER -> {
-                val binding = LayoutColorPickerItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-                PickerViewHolder(binding)
-            }
-            else -> {
-                val binding = LayoutColorItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-                GradientViewHolder(binding)
-            }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder = when (viewType) {
+        VIEW_TYPE_NONE -> {
+            val binding = LayoutColorPickerItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            NoneViewHolder(binding)
+        }
+        VIEW_TYPE_PICKER -> {
+            val binding = LayoutColorPickerItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            PickerViewHolder(binding)
+        }
+        else -> {
+            val binding = LayoutColorItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            GradientViewHolder(binding)
         }
     }
 
@@ -151,7 +142,7 @@ class GradientsAdapter(
         }
     }
 
-    fun updateList(new:List<GradientItem>){
+    fun updateList(new: List<GradientItem>) {
         gradientList = new
         notifyDataSetChanged()
     }

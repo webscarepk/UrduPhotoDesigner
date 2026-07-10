@@ -10,7 +10,7 @@ fun Fragment.showGlobalSuccessSnack(
     actionText: String = "Open",
     duration: Int = 2000,
     anchor: View? = null,
-    onAction: () -> Unit
+    onAction: () -> Unit,
 ) {
     val navController = findNavController()
     if (navController.currentDestination?.id == R.id.editorFragment) {
@@ -22,6 +22,6 @@ fun Fragment.showGlobalSuccessSnack(
         actionText = actionText,
         duration = duration,
         anchor = anchor,
-        onAction = onAction
+        onAction = onAction,
     )
 }

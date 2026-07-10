@@ -27,33 +27,31 @@ sealed class ImageFilter(val name: String) {
     data object Cyberpunk : ImageFilter("Cyberpunk")
 
     companion object {
-        fun fromName(name: String): ImageFilter {
-            return when (name) {
-                "None" -> None
-                "Grayscale" -> Grayscale
-                "Sepia" -> Sepia
-                "Invert" -> Invert
-                "CoolTint" -> CoolTint
-                "WarmTint" -> WarmTint
-                "Film" -> Film
-                "TealOrange" -> TealOrange
-                "BlackWhite" -> BlackWhite
-                "HighContrast" -> HighContrast
-                "Vintage" -> Vintage
-                "BrightnessBoost" -> BrightnessBoost
-                "SoftBlur" -> SoftBlur
-                "Sharpen" -> Sharpen
-                "Glow" -> Glow
-                "Sketch" -> Sketch
-                "Cartoon" -> Cartoon
-                "HDR" -> HDR
-                "Lomo" -> Lomo
-                "Pastel" -> Pastel
-                "Dramatic" -> Dramatic
-                "GoldenHour" -> GoldenHour
-                "Cyberpunk" -> Cyberpunk
-                else -> None
-            }
+        fun fromName(name: String): ImageFilter = when (name) {
+            "None" -> None
+            "Grayscale" -> Grayscale
+            "Sepia" -> Sepia
+            "Invert" -> Invert
+            "CoolTint" -> CoolTint
+            "WarmTint" -> WarmTint
+            "Film" -> Film
+            "TealOrange" -> TealOrange
+            "BlackWhite" -> BlackWhite
+            "HighContrast" -> HighContrast
+            "Vintage" -> Vintage
+            "BrightnessBoost" -> BrightnessBoost
+            "SoftBlur" -> SoftBlur
+            "Sharpen" -> Sharpen
+            "Glow" -> Glow
+            "Sketch" -> Sketch
+            "Cartoon" -> Cartoon
+            "HDR" -> HDR
+            "Lomo" -> Lomo
+            "Pastel" -> Pastel
+            "Dramatic" -> Dramatic
+            "GoldenHour" -> GoldenHour
+            "Cyberpunk" -> Cyberpunk
+            else -> None
         }
     }
 }

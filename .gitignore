@@ -14,3 +14,7 @@
 .cxx
 local.properties
 UrduCanvas
+
+# Detekt reports (generated, not tracked)
+**/build/reports/detekt/
+

@@ -12,8 +12,12 @@ data class StrokeData(
     var hardness: Float = 1f,
     var style: BrushStyle,
     var gradient: GradientItem? = null,
-    var pathData: List<Float>? = null // Serialized path points
+    var pathData: List<Float>? = null, // Serialized path points
 ) : Serializable {
+
+    companion object {
+        private const val serialVersionUID: Long = 1L
+    }
 
     /** Convert Path to list of float coordinates for saving */
     fun serializePath(step: Float = 2f) {

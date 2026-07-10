@@ -23,12 +23,11 @@ enum class ShapeType(val displayName: String) {
     STAR_SEVEN("✷ 7-Point Star"),
     STAR_TEN("✸ 10-Point Star"),
     HEART("♥ Heart"),
-    DIAMOND("♦ Diamond");
+    DIAMOND("♦ Diamond"),
+    ;
 
     companion object {
         /** Get ShapeType by display name (case-insensitive) */
-        fun fromDisplayName(name: String): ShapeType? {
-            return values().find { it.displayName.equals(name, ignoreCase = true) }
-        }
+        fun fromDisplayName(name: String): ShapeType? = values().find { it.displayName.equals(name, ignoreCase = true) }
     }
 }

@@ -19,8 +19,6 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -81,7 +79,9 @@ class ObjectsFragment : Fragment() {
         }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentObjectsBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -92,7 +92,6 @@ class ObjectsFragment : Fragment() {
         setEvents()
         attachDragHandleSwipe()
         setupThumbnailStrip()
-
 
         val initial = mainViewModel.objectsData.value
         tabs.clear()
@@ -132,11 +131,13 @@ class ObjectsFragment : Fragment() {
                     is SelectedItem.Emoji -> mainViewModel.toggleEmojiSelection(item.meta.char)
                     is SelectedItem.Shape -> { /* images panel has no shape selection */ }
                 }
-            }
+            },
         )
         binding.selectedThumbnails.apply {
             layoutManager = LinearLayoutManager(
-                requireContext(), LinearLayoutManager.HORIZONTAL, false
+                requireContext(),
+                LinearLayoutManager.HORIZONTAL,
+                false,
             )
             adapter = thumbnailAdapter
             isNestedScrollingEnabled = false
@@ -207,7 +208,7 @@ class ObjectsFragment : Fragment() {
         val expandedAlpha = ((offset - 0.3f) / 0.7f).coerceIn(0f, 1f)
 
         binding.headerCollapsed.alpha = collapsedAlpha
-        binding.headerExpanded.alpha  = expandedAlpha
+        binding.headerExpanded.alpha = expandedAlpha
 
         // GONE when fully hidden (takes no space), INVISIBLE only mid-fade
         binding.headerCollapsed.visibility =
@@ -218,14 +219,13 @@ class ObjectsFragment : Fragment() {
         // Tab layouts mirror their respective headers
         val isSearchActive = currentQuery.isNotBlank()
         if (!isSearchActive) {
-            binding.tabLayout.alpha         = collapsedAlpha
+            binding.tabLayout.alpha = collapsedAlpha
             binding.tabLayoutExpanded.alpha = expandedAlpha
             binding.tabLayout.visibility =
                 if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
             binding.tabLayoutExpanded.visibility =
                 if (expandedAlpha > 0f) View.VISIBLE else View.GONE
         }
-
 
         // Forward live offset to child fragments to drive morph transition on every frame
         for (fragment in fragmentCache.values.toList()) {
@@ -252,9 +252,9 @@ class ObjectsFragment : Fragment() {
         val slideDistance = 200 * resources.displayMetrics.density
 
         binding.selectionToolbar.apply {
-            alpha        = 0f
+            alpha = 0f
             translationY = slideDistance
-            isVisible    = false
+            isVisible = false
         }
 
         // Toolbar show/hide driven by isInMultiSelectMode (covers both images + emojis)
@@ -292,15 +292,15 @@ class ObjectsFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 combine(
                     mainViewModel.selectedImageIds,
-                    mainViewModel.selectedEmojiChars
+                    mainViewModel.selectedEmojiChars,
                 ) { imageIds, emojiChars -> Pair(imageIds, emojiChars) }
                     .collect { (imageIds, emojiChars) ->
                         if (_binding == null) return@collect
 
                         val totalCount = imageIds.size + emojiChars.size
                         binding.selectionCount.text = when (totalCount) {
-                            0    -> ""
-                            1    -> "1 selected"
+                            0 -> ""
+                            1 -> "1 selected"
                             else -> "$totalCount selected"
                         }
 
@@ -318,8 +318,8 @@ class ObjectsFragment : Fragment() {
 
                         val emojiItems = emojiChars.map { char ->
                             SelectedItem.Emoji(
-                                meta         = EmojiMeta(char = char, name = ""),
-                                cachedBitmap = null
+                                meta = EmojiMeta(char = char, name = ""),
+                                cachedBitmap = null,
                             )
                         }
 
@@ -332,9 +332,9 @@ class ObjectsFragment : Fragment() {
     // ── Done — add all selected to canvas ─────────────────────────────────────
 
     private fun addAllSelectedToCanvas() {
-        val data        = mainViewModel.objectsData.value
+        val data = mainViewModel.objectsData.value
         val selectedIds = mainViewModel.selectedImageIds.value
-        val allImages   = buildList {
+        val allImages = buildList {
             addAll(data.recents)
             data.imagesByCategory.values.forEach { addAll(it) }
         }
@@ -343,7 +343,7 @@ class ObjectsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             // Add selected images
             toAdd.forEach { entity ->
-                val url   = Constants.BASE_URL_GLIDE + entity.file_url
+                val url = Constants.BASE_URL_GLIDE + entity.file_url
                 val isSvg = entity.file_name.endsWith(".svg", ignoreCase = true)
 
                 if (isSvg) {
@@ -352,9 +352,11 @@ class ObjectsFragment : Fragment() {
                     }
                     result?.let { (drawable, xml) ->
                         viewModel.addSvgSticker(
-                            drawable.trimTransparentEdges(), xml,
-                            requireActivity(), entity.is_premium,
-                            applyWhiteTintInDarkMode = true
+                            drawable.trimTransparentEdges(),
+                            xml,
+                            requireActivity(),
+                            entity.is_premium,
+                            applyWhiteTintInDarkMode = true,
                         )
                     }
                 } else {
@@ -374,7 +376,7 @@ class ObjectsFragment : Fragment() {
                             it.trimTransparentEdges(),
                             requireActivity(),
                             ElementType.IMAGE,
-                            entity.is_premium
+                            entity.is_premium,
                         )
                     }
                 }
@@ -397,7 +399,7 @@ class ObjectsFragment : Fragment() {
     private fun showTab(position: Int) {
         if (position < 0 || position >= tabs.size) return
         val category = tabs[position]
-        
+
         // Skip duplicate tab selections to prevent redundant layout passes and transactions
         if (currentTabIndex == position && currentFragment != null) return
 
@@ -416,8 +418,11 @@ class ObjectsFragment : Fragment() {
                 for (f in childFragmentManager.fragments) {
                     if (f !== target && !f.isHidden) hide(f)
                 }
-                if (!target.isAdded) add(R.id.fragmentContainer, target, category)
-                else if (target.isHidden) show(target)
+                if (!target.isAdded) {
+                    add(R.id.fragmentContainer, target, category)
+                } else if (target.isHidden) {
+                    show(target)
+                }
             }
             .commit()
 
@@ -464,9 +469,12 @@ class ObjectsFragment : Fragment() {
                 val pos = tab?.position ?: return
                 tab.view.animate().scaleX(1f).scaleY(1f).setDuration(100)
                     .setInterpolator(OvershootInterpolator(1.2f)).start()
-                
-                val other = if (tab.parent === binding.tabLayout)
-                    binding.tabLayoutExpanded else binding.tabLayout
+
+                val other = if (tab.parent === binding.tabLayout) {
+                    binding.tabLayoutExpanded
+                } else {
+                    binding.tabLayout
+                }
                 if (other.selectedTabPosition != pos) {
                     other.setScrollPosition(pos, 0f, true)
                     other.getTabAt(pos)?.let { otherTab ->
@@ -525,7 +533,10 @@ class ObjectsFragment : Fragment() {
         currentQuery = query
         for (fragment in fragmentCache.values.toList()) fragment.updateFilter(query)
 
-        if (query.isBlank()) { showAllTabs(); return }
+        if (query.isBlank()) {
+            showAllTabs()
+            return
+        }
 
         val data = mainViewModel.objectsData.value
         listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
@@ -553,7 +564,7 @@ class ObjectsFragment : Fragment() {
         val i = tabs.indexOf(category).takeIf { it >= 0 } ?: return
         listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
             val tabStrip = tl.getChildAt(0) as? ViewGroup ?: return@forEach
-            val tabView  = tabStrip.getChildAt(i) ?: return@forEach
+            val tabView = tabStrip.getChildAt(i) ?: return@forEach
             if (tabView.isVisible == hasResults) return@forEach
             tabView.isVisible = hasResults
         }
@@ -589,7 +600,7 @@ class ObjectsFragment : Fragment() {
 
         // FIX: cancel clears ALL selection (images + emojis)
         binding.cancelSelection.addPressEffect { mainViewModel.clearAllSelection() }
-        binding.doneSelection.addPressEffect   { addAllSelectedToCanvas() }
+        binding.doneSelection.addPressEffect { addAllSelectedToCanvas() }
 
         // Search icon — expands panel, focuses expanded search bar + opens keyboard
         binding.searchIcon.addPressEffect {
@@ -600,7 +611,7 @@ class ObjectsFragment : Fragment() {
                 if (_binding == null) return@post
                 binding.searchBarExpanded.requestFocus()
                 binding.searchBarExpanded.setSelection(
-                    binding.searchBarExpanded.text?.length ?: 0
+                    binding.searchBarExpanded.text?.length ?: 0,
                 )
                 showKeyboard(binding.searchBarExpanded)
             }
@@ -612,8 +623,11 @@ class ObjectsFragment : Fragment() {
         binding.searchBarExpanded.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 applySearch(binding.searchBarExpanded.text.toString())
-                hideKeyboard(); true
-            } else false
+                hideKeyboard()
+                true
+            } else {
+                false
+            }
         }
 
         binding.searchBarExpanded.addTextChangedListener(object : TextWatcher {
@@ -648,9 +662,14 @@ class ObjectsFragment : Fragment() {
 
     private fun updateExpandedSearchCross(text: String) {
         binding.searchBarExpanded.setCompoundDrawablesWithIntrinsicBounds(
-            null, null,
-            if (text.isNotEmpty()) ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close)
-            else null, null
+            null,
+            null,
+            if (text.isNotEmpty()) {
+                ContextCompat.getDrawable(requireActivity(), R.drawable.ic_close)
+            } else {
+                null
+            },
+            null,
         )
     }
 
@@ -676,7 +695,7 @@ class ObjectsFragment : Fragment() {
                 // Preserve as much detail as possible — only apply the GPU hard-limit cap
                 // (24 MP / 4899 px per side) to prevent a hard crash. No canvas-relative
                 // downscale here; CanvasView's display-proxy system handles rendering perf.
-                 val bitmap = downsampleIfNeeded(rawBitmap, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)
+                val bitmap = downsampleIfNeeded(rawBitmap, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)
 
                 withContext(Dispatchers.Main) {
                     viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE)
@@ -690,7 +709,7 @@ class ObjectsFragment : Fragment() {
     companion object {
         val BASE_TABS = listOf(
             "Emoticons", "Animals", "Nature", "Food", "Sports",
-            "Transport", "Objects", "Alchemy", "Shapes", "Arrows", "Letters", "Flags"
+            "Transport", "Objects", "Alchemy", "Shapes", "Arrows", "Letters", "Flags",
         )
     }
 }

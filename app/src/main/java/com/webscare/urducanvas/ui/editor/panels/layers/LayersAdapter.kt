@@ -27,24 +27,24 @@ sealed class DisplayItem {
 val DisplayItem.element: CanvasElement
     get() = when (this) {
         is DisplayItem.GroupHeader -> element
-        is DisplayItem.Child       -> element
-        is DisplayItem.Standalone  -> element
+        is DisplayItem.Child -> element
+        is DisplayItem.Standalone -> element
     }
 
 class LayersAdapter(
-    private val onLockToggle:       (element: CanvasElement) -> Unit,
-    private val onMoreOptions:      (element: CanvasElement, anchorView: View) -> Unit,
-    private val onItemClick:        (element: CanvasElement) -> Unit,
-    private val onItemLongClick:    (element: CanvasElement) -> Unit,
-    private val onStartDrag:        (RecyclerView.ViewHolder) -> Unit,
+    private val onLockToggle: (element: CanvasElement) -> Unit,
+    private val onMoreOptions: (element: CanvasElement, anchorView: View) -> Unit,
+    private val onItemClick: (element: CanvasElement) -> Unit,
+    private val onItemLongClick: (element: CanvasElement) -> Unit,
+    private val onStartDrag: (RecyclerView.ViewHolder) -> Unit,
     private val onGroupHeaderClick: (element: CanvasElement) -> Unit,
-    private val onToggleCollapse:   (element: CanvasElement) -> Unit
+    private val onToggleCollapse: (element: CanvasElement) -> Unit,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
-        const val TYPE_COLLAPSED             = 0
+        const val TYPE_COLLAPSED = 0
         const val TYPE_EXPANDED_GROUP_HEADER = 1
-        const val TYPE_EXPANDED_ITEM         = 2
+        const val TYPE_EXPANDED_ITEM = 2
     }
 
     internal val items = mutableListOf<DisplayItem>()
@@ -102,9 +102,7 @@ class LayersAdapter(
 
     fun getDisplayItems(): List<DisplayItem> = items.toList()
 
-    override fun getItemViewType(position: Int): Int {
-        return if (items[position] is DisplayItem.GroupHeader) TYPE_EXPANDED_GROUP_HEADER else TYPE_EXPANDED_ITEM
-    }
+    override fun getItemViewType(position: Int): Int = if (items[position] is DisplayItem.GroupHeader) TYPE_EXPANDED_GROUP_HEADER else TYPE_EXPANDED_ITEM
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
@@ -112,19 +110,19 @@ class LayersAdapter(
             TYPE_COLLAPSED -> {
                 Collapsed(
                     LayoutLayersItemCollapsedBinding.inflate(inflater, parent, false),
-                    this, onLockToggle, onMoreOptions, onItemClick, onItemLongClick, onStartDrag, onGroupHeaderClick, onToggleCollapse
+                    this, onLockToggle, onMoreOptions, onItemClick, onItemLongClick, onStartDrag, onGroupHeaderClick, onToggleCollapse,
                 )
             }
             TYPE_EXPANDED_GROUP_HEADER -> {
                 ExpandedGroupHeader(
                     LayoutLayersGroupHeaderBinding.inflate(inflater, parent, false),
-                    this, onLockToggle, onMoreOptions, onItemClick, onItemLongClick, onStartDrag, onGroupHeaderClick, onToggleCollapse
+                    this, onLockToggle, onMoreOptions, onItemClick, onItemLongClick, onStartDrag, onGroupHeaderClick, onToggleCollapse,
                 )
             }
             else -> {
                 ExpandedItem(
                     LayoutLayersItemBinding.inflate(inflater, parent, false),
-                    this, onLockToggle, onMoreOptions, onItemClick, onItemLongClick, onStartDrag, onGroupHeaderClick, onToggleCollapse
+                    this, onLockToggle, onMoreOptions, onItemClick, onItemLongClick, onStartDrag, onGroupHeaderClick, onToggleCollapse,
                 )
             }
         }
@@ -137,11 +135,11 @@ class LayersAdapter(
             displayItem,
             isChild = displayItem is DisplayItem.Child,
             isFirst = position == 0 || items[position - 1] is DisplayItem.GroupHeader,
-            isLast  = position == items.size - 1 || items[position + 1] !is DisplayItem.Child,
+            isLast = position == items.size - 1 || items[position + 1] !is DisplayItem.Child,
             inSelectionMode = inSelectionMode,
             slideOffset = slideOffset,
             rvWidth = recyclerViewWidth,
-            rvPadding = recyclerViewPadding
+            rvPadding = recyclerViewPadding,
         )
     }
 
@@ -152,13 +150,13 @@ class LayersAdapter(
     abstract class LayerViewHolder(
         itemView: View,
         protected val adapter: LayersAdapter,
-        protected val onLockToggle:       (element: CanvasElement) -> Unit,
-        protected val onMoreOptions:      (element: CanvasElement, anchorView: View) -> Unit,
-        protected val onItemClick:        (element: CanvasElement) -> Unit,
-        protected val onItemLongClick:    (element: CanvasElement) -> Unit,
-        protected val onStartDrag:        (RecyclerView.ViewHolder) -> Unit,
+        protected val onLockToggle: (element: CanvasElement) -> Unit,
+        protected val onMoreOptions: (element: CanvasElement, anchorView: View) -> Unit,
+        protected val onItemClick: (element: CanvasElement) -> Unit,
+        protected val onItemLongClick: (element: CanvasElement) -> Unit,
+        protected val onStartDrag: (RecyclerView.ViewHolder) -> Unit,
         protected val onGroupHeaderClick: (element: CanvasElement) -> Unit,
-        protected val onToggleCollapse:   (element: CanvasElement) -> Unit
+        protected val onToggleCollapse: (element: CanvasElement) -> Unit,
     ) : RecyclerView.ViewHolder(itemView) {
 
         abstract val cardRoot: com.google.android.material.card.MaterialCardView
@@ -171,30 +169,28 @@ class LayersAdapter(
             inSelectionMode: Boolean,
             slideOffset: Float,
             rvWidth: Int,
-            rvPadding: Int
+            rvPadding: Int,
         )
 
         fun updateSize(slideOffset: Float, rvWidth: Int, rvPadding: Int) {
             // No-op: layers fragment is always a full-width vertical list, no sizing overrides needed
         }
 
-        protected fun Float.dpToPx(context: android.content.Context): Float =
-            this * context.resources.displayMetrics.density
+        protected fun Float.dpToPx(context: android.content.Context): Float = this * context.resources.displayMetrics.density
 
-        protected fun Int.dpToPx(context: android.content.Context): Int =
-            (this * context.resources.displayMetrics.density).toInt()
+        protected fun Int.dpToPx(context: android.content.Context): Int = (this * context.resources.displayMetrics.density).toInt()
     }
 
     class Collapsed(
         private val binding: LayoutLayersItemCollapsedBinding,
         adapter: LayersAdapter,
-        onLockToggle:       (element: CanvasElement) -> Unit,
-        onMoreOptions:      (element: CanvasElement, anchorView: View) -> Unit,
-        onItemClick:        (element: CanvasElement) -> Unit,
-        onItemLongClick:    (element: CanvasElement) -> Unit,
-        onStartDrag:        (RecyclerView.ViewHolder) -> Unit,
+        onLockToggle: (element: CanvasElement) -> Unit,
+        onMoreOptions: (element: CanvasElement, anchorView: View) -> Unit,
+        onItemClick: (element: CanvasElement) -> Unit,
+        onItemLongClick: (element: CanvasElement) -> Unit,
+        onStartDrag: (RecyclerView.ViewHolder) -> Unit,
         onGroupHeaderClick: (element: CanvasElement) -> Unit,
-        onToggleCollapse:   (element: CanvasElement) -> Unit
+        onToggleCollapse: (element: CanvasElement) -> Unit,
     ) : LayerViewHolder(binding.root, adapter, onLockToggle, onMoreOptions, onItemClick, onItemLongClick, onStartDrag, onGroupHeaderClick, onToggleCollapse) {
 
         override val cardRoot get() = binding.root
@@ -207,7 +203,7 @@ class LayersAdapter(
             inSelectionMode: Boolean,
             slideOffset: Float,
             rvWidth: Int,
-            rvPadding: Int
+            rvPadding: Int,
         ) {
             val element = displayItem.element
 
@@ -216,14 +212,14 @@ class LayersAdapter(
                     R.drawable.ic_stickers
                 } else {
                     when (element.type) {
-                        ElementType.TEXT    -> R.drawable.ic_text_layer
-                        ElementType.IMAGE   -> R.drawable.ic_image_layer
+                        ElementType.TEXT -> R.drawable.ic_text_layer
+                        ElementType.IMAGE -> R.drawable.ic_image_layer
                         ElementType.STICKER -> R.drawable.ic_sticker
-                        ElementType.DRAW    -> R.drawable.ic_pen
-                        ElementType.SHAPE   -> R.drawable.ic_shapes
-                        else                -> R.drawable.ic_stickers
+                        ElementType.DRAW -> R.drawable.ic_pen
+                        ElementType.SHAPE -> R.drawable.ic_shapes
+                        else -> R.drawable.ic_stickers
                     }
-                }
+                },
             )
 
             if (element.isSelected) {
@@ -235,10 +231,13 @@ class LayersAdapter(
 
             binding.root.addPressEffectWithLongClick(
                 onClick = {
-                    if (displayItem is DisplayItem.GroupHeader) onGroupHeaderClick(element)
-                    else onItemClick(element)
+                    if (displayItem is DisplayItem.GroupHeader) {
+                        onGroupHeaderClick(element)
+                    } else {
+                        onItemClick(element)
+                    }
                 },
-                onLongClick = { onItemLongClick(element) }
+                onLongClick = { onItemLongClick(element) },
             )
 
             updateSize(slideOffset, rvWidth, rvPadding)
@@ -248,13 +247,13 @@ class LayersAdapter(
     class ExpandedGroupHeader(
         private val binding: LayoutLayersGroupHeaderBinding,
         adapter: LayersAdapter,
-        onLockToggle:       (element: CanvasElement) -> Unit,
-        onMoreOptions:      (element: CanvasElement, anchorView: View) -> Unit,
-        onItemClick:        (element: CanvasElement) -> Unit,
-        onItemLongClick:    (element: CanvasElement) -> Unit,
-        onStartDrag:        (RecyclerView.ViewHolder) -> Unit,
+        onLockToggle: (element: CanvasElement) -> Unit,
+        onMoreOptions: (element: CanvasElement, anchorView: View) -> Unit,
+        onItemClick: (element: CanvasElement) -> Unit,
+        onItemLongClick: (element: CanvasElement) -> Unit,
+        onStartDrag: (RecyclerView.ViewHolder) -> Unit,
         onGroupHeaderClick: (element: CanvasElement) -> Unit,
-        onToggleCollapse:   (element: CanvasElement) -> Unit
+        onToggleCollapse: (element: CanvasElement) -> Unit,
     ) : LayerViewHolder(binding.root, adapter, onLockToggle, onMoreOptions, onItemClick, onItemLongClick, onStartDrag, onGroupHeaderClick, onToggleCollapse) {
 
         override val cardRoot get() = binding.root
@@ -267,7 +266,7 @@ class LayersAdapter(
             inSelectionMode: Boolean,
             slideOffset: Float,
             rvWidth: Int,
-            rvPadding: Int
+            rvPadding: Int,
         ) {
             val element = displayItem.element
             binding.apply {
@@ -276,21 +275,21 @@ class LayersAdapter(
                 val childCount = adapter.items.count {
                     it is DisplayItem.Child && it.element.groupId == element.id
                 }
-                badge.text       = childCount.toString()
+                badge.text = childCount.toString()
                 badge.visibility = if (childCount > 0) View.VISIBLE else View.GONE
 
                 chevron.setImageResource(
-                    if (element.isGroupCollapsed) R.drawable.ic_next else R.drawable.ic_down
+                    if (element.isGroupCollapsed) R.drawable.ic_next else R.drawable.ic_down,
                 )
 
                 lock.setImageResource(
-                    if (element.isLocked) R.drawable.ic_lock else R.drawable.ic_unlock
+                    if (element.isLocked) R.drawable.ic_lock else R.drawable.ic_unlock,
                 )
                 lock.addPressEffect { onLockToggle(element) }
 
                 if (element.isSelected) {
                     root.setCardBackgroundColor(
-                        ContextCompat.getColor(root.context, R.color.white)
+                        ContextCompat.getColor(root.context, R.color.white),
                     )
                     root.strokeWidth = 2
                     root.strokeColor = ContextCompat.getColor(root.context, R.color.appColor)
@@ -301,10 +300,13 @@ class LayersAdapter(
 
                 chevron.addPressEffect { onToggleCollapse(element) }
                 options.setOnClickListener { v -> onMoreOptions(element, v) }
-                drag.setOnTouchListener { _, _ -> onStartDrag(this@ExpandedGroupHeader); false }
+                drag.setOnTouchListener { _, _ ->
+                    onStartDrag(this@ExpandedGroupHeader)
+                    false
+                }
                 root.addPressEffectWithLongClick(
-                    onClick     = { onGroupHeaderClick(element) },
-                    onLongClick = { onItemLongClick(element) }
+                    onClick = { onGroupHeaderClick(element) },
+                    onLongClick = { onItemLongClick(element) },
                 )
             }
             updateSize(slideOffset, rvWidth, rvPadding)
@@ -314,13 +316,13 @@ class LayersAdapter(
     class ExpandedItem(
         private val binding: LayoutLayersItemBinding,
         adapter: LayersAdapter,
-        onLockToggle:       (element: CanvasElement) -> Unit,
-        onMoreOptions:      (element: CanvasElement, anchorView: View) -> Unit,
-        onItemClick:        (element: CanvasElement) -> Unit,
-        onItemLongClick:    (element: CanvasElement) -> Unit,
-        onStartDrag:        (RecyclerView.ViewHolder) -> Unit,
+        onLockToggle: (element: CanvasElement) -> Unit,
+        onMoreOptions: (element: CanvasElement, anchorView: View) -> Unit,
+        onItemClick: (element: CanvasElement) -> Unit,
+        onItemLongClick: (element: CanvasElement) -> Unit,
+        onStartDrag: (RecyclerView.ViewHolder) -> Unit,
         onGroupHeaderClick: (element: CanvasElement) -> Unit,
-        onToggleCollapse:   (element: CanvasElement) -> Unit
+        onToggleCollapse: (element: CanvasElement) -> Unit,
     ) : LayerViewHolder(binding.root, adapter, onLockToggle, onMoreOptions, onItemClick, onItemLongClick, onStartDrag, onGroupHeaderClick, onToggleCollapse) {
 
         override val cardRoot get() = binding.root
@@ -334,18 +336,21 @@ class LayersAdapter(
             inSelectionMode: Boolean,
             slideOffset: Float,
             rvWidth: Int,
-            rvPadding: Int
+            rvPadding: Int,
         ) {
             val element = displayItem.element
             binding.apply {
                 val indentDp = if (isChild) 16 else 0
                 val indentPx = (indentDp * root.context.resources.displayMetrics.density).toInt()
                 (drag.layoutParams as? androidx.constraintlayout.widget.ConstraintLayout.LayoutParams)
-                    ?.let { lp -> lp.marginStart = indentPx; drag.layoutParams = lp }
+                    ?.let { lp ->
+                        lp.marginStart = indentPx
+                        drag.layoutParams = lp
+                    }
 
                 if (isChild) {
                     root.setCardBackgroundColor(
-                        ContextCompat.getColor(root.context, R.color.contrast)
+                        ContextCompat.getColor(root.context, R.color.contrast),
                     )
                     root.strokeWidth = 0
                     (root.layoutParams as? ViewGroup.MarginLayoutParams)
@@ -355,43 +360,48 @@ class LayersAdapter(
                         }
                     root.radius = when {
                         isFirst && isLast -> 6f.dpToPx(root.context)
-                        isFirst           -> 0f
-                        isLast            -> 6f.dpToPx(root.context)
-                        else              -> 0f
+                        isFirst -> 0f
+                        isLast -> 6f.dpToPx(root.context)
+                        else -> 0f
                     }
                 } else {
                     (root.layoutParams as? ViewGroup.MarginLayoutParams)
-                        ?.let { lp -> lp.bottomMargin = 3.dpToPx(root.context); root.layoutParams = lp }
+                        ?.let { lp ->
+                            lp.bottomMargin = 3.dpToPx(root.context)
+                            root.layoutParams = lp
+                        }
                     root.radius = 6f.dpToPx(root.context)
                 }
 
                 title.text = element.customName ?: when (element.type) {
-                    ElementType.TEXT    -> element.text ?: "Text"
-                    ElementType.IMAGE   -> "Image"
+                    ElementType.TEXT -> element.text ?: "Text"
+                    ElementType.IMAGE -> "Image"
                     ElementType.STICKER -> "Sticker"
-                    ElementType.DRAW    -> "Brush"
-                    ElementType.SHAPE   -> element.shapeType?.displayName ?: "Shape"
-                    else                -> "Background"
+                    ElementType.DRAW -> "Brush"
+                    ElementType.SHAPE -> element.shapeType?.displayName ?: "Shape"
+                    else -> "Background"
                 }
 
-                image.setImageResource(when (element.type) {
-                    ElementType.TEXT    -> R.drawable.ic_text_layer
-                    ElementType.IMAGE   -> R.drawable.ic_image_layer
-                    ElementType.STICKER -> R.drawable.ic_sticker
-                    ElementType.DRAW    -> R.drawable.ic_pen
-                    ElementType.SHAPE   -> R.drawable.ic_shapes
-                    else                -> R.drawable.ic_stickers
-                })
+                image.setImageResource(
+                    when (element.type) {
+                        ElementType.TEXT -> R.drawable.ic_text_layer
+                        ElementType.IMAGE -> R.drawable.ic_image_layer
+                        ElementType.STICKER -> R.drawable.ic_sticker
+                        ElementType.DRAW -> R.drawable.ic_pen
+                        ElementType.SHAPE -> R.drawable.ic_shapes
+                        else -> R.drawable.ic_stickers
+                    },
+                )
 
                 if (element.isSelected) {
                     if (inSelectionMode) {
                         root.setCardBackgroundColor(
-                            ContextCompat.getColor(root.context, R.color.contrast)
+                            ContextCompat.getColor(root.context, R.color.contrast),
                         )
                         root.strokeWidth = 0
                     } else {
                         root.setCardBackgroundColor(
-                            ContextCompat.getColor(root.context, R.color.white)
+                            ContextCompat.getColor(root.context, R.color.white),
                         )
                         root.strokeWidth = 2
                         root.strokeColor = ContextCompat.getColor(root.context, R.color.appColor)
@@ -403,17 +413,17 @@ class LayersAdapter(
 
                 val hideDragOrOptions = element.isLocked
                 if (inSelectionMode) {
-                    lock.visibility    = View.GONE
+                    lock.visibility = View.GONE
                     options.visibility = View.GONE
-                    drag.visibility    = if (element.isSelected) View.VISIBLE else View.GONE
+                    drag.visibility = if (element.isSelected) View.VISIBLE else View.GONE
                 } else {
-                    lock.visibility    = View.VISIBLE
+                    lock.visibility = View.VISIBLE
                     options.visibility = if (hideDragOrOptions) View.GONE else View.VISIBLE
-                    drag.visibility    = if (hideDragOrOptions) View.GONE else View.VISIBLE
+                    drag.visibility = if (hideDragOrOptions) View.GONE else View.VISIBLE
                 }
 
                 lock.setImageResource(
-                    if (element.isLocked) R.drawable.ic_lock else R.drawable.ic_unlock
+                    if (element.isLocked) R.drawable.ic_lock else R.drawable.ic_unlock,
                 )
 
                 lock.addPressEffect {
@@ -426,10 +436,11 @@ class LayersAdapter(
                     false
                 }
                 root.addPressEffectWithLongClick(
-                    onClick     = { onItemClick(element) },
-                    onLongClick = { onItemLongClick(element) }
+                    onClick = { onItemClick(element) },
+                    onLongClick = { onItemLongClick(element) },
                 )
             }
             updateSize(slideOffset, rvWidth, rvPadding)
         }
-    }}
+    }
+}

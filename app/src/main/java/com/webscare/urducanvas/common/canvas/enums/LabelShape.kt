@@ -29,5 +29,5 @@ enum class LabelShape {
     ROUNDED_RECTANGLE_FILL,
 
     @SerializedName("RoundedRectangleStroke")
-    ROUNDED_RECTANGLE_STROKE
+    ROUNDED_RECTANGLE_STROKE,
 }

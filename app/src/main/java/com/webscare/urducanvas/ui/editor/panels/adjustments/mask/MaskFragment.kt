@@ -32,7 +32,9 @@ class MaskFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentMaskBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -52,7 +54,6 @@ class MaskFragment : androidx.fragment.app.Fragment() {
         binding.stretch.addPressEffect { viewModel.setImageFitMode("stretch") }
 
         binding.zoomBar.apply {
-            
             max = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
@@ -69,7 +70,6 @@ class MaskFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.panXBar.apply {
-            
             max = 200
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
@@ -86,7 +86,6 @@ class MaskFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.panYBar.apply {
-            
             max = 200
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
@@ -103,7 +102,6 @@ class MaskFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.editShape.addPressEffect { goToShapePanel() }
-
     }
 
     private fun updateAddMaskButtonText() {
@@ -114,7 +112,6 @@ class MaskFragment : androidx.fragment.app.Fragment() {
             binding.editShape.text = getString(R.string.edit_shape)
         }
     }
-
 
     private fun updateFitModeButtonState(mode: String) {
         val contrastColor = ContextCompat.getColor(requireContext(), R.color.contrast)
@@ -166,7 +163,6 @@ class MaskFragment : androidx.fragment.app.Fragment() {
         viewModel.imageFitMode.observe(viewLifecycleOwner) { mode ->
             updateFitModeButtonState(mode)
         }
-
     }
 
     override fun onDestroyView() {

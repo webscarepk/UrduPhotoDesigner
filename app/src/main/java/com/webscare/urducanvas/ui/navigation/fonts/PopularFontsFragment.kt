@@ -31,7 +31,9 @@ class PopularFontsFragment : androidx.fragment.app.Fragment() {
     private var pagerAdapter: PopularFontsPagerAdapter? = null
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentPopularFontsBinding.inflate(inflater, container, false)
         return binding.root
@@ -67,7 +69,7 @@ class PopularFontsFragment : androidx.fragment.app.Fragment() {
                                 allFonts.map { it.font_category.trim() }
                                     .filter { it.isNotEmpty() && !it.equals("Imported", true) }
                                     .distinct()
-                                    .sorted()
+                                    .sorted(),
                             )
                         }
 
@@ -87,7 +89,9 @@ class PopularFontsFragment : androidx.fragment.app.Fragment() {
         pagerAdapter = PopularFontsPagerAdapter(
             // childFragmentManager + viewLifecycleOwner.lifecycle — never the Activity FM
             // or bare fragment lifecycle. See FilesFragment for full explanation.
-            childFragmentManager, viewLifecycleOwner.lifecycle, tabs
+            childFragmentManager,
+            viewLifecycleOwner.lifecycle,
+            tabs,
         )
         binding.viewPager.adapter = pagerAdapter
 
@@ -123,12 +127,12 @@ class PopularFontsFragment : androidx.fragment.app.Fragment() {
 
             if (i == selectedPosition) {
                 root?.setCardBackgroundColor(
-                    ContextCompat.getColor(requireContext(), R.color.appColor)
+                    ContextCompat.getColor(requireContext(), R.color.appColor),
                 )
                 text?.setTextColor(ContextCompat.getColor(requireContext(), R.color.whiteText))
             } else {
                 root?.setCardBackgroundColor(
-                    ContextCompat.getColor(requireContext(), R.color.contrast)
+                    ContextCompat.getColor(requireContext(), R.color.contrast),
                 )
                 text?.setTextColor(ContextCompat.getColor(requireContext(), R.color.gray))
             }

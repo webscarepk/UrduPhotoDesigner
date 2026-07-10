@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.channelFlow
 import javax.inject.Inject
 
 class FetchImagesRepoImpl @Inject constructor(
-    private val api: com.webscare.urducanvas.data.remote.EndPointsInterface
+    private val api: com.webscare.urducanvas.data.remote.EndPointsInterface,
 ) : com.webscare.urducanvas.domain.repo.FetchImagesRepo {
 
     override fun fetchImages(): Flow<com.webscare.urducanvas.common.sealed.Response<com.webscare.urducanvas.data.model.ImageResponse>> = channelFlow {

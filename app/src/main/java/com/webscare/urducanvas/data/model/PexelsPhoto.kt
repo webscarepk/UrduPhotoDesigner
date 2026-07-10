@@ -6,5 +6,5 @@ data class PexelsPhoto(
     val height: Int,
     val alt: String?,
     val src: PexelsSrc,
-    val photographer: String
+    val photographer: String,
 )

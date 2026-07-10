@@ -36,7 +36,7 @@ class ShapeFragment : Fragment() {
     private lateinit var pagerAdapter: ShapePanelPagerAdapter
     private val viewModel: CanvasViewModel by activityViewModels()
 
-    private var isFillEnabled   = false
+    private var isFillEnabled = false
     private var isStrokeEnabled = true
     private var isCornerEnabled = true
 
@@ -64,7 +64,9 @@ class ShapeFragment : Fragment() {
         }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentShapeBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -87,12 +89,14 @@ class ShapeFragment : Fragment() {
         binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
         binding.viewPager.offscreenPageLimit = 1
 
-        tabs.addAll(listOf(
-            AdjustmentPanelTabs(0, "Fill",   true,  is_enabled = false),
-            AdjustmentPanelTabs(1, "Stroke", false, is_enabled = false),
-            AdjustmentPanelTabs(2, "Corner", false, is_enabled = false),
-            AdjustmentPanelTabs(3, "Mask",   false, is_enabled = false)
-        ))
+        tabs.addAll(
+            listOf(
+                AdjustmentPanelTabs(0, "Fill", true, is_enabled = false),
+                AdjustmentPanelTabs(1, "Stroke", false, is_enabled = false),
+                AdjustmentPanelTabs(2, "Corner", false, is_enabled = false),
+                AdjustmentPanelTabs(3, "Mask", false, is_enabled = false),
+            ),
+        )
 
         pagerAdapter = ShapePanelPagerAdapter(this, tabs)
         binding.viewPager.adapter = pagerAdapter
@@ -112,10 +116,10 @@ class ShapeFragment : Fragment() {
 
     private fun handleUserTap(selected: AdjustmentPanelTabs) {
         when (selected.tab_name) {
-            "Fill"   -> viewModel.toggleFillEnabled(!isFillEnabled)
+            "Fill" -> viewModel.toggleFillEnabled(!isFillEnabled)
             "Stroke" -> viewModel.toggleStrokeEnabled(!isStrokeEnabled)
             "Corner" -> viewModel.toggleCornerEnabled(!isCornerEnabled)
-            "Mask"   -> {
+            "Mask" -> {
                 val element = viewModel.selectedElements.value?.firstOrNull()
                 val hasImage = element?.bitmap != null || element?.bitmapData != null
                 if (!hasImage) {
@@ -144,10 +148,10 @@ class ShapeFragment : Fragment() {
         } == true
 
         tabs = arrayListOf(
-            AdjustmentPanelTabs(0, "Fill",   tabs.getOrNull(0)?.is_selected ?: true,  is_enabled = isFillEnabled),
+            AdjustmentPanelTabs(0, "Fill", tabs.getOrNull(0)?.is_selected ?: true, is_enabled = isFillEnabled),
             AdjustmentPanelTabs(1, "Stroke", tabs.getOrNull(1)?.is_selected ?: false, is_enabled = isStrokeEnabled),
             AdjustmentPanelTabs(2, "Corner", tabs.getOrNull(2)?.is_selected ?: false, is_enabled = isCornerEnabled),
-            AdjustmentPanelTabs(3, "Mask",   tabs.getOrNull(3)?.is_selected ?: false, is_enabled = hasImage)
+            AdjustmentPanelTabs(3, "Mask", tabs.getOrNull(3)?.is_selected ?: false, is_enabled = hasImage),
         )
         adapter.submitList(ArrayList(tabs))
     }
@@ -155,19 +159,21 @@ class ShapeFragment : Fragment() {
     // ── Observers ─────────────────────────────────────────────────────────────
 
     private fun initObservers() {
-
         viewModel.pagingLocked.observe(viewLifecycleOwner) { locked ->
             binding.viewPager.isUserInputEnabled = !locked
         }
 
         viewModel.shapeFillEnabled.observe(viewLifecycleOwner) {
-            isFillEnabled = it; updateTabsFromState()
+            isFillEnabled = it
+            updateTabsFromState()
         }
         viewModel.shapeStrokeEnabled.observe(viewLifecycleOwner) {
-            isStrokeEnabled = it; updateTabsFromState()
+            isStrokeEnabled = it
+            updateTabsFromState()
         }
         viewModel.shapeCornerEnabled.observe(viewLifecycleOwner) {
-            isCornerEnabled = it; updateTabsFromState()
+            isCornerEnabled = it
+            updateTabsFromState()
         }
 
         // addImage icon: ic_import (no image) or ic_replace (has image)
@@ -176,7 +182,7 @@ class ShapeFragment : Fragment() {
             val element = selected?.firstOrNull()
             val hasImage = element?.bitmap != null || element?.bitmapData != null
             binding.addImage.setImageResource(
-                if (hasImage) R.drawable.ic_replace else R.drawable.ic_import
+                if (hasImage) R.drawable.ic_replace else R.drawable.ic_import,
             )
             binding.editImage.isVisible = hasImage
             updateTabsFromState()
@@ -202,7 +208,6 @@ class ShapeFragment : Fragment() {
             findNavController()
                 .navigate(R.id.adjustmentsParentFragment, bundle, navOptions)
         }
-
 
         binding.back.addPressEffect { findNavController().navigateUp() }
     }

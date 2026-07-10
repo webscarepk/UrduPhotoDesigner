@@ -25,5 +25,5 @@ data class StockPhotoMeta(
     val totalResults: Int = 0,
 
     /** Whether there are more pages available */
-    val hasMore: Boolean = true
+    val hasMore: Boolean = true,
 )

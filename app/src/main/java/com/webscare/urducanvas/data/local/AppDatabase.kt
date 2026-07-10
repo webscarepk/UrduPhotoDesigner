@@ -15,9 +15,11 @@ import com.webscare.urducanvas.data.model.TrendEntity
 import com.webscare.urducanvas.data.model.TrendTemplateCrossRef
 
 @androidx.room.Database(
-    entities = [FontEntity::class, ImageEntity::class, GradientEntity::class, ExportResult::class, TemplateEntity::class, TrendEntity::class,
-        TrendTemplateCrossRef::class, CanvasSizeEntity::class, StockPhotoMeta::class],
-    version = 5
+    entities = [
+        FontEntity::class, ImageEntity::class, GradientEntity::class, ExportResult::class, TemplateEntity::class, TrendEntity::class,
+        TrendTemplateCrossRef::class, CanvasSizeEntity::class, StockPhotoMeta::class,
+    ],
+    version = 5,
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -42,7 +44,8 @@ abstract class AppDatabase : RoomDatabase() {
 
         private fun buildDatabase(context: Context) = Room.databaseBuilder(
             context,
-            AppDatabase::class.java, "UrduPhotoDesigner.db"
+            AppDatabase::class.java,
+            "UrduPhotoDesigner.db",
         )
             .fallbackToDestructiveMigration()
             .build()

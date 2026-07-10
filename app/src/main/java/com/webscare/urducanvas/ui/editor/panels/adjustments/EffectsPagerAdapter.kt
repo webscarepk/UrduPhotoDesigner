@@ -13,27 +13,23 @@ class EffectsPagerAdapter(
     fragmentManager: FragmentManager,
     lifecycle: Lifecycle,
     private val tabs: List<String>,
-    private val elementId: String
+    private val elementId: String,
 ) : FragmentStateAdapter(
     fragmentManager,
-    lifecycle
+    lifecycle,
 ) {
 
     override fun getItemCount(): Int = tabs.size
 
-    override fun createFragment(position: Int): Fragment {
-        return when (position) {
-            0 -> EffectsFragment.newInstance()
-            1 -> AdjustmentsFragment.newInstance()
-            2 -> FiltersFragment.newInstance(elementId)
-            3 -> MaskFragment.newInstance(elementId)
-            else -> EffectsFragment.newInstance()
-        }
+    override fun createFragment(position: Int): Fragment = when (position) {
+        0 -> EffectsFragment.newInstance()
+        1 -> AdjustmentsFragment.newInstance()
+        2 -> FiltersFragment.newInstance(elementId)
+        3 -> MaskFragment.newInstance(elementId)
+        else -> EffectsFragment.newInstance()
     }
 
-    override fun getItemId(position: Int): Long {
-        return (elementId.hashCode().toLong() shl 32) or position.toLong()
-    }
+    override fun getItemId(position: Int): Long = (elementId.hashCode().toLong() shl 32) or position.toLong()
 
     override fun containsItem(itemId: Long): Boolean {
         val position = (itemId and 0xFFFFFFFFL).toInt()

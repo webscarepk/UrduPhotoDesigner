@@ -44,7 +44,9 @@ class FontsFragment : Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentFontsBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -80,13 +82,13 @@ class FontsFragment : Fragment() {
                         applyFilterToPage(position, language, category)
                     } else {
                         // Store as pending — will be applied in onPageSelected once pager settles
-                        pendingLanguage  = language
-                        pendingCategory  = category
+                        pendingLanguage = language
+                        pendingCategory = category
                         // No animation — instant so onPageSelected fires synchronously
                         binding.viewPager.setCurrentItem(position, false)
                     }
                 }
-            }
+            },
         )
 
         binding.languages.layoutManager =
@@ -115,7 +117,7 @@ class FontsFragment : Fragment() {
 
                 // Apply any pending category filter now that the page has settled
                 val lang = pendingLanguage
-                val cat  = pendingCategory
+                val cat = pendingCategory
                 if (lang != null) {
                     applyFilterToPage(position, lang, cat)
                     pendingLanguage = null
@@ -130,8 +132,8 @@ class FontsFragment : Fragment() {
     private fun applyFilterToPage(position: Int, language: String, category: String?) {
         // FragmentStateAdapter tags fragments as "f{itemId}" where itemId = getItemId(position)
         // FontsPagerAdapter.getItemId returns categories[position].id.toLong()
-        val itemId   = pagerAdapter.categories.getOrNull(position)?.id?.toLong() ?: return
-        val tag      = "f$itemId"
+        val itemId = pagerAdapter.categories.getOrNull(position)?.id?.toLong() ?: return
+        val tag = "f$itemId"
         val fragment = childFragmentManager.findFragmentByTag(tag) as? FontsListFragment
 
         if (fragment != null) {
@@ -168,7 +170,7 @@ class FontsFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 kotlinx.coroutines.flow.combine(
                     mainViewModel.localFonts,
-                    mainViewModel.recentFonts
+                    mainViewModel.recentFonts,
                 ) { fonts, _ -> fonts }
                     .collect { fonts ->
                         val languages = buildFontLanguages(fonts)
@@ -180,7 +182,7 @@ class FontsFragment : Fragment() {
     }
 
     private fun buildFontLanguages(
-        fonts: List<com.webscare.urducanvas.data.model.FontEntity>
+        fonts: List<com.webscare.urducanvas.data.model.FontEntity>,
     ): List<FontLanguages> {
         val byLanguage = fonts
             .filter { it.font_language.isNotBlank() }
@@ -190,11 +192,11 @@ class FontsFragment : Fragment() {
 
         result.add(
             FontLanguages(
-                id         = 0,
-                name       = "All",
+                id = 0,
+                name = "All",
                 categories = emptyList(),
-                is_selected = selectedLanguage == "All"
-            )
+                is_selected = selectedLanguage == "All",
+            ),
         )
 
         // "Recents" tab — only shown when there are recently used fonts
@@ -202,19 +204,19 @@ class FontsFragment : Fragment() {
         if (recentFonts.isNotEmpty()) {
             result.add(
                 FontLanguages(
-                    id          = -1,
-                    name        = "Recents",
-                    categories  = emptyList(),
-                    is_selected = selectedLanguage == "Recents"
-                )
+                    id = -1,
+                    name = "Recents",
+                    categories = emptyList(),
+                    is_selected = selectedLanguage == "Recents",
+                ),
             )
         }
 
         // Preferred order: Urdu first, then English, then rest alphabetically
-        val preferredOrder  = listOf("Urdu", "English")
-        val allLangs        = byLanguage.keys.filter { !it.equals("Imported", ignoreCase = true) }
-        val preferred       = preferredOrder.filter { p -> allLangs.any { it.equals(p, ignoreCase = true) } }
-        val rest            = allLangs.filter { l -> preferredOrder.none { it.equals(l, ignoreCase = true) } }.sorted()
+        val preferredOrder = listOf("Urdu", "English")
+        val allLangs = byLanguage.keys.filter { !it.equals("Imported", ignoreCase = true) }
+        val preferred = preferredOrder.filter { p -> allLangs.any { it.equals(p, ignoreCase = true) } }
+        val rest = allLangs.filter { l -> preferredOrder.none { it.equals(l, ignoreCase = true) } }.sorted()
         val orderedLanguages = preferred + rest
 
         orderedLanguages.forEachIndexed { index, langName ->
@@ -230,22 +232,22 @@ class FontsFragment : Fragment() {
 
             result.add(
                 FontLanguages(
-                    id          = index + 1,
-                    name        = langName,
-                    categories  = categories,
-                    is_selected = selectedLanguage == langName
-                )
+                    id = index + 1,
+                    name = langName,
+                    categories = categories,
+                    is_selected = selectedLanguage == langName,
+                ),
             )
         }
 
         if (byLanguage.keys.any { it.equals("Imported", ignoreCase = true) }) {
             result.add(
                 FontLanguages(
-                    id          = result.size,
-                    name        = "Imported",
-                    categories  = emptyList(),
-                    is_selected = selectedLanguage == "Imported"
-                )
+                    id = result.size,
+                    name = "Imported",
+                    categories = emptyList(),
+                    is_selected = selectedLanguage == "Imported",
+                ),
             )
         }
 
@@ -260,11 +262,9 @@ class FontsFragment : Fragment() {
     companion object {
         private const val ARG_STANDALONE_MODE = "standalone_mode"
 
-        fun newInstance(standaloneMode: Boolean = false): FontsFragment {
-            return FontsFragment().also {
-                it.arguments = Bundle().apply {
-                    putBoolean(ARG_STANDALONE_MODE, standaloneMode)
-                }
+        fun newInstance(standaloneMode: Boolean = false): FontsFragment = FontsFragment().also {
+            it.arguments = Bundle().apply {
+                putBoolean(ARG_STANDALONE_MODE, standaloneMode)
             }
         }
     }

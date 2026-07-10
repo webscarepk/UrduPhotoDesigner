@@ -20,10 +20,10 @@ class PreferencesFragment : androidx.fragment.app.Fragment() {
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
     private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
 
-
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentPreferencesBinding.inflate(inflater, container, false)
         return binding.root
@@ -37,7 +37,6 @@ class PreferencesFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun initObservers() {
-
         viewModel.fetchExportOptionsFromDataStore()
 
         viewModel.exportOptions.observe(viewLifecycleOwner) { opts ->
@@ -68,19 +67,19 @@ class PreferencesFragment : androidx.fragment.app.Fragment() {
             _root_ide_package_.com.webscare.urducanvas.ui.editor.export.ExportOptionAdapter(
                 items,
                 type,
-                displayMode = false   // ✅ compact mode
+                displayMode = false, // ✅ compact mode
             ) { selected ->
                 when (selected) {
                     is com.webscare.urducanvas.common.canvas.model.ExportResolution -> viewModel.updateExportOptionsAndSave(
-                        viewModel.exportOptions.value!!.copy(resolution = selected)
+                        viewModel.exportOptions.value!!.copy(resolution = selected),
                     )
 
                     is com.webscare.urducanvas.common.canvas.model.ExportQuality -> viewModel.updateExportOptionsAndSave(
-                        viewModel.exportOptions.value!!.copy(quality = selected)
+                        viewModel.exportOptions.value!!.copy(quality = selected),
                     )
 
                     is com.webscare.urducanvas.common.canvas.model.ExportFormat -> viewModel.updateExportOptionsAndSave(
-                        viewModel.exportOptions.value!!.copy(format = selected)
+                        viewModel.exportOptions.value!!.copy(format = selected),
                     )
                 }
                 rv.visibility = View.GONE

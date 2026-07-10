@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface ExportResultsRepo {
 
-    suspend fun insertExportResult(exportResult: ExportResult):Long
+    suspend fun insertExportResult(exportResult: ExportResult): Long
 
     suspend fun updateExportResult(exportResult: ExportResult)
 

@@ -10,5 +10,5 @@ enum class GradientType {
     RADIAL,
 
     @SerializedName("Sweep")
-    SWEEP
+    SWEEP,
 }

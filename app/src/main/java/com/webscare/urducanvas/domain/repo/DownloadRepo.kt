@@ -16,7 +16,7 @@ import javax.inject.Inject
 class DownloadRepo @Inject constructor(
     private val context: Context,
     private val client: OkHttpClient,
-    private val api: com.webscare.urducanvas.data.remote.EndPointsInterface
+    private val api: com.webscare.urducanvas.data.remote.EndPointsInterface,
 ) {
     private val fontsDir by lazy {
         File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "fonts").apply {
@@ -28,9 +28,8 @@ class DownloadRepo @Inject constructor(
         templateId: String,
         fileName: String,
         totalSizeFromApi: Long,
-        onProgress: (Int) -> Unit
+        onProgress: (Int) -> Unit,
     ): File = withContext(Dispatchers.IO) {
-
         val outputFile = File(fontsDir, fileName)
 
         Log.d(TAG, "downloadTemplateById → Starting download for ID: $templateId")
@@ -58,7 +57,7 @@ class DownloadRepo @Inject constructor(
         Log.d(TAG, "downloadTemplateById → Final totalSize used: $totalSize")
 
         var bytesDownloaded = 0L
-        var lastProgress = -1   // important change
+        var lastProgress = -1 // important change
 
         body.byteStream().use { inputStream ->
             FileOutputStream(outputFile).use { outputStream ->
@@ -67,14 +66,12 @@ class DownloadRepo @Inject constructor(
                 var bytesRead: Int
 
                 while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-
                     outputStream.write(buffer, 0, bytesRead)
                     bytesDownloaded += bytesRead
 
                     Log.d(TAG, "downloadTemplateById → bytesDownloaded: $bytesDownloaded")
 
                     if (totalSize > 0) {
-
                         val progress = ((bytesDownloaded * 100) / totalSize).toInt()
 
                         Log.d(TAG, "downloadTemplateById → Calculated progress: $progress")
@@ -96,11 +93,7 @@ class DownloadRepo @Inject constructor(
         return@withContext outputFile
     }
 
-    suspend fun downloadAssets(
-        url: String,
-        fileName: String,
-        onProgress: (Int) -> Unit
-    ): File = withContext(Dispatchers.IO) {
+    suspend fun downloadAssets(url: String, fileName: String, onProgress: (Int) -> Unit): File = withContext(Dispatchers.IO) {
         val outputFile = File(fontsDir, fileName)
 
         val request = Request.Builder()

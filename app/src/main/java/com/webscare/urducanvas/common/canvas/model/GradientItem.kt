@@ -1,7 +1,6 @@
 package com.webscare.urducanvas.common.canvas.model
 
 import android.content.res.Resources
-import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
@@ -12,11 +11,11 @@ import android.graphics.Shader
 import android.graphics.SweepGradient
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import androidx.core.graphics.createBitmap
 import com.webscare.urducanvas.common.canvas.enums.GradientType
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
-import androidx.core.graphics.createBitmap
 
 data class GradientItem(
     var id: Long = 0,
@@ -29,7 +28,7 @@ data class GradientItem(
     val sweepStartAngle: Float = 0f,
     val centerX: Float = 0.5f,
     val centerY: Float = 0.5f,
-    var isSelected: Boolean = false
+    var isSelected: Boolean = false,
 ) {
     init {
         require(colors.size == positions.size) {
@@ -51,23 +50,17 @@ data class GradientItem(
         val invPos = positions.map { 1f - it }.reversed()
         return copy(
             colors = colors.reversed(),
-            positions = invPos
+            positions = invPos,
         )
     }
 
     /** Helper for sweep start-angle. */
-    fun withSweepStart(angle: Float): GradientItem =
-        copy(sweepStartAngle = angle)
+    fun withSweepStart(angle: Float): GradientItem = copy(sweepStartAngle = angle)
 
     /** Helper for radial center. */
-    fun withRadialCenter(x: Float, y: Float): GradientItem =
-        copy(centerX = x.coerceIn(0f, 1f), centerY = y.coerceIn(0f, 1f))
+    fun withRadialCenter(x: Float, y: Float): GradientItem = copy(centerX = x.coerceIn(0f, 1f), centerY = y.coerceIn(0f, 1f))
 
-    fun createGradientPreviewDrawable(
-        gradient: GradientItem,
-        width: Int,
-        height: Int
-    ): Drawable {
+    fun createGradientPreviewDrawable(gradient: GradientItem, width: Int, height: Int): Drawable {
         val bitmap = createBitmap(width, height)
         val canvas = Canvas(bitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -94,9 +87,13 @@ data class GradientItem(
                 val y1 = cy + dy / 2f
 
                 paint.shader = LinearGradient(
-                    x0, y0, x1, y1,
-                    colors, positions,
-                    Shader.TileMode.CLAMP
+                    x0,
+                    y0,
+                    x1,
+                    y1,
+                    colors,
+                    positions,
+                    Shader.TileMode.CLAMP,
                 )
             }
 
@@ -108,9 +105,12 @@ data class GradientItem(
                 val radius = maxRadius * gradient.radialRadiusFactor * gradient.scale
 
                 paint.shader = RadialGradient(
-                    cx, cy, radius,
-                    colors, positions,
-                    Shader.TileMode.CLAMP
+                    cx,
+                    cy,
+                    radius,
+                    colors,
+                    positions,
+                    Shader.TileMode.CLAMP,
                 )
             }
 
@@ -135,5 +135,4 @@ data class GradientItem(
 
         return BitmapDrawable(Resources.getSystem(), bitmap)
     }
-
 }

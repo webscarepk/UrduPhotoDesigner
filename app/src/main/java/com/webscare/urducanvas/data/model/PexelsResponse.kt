@@ -5,5 +5,5 @@ data class PexelsResponse(
     val total_results: Int,
     val page: Int,
     val per_page: Int,
-    val next_page: String?
+    val next_page: String?,
 )

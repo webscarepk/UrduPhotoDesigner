@@ -64,12 +64,17 @@ class ExportFragment : androidx.fragment.app.Fragment() {
 
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-            if (isGranted) exportCanvasInternal()
-            else showTopBanner("Permission denied to save image. Please enable it in settings.")
+            if (isGranted) {
+                exportCanvasInternal()
+            } else {
+                showTopBanner("Permission denied to save image. Please enable it in settings.")
+            }
         }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentExportBinding.inflate(inflater, container, false)
         return binding.root
@@ -85,7 +90,6 @@ class ExportFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun setEvents() = with(binding) {
-
         Log.d("ExportFragmentOnCreate", "Received exportResult: ${viewModel.exportResult.value}")
         stopIconRotation()
         btnExport.addPressEffect { startExport() }
@@ -113,10 +117,11 @@ class ExportFragment : androidx.fragment.app.Fragment() {
             // In release, always share as .urdc — even if the source is a plain .json
             // template downloaded from the server. Wrap it on the fly into a temp .urdc.
             val fileToShare: File = if (!BuildConfig.DEBUG &&
-                !ProjectCodec.isUrdcFile(sourceFile)) {
+                !ProjectCodec.isUrdcFile(sourceFile)
+            ) {
                 val tmp = File(
                     requireContext().cacheDir,
-                    sourceFile.nameWithoutExtension + "." + ProjectCodec.FILE_EXTENSION
+                    sourceFile.nameWithoutExtension + "." + ProjectCodec.FILE_EXTENSION,
                 )
                 ProjectCodec.wrapJsonFile(plainJsonFile = sourceFile, target = tmp)
                 tmp
@@ -127,7 +132,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
             val uri = androidx.core.content.FileProvider.getUriForFile(
                 requireContext(),
                 "${requireContext().packageName}.fileprovider",
-                fileToShare
+                fileToShare,
             )
             val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                 type = "application/octet-stream"
@@ -206,8 +211,8 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         val isFromPremiumTemplate = viewModel.exportResult.value?.isFromPremiumTemplate == true
         val locked = isPremiumLocked()
 
-        premiumAssets.isVisible = (hasPremium || isFromPremiumTemplate)
-                && !subscriptionViewModel.isSubscribed.value
+        premiumAssets.isVisible = (hasPremium || isFromPremiumTemplate) &&
+            !subscriptionViewModel.isSubscribed.value
 
         if (locked) {
             btnExport.text = getString(R.string.buy_now)
@@ -254,18 +259,16 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         PremiumAssetsSheet.newInstance().show(parentFragmentManager, "premium_assets_sheet")
     }
 
-    private fun renderExportResult(result: ExportResult) =
-        with(binding) {
+    private fun renderExportResult(result: ExportResult) = with(binding) {
+        resolutionValue.text = result.resolution
+        qualityValue.text = result.quality
+        formatValue.text = "${result.format} • .${result.format.lowercase()}"
 
-            resolutionValue.text = result.resolution
-            qualityValue.text = result.quality
-            formatValue.text = "${result.format} • .${result.format.lowercase()}"
-
-            tvExportSummaryDetails.text =
-                "${result.resolution} • ${result.quality} • ${result.format}"
-            resolution.text = result.resolution
-            format.text = result.format
-        }
+        tvExportSummaryDetails.text =
+            "${result.resolution} • ${result.quality} • ${result.format}"
+        resolution.text = result.resolution
+        format.text = result.format
+    }
 
     private fun updateExportOptionsUI(options: ExportOptions) = with(binding) {
         resolutionValue.text = "${options.resolution.name} • ${options.resolution.label}"
@@ -291,13 +294,11 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    private fun formatFileSize(sizeMB: Double): String {
-        return if (sizeMB < 1.0) {
-            val sizeKB = sizeMB * 1024.0
-            "%.0f KB".format(sizeKB)
-        } else {
-            "%.1f MB".format(sizeMB)
-        }
+    private fun formatFileSize(sizeMB: Double): String = if (sizeMB < 1.0) {
+        val sizeKB = sizeMB * 1024.0
+        "%.0f KB".format(sizeKB)
+    } else {
+        "%.1f MB".format(sizeMB)
     }
 
     private fun renderPreview() {
@@ -339,7 +340,8 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
             val permission = Manifest.permission.WRITE_EXTERNAL_STORAGE
             if (ContextCompat.checkSelfPermission(
-                    requireContext(), permission
+                    requireContext(),
+                    permission,
                 ) == PackageManager.PERMISSION_GRANTED
             ) {
                 exportCanvasInternal()
@@ -358,7 +360,8 @@ class ExportFragment : androidx.fragment.app.Fragment() {
             try {
                 // 1. Render full canvas
                 val (bitmap, json) = canvasView.exportCanvas(
-                    options, jsonOutputPath = exportResult?.jsonPath!!
+                    options,
+                    jsonOutputPath = exportResult?.jsonPath!!,
                 ) { percent, stage ->
                     viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
                         val mapped = (percent * 0.7).toInt()
@@ -375,7 +378,9 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                     (bitmap.width * bitmap.height * 4) / (1024.0 * 1024.0)
                 } else {
                     estimateBitmapSize(
-                        bitmap, options.format.format, options.quality.quality
+                        bitmap,
+                        options.format.format,
+                        options.quality.quality,
                     ) / (1024.0 * 1024.0)
                 }
 
@@ -390,7 +395,8 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                 val pdfPath = if (options.format.name.equals("PDF", true)) {
                     savedUri?.let {
                         ImageProcessor.copyPdfUriToTempFile(
-                            requireContext(), it
+                            requireContext(),
+                            it,
                         )?.absolutePath
                     }
                 } else {
@@ -402,7 +408,8 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                 } else {
                     savedUri?.let {
                         ImageProcessor.copyUriToTempFile(
-                            requireContext(), it
+                            requireContext(),
+                            it,
                         )?.absolutePath
                     }
                 } ?: throw IllegalStateException("Failed to save file")
@@ -419,12 +426,12 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                 } else {
                     val urdcFile = File(
                         json.parentFile,
-                        json.nameWithoutExtension + "." + ProjectCodec.FILE_EXTENSION
+                        json.nameWithoutExtension + "." + ProjectCodec.FILE_EXTENSION,
                     )
                     ProjectCodec.wrapJsonFile(
                         plainJsonFile = json,
                         target = urdcFile,
-                        thumbnail = previewBitmap
+                        thumbnail = previewBitmap,
                     )
                     // Remove the redundant plain JSON so the structure can't leak.
                     if (urdcFile.exists() && urdcFile.absolutePath != json.absolutePath) {
@@ -556,7 +563,9 @@ class ExportFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun getExportedImageSizeMBEstimate(
-        options: ExportOptions, originalCanvasWidth: Float, originalCanvasHeight: Float
+        options: ExportOptions,
+        originalCanvasWidth: Float,
+        originalCanvasHeight: Float,
     ): Double {
         val scaleFactor = options.resolution.scaleFactor
 
@@ -585,7 +594,9 @@ class ExportFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun estimateBitmapSize(
-        bitmap: Bitmap, format: Bitmap.CompressFormat?, quality: Int
+        bitmap: Bitmap,
+        format: Bitmap.CompressFormat?,
+        quality: Int,
     ): Long {
         val stream = ByteArrayOutputStream()
         bitmap.compress(format!!, quality, stream)
@@ -593,27 +604,25 @@ class ExportFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun getDisplayFileSizeMB(
-        options: ExportOptions, canvas: CanvasView
-    ): Double {
-        return getExportedImageSizeMBEstimate(
-            options, canvas.canvasWidth.toFloat(), canvas.canvasHeight.toFloat()
-        )
-    }
-
+        options: ExportOptions,
+        canvas: CanvasView,
+    ): Double = getExportedImageSizeMBEstimate(
+        options,
+        canvas.canvasWidth.toFloat(),
+        canvas.canvasHeight.toFloat(),
+    )
 
     private suspend fun saveImageOrPdf(
-        bitmap: Bitmap, options: ExportOptions
+        bitmap: Bitmap,
+        options: ExportOptions,
     ): Uri? = withContext(Dispatchers.IO) {
-
         val resolver = requireContext().contentResolver
 
         try {
-
             // =========================
             // PDF SAVE
             // =========================
             if (options.format.name.equals("PDF", ignoreCase = true)) {
-
                 val filename = "design_${System.currentTimeMillis()}.pdf"
 
                 val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -629,7 +638,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         put(
                             MediaStore.Files.FileColumns.RELATIVE_PATH,
-                            Environment.DIRECTORY_DOCUMENTS + "/UrduCanvas"
+                            Environment.DIRECTORY_DOCUMENTS + "/UrduCanvas",
                         )
                         put(MediaStore.Files.FileColumns.IS_PENDING, 1)
                     }
@@ -641,7 +650,9 @@ class ExportFragment : androidx.fragment.app.Fragment() {
 
                     val pdfDocument = PdfDocument()
                     val pageInfo = PdfDocument.PageInfo.Builder(
-                        bitmap.width, bitmap.height, 1
+                        bitmap.width,
+                        bitmap.height,
+                        1,
                     ).create()
 
                     val page = pdfDocument.startPage(pageInfo)
@@ -701,7 +712,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     put(
                         MediaStore.Images.Media.RELATIVE_PATH,
-                        Environment.DIRECTORY_PICTURES + "/UrduCanvas"
+                        Environment.DIRECTORY_PICTURES + "/UrduCanvas",
                     )
                     put(MediaStore.Images.Media.IS_PENDING, 1)
                 }
@@ -711,7 +722,9 @@ class ExportFragment : androidx.fragment.app.Fragment() {
 
             resolver.openOutputStream(uri)?.use { stream ->
                 bitmap.compress(
-                    compressFormat, options.quality.quality, stream
+                    compressFormat,
+                    options.quality.quality,
+                    stream,
                 )
             }
 
@@ -722,7 +735,6 @@ class ExportFragment : androidx.fragment.app.Fragment() {
             }
 
             return@withContext uri
-
         } catch (e: Exception) {
             Log.e("ExportFragment", "Save failed", e)
             return@withContext null
@@ -768,10 +780,12 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         return hasPremiumAsset || hasPremiumOption || isFromPremiumTemplate
     }
 
-    fun isBlueStacks(): Boolean {
-        return (Build.MANUFACTURER.lowercase().contains("bluestacks") || Build.BRAND.lowercase()
-            .contains("bluestacks") || Build.DEVICE.lowercase().contains("bluestacks"))
-    }
+    fun isBlueStacks(): Boolean = (
+        Build.MANUFACTURER.lowercase().contains("bluestacks") ||
+            Build.BRAND.lowercase()
+                .contains("bluestacks") ||
+            Build.DEVICE.lowercase().contains("bluestacks")
+        )
 
     override fun onDestroyView() {
         super.onDestroyView()

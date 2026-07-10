@@ -7,9 +7,7 @@ import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class FetchAPITrendsUseCase @Inject constructor(
-    private val fetchTrendsRepo: com.webscare.urducanvas.domain.repo.FetchTrendsRepo
+    private val fetchTrendsRepo: com.webscare.urducanvas.domain.repo.FetchTrendsRepo,
 ) {
-    operator fun invoke(): Flow<com.webscare.urducanvas.common.sealed.Response<com.webscare.urducanvas.data.model.TrendResponse>> {
-        return fetchTrendsRepo.fetchTrends()
-    }
+    operator fun invoke(): Flow<com.webscare.urducanvas.common.sealed.Response<com.webscare.urducanvas.data.model.TrendResponse>> = fetchTrendsRepo.fetchTrends()
 }

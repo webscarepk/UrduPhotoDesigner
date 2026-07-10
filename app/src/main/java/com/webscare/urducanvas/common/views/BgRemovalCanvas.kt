@@ -32,7 +32,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.nio.FloatBuffer
 import kotlin.math.abs
-import kotlin.math.sqrt
 
 class BgRemovalCanvas @JvmOverloads constructor(
     context: Context,
@@ -42,9 +41,8 @@ class BgRemovalCanvas @JvmOverloads constructor(
     var onPreviewChanged: ((Boolean) -> Unit)? = null,
     var onMaskConfirmed: ((Bitmap) -> Unit)? = null,
     var onProcessingChanged: ((Boolean) -> Unit)? = null,
-    var onProcessingCancelled: (() -> Unit)? = null
+    var onProcessingCancelled: (() -> Unit)? = null,
 ) : View(context, attrs) {
-
 
     enum class ToolMode { BRUSH, RECTANGLE, ELLIPSE, MAGIC_WAND }
     enum class ActionMode { ADD, REMOVE }
@@ -75,7 +73,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
     private val inverseMatrix = Matrix()
     private var scaleFactor = 1f
 
-    private var isTransforming = false  // ✅ zoom/pan in progress
+    private var isTransforming = false // ✅ zoom/pan in progress
 
     private var toolMode: ToolMode? = ToolMode.BRUSH
     private var actionMode: ActionMode = ActionMode.ADD
@@ -109,8 +107,6 @@ class BgRemovalCanvas @JvmOverloads constructor(
     private var selectionOutlinePath: Path? = null
 
     private var isRenderCacheDirty = true
-
-
 
     private val whiteOverlayPaint = Paint().apply {
         color = Color.argb(150, 255, 255, 255) // semi-transparent white
@@ -195,9 +191,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
         invalidate()
     }
 
-    fun getToolMode(): ToolMode? {
-        return toolMode
-    }
+    fun getToolMode(): ToolMode? = toolMode
 
     fun setActionMode(mode: ActionMode) {
         actionMode = mode
@@ -220,23 +214,17 @@ class BgRemovalCanvas @JvmOverloads constructor(
         markRenderCacheDirty()
     }
 
-
-
-    private suspend fun maskBufferToBitmap(
-        buffer: FloatBuffer, maskWidth: Int, maskHeight: Int
-    ): Bitmap {
-        return withContext(Dispatchers.Default) {
-            buffer.rewind()
-            val bitmap = createBitmap(maskWidth, maskHeight)
-            for (y in 0 until maskHeight) {
-                for (x in 0 until maskWidth) {
-                    val confidence = buffer.get()
-                    val color = if (confidence > 0.5f) Color.WHITE else Color.TRANSPARENT
-                    bitmap[x, y] = color
-                }
+    private suspend fun maskBufferToBitmap(buffer: FloatBuffer, maskWidth: Int, maskHeight: Int): Bitmap = withContext(Dispatchers.Default) {
+        buffer.rewind()
+        val bitmap = createBitmap(maskWidth, maskHeight)
+        for (y in 0 until maskHeight) {
+            for (x in 0 until maskWidth) {
+                val confidence = buffer.get()
+                val color = if (confidence > 0.5f) Color.WHITE else Color.TRANSPARENT
+                bitmap[x, y] = color
             }
-            bitmap
         }
+        bitmap
     }
 
     fun applyGeneratedMask(buffer: FloatBuffer, maskWidth: Int, maskHeight: Int) {
@@ -254,7 +242,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
                     matrix.setRectToRect(
                         RectF(0f, 0f, maskBitmap.width.toFloat(), maskBitmap.height.toFloat()),
                         rect,
-                        Matrix.ScaleToFit.FILL
+                        Matrix.ScaleToFit.FILL,
                     )
                     transform(matrix)
                 }
@@ -278,8 +266,14 @@ class BgRemovalCanvas @JvmOverloads constructor(
             val visited = Array(h) { BooleanArray(w) }
 
             val dirs = arrayOf(
-                intArrayOf(1, 0), intArrayOf(1, 1), intArrayOf(0, 1), intArrayOf(-1, 1),
-                intArrayOf(-1, 0), intArrayOf(-1, -1), intArrayOf(0, -1), intArrayOf(1, -1)
+                intArrayOf(1, 0),
+                intArrayOf(1, 1),
+                intArrayOf(0, 1),
+                intArrayOf(-1, 1),
+                intArrayOf(-1, 0),
+                intArrayOf(-1, -1),
+                intArrayOf(0, -1),
+                intArrayOf(1, -1),
             )
 
             fun traceContour(startX: Int, startY: Int) {
@@ -296,7 +290,8 @@ class BgRemovalCanvas @JvmOverloads constructor(
                         val nx = x + dirs[ndir][0]
                         val ny = y + dirs[ndir][1]
                         if (nx in 0 until w && ny in 0 until h && ((pixels[ny * w + nx] ushr 24) > 127)) {
-                            x = nx; y = ny
+                            x = nx
+                            y = ny
                             path.lineTo(x.toFloat(), y.toFloat())
                             visited[y][x] = true
                             dir = (ndir + 6) % 8
@@ -314,9 +309,9 @@ class BgRemovalCanvas @JvmOverloads constructor(
                     if (!visited[y][x] && ((pixels[y * w + x] ushr 24) > 127)) {
                         val isEdge =
                             ((pixels[y * w + (x - 1)] ushr 24) <= 127) ||
-                            ((pixels[y * w + (x + 1)] ushr 24) <= 127) ||
-                            ((pixels[(y - 1) * w + x] ushr 24) <= 127) ||
-                            ((pixels[(y + 1) * w + x] ushr 24) <= 127)
+                                ((pixels[y * w + (x + 1)] ushr 24) <= 127) ||
+                                ((pixels[(y - 1) * w + x] ushr 24) <= 127) ||
+                                ((pixels[(y + 1) * w + x] ushr 24) <= 127)
                         if (isEdge) traceContour(x, y)
                     }
                 }
@@ -375,7 +370,10 @@ class BgRemovalCanvas @JvmOverloads constructor(
             imageRect = if (imgRatio > viewRatio) {
                 val scaledHeight = width.toFloat() / imgRatio
                 RectF(
-                    0f, (height - scaledHeight) / 2f, width.toFloat(), (height + scaledHeight) / 2f
+                    0f,
+                    (height - scaledHeight) / 2f,
+                    width.toFloat(),
+                    (height + scaledHeight) / 2f,
                 )
             } else {
                 val scaledWidth = height.toFloat() * imgRatio
@@ -399,9 +397,13 @@ class BgRemovalCanvas @JvmOverloads constructor(
                 shaderMatrix.setRectToRect(
                     RectF(0f, 0f, bmp.width.toFloat(), bmp.height.toFloat()),
                     rect,
-                    Matrix.ScaleToFit.FILL
+                    Matrix.ScaleToFit.FILL,
                 )
-                val bmpShader = android.graphics.BitmapShader(bmp, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP).apply {
+                val bmpShader = android.graphics.BitmapShader(
+                    bmp,
+                    android.graphics.Shader.TileMode.CLAMP,
+                    android.graphics.Shader.TileMode.CLAMP,
+                ).apply {
                     setLocalMatrix(shaderMatrix)
                 }
                 val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -450,7 +452,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
                 val currentWidth = 2f / scaleFactor
                 antsBackPaint.strokeWidth = currentWidth
                 antsFrontPaint.strokeWidth = currentWidth
-                
+
                 canvas.withMatrix(drawMatrix) {
                     drawPath(outline, antsBackPaint)
                     drawPath(outline, antsFrontPaint)
@@ -460,7 +462,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
         // Update stroke width based on zoom level
         val scaledStrokeWidth =
-            3f * (1 / scaleFactor).coerceAtLeast(0.5f)  // Scale stroke width with zoom
+            3f * (1 / scaleFactor).coerceAtLeast(0.5f) // Scale stroke width with zoom
 
         strokePaintAdd.strokeWidth = scaledStrokeWidth
         strokePaintRemove.strokeWidth = scaledStrokeWidth
@@ -485,7 +487,9 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
                         val workingBmp = if (bmp.width > 512) {
                             bmp.scale(512, (bmp.height * (512f / bmp.width)).toInt(), false)
-                        } else bmp
+                        } else {
+                            bmp
+                        }
 
                         val scaleX = bmp.width.toFloat() / workingBmp.width
                         val scaleY = bmp.height.toFloat() / workingBmp.height
@@ -495,7 +499,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
                             (safeX / scaleX).toInt(),
                             (safeY / scaleY).toInt(),
                             targetColor,
-                            wandTolerance
+                            wandTolerance,
                         )
 
                         val rawPath = maskToContourPath(mask)
@@ -505,7 +509,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
                         matrix.setRectToRect(
                             RectF(0f, 0f, mask.width.toFloat(), mask.height.toFloat()),
                             rect,
-                            Matrix.ScaleToFit.FILL
+                            Matrix.ScaleToFit.FILL,
                         )
                         rawPath.transform(matrix)
 
@@ -514,7 +518,6 @@ class BgRemovalCanvas @JvmOverloads constructor(
                             onProcessingChanged?.invoke(false)
                         }
                     }
-
                 }
             }
         }
@@ -546,9 +549,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
         }
     }
 
-    private suspend fun floodFillMask(
-        bmp: Bitmap, startX: Int, startY: Int, targetColor: Int, tolerance: Int
-    ): Bitmap = withContext(Dispatchers.Default) {
+    private suspend fun floodFillMask(bmp: Bitmap, startX: Int, startY: Int, targetColor: Int, tolerance: Int): Bitmap = withContext(Dispatchers.Default) {
         val w = bmp.width
         val h = bmp.height
 
@@ -652,13 +653,13 @@ class BgRemovalCanvas @JvmOverloads constructor(
                 (magnifierY - magnifierRadius / magnifierScale).toInt()
                     .coerceIn(0, fullBmp.height - 1),
                 (magnifierX + magnifierRadius / magnifierScale).toInt().coerceAtMost(fullBmp.width),
-                (magnifierY + magnifierRadius / magnifierScale).toInt().coerceAtMost(fullBmp.height)
+                (magnifierY + magnifierRadius / magnifierScale).toInt().coerceAtMost(fullBmp.height),
             )
             val dstRect = Rect(
                 (magnifierCenterX - magnifierRadius).toInt(),
                 (magnifierCenterY - magnifierRadius).toInt(),
                 (magnifierCenterX + magnifierRadius).toInt(),
-                (magnifierCenterY + magnifierRadius).toInt()
+                (magnifierCenterY + magnifierRadius).toInt(),
             )
             canvas.drawBitmap(fullBmp, srcRect, dstRect, null)
             fullBmp.recycle()
@@ -714,37 +715,30 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val scaleHandled = scaleDetector.onTouchEvent(event)
+        var handled = false
+        var delegateToSuper = false
 
         if (event.pointerCount >= 2 || event.actionMasked == MotionEvent.ACTION_POINTER_UP) {
             // Hide the magnifier during zooming
             if (showMagnifier) {
                 animateMagnifier(false) // Fade out magnifier when zooming starts
             }
-            return true
-        }
-
-        // ✅ Brush/Shape Drawing
-        if (event.pointerCount == 1 && toolMode != null) {
+            handled = true
+        } else if (event.pointerCount == 1 && toolMode != null) {
+            // ✅ Brush/Shape Drawing
             when (toolMode) {
                 ToolMode.BRUSH -> handleBrush(event)
                 ToolMode.MAGIC_WAND -> handleMagicWand(event)
                 ToolMode.RECTANGLE, ToolMode.ELLIPSE -> handleShape(event)
                 else -> {}
             }
-            return true
-        }
-
-        // ✅ Double tap works regardless of tool
-        val gestureHandled = gestureDetector.onTouchEvent(event)
-
-        // ✅ Pinch zoom
-        if (event.pointerCount >= 2) {
+            handled = true
+        } else if (event.pointerCount >= 2) {
+            // ✅ Pinch zoom
             isTransforming = true
-            return true
-        }
-
-        // ✅ Pan Mode
-        if (toolMode == null && event.pointerCount == 1) {
+            handled = true
+        } else if (toolMode == null && event.pointerCount == 1) {
+            // ✅ Pan Mode
             if (event.actionMasked == MotionEvent.ACTION_MOVE && event.historySize > 0) {
                 val dx = event.x - event.getHistoricalX(0)
                 val dy = event.y - event.getHistoricalY(0)
@@ -753,10 +747,15 @@ class BgRemovalCanvas @JvmOverloads constructor(
                 invalidate()
                 markRenderCacheDirty()
             }
-            return true
+            handled = true
+        } else {
+            // ✅ Double tap works regardless of tool
+            val gestureHandled = gestureDetector.onTouchEvent(event)
+            delegateToSuper = true
+            handled = scaleHandled || gestureHandled
         }
 
-        return scaleHandled || gestureHandled || super.onTouchEvent(event)
+        return if (delegateToSuper) handled || super.onTouchEvent(event) else handled
     }
 
     inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
@@ -773,9 +772,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
             return true
         }
 
-        override fun onScroll(
-            e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float
-        ): Boolean {
+        override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
             if (scaleFactor > 1f) {
                 isTransforming = true
                 drawMatrix.postTranslate(-distanceX, -distanceY)
@@ -1035,7 +1032,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
         toImageSpace.setRectToRect(
             rect,
             RectF(0f, 0f, imgW.toFloat(), imgH.toFloat()),
-            Matrix.ScaleToFit.FILL
+            Matrix.ScaleToFit.FILL,
         )
 
         // Transform selectionPath into image pixel space
@@ -1048,7 +1045,12 @@ class BgRemovalCanvas @JvmOverloads constructor(
         fullCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
 
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            shader = android.graphics.BitmapShader(bmp, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP)
+            shader =
+                android.graphics.BitmapShader(
+                    bmp,
+                    android.graphics.Shader.TileMode.CLAMP,
+                    android.graphics.Shader.TileMode.CLAMP,
+                )
             maskFilter = BlurMaskFilter(3f, BlurMaskFilter.Blur.NORMAL)
         }
         fullCanvas.drawPath(imagePath, paint)
@@ -1057,7 +1059,11 @@ class BgRemovalCanvas @JvmOverloads constructor(
         val bounds = Rect()
         if (!fullMasked.getBounds(bounds)) return fullMasked
         return Bitmap.createBitmap(
-            fullMasked, bounds.left, bounds.top, bounds.width(), bounds.height()
+            fullMasked,
+            bounds.left,
+            bounds.top,
+            bounds.width(),
+            bounds.height(),
         )
     }
 

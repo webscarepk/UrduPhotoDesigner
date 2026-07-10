@@ -10,5 +10,5 @@ enum class ParagraphIndentation {
     INCREASE_INDENT,
 
     @SerializedName("DecreaseIndent")
-    DECREASE_INDENT
+    DECREASE_INDENT,
 }

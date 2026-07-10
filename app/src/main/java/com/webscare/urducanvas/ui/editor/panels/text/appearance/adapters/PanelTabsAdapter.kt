@@ -9,11 +9,8 @@ import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.PanelTabs
 import com.webscare.urducanvas.databinding.LayoutTabsItemBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
-class PanelTabsAdapter(
-    private val onFontSelected: (PanelTabs) -> Unit
-) : RecyclerView.Adapter<PanelTabsAdapter.FontViewHolder>() {
+class PanelTabsAdapter(private val onFontSelected: (PanelTabs) -> Unit) : RecyclerView.Adapter<PanelTabsAdapter.FontViewHolder>() {
 
     private val fonts = mutableListOf<PanelTabs>()
 
@@ -35,23 +32,21 @@ class PanelTabsAdapter(
 
     override fun getItemCount(): Int = fonts.size
 
-    inner class FontViewHolder(private val binding: LayoutTabsItemBinding) :
-        RecyclerView.ViewHolder(binding.root) {
+    inner class FontViewHolder(private val binding: LayoutTabsItemBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(font: com.webscare.urducanvas.data.model.PanelTabs) {
-
             if (font.is_selected) {
                 binding.tabTitle.backgroundTintList = ColorStateList.valueOf(
                     ContextCompat.getColor(
                         binding.root.context,
-                        R.color.selection
-                    )
+                        R.color.selection,
+                    ),
                 )
             } else {
                 binding.tabTitle.backgroundTintList = ColorStateList.valueOf(
                     ContextCompat.getColor(
                         binding.root.context,
-                        android.R.color.transparent
-                    )
+                        android.R.color.transparent,
+                    ),
                 )
             }
 

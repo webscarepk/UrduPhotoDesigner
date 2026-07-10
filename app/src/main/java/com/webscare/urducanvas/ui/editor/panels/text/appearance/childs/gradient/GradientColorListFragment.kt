@@ -8,7 +8,6 @@ import androidx.core.graphics.toColorInt
 import androidx.fragment.app.activityViewModels
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.PickerTarget
-import com.webscare.urducanvas.common.utils.ColorPickerDialog
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentGradientColorListBinding
@@ -23,8 +22,9 @@ class GradientColorListFragment : androidx.fragment.app.Fragment() {
     private var selectedColor: Int = 0
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentGradientColorListBinding.inflate(inflater, container, false)
         return binding.root
@@ -60,7 +60,8 @@ class GradientColorListFragment : androidx.fragment.app.Fragment() {
                 },
                 {
                     viewModel.startPicking(PickerTarget.EYE_DROPPER_GRADIENT)
-                })
+                },
+            )
 
         binding.colors.apply {
             adapter = colorsAdapter
@@ -91,5 +92,4 @@ class GradientColorListFragment : androidx.fragment.app.Fragment() {
         super.onDestroyView()
         _binding = null
     }
-
 }

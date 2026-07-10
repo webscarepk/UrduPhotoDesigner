@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.channelFlow
 import javax.inject.Inject
 
 class FetchTrendsRepoImpl @Inject constructor(
-    private val api: com.webscare.urducanvas.data.remote.EndPointsInterface
+    private val api: com.webscare.urducanvas.data.remote.EndPointsInterface,
 ) : com.webscare.urducanvas.domain.repo.FetchTrendsRepo {
 
     override fun fetchTrends(): Flow<com.webscare.urducanvas.common.sealed.Response<com.webscare.urducanvas.data.model.TrendResponse>> = channelFlow {

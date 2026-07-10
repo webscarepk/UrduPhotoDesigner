@@ -43,7 +43,9 @@ class ManageSubscriptionFragment : Fragment() {
     private var indetAnim: ValueAnimator? = null
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentManageSubscriptionBinding.inflate(inflater, container, false)
         return binding.root
@@ -82,32 +84,34 @@ class ManageSubscriptionFragment : Fragment() {
 
         val (accentRes, tintRes) = when (status) {
             SubscriptionStatus.NOT_SUBSCRIBED -> R.color.state_gray to R.color.state_gray_tint
-            SubscriptionStatus.TRIAL          -> R.color.state_teal to R.color.state_teal_tint
-            SubscriptionStatus.ACTIVE         -> R.color.state_green to R.color.state_green_tint
-            SubscriptionStatus.CANCELED       -> R.color.state_amber to R.color.state_amber_tint
-            SubscriptionStatus.PENDING        -> R.color.state_blue to R.color.state_blue_tint
+            SubscriptionStatus.TRIAL -> R.color.state_teal to R.color.state_teal_tint
+            SubscriptionStatus.ACTIVE -> R.color.state_green to R.color.state_green_tint
+            SubscriptionStatus.CANCELED -> R.color.state_amber to R.color.state_amber_tint
+            SubscriptionStatus.PENDING -> R.color.state_blue to R.color.state_blue_tint
         }
         val accent = color(accentRes)
-        val tint   = color(tintRes)
+        val tint = color(tintRes)
 
         ViewCompat.setBackgroundTintList(binding.chip, ColorStateList.valueOf(tint))
         ViewCompat.setBackgroundTintList(binding.chipDot, ColorStateList.valueOf(accent))
         binding.chipText.setTextColor(accent)
 
-        binding.chipText.text = getString(when (status) {
-            SubscriptionStatus.NOT_SUBSCRIBED -> R.string.mng_chip_not_subscribed
-            SubscriptionStatus.TRIAL          -> R.string.mng_chip_trial
-            SubscriptionStatus.ACTIVE         -> R.string.mng_chip_active
-            SubscriptionStatus.CANCELED       -> R.string.mng_chip_canceled
-            SubscriptionStatus.PENDING        -> R.string.mng_chip_pending
-        })
+        binding.chipText.text = getString(
+            when (status) {
+                SubscriptionStatus.NOT_SUBSCRIBED -> R.string.mng_chip_not_subscribed
+                SubscriptionStatus.TRIAL -> R.string.mng_chip_trial
+                SubscriptionStatus.ACTIVE -> R.string.mng_chip_active
+                SubscriptionStatus.CANCELED -> R.string.mng_chip_canceled
+                SubscriptionStatus.PENDING -> R.string.mng_chip_pending
+            },
+        )
 
         binding.bannerTitle.text = when (status) {
             SubscriptionStatus.NOT_SUBSCRIBED -> getString(R.string.mng_title_not_subscribed)
-            SubscriptionStatus.TRIAL          -> "Free trial — $planName"
-            SubscriptionStatus.ACTIVE         -> "$planName plan is active"
-            SubscriptionStatus.CANCELED       -> "$planName — auto-renew is off"
-            SubscriptionStatus.PENDING        -> getString(R.string.mng_title_pending)
+            SubscriptionStatus.TRIAL -> "Free trial — $planName"
+            SubscriptionStatus.ACTIVE -> "$planName plan is active"
+            SubscriptionStatus.CANCELED -> "$planName — auto-renew is off"
+            SubscriptionStatus.PENDING -> getString(R.string.mng_title_pending)
         }
 
         // ── Detail text: user-friendly copy + date line when available ─────────
@@ -117,19 +121,26 @@ class ManageSubscriptionFragment : Fragment() {
         binding.indeterminateTrack.isVisible = pending
         if (pending) {
             ViewCompat.setBackgroundTintList(
-                binding.indeterminateBar, ColorStateList.valueOf(accent))
+                binding.indeterminateBar,
+                ColorStateList.valueOf(accent),
+            )
             startIndeterminate()
-        } else stopIndeterminate()
+        } else {
+            stopIndeterminate()
+        }
 
         binding.ackGoodRow.isVisible =
-            status == SubscriptionStatus.ACTIVE || status == SubscriptionStatus.TRIAL
+            status == SubscriptionStatus.ACTIVE ||
+            status == SubscriptionStatus.TRIAL
 
-        binding.primaryBtn.text = getString(when (status) {
-            SubscriptionStatus.NOT_SUBSCRIBED -> R.string.mng_cta_see_plans
-            SubscriptionStatus.CANCELED       -> R.string.mng_cta_resubscribe
-            SubscriptionStatus.PENDING        -> R.string.mng_cta_recheck
-            else                              -> R.string.mng_cta_change_plan
-        })
+        binding.primaryBtn.text = getString(
+            when (status) {
+                SubscriptionStatus.NOT_SUBSCRIBED -> R.string.mng_cta_see_plans
+                SubscriptionStatus.CANCELED -> R.string.mng_cta_resubscribe
+                SubscriptionStatus.PENDING -> R.string.mng_cta_recheck
+                else -> R.string.mng_cta_change_plan
+            },
+        )
         binding.primaryBtn.addPressEffect {
             if (status == SubscriptionStatus.PENDING) {
                 billingManager.refreshSnapshot()
@@ -140,12 +151,16 @@ class ManageSubscriptionFragment : Fragment() {
         }
 
         val hasSecondary = status == SubscriptionStatus.TRIAL ||
-                status == SubscriptionStatus.ACTIVE || status == SubscriptionStatus.CANCELED
+            status == SubscriptionStatus.ACTIVE ||
+            status == SubscriptionStatus.CANCELED
         binding.secondaryBtn.isVisible = hasSecondary
         if (hasSecondary) {
             binding.secondaryBtn.text = getString(
-                if (status == SubscriptionStatus.ACTIVE) R.string.mng_cta_cancel_play
-                else R.string.mng_cta_manage_play
+                if (status == SubscriptionStatus.ACTIVE) {
+                    R.string.mng_cta_cancel_play
+                } else {
+                    R.string.mng_cta_manage_play
+                },
             )
             binding.secondaryBtn.addPressEffect { openPlaySubscriptions() }
         }
@@ -171,7 +186,7 @@ class ManageSubscriptionFragment : Fragment() {
     private fun buildDetailText(
         status: SubscriptionStatus,
         planName: String,
-        expiryMillis: Long?
+        expiryMillis: Long?,
     ): String {
         val base = when (status) {
             SubscriptionStatus.NOT_SUBSCRIBED ->
@@ -199,18 +214,18 @@ class ManageSubscriptionFragment : Fragment() {
         val fmt = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
         val date = fmt.format(Date(expiryMillis))
         return when (status) {
-            SubscriptionStatus.ACTIVE   -> "Renews on $date"
+            SubscriptionStatus.ACTIVE -> "Renews on $date"
             SubscriptionStatus.CANCELED -> "Access until $date"
-            SubscriptionStatus.TRIAL    -> "Trial ends $date"
-            else                        -> null
+            SubscriptionStatus.TRIAL -> "Trial ends $date"
+            else -> null
         }
     }
 
     private fun planFriendlyName(productId: String?): String = when (productId) {
         "urducanvas_monthly" -> "Monthly"
         "urducanvas_6months" -> "6-Month"
-        "urducanvas_yearly"  -> "Yearly"
-        else                 -> "Pro"
+        "urducanvas_yearly" -> "Yearly"
+        else -> "Pro"
     }
 
     private fun startIndeterminate() {
@@ -238,9 +253,11 @@ class ManageSubscriptionFragment : Fragment() {
     private fun openPlaySubscriptions() {
         val pid = billingManager.snapshot.value.productId
         val pkg = requireContext().packageName
-        val url = if (pid != null)
+        val url = if (pid != null) {
             "https://play.google.com/store/account/subscriptions?sku=$pid&package=$pkg"
-        else "https://play.google.com/store/account/subscriptions"
+        } else {
+            "https://play.google.com/store/account/subscriptions"
+        }
         toast(getString(R.string.mng_toast_opening_play))
         openUrl(url)
     }
@@ -251,8 +268,7 @@ class ManageSubscriptionFragment : Fragment() {
         } catch (_: Exception) { }
     }
 
-    private fun toast(msg: String) =
-        Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+    private fun toast(msg: String) = Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
 
     private fun color(res: Int) = ContextCompat.getColor(requireContext(), res)
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()

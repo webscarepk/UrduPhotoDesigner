@@ -18,9 +18,7 @@ import javax.inject.Inject
 private const val TAG = "PexelsViewModel"
 
 @HiltViewModel
-class PexelsViewModel @Inject constructor(
-    private val repo: PexelsRepo
-) : ViewModel() {
+class PexelsViewModel @Inject constructor(private val repo: PexelsRepo) : ViewModel() {
 
     // ── Pagination for category tabs ──────────────────────────────────────────
 
@@ -122,7 +120,7 @@ class PexelsViewModel @Inject constructor(
                             _paginationResult.value = Pair(tabName, newItems)
                         }
                     }
-                    is Response.Error   -> {
+                    is Response.Error -> {
                         _error.value = response.message
                         _paginatingTabs.value = _paginatingTabs.value - tabName
                     }
@@ -147,7 +145,7 @@ class PexelsViewModel @Inject constructor(
      * [fromTab] is the category tab currently visible.
      */
     fun searchLocal(query: String, fromTab: String) {
-        _searchQuery.value    = query
+        _searchQuery.value = query
         _activeSearchTab.value = fromTab
         _isApiSearchActive.value = false
 
@@ -172,11 +170,11 @@ class PexelsViewModel @Inject constructor(
      */
     fun submitSearch(query: String, fromTab: String) {
         if (query.isBlank()) return
-        _searchQuery.value     = query
-        _activeSearchTab.value  = fromTab
+        _searchQuery.value = query
+        _activeSearchTab.value = fromTab
         _isApiSearchActive.value = true
-        currentSearchPage       = 1
-        searchHasMore           = true
+        currentSearchPage = 1
+        searchHasMore = true
 
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
@@ -188,7 +186,7 @@ class PexelsViewModel @Inject constructor(
             if (localResults.size >= 5) {
                 // Enough cached — no API call needed
                 _searchResults.value = localResults
-                _isSearching.value   = false
+                _isSearching.value = false
                 Log.d(TAG, "submitSearch: sufficient local results, skipping API")
                 return@launch
             }
@@ -198,19 +196,19 @@ class PexelsViewModel @Inject constructor(
             repo.search(query, page = 1).collect { response ->
                 when (response) {
                     is Response.Success -> {
-                        val apiResults   = response.data ?: emptyList()
-                        searchHasMore    = apiResults.size == 30
-                        val localIds     = localResults.map { it.id }.toSet()
-                        val merged       = localResults + apiResults.filter { it.id !in localIds }
+                        val apiResults = response.data ?: emptyList()
+                        searchHasMore = apiResults.size == 30
+                        val localIds = localResults.map { it.id }.toSet()
+                        val merged = localResults + apiResults.filter { it.id !in localIds }
                         _searchResults.value = merged
-                        _isSearching.value   = false
+                        _isSearching.value = false
                         // Room observer will pick up new category tab automatically
                         Log.d(TAG, "submitSearch: ${merged.size} merged results saved to Room")
                     }
                     is Response.Error -> {
-                        _searchResults.value = localResults  // fallback to local
-                        _error.value         = response.message
-                        _isSearching.value   = false
+                        _searchResults.value = localResults // fallback to local
+                        _error.value = response.message
+                        _isSearching.value = false
                     }
                     else -> {}
                 }
@@ -229,14 +227,14 @@ class PexelsViewModel @Inject constructor(
             repo.search(query, currentSearchPage).collect { response ->
                 when (response) {
                     is Response.Success -> {
-                        val more      = response.data ?: emptyList()
+                        val more = response.data ?: emptyList()
                         searchHasMore = more.size == 30
-                        val existing  = _searchResults.value.map { it.id }.toSet()
+                        val existing = _searchResults.value.map { it.id }.toSet()
                         _searchResults.value = _searchResults.value + more.filter { it.id !in existing }
-                        _isSearching.value   = false
+                        _isSearching.value = false
                     }
                     is Response.Error -> {
-                        _error.value       = response.message
+                        _error.value = response.message
                         _isSearching.value = false
                     }
                     else -> {}
@@ -248,16 +246,18 @@ class PexelsViewModel @Inject constructor(
     fun clearSearch() {
         searchJob?.cancel()
         localSearchJob?.cancel()
-        _searchQuery.value        = ""
-        _activeSearchTab.value    = ""
+        _searchQuery.value = ""
+        _activeSearchTab.value = ""
         _localSearchResults.value = emptyList()
-        _searchResults.value      = emptyList()
-        _isSearching.value        = false
-        _isApiSearchActive.value  = false
-        currentSearchPage         = 1
-        searchHasMore             = true
+        _searchResults.value = emptyList()
+        _isSearching.value = false
+        _isApiSearchActive.value = false
+        currentSearchPage = 1
+        searchHasMore = true
     }
 
     fun isPexelsTab(tabName: String): Boolean = PexelsCategories.isPexelsTab(tabName)
-    fun clearError() { _error.value = null }
+    fun clearError() {
+        _error.value = null
+    }
 }

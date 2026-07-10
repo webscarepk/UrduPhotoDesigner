@@ -6,7 +6,8 @@ enum class BrushStyle(val displayName: String) {
     PENCIL("Pencil"),
     HIGHLIGHTER("Highlighter"),
     BRUSH("Brush"),
-    ERASER("Eraser");
+    ERASER("Eraser"),
+    ;
 
     override fun toString(): String = displayName
 }

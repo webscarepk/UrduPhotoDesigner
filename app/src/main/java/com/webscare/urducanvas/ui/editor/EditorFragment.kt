@@ -92,9 +92,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
-fun Int.dpToPx(context: Context): Int {
-    return (this * context.resources.displayMetrics.density + 0.5f).toInt()
-}
+fun Int.dpToPx(context: Context): Int = (this * context.resources.displayMetrics.density + 0.5f).toInt()
 
 @AndroidEntryPoint
 class EditorFragment : Fragment() {
@@ -141,10 +139,10 @@ class EditorFragment : Fragment() {
     private val nonExpandableDestinations = setOf(
         R.id.adjustmentsParentFragment,
         R.id.shapeFragment,
-        R.id.textAdjustmentsFragment
+        R.id.textAdjustmentsFragment,
     )
     private var isPanelExpandable = true
-    private var currentDragHandle: View? = null  // stored so we can block/restore touch
+    private var currentDragHandle: View? = null // stored so we can block/restore touch
     private val registeredDragHandles = mutableListOf<View>()
 
     private val pickImage =
@@ -153,7 +151,9 @@ class EditorFragment : Fragment() {
         }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentEditorBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -164,7 +164,8 @@ class EditorFragment : Fragment() {
 
         if (!BuildConfig.DEBUG) {
             activity?.window?.setFlags(
-                WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE
+                WindowManager.LayoutParams.FLAG_SECURE,
+                WindowManager.LayoutParams.FLAG_SECURE,
             )
         }
 
@@ -218,8 +219,8 @@ class EditorFragment : Fragment() {
             // Hide bottom nav for adjustments
             binding.bottomNavigation.isVisible =
                 destination.id != R.id.adjustmentsParentFragment &&
-                        destination.id != R.id.shapeFragment &&
-                        destination.id != R.id.textAdjustmentsFragment
+                destination.id != R.id.shapeFragment &&
+                destination.id != R.id.textAdjustmentsFragment
 
             // Lock the panel sheet collapsed for adjustment panels (non-expandable).
             // When the user navigates back to an expandable panel, attachDragHandle()
@@ -240,7 +241,6 @@ class EditorFragment : Fragment() {
             }
 
             when (destination.id) {
-
                 R.id.textFragment -> {
                     binding.bottomNavigation.selectedItemId = R.id.nav_text
                     currentPanelItemId = R.id.nav_text
@@ -326,7 +326,9 @@ class EditorFragment : Fragment() {
                 // quality up to the GPU hard limit (24 MP / 4899 px per side).
                 // CanvasView's display-proxy system handles render performance transparently.
                 val bitmap = ImageProcessor.downsampleIfNeeded(
-                    rawBitmap, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX
+                    rawBitmap,
+                    com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX,
+                    com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX,
                 )
 
                 withContext(Dispatchers.Main) {
@@ -361,7 +363,7 @@ class EditorFragment : Fragment() {
         }
 
         binding.addShapes.addPressEffect {
-            shapeJustAdded = false   // ← was true, change to false so observer allows navigation
+            shapeJustAdded = false // ← was true, change to false so observer allows navigation
             viewModel.addShapeElement()
             val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
             navController.navigate(R.id.shapesParentFragment, null, navOptions)
@@ -402,10 +404,12 @@ class EditorFragment : Fragment() {
                     var newY = fabInitialY + dy
 
                     newX = newX.coerceIn(
-                        fabMargin.toFloat(), (parentWidth - v.width - fabMargin).toFloat()
+                        fabMargin.toFloat(),
+                        (parentWidth - v.width - fabMargin).toFloat(),
                     )
                     newY = newY.coerceIn(
-                        fabMargin.toFloat(), (parentHeight - v.height - fabMargin).toFloat()
+                        fabMargin.toFloat(),
+                        (parentHeight - v.height - fabMargin).toFloat(),
                     )
 
                     v.x = newX
@@ -476,7 +480,7 @@ class EditorFragment : Fragment() {
                 animatorSet.playTogether(
                     ObjectAnimator.ofFloat(fabMenu, View.ALPHA, 0f, 1f),
                     ObjectAnimator.ofFloat(fabMenu, View.SCALE_X, 0.5f, 1f),
-                    ObjectAnimator.ofFloat(fabMenu, View.SCALE_Y, 0.5f, 1f)
+                    ObjectAnimator.ofFloat(fabMenu, View.SCALE_Y, 0.5f, 1f),
                 )
                 animatorSet.duration = 200
                 animatorSet.start()
@@ -484,7 +488,6 @@ class EditorFragment : Fragment() {
 
             // Change FAB icon to 'X' (or rotate the '+')
             fabAdd.animate().rotation(45f).setDuration(200).start()
-
         } else {
             // Collapse/Hide Menu
             fabAdd.animate().rotation(0f).setDuration(200).start()
@@ -530,7 +533,8 @@ class EditorFragment : Fragment() {
             setGravity(Gravity.BOTTOM)
             // You might want to adjust width/height if the layout doesn't fill as expected
             setLayout(
-                WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
             )
         }
         // Show the dialog
@@ -582,7 +586,7 @@ class EditorFragment : Fragment() {
         exportBitmap: Bitmap,
         exportJsonFile: File,
         exportImage: Boolean,
-        canvasSize: CanvasSize
+        canvasSize: CanvasSize,
     ) = withContext(Dispatchers.IO) {
         try {
             // ---- Save thumbnail image ------------------------------------------------
@@ -616,14 +620,14 @@ class EditorFragment : Fragment() {
                     }
                 }
             } finally {
-                exportJsonFile.delete()   // always delete the source temp file
+                exportJsonFile.delete() // always delete the source temp file
             }
             Log.d(TAG, "saveOnExitSafe: wrote $jsonPath")
             withContext(Dispatchers.Main) { updateExportDialog(97, "JSON saved") }
 
             // ---- File size ----------------------------------------------------------
             val imageSizeBytes = if (exportImage) File(imagePath).length() else 0L
-            val jsonSizeBytes = File(jsonPath).length()   // read from final destination
+            val jsonSizeBytes = File(jsonPath).length() // read from final destination
             val fileSizeMB = (imageSizeBytes + jsonSizeBytes) / (1024.0 * 1024.0)
 
             val exportDate = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
@@ -661,14 +665,12 @@ class EditorFragment : Fragment() {
                 updateExportDialog(99, "Database updated")
                 updateExportDialog(100, "Saved successfully")
             }
-
         } catch (e: Exception) {
             Log.e(TAG, "saveOnExitSafe failed: ${e.message}", e)
         }
     }
 
     private fun observeViewModel() {
-
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainViewModel.expandedPanel.collect { panel ->
@@ -707,7 +709,6 @@ class EditorFragment : Fragment() {
                 }
             }
         }
-
     }
 
     private fun observeAfterCanvasReady() {
@@ -764,7 +765,7 @@ class EditorFragment : Fragment() {
                 val panelDestinations = listOf(
                     R.id.adjustmentsParentFragment,
                     R.id.shapeFragment,
-                    R.id.textAdjustmentsFragment   // ← ADD THIS
+                    R.id.textAdjustmentsFragment, // ← ADD THIS
                 )
                 val currentDest = navController.currentDestination?.id
                 if (currentDest != null && currentDest in panelDestinations) {
@@ -933,12 +934,11 @@ class EditorFragment : Fragment() {
             //    double-tap, edit icon tap). NOT when an element was just added
             //    programmatically via addSticker/addSvgSticker. ──────────────────
             if (!selectionFromUserInteraction) return@observe
-            selectionFromUserInteraction = false   // consume — one-shot flag
+            selectionFromUserInteraction = false // consume — one-shot flag
 
             val targetDestination = when {
                 newSelection.size == 1 && first != null -> {
                     when (first.type) {
-
                         ElementType.TEXT -> R.id.textAdjustmentsFragment
 
                         ElementType.IMAGE, ElementType.STICKER, ElementType.BACKGROUND -> R.id.adjustmentsParentFragment
@@ -960,7 +960,7 @@ class EditorFragment : Fragment() {
             val panelDestinations = listOf(
                 R.id.adjustmentsParentFragment,
                 R.id.shapeFragment,
-                R.id.textAdjustmentsFragment
+                R.id.textAdjustmentsFragment,
             )
 
             if (targetDestination == null) {
@@ -995,9 +995,9 @@ class EditorFragment : Fragment() {
                     }
                 }
 
-                if (currentDest != null
-                    && currentDest in panelDestinations
-                    && currentDest != targetDestination
+                if (currentDest != null &&
+                    currentDest in panelDestinations &&
+                    currentDest != targetDestination
                 ) {
                     navController.popBackStack(currentDest, true)
                 }
@@ -1013,7 +1013,6 @@ class EditorFragment : Fragment() {
                 navController.navigate(targetDestination, bundle, navOptions)
             }
         }
-
     }
 
     private fun List<CanvasElement>.sameSelectionAs(other: List<CanvasElement>): Boolean {
@@ -1075,7 +1074,7 @@ class EditorFragment : Fragment() {
             binding.alignmentKit,
             anySelected,
             animShow = R.anim.slide_in,
-            animHide = R.anim.slide_out
+            animHide = R.anim.slide_out,
         )
         updateIconVisibility(binding.selection, showAlignWithSelection)
     }
@@ -1084,7 +1083,7 @@ class EditorFragment : Fragment() {
         view: View,
         shouldBeVisible: Boolean,
         @AnimRes animShow: Int = R.anim.slide_up_2,
-        @AnimRes animHide: Int = R.anim.slide_down_2
+        @AnimRes animHide: Int = R.anim.slide_down_2,
     ) {
         val isVisible = view.isVisible
 
@@ -1110,15 +1109,15 @@ class EditorFragment : Fragment() {
     // onViewCreated. Callbacks that only touch viewModel (activityViewModels —
     // survives recreation) are passed as plain lambdas directly to CanvasView
     // and never need updating.
-    private var cbOnEditTextRequested : (CanvasElement) -> Unit = {}
-    private var cbOnElementSelected   : (List<CanvasElement>) -> Unit = {}
-    private var cbOnRequestOpenLayers : () -> Unit = {}
-    private var cbOnCanvasLongPressed : (Float, Float) -> Unit = { _, _ -> }
+    private var cbOnEditTextRequested: (CanvasElement) -> Unit = {}
+    private var cbOnElementSelected: (List<CanvasElement>) -> Unit = {}
+    private var cbOnRequestOpenLayers: () -> Unit = {}
+    private var cbOnCanvasLongPressed: (Float, Float) -> Unit = { _, _ -> }
 
     /** Call on every onViewCreated to point all fragment-state callbacks at the live instance. */
     private fun rewireCanvasCallbacks() {
         cbOnEditTextRequested = { element -> handleEditTextRequested(element) }
-        cbOnElementSelected   = { elements ->
+        cbOnElementSelected = { elements ->
             selectionFromUserInteraction = true
             viewModel.onCanvasSelectionChanged(elements)
         }
@@ -1181,7 +1180,7 @@ class EditorFragment : Fragment() {
                 onExitSelectionMode = { viewModel.exitSelectionMode() },
                 onStrokeCompleted = { stroke -> viewModel.notifyDrawStrokeAdded(stroke) },
                 onZoomChanged = { zoom -> viewModel.setZoomLevel(zoom) },
-                onCanvasLongPressed = { sx, sy -> cbOnCanvasLongPressed(sx, sy) }
+                onCanvasLongPressed = { sx, sy -> cbOnCanvasLongPressed(sx, sy) },
             ).apply {
                 binding.canvasContainer.addView(this)
             }
@@ -1193,9 +1192,12 @@ class EditorFragment : Fragment() {
 
     /** Handles double-tap / edit requests from the canvas. */
     private fun handleEditTextRequested(element: CanvasElement) {
-        if (!isAdded || view == null ||
+        if (!isAdded ||
+            view == null ||
             !viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
-        ) return
+        ) {
+            return
+        }
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 when (element.type) {
@@ -1225,7 +1227,7 @@ class EditorFragment : Fragment() {
                     else -> showTextEditDialog(element)
                 }
             } catch (e: Exception) {
-                Log.e("EditorFragment", "Navigation failed: ${e.message}")
+                Log.e("EditorFragment", "Navigation failed", e)
             }
         }
     }
@@ -1235,9 +1237,12 @@ class EditorFragment : Fragment() {
         // Guard BEFORE requireActivity() — the long-press fires from GestureDetector on the
         // main thread and can arrive after the fragment has been detached, at which point
         // requireActivity() throws IllegalStateException.
-        if (!isAdded || view == null ||
+        if (!isAdded ||
+            view == null ||
             !viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
-        ) return
+        ) {
+            return
+        }
         requireActivity().runOnUiThread {
             // Re-check inside the post in case state changed between the outer guard and now.
             if (!isAdded || view == null) return@runOnUiThread
@@ -1377,29 +1382,34 @@ class EditorFragment : Fragment() {
 
         binding.leftAlign.addPressEffect {
             sizedCanvasView.alignHorizontal(
-                HAlign.LEFT, currentMode
+                HAlign.LEFT,
+                currentMode,
             )
         }
         binding.centerHorizontal.addPressEffect {
             sizedCanvasView.alignHorizontal(
-                HAlign.CENTER, currentMode
+                HAlign.CENTER,
+                currentMode,
             )
         }
         binding.rightAlign.addPressEffect {
             sizedCanvasView.alignHorizontal(
-                HAlign.RIGHT, currentMode
+                HAlign.RIGHT,
+                currentMode,
             )
         }
 
         binding.topAlign.addPressEffect { sizedCanvasView.alignVertical(VAlign.TOP, currentMode) }
         binding.centerVertical.addPressEffect {
             sizedCanvasView.alignVertical(
-                VAlign.MIDDLE, currentMode
+                VAlign.MIDDLE,
+                currentMode,
             )
         }
         binding.bottomAlign.addPressEffect {
             sizedCanvasView.alignVertical(
-                VAlign.BOTTOM, currentMode
+                VAlign.BOTTOM,
+                currentMode,
             )
         }
 
@@ -1470,9 +1480,7 @@ class EditorFragment : Fragment() {
         initPanelSheet()
     }
 
-    private fun colorOf(@ColorRes colorRes: Int): Int {
-        return ContextCompat.getColor(requireActivity(), colorRes)
-    }
+    private fun colorOf(@ColorRes colorRes: Int): Int = ContextCompat.getColor(requireActivity(), colorRes)
 
     private fun resetOpacityState() {
         binding.opacityValue.setTextColor(ColorStateList.valueOf(colorOf(R.color.black)))
@@ -1495,12 +1503,11 @@ class EditorFragment : Fragment() {
             popupBinding.root,
             (150 * requireActivity().resources.displayMetrics.density).toInt(), // ~200dp width
             LinearLayout.LayoutParams.WRAP_CONTENT,
-            true
+            true,
         )
 
         popupWindow.elevation = 2f
         popupWindow.isOutsideTouchable = true
-
 
         // ---- item logic ----
 
@@ -1545,7 +1552,7 @@ class EditorFragment : Fragment() {
             // Measure popup height
             popupBinding.root.measure(
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
             )
             val popupHeight = popupBinding.root.measuredHeight
 
@@ -1558,8 +1565,10 @@ class EditorFragment : Fragment() {
             } else if (spaceAbove >= popupHeight) {
                 // Enough space above → show on top
                 popupWindow.showAtLocation(
-                    anchorView, Gravity.NO_GRAVITY, location[0], // x
-                    anchorTop - popupHeight // y (above anchor)
+                    anchorView,
+                    Gravity.NO_GRAVITY,
+                    location[0], // x
+                    anchorTop - popupHeight, // y (above anchor)
                 )
             } else {
                 // Default fallback → force dropdown
@@ -1571,11 +1580,13 @@ class EditorFragment : Fragment() {
     /** Setup back button behavior */
     private fun initBackHandling() {
         requireActivity().onBackPressedDispatcher.addCallback(
-            viewLifecycleOwner, object : OnBackPressedCallback(true) {
+            viewLifecycleOwner,
+            object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
                     autoSave()
                 }
-            })
+            },
+        )
 
         binding.back.addPressEffect { autoSave() }
     }
@@ -1754,15 +1765,14 @@ class EditorFragment : Fragment() {
             popupBinding.root,
             (180 * requireActivity().resources.displayMetrics.density).toInt(),
             LinearLayout.LayoutParams.WRAP_CONTENT,
-            true
+            true,
         )
         popupWindow.elevation = 8f
         popupWindow.isOutsideTouchable = true
 
         fun zoomPercentFromProgress(progress: Int): Int = 50 + progress
 
-        fun progressFromZoomLevel(zoomLevel: Float): Int =
-            ((zoomLevel * 100f).roundToInt() - 50).coerceIn(0, 250)
+        fun progressFromZoomLevel(zoomLevel: Float): Int = ((zoomLevel * 100f).roundToInt() - 50).coerceIn(0, 250)
 
         fun refreshLabel(progress: Int) {
             popupBinding.zoomValue.text = "${zoomPercentFromProgress(progress)}%"
@@ -1809,7 +1819,7 @@ class EditorFragment : Fragment() {
 
             popupBinding.root.measure(
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
             )
             val popupHeight = popupBinding.root.measuredHeight
             val spaceBelow = screenHeight - anchorBottom
@@ -1818,7 +1828,10 @@ class EditorFragment : Fragment() {
             when {
                 spaceBelow >= popupHeight -> popupWindow.showAsDropDown(anchorView)
                 spaceAbove >= popupHeight -> popupWindow.showAtLocation(
-                    anchorView, Gravity.NO_GRAVITY, location[0], anchorTop - popupHeight
+                    anchorView,
+                    Gravity.NO_GRAVITY,
+                    location[0],
+                    anchorTop - popupHeight,
                 )
 
                 else -> popupWindow.showAsDropDown(anchorView)
@@ -1841,27 +1854,27 @@ class EditorFragment : Fragment() {
         val guideline = root.findViewById<Guideline>(R.id.centerExpandableGuide) ?: return
 
         root.doOnLayout {
-            val rootHeight   = root.height
+            val rootHeight = root.height
             if (rootHeight == 0) return@doOnLayout
             val b = _binding ?: return@doOnLayout
 
-            val collapsedPx = (rootHeight * 0.65f).toInt()   // resting position
+            val collapsedPx = (rootHeight * 0.65f).toInt() // resting position
 
             val expandedPx = 0
 
             panelSheet = PanelSheetBehavior(
-                root            = root,
-                guideline       = guideline,
-                dragHandleView  = b.panelNavHost,   // placeholder; panels override via attachDragHandle()
-                collapsedPx     = collapsedPx,
-                expandedPx      = expandedPx,
-                onSlide         = { offset ->
+                root = root,
+                guideline = guideline,
+                dragHandleView = b.panelNavHost, // placeholder; panels override via attachDragHandle()
+                collapsedPx = collapsedPx,
+                expandedPx = expandedPx,
+                onSlide = { offset ->
                     mainViewModel.setPanelSlideOffset(offset)
                     val bb = _binding ?: return@PanelSheetBehavior
                     bb.fabContainer.alpha = 1f - offset
                     bb.fabContainer.visibility = if (offset >= 1f) View.GONE else View.VISIBLE
                 },
-                onStateSettled  = { expanded ->
+                onStateSettled = { expanded ->
                     // Sync ViewModel so panels react
                     if (!expanded && mainViewModel.expandedPanel.value != null) {
                         mainViewModel.collapsePanel()
@@ -1869,7 +1882,7 @@ class EditorFragment : Fragment() {
                     // Expansion is set by attachDragHandle's onStateSettled which knows panel type.
                     // If no panel has registered yet, collapse is the only action needed here.
                 },
-                dimView = b.dimOverlay
+                dimView = b.dimOverlay,
             )
             // Don't call attach() here — the real handle comes via attachDragHandle()
         }
@@ -1888,7 +1901,7 @@ class EditorFragment : Fragment() {
         // Called only by expandable panel fragments — restore expandable state.
         isPanelExpandable = true
         currentDragHandle = handleView
-        handleView.setOnTouchListener(null)  // ensure any block is cleared
+        handleView.setOnTouchListener(null) // ensure any block is cleared
         // Sheet may not exist yet if layout hasn't run — post it
         val rootView = _binding?.root ?: return
         rootView.post {
@@ -1909,40 +1922,40 @@ class EditorFragment : Fragment() {
             // Also hard-reset the dimOverlay so a stale half-expanded state from the old
             // PanelSheetBehavior instance never keeps blocking canvas touches.
             panelSheet?.snapTo(expanded = false, immediate = true)
-            b.dimOverlay.visibility  = View.INVISIBLE
+            b.dimOverlay.visibility = View.INVISIBLE
             b.dimOverlay.isClickable = false
 
             val dest = _navController?.currentDestination?.id
             val panelType = when (dest) {
-                R.id.imagesFragment       -> PanelType.IMAGES
-                R.id.objectsFragment      -> PanelType.OBJECTS
+                R.id.imagesFragment -> PanelType.IMAGES
+                R.id.objectsFragment -> PanelType.OBJECTS
                 R.id.shapesParentFragment -> PanelType.SHAPES
-                R.id.textFragment         -> PanelType.FONTS
-                R.id.drawFragment         -> PanelType.DRAW
-                R.id.layersFragment       -> PanelType.LAYERS
-                else                      -> null
+                R.id.textFragment -> PanelType.FONTS
+                R.id.drawFragment -> PanelType.DRAW
+                R.id.layersFragment -> PanelType.LAYERS
+                else -> null
             }
 
             panelSheet = PanelSheetBehavior(
-                root            = root,
-                guideline       = guideline,
-                dragHandleView  = handleView,
-                collapsedPx     = collapsedPx,
-                expandedPx      = expandedPx,
-                onSlide         = { offset ->
+                root = root,
+                guideline = guideline,
+                dragHandleView = handleView,
+                collapsedPx = collapsedPx,
+                expandedPx = expandedPx,
+                onSlide = { offset ->
                     mainViewModel.setPanelSlideOffset(offset)
                     val bb = _binding ?: return@PanelSheetBehavior
                     bb.fabContainer.alpha = 1f - offset
                     bb.fabContainer.visibility = if (offset >= 1f) View.GONE else View.VISIBLE
                 },
-                onStateSettled  = { expanded ->
+                onStateSettled = { expanded ->
                     if (expanded) {
                         panelType?.let { mainViewModel.setPanelExpandedType(it) }
                     } else {
                         mainViewModel.collapsePanel()
                     }
                 },
-                dimView = b.dimOverlay
+                dimView = b.dimOverlay,
             ).apply {
                 onAdditionalHandleAttached = { view ->
                     registerAdditionalDragHandle(view)
@@ -1992,7 +2005,7 @@ class EditorFragment : Fragment() {
             // spring endListener already reset it. Rapid expand→collapse gestures can
             // leave the overlay visible/clickable if the spring settles before the
             // expandedPanel Flow emits the null (collapsed) state.
-            b.dimOverlay.visibility  = View.INVISIBLE
+            b.dimOverlay.visibility = View.INVISIBLE
             b.dimOverlay.isClickable = false
         }
     }
@@ -2016,7 +2029,7 @@ class EditorFragment : Fragment() {
                 setColor(Color.TRANSPARENT)
                 setStroke(
                     (2 * resources.displayMetrics.density).toInt(),
-                    ContextCompat.getColor(requireContext(), R.color.appColor)
+                    ContextCompat.getColor(requireContext(), R.color.appColor),
                 )
             }
             // Fill underneath (inset), ring on top.
@@ -2038,7 +2051,7 @@ class EditorFragment : Fragment() {
             popupBinding.root,
             (210 * resources.displayMetrics.density).toInt(),
             LinearLayout.LayoutParams.WRAP_CONTENT,
-            true
+            true,
         ).apply {
             elevation = 2f
             isOutsideTouchable = true
@@ -2048,7 +2061,9 @@ class EditorFragment : Fragment() {
         val size = viewModel.canvasSize.value
         popupBinding.canvasSizeValue.text = if (size != null) {
             getString(R.string.canvas_size_value, size.width.toInt(), size.height.toInt())
-        } else ""
+        } else {
+            ""
+        }
 
         popupBinding.actionCanvasSize.addPressEffect {
             popupWindow.dismiss()
@@ -2057,12 +2072,12 @@ class EditorFragment : Fragment() {
 
         // ── Background color: light / dark ────────────────────────────────
         var lightColor = ContextCompat.getColor(requireContext(), R.color.contrast)
-        var darkColor  = ContextCompat.getColor(requireContext(), R.color.black)
+        var darkColor = ContextCompat.getColor(requireContext(), R.color.black)
 
         // Day-mode color fallbacks if night-mode is active (where R.color.black becomes #FFFFFF)
         if (darkColor == Color.WHITE || darkColor == -1) {
             lightColor = Color.parseColor("#F7F7F7") // R.color.contrast in day mode
-            darkColor  = Color.parseColor("#2B2B2B") // R.color.black in day mode
+            darkColor = Color.parseColor("#2B2B2B") // R.color.black in day mode
         }
 
         val currentBgColor = viewModel.backgroundColor.value ?: Color.WHITE
@@ -2090,7 +2105,10 @@ class EditorFragment : Fragment() {
         popupBinding.actionLock.text =
             getString(if (locked) R.string.unlock_canvas else R.string.lock_canvas)
         popupBinding.actionLock.setCompoundDrawablesRelativeWithIntrinsicBounds(
-            0, 0, if (locked) R.drawable.ic_unlock else R.drawable.ic_lock, 0
+            0,
+            0,
+            if (locked) R.drawable.ic_unlock else R.drawable.ic_lock,
+            0,
         )
         popupBinding.actionLock.addPressEffect {
             viewModel.toggleCanvasPanLock()
@@ -2102,7 +2120,7 @@ class EditorFragment : Fragment() {
             val screenHeight = resources.displayMetrics.heightPixels
             popupBinding.root.measure(
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
             )
             val popupHeight = popupBinding.root.measuredHeight
             val x = touchRawX.toInt()
@@ -2129,14 +2147,11 @@ class EditorFragment : Fragment() {
         // ViewModel across fragment recreation; without this, a GestureDetector long-press
         // arriving after onDestroyView throws IllegalStateException on requireActivity().
         cbOnEditTextRequested = {}
-        cbOnElementSelected   = {}
+        cbOnElementSelected = {}
         cbOnRequestOpenLayers = {}
         cbOnCanvasLongPressed = { _, _ -> }
         if (!BuildConfig.DEBUG) {
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
-    }
-
-    companion object {
     }
 }

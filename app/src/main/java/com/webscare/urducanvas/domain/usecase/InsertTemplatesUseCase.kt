@@ -6,7 +6,7 @@ import com.webscare.urducanvas.domain.repo.TemplatesRepo
 import javax.inject.Inject
 
 class InsertTemplatesUseCase @Inject constructor(
-    private val templatesRepo: com.webscare.urducanvas.domain.repo.TemplatesRepo
+    private val templatesRepo: com.webscare.urducanvas.domain.repo.TemplatesRepo,
 ) {
     suspend operator fun invoke(templatesResponse: com.webscare.urducanvas.data.model.TemplatesResponse) {
         templatesResponse.templates.forEach { template ->

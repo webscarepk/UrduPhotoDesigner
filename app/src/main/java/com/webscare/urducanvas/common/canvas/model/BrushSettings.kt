@@ -9,16 +9,18 @@ data class BrushSettings(
     var defaultThickness: Float,
     var defaultHardness: Float,
     var style: BrushStyle,
-    var gradient: GradientItem? = null
-) : Serializable{
+    var gradient: GradientItem? = null,
+) : Serializable {
 
     companion object {
+        private const val serialVersionUID: Long = 1L
+
         fun default(): BrushSettings = BrushSettings(
             defaultColor = Color.BLACK,
             defaultThickness = 20f,
             defaultHardness = 1f,
             style = BrushStyle.PEN,
-            gradient = null
+            gradient = null,
         )
     }
 }

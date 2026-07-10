@@ -2,7 +2,17 @@ package com.webscare.urducanvas.di
 
 import android.app.Activity
 import android.content.Context
-import com.android.billingclient.api.*
+import com.android.billingclient.api.AcknowledgePurchaseParams
+import com.android.billingclient.api.BillingClient
+import com.android.billingclient.api.BillingClientStateListener
+import com.android.billingclient.api.BillingFlowParams
+import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.PendingPurchasesParams
+import com.android.billingclient.api.ProductDetails
+import com.android.billingclient.api.Purchase
+import com.android.billingclient.api.PurchasesUpdatedListener
+import com.android.billingclient.api.QueryProductDetailsParams
+import com.android.billingclient.api.QueryPurchasesParams
 import com.webscare.urducanvas.BuildConfig
 import com.webscare.urducanvas.common.datastore.PreferenceDataStoreAPI
 import com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.PREF_IS_SUBSCRIBED
@@ -20,14 +30,14 @@ import javax.inject.Singleton
 @Singleton
 class BillingManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val dataStore: PreferenceDataStoreAPI
+    private val dataStore: PreferenceDataStoreAPI,
 ) : PurchasesUpdatedListener {
 
     companion object {
         val PLAN_PRODUCT_IDS = mapOf(
             1 to "urducanvas_monthly",
             2 to "urducanvas_6months",
-            3 to "urducanvas_yearly"
+            3 to "urducanvas_yearly",
         )
     }
 
@@ -50,7 +60,7 @@ class BillingManager @Inject constructor(
         val orderId: String? = null,
         val isTrial: Boolean = false,
         // ── NEW: expiry millis derived from purchaseTime + billing period ──────
-        val expiryTimeMillis: Long? = null
+        val expiryTimeMillis: Long? = null,
     )
 
     private val _snapshot = MutableStateFlow(PlayBillingSnapshot())
@@ -75,7 +85,7 @@ class BillingManager @Inject constructor(
             billingClient.queryPurchasesAsync(
                 QueryPurchasesParams.newBuilder()
                     .setProductType(BillingClient.ProductType.SUBS)
-                    .build()
+                    .build(),
             ) { _, purchases ->
                 val currentPurchase = purchases.firstOrNull {
                     it.purchaseState == Purchase.PurchaseState.PURCHASED
@@ -92,10 +102,11 @@ class BillingManager @Inject constructor(
                     .firstOrNull { it.value == currentProductId }?.key ?: 0
                 val isUpgrade = newPlanId > currentRank
 
-                val replacementMode = if (isUpgrade)
+                val replacementMode = if (isUpgrade) {
                     BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_PRORATED_PRICE
-                else
+                } else {
                     BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.DEFERRED
+                }
 
                 val productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
                     .setProductDetails(productDetails)
@@ -110,7 +121,7 @@ class BillingManager @Inject constructor(
                                 BillingFlowParams.SubscriptionUpdateParams.newBuilder()
                                     .setOldPurchaseToken(currentPurchase.purchaseToken)
                                     .setSubscriptionReplacementMode(replacementMode)
-                                    .build()
+                                    .build(),
                             )
                         }
                     }
@@ -131,7 +142,7 @@ class BillingManager @Inject constructor(
             billingClient.queryPurchasesAsync(
                 QueryPurchasesParams.newBuilder()
                     .setProductType(BillingClient.ProductType.SUBS)
-                    .build()
+                    .build(),
             ) { result, purchases ->
                 if (result.responseCode == BillingClient.BillingResponseCode.OK) {
                     val activePurchase = purchases.firstOrNull {
@@ -141,8 +152,11 @@ class BillingManager @Inject constructor(
                     saveSubscriptionStatus(activePurchase != null, productId)
                     _isCancelled.value = activePurchase != null && !activePurchase.isAutoRenewing
 
-                    if (activePurchase != null) fetchExpiryDate(activePurchase)
-                    else _expiryDate.value = null
+                    if (activePurchase != null) {
+                        fetchExpiryDate(activePurchase)
+                    } else {
+                        _expiryDate.value = null
+                    }
 
                     publishSnapshot(purchases)
                 }
@@ -155,7 +169,7 @@ class BillingManager @Inject constructor(
             billingClient.queryPurchasesAsync(
                 QueryPurchasesParams.newBuilder()
                     .setProductType(BillingClient.ProductType.SUBS)
-                    .build()
+                    .build(),
             ) { result, purchases ->
                 if (result.responseCode == BillingClient.BillingResponseCode.OK) {
                     publishSnapshot(purchases)
@@ -184,7 +198,7 @@ class BillingManager @Inject constructor(
                     isAcknowledged = pending.isAcknowledged,
                     orderId = pending.orderId,
                     isTrial = false,
-                    expiryTimeMillis = null
+                    expiryTimeMillis = null,
                 )
             }
 
@@ -208,7 +222,7 @@ class BillingManager @Inject constructor(
                     isAcknowledged = purchased.isAcknowledged,
                     orderId = purchased.orderId,
                     isTrial = trial,
-                    expiryTimeMillis = expiry
+                    expiryTimeMillis = expiry,
                 )
 
                 // Also keep the legacy _expiryDate StateFlow in sync.
@@ -234,7 +248,7 @@ class BillingManager @Inject constructor(
             isAcknowledged = true,
             orderId = purchase.orderId,
             isTrial = trial,
-            expiryTimeMillis = expiry
+            expiryTimeMillis = expiry,
         )
         _expiryDate.value = expiry
     }
@@ -256,8 +270,11 @@ class BillingManager @Inject constructor(
             ?.pricingPhaseList
             ?.lastOrNull()
             ?.billingPeriod
-        return if (billingPeriod != null) calculateExpiry(purchaseTimeMillis, billingPeriod)
-        else null
+        return if (billingPeriod != null) {
+            calculateExpiry(purchaseTimeMillis, billingPeriod)
+        } else {
+            null
+        }
     }
 
     private fun fetchExpiryDate(purchase: Purchase) {
@@ -277,8 +294,8 @@ class BillingManager @Inject constructor(
                     QueryProductDetailsParams.Product.newBuilder()
                         .setProductId(productId)
                         .setProductType(BillingClient.ProductType.SUBS)
-                        .build()
-                )
+                        .build(),
+                ),
             ).build()
 
         billingClient.queryProductDetailsAsync(params) { result, productDetailsList ->
@@ -305,7 +322,7 @@ class BillingManager @Inject constructor(
             "P3M" -> calendar.add(java.util.Calendar.MONTH, 3)
             "P6M" -> calendar.add(java.util.Calendar.MONTH, 6)
             "P1Y" -> calendar.add(java.util.Calendar.YEAR, 1)
-            else  -> calendar.add(java.util.Calendar.MONTH, 1)
+            else -> calendar.add(java.util.Calendar.MONTH, 1)
         }
         return calendar.timeInMillis
     }
@@ -337,7 +354,7 @@ class BillingManager @Inject constructor(
         .enablePendingPurchases(
             PendingPurchasesParams.newBuilder()
                 .enableOneTimeProducts()
-                .build()
+                .build(),
         )
         .build()
 
@@ -445,7 +462,7 @@ class BillingManager @Inject constructor(
                                 productId = purchase.products.firstOrNull(),
                                 purchaseState = purchase.purchaseState,
                                 isAcknowledged = purchase.isAcknowledged,
-                                orderId = purchase.orderId
+                                orderId = purchase.orderId,
                             )
                         }
                     }
@@ -497,10 +514,10 @@ class BillingManager @Inject constructor(
             billingClient.queryPurchasesAsync(
                 QueryPurchasesParams.newBuilder()
                     .setProductType(BillingClient.ProductType.SUBS)
-                    .build()
+                    .build(),
             ) { result, purchases ->
-                if (result.responseCode == BillingClient.BillingResponseCode.OK
-                    && purchases.isNotEmpty()
+                if (result.responseCode == BillingClient.BillingResponseCode.OK &&
+                    purchases.isNotEmpty()
                 ) {
                     val activePurchase = purchases.firstOrNull {
                         it.purchaseState == Purchase.PurchaseState.PURCHASED
@@ -540,7 +557,9 @@ class BillingManager @Inject constructor(
     fun debugSetSubscription(isSubscribed: Boolean, planId: Int? = null) {
         val productId = if (isSubscribed) {
             PLAN_PRODUCT_IDS[planId] ?: PLAN_PRODUCT_IDS[1]
-        } else null
+        } else {
+            null
+        }
         saveSubscriptionStatus(isSubscribed, productId)
     }
 
@@ -552,16 +571,48 @@ class BillingManager @Inject constructor(
         _snapshot.value = when (status) {
             SubscriptionStatus.NOT_SUBSCRIBED -> PlayBillingSnapshot(status)
             SubscriptionStatus.TRIAL -> PlayBillingSnapshot(
-                status, pid, 1, true, true, "GPA.DEBUG-TRIAL", true, debugExpiry)
+                status,
+                pid,
+                1,
+                true,
+                true,
+                "GPA.DEBUG-TRIAL",
+                true,
+                debugExpiry,
+            )
             SubscriptionStatus.ACTIVE -> PlayBillingSnapshot(
-                status, pid, 1, true, true, "GPA.3327…9041", false, debugExpiry)
+                status,
+                pid,
+                1,
+                true,
+                true,
+                "GPA.3327…9041",
+                false,
+                debugExpiry,
+            )
             SubscriptionStatus.CANCELED -> PlayBillingSnapshot(
-                status, pid, 1, false, true, "GPA.DEBUG-CANCEL", false, debugExpiry)
+                status,
+                pid,
+                1,
+                false,
+                true,
+                "GPA.DEBUG-CANCEL",
+                false,
+                debugExpiry,
+            )
             SubscriptionStatus.PENDING -> PlayBillingSnapshot(
-                status, pid, 2, null, false, null, false, null)
+                status,
+                pid,
+                2,
+                null,
+                false,
+                null,
+                false,
+                null,
+            )
         }
         val subscribed = status == SubscriptionStatus.ACTIVE ||
-                status == SubscriptionStatus.CANCELED || status == SubscriptionStatus.TRIAL
+            status == SubscriptionStatus.CANCELED || status == SubscriptionStatus.TRIAL
         saveSubscriptionStatus(subscribed, if (subscribed) pid else null)
         _isCancelled.value = status == SubscriptionStatus.CANCELED
     }

@@ -5,7 +5,6 @@ import com.webscare.urducanvas.common.canvas.model.ColorItem
 import com.webscare.urducanvas.common.canvas.model.EmojiMeta
 import java.util.Locale
 
-
 object Constants {
 
     const val BASE_URL = "https://dashboard.urdufonts.com/api/"
@@ -30,40 +29,39 @@ object Constants {
     private val SUPP_ARROWS_C = 0x1F800..0x1F8FF
     private val REGIONAL_INDICATORS = 0x1F1E6..0x1F1FF
     private val COUNTRY_CODES = listOf(
-        "AF","AX","AL","DZ","AS","AD","AO","AI","AQ","AG",
-        "AR","AM","AW","AU","AT","AZ","BS","BH","BD","BB",
-        "BY","BE","BZ","BJ","BM","BT","BO","BQ","BA","BW",
-        "BV","BR","IO","BN","BG","BF","BI","CV","KH","CM",
-        "CA","KY","CF","TD","CL","CN","CX","CC","CO","KM",
-        "CG","CD","CK","CR","CI","HR","CU","CW","CY","CZ",
-        "DK","DJ","DM","DO","EC","EG","SV","GQ","ER","EE",
-        "ET","FK","FO","FJ","FI","FR","GF","PF","TF","GA",
-        "GM","GE","DE","GH","GI","GR","GL","GD","GP","GU",
-        "GT","GG","GN","GW","GY","HT","HM","VA","HN","HK",
-        "HU","IS","IN","ID","IR","IQ","IE","IM","IL","IT",
-        "JM","JP","JE","JO","KZ","KE","KI","KP","KR","KW",
-        "KG","LA","LV","LB","LS","LR","LY","LI","LT","LU",
-        "MO","MK","MG","MW","MY","MV","ML","MT","MH","MQ",
-        "MR","MU","YT","MX","FM","MD","MC","MN","ME","MS",
-        "MA","MZ","MM","NA","NR","NP","NL","NC","NZ","NI",
-        "NE","NG","NU","NF","MP","NO","OM","PK","PW","PS",
-        "PA","PG","PY","PE","PH","PN","PL","PT","PR","QA",
-        "RE","RO","RU","RW","BL","SH","KN","LC","MF","PM",
-        "VC","WS","SM","ST","SA","SN","RS","SC","SL","SG",
-        "SX","SK","SI","SB","SO","ZA","GS","SS","ES","LK",
-        "SD","SR","SJ","SE","CH","SY","TW","TJ","TZ","TH",
-        "TL","TG","TK","TO","TT","TN","TR","TM","TC","TV",
-        "UG","UA","AE","GB","US","UM","UY","UZ","VU","VE",
-        "VN","VG","VI","WF","EH","YE","ZM","ZW"
+        "AF", "AX", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG",
+        "AR", "AM", "AW", "AU", "AT", "AZ", "BS", "BH", "BD", "BB",
+        "BY", "BE", "BZ", "BJ", "BM", "BT", "BO", "BQ", "BA", "BW",
+        "BV", "BR", "IO", "BN", "BG", "BF", "BI", "CV", "KH", "CM",
+        "CA", "KY", "CF", "TD", "CL", "CN", "CX", "CC", "CO", "KM",
+        "CG", "CD", "CK", "CR", "CI", "HR", "CU", "CW", "CY", "CZ",
+        "DK", "DJ", "DM", "DO", "EC", "EG", "SV", "GQ", "ER", "EE",
+        "ET", "FK", "FO", "FJ", "FI", "FR", "GF", "PF", "TF", "GA",
+        "GM", "GE", "DE", "GH", "GI", "GR", "GL", "GD", "GP", "GU",
+        "GT", "GG", "GN", "GW", "GY", "HT", "HM", "VA", "HN", "HK",
+        "HU", "IS", "IN", "ID", "IR", "IQ", "IE", "IM", "IL", "IT",
+        "JM", "JP", "JE", "JO", "KZ", "KE", "KI", "KP", "KR", "KW",
+        "KG", "LA", "LV", "LB", "LS", "LR", "LY", "LI", "LT", "LU",
+        "MO", "MK", "MG", "MW", "MY", "MV", "ML", "MT", "MH", "MQ",
+        "MR", "MU", "YT", "MX", "FM", "MD", "MC", "MN", "ME", "MS",
+        "MA", "MZ", "MM", "NA", "NR", "NP", "NL", "NC", "NZ", "NI",
+        "NE", "NG", "NU", "NF", "MP", "NO", "OM", "PK", "PW", "PS",
+        "PA", "PG", "PY", "PE", "PH", "PN", "PL", "PT", "PR", "QA",
+        "RE", "RO", "RU", "RW", "BL", "SH", "KN", "LC", "MF", "PM",
+        "VC", "WS", "SM", "ST", "SA", "SN", "RS", "SC", "SL", "SG",
+        "SX", "SK", "SI", "SB", "SO", "ZA", "GS", "SS", "ES", "LK",
+        "SD", "SR", "SJ", "SE", "CH", "SY", "TW", "TJ", "TZ", "TH",
+        "TL", "TG", "TK", "TO", "TT", "TN", "TR", "TM", "TC", "TV",
+        "UG", "UA", "AE", "GB", "US", "UM", "UY", "UZ", "VU", "VE",
+        "VN", "VG", "VI", "WF", "EH", "YE", "ZM", "ZW",
     )
 
     // 2. Helper to flatten any number of ranges into Strings
-    private fun flatten(vararg ranges: IntRange): List<String> =
-        ranges.flatMap { range ->
-            range.mapNotNull { cp ->
-                runCatching { String(Character.toChars(cp)) }.getOrNull()
-            }
+    private fun flatten(vararg ranges: IntRange): List<String> = ranges.flatMap { range ->
+        range.mapNotNull { cp ->
+            runCatching { String(Character.toChars(cp)) }.getOrNull()
         }
+    }
 
     // 3. Public lists by category
     val EMOJI_EMOTICONS: List<String> by lazy { flatten(EMOTICONS, SUPP_EMOTICONS) }
@@ -108,7 +106,7 @@ object Constants {
         EMOJI_LETTERS.mapNotNull { ch ->
             // getName("REGIONAL INDICATOR SYMBOL LETTER A") → "LETTER A"
             val raw = UCharacter.getName(ch.codePointAt(0)) ?: return@mapNotNull null
-            val letter = raw.substringAfterLast(' ')    // "A"
+            val letter = raw.substringAfterLast(' ') // "A"
             EmojiMeta(ch, letter)
         }
     }
@@ -143,7 +141,7 @@ object Constants {
         "#40E0D0", "#48D1CC", "#00BFFF", "#1E90FF", "#6495ED",
         "#4682B4", "#4169E1", "#0000FF", "#0000CD", "#00008B",
         "#191970", "#87CEFA", "#87CEEB", "#ADD8E6", "#B0C4DE",
-        "#708090", "#778899", "#A9A9A9", "#696969", "#2F4F4F"
+        "#708090", "#778899", "#A9A9A9", "#696969", "#2F4F4F",
     ).map { ColorItem(it) }
 
     val shadowColorList = listOf(
@@ -170,6 +168,6 @@ object Constants {
         "#2C3E50",
         "#3B3B3B",
         "#708090",
-        "#4B0082"
+        "#4B0082",
     ).map { ColorItem(it) }
 }

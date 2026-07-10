@@ -1,10 +1,8 @@
 package com.webscare.urducanvas.ui.editor.panels.shape
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.os.bundleOf
@@ -30,7 +28,6 @@ import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 
 @AndroidEntryPoint
 class ShapesListFragment : Fragment() {
@@ -45,7 +42,8 @@ class ShapesListFragment : Fragment() {
 
     private var imagesAdapter: ImagesAdapter? = null
 
-    var category: String = ""; private set
+    var category: String = ""
+        private set
     private var filterText: String = ""
     private var categoryImages: List<ImageEntity> = emptyList()
     private var lastShapesData: ShapesData? = null
@@ -58,13 +56,15 @@ class ShapesListFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
-            category   = it.getString(ARG_CATEGORY).orEmpty()
+            category = it.getString(ARG_CATEGORY).orEmpty()
             filterText = it.getString(ARG_FILTER).orEmpty()
         }
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentObjectsListBinding.inflate(inflater, container, false)
         return binding.root
@@ -79,12 +79,12 @@ class ShapesListFragment : Fragment() {
             // so scrolling back over them does NOT rebind/redecode. This is the
             // main fix for the jerk when scrolling back over already-seen cells.
             setItemViewCacheSize(24)
-            itemAnimator = null          // suppress flicker on dataset changes
+            itemAnimator = null // suppress flicker on dataset changes
             recycledViewPool.setMaxRecycledViews(0, 32)
             layoutManager = MorphGridLayoutManager(
                 context = requireContext(),
                 collapsedSpan = 3,
-                expandedSpan = 3
+                expandedSpan = 3,
             ).apply {
                 applyFraction(binding.objects, if (mainViewModel.isPanelExpanded(PanelType.SHAPES)) 1f else 0f)
             }
@@ -131,8 +131,6 @@ class ShapesListFragment : Fragment() {
         }
     }
 
-
-
     // ── Selection observer ────────────────────────────────────────────────────
 
     private fun observeSelectionState() {
@@ -140,19 +138,23 @@ class ShapesListFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 combine(
                     mainViewModel.selectedShapesIds,
-                    mainViewModel.isInShapesMultiSelectMode
+                    mainViewModel.isInShapesMultiSelectMode,
                 ) { ids, inMode -> Pair(ids, inMode) }
                     .collect { (newIds, inMode) ->
                         val adapter = imagesAdapter ?: return@collect
                         val modeChanged = inMode != prevWasInMode
                         adapter.isInMultiSelectMode = inMode
-                        if (modeChanged) { adapter.applyModeToAll(); prevWasInMode = inMode }
+                        if (modeChanged) {
+                            adapter.applyModeToAll()
+                            prevWasInMode = inMode
+                        }
                         if (!inMode) {
-                            adapter.clearSelectionShadow(); prevSelectedIds = emptySet()
+                            adapter.clearSelectionShadow()
+                            prevSelectedIds = emptySet()
                         } else {
-                            val added   = newIds - prevSelectedIds
+                            val added = newIds - prevSelectedIds
                             val removed = prevSelectedIds - newIds
-                            added.forEach   { id -> adapter.updateSelectionForId(id, true)  }
+                            added.forEach { id -> adapter.updateSelectionForId(id, true) }
                             removed.forEach { id -> adapter.updateSelectionForId(id, false) }
                             prevSelectedIds = newIds
                         }
@@ -168,17 +170,22 @@ class ShapesListFragment : Fragment() {
             imagesAdapter = ImagesAdapter(
                 context = requireActivity(),
                 onImageSelected = { bitmap, svgDrawable, svgXml, entity ->
-                    val updated = if (svgXml != null && entity.bitmapData == null)
+                    val updated = if (svgXml != null && entity.bitmapData == null) {
                         entity.copy(is_recent = true, bitmapData = svgXml)
-                    else entity.copy(is_recent = true)
+                    } else {
+                        entity.copy(is_recent = true)
+                    }
                     mainViewModel.updateImage(updated)
                     if (!isAdded) return@ImagesAdapter
                     if (svgDrawable != null) {
                         val trimmed = svgDrawable.trimTransparentEdges()
                         Log.d("SVG", "${svgDrawable.intrinsicWidth}x${svgDrawable.intrinsicHeight} → ${trimmed.intrinsicWidth}x${trimmed.intrinsicHeight}")
                         viewModel.addSvgSticker(
-                            trimmed, svgXml, requireActivity(), entity.is_premium,
-                            applyWhiteTintInDarkMode = true
+                            trimmed,
+                            svgXml,
+                            requireActivity(),
+                            entity.is_premium,
+                            applyWhiteTintInDarkMode = true,
                         )
                     } else if (bitmap != null) {
                         viewModel.addSticker(bitmap.trimTransparentEdges(), requireActivity(), ElementType.IMAGE, entity.is_premium)
@@ -187,7 +194,7 @@ class ShapesListFragment : Fragment() {
                 },
                 onLongPress = { entity ->
                     mainViewModel.toggleShapesSelection(entity.id)
-                }
+                },
             )
         }
         imagesAdapter?.applyWhiteTint = requireContext().isDarkModeEnabled()
@@ -229,7 +236,7 @@ class ShapesListFragment : Fragment() {
 
         mainViewModel.clearShapesSelection()
         prevSelectedIds = emptySet()
-        prevWasInMode   = false
+        prevWasInMode = false
         imagesAdapter?.clearSelectionShadow()
         binding.swipeRefresh?.isEnabled = expanded
 
@@ -246,7 +253,7 @@ class ShapesListFragment : Fragment() {
             binding.objects.paddingLeft,
             binding.objects.paddingTop,
             binding.objects.paddingRight,
-            bottomPadding
+            bottomPadding,
         )
 
         // Sync item size on final settle state
@@ -276,7 +283,7 @@ class ShapesListFragment : Fragment() {
                 imagesAdapter?.isExpanded = effectiveExpanded
             }
         }
-        
+
         // Smoothly animate bottom padding during slide to avoid jerking
         val maxPadding = (64 * resources.displayMetrics.density).toInt()
         val currentPadding = (offset * maxPadding).toInt()
@@ -284,7 +291,7 @@ class ShapesListFragment : Fragment() {
             binding.objects.paddingLeft,
             binding.objects.paddingTop,
             binding.objects.paddingRight,
-            currentPadding
+            currentPadding,
         )
 
         // Smoothly update size of all visible items in 60fps!
@@ -320,8 +327,11 @@ class ShapesListFragment : Fragment() {
     }
 
     private fun submitImages(images: List<ImageEntity>) {
-        val final = if (filterText.isBlank()) images
-        else images.filter { it.matchesQuery(filterText) }
+        val final = if (filterText.isBlank()) {
+            images
+        } else {
+            images.filter { it.matchesQuery(filterText) }
+        }
         if (_binding == null) return
         binding.noEmojis.visibility = if (final.isEmpty()) View.VISIBLE else View.GONE
         imagesAdapter?.submitList(final)
@@ -334,18 +344,19 @@ class ShapesListFragment : Fragment() {
         if (pos >= 0) savedScrollPos = pos
     }
 
-    private fun sliceFor(data: ShapesData, cat: String): List<ImageEntity> =
-        if (cat.equals("Recents", ignoreCase = true)) data.recents
-        else data.imagesByCategory[cat].orEmpty()
+    private fun sliceFor(data: ShapesData, cat: String): List<ImageEntity> = if (cat.equals("Recents", ignoreCase = true)) {
+        data.recents
+    } else {
+        data.imagesByCategory[cat].orEmpty()
+    }
 
     companion object {
         private const val ARG_CATEGORY = "arg_category"
-        private const val ARG_FILTER   = "arg_filter"
+        private const val ARG_FILTER = "arg_filter"
         const val VECTORS_TAB = "Vectors"
 
-        fun newInstance(category: String, initialFilter: String = "") =
-            ShapesListFragment().apply {
-                arguments = bundleOf(ARG_CATEGORY to category, ARG_FILTER to initialFilter)
-            }
+        fun newInstance(category: String, initialFilter: String = "") = ShapesListFragment().apply {
+            arguments = bundleOf(ARG_CATEGORY to category, ARG_FILTER to initialFilter)
+        }
     }
 }

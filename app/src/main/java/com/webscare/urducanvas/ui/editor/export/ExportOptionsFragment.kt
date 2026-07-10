@@ -12,7 +12,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.activityViewModels
-import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -33,15 +32,15 @@ class ExportOptionsFragment : com.google.android.material.bottomsheet.BottomShee
     private lateinit var items: List<Any>
     private lateinit var adapter: ExportOptionAdapter<Any>
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewType = ExportViewType.valueOf(requireArguments().getString(ARG_VIEW_TYPE)!!)
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentExportOptionsBinding.inflate(inflater, container, false)
         return binding.root
@@ -55,7 +54,6 @@ class ExportOptionsFragment : com.google.android.material.bottomsheet.BottomShee
     }
 
     private fun setEvents() {
-
         items = when (viewType) {
             ExportViewType.RESOLUTION -> viewModel.availableResolutions
             ExportViewType.QUALITY -> viewModel.qualityOptions
@@ -71,19 +69,19 @@ class ExportOptionsFragment : com.google.android.material.bottomsheet.BottomShee
         adapter = ExportOptionAdapter(
             items,
             viewType,
-            true
+            true,
         ) { selected ->
             when (selected) {
                 is com.webscare.urducanvas.common.canvas.model.ExportResolution -> viewModel.updateExportOptionsInMemory(
-                    viewModel.exportOptions.value!!.copy(resolution = selected)
+                    viewModel.exportOptions.value!!.copy(resolution = selected),
                 )
 
                 is com.webscare.urducanvas.common.canvas.model.ExportQuality -> viewModel.updateExportOptionsInMemory(
-                    viewModel.exportOptions.value!!.copy(quality = selected)
+                    viewModel.exportOptions.value!!.copy(quality = selected),
                 )
 
                 is com.webscare.urducanvas.common.canvas.model.ExportFormat -> viewModel.updateExportOptionsInMemory(
-                    viewModel.exportOptions.value!!.copy(format = selected)
+                    viewModel.exportOptions.value!!.copy(format = selected),
                 )
             }
             binding.options.postDelayed({
@@ -130,7 +128,8 @@ class ExportOptionsFragment : com.google.android.material.bottomsheet.BottomShee
         dialog?.window?.let { window ->
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 window.insetsController?.apply {
-                    hide(WindowInsets.Type.navigationBars()
+                    hide(
+                        WindowInsets.Type.navigationBars(),
                     )
                     systemBarsBehavior =
                         WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -139,10 +138,10 @@ class ExportOptionsFragment : com.google.android.material.bottomsheet.BottomShee
                 @Suppress("DEPRECATION")
                 window.decorView.systemUiVisibility =
                     View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-                            View.SYSTEM_UI_FLAG_FULLSCREEN or
-                            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             }
         }
     }
@@ -156,7 +155,7 @@ class ExportOptionsFragment : com.google.android.material.bottomsheet.BottomShee
             setDimAmount(0.45f)
             setFlags(
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             )
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 setDecorFitsSystemWindows(false)
@@ -168,7 +167,7 @@ class ExportOptionsFragment : com.google.android.material.bottomsheet.BottomShee
         }
 
         val bottomSheet = dialog?.findViewById<View>(
-            com.google.android.material.R.id.design_bottom_sheet
+            com.google.android.material.R.id.design_bottom_sheet,
         ) ?: return
 
         bottomSheet.background = ContextCompat.getDrawable(requireContext(), R.drawable.bottom_sheet_bg)
@@ -192,9 +191,7 @@ class ExportOptionsFragment : com.google.android.material.bottomsheet.BottomShee
         forceImmersiveMode()
     }
 
-    override fun getTheme(): Int {
-        return R.style.CustomBottomSheetDialog
-    }
+    override fun getTheme(): Int = R.style.CustomBottomSheetDialog
 
     companion object {
         private const val ARG_VIEW_TYPE = "arg_view_type"
@@ -207,5 +204,4 @@ class ExportOptionsFragment : com.google.android.material.bottomsheet.BottomShee
             return fragment
         }
     }
-
 }

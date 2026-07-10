@@ -11,5 +11,9 @@ enum class UnitType : Serializable {
     INCHES,
 
     @SerializedName("Centimeters")
-    CENTIMETERS
+    CENTIMETERS;
+
+    companion object {
+        private const val serialVersionUID: Long = 1L
+    }
 }

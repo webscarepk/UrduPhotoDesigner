@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
-import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import com.webscare.urducanvas.common.canvas.model.FilterItem
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import com.webscare.urducanvas.common.utils.BitmapCache
@@ -28,96 +27,96 @@ class FiltersFragment : androidx.fragment.app.Fragment() {
     private val availableFilters = listOf(
         FilterItem(
             "None",
-            ImageFilter.None
+            ImageFilter.None,
         ),
         FilterItem(
             "Grayscale",
-            ImageFilter.Grayscale
+            ImageFilter.Grayscale,
         ),
         FilterItem(
             "Sepia",
-            ImageFilter.Sepia
-        ),             // Example: rotate hue by 90 degrees
+            ImageFilter.Sepia,
+        ), // Example: rotate hue by 90 degrees
         FilterItem(
             "Invert",
-            ImageFilter.Invert
+            ImageFilter.Invert,
         ),
         FilterItem(
             "Cool Tint",
-            ImageFilter.CoolTint
+            ImageFilter.CoolTint,
         ),
         FilterItem(
             "Warm Tint",
-            ImageFilter.WarmTint
+            ImageFilter.WarmTint,
         ),
         FilterItem(
             "Film",
-            ImageFilter.Film
+            ImageFilter.Film,
         ),
         FilterItem(
             "Teal Orange",
-            ImageFilter.TealOrange
+            ImageFilter.TealOrange,
         ),
         FilterItem(
             "Black White",
-            ImageFilter.BlackWhite
+            ImageFilter.BlackWhite,
         ),
         FilterItem(
             "High Contrast",
-            ImageFilter.HighContrast
+            ImageFilter.HighContrast,
         ),
         FilterItem(
             "Vintage",
-            ImageFilter.Vintage
+            ImageFilter.Vintage,
         ),
         FilterItem(
             "Brightness",
-            ImageFilter.BrightnessBoost
+            ImageFilter.BrightnessBoost,
         ),
         FilterItem(
             "Soft Blur",
-            ImageFilter.SoftBlur
+            ImageFilter.SoftBlur,
         ),
         FilterItem(
             "Sharpen",
-            ImageFilter.Sharpen
+            ImageFilter.Sharpen,
         ),
         FilterItem(
             "Glow",
-            ImageFilter.Glow
+            ImageFilter.Glow,
         ),
         FilterItem(
             "Sketch",
-            ImageFilter.Sketch
+            ImageFilter.Sketch,
         ),
         FilterItem(
             "Cartoon",
-            ImageFilter.Cartoon
+            ImageFilter.Cartoon,
         ),
         FilterItem(
             "HDR",
-            ImageFilter.HDR
+            ImageFilter.HDR,
         ),
         FilterItem(
             "Lomo",
-            ImageFilter.Lomo
+            ImageFilter.Lomo,
         ),
         FilterItem(
             "Pastel",
-            ImageFilter.Pastel
+            ImageFilter.Pastel,
         ),
         FilterItem(
             "Dramatic",
-            ImageFilter.Dramatic
+            ImageFilter.Dramatic,
         ),
         FilterItem(
             "Golden Hour",
-            ImageFilter.GoldenHour
+            ImageFilter.GoldenHour,
         ),
         FilterItem(
             "Cyberpunk",
-            ImageFilter.Cyberpunk
-        )
+            ImageFilter.Cyberpunk,
+        ),
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -127,12 +126,16 @@ class FiltersFragment : androidx.fragment.app.Fragment() {
             val sourceBitmap = BitmapCache.get(elementId ?: "")
             previewBitmap = if (sourceBitmap != null && !sourceBitmap.isRecycled) {
                 sourceBitmap.copy(sourceBitmap.config ?: Bitmap.Config.ARGB_8888, false)
-            } else null
+            } else {
+                null
+            }
         }
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentFiltersBinding.inflate(layoutInflater, container, false)
         return binding.root

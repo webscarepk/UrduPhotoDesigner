@@ -14,7 +14,7 @@ import com.webscare.urducanvas.databinding.LayoutSizesItemBinding
 class CanvasSizeAdapter(
     private var items: List<CanvasSize>,
     private val onClick: (CanvasSize) -> Unit,
-    private var useNormalLayout: Boolean // true = LayoutSizesItem, false = LayoutSizesFilterItem
+    private var useNormalLayout: Boolean, // true = LayoutSizesItem, false = LayoutSizesFilterItem
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
@@ -38,18 +38,16 @@ class CanvasSizeAdapter(
             }
         }
 
-    override fun getItemViewType(position: Int): Int {
-        return if (useNormalLayout) TYPE_NORMAL else TYPE_FILTER
-    }
+    override fun getItemViewType(position: Int): Int = if (useNormalLayout) TYPE_NORMAL else TYPE_FILTER
 
-    inner class NormalViewHolder(private val binding: LayoutSizesItemBinding) :
-        RecyclerView.ViewHolder(binding.root) {
+    inner class NormalViewHolder(private val binding: LayoutSizesItemBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(item: com.webscare.urducanvas.common.canvas.model.CanvasSize) {
             binding.apply {
                 val icon = ContextCompat.getDrawable(
-                    itemView.context, Utils.getIconForSize(
-                        item.name
-                    )
+                    itemView.context,
+                    Utils.getIconForSize(
+                        item.name,
+                    ),
                 )
                 icon?.let { image.setIcon(it) }
                 image.setCanvasSize(item.width, item.height)
@@ -59,20 +57,24 @@ class CanvasSizeAdapter(
         }
     }
 
-    inner class FilterViewHolder(private val binding: LayoutSizesFilterItemBinding) :
-        RecyclerView.ViewHolder(binding.root) {
+    inner class FilterViewHolder(private val binding: LayoutSizesFilterItemBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(item: com.webscare.urducanvas.common.canvas.model.CanvasSize) {
             binding.apply {
                 val isSelected = item.name == selectedSizeName
 
                 image.background = ContextCompat.getDrawable(
-                    root.context, if (isSelected) R.drawable.button_bg_stroke_fill_selected
-                    else R.drawable.button_bg_stroke_fill
+                    root.context,
+                    if (isSelected) {
+                        R.drawable.button_bg_stroke_fill_selected
+                    } else {
+                        R.drawable.button_bg_stroke_fill
+                    },
                 )
                 val icon = ContextCompat.getDrawable(
-                    itemView.context, Utils.getIconForSize(
-                        item.name
-                    )
+                    itemView.context,
+                    Utils.getIconForSize(
+                        item.name,
+                    ),
                 )
                 icon?.let { image.setIcon(it) }
                 image.setCanvasSize(item.width, item.height)

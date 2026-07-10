@@ -11,7 +11,7 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class PexelsRepoModule {
- 
+
     @Binds
     @Singleton
     abstract fun bindPexelsRepo(impl: PexelsRepoImpl): PexelsRepo

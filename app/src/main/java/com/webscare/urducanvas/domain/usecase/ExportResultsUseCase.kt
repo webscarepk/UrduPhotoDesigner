@@ -8,12 +8,10 @@ import javax.inject.Singleton
 
 @Singleton
 class ExportResultsUseCase @Inject constructor(
-    private val repository: com.webscare.urducanvas.domain.repo.ExportResultsRepo
+    private val repository: com.webscare.urducanvas.domain.repo.ExportResultsRepo,
 ) {
 
-    suspend fun insertExportResult(exportResult: com.webscare.urducanvas.data.model.ExportResult) :Long {
-        return repository.insertExportResult(exportResult)
-    }
+    suspend fun insertExportResult(exportResult: com.webscare.urducanvas.data.model.ExportResult): Long = repository.insertExportResult(exportResult)
 
     suspend fun updateExportResult(exportResult: com.webscare.urducanvas.data.model.ExportResult) {
         repository.updateExportResult(exportResult)
@@ -23,11 +21,7 @@ class ExportResultsUseCase @Inject constructor(
         repository.deleteExportResult(exportResult)
     }
 
-    suspend fun getExportResultById(id: Long): com.webscare.urducanvas.data.model.ExportResult? {
-        return repository.getExportResultById(id)
-    }
+    suspend fun getExportResultById(id: Long): com.webscare.urducanvas.data.model.ExportResult? = repository.getExportResultById(id)
 
-    fun getAllExportResults(): Flow<List<com.webscare.urducanvas.data.model.ExportResult>> {
-        return repository.getAllExportResults()
-    }
+    fun getAllExportResults(): Flow<List<com.webscare.urducanvas.data.model.ExportResult>> = repository.getAllExportResults()
 }

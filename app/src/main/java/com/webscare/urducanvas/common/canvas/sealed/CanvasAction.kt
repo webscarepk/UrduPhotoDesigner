@@ -12,7 +12,7 @@ sealed class CanvasAction {
     data class UpdateElement(
         val elementId: String,
         val newElement: CanvasElement,
-        val oldElement: CanvasElement
+        val oldElement: CanvasElement,
     ) : CanvasAction()
 
     data class SetBackgroundColor(val color: Int, val previousColor: Int) : CanvasAction()
@@ -32,12 +32,12 @@ sealed class CanvasAction {
         val newDx: Float,
         val newDy: Float,
         val newRadius: Float,
-        val newOpacity: Int
+        val newOpacity: Int,
     ) : CanvasAction()
     data class SetOverlayGradient(
         val elementId: String,
         val oldGradient: GradientItem?,
-        val newGradient: GradientItem?
+        val newGradient: GradientItem?,
     ) : CanvasAction()
     data class SetOverlay(
         val elementId: String,
@@ -46,10 +46,11 @@ sealed class CanvasAction {
         val oldOpacity: Int,
         val newHasOverlay: Boolean,
         val newColor: Int,
-        val newOpacity: Int
+        val newOpacity: Int,
     ) : CanvasAction()
     data class SetBackgroundGradient(
-        val gradientItem: GradientItem, val prevGradientItem: GradientItem?
+        val gradientItem: GradientItem,
+        val prevGradientItem: GradientItem?,
     ) : CanvasAction()
 
     data class AddDrawStroke(val element: CanvasElement) : CanvasAction()
@@ -60,32 +61,28 @@ sealed class CanvasAction {
     // Modified SetFont to store a list of affected elements and their old font IDs
     data class SetFont(
         val newFontEntity: FontEntity,
-        val affectedElements: List<Pair<String, String?>>
+        val affectedElements: List<Pair<String, String?>>,
     ) : CanvasAction()
 
-    data class SetTextColor(val color: Int, val previousColor: Int, val elementId: String) :
-        CanvasAction()
+    data class SetTextColor(val color: Int, val previousColor: Int, val elementId: String) : CanvasAction()
 
-    data class SetTextSize(val size: Float, val previousSize: Float, val elementId: String) :
-        CanvasAction()
+    data class SetTextSize(val size: Float, val previousSize: Float, val elementId: String) : CanvasAction()
 
     data class SetTextAlignment(
         val alignment: TextAlignment,
         val previousAlignment: TextAlignment,
-        val elementId: String
+        val elementId: String,
     ) : CanvasAction()
 
-    data class SetOpacity(val opacity: Int, val previousOpacity: Int, val elementId: String) :
-        CanvasAction()
+    data class SetOpacity(val opacity: Int, val previousOpacity: Int, val elementId: String) : CanvasAction()
 
-    data class UpdateText(val elementId: String, val text: String, val previousText: String) :
-        CanvasAction()
+    data class UpdateText(val elementId: String, val text: String, val previousText: String) : CanvasAction()
 
     data class RemoveElement(val element: CanvasElement) : CanvasAction()
 
     data class UpdateCanvasElementsOrder(
         val oldList: List<CanvasElement>,
-        val newList: List<CanvasElement>
+        val newList: List<CanvasElement>,
     ) : CanvasAction()
 
     data class SetCanvasSize(val newSize: CanvasSize, val oldSize: CanvasSize) : CanvasAction()
@@ -93,10 +90,10 @@ sealed class CanvasAction {
     data class ApplyImageFilter(
         val elementId: String,
         val newFilter: ImageFilter?,
-        val oldFilter: ImageFilter?
+        val oldFilter: ImageFilter?,
     ) : CanvasAction()
 
     data class DrawSessionStroke(
-        val strokeData: StrokeData  // a deep copy of the stroke that was just added
+        val strokeData: StrokeData, // a deep copy of the stroke that was just added
     ) : CanvasAction()
 }

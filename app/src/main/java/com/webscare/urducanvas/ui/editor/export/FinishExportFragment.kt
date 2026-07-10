@@ -1,6 +1,7 @@
 package com.webscare.urducanvas.ui.editor.export
 
 import android.content.Intent
+import android.util.Log
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -33,7 +34,9 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
     val viewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentFinishExportBinding.inflate(inflater, container, false)
         return binding.root
@@ -77,7 +80,8 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
                 ImageProcessor.filePathToBitmap(path)?.let { bitmap ->
                     binding.previewImage.setImageBitmap(bitmap)
                 }
-            }        }
+            }
+        }
     }
 
     private fun setEvents() {
@@ -94,12 +98,12 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
         binding.fileLocationDetail.addPressEffect {
             val context = requireContext()
             requireActivity().copyToClipboard(requireView(), "Exported Path", binding.fileLocationDetail.text.toString())
-            
+
             // Swap icon to ic_done tinted with appColor
             val doneDrawable = ContextCompat.getDrawable(context, R.drawable.ic_done)?.mutate()
             doneDrawable?.setTint(ContextCompat.getColor(context, R.color.appColor))
             binding.fileLocationDetail.setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, doneDrawable, null)
-            
+
             // Post delayed to switch back to ic_copy tinted with black
             binding.fileLocationDetail.postDelayed({
                 if (isAdded) {
@@ -145,7 +149,7 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
                 val uri = FileProvider.getUriForFile(
                     requireContext(),
                     "${requireContext().packageName}.fileprovider",
-                    zipFile
+                    zipFile,
                 )
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = "application/zip"
@@ -153,7 +157,6 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
                 startActivity(Intent.createChooser(intent, "Share Design Zip"))
-
             } else {
                 // Release: share the final exported file (image or PDF) — what the user
                 // actually made. Project sharing (.urdc) is on the Export Settings screen.
@@ -171,7 +174,7 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
                 val uri = FileProvider.getUriForFile(
                     requireContext(),
                     "${requireContext().packageName}.fileprovider",
-                    file
+                    file,
                 )
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = mimeType
@@ -193,13 +196,13 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
             val uri = FileProvider.getUriForFile(
                 requireContext(),
                 "${requireContext().packageName}.fileprovider",
-                file
+                file,
             )
 
             val mimeType = if (filePath.endsWith(".pdf", true)) {
                 "application/pdf"
             } else {
-                "image/*"   // restrict to image viewers only
+                "image/*" // restrict to image viewers only
             }
 
             val intent = Intent(Intent.ACTION_VIEW).apply {
@@ -219,7 +222,7 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
                     val uri = FileProvider.getUriForFile(
                         requireContext(),
                         "${requireContext().packageName}.fileprovider",
-                        pdfFile
+                        pdfFile,
                     )
                     val intent = Intent(Intent.ACTION_VIEW).apply {
                         data = uri
@@ -246,7 +249,7 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
                                 scaleMode = PrintHelper.SCALE_MODE_FIT
                             }.printBitmap(fileName, bitmap)
                         } catch (e: Exception) {
-                            e.printStackTrace()
+                            Log.e("FinishExportFragment", "Failed to start printing", e)
                             Toast.makeText(activity, "Failed to start printing", Toast.LENGTH_SHORT).show()
                         }
                     }

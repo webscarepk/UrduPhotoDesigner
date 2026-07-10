@@ -25,7 +25,9 @@ class EffectsFragment : Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentEffectsBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -76,12 +78,12 @@ class EffectsFragment : Fragment() {
             var isAnyChange = false
             tabs.forEachIndexed { index, tab ->
                 val currentState = when (tab.tab_name) {
-                    "Color"   -> element.hasOverlay
-                    "Shadow"  -> element.hasShadow
-                    "Stroke"  -> element.hasStroke
-                    "Blur"    -> element.hasBlur
+                    "Color" -> element.hasOverlay
+                    "Shadow" -> element.hasShadow
+                    "Stroke" -> element.hasStroke
+                    "Blur" -> element.hasBlur
                     "Feather" -> element.hasFeather
-                    else      -> false
+                    else -> false
                 }
 
                 if (tab.is_enabled != currentState) {
@@ -98,10 +100,10 @@ class EffectsFragment : Fragment() {
 
     private fun setupInitialTabs(element: CanvasElement) {
         tabs.clear()
-        tabs.add(AdjustmentPanelTabs(0, "Shadow",  is_selected = true,  is_enabled = element.hasShadow))
-        tabs.add(AdjustmentPanelTabs(1, "Color",   is_selected = false, is_enabled = element.hasOverlay))
-        tabs.add(AdjustmentPanelTabs(2, "Blur",    is_selected = false, is_enabled = element.hasBlur))
-        tabs.add(AdjustmentPanelTabs(3, "Stroke",  is_selected = false, is_enabled = element.hasStroke))
+        tabs.add(AdjustmentPanelTabs(0, "Shadow", is_selected = true, is_enabled = element.hasShadow))
+        tabs.add(AdjustmentPanelTabs(1, "Color", is_selected = false, is_enabled = element.hasOverlay))
+        tabs.add(AdjustmentPanelTabs(2, "Blur", is_selected = false, is_enabled = element.hasBlur))
+        tabs.add(AdjustmentPanelTabs(3, "Stroke", is_selected = false, is_enabled = element.hasStroke))
         tabs.add(AdjustmentPanelTabs(4, "Feather", is_selected = false, is_enabled = element.hasFeather))
         adapter.submitList(ArrayList(tabs))
     }

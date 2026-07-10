@@ -1,22 +1,24 @@
 package com.webscare.urducanvas.common.views
 
 import android.content.Context
-import android.graphics.*
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Shader
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import androidx.annotation.ColorInt
 import androidx.core.graphics.ColorUtils
 
-class ColorPickerBar @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null,
-    defStyle: Int = 0
-) : android.view.View(context, attrs, defStyle) {
+class ColorPickerBar @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) : android.view.View(context, attrs, defStyle) {
     private val density = resources.displayMetrics.density
 
     // thumb radius
     private val thumbRadius = 10f * density
+
     // extra padding beyond the thumb so it never touches the view bounds
     private val barPadding = thumbRadius + 2f * density
 
@@ -38,12 +40,12 @@ class ColorPickerBar @JvmOverloads constructor(
             _progress = value.coerceIn(0f, 1f)
             updateThumbColor()
             invalidate()
-            onProgressChanged?.invoke(( _progress * max ).toInt())
+            onProgressChanged?.invoke((_progress * max).toInt())
         }
 
     var max: Int = 100
     var onProgressChanged: ((Int) -> Unit)? = null
-    var onColorPicked: ((String) -> Unit)? = null  // ← returns hex e.g. "#FF0000"
+    var onColorPicked: ((String) -> Unit)? = null // ← returns hex e.g. "#FF0000"
 
     private var thumbColor: Int = gradientColors.first()
 
@@ -51,29 +53,32 @@ class ColorPickerBar @JvmOverloads constructor(
         gradientColors = colors
         gradientPositions = positions
             ?: FloatArray(colors.size) { it.toFloat() / (colors.size - 1) }
-        updateShader()  // <-- rebuild the LinearGradient with your new colors
-        invalidate()    // <-- now redraw with the updated shader
+        updateShader() // <-- rebuild the LinearGradient with your new colors
+        invalidate() // <-- now redraw with the updated shader
     }
 
     private fun updateShader() {
         shader = LinearGradient(
-            barPadding, 0f,
-            width - barPadding, 0f,
-            gradientColors, gradientPositions,
-            Shader.TileMode.CLAMP
+            barPadding,
+            0f,
+            width - barPadding,
+            0f,
+            gradientColors,
+            gradientPositions,
+            Shader.TileMode.CLAMP,
         )
     }
 
     private fun updateThumbColor() {
-        val p   = _progress * (gradientColors.size - 1)
+        val p = _progress * (gradientColors.size - 1)
         val idx = p.toInt().coerceIn(0, gradientColors.size - 2)
-        val t   = p - idx
+        val t = p - idx
         val raw = ColorUtils.blendARGB(gradientColors[idx], gradientColors[idx + 1], t)
         // bake onto a white background so your thumb is fully opaque:
         thumbColor = Color.rgb(
-            (Color.red(raw)   * Color.alpha(raw) + 255 * (255 - Color.alpha(raw))) / 255,
+            (Color.red(raw) * Color.alpha(raw) + 255 * (255 - Color.alpha(raw))) / 255,
             (Color.green(raw) * Color.alpha(raw) + 255 * (255 - Color.alpha(raw))) / 255,
-            (Color.blue(raw)  * Color.alpha(raw) + 255 * (255 - Color.alpha(raw))) / 255
+            (Color.blue(raw) * Color.alpha(raw) + 255 * (255 - Color.alpha(raw))) / 255,
         )
     }
 
@@ -93,7 +98,7 @@ class ColorPickerBar @JvmOverloads constructor(
             0f,
             (height - trackHeight) / 2f,
             width.toFloat(),
-            (height + trackHeight) / 2f
+            (height + trackHeight) / 2f,
         )
         canvas.drawRoundRect(barRect, cornerRadius, cornerRadius, paint)
 
@@ -115,13 +120,15 @@ class ColorPickerBar @JvmOverloads constructor(
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN,
-            MotionEvent.ACTION_MOVE -> {
+            MotionEvent.ACTION_MOVE,
+            -> {
                 val x = event.x.coerceIn(barPadding, width - barPadding)
                 progress = (x - barPadding) / (width - 2 * barPadding)
             }
             MotionEvent.ACTION_UP,
-            MotionEvent.ACTION_CANCEL -> {
-                onColorPicked?.invoke(colorToHex(thumbColor))  // ← fire on finger lift
+            MotionEvent.ACTION_CANCEL,
+            -> {
+                onColorPicked?.invoke(colorToHex(thumbColor)) // ← fire on finger lift
             }
         }
         // Consume all other events (e.g. ACTION_POINTER_DOWN/UP) — never call
@@ -134,9 +141,7 @@ class ColorPickerBar @JvmOverloads constructor(
     /**
      * @return true if the color is “dark”, false if it’s “light”
      */
-    private fun colorToHex(@ColorInt color: Int): String {
-        return String.format("#%06X", 0xFFFFFF and color)
-    }
+    private fun colorToHex(@ColorInt color: Int): String = String.format("#%06X", 0xFFFFFF and color)
 
     private fun isColorDark(@ColorInt color: Int): Boolean {
         val r = Color.red(color)

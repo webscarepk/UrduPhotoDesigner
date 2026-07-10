@@ -10,17 +10,15 @@ import com.webscare.urducanvas.common.canvas.enums.LabelShape
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.ShapeItem
 import com.webscare.urducanvas.databinding.LayoutShapeItemBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class ShapesAdapter(
     private val shapesList: List<com.webscare.urducanvas.data.model.ShapeItem>,
-    private val onShapeSelected: (LabelShape) -> Unit
+    private val onShapeSelected: (LabelShape) -> Unit,
 ) : RecyclerView.Adapter<ShapesAdapter.ShapeViewHolder>() {
 
     var selectedShape: LabelShape = LabelShape.RECTANGLE_FILL // Default selected shape
 
-    inner class ShapeViewHolder(val binding: LayoutShapeItemBinding) :
-        RecyclerView.ViewHolder(binding.root) {
+    inner class ShapeViewHolder(val binding: LayoutShapeItemBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(shapeItem: com.webscare.urducanvas.data.model.ShapeItem) {
             // Set the shape icon
             binding.shape.setImageResource(shapeItem.iconResId)

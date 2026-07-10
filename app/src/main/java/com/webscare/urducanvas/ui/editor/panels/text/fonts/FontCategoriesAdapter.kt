@@ -1,6 +1,5 @@
 package com.webscare.urducanvas.ui.editor.panels.text.fonts
 
-import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
@@ -9,19 +8,18 @@ import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.FontCategory
 import com.webscare.urducanvas.databinding.LayoutFontCategoryBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import java.util.Locale
 
-class FontCategoriesAdapter(
-    private val onCategoryClick: (category: String) -> Unit
-) : RecyclerView.Adapter<FontCategoriesAdapter.VH>() {
+class FontCategoriesAdapter(private val onCategoryClick: (category: String) -> Unit) : RecyclerView.Adapter<FontCategoriesAdapter.VH>() {
 
     private val items = mutableListOf<com.webscare.urducanvas.data.model.FontCategory>()
 
     private var selectedCategory: String? = null
 
     fun submit(newItems: List<com.webscare.urducanvas.data.model.FontCategory>) {
-        items.clear(); items.addAll(newItems); notifyDataSetChanged()
+        items.clear()
+        items.addAll(newItems)
+        notifyDataSetChanged()
     }
 
     fun setSelectedCategory(category: String?) {
@@ -50,8 +48,8 @@ class FontCategoriesAdapter(
             binding.tabTitle.setTextColor(
                 ContextCompat.getColor(
                     binding.root.context,
-                    if (isSelected) R.color.black else R.color.gray
-                )
+                    if (isSelected) R.color.black else R.color.gray,
+                ),
             )
 
             binding.tabTitle.addPressEffect {

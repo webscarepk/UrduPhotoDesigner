@@ -45,7 +45,9 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentTextAdjustmentsBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -68,7 +70,7 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
         adapter = TextAdjustmentsPagerAdapter(
             childFragmentManager,
             viewLifecycleOwner.lifecycle,
-            tabs
+            tabs,
         )
         adapter.stateRestorationPolicy =
             RecyclerView.Adapter.StateRestorationPolicy.PREVENT
@@ -147,7 +149,7 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
     private fun setupSearchBar() {
         binding.searchIcon.addPressEffect {
             binding.searchIcon.isVisible = false
-            binding.searchBar.isVisible  = true
+            binding.searchBar.isVisible = true
             binding.searchBar.requestFocus()
             binding.searchBar.setSelection(binding.searchBar.text?.length ?: 0)
             showKeyboard(binding.searchBar)
@@ -162,7 +164,9 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
                 hideKeyboard()
                 collapseSearch()
                 true
-            } else false
+            } else {
+                false
+            }
         }
 
         binding.searchBar.addTextChangedListener(object : TextWatcher {
@@ -170,10 +174,14 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
             override fun afterTextChanged(s: Editable?) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 binding.searchBar.setCompoundDrawablesWithIntrinsicBounds(
-                    null, null,
-                    if (!s.isNullOrEmpty())
+                    null,
+                    null,
+                    if (!s.isNullOrEmpty()) {
                         ContextCompat.getDrawable(requireContext(), R.drawable.ic_close)
-                    else null, null
+                    } else {
+                        null
+                    },
+                    null,
                 )
                 mainViewModel.setQuery(s?.toString().orEmpty())
             }
@@ -208,7 +216,7 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
     /** Hide search bar, restore search icon */
     private fun collapseSearch() {
         if (_binding == null) return
-        binding.searchBar.isVisible  = false
+        binding.searchBar.isVisible = false
         binding.searchIcon.isVisible = true
     }
 

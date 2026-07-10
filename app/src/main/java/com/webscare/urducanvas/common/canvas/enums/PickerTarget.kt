@@ -3,74 +3,78 @@ package com.webscare.urducanvas.common.canvas.enums
 import com.google.gson.annotations.SerializedName
 
 enum class PickerTarget {
-  @SerializedName("EyeDropperBackground")
-  EYE_DROPPER_BACKGROUND,
-  @SerializedName("EyeDropperOverlay")
-  EYE_DROPPER_OVERLAY,
+    @SerializedName("EyeDropperBackground")
+    EYE_DROPPER_BACKGROUND,
 
-  @SerializedName("EyeDropperTextFill")
-  EYE_DROPPER_TEXT_FILL,
+    @SerializedName("EyeDropperOverlay")
+    EYE_DROPPER_OVERLAY,
 
-  @SerializedName("EyeDropperTextStroke")
-  EYE_DROPPER_TEXT_STROKE,
+    @SerializedName("EyeDropperTextFill")
+    EYE_DROPPER_TEXT_FILL,
 
-  @SerializedName("EyeDropperShadow")
-  EYE_DROPPER_SHADOW,
+    @SerializedName("EyeDropperTextStroke")
+    EYE_DROPPER_TEXT_STROKE,
 
-  @SerializedName("EyeDropperImageStroke")
-  EYE_DROPPER_IMAGE_STROKE,
+    @SerializedName("EyeDropperShadow")
+    EYE_DROPPER_SHADOW,
 
-  @SerializedName("EyeDropperLabel")
-  EYE_DROPPER_LABEL,
+    @SerializedName("EyeDropperImageStroke")
+    EYE_DROPPER_IMAGE_STROKE,
 
-  @SerializedName("EyeDropperDrawStroke")
-  EYE_DROPPER_DRAW_STROKE,
+    @SerializedName("EyeDropperLabel")
+    EYE_DROPPER_LABEL,
 
-  @SerializedName("EyeDropperDrawFill")
-  EYE_DROPPER_DRAW_FILL,
+    @SerializedName("EyeDropperDrawStroke")
+    EYE_DROPPER_DRAW_STROKE,
 
-  @SerializedName("EyeDropperShapeStroke")
-  EYE_DROPPER_SHAPE_STROKE,
+    @SerializedName("EyeDropperDrawFill")
+    EYE_DROPPER_DRAW_FILL,
 
-  @SerializedName("EyeDropperShapeFill")
-  EYE_DROPPER_SHAPE_FILL,
+    @SerializedName("EyeDropperShapeStroke")
+    EYE_DROPPER_SHAPE_STROKE,
 
-  @SerializedName("EyeDropperGradient")
-  EYE_DROPPER_GRADIENT,
+    @SerializedName("EyeDropperShapeFill")
+    EYE_DROPPER_SHAPE_FILL,
 
-  @SerializedName("ColorPickerBackground")
-  COLOR_PICKER_BACKGROUND,
-  @SerializedName("ColorPickerOverlay")
-  COLOR_PICKER_OVERLAY,
+    @SerializedName("EyeDropperGradient")
+    EYE_DROPPER_GRADIENT,
 
-  @SerializedName("ColorPickerTextFill")
-  COLOR_PICKER_TEXT_FILL,
+    @SerializedName("ColorPickerBackground")
+    COLOR_PICKER_BACKGROUND,
 
-  @SerializedName("ColorPickerTextStroke")
-  COLOR_PICKER_TEXT_STROKE,
+    @SerializedName("ColorPickerOverlay")
+    COLOR_PICKER_OVERLAY,
 
-  @SerializedName("ColorPickerImageStroke")
-  COLOR_PICKER_IMAGE_STROKE,
+    @SerializedName("ColorPickerTextFill")
+    COLOR_PICKER_TEXT_FILL,
 
-  @SerializedName("ColorPickerShadow")
-  COLOR_PICKER_SHADOW,
-  @SerializedName("ColorPickerImageShadow")
-  COLOR_PICKER_IMAGE_SHADOW,
+    @SerializedName("ColorPickerTextStroke")
+    COLOR_PICKER_TEXT_STROKE,
 
-  @SerializedName("ColorPickerLabel")
-  COLOR_PICKER_LABEL,
+    @SerializedName("ColorPickerImageStroke")
+    COLOR_PICKER_IMAGE_STROKE,
 
-  @SerializedName("ColorPickerDrawStroke")
-  COLOR_PICKER_DRAW_STROKE,
+    @SerializedName("ColorPickerShadow")
+    COLOR_PICKER_SHADOW,
 
-  @SerializedName("ColorPickerDrawFill")
-  COLOR_PICKER_DRAW_FILL,
+    @SerializedName("ColorPickerImageShadow")
+    COLOR_PICKER_IMAGE_SHADOW,
 
-  @SerializedName("ColorPickerShapeStroke")
-  COLOR_PICKER_SHAPE_STROKE,
+    @SerializedName("ColorPickerLabel")
+    COLOR_PICKER_LABEL,
 
-  @SerializedName("ColorPickerShapeFill")
-  COLOR_PICKER_SHAPE_FILL,
-  @SerializedName("ColorPickerGradient")
-  COLOR_PICKER_GRADIENT
+    @SerializedName("ColorPickerDrawStroke")
+    COLOR_PICKER_DRAW_STROKE,
+
+    @SerializedName("ColorPickerDrawFill")
+    COLOR_PICKER_DRAW_FILL,
+
+    @SerializedName("ColorPickerShapeStroke")
+    COLOR_PICKER_SHAPE_STROKE,
+
+    @SerializedName("ColorPickerShapeFill")
+    COLOR_PICKER_SHAPE_FILL,
+
+    @SerializedName("ColorPickerGradient")
+    COLOR_PICKER_GRADIENT,
 }

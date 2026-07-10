@@ -25,8 +25,9 @@ class FormatFragment : Fragment() {
     private lateinit var pagerAdapter: FormatPagerAdapter
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentFormatBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -60,7 +61,6 @@ class FormatFragment : Fragment() {
                 binding.categories.smoothScrollToPosition(position)
             }
         })
-
     }
 
     private fun initObservers() {
@@ -70,10 +70,10 @@ class FormatFragment : Fragment() {
         // FragmentMaxLifecycleEnforcer is mid-commitNow() → crash.
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                tabs.add(PanelTabs(0, "Spacing",    true))
-                tabs.add(PanelTabs(1, "Casing",     false))
+                tabs.add(PanelTabs(0, "Spacing", true))
+                tabs.add(PanelTabs(1, "Casing", false))
                 tabs.add(PanelTabs(2, "Decoration", false))
-                tabs.add(PanelTabs(3, "Alignment",  false))
+                tabs.add(PanelTabs(3, "Alignment", false))
 
                 adapter.submitList(ArrayList(tabs))
                 handleFontSelection(tabs.firstOrNull())
@@ -102,8 +102,6 @@ class FormatFragment : Fragment() {
     }
 
     companion object {
-        fun newInstance(): FormatFragment {
-            return FormatFragment()
-        }
+        fun newInstance(): FormatFragment = FormatFragment()
     }
 }

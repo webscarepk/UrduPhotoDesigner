@@ -1,6 +1,7 @@
 package com.webscare.urducanvas.common.utils
 
 import android.content.Context
+import android.util.Log
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -19,11 +20,7 @@ import kotlin.math.roundToInt
 
 object ImageAdjustmentHelper {
 
-    fun applyAllAdjustments(
-        context: Context,
-        source: Bitmap,
-        element: CanvasElement
-    ): Bitmap {
+    fun applyAllAdjustments(context: Context, source: Bitmap, element: CanvasElement): Bitmap {
         if (source.isRecycled) return source
 
         val values = element.adjustments
@@ -34,12 +31,16 @@ object ImageAdjustmentHelper {
         // ─────────────────────────────────────────────
         if (element.hasLight && values.brightness != 0f) {
             val shift = values.brightness * 1.0f
-            cm.postConcat(ColorMatrix(floatArrayOf(
-                1f, 0f, 0f, 0f, shift,
-                0f, 1f, 0f, 0f, shift,
-                0f, 0f, 1f, 0f, shift,
-                0f, 0f, 0f, 1f, 0f
-            )))
+            cm.postConcat(
+                ColorMatrix(
+                    floatArrayOf(
+                        1f, 0f, 0f, 0f, shift,
+                        0f, 1f, 0f, 0f, shift,
+                        0f, 0f, 1f, 0f, shift,
+                        0f, 0f, 0f, 1f, 0f,
+                    ),
+                ),
+            )
         }
 
         // ─────────────────────────────────────────────
@@ -48,12 +49,16 @@ object ImageAdjustmentHelper {
         if (element.hasLight && values.contrast != 1f) {
             val c = values.contrast.coerceIn(0.5f, 1.5f)
             val t = 128f * (1f - c)
-            cm.postConcat(ColorMatrix(floatArrayOf(
-                c, 0f, 0f, 0f, t,
-                0f, c, 0f, 0f, t,
-                0f, 0f, c, 0f, t,
-                0f, 0f, 0f, 1f, 0f
-            )))
+            cm.postConcat(
+                ColorMatrix(
+                    floatArrayOf(
+                        c, 0f, 0f, 0f, t,
+                        0f, c, 0f, 0f, t,
+                        0f, 0f, c, 0f, t,
+                        0f, 0f, 0f, 1f, 0f,
+                    ),
+                ),
+            )
         }
 
         // ─────────────────────────────────────────────
@@ -70,12 +75,16 @@ object ImageAdjustmentHelper {
         // ─────────────────────────────────────────────
         if (element.hasColor && values.temperature != 0f) {
             val t = values.temperature / 100f
-            cm.postConcat(ColorMatrix(floatArrayOf(
-                1f + t * 0.2f, 0f, 0f, 0f, t * 20f,
-                0f,            1f, 0f, 0f, 0f,
-                0f, 0f, 1f - t * 0.2f, 0f, -t * 20f,
-                0f, 0f, 0f, 1f, 0f
-            )))
+            cm.postConcat(
+                ColorMatrix(
+                    floatArrayOf(
+                        1f + t * 0.2f, 0f, 0f, 0f, t * 20f,
+                        0f, 1f, 0f, 0f, 0f,
+                        0f, 0f, 1f - t * 0.2f, 0f, -t * 20f,
+                        0f, 0f, 0f, 1f, 0f,
+                    ),
+                ),
+            )
         }
 
         // ─────────────────────────────────────────────
@@ -83,12 +92,16 @@ object ImageAdjustmentHelper {
         // ─────────────────────────────────────────────
         if (element.hasColor && values.tint != 0f) {
             val t = values.tint / 100f
-            cm.postConcat(ColorMatrix(floatArrayOf(
-                1f + t * 0.1f, 0f,            0f, 0f, t * 10f,
-                0f,            1f - t * 0.2f, 0f, 0f, -t * 20f,
-                0f,            0f, 1f + t * 0.1f, 0f, t * 10f,
-                0f,            0f,            0f, 1f, 0f
-            )))
+            cm.postConcat(
+                ColorMatrix(
+                    floatArrayOf(
+                        1f + t * 0.1f, 0f, 0f, 0f, t * 10f,
+                        0f, 1f - t * 0.2f, 0f, 0f, -t * 20f,
+                        0f, 0f, 1f + t * 0.1f, 0f, t * 10f,
+                        0f, 0f, 0f, 1f, 0f,
+                    ),
+                ),
+            )
         }
 
         // ─────────────────────────────────────────────
@@ -136,7 +149,9 @@ object ImageAdjustmentHelper {
         // 1️⃣2️⃣  BLUR
         if (element.hasBlur && element.blurValue > 0f) {
             result = applyGaussianBlurWithPadding(
-                context, result, element.blurValue.coerceIn(0f, 25f)
+                context,
+                result,
+                element.blurValue.coerceIn(0f, 25f),
             )
         }
 
@@ -153,9 +168,7 @@ object ImageAdjustmentHelper {
     // FEATHER FOR EXPORT — called on the final composed bitmap during export only.
     // Live preview uses drawFeatherMask() in CanvasView (GPU, zero CPU cost).
     // ─────────────────────────────────────────────────────────────────────────
-    fun applyFeatherForExport(src: Bitmap, featherRadius: Float, featherWidth: Float = 50f): Bitmap {
-        return applyFeather(src, featherRadius, featherWidth)
-    }
+    fun applyFeatherForExport(src: Bitmap, featherRadius: Float, featherWidth: Float = 50f): Bitmap = applyFeather(src, featherRadius, featherWidth)
 
     // ─────────────────────────────────────────────────────────────────────────
     // FEATHER — fades each edge of the bitmap to fully transparent.
@@ -193,22 +206,30 @@ object ImageAdjustmentHelper {
 
         for (y in 0 until h) {
             // Top and bottom ramps: 0 at edge, 1 at bandH depth, stay 1 beyond
-            val topRamp: Float = if (bandH <= 0f) 1f else {
+            val topRamp: Float = if (bandH <= 0f) {
+                1f
+            } else {
                 val t = (y / bandH).coerceIn(0f, 1f)
                 smoothStep(t, exponent)
             }
-            val bottomRamp: Float = if (bandH <= 0f) 1f else {
+            val bottomRamp: Float = if (bandH <= 0f) {
+                1f
+            } else {
                 val t = ((h - 1 - y) / bandH).coerceIn(0f, 1f)
                 smoothStep(t, exponent)
             }
             val vertRamp = topRamp * bottomRamp
 
             for (x in 0 until w) {
-                val leftRamp: Float = if (bandW <= 0f) 1f else {
+                val leftRamp: Float = if (bandW <= 0f) {
+                    1f
+                } else {
                     val t = (x / bandW).coerceIn(0f, 1f)
                     smoothStep(t, exponent)
                 }
-                val rightRamp: Float = if (bandW <= 0f) 1f else {
+                val rightRamp: Float = if (bandW <= 0f) {
+                    1f
+                } else {
                     val t = ((w - 1 - x) / bandW).coerceIn(0f, 1f)
                     smoothStep(t, exponent)
                 }
@@ -363,23 +384,38 @@ object ImageAdjustmentHelper {
 
                 val midWeight = 1f - (2f * lum - 1f) * (2f * lum - 1f)
 
-                var rAvg = 0f; var gAvg = 0f; var bAvg = 0f
-                for (dy in -1..1) for (dx in -1..1) {
-                    val n = pixels[(y + dy) * w + (x + dx)]
-                    rAvg += Color.red(n); gAvg += Color.green(n); bAvg += Color.blue(n)
+                var rAvg = 0f
+                var gAvg = 0f
+                var bAvg = 0f
+                for (dy in -1..1) {
+                    for (dx in -1..1) {
+                        val n = pixels[(y + dy) * w + (x + dx)]
+                        rAvg += Color.red(n)
+                        gAvg += Color.green(n)
+                        bAvg += Color.blue(n)
+                    }
                 }
-                rAvg /= (9f * 255f); gAvg /= (9f * 255f); bAvg /= (9f * 255f)
+                rAvg /= (9f * 255f)
+                gAvg /= (9f * 255f)
+                bAvg /= (9f * 255f)
 
                 val boost = strength * midWeight
                 val nr = (r + (r - rAvg) * boost).coerceIn(0f, 1f)
                 val ng = (g + (g - gAvg) * boost).coerceIn(0f, 1f)
                 val nb = (b + (b - bAvg) * boost).coerceIn(0f, 1f)
 
-                out[y * w + x] = Color.argb(a, (nr * 255).roundToInt(), (ng * 255).roundToInt(), (nb * 255).roundToInt())
+                out[y * w + x] =
+                    Color.argb(a, (nr * 255).roundToInt(), (ng * 255).roundToInt(), (nb * 255).roundToInt())
             }
         }
-        for (x in 0 until w) { out[x] = pixels[x]; out[(h - 1) * w + x] = pixels[(h - 1) * w + x] }
-        for (y in 0 until h) { out[y * w] = pixels[y * w]; out[y * w + w - 1] = pixels[y * w + w - 1] }
+        for (x in 0 until w) {
+            out[x] = pixels[x]
+            out[(h - 1) * w + x] = pixels[(h - 1) * w + x]
+        }
+        for (y in 0 until h) {
+            out[y * w] = pixels[y * w]
+            out[y * w + w - 1] = pixels[y * w + w - 1]
+        }
 
         val result = src.copy(Bitmap.Config.ARGB_8888, true)
         result.setPixels(out, 0, w, 0, 0, w, h)
@@ -411,7 +447,7 @@ object ImageAdjustmentHelper {
         val kernel = arrayOf(
             floatArrayOf(0f, -s, 0f),
             floatArrayOf(-s, 1f + (4 * s), -s),
-            floatArrayOf(0f, -s, 0f)
+            floatArrayOf(0f, -s, 0f),
         )
 
         val w = src.width
@@ -424,24 +460,34 @@ object ImageAdjustmentHelper {
 
         for (y in 1 until h - 1) {
             for (x in 1 until w - 1) {
-                var r = 0f; var g = 0f; var b = 0f
-                for (ky in -1..1) for (kx in -1..1) {
-                    val px = pixels[(y + ky) * w + (x + kx)]
-                    val kr = kernel[ky + 1][kx + 1]
-                    r += Color.red(px) * kr
-                    g += Color.green(px) * kr
-                    b += Color.blue(px) * kr
+                var r = 0f
+                var g = 0f
+                var b = 0f
+                for (ky in -1..1) {
+                    for (kx in -1..1) {
+                        val px = pixels[(y + ky) * w + (x + kx)]
+                        val kr = kernel[ky + 1][kx + 1]
+                        r += Color.red(px) * kr
+                        g += Color.green(px) * kr
+                        b += Color.blue(px) * kr
+                    }
                 }
                 out[y * w + x] = Color.argb(
                     Color.alpha(pixels[y * w + x]),
                     clamp(r.roundToInt()),
                     clamp(g.roundToInt()),
-                    clamp(b.roundToInt())
+                    clamp(b.roundToInt()),
                 )
             }
         }
-        for (x in 0 until w) { out[x] = pixels[x]; out[(h - 1) * w + x] = pixels[(h - 1) * w + x] }
-        for (y in 0 until h) { out[y * w] = pixels[y * w]; out[y * w + w - 1] = pixels[y * w + w - 1] }
+        for (x in 0 until w) {
+            out[x] = pixels[x]
+            out[(h - 1) * w + x] = pixels[(h - 1) * w + x]
+        }
+        for (y in 0 until h) {
+            out[y * w] = pixels[y * w]
+            out[y * w + w - 1] = pixels[y * w + w - 1]
+        }
 
         val result = src.copy(Bitmap.Config.ARGB_8888, true)
         result.setPixels(out, 0, w, 0, 0, w, h)
@@ -451,9 +497,7 @@ object ImageAdjustmentHelper {
     // ─────────────────────────────────────────────────────────────────────────
     // GAUSSIAN BLUR
     // ─────────────────────────────────────────────────────────────────────────
-    private fun applyGaussianBlurWithPadding(
-        context: Context, src: Bitmap, radius: Float
-    ): Bitmap {
+    private fun applyGaussianBlurWithPadding(context: Context, src: Bitmap, radius: Float): Bitmap {
         if (radius <= 0f) return src
 
         val safeRadius = radius.coerceIn(1f, 25f)
@@ -477,6 +521,7 @@ object ImageAdjustmentHelper {
             rs.destroy()
             blurred
         } catch (e: Exception) {
+            Log.w("ImageAdjustmentHelper", "RenderScript blur failed, falling back to box blur", e)
             fastBoxBlurWithPadding(padded, safeRadius)
         }
     }
@@ -492,8 +537,11 @@ object ImageAdjustmentHelper {
 
         // 1. Horizontal blur pass
         for (y in 0 until h) {
-            var rSum = 0; var gSum = 0; var bSum = 0; var aSum = 0
-            
+            var rSum = 0
+            var gSum = 0
+            var bSum = 0
+            var aSum = 0
+
             // Initialize window
             for (dx in -r..r) {
                 val px = pixels[y * w + dx.coerceIn(0, w - 1)]
@@ -507,10 +555,10 @@ object ImageAdjustmentHelper {
                 val div = 2 * r + 1
                 temp[y * w + x] = (
                     ((aSum / div) shl 24) or
-                    ((rSum / div) shl 16) or
-                    ((gSum / div) shl 8) or
-                    (bSum / div)
-                )
+                        ((rSum / div) shl 16) or
+                        ((gSum / div) shl 8) or
+                        (bSum / div)
+                    )
 
                 // Slide window
                 val oldPx = pixels[y * w + (x - r).coerceIn(0, w - 1)]
@@ -525,7 +573,10 @@ object ImageAdjustmentHelper {
 
         // 2. Vertical blur pass
         for (x in 0 until w) {
-            var rSum = 0; var gSum = 0; var bSum = 0; var aSum = 0
+            var rSum = 0
+            var gSum = 0
+            var bSum = 0
+            var aSum = 0
 
             // Initialize window
             for (dy in -r..r) {
@@ -540,10 +591,10 @@ object ImageAdjustmentHelper {
                 val div = 2 * r + 1
                 out[y * w + x] = (
                     ((aSum / div) shl 24) or
-                    ((rSum / div) shl 16) or
-                    ((gSum / div) shl 8) or
-                    (bSum / div)
-                )
+                        ((rSum / div) shl 16) or
+                        ((gSum / div) shl 8) or
+                        (bSum / div)
+                    )
 
                 // Slide window
                 val oldPx = temp[(y - r).coerceIn(0, h - 1) * w + x]

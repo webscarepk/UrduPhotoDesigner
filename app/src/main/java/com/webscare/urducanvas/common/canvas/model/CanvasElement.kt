@@ -31,7 +31,7 @@ data class CanvasElement(
 
     @SerializedName("type") var type: ElementType?,
     @SerializedName("customName") var customName: String? = null,
-    @Transient  // or @Exclude if using Gson's @Expose
+    @Transient // or @Exclude if using Gson's @Expose
     @com.google.gson.annotations.JsonAdapter(value = Nothing::class) // skip serialization
     var svgDrawable: android.graphics.drawable.PictureDrawable? = null,
 
@@ -130,16 +130,16 @@ data class CanvasElement(
 
     @SerializedName("listStyle") var listStyle: ListStyle = ListStyle.NONE,
 
-    @SerializedName("fillGradient")
     // text fill gradient
+    @SerializedName("fillGradient")
     var fillGradient: GradientItem? = null,
 
-    @SerializedName("strokeGradient")
     // text stroke gradient
+    @SerializedName("strokeGradient")
     var strokeGradient: GradientItem? = null,
 
-    @SerializedName("labelGradient")
     // text label gradient
+    @SerializedName("labelGradient")
     var labelGradient: GradientItem? = null,
 
     @SerializedName("originalTypeface") @field:Transient var originalTypeface: Typeface? = null,
@@ -216,9 +216,13 @@ data class CanvasElement(
     // Controls whether child rows are visible in the layers panel.
     @SerializedName("isGroupCollapsed") var isGroupCollapsed: Boolean = false,
 
-    ) : Serializable {
+) : Serializable {
+    companion object {
+        private const val serialVersionUID: Long = 1L
+    }
 
     @field:Transient var cachedAdjustedBitmap: Bitmap? = null
+
     @field:Transient var isAdjustmentDirty: Boolean = true
 
     @field:Transient
@@ -238,71 +242,65 @@ data class CanvasElement(
         paint.alpha = paintAlpha
     }
 
-    fun getLocalContentWidth(): Float {
-        return if (type == ElementType.BACKGROUND) {
-            logicalContentWidth
-        } else if (type == ElementType.SHAPE) {
-            logicalContentWidth
-        } else if (type == ElementType.TEXT) {
+    fun getLocalContentWidth(): Float = if (type == ElementType.BACKGROUND) {
+        logicalContentWidth
+    } else if (type == ElementType.SHAPE) {
+        logicalContentWidth
+    } else if (type == ElementType.TEXT) {
+        val lines = getTextWithKashida().split("\n")
+        if (::paint.isInitialized) {
+            lines.maxOfOrNull { line -> paint.measureText(line) } ?: 0f
+        } else {
+            0f
+        }
+    } else {
+        if (svgDrawable != null) {
+            logicalContentWidth.takeIf { it > 0 }
+                ?: svgDrawable?.picture?.width?.toFloat()?.takeIf { it > 0 }
+                ?: 0f
+        } else {
+            // ── Prefer logicalContentWidth over bitmap.width ──────────────
+            // bitmap.width changes after JPEG encode/decode: bitmapToBase64
+            // downsamples a 4000px image to ~1920px. After undo/reload, the
+            // decoded bitmap is smaller, so draw rect shrinks and visual size
+            // drops even though element.scale is correct.
+            // logicalContentWidth stores the ORIGINAL pixel dimensions set
+            // at add-time (serialized to JSON), so it survives encode/decode
+            // and keeps visual size consistent across undo/redo/reload.
+            logicalContentWidth.takeIf { it > 0 }
+                ?: bitmap?.width?.toFloat()
+                ?: 0f
+        }
+    }
+
+    fun getLocalContentHeight(): Float = if (type == ElementType.BACKGROUND) {
+        logicalContentHeight
+    } else if (type == ElementType.SHAPE) {
+        logicalContentHeight
+    } else if (type == ElementType.TEXT) {
+        if (::paint.isInitialized) {
+            val fm = paint.fontMetrics
+            val lineHeight = (fm.bottom - fm.top) * lineSpacing
             val lines = getTextWithKashida().split("\n")
-            if (::paint.isInitialized) {
-                lines.maxOfOrNull { line -> paint.measureText(line) } ?: 0f
-            } else {
-                0f
-            }
+            lines.size * lineHeight
         } else {
-            if (svgDrawable != null) {
-                logicalContentWidth.takeIf { it > 0 }
-                    ?: svgDrawable?.picture?.width?.toFloat()?.takeIf { it > 0 }
-                    ?: 0f
-            } else {
-                // ── Prefer logicalContentWidth over bitmap.width ──────────────
-                // bitmap.width changes after JPEG encode/decode: bitmapToBase64
-                // downsamples a 4000px image to ~1920px. After undo/reload, the
-                // decoded bitmap is smaller, so draw rect shrinks and visual size
-                // drops even though element.scale is correct.
-                // logicalContentWidth stores the ORIGINAL pixel dimensions set
-                // at add-time (serialized to JSON), so it survives encode/decode
-                // and keeps visual size consistent across undo/redo/reload.
-                logicalContentWidth.takeIf { it > 0 }
-                    ?: bitmap?.width?.toFloat()
-                    ?: 0f
-            }
+            0f
+        }
+    } else {
+        if (svgDrawable != null) {
+            logicalContentHeight.takeIf { it > 0 }
+                ?: svgDrawable?.picture?.height?.toFloat()?.takeIf { it > 0 }
+                ?: 0f
+        } else {
+            // ── Prefer logicalContentHeight over bitmap.height ────────────
+            // Same reason as getLocalContentWidth above.
+            logicalContentHeight.takeIf { it > 0 }
+                ?: bitmap?.height?.toFloat()
+                ?: 0f
         }
     }
 
-    fun getLocalContentHeight(): Float {
-        return if (type == ElementType.BACKGROUND) {
-            logicalContentHeight
-        } else if (type == ElementType.SHAPE) {
-            logicalContentHeight
-        } else if (type == ElementType.TEXT) {
-            if (::paint.isInitialized) {
-                val fm = paint.fontMetrics
-                val lineHeight = (fm.bottom - fm.top) * lineSpacing
-                val lines = getTextWithKashida().split("\n")
-                lines.size * lineHeight
-            } else {
-                0f
-            }
-        } else {
-            if (svgDrawable != null) {
-                logicalContentHeight.takeIf { it > 0 }
-                    ?: svgDrawable?.picture?.height?.toFloat()?.takeIf { it > 0 }
-                    ?: 0f
-            } else {
-                // ── Prefer logicalContentHeight over bitmap.height ────────────
-                // Same reason as getLocalContentWidth above.
-                logicalContentHeight.takeIf { it > 0 }
-                    ?: bitmap?.height?.toFloat()
-                    ?: 0f
-            }
-        }
-    }
-
-    fun getTextWithKashida(): String {
-        return applyKashidaToText(text, kashidaSize)
-    }
+    fun getTextWithKashida(): String = applyKashidaToText(text, kashidaSize)
 
     private fun applyKashidaToText(inputText: String, size: Int): String {
         val kashidaProcessor = KashidaProcessor(insertionFreq = size)
@@ -335,7 +333,10 @@ data class CanvasElement(
             val totalHeight = lines.size * lineHeight
 
             bounds.set(
-                -maxLineWidth / 2f, -totalHeight / 2f, maxLineWidth / 2f, totalHeight / 2f
+                -maxLineWidth / 2f,
+                -totalHeight / 2f,
+                maxLineWidth / 2f,
+                totalHeight / 2f,
             )
         } else if (type == ElementType.DRAW) {
             val drawBounds = getDrawBounds()
@@ -345,7 +346,7 @@ data class CanvasElement(
                 shapeType ?: ShapeType.RECTANGLE,
                 logicalContentWidth,
                 logicalContentHeight,
-                shapeStrokeWidth
+                shapeStrokeWidth,
             )
             bounds.set(visual)
         } else {
@@ -386,7 +387,7 @@ data class CanvasElement(
             bounds.right,
             bounds.bottom,
             bounds.left,
-            bounds.bottom
+            bounds.bottom,
         )
 
         // --- Normalize rotation into [0, 360)
@@ -395,7 +396,8 @@ data class CanvasElement(
         val matrix = Matrix().apply {
             // ✅ include scale + flip exactly like drawCanvasElements()
             postScale(
-                scale * if (isFlippedX) -1f else 1f, scale * if (isFlippedY) -1f else 1f
+                scale * if (isFlippedX) -1f else 1f,
+                scale * if (isFlippedY) -1f else 1f,
             )
 
             // ✅ Rotate around the element's true local center (0,0)
@@ -464,7 +466,7 @@ data class CanvasElement(
             centerX - halfW,
             centerY - halfY,
             centerX + halfW,
-            centerY + halfY
+            centerY + halfY,
         )
     }
 }

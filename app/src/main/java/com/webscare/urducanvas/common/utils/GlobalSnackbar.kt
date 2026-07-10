@@ -9,8 +9,8 @@ import android.view.View
 import android.widget.TextView
 import androidx.annotation.ColorInt
 import androidx.core.content.ContextCompat
-import com.webscare.urducanvas.R
 import com.google.android.material.snackbar.Snackbar
+import com.webscare.urducanvas.R
 
 object GlobalSnackbar {
     private var current: Snackbar? = null
@@ -29,7 +29,7 @@ object GlobalSnackbar {
         duration: Int = 8000,
         anchor: View? = null,
         onAction: (() -> Unit)? = null,
-        @ColorInt successColor: Int = ContextCompat.getColor(activity, R.color.white)
+        @ColorInt successColor: Int = ContextCompat.getColor(activity, R.color.white),
     ) {
         main.post {
             current?.dismiss()
@@ -40,7 +40,7 @@ object GlobalSnackbar {
             snack.view.backgroundTintList = ColorStateList.valueOf(successColor)
             snack.setActionTextColor(ContextCompat.getColor(activity, R.color.appColor))
             snack.view.findViewById<TextView>(
-                com.google.android.material.R.id.snackbar_text
+                com.google.android.material.R.id.snackbar_text,
             )?.setTextColor(ContextCompat.getColor(activity, android.R.color.black))
 
             if (anchor != null) snack.anchorView = anchor
@@ -58,5 +58,8 @@ object GlobalSnackbar {
         }
     }
 
-    fun dismiss() = main.post { current?.dismiss(); current = null }
+    fun dismiss() = main.post {
+        current?.dismiss()
+        current = null
+    }
 }

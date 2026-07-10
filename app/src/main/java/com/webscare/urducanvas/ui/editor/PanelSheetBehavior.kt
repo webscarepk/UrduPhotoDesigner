@@ -26,11 +26,11 @@ class PanelSheetBehavior(
     private val guideline: Guideline,
     private val dragHandleView: View,
     private val collapsedPx: Int,
-    expandedPx: Int,                   // raw value — clamped to 90 % internally
+    expandedPx: Int, // raw value — clamped to 90 % internally
     private val onSlide: (Float) -> Unit,
     private val onStateSettled: (expanded: Boolean) -> Unit,
     /** Optional full-screen dim view placed behind the panel. Pass null to skip. */
-    private val dimView: View? = null
+    private val dimView: View? = null,
 ) {
 
     // ── Height cap ────────────────────────────────────────────────────────────
@@ -41,7 +41,7 @@ class PanelSheetBehavior(
     // Cap: panel top must be at least 10 % from top → guideBegin >= screenHeight * 0.10
     private val expandedPx: Int = maxOf(
         expandedPx,
-        (screenHeight * (1f - MAX_EXPANDED_FRACTION)).toInt()
+        (screenHeight * (1f - MAX_EXPANDED_FRACTION)).toInt(),
     )
 
     // ── State ─────────────────────────────────────────────────────────────────
@@ -69,18 +69,20 @@ class PanelSheetBehavior(
         }
         set(value) {
             val lp = guideline.layoutParams as ConstraintLayout.LayoutParams
-            lp.guideBegin   = value
+            lp.guideBegin = value
             lp.guidePercent = -1f
-            lp.guideEnd     = -1
+            lp.guideEnd = -1
             guideline.layoutParams = lp
             emitSlide(value)
         }
 
     private fun emitSlide(guideBegin: Int) {
         val travel = (collapsedPx - expandedPx).toFloat()
-        val offset = if (travel > 0f)
+        val offset = if (travel > 0f) {
             ((collapsedPx - guideBegin) / travel).coerceIn(0f, 1f)
-        else 0f
+        } else {
+            0f
+        }
         onSlide(offset)
         updateDim(offset)
     }
@@ -98,10 +100,10 @@ class PanelSheetBehavior(
         // INVISIBLE removes it from touch dispatch entirely. VISIBLE re-adds it so the
         // tap-to-collapse gesture works while the panel is open.
         if (alpha > 0.01f) {
-            dimView.visibility  = View.VISIBLE
+            dimView.visibility = View.VISIBLE
             dimView.isClickable = true
         } else {
-            dimView.visibility  = View.INVISIBLE
+            dimView.visibility = View.INVISIBLE
             dimView.isClickable = false
         }
     }
@@ -126,7 +128,7 @@ class PanelSheetBehavior(
             setStartValue(startPx.toFloat())
             setStartVelocity(startVelocity)
             spring = SpringForce(targetPx.toFloat()).apply {
-                stiffness    = SpringForce.STIFFNESS_LOW
+                stiffness = SpringForce.STIFFNESS_LOW
                 dampingRatio = SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY
             }
             addUpdateListener { _, value, _ ->
@@ -168,11 +170,14 @@ class PanelSheetBehavior(
                     val panelTop = getPanelTopY()
                     if (event.rawY in panelTop..(panelTop + DRAG_ZONE_PX)) {
                         onTouch(event)
-                    } else false
+                    } else {
+                        false
+                    }
                 }
                 MotionEvent.ACTION_MOVE,
                 MotionEvent.ACTION_UP,
-                MotionEvent.ACTION_CANCEL -> {
+                MotionEvent.ACTION_CANCEL,
+                -> {
                     if (velocityTracker != null) onTouch(event) else false
                 }
                 else -> false
@@ -194,54 +199,58 @@ class PanelSheetBehavior(
 
     private fun onTouch(event: MotionEvent): Boolean {
         if (!isSwipeEnabled) return false
+        var handled = false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 springAnim?.cancel()
-                dragStartRawY       = event.rawY
+                dragStartRawY = event.rawY
                 dragStartGuideBegin = currentGuideBegin
-                isDragging          = false
+                isDragging = false
                 acquireVelocityTracker(event)
-                return true
+                handled = true
             }
             MotionEvent.ACTION_MOVE -> {
                 velocityTracker?.addMovement(event)
                 val dy = event.rawY - dragStartRawY
-                if (!isDragging && abs(dy) < 4f) return true
-                isDragging = true
-                currentGuideBegin = (dragStartGuideBegin + dy.toInt()).coerceIn(expandedPx, collapsedPx)
-                return true
+                if (!isDragging && abs(dy) < 4f) {
+                    handled = true
+                } else {
+                    isDragging = true
+                    currentGuideBegin = (dragStartGuideBegin + dy.toInt()).coerceIn(expandedPx, collapsedPx)
+                    handled = true
+                }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 velocityTracker?.computeCurrentVelocity(1000)
                 val flingV = velocityTracker?.yVelocity ?: 0f
                 val snapExpand = if (!isDragging) !isExpanded else shouldSnapExpanded()
                 springTo(
-                    targetPx      = if (snapExpand) expandedPx else collapsedPx,
-                    startVelocity = flingV
+                    targetPx = if (snapExpand) expandedPx else collapsedPx,
+                    startVelocity = flingV,
                 )
                 isDragging = false
-                return true
+                handled = true
             }
         }
-        return false
+        return handled
     }
 
     // ── External drag API ─────────────────────────────────────────────────────
 
     fun externalDragBegin(downRawY: Float, currentRawY: Float = downRawY) {
         springAnim?.cancel()
-        extDragStartRawY       = downRawY
+        extDragStartRawY = downRawY
         extDragStartGuideBegin = currentGuideBegin
-        dragStartRawY          = downRawY
-        dragStartGuideBegin    = extDragStartGuideBegin
-        extDragLastY           = currentRawY
-        extDragLastT           = System.nanoTime()
-        extDragVelocity        = 0f
+        dragStartRawY = downRawY
+        dragStartGuideBegin = extDragStartGuideBegin
+        extDragLastY = currentRawY
+        extDragLastT = System.nanoTime()
+        extDragVelocity = 0f
     }
 
     fun externalDragBy(rawY: Float) {
         val now = System.nanoTime()
-        val dt  = (now - extDragLastT) / 1_000_000_000f
+        val dt = (now - extDragLastT) / 1_000_000_000f
         if (dt > 0f) {
             val instant = (rawY - extDragLastY) / dt
             extDragVelocity = extDragVelocity * 0.6f + instant * 0.4f
@@ -255,8 +264,8 @@ class PanelSheetBehavior(
     fun externalDragEnd() {
         val expand = shouldSnapExpanded()
         springTo(
-            targetPx      = if (expand) expandedPx else collapsedPx,
-            startVelocity = extDragVelocity
+            targetPx = if (expand) expandedPx else collapsedPx,
+            startVelocity = extDragVelocity,
         )
     }
 
@@ -291,8 +300,11 @@ class PanelSheetBehavior(
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun acquireVelocityTracker(event: MotionEvent) {
-        if (velocityTracker == null) velocityTracker = VelocityTracker.obtain()
-        else velocityTracker!!.clear()
+        if (velocityTracker == null) {
+            velocityTracker = VelocityTracker.obtain()
+        } else {
+            velocityTracker!!.clear()
+        }
         velocityTracker!!.addMovement(event)
     }
 
@@ -312,14 +324,14 @@ class PanelSheetBehavior(
          * Drives the spring past the target so it overshoots ~5 % before bouncing back.
          * Increase for a more dramatic bounce, decrease for subtler feel.
          */
-        private const val OVERSHOOT_VELOCITY_FACTOR = 1.5f   // 1.5 × screenHeight px/s
+        private const val OVERSHOOT_VELOCITY_FACTOR = 1.5f // 1.5 × screenHeight px/s
 
         /**
          * How far past the hard resting bounds the spring is allowed to travel
          * during the overshoot, as a fraction of screen height.
          * Keeps the panel from going completely off-screen.
          */
-        private const val OVERSHOOT_CLAMP_MARGIN = 0.06f     // 6 % of screen height
+        private const val OVERSHOOT_CLAMP_MARGIN = 0.06f // 6 % of screen height
 
         /** Maximum alpha of the dim overlay at full expansion */
         const val MAX_DIM_ALPHA = 0.45f

@@ -30,9 +30,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.segmentation.subject.SubjectSegmentation
 import com.google.mlkit.vision.segmentation.subject.SubjectSegmenter
 import com.google.mlkit.vision.segmentation.subject.SubjectSegmenterOptions
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class BgRemovalFragment : androidx.fragment.app.Fragment() {
 
@@ -56,7 +54,7 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
         "Balancing light and dark regions…",
         "Improving mask precision…",
         "Cleaning background smoothly…",
-        "Almost ready, preparing final result…"
+        "Almost ready, preparing final result…",
     )
     private var messageIndex = 0
     private val viewModel: CanvasViewModel by activityViewModels()
@@ -74,8 +72,9 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentBgRemovalBinding.inflate(inflater, container, false)
         return binding.root
@@ -155,8 +154,14 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    private fun stopProgressLoop() { progressAnimator?.cancel(); progressAnimator = null }
-    private fun stopIconRotation() { rotationAnimator?.cancel(); rotationAnimator = null }
+    private fun stopProgressLoop() {
+        progressAnimator?.cancel()
+        progressAnimator = null
+    }
+    private fun stopIconRotation() {
+        rotationAnimator?.cancel()
+        rotationAnimator = null
+    }
 
     private fun dismissLoadingDialog() {
         stopProgressLoop()
@@ -177,14 +182,29 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             toggleMiniToolbar(true)
             when (item.itemId) {
-                R.id.nav_lasso -> { binding.imageCanvas.setToolMode(BgRemovalCanvas.ToolMode.BRUSH); true }
-                R.id.nav_rect -> { binding.imageCanvas.setToolMode(BgRemovalCanvas.ToolMode.RECTANGLE); true }
-                R.id.nav_circle -> { binding.imageCanvas.setToolMode(BgRemovalCanvas.ToolMode.ELLIPSE); true }
-                R.id.nav_magic_wand -> { binding.imageCanvas.setToolMode(BgRemovalCanvas.ToolMode.MAGIC_WAND); true }
+                R.id.nav_lasso -> {
+                    binding.imageCanvas.setToolMode(BgRemovalCanvas.ToolMode.BRUSH)
+                    true
+                }
+                R.id.nav_rect -> {
+                    binding.imageCanvas.setToolMode(BgRemovalCanvas.ToolMode.RECTANGLE)
+                    true
+                }
+                R.id.nav_circle -> {
+                    binding.imageCanvas.setToolMode(BgRemovalCanvas.ToolMode.ELLIPSE)
+                    true
+                }
+                R.id.nav_magic_wand -> {
+                    binding.imageCanvas.setToolMode(BgRemovalCanvas.ToolMode.MAGIC_WAND)
+                    true
+                }
                 R.id.nav_subject -> {
                     val bmp = originalBitmap
-                    if (bmp != null) runSubjectSegmentation(bmp)
-                    else Log.e(TAG, "nav_subject: originalBitmap is null")
+                    if (bmp != null) {
+                        runSubjectSegmentation(bmp)
+                    } else {
+                        Log.e(TAG, "nav_subject: originalBitmap is null")
+                    }
                     true
                 }
                 else -> false
@@ -250,7 +270,7 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
         // which fires AFTER the encode coroutine commits data — dismiss dialog → navigateUp().
         binding.imageCanvas.onMaskConfirmed = { maskedBitmap ->
             Log.d(TAG, "onMaskConfirmed: ${maskedBitmap.width}x${maskedBitmap.height}")
-            showLoadingDialog()           // brief spinner while encoding on background thread
+            showLoadingDialog() // brief spinner while encoding on background thread
             viewModel.applyMaskToSelected(maskedBitmap)
             // navigateUp() is NOT called here — the maskAppliedEvent collector handles it
             // AFTER the data is committed, so EditorFragment always sees the new bitmap.

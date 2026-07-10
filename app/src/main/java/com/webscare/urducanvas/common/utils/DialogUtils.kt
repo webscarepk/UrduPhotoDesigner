@@ -4,24 +4,17 @@ import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.Context
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.view.LayoutInflater
 import android.view.WindowManager
 import android.widget.TextView
-import com.webscare.urducanvas.R
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import androidx.core.graphics.drawable.toDrawable
+import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 object DialogUtils {
 
     @SuppressLint("InflateParams")
-    fun showDeleteDialog(
-        context: Context,
-        titleText: String,
-        subtitleText: String,
-        onConfirm: () -> Unit
-    ) {
+    fun showDeleteDialog(context: Context, titleText: String, subtitleText: String, onConfirm: () -> Unit) {
         val inflater = LayoutInflater.from(context)
         val view = inflater.inflate(R.layout.layout_dialog_delete, null)
 
@@ -51,5 +44,4 @@ object DialogUtils {
         params?.height = WindowManager.LayoutParams.WRAP_CONTENT
         dialog.window?.attributes = params
     }
-
 }

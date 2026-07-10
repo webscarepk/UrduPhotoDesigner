@@ -16,7 +16,9 @@ class ColorAdjustmentsFragment : androidx.fragment.app.Fragment() {
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentColorAdjustmentsBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -30,10 +32,8 @@ class ColorAdjustmentsFragment : androidx.fragment.app.Fragment() {
 
     // 🟡 Initialize SeekBars
     private fun initSeekBars() {
-
         // 🎨 Saturation (0 → 2)
         binding.saturation.apply {
-
             max = 200
             progress = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -55,7 +55,6 @@ class ColorAdjustmentsFragment : androidx.fragment.app.Fragment() {
 
         // 💧 Vibrance (0 → 2)
         binding.vibrance.apply {
-
             max = 200
             progress = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {

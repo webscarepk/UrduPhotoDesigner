@@ -13,7 +13,7 @@ import com.webscare.urducanvas.databinding.LayoutFilterItemBinding
 class ImageFiltersAdapter(
     private val filterList: List<com.webscare.urducanvas.common.canvas.model.FilterItem>,
     private var baseBitmap: Bitmap?,
-    private val onFilterSelected: (com.webscare.urducanvas.common.canvas.model.FilterItem) -> Unit
+    private val onFilterSelected: (com.webscare.urducanvas.common.canvas.model.FilterItem) -> Unit,
 ) : RecyclerView.Adapter<ImageFiltersAdapter.FilterViewHolder>() {
 
     // Keep track of the currently selected filter
@@ -36,8 +36,7 @@ class ImageFiltersAdapter(
             }
         }
 
-    inner class FilterViewHolder(val binding: LayoutFilterItemBinding) :
-        RecyclerView.ViewHolder(binding.root) {
+    inner class FilterViewHolder(val binding: LayoutFilterItemBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(filterItem: com.webscare.urducanvas.common.canvas.model.FilterItem) {
             binding.filterName.text = filterItem.name
 
@@ -58,6 +57,7 @@ class ImageFiltersAdapter(
                     val thumb = bmp.scale(targetWidth, targetHeight)
                     ImageProcessor.applyFilter(thumb, filterItem.filter)
                 } catch (e: IllegalArgumentException) {
+                    android.util.Log.e("ImageFiltersAdapter", "Failed to scale or apply filter for thumbnail", e)
                     null
                 }
 

@@ -1,16 +1,13 @@
 package com.webscare.urducanvas.ui.editor.panels.shape
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.GridLayoutManager
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.ElementType
@@ -23,7 +20,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.abs
 
 @AndroidEntryPoint
 class VectorsTabFragment : Fragment() {
@@ -52,10 +48,14 @@ class VectorsTabFragment : Fragment() {
             }
         }
 
-    fun pickImage() { pickImageLauncher.launch("image/*") }
+    fun pickImage() {
+        pickImageLauncher.launch("image/*")
+    }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentObjectsListBinding.inflate(inflater, container, false)
         return binding.root
@@ -74,11 +74,11 @@ class VectorsTabFragment : Fragment() {
 
         binding.objects.apply {
             setHasFixedSize(true)
-            itemAnimator = null          // suppress flicker on dataset changes
+            itemAnimator = null // suppress flicker on dataset changes
             layoutManager = MorphGridLayoutManager(
                 context = requireContext(),
                 collapsedSpan = 3,
-                expandedSpan = 3
+                expandedSpan = 3,
             ).apply {
                 applyFraction(binding.objects, if (mainViewModel.isPanelExpanded(PanelType.SHAPES)) 1f else 0f)
             }
@@ -104,8 +104,8 @@ class VectorsTabFragment : Fragment() {
     //    so user can see what was added and interact with it immediately.
 
     private fun handleShapeTap(shape: ShapeType) {
-        val elements      = viewModel.canvasElements.value
-        val isMask        = viewModel.isMaskingMode.value
+        val elements = viewModel.canvasElements.value
+        val isMask = viewModel.isMaskingMode.value
         val isShapeSelected = elements?.any { it.isSelected && it.type == ElementType.SHAPE } == true
         val isImageSelected = elements?.any { it.isSelected && it.type == ElementType.IMAGE } == true
 
@@ -151,8 +151,6 @@ class VectorsTabFragment : Fragment() {
         }
     }
 
-
-
     // ── Panel expand/collapse ─────────────────────────────────────────────────
 
     fun onPanelSlide(offset: Float) {
@@ -174,7 +172,7 @@ class VectorsTabFragment : Fragment() {
             binding.objects.paddingLeft,
             binding.objects.paddingTop,
             binding.objects.paddingRight,
-            currentPadding
+            currentPadding,
         )
 
         // Smoothly update size of all visible items in 60fps!
@@ -223,7 +221,7 @@ class VectorsTabFragment : Fragment() {
             binding.objects.paddingLeft,
             binding.objects.paddingTop,
             binding.objects.paddingRight,
-            bottomPadding
+            bottomPadding,
         )
 
         // Sync item size on final settle state

@@ -1,6 +1,5 @@
 package com.webscare.urducanvas.data.model
 
-import com.webscare.urducanvas.data.model.ImageEntity
 import com.webscare.urducanvas.ui.editor.panels.objects.ObjectsFragment
 
 /**
@@ -17,7 +16,7 @@ import com.webscare.urducanvas.ui.editor.panels.objects.ObjectsFragment
 data class ObjectsData(
     val tabs: List<String>,
     val imagesByCategory: Map<String, List<ImageEntity>>,
-    val recents: List<ImageEntity>
+    val recents: List<ImageEntity>,
 ) {
     companion object {
         /**
@@ -30,7 +29,7 @@ data class ObjectsData(
         val Initial = ObjectsData(
             tabs = ObjectsFragment.BASE_TABS,
             imagesByCategory = emptyMap(),
-            recents = emptyList()
+            recents = emptyList(),
         )
     }
 }

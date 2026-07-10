@@ -36,11 +36,7 @@ import androidx.recyclerview.widget.RecyclerView.EdgeEffectFactory
  * a horizontal LayoutManager and overScrollMode="always" — no other setup
  * needed.
  */
-class SpringRecyclerView @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null,
-    defStyle: Int = 0
-) : RecyclerView(context, attrs, defStyle) {
+class SpringRecyclerView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) : RecyclerView(context, attrs, defStyle) {
 
     private var springAnim: SpringAnimation? = null
 
