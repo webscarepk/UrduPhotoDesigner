@@ -22,6 +22,7 @@ import com.webscare.urducanvas.common.canvas.enums.Mode
 import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import com.webscare.urducanvas.common.canvas.model.StrokeData
 import com.webscare.urducanvas.common.utils.Utils.vibrateSoft
+import com.webscare.urducanvas.common.utils.BrushRenderUtils.createBackgroundGradientShader
 import java.util.Objects
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -65,6 +66,9 @@ class CanvasTouchHandler(private val view: CanvasView) {
 
     private fun Float.dpToPx(): Float = this * view.resources.displayMetrics.density
 
+    private fun CanvasElement.containsPoint(px: Float, py: Float): Boolean =
+        with(view.elementManager) { containsPoint(px, py) }
+
     private fun getPinchDistance(event: MotionEvent): Float {
         val x = event.getX(0) - event.getX(1)
         val y = event.getY(0) - event.getY(1)
@@ -79,7 +83,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
 
     inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
         override fun onDoubleTap(e: MotionEvent): Boolean {
-            if (isPanMode) {
+            if (view.isPanMode) {
                 view.stepZoomOverall()
                 return true
             }
@@ -210,7 +214,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
 
     
 
-    override fun onTouchEvent(event: MotionEvent): Boolean {
+    fun onTouchEvent(event: MotionEvent): Boolean {
         // Only forward single-pointer events to GestureDetector.
         // Forwarding ACTION_POINTER_DOWN/UP causes TouchTarget double-recycle
         // on Android 14 (SDK 34), triggering IllegalStateException: already recycled once.
@@ -304,7 +308,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
             return true
         }
 
-        if (isColorPickerMode) {
+        if (view.isColorPickerMode) {
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
                     view.pickerX = x.coerceIn(0f, view.canvasWidth.toFloat())
@@ -348,7 +352,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
 
                     when {
                         // Elements selected → element view.scale/rotate (pan mode OFF only)
-                        view.selectedElements.isNotEmpty() && !isPanMode -> {
+                        view.selectedElements.isNotEmpty() && !view.isPanMode -> {
                             view.currentMode = Mode.MULTI_TOUCH
                             initialScale = view.selectedElements.firstOrNull()?.scale ?: 1f
                             initialRotation = view.selectedElements.firstOrNull()?.rotation ?: 0f
@@ -364,7 +368,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
             }
 
             MotionEvent.ACTION_DOWN -> {
-                view.iconTouched = null
+                iconTouched = null
                 lastTouchedElement = null
                 view.showVerticalGuide = false
                 view.showHorizontalGuide = false
@@ -408,8 +412,8 @@ class CanvasTouchHandler(private val view: CanvasView) {
                             val touchedIconEntry = view.lastDrawnIconRect.entries
                                 .firstOrNull { (_, rect) -> rect.contains(x, y) }
                             if (touchedIconEntry != null) {
-                                view.iconTouched = touchedIconEntry.key
-                                when (view.iconTouched) {
+                                iconTouched = touchedIconEntry.key
+                                when (iconTouched) {
                                     "delete" -> {
                                         view.removeSelectedElement()
                                         return true
@@ -421,7 +425,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                         view.isRotating = true
                                         initialElementRotations.clear()
                                         initialElementPositionsRelativeToGroupPivot.clear()
-                                        val bounds = getCombinedSelectedBounds()
+                                        val bounds = view.getCombinedSelectedBounds()
                                         initialGroupPivotX = bounds.centerX()
                                         initialGroupPivotY = bounds.centerY()
                                         view.selectedElements.forEach { el ->
@@ -442,7 +446,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                         view.currentMode = Mode.RESIZE
                                         touchStartX = x
                                         touchStartY = y
-                                        val combined = getCombinedSelectedBounds()
+                                        val combined = view.getCombinedSelectedBounds()
                                         val pivotX = combined.centerX()
                                         val pivotY = combined.centerY()
                                         resizeStartDist = hypot(x - pivotX, y - pivotY)
@@ -545,8 +549,8 @@ class CanvasTouchHandler(private val view: CanvasView) {
                             "IconHit",
                             "User tapped inside icon=${touchedIconEntry.key} at ($x,$y)",
                         )
-                        view.iconTouched = touchedIconEntry.key
-                        when (view.iconTouched) {
+                        iconTouched = touchedIconEntry.key
+                        when (iconTouched) {
                             "delete" -> {
                                 view.removeSelectedElement() // Handles removing all selected
                                 return true // Consume the event immediately
@@ -561,7 +565,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                 initialElementRotations.clear()
                                 initialElementPositionsRelativeToGroupPivot.clear() // Clear previous initial positions
                                 val combinedBoundsAtStart =
-                                    getCombinedSelectedBounds() // Get bounds at start of interaction
+                                    view.getCombinedSelectedBounds() // Get bounds at start of interaction
                                 initialGroupPivotX = combinedBoundsAtStart.centerX()
                                 initialGroupPivotY = combinedBoundsAtStart.centerY()
 
@@ -587,7 +591,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                                 view.currentMode = Mode.RESIZE
                                 touchStartX = x
                                 touchStartY = y
-                                val combined = getCombinedSelectedBounds()
+                                val combined = view.getCombinedSelectedBounds()
                                 val pivotX = combined.centerX()
                                 val pivotY = combined.centerY()
                                 // Capture the distance from finger to pivot at gesture start.
@@ -646,7 +650,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                             tightBounds.contains(touchPoint[0], touchPoint[1])
                         }
 
-                if (touchedElement != null && !isPanMode) {
+                if (touchedElement != null && !view.isPanMode) {
                     if (touchedElement.groupId != null) {
                         val gid = touchedElement.groupId!!
 
@@ -744,10 +748,10 @@ class CanvasTouchHandler(private val view: CanvasView) {
                     view.invalidate()
                     return true
                 } else {
-                    // isPanMode ON hai, ya empty canvas tap — pan mode set karo
+                    // view.isPanMode ON hai, ya empty canvas tap — pan mode set karo
                     val bg =
                         view.canvasElements.firstOrNull { it.type == ElementType.BACKGROUND && !it.isLocked }
-                    if (!isPanMode && bg?.bitmap != null) {
+                    if (!view.isPanMode && bg?.bitmap != null) {
                         view.canvasElements.forEach { it.isSelected = false }
                         view.selectedElements.clear()
                         bg.isSelected = true
@@ -759,7 +763,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                         view.invalidate()
                         return true
                     }
-                    if (view.selectedElements.isNotEmpty() && !isPanMode) {
+                    if (view.selectedElements.isNotEmpty() && !view.isPanMode) {
                         view.canvasElements.forEach { it.isSelected = false }
                         view.selectedElements.clear()
                         view.inSelectionMode = false
@@ -987,7 +991,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                         }
 
                         // After rotating, re-calculate the combined bounds to check for clamping
-                        val newCombinedBounds = getCombinedSelectedBounds()
+                        val newCombinedBounds = view.getCombinedSelectedBounds()
 
                         // Clamp the rotated group back into the canvas if it went out
                         var translationX = 0f
@@ -1029,7 +1033,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                     Mode.RESIZE -> {
                         if (view.selectedElements.isEmpty()) return true
 
-                        val combined = getCombinedSelectedBounds()
+                        val combined = view.getCombinedSelectedBounds()
                         val pivotX = combined.centerX()
                         val pivotY = combined.centerY()
 
@@ -1227,7 +1231,7 @@ class CanvasTouchHandler(private val view: CanvasView) {
                 isDragCandidate = false
                 touchedDownElement = null
 
-                view.iconTouched = null
+                iconTouched = null
                 initialPinchDistance = 0f
                 initialPinchAngle = 0f
                 initialScale = 1f
