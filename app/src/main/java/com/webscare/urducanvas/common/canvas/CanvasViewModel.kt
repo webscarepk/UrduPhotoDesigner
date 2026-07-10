@@ -4280,54 +4280,91 @@ class CanvasViewModel @Inject constructor(
 
     fun findElementById(id: String): CanvasElement? = _canvasElements.value?.firstOrNull { it.id == id }
 
-    private fun applyAction(action: CanvasAction, isRedo: Boolean) {
-        // Always try to get context from an existing element for re-applying paint properties
-        val context = _canvasElements.value?.firstOrNull()?.context
-
-        when (action) {
-            is CanvasAction.UpdateElement -> {
-                val list = _canvasElements.value.orEmpty()
-                val updated = list.map { element ->
-                    if (element.id == action.elementId) {
-                        // Choose old or new element data
-                        val chosen = if (isRedo) action.newElement else action.oldElement
-                        // Ensure the id remains the same, then restore properties
-                        chosen.copy(id = element.id).restoreWithContext(context)
-                    } else {
-                        element
-                    }
-                }
-                _canvasElements.value = updated
+    private fun applyUpdateElementAction(action: CanvasAction.UpdateElement, isRedo: Boolean, context: Context?) {
+        val list = _canvasElements.value.orEmpty()
+        val updated = list.map { element ->
+            if (element.id == action.elementId) {
+                val chosen = if (isRedo) action.newElement else action.oldElement
+                chosen.copy(id = element.id).restoreWithContext(context)
+            } else {
+                element
             }
+        }
+        _canvasElements.value = updated
+    }
 
+    private fun applyBackgroundAction(action: CanvasAction, isRedo: Boolean) {
+        when (action) {
             is CanvasAction.SetBackgroundColor -> {
                 _backgroundColor.value = if (isRedo) action.color else action.previousColor
             }
-
             is CanvasAction.SetBackgroundImage -> {
                 _backgroundImage.value = if (isRedo) action.bitmap else action.previousBitmap
             }
-
             is CanvasAction.SetBackgroundGradient -> {
-                _backgroundGradient.value = if (isRedo) {
-                    action.gradientItem
-                } else {
-                    action.prevGradientItem
-                }
+                _backgroundGradient.value = if (isRedo) action.gradientItem else action.prevGradientItem
             }
+            is CanvasAction.SetCanvasSize -> {
+                val sizeToApply = if (isRedo) action.newSize else action.oldSize
+                _canvasSize.value = sizeToApply
+                syncBackgroundElementSize(sizeToApply)
+            }
+            else -> {}
+        }
+    }
 
+    private fun applyAddOrRemoveElementAction(action: CanvasAction, isRedo: Boolean, context: Context?) {
+        val currentList = _canvasElements.value.orEmpty()
+        when (action) {
             is CanvasAction.AddSticker -> {
-                val currentList = _canvasElements.value.orEmpty()
                 if (isRedo) {
-                    // Reapply context & paint/typeface/bitmap, then add
-                    val restored = action.sticker.restoreWithContext(context)
-                    _canvasElements.value = currentList + restored
+                    _canvasElements.value = currentList + action.sticker.restoreWithContext(context)
                 } else {
-                    // Undo: remove by ID
                     _canvasElements.value = currentList.filter { it.id != action.sticker.id }
                 }
             }
+            is CanvasAction.AddDrawStroke -> {
+                if (isRedo) {
+                    _canvasElements.value = currentList + action.element.restoreWithContext(context)
+                } else {
+                    _canvasElements.value = currentList.filter { it.id != action.element.id }
+                }
+            }
+            is CanvasAction.AddShape -> {
+                if (isRedo) {
+                    _canvasElements.value = currentList + action.element.restoreWithContext(context)
+                } else {
+                    _canvasElements.value = currentList.filter { it.id != action.element.id }
+                }
+            }
+            is CanvasAction.AddText -> {
+                if (isRedo) {
+                    val restored = action.element.copy(context = context).apply {
+                        updatePaintProperties()
+                        paint.typeface = applyTypefaceFromFontList(context)
+                        originalTypeface = paint.typeface
+                    }
+                    _canvasElements.value = currentList + restored
+                } else {
+                    _canvasElements.value = currentList.filter { it.id != action.element.id }
+                }
+            }
+            is CanvasAction.RemoveElement -> {
+                if (isRedo) {
+                    _canvasElements.value = currentList.filter { it.id != action.element.id }
+                } else {
+                    val restored = action.element.restoreWithContext(context)
+                    if (currentList.none { it.id == restored.id }) {
+                        _canvasElements.value = currentList + restored
+                    }
+                }
+            }
+            else -> {}
+        }
+    }
 
+    private fun applyStyleAction(action: CanvasAction, isRedo: Boolean) {
+        when (action) {
             is CanvasAction.SetOverlayGradient -> {
                 val targetGradient = if (isRedo) action.newGradient else action.oldGradient
                 val currentList = _canvasElements.value.orEmpty()
@@ -4339,9 +4376,7 @@ class CanvasViewModel @Inject constructor(
                             if (element.overlayOpacity == 0) element.overlayOpacity = 255
                             element.hasOverlay = true
                         } else {
-                            element.hasOverlay =
-                                element.overlayOpacity > 0 &&
-                                element.overlayColor != Color.TRANSPARENT
+                            element.hasOverlay = element.overlayOpacity > 0 && element.overlayColor != Color.TRANSPARENT
                         }
                         element
                     } else {
@@ -4349,141 +4384,56 @@ class CanvasViewModel @Inject constructor(
                     }
                 }
             }
-
             is CanvasAction.SetImageShadow -> {
-                val el = findElementById(action.elementId)
-                if (isRedo) {
-                    el?.hasShadow = action.newEnabled
-                    el?.shadowColor = action.newColor
-                    el?.shadowDx = action.newDx
-                    el?.shadowDy = action.newDy
-                    el?.shadowRadius = action.newRadius
-                    el?.shadowOpacity = action.newOpacity
-                } else {
-                    el?.hasShadow = action.oldEnabled
-                    el?.shadowColor = action.oldColor
-                    el?.shadowDx = action.oldDx
-                    el?.shadowDy = action.oldDy
-                    el?.shadowRadius = action.oldRadius
-                    el?.shadowOpacity = action.oldOpacity
-                }
-            }
-
-            is CanvasAction.SetOverlay -> {
-                val el = findElementById(action.elementId)
-                if (isRedo) {
-                    el?.hasOverlay = action.newHasOverlay
-                    el?.overlayColor = action.newColor
-                    el?.overlayOpacity = action.newOpacity
-                } else {
-                    el?.hasOverlay = action.oldHasOverlay
-                    el?.overlayColor = action.oldColor
-                    el?.overlayOpacity = action.oldOpacity
-                }
-            }
-
-            is CanvasAction.AddDrawStroke -> {
-                val currentList = _canvasElements.value.orEmpty()
-                if (isRedo) {
-                    // Reapply context & paint/typeface/bitmap, then add
-                    val restored = action.element.restoreWithContext(context)
-                    _canvasElements.value = currentList + restored
-                } else {
-                    // Undo: remove by ID
-                    _canvasElements.value = currentList.filter { it.id != action.element.id }
-                }
-            }
-
-            is CanvasAction.AddShape -> {
-                val currentList = _canvasElements.value.orEmpty()
-                if (isRedo) {
-                    // Reapply context & paint/typeface/bitmap, then add
-                    val restored = action.element.restoreWithContext(context)
-                    _canvasElements.value = currentList + restored
-                } else {
-                    // Undo: remove by ID
-                    _canvasElements.value = currentList.filter { it.id != action.element.id }
-                }
-            }
-
-            is CanvasAction.AddText -> {
-                val currentList = _canvasElements.value.orEmpty()
-                if (isRedo) {
-                    // Reapply context, paint, typeface, then add
-                    val restored = action.element.copy(context = context).apply {
-                        updatePaintProperties()
-                        paint.typeface = applyTypefaceFromFontList(context)
-                        originalTypeface = paint.typeface
-                    }
-                    _canvasElements.value = currentList + restored
-                } else {
-                    _canvasElements.value = currentList.filter { it.id != action.element.id }
-                }
-            }
-
-            is CanvasAction.SetFont -> {
-                val currentList = _canvasElements.value.orEmpty()
-                val updated = currentList.map { element ->
-                    // Look for affected element in action.affectedElements: Pair(id, previousFontId)
-                    val affectedData = action.affectedElements.find { it.first == element.id }
-                    if (affectedData != null && element.type == ElementType.TEXT) {
-                        val fontIdToApply = if (isRedo) {
-                            action.newFontEntity.id.toString()
-                        } else {
-                            affectedData.second
-                        }
-                        val copied = element.copy(context = context)
-                        if (fontIdToApply != null) {
-                            val fontEntity =
-                                localFonts.value.firstOrNull { it.id.toString() == fontIdToApply }
-                            if (fontEntity?.file_path?.isNotBlank() == true) {
-                                try {
-                                    val tf = Typeface.createFromFile(fontEntity.file_path)
-                                    copied.originalTypeface = tf
-                                    copied.paint.typeface = tf
-                                    copied.fontId = fontEntity.id.toString()
-                                } catch (e: Exception) {
-                                    Log.e("CanvasViewModel", "Failed to load typeface in applyAction font update", e)
-                                    copied.paint.typeface = context?.let {
-                                        ResourcesCompat.getFont(
-                                            it,
-                                            R.font.default_canvas,
-                                        )
-                                    } ?: Typeface.DEFAULT
-                                    copied.fontId = null
-                                }
-                            } else {
-                                copied.paint.typeface = context?.let {
-                                    ResourcesCompat.getFont(
-                                        it,
-                                        R.font.default_canvas,
-                                    )
-                                } ?: Typeface.DEFAULT
-                                copied.fontId = null
-                            }
-                        } else {
-                            copied.paint.typeface =
-                                context?.let { ResourcesCompat.getFont(it, R.font.default_canvas) }
-                                    ?: Typeface.DEFAULT
-                            copied.fontId = null
-                        }
-                        copied
+                findElementById(action.elementId)?.let { el ->
+                    if (isRedo) {
+                        el.hasShadow = action.newEnabled
+                        el.shadowColor = action.newColor
+                        el.shadowDx = action.newDx
+                        el.shadowDy = action.newDy
+                        el.shadowRadius = action.newRadius
+                        el.shadowOpacity = action.newOpacity
                     } else {
-                        element
-                    }
-                }
-                _canvasElements.value = updated
-                // Update currentFont LiveData
-                _currentFont.value = if (isRedo) {
-                    action.newFontEntity
-                } else {
-                    // Find the font by previous ID if any
-                    action.affectedElements.firstOrNull()?.second?.let { prevId ->
-                        localFonts.value.firstOrNull { it.id.toString() == prevId }
+                        el.hasShadow = action.oldEnabled
+                        el.shadowColor = action.oldColor
+                        el.shadowDx = action.oldDx
+                        el.shadowDy = action.oldDy
+                        el.shadowRadius = action.oldRadius
+                        el.shadowOpacity = action.oldOpacity
                     }
                 }
             }
+            is CanvasAction.SetOverlay -> {
+                findElementById(action.elementId)?.let { el ->
+                    if (isRedo) {
+                        el.hasOverlay = action.newHasOverlay
+                        el.overlayColor = action.newColor
+                        el.overlayOpacity = action.newOpacity
+                    } else {
+                        el.hasOverlay = action.oldHasOverlay
+                        el.overlayColor = action.oldColor
+                        el.overlayOpacity = action.oldOpacity
+                    }
+                }
+            }
+            is CanvasAction.ApplyImageFilter -> {
+                updateSingleElement(elementId = action.elementId, getNewValue = {
+                    if (isRedo) action.newFilter else action.oldFilter
+                }, applyValue = { elem, raw ->
+                    (raw as? ImageFilter)?.let {
+                        elem.copy(context = elem.context, imageFilter = it)
+                    } ?: elem
+                })
+                _canvasElements.value?.find { it.id == action.elementId && it.isSelected }?.let {
+                    _currentImageFilter.value = if (isRedo) action.newFilter else action.oldFilter
+                }
+            }
+            else -> {}
+        }
+    }
 
+    private fun applyFormattingAction(action: CanvasAction, isRedo: Boolean) {
+        when (action) {
             is CanvasAction.SetTextColor -> {
                 updateSingleElement(
                     elementId = action.elementId,
@@ -4499,7 +4449,6 @@ class CanvasViewModel @Inject constructor(
                 )
                 _currentTextColor.value = if (isRedo) action.color else action.previousColor
             }
-
             is CanvasAction.SetTextSize -> {
                 updateSingleElement(
                     elementId = action.elementId,
@@ -4515,7 +4464,6 @@ class CanvasViewModel @Inject constructor(
                 )
                 _currentTextSize.value = if (isRedo) action.size else action.previousSize
             }
-
             is CanvasAction.SetTextAlignment -> {
                 updateSingleElement(
                     elementId = action.elementId,
@@ -4526,10 +4474,8 @@ class CanvasViewModel @Inject constructor(
                         } ?: elem
                     },
                 )
-                _currentTextAlignment.value =
-                    if (isRedo) action.alignment else action.previousAlignment
+                _currentTextAlignment.value = if (isRedo) action.alignment else action.previousAlignment
             }
-
             is CanvasAction.SetOpacity -> {
                 updateSingleElement(
                     elementId = action.elementId,
@@ -4545,7 +4491,6 @@ class CanvasViewModel @Inject constructor(
                 )
                 _opacity.value = if (isRedo) action.opacity else action.previousOpacity
             }
-
             is CanvasAction.UpdateText -> {
                 updateSingleElement(
                     elementId = action.elementId,
@@ -4557,20 +4502,82 @@ class CanvasViewModel @Inject constructor(
                     },
                 )
             }
+            else -> {}
+        }
+    }
 
-            is CanvasAction.RemoveElement -> {
-                val currentList = _canvasElements.value.orEmpty()
-                if (isRedo) {
-                    // Remove by ID
-                    _canvasElements.value = currentList.filter { it.id != action.element.id }
-                } else {
-                    // Undo: add back, reapply context & paint/typeface/bitmap
-                    val restored = action.element.restoreWithContext(context)
-                    if (currentList.none { it.id == restored.id }) {
-                        _canvasElements.value = currentList + restored
+    private fun applyFontAction(action: CanvasAction.SetFont, isRedo: Boolean, context: Context?) {
+        val currentList = _canvasElements.value.orEmpty()
+        val updated = currentList.map { element ->
+            val affectedData = action.affectedElements.find { it.first == element.id }
+            if (affectedData != null && element.type == ElementType.TEXT) {
+                val fontIdToApply = if (isRedo) action.newFontEntity.id.toString() else affectedData.second
+                val copied = element.copy(context = context)
+                if (fontIdToApply != null) {
+                    val fontEntity = localFonts.value.firstOrNull { it.id.toString() == fontIdToApply }
+                    if (fontEntity?.file_path?.isNotBlank() == true) {
+                        try {
+                            val tf = Typeface.createFromFile(fontEntity.file_path)
+                            copied.originalTypeface = tf
+                            copied.paint.typeface = tf
+                            copied.fontId = fontEntity.id.toString()
+                        } catch (e: Exception) {
+                            Log.e("CanvasViewModel", "Failed to load typeface in applyAction font update", e)
+                            copied.paint.typeface = context?.let {
+                                ResourcesCompat.getFont(it, R.font.default_canvas)
+                            } ?: Typeface.DEFAULT
+                            copied.fontId = null
+                        }
+                    } else {
+                        copied.paint.typeface = context?.let {
+                            ResourcesCompat.getFont(it, R.font.default_canvas)
+                        } ?: Typeface.DEFAULT
+                        copied.fontId = null
                     }
+                } else {
+                    copied.paint.typeface = context?.let { ResourcesCompat.getFont(it, R.font.default_canvas) } ?: Typeface.DEFAULT
+                    copied.fontId = null
                 }
+                copied
+            } else {
+                element
             }
+        }
+        _canvasElements.value = updated
+        _currentFont.value = if (isRedo) {
+            action.newFontEntity
+        } else {
+            action.affectedElements.firstOrNull()?.second?.let { prevId ->
+                localFonts.value.firstOrNull { it.id.toString() == prevId }
+            }
+        }
+    }
+
+    private fun applyAction(action: CanvasAction, isRedo: Boolean) {
+        // Always try to get context from an existing element for re-applying paint properties
+        val context = _canvasElements.value?.firstOrNull()?.context
+
+        when (action) {
+            is CanvasAction.UpdateElement -> applyUpdateElementAction(action, isRedo, context)
+            is CanvasAction.SetBackgroundColor, is CanvasAction.SetBackgroundImage,
+            is CanvasAction.SetBackgroundGradient, is CanvasAction.SetCanvasSize ->
+                applyBackgroundAction(action, isRedo)
+
+            is CanvasAction.AddSticker, is CanvasAction.AddDrawStroke,
+            is CanvasAction.AddShape, is CanvasAction.AddText,
+            is CanvasAction.RemoveElement ->
+                applyAddOrRemoveElementAction(action, isRedo, context)
+
+            is CanvasAction.SetOverlayGradient, is CanvasAction.SetImageShadow,
+            is CanvasAction.SetOverlay, is CanvasAction.ApplyImageFilter ->
+                applyStyleAction(action, isRedo)
+
+            is CanvasAction.SetTextColor, is CanvasAction.SetTextSize,
+            is CanvasAction.SetTextAlignment, is CanvasAction.SetOpacity,
+            is CanvasAction.UpdateText ->
+                applyFormattingAction(action, isRedo)
+
+            is CanvasAction.SetFont -> applyFontAction(action, isRedo, context)
 
             is CanvasAction.UpdateCanvasElementsOrder -> {
                 // Apply either newList or oldList
@@ -4578,27 +4585,6 @@ class CanvasViewModel @Inject constructor(
                 // Reapply context & paint/typeface/bitmap for each
                 val restoredList = listToApply.map { it.restoreWithContext(context) }
                 _canvasElements.value = restoredList
-            }
-
-            is CanvasAction.SetCanvasSize -> {
-                val sizeToApply = if (isRedo) action.newSize else action.oldSize
-                _canvasSize.value = sizeToApply
-                syncBackgroundElementSize(sizeToApply)
-            }
-
-            is CanvasAction.ApplyImageFilter -> {
-                updateSingleElement(elementId = action.elementId, getNewValue = {
-                    // Note: in original code, imageFilter swap seemed inverted; ensure correct:
-                    if (isRedo) action.newFilter else action.oldFilter
-                }, applyValue = { elem, raw ->
-                    (raw as? ImageFilter)?.let {
-                        elem.copy(context = elem.context, imageFilter = it)
-                    } ?: elem
-                })
-                // If selected element, update LiveData
-                _canvasElements.value?.find { it.id == action.elementId && it.isSelected }?.let {
-                    _currentImageFilter.value = if (isRedo) action.newFilter else action.oldFilter
-                }
             }
 
             is CanvasAction.DrawSessionStroke -> {
