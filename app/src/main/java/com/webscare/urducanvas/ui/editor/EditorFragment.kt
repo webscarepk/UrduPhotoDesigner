@@ -1173,6 +1173,14 @@ class EditorFragment : Fragment() {
                 },
                 onColorPicked = { colorInt ->
                     val opaque = (colorInt and 0x00FFFFFF) or (0xFF shl 24)
+                    try {
+                        val colorHex = String.format("#%06X", 0xFFFFFF and opaque)
+                        val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        val clip = android.content.ClipData.newPlainText("Color Code", colorHex)
+                        clipboard.setPrimaryClip(clip)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                     viewModel.finishPicking(opaque)
                     viewModel.stopPicking()
                     viewModel.markChanged()

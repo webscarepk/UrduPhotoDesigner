@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.canvas.enums.PickerTarget
 import com.webscare.urducanvas.common.utils.ColorPickerDialog
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentColorPickerBinding
@@ -41,6 +42,18 @@ class ColorPickerFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Retrieve current active color from ViewModel
+        val initialColor = getInitialColor()
+        val hsv = FloatArray(3)
+        Color.colorToHSV(initialColor, hsv)
+        currentHue = hsv[0]
+        currentBrightness = when {
+            hsv[2] < 1f -> hsv[2] * 0.5f
+            else        -> 0.5f + (1f - hsv[1]) * 0.5f
+        }
+        tempColor = initialColor
+
         setupHueBar()
         setupBrightnessBar()
         updateColor()
@@ -56,6 +69,49 @@ class ColorPickerFragment : Fragment() {
             viewModel.finishPicking(tempColor)
             viewModel.stopPicking()
             parentFragment?.childFragmentManager?.popBackStack()
+        }
+    }
+
+    private fun getInitialColor(): Int {
+        val target = viewModel.activePicker.value ?: return Color.RED
+        val element = viewModel.selectedElements.value?.firstOrNull()
+
+        return when (target) {
+            PickerTarget.COLOR_PICKER_BACKGROUND, PickerTarget.EYE_DROPPER_BACKGROUND -> {
+                viewModel.backgroundColor.value ?: Color.WHITE
+            }
+            PickerTarget.COLOR_PICKER_OVERLAY, PickerTarget.EYE_DROPPER_OVERLAY -> {
+                val overlay = element?.overlayColor ?: Color.TRANSPARENT
+                if (overlay == Color.TRANSPARENT) Color.parseColor("#FF746C") else overlay
+            }
+            PickerTarget.COLOR_PICKER_TEXT_FILL, PickerTarget.EYE_DROPPER_TEXT_FILL -> {
+                viewModel.currentTextColor.value ?: Color.BLACK
+            }
+            PickerTarget.COLOR_PICKER_TEXT_STROKE, PickerTarget.EYE_DROPPER_TEXT_STROKE -> {
+                viewModel.borderColor.value ?: Color.BLACK
+            }
+            PickerTarget.COLOR_PICKER_SHADOW, PickerTarget.EYE_DROPPER_SHADOW, PickerTarget.COLOR_PICKER_IMAGE_SHADOW -> {
+                viewModel.shadowColor.value ?: Color.GRAY
+            }
+            PickerTarget.COLOR_PICKER_LABEL, PickerTarget.EYE_DROPPER_LABEL -> {
+                viewModel.labelColor.value ?: Color.YELLOW
+            }
+            PickerTarget.COLOR_PICKER_GRADIENT, PickerTarget.EYE_DROPPER_GRADIENT -> {
+                viewModel.gradientStopColor.value ?: Color.BLACK
+            }
+            PickerTarget.COLOR_PICKER_DRAW_STROKE, PickerTarget.EYE_DROPPER_DRAW_STROKE,
+            PickerTarget.COLOR_PICKER_DRAW_FILL, PickerTarget.EYE_DROPPER_DRAW_FILL -> {
+                viewModel.brushColor.value ?: Color.BLACK
+            }
+            PickerTarget.COLOR_PICKER_SHAPE_STROKE, PickerTarget.EYE_DROPPER_SHAPE_STROKE -> {
+                viewModel.shapeStrokeColor.value ?: Color.BLACK
+            }
+            PickerTarget.COLOR_PICKER_SHAPE_FILL, PickerTarget.EYE_DROPPER_SHAPE_FILL -> {
+                viewModel.shapeFillColor.value ?: Color.BLACK
+            }
+            PickerTarget.COLOR_PICKER_IMAGE_STROKE, PickerTarget.EYE_DROPPER_IMAGE_STROKE -> {
+                viewModel.borderColor.value ?: Color.BLACK
+            }
         }
     }
 
