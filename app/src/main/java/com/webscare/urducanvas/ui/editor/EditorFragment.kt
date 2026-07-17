@@ -1294,13 +1294,23 @@ class EditorFragment : Fragment() {
             initFab()
         }
 
+        var lastUndoClickTime = 0L
         binding.undo.addPressEffect {
-            binding.undo.vibrateSoft()
-            viewModel.undo()
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastUndoClickTime > 300L) {
+                lastUndoClickTime = currentTime
+                binding.undo.vibrateSoft()
+                viewModel.undo()
+            }
         }
+        var lastRedoClickTime = 0L
         binding.redo.addPressEffect {
-            binding.redo.vibrateSoft()
-            viewModel.redo()
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastRedoClickTime > 300L) {
+                lastRedoClickTime = currentTime
+                binding.redo.vibrateSoft()
+                viewModel.redo()
+            }
         }
         binding.showHide.addPressEffect {
             panelsLocked = !panelsLocked

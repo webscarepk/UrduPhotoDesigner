@@ -353,6 +353,18 @@ class CanvasViewModel @Inject constructor(
     private var _activeDrawSession: CanvasElement? = null
 
     private var currentBatchAction: BatchedCanvasAction? = null
+    private var autoBatchJob: kotlinx.coroutines.Job? = null
+
+    private fun startAutoBatchIfNeeded(elementId: String) {
+        autoBatchJob?.cancel()
+        if (currentBatchAction == null) {
+            startBatchUpdate(elementId, "adjustments")
+        }
+        autoBatchJob = viewModelScope.launch(Dispatchers.Main) {
+            kotlinx.coroutines.delay(600)
+            endBatchUpdate(elementId)
+        }
+    }
     private var _isExplicitChange = false
 
     // ── Canvas overlay toggles ───────────────────────────────────
@@ -842,7 +854,7 @@ class CanvasViewModel @Inject constructor(
                 currentList.add(rasterized)
                 _canvasElements.postValue(currentList)
                 _canvasActions.push(
-                    CanvasAction.AddDrawStroke(rasterized.copy(context = null, bitmap = null))
+                    CanvasAction.AddDrawStroke(rasterized.copy(context = null))
                 )
                 _redoStack.clear()
                 notifyUndoRedoChanged()
@@ -902,8 +914,8 @@ class CanvasViewModel @Inject constructor(
             _canvasActions.push(
                 CanvasAction.UpdateElement(
                     elementId = selected.id,
-                    newElement = updatedElement.copy(context = null, bitmap = null),
-                    oldElement = selected.copy(context = null, bitmap = null)
+                    newElement = updatedElement.copy(context = null),
+                    oldElement = selected.copy(context = null)
                 )
             )
 
@@ -968,6 +980,8 @@ class CanvasViewModel @Inject constructor(
         val currentList = _canvasElements.value ?: return
         val updatedList = currentList.map { element ->
             if (element.isSelected) {
+                startAutoBatchIfNeeded(element.id)
+                val old = element.copy(context = null)
                 element.blurValue = value
                 // hasBlur must stay consistent with blurValue so blur doesn't vanish
                 // when the element is redrawn after a move/resize gesture.
@@ -976,10 +990,24 @@ class CanvasViewModel @Inject constructor(
                 element.isAdjustmentDirty = true
                 element.cachedAdjustedBitmap?.recycle()
                 element.cachedAdjustedBitmap = null
+
+                if (currentBatchAction == null) {
+                    _canvasActions.push(
+                        CanvasAction.UpdateElement(
+                            elementId = element.id,
+                            newElement = element.copy(context = null),
+                            oldElement = old
+                        )
+                    )
+                }
                 element
             } else element
         }
         _canvasElements.value = updatedList
+        if (currentBatchAction == null) {
+            _redoStack.clear()
+            notifyUndoRedoChanged()
+        }
     }
 
     fun setFeatherDirection(direction: FeatherDirection) {
@@ -987,21 +1015,26 @@ class CanvasViewModel @Inject constructor(
         val currentList = _canvasElements.value ?: return
         val updatedList = currentList.map { element ->
             if (element.isSelected) {
-                val old = element.copy(context = null, bitmap = null)
+                startAutoBatchIfNeeded(element.id)
+                val old = element.copy(context = null)
                 element.featherDirection = direction
-                _canvasActions.push(
-                    CanvasAction.UpdateElement(
-                        elementId = element.id,
-                        newElement = element.copy(context = null, bitmap = null),
-                        oldElement = old
+                if (currentBatchAction == null) {
+                    _canvasActions.push(
+                        CanvasAction.UpdateElement(
+                            elementId = element.id,
+                            newElement = element.copy(context = null),
+                            oldElement = old
+                        )
                     )
-                )
+                }
                 element
             } else element
         }
         _canvasElements.value = updatedList
-        _redoStack.clear()
-        notifyUndoRedoChanged()
+        if (currentBatchAction == null) {
+            _redoStack.clear()
+            notifyUndoRedoChanged()
+        }
     }
 
     fun setFeather(value: Float) {
@@ -1009,24 +1042,29 @@ class CanvasViewModel @Inject constructor(
         val currentList = _canvasElements.value ?: return
         val updatedList = currentList.map { element ->
             if (element.isSelected) {
-                val old = element.copy(context = null, bitmap = null)
+                startAutoBatchIfNeeded(element.id)
+                val old = element.copy(context = null)
                 element.featherRadius = value
                 element.hasFeather = value > 0f
                 // Feather is composited on the GPU in CanvasView — no pixel processing,
                 // no adjustment cache to invalidate. Just push the value and redraw.
-                _canvasActions.push(
-                    CanvasAction.UpdateElement(
-                        elementId = element.id,
-                        newElement = element.copy(context = null, bitmap = null),
-                        oldElement = old
+                if (currentBatchAction == null) {
+                    _canvasActions.push(
+                        CanvasAction.UpdateElement(
+                            elementId = element.id,
+                            newElement = element.copy(context = null),
+                            oldElement = old
+                        )
                     )
-                )
+                }
                 element
             } else element
         }
         _canvasElements.value = updatedList
-        _redoStack.clear()
-        notifyUndoRedoChanged()
+        if (currentBatchAction == null) {
+            _redoStack.clear()
+            notifyUndoRedoChanged()
+        }
     }
 
     fun setFeatherWidth(value: Float) {
@@ -1034,23 +1072,28 @@ class CanvasViewModel @Inject constructor(
         val currentList = _canvasElements.value ?: return
         val updatedList = currentList.map { element ->
             if (element.isSelected) {
-                val old = element.copy(context = null, bitmap = null)
+                startAutoBatchIfNeeded(element.id)
+                val old = element.copy(context = null)
                 element.featherWidth = value
                 if (element.featherRadius > 0f) element.hasFeather = true
                 // Feather softness is GPU compositing — no cache to clear, just redraw.
-                _canvasActions.push(
-                    CanvasAction.UpdateElement(
-                        elementId = element.id,
-                        newElement = element.copy(context = null, bitmap = null),
-                        oldElement = old
+                if (currentBatchAction == null) {
+                    _canvasActions.push(
+                        CanvasAction.UpdateElement(
+                            elementId = element.id,
+                            newElement = element.copy(context = null),
+                            oldElement = old
+                        )
                     )
-                )
+                }
                 element
             } else element
         }
         _canvasElements.value = updatedList
-        _redoStack.clear()
-        notifyUndoRedoChanged()
+        if (currentBatchAction == null) {
+            _redoStack.clear()
+            notifyUndoRedoChanged()
+        }
     }
 
     private fun updateSelectedElementValue(updateBlock: (CanvasElement) -> Unit) {
@@ -1108,7 +1151,8 @@ class CanvasViewModel @Inject constructor(
         val currentList = _canvasElements.value ?: return
         val updatedList = currentList.map { element ->
             if (element.isSelected && (element.type == ElementType.IMAGE || element.type == ElementType.STICKER || element.type == ElementType.SHAPE || (element.type == ElementType.BACKGROUND && element.bitmap != null))) {
-                val oldElement = element.copy(context = null, bitmap = null)
+                startAutoBatchIfNeeded(element.id)
+                val oldElement = element.copy(context = null)
 
                 val newAdjustments = update(element.adjustments)
                 val updated = element.copy(adjustments = newAdjustments)
@@ -1116,20 +1160,24 @@ class CanvasViewModel @Inject constructor(
                 updated.cachedAdjustedBitmap?.recycle()
                 updated.cachedAdjustedBitmap = null
 
-                _canvasActions.push(
-                    CanvasAction.UpdateElement(
-                        elementId = element.id,
-                        newElement = updated.copy(context = null, bitmap = null),
-                        oldElement = oldElement
+                if (currentBatchAction == null) {
+                    _canvasActions.push(
+                        CanvasAction.UpdateElement(
+                            elementId = element.id,
+                            newElement = updated.copy(context = null),
+                            oldElement = oldElement
+                        )
                     )
-                )
+                }
                 updated
             } else element
         }
 
         _canvasElements.value = updatedList
-        _redoStack.clear()
-        notifyUndoRedoChanged()
+        if (currentBatchAction == null) {
+            _redoStack.clear()
+            notifyUndoRedoChanged()
+        }
     }
 
     fun resetAdjustments() {
@@ -1584,8 +1632,8 @@ class CanvasViewModel @Inject constructor(
 
         _canvasActions.push(
             CanvasAction.UpdateCanvasElementsOrder(
-                oldList.map { it.copy(context = null, bitmap = null) },
-                updatedList.map { it.copy(context = null, bitmap = null) }
+                oldList.map { it.copy(context = null) },
+                updatedList.map { it.copy(context = null) }
             )
         )
         _redoStack.clear()
@@ -1846,7 +1894,7 @@ class CanvasViewModel @Inject constructor(
     fun beginLineSpacingDrag() {
         lineSpacingDragSnapshot = _canvasElements.value
             ?.filter { it.isSelected && it.type == ElementType.TEXT }
-            ?.associate { it.id to it.copy(context = null, bitmap = null) }
+            ?.associate { it.id to it.copy(context = null) }
             ?: emptyMap()
     }
 
@@ -1863,7 +1911,7 @@ class CanvasViewModel @Inject constructor(
     fun beginLetterSpacingDrag() {
         letterSpacingDragSnapshot = _canvasElements.value
             ?.filter { it.isSelected && it.type == ElementType.TEXT }
-            ?.associate { it.id to it.copy(context = null, bitmap = null) }
+            ?.associate { it.id to it.copy(context = null) }
             ?: emptyMap()
     }
 
@@ -1887,7 +1935,7 @@ class CanvasViewModel @Inject constructor(
         var pushed = false
         currentList.forEach { element ->
             val before = snapshot[element.id] ?: return@forEach
-            val after = element.copy(context = null, bitmap = null)
+            val after = element.copy(context = null)
             // Only push if something actually changed — avoids phantom undo entries
             if (before.lineSpacing != after.lineSpacing || before.letterSpacing != after.letterSpacing) {
                 _canvasActions.push(CanvasAction.UpdateElement(element.id, after, before))
@@ -2030,6 +2078,9 @@ class CanvasViewModel @Inject constructor(
         // If there are no selected elements, do nothing.
         if (selectedElements.isEmpty()) return
 
+        // Start auto-batching if needed
+        selectedElements.firstOrNull()?.let { startAutoBatchIfNeeded(it.id) }
+
         // Prepare to store old sizes for undo/redo purposes
         val oldSizes = selectedElements.map { it.paintTextSize }
 
@@ -2050,23 +2101,25 @@ class CanvasViewModel @Inject constructor(
         // Update the canvas with the new list of elements
         _canvasElements.value = updatedList
 
-        // Push the undo action for all updated elements
-        selectedElements.forEachIndexed { idx, oldElement ->
-            val newElement = updatedList.find { it.id == oldElement.id }!!
-            _canvasActions.push(
-                CanvasAction.UpdateElement(
-                    elementId = newElement.id,
-                    newElement = newElement.copy(context = null, bitmap = null),
-                    oldElement = oldElement.copy(paintTextSize = oldSizes[idx]) // Revert back to old size on undo
+        if (currentBatchAction == null) {
+            // Push the undo action for all updated elements
+            selectedElements.forEachIndexed { idx, oldElement ->
+                val newElement = updatedList.find { it.id == oldElement.id }!!
+                _canvasActions.push(
+                    CanvasAction.UpdateElement(
+                        elementId = newElement.id,
+                        newElement = newElement.copy(context = null),
+                        oldElement = oldElement.copy(paintTextSize = oldSizes[idx], context = null) // Revert back to old size on undo
+                    )
                 )
-            )
+            }
+
+            // Clear redo stack after applying changes
+            _redoStack.clear()
+
+            // Notify UI to update undo/redo status
+            notifyUndoRedoChanged()
         }
-
-        // Clear redo stack after applying changes
-        _redoStack.clear()
-
-        // Notify UI to update undo/redo status
-        notifyUndoRedoChanged()
     }
 
     fun setImageBorder(enabled: Boolean, color: Int, width: Float) {
@@ -2096,7 +2149,7 @@ class CanvasViewModel @Inject constructor(
 
         val updatedList = currentList.map { element ->
             if (element.isSelected && (element.type == ElementType.IMAGE || element.type == ElementType.STICKER || element.type == ElementType.SHAPE)) {
-                oldElement = element.copy(context = null, bitmap = null)
+                oldElement = element.copy(context = null)
                 targetId = element.id
 
                 val updated = element.copy(
@@ -2105,6 +2158,7 @@ class CanvasViewModel @Inject constructor(
                     strokeWidth = _borderWidth.value ?: element.strokeWidth,
                     strokeGradient = _strokeGradient.value ?: element.strokeGradient
                 )
+                newElement = updated.copy(context = null)
 
                 updated
             } else element
@@ -2185,7 +2239,7 @@ class CanvasViewModel @Inject constructor(
 
         val updatedList = currentList.map { element ->
             if (element.isSelected && element.type == ElementType.TEXT) {
-                oldElement = element.copy(context = null, bitmap = null)
+                oldElement = element.copy(context = null)
                 targetId = element.id
 
                 val updated = element.copy(
@@ -2230,7 +2284,7 @@ class CanvasViewModel @Inject constructor(
                     paint.typeface = element.applyTypefaceFromFontList()
                 }
 
-                newElement = updated.copy(context = null, bitmap = null)
+                newElement = updated.copy(context = null)
                 updated
             } else element
         }
@@ -2366,7 +2420,7 @@ class CanvasViewModel @Inject constructor(
     fun endBatchUpdate(elementId: String) {
         val currentList = _canvasElements.value ?: emptyList()
         val finalElement = currentList.find { it.id == elementId }
-            ?.copy(context = null, bitmap = null) // Capture final state for undo
+            ?.copy(context = null) // Capture final state for undo
 
         if (finalElement != null && currentBatchAction != null) {
             when (currentBatchAction) {
@@ -2411,7 +2465,20 @@ class CanvasViewModel @Inject constructor(
                         )
                     }
                 }
-                // Add cases for other batch actions
+
+                is BatchedCanvasAction.GenericBatch -> {
+                    val initialElement =
+                        (currentBatchAction as BatchedCanvasAction.GenericBatch).initialElement
+                    if (initialElement != finalElement) { // Only push if any properties changed
+                        _canvasActions.push(
+                            CanvasAction.UpdateElement(
+                                elementId = elementId,
+                                newElement = finalElement,
+                                oldElement = initialElement
+                            )
+                        )
+                    }
+                }
                 else -> { /* No specific batch action in progress */
                 }
             }
@@ -2424,13 +2491,14 @@ class CanvasViewModel @Inject constructor(
     fun startBatchUpdate(elementId: String, actionType: String) {
         val currentList = _canvasElements.value ?: emptyList()
         val initialElement = currentList.find { it.id == elementId }
-            ?.copy(context = null, bitmap = null) // Capture initial state for undo
+            ?.copy(context = null) // Capture initial state for undo
 
         if (initialElement != null) {
             currentBatchAction = when (actionType) {
                 "drag" -> BatchedCanvasAction.DragBatch(elementId, initialElement)
                 "rotate" -> BatchedCanvasAction.RotateBatch(elementId, initialElement)
                 "resize" -> BatchedCanvasAction.ResizeBatch(elementId, initialElement)
+                "adjustments" -> BatchedCanvasAction.GenericBatch(elementId, initialElement)
                 else -> null
             }
         }
@@ -2478,12 +2546,10 @@ class CanvasViewModel @Inject constructor(
             if (currentBatchAction == null) {
                 val oldCopy = oldElement.copy(
                     context = null,
-                    bitmap = null,
                     drawStrokes = oldElement.drawStrokes?.map { it.copy(path = Path(it.path)) }
                         ?.toMutableList())
                 val newCopy = elementToUpdate.copy(
                     context = null,
-                    bitmap = null,
                     drawStrokes = elementToUpdate.drawStrokes?.map { it.copy(path = Path(it.path)) }
                         ?.toMutableList())
 
@@ -2558,8 +2624,8 @@ class CanvasViewModel @Inject constructor(
 
         _canvasActions.push(
             CanvasAction.UpdateCanvasElementsOrder(
-                oldList.map { it.copy(context = null, bitmap = null) },
-                updatedList.map { it.copy(context = null, bitmap = null) }
+                oldList.map { it.copy(context = null) },
+                updatedList.map { it.copy(context = null) }
             )
         )
         _redoStack.clear()
@@ -2627,7 +2693,7 @@ class CanvasViewModel @Inject constructor(
             }
 
             // --- main thread: commit to LiveData atomically ---
-            val oldCopy = selected.copy(context = null, bitmap = null)
+            val oldCopy = selected.copy(context = null)
 
             val newElement = selected.copy(
                 context = context,
@@ -2638,7 +2704,7 @@ class CanvasViewModel @Inject constructor(
             _canvasActions.push(
                 CanvasAction.UpdateElement(
                     elementId = selected.id,
-                    newElement = newElement.copy(context = null, bitmap = null),
+                    newElement = newElement.copy(context = null),
                     oldElement = oldCopy
                 )
             )
@@ -3355,7 +3421,7 @@ class CanvasViewModel @Inject constructor(
         }
 
         element.updatePaintProperties()
-        _canvasActions.push(CanvasAction.AddSticker(element.copy(context = null, bitmap = null)))
+        _canvasActions.push(CanvasAction.AddSticker(element.copy(context = null)))
         _redoStack.clear()
         _canvasElements.value = currentList + element
         notifyUndoRedoChanged()
@@ -3420,7 +3486,7 @@ class CanvasViewModel @Inject constructor(
 
         _canvasActions.push(
             CanvasAction.AddSticker(
-                element.copy(context = null, bitmap = null)
+                element.copy(context = null)
             )
         )
 
@@ -3489,7 +3555,7 @@ class CanvasViewModel @Inject constructor(
         element.paint.typeface = element.applyTypefaceFromFontList()
 
         val action = CanvasAction.AddText(
-            text, element.copy(context = null, bitmap = null)
+            text, element.copy(context = null)
         ) // Push a copy for undo, without transient data
         _canvasActions.push(action)
         _redoStack.clear()
@@ -3536,7 +3602,7 @@ class CanvasViewModel @Inject constructor(
 
         // Push action for undo/redo (store a copy without transient fields)
         val action = CanvasAction.AddText(
-            text, element.copy(context = null, bitmap = null)
+            text, element.copy(context = null)
         )
         _canvasActions.push(action)
         _redoStack.clear()
@@ -3769,15 +3835,18 @@ class CanvasViewModel @Inject constructor(
         }
 
         if (targetElementId != null) {
+            startAutoBatchIfNeeded(targetElementId!!)
             _opacity.value = opacity
             _canvasElements.value = updatedList
-            _canvasActions.push(
-                CanvasAction.SetOpacity(
-                    opacity, oldOpacity ?: 255, targetElementId!!
+            if (currentBatchAction == null) {
+                _canvasActions.push(
+                    CanvasAction.SetOpacity(
+                        opacity, oldOpacity ?: 255, targetElementId!!
+                    )
                 )
-            )
-            _redoStack.clear()
-            notifyUndoRedoChanged()
+                _redoStack.clear()
+                notifyUndoRedoChanged()
+            }
         }
     }
 
@@ -3851,7 +3920,7 @@ class CanvasViewModel @Inject constructor(
         val newLockState = !allLocked
 
         // Prepare old copies for undo
-        val oldCopies = selected.map { it.copy(context = null, bitmap = null) }
+        val oldCopies = selected.map { it.copy(context = null) }
 
         // Build updated list
         val updatedList = currentList.map { element ->
@@ -3874,7 +3943,7 @@ class CanvasViewModel @Inject constructor(
             _canvasActions.push(
                 CanvasAction.UpdateElement(
                     elementId = newElem.id,
-                    newElement = newElem.copy(context = null, bitmap = null),
+                    newElement = newElem.copy(context = null),
                     oldElement = oldCopies[idx]
                 )
             )
@@ -3910,7 +3979,7 @@ class CanvasViewModel @Inject constructor(
 
         // Prepare old copies for undo
         val oldCopies = currentList.filter { it.id in selectedIds }
-            .map { it.copy(context = null, bitmap = null) }
+            .map { it.copy(context = null) }
 
         // Build updated list: toggle only selected
         val updatedList = currentList.map { element ->
@@ -3934,7 +4003,7 @@ class CanvasViewModel @Inject constructor(
             _canvasActions.push(
                 CanvasAction.UpdateElement(
                     elementId = newElem.id,
-                    newElement = newElem.copy(context = null, bitmap = null),
+                    newElement = newElem.copy(context = null),
                     oldElement = oldElem
                 )
             )
@@ -3951,7 +4020,7 @@ class CanvasViewModel @Inject constructor(
 
         // Prepare old copy for undo
         val oldElem = currentList[idx]
-        val oldCopy = oldElem.copy(context = null, bitmap = null)
+        val oldCopy = oldElem.copy(context = null)
 
         // Toggle the isVisible flag
         val newVisible = !oldElem.isVisible
@@ -3978,7 +4047,7 @@ class CanvasViewModel @Inject constructor(
         _canvasActions.push(
             CanvasAction.UpdateElement(
                 elementId = updatedElem.id,
-                newElement = updatedElem.copy(context = null, bitmap = null),
+                newElement = updatedElem.copy(context = null),
                 oldElement = oldCopy
             )
         )
@@ -3999,7 +4068,7 @@ class CanvasViewModel @Inject constructor(
         val allToRemove = (toRemove + childrenOfGroups).distinctBy { it.id }
 
         allToRemove.forEach { elem ->
-            val element = elem.copy(context = null, bitmap = null)
+            val element = elem.copy(context = null)
             element.paint.typeface = element.applyTypefaceFromFontList()
             _canvasActions.push(CanvasAction.RemoveElement(element))
         }
@@ -4015,7 +4084,7 @@ class CanvasViewModel @Inject constructor(
     fun removeElement(element: CanvasElement) {
         val currentList = _canvasElements.value ?: emptyList()
         if (currentList.any { it.id == element.id }) {
-            val newElement = element.copy(context = null, bitmap = null)
+            val newElement = element.copy(context = null)
             newElement.paint.typeface = newElement.applyTypefaceFromFontList()
             _canvasActions.push(CanvasAction.RemoveElement(newElement))
             _redoStack.clear()
@@ -4080,68 +4149,73 @@ class CanvasViewModel @Inject constructor(
                 }
 
                 ElementType.IMAGE -> {
-                    bitmapData?.let { data ->
-//                        bitmap = ImageProcessor.filePathToBitmap(data)
-                        bitmap = ImageProcessor.base64ToBitmap(data)
+                    if (bitmap == null) {
+                        bitmapData?.let { data ->
+                            bitmap = ImageProcessor.base64ToBitmap(data)
+                        }
                     }
                 }
 
                 ElementType.STICKER -> {
-                    if (svgData != null) {
-                        // ✅ Restore from raw SVG XML — resolution-independent, works at any scale
-                        try {
-                            val svg = com.caverock.androidsvg.SVG.getFromString(svgData)
-                            val vb = svg.documentViewBox
-                            var w = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.width() else svg.documentWidth
-                            var h = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.height() else svg.documentHeight
-                            if (w <= 0f || h <= 0f) {
-                                w = 512f
-                                h = 512f
-                            }
-                            svg.documentWidth = w
-                            svg.documentHeight = h
+                    if (svgDrawable == null && bitmap == null) {
+                        if (svgData != null) {
+                            try {
+                                val svg = com.caverock.androidsvg.SVG.getFromString(svgData)
+                                val vb = svg.documentViewBox
+                                var w = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.width() else svg.documentWidth
+                                var h = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.height() else svg.documentHeight
+                                if (w <= 0f || h <= 0f) {
+                                    w = 512f
+                                    h = 512f
+                                }
+                                svg.documentWidth = w
+                                svg.documentHeight = h
 
-                            svgDrawable =
-                                PictureDrawable(svg.renderToPicture())
-                                    .trimTransparentEdges()
-                            bitmap = null
-                        } catch (e: Exception) {
-                            // SVG parse failed — fall back to bitmapData if available
+                                svgDrawable =
+                                    PictureDrawable(svg.renderToPicture())
+                                        .trimTransparentEdges()
+                                bitmap = null
+                            } catch (e: Exception) {
+                                // SVG parse failed — fall back to bitmapData if available
+                                bitmapData?.let { data ->
+                                    bitmap = ImageProcessor.base64ToBitmap(data)
+                                }
+                            }
+                        } else {
+                            // Legacy element — no svgData, restore from rasterized bitmap
                             bitmapData?.let { data ->
                                 bitmap = ImageProcessor.base64ToBitmap(data)
                             }
-                        }
-                    } else {
-                        // Legacy element — no svgData, restore from rasterized bitmap
-                        bitmapData?.let { data ->
-                            bitmap = ImageProcessor.base64ToBitmap(data)
                         }
                     }
                 }
 
                 ElementType.SHAPE -> {
-                    bitmapData?.let { data ->
-//                        bitmap = ImageProcessor.filePathToBitmap(data)
-                        bitmap = ImageProcessor.base64ToBitmap(data)
+                    if (bitmap == null) {
+                        bitmapData?.let { data ->
+                            bitmap = ImageProcessor.base64ToBitmap(data)
+                        }
                     }
                 }
 
-                ElementType.BACKGROUND -> {   // ✅ ADD THIS
-                    bitmapData?.let { data ->
-                        bitmap = ImageProcessor.base64ToBitmap(data)
+                ElementType.BACKGROUND -> {
+                    if (bitmap == null) {
+                        bitmapData?.let { data ->
+                            bitmap = ImageProcessor.base64ToBitmap(data)
+                        }
                     }
                 }
 
                 ElementType.DRAW -> {
-                    // Committed draw element — restore bitmap from bitmapData
-                    // Session draw elements have no bitmapData so this is a no-op for them
-                    if (drawStrokes.isNullOrEmpty()) {
-                        bitmapData?.let { data ->
-                            bitmap = ImageProcessor.base64ToBitmap(data)
+                    if (bitmap == null) {
+                        if (drawStrokes.isNullOrEmpty()) {
+                            bitmapData?.let { data ->
+                                bitmap = ImageProcessor.base64ToBitmap(data)
+                            }
+                        } else {
+                            // Legacy stroke-based draw element — restore paths
+                            drawStrokes?.forEach { stroke -> stroke.restorePath() }
                         }
-                    } else {
-                        // Legacy stroke-based draw element — restore paths
-                        drawStrokes?.forEach { stroke -> stroke.restorePath() }
                     }
                 }
 
@@ -4169,61 +4243,70 @@ class CanvasViewModel @Inject constructor(
                 }
 
                 ElementType.IMAGE -> {
-                    // base64ToBitmap = PNG decode — intentionally on background thread
-                    bitmapData?.let { data ->
-                        bitmap = ImageProcessor.base64ToBitmap(data)
+                    if (bitmap == null) {
+                        bitmapData?.let { data ->
+                            bitmap = ImageProcessor.base64ToBitmap(data)
+                        }
                     }
                 }
 
                 ElementType.STICKER -> {
-                    if (svgData != null) {
-                        try {
-                            val svg = com.caverock.androidsvg.SVG.getFromString(svgData)
-                            val vb = svg.documentViewBox
-                            var w = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.width() else svg.documentWidth
-                            var h = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.height() else svg.documentHeight
-                            if (w <= 0f || h <= 0f) {
-                                w = 512f
-                                h = 512f
-                            }
-                            svg.documentWidth = w
-                            svg.documentHeight = h
+                    if (svgDrawable == null && bitmap == null) {
+                        if (svgData != null) {
+                            try {
+                                val svg = com.caverock.androidsvg.SVG.getFromString(svgData)
+                                val vb = svg.documentViewBox
+                                var w = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.width() else svg.documentWidth
+                                var h = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.height() else svg.documentHeight
+                                if (w <= 0f || h <= 0f) {
+                                    w = 512f
+                                    h = 512f
+                                }
+                                svg.documentWidth = w
+                                svg.documentHeight = h
 
-                            svgDrawable =
-                                PictureDrawable(svg.renderToPicture())
-                                    .trimTransparentEdges()
-                            bitmap = null
-                        } catch (e: Exception) {
+                                svgDrawable =
+                                    PictureDrawable(svg.renderToPicture())
+                                        .trimTransparentEdges()
+                                bitmap = null
+                            } catch (e: Exception) {
+                                bitmapData?.let { data ->
+                                    bitmap = ImageProcessor.base64ToBitmap(data)
+                                }
+                            }
+                        } else {
                             bitmapData?.let { data ->
                                 bitmap = ImageProcessor.base64ToBitmap(data)
                             }
-                        }
-                    } else {
-                        bitmapData?.let { data ->
-                            bitmap = ImageProcessor.base64ToBitmap(data)
                         }
                     }
                 }
 
                 ElementType.SHAPE -> {
-                    bitmapData?.let { data ->
-                        bitmap = ImageProcessor.base64ToBitmap(data)
+                    if (bitmap == null) {
+                        bitmapData?.let { data ->
+                            bitmap = ImageProcessor.base64ToBitmap(data)
+                        }
                     }
                 }
 
                 ElementType.BACKGROUND -> {
-                    bitmapData?.let { data ->
-                        bitmap = ImageProcessor.base64ToBitmap(data)
+                    if (bitmap == null) {
+                        bitmapData?.let { data ->
+                            bitmap = ImageProcessor.base64ToBitmap(data)
+                        }
                     }
                 }
 
                 ElementType.DRAW -> {
-                    if (drawStrokes.isNullOrEmpty()) {
-                        bitmapData?.let { data ->
-                            bitmap = ImageProcessor.base64ToBitmap(data)
+                    if (bitmap == null) {
+                        if (drawStrokes.isNullOrEmpty()) {
+                            bitmapData?.let { data ->
+                                bitmap = ImageProcessor.base64ToBitmap(data)
+                            }
+                        } else {
+                            drawStrokes?.forEach { stroke -> stroke.restorePath() }
                         }
-                    } else {
-                        drawStrokes?.forEach { stroke -> stroke.restorePath() }
                     }
                 }
 
