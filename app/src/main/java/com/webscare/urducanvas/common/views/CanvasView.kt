@@ -348,6 +348,9 @@ class CanvasView @JvmOverloads constructor(
         style = Paint.Style.FILL
     }
 
+    data class SnapLine(val position: Float, val isHorizontal: Boolean)
+    private val activeSnapLines = mutableListOf<SnapLine>()
+
     private var showVerticalGuide = false
     private var showHorizontalGuide = false
     private var showRotationVerticalGuide = false
@@ -583,6 +586,23 @@ class CanvasView @JvmOverloads constructor(
         invalidate()
     }
 
+    private fun getElementAxisAlignedBounds(e: CanvasElement): RectF {
+        val corners = e.getRotatedCorners()
+        var minX = Float.MAX_VALUE
+        var minY = Float.MAX_VALUE
+        var maxX = -Float.MAX_VALUE
+        var maxY = -Float.MAX_VALUE
+        for (i in corners.indices step 2) {
+            val cx = corners[i]
+            val cy = corners[i + 1]
+            if (cx < minX) minX = cx
+            if (cy < minY) minY = cy
+            if (cx > maxX) maxX = cx
+            if (cy > maxY) maxY = cy
+        }
+        return RectF(minX, minY, maxX, maxY)
+    }
+
     /**
      * Call this for your horizontal buttons:
      *  – if one element: snaps to canvas LEFT/CENTER/RIGHT
@@ -618,28 +638,27 @@ class CanvasView @JvmOverloads constructor(
                     return
                 }
 
-                // Normal element path
-                val halfW = elem.getLocalContentWidth() * elem.scale / 2f
-                if (!halfW.isFinite() || !canvasWidth.toFloat()
-                        .isFinite() || canvasWidth <= 0f
-                ) return
+                // Normal element path using rotation-aware bounds
+                val bounds = getElementAxisAlignedBounds(elem)
+                val boundsW = bounds.width()
+                if (!boundsW.isFinite() || !canvasWidth.toFloat().isFinite() || canvasWidth <= 0f) return
 
-                val rawX = when (align) {
-                    HAlign.LEFT -> halfW
-                    HAlign.CENTER -> canvasWidth / 2f
-                    HAlign.RIGHT -> canvasWidth - halfW
+                val targetLeft = when (align) {
+                    HAlign.LEFT -> 0f
+                    HAlign.CENTER -> (canvasWidth - boundsW) / 2f
+                    HAlign.RIGHT -> canvasWidth - boundsW
                 }
 
-                val minX = halfW
-                val maxX = canvasWidth - halfW
-                val oversized = (halfW * 2f) > canvasWidth
-
-                elem.x = when {
-                    oversized -> canvasWidth / 2f                    // element wider than canvas: center it
-                    minX <= maxX -> rawX.coerceIn(minX, maxX)        // normal case
-                    else -> canvasWidth / 2f                         // safety fallback
+                val oversized = boundsW > canvasWidth
+                val dx = when {
+                    oversized -> (canvasWidth / 2f) - bounds.centerX()
+                    else -> {
+                        val coercedLeft = targetLeft.coerceIn(0f, canvasWidth - boundsW)
+                        coercedLeft - bounds.left
+                    }
                 }
 
+                elem.x += dx
                 onElementChanged?.invoke(elem)
                 invalidate()
                 return
@@ -647,8 +666,8 @@ class CanvasView @JvmOverloads constructor(
 
             mode == MultiAlignMode.CANVAS -> {
                 val edges = selectedElements.map { e ->
-                    val half = e.getLocalContentWidth() * e.scale / 2f
-                    e.x - half to e.x + half
+                    val bounds = getElementAxisAlignedBounds(e)
+                    bounds.left to bounds.right
                 }
                 val groupLeft = edges.minOf { it.first }
                 val groupRight = edges.maxOf { it.second }
@@ -667,18 +686,19 @@ class CanvasView @JvmOverloads constructor(
 
             else -> {
                 val first = selectedElements.first()
-                val firstHalf = first.getLocalContentWidth() * first.scale / 2f
-                val firstLeft = first.x - firstHalf
-                val firstCenter = first.x
-                val firstRight = first.x + firstHalf
+                val firstBounds = getElementAxisAlignedBounds(first)
+                val firstLeft = firstBounds.left
+                val firstCenter = firstBounds.centerX()
+                val firstRight = firstBounds.right
 
                 selectedElements.drop(1).forEach { e ->
-                    val half = e.getLocalContentWidth() * e.scale / 2f
-                    e.x = when (align) {
-                        HAlign.LEFT -> firstLeft + half
-                        HAlign.CENTER -> firstCenter
-                        HAlign.RIGHT -> firstRight - half
+                    val bounds = getElementAxisAlignedBounds(e)
+                    val dx = when (align) {
+                        HAlign.LEFT -> firstLeft - bounds.left
+                        HAlign.CENTER -> firstCenter - bounds.centerX()
+                        HAlign.RIGHT -> firstRight - bounds.right
                     }
+                    e.x += dx
                     onElementChanged?.invoke(e)
                 }
             }
@@ -710,20 +730,27 @@ class CanvasView @JvmOverloads constructor(
                     return
                 }
 
-                val halfH = elem.getLocalContentHeight() * elem.scale / 2f
-                val rawY = when (align) {
-                    VAlign.TOP -> halfH
-                    VAlign.MIDDLE -> canvasHeight / 2f
-                    VAlign.BOTTOM -> canvasHeight - halfH
+                // Normal element path using rotation-aware bounds
+                val bounds = getElementAxisAlignedBounds(elem)
+                val boundsH = bounds.height()
+                if (!boundsH.isFinite() || canvasHeight <= 0f) return
+
+                val targetTop = when (align) {
+                    VAlign.TOP -> 0f
+                    VAlign.MIDDLE -> (canvasHeight - boundsH) / 2f
+                    VAlign.BOTTOM -> canvasHeight - boundsH
                 }
-                val minY = halfH
-                val maxY = canvasHeight - halfH
-                val oversized = (halfH * 2f) > canvasHeight
-                elem.y = when {
-                    oversized -> canvasHeight / 2f          // element taller than canvas: center it
-                    minY <= maxY -> rawY.coerceIn(minY, maxY)
-                    else -> canvasHeight / 2f               // safety fallback
+
+                val oversized = boundsH > canvasHeight
+                val dy = when {
+                    oversized -> (canvasHeight / 2f) - bounds.centerY()
+                    else -> {
+                        val coercedTop = targetTop.coerceIn(0f, canvasHeight - boundsH)
+                        coercedTop - bounds.top
+                    }
                 }
+
+                elem.y += dy
                 onElementChanged?.invoke(elem)
                 invalidate()
                 return
@@ -731,8 +758,8 @@ class CanvasView @JvmOverloads constructor(
 
             mode == MultiAlignMode.CANVAS -> {
                 val edges = selectedElements.map { e ->
-                    val half = e.getLocalContentHeight() * e.scale / 2f
-                    e.y - half to e.y + half
+                    val bounds = getElementAxisAlignedBounds(e)
+                    bounds.top to bounds.bottom
                 }
                 val groupTop = edges.minOf { it.first }
                 val groupBottom = edges.maxOf { it.second }
@@ -751,18 +778,19 @@ class CanvasView @JvmOverloads constructor(
 
             else -> {
                 val first = selectedElements.first()
-                val firstHalf = first.getLocalContentHeight() * first.scale / 2f
-                val firstTop = first.y - firstHalf
-                val firstCenter = first.y
-                val firstBottom = first.y + firstHalf
+                val firstBounds = getElementAxisAlignedBounds(first)
+                val firstTop = firstBounds.top
+                val firstCenter = firstBounds.centerY()
+                val firstBottom = firstBounds.bottom
 
                 selectedElements.drop(1).forEach { e ->
-                    val half = e.getLocalContentHeight() * e.scale / 2f
-                    e.y = when (align) {
-                        VAlign.TOP -> firstTop + half
-                        VAlign.MIDDLE -> firstCenter
-                        VAlign.BOTTOM -> firstBottom - half
+                    val bounds = getElementAxisAlignedBounds(e)
+                    val dy = when (align) {
+                        VAlign.TOP -> firstTop - bounds.top
+                        VAlign.MIDDLE -> firstCenter - bounds.centerY()
+                        VAlign.BOTTOM -> firstBottom - bounds.bottom
                     }
+                    e.y += dy
                     onElementChanged?.invoke(e)
                 }
             }
@@ -1632,71 +1660,109 @@ class CanvasView @JvmOverloads constructor(
     private fun checkDragSnap() {
         if (selectedElements.isEmpty()) return
 
-        val snapThreshold = 5f
+        // 1. Clear previous snapping lines
+        activeSnapLines.clear()
 
-        if (selectedElements.size == 1) {
-            // --- Single element snap ---
-            val elem = selectedElements.first()
-            var snapped = false
+        // 2. Scale-aware snap threshold (~3 screen pixels)
+        val snapThreshold = 3f / overallScale
 
-            // X snap
-            if (abs(elem.x - canvasWidth / 2f) <= snapThreshold) {
-                elem.x = canvasWidth / 2f
-                if (!showVerticalGuide) vibrateSoft()
-                showVerticalGuide = true
-                snapped = true
-            } else {
-                showVerticalGuide = false
-            }
-
-            // Y snap
-            if (abs(elem.y - canvasHeight / 2f) <= snapThreshold) {
-                elem.y = canvasHeight / 2f
-                if (!showHorizontalGuide) vibrateSoft()
-                showHorizontalGuide = true
-                snapped = true
-            } else {
-                showHorizontalGuide = false
-            }
-
-            if (snapped) onElementChanged?.invoke(elem)
+        // 3. Determine boundaries of dragged items
+        val bounds = if (selectedElements.size == 1) {
+            getElementAxisAlignedBounds(selectedElements.first())
         } else {
-            // --- Group snap ---
-            val bounds = getCombinedSelectedBounds()
-            val centerX = bounds.centerX()
-            val centerY = bounds.centerY()
+            getCombinedSelectedBounds()
+        }
 
-            var dx = 0f
-            var dy = 0f
-            var snapped = false
+        val dragXAnchors = listOf(bounds.left, bounds.centerX(), bounds.right)
+        val dragYAnchors = listOf(bounds.top, bounds.centerY(), bounds.bottom)
 
-            // X snap
-            if (abs(centerX - canvasWidth / 2f) <= snapThreshold) {
-                dx = canvasWidth / 2f - centerX
-                if (!showVerticalGuide) vibrateSoft()
-                showVerticalGuide = true
-                snapped = true
-            } else {
-                showVerticalGuide = false
+        // 4. Collect target anchors
+        val targetXAnchors = mutableListOf<Float>()
+        val targetYAnchors = mutableListOf<Float>()
+
+        // 4a. Canvas targets (edges and centers)
+        targetXAnchors.add(0f)
+        targetXAnchors.add(canvasWidth / 2f)
+        targetXAnchors.add(canvasWidth.toFloat())
+
+        targetYAnchors.add(0f)
+        targetYAnchors.add(canvasHeight / 2f)
+        targetYAnchors.add(canvasHeight.toFloat())
+
+        // 4b. Other elements targets
+        val selectedIds = selectedElements.map { it.id }.toSet()
+        canvasElements.forEach { e ->
+            if (e.id !in selectedIds && e.type != ElementType.BACKGROUND && e.type != ElementType.GROUP) {
+                val eBounds = getElementAxisAlignedBounds(e)
+                targetXAnchors.add(eBounds.left)
+                targetXAnchors.add(eBounds.centerX())
+                targetXAnchors.add(eBounds.right)
+
+                targetYAnchors.add(eBounds.top)
+                targetYAnchors.add(eBounds.centerY())
+                targetYAnchors.add(eBounds.bottom)
             }
+        }
 
-            // Y snap
-            if (abs(centerY - canvasHeight / 2f) <= snapThreshold) {
-                dy = canvasHeight / 2f - centerY
-                if (!showHorizontalGuide) vibrateSoft()
-                showHorizontalGuide = true
-                snapped = true
-            } else {
-                showHorizontalGuide = false
-            }
+        // 5. Find closest snaps
+        var bestDeltaX = Float.MAX_VALUE
+        var bestSnapLineX: Float? = null
 
-            if (snapped && (dx != 0f || dy != 0f)) {
-                selectedElements.forEach { e ->
-                    e.x += dx
-                    e.y += dy
-                    onElementChanged?.invoke(e)
+        for (dragX in dragXAnchors) {
+            for (targetX in targetXAnchors) {
+                val delta = targetX - dragX
+                if (abs(delta) < abs(bestDeltaX) && abs(delta) <= snapThreshold) {
+                    bestDeltaX = delta
+                    bestSnapLineX = targetX
                 }
             }
+        }
+
+        var bestDeltaY = Float.MAX_VALUE
+        var bestSnapLineY: Float? = null
+
+        for (dragY in dragYAnchors) {
+            for (targetY in targetYAnchors) {
+                val delta = targetY - dragY
+                if (abs(delta) < abs(bestDeltaY) && abs(delta) <= snapThreshold) {
+                    bestDeltaY = delta
+                    bestSnapLineY = targetY
+                }
+            }
+        }
+
+        // 6. Apply snapping updates and draw active snap lines
+        val xSnapped = bestSnapLineX != null
+        val ySnapped = bestSnapLineY != null
+
+        val dx = if (xSnapped) bestDeltaX else 0f
+        val dy = if (ySnapped) bestDeltaY else 0f
+
+        if (xSnapped || ySnapped) {
+            selectedElements.forEach { e ->
+                if (xSnapped) e.x += dx
+                if (ySnapped) e.y += dy
+                onElementChanged?.invoke(e)
+            }
+
+            if (xSnapped) {
+                activeSnapLines.add(SnapLine(bestSnapLineX!!, isHorizontal = false))
+                if (!showVerticalGuide) vibrateSoft()
+                showVerticalGuide = true
+            } else {
+                showVerticalGuide = false
+            }
+
+            if (ySnapped) {
+                activeSnapLines.add(SnapLine(bestSnapLineY!!, isHorizontal = true))
+                if (!showHorizontalGuide) vibrateSoft()
+                showHorizontalGuide = true
+            } else {
+                showHorizontalGuide = false
+            }
+        } else {
+            showVerticalGuide = false
+            showHorizontalGuide = false
         }
     }
 
@@ -1888,7 +1954,7 @@ class CanvasView @JvmOverloads constructor(
                     }
                 } else {
                     drawCanvasShadow(this)
-                    if (currentMode == Mode.GROUP_EDIT && activeGroupId != null) {
+                    if (activeGroupId != null) {
                         // Isolation mode (Illustrator/Photoshop style):
                         // 1. Draw all elements at reduced opacity
                         // 2. Draw white overlay at 50% to wash out non-group content
@@ -1907,33 +1973,6 @@ class CanvasView @JvmOverloads constructor(
                     }
                 }
             }
-        }
-
-        if (showVerticalGuide) {
-            canvas.drawLine(
-                width / 2f, 0f, width / 2f, height.toFloat(), alignmentPaint
-            )
-        }
-
-        if (showHorizontalGuide) {
-            canvas.drawLine(
-                0f, height / 2f, width.toFloat(), height / 2f, alignmentPaint
-            )
-        }
-
-        // Draw rotation alignment guides
-        if (showRotationVerticalGuide) {
-            // Draw a vertical line through the center of the canvas
-            canvas.drawLine(
-                width / 2f, 0f, width / 2f, height.toFloat(), alignmentPaint
-            )
-        }
-
-        if (showRotationHorizontalGuide) {
-            // Draw a horizontal line through the center of the canvas
-            canvas.drawLine(
-                0f, height / 2f, width.toFloat(), height / 2f, alignmentPaint
-            )
         }
 
         // ── Canvas pan CENTER-SNAP guides ─────────────────────────
@@ -3162,6 +3201,39 @@ class CanvasView @JvmOverloads constructor(
                         }
                     }
                 }
+            }
+        }
+
+        // ── Draw active snap lines inside artboard clip ──
+        if (activeSnapLines.isNotEmpty()) {
+            val density = resources.displayMetrics.density
+            val totalScale = overallScale * scale
+            alignmentPaint.strokeWidth = (0.8f * density) / totalScale
+            val dashSize = 10f * density / totalScale
+            alignmentPaint.pathEffect = DashPathEffect(floatArrayOf(dashSize, dashSize), 0f)
+
+            activeSnapLines.forEach { snapLine ->
+                if (snapLine.isHorizontal) {
+                    canvas.drawLine(0f, snapLine.position, canvasWidth.toFloat(), snapLine.position, alignmentPaint)
+                } else {
+                    canvas.drawLine(snapLine.position, 0f, snapLine.position, canvasHeight.toFloat(), alignmentPaint)
+                }
+            }
+        }
+
+        // ── Draw rotation alignment guides inside artboard clip ──
+        if (showRotationVerticalGuide || showRotationHorizontalGuide) {
+            val density = resources.displayMetrics.density
+            val totalScale = overallScale * scale
+            alignmentPaint.strokeWidth = (0.8f * density) / totalScale
+            val dashSize = 10f * density / totalScale
+            alignmentPaint.pathEffect = DashPathEffect(floatArrayOf(dashSize, dashSize), 0f)
+
+            if (showRotationVerticalGuide) {
+                canvas.drawLine(canvasWidth / 2f, 0f, canvasWidth / 2f, canvasHeight.toFloat(), alignmentPaint)
+            }
+            if (showRotationHorizontalGuide) {
+                canvas.drawLine(0f, canvasHeight / 2f, canvasWidth.toFloat(), canvasHeight / 2f, alignmentPaint)
             }
         }
 
@@ -5124,9 +5196,15 @@ class CanvasView @JvmOverloads constructor(
 
                         // Is this child already individually selected (e.g. from layers panel)?
                         // Also treat GROUP_EDIT mode as "child already entered".
+                        // Also treat it as child entered if the group is currently selected,
+                        // so clicking a child of the selected group selects only that child.
+                        val isGroupAlreadySelected = selectedElements.size > 1 &&
+                                selectedElements.all { it.groupId == gid || it.type == ElementType.GROUP }
+
                         val isChildAlreadySelectedAlone =
                             (selectedElements.size == 1 && selectedElements.first().id == touchedElement.id) ||
-                                    (currentMode == Mode.GROUP_EDIT && activeGroupId == gid)
+                                    (currentMode == Mode.GROUP_EDIT && activeGroupId == gid) ||
+                                    isGroupAlreadySelected
 
                         if (isChildAlreadySelectedAlone) {
                             // ── Group-edit mode: drag just this child ────────────────────────
@@ -5214,6 +5292,28 @@ class CanvasView @JvmOverloads constructor(
                     invalidate()
                     return true
                 } else {
+                    // Check if we touched inside the bounds of an already selected group (empty space drag support)
+                    val isGroupSelected = selectedElements.size > 1 &&
+                            selectedElements.all { it.groupId != null || it.type == ElementType.GROUP } &&
+                            selectedElements.mapNotNull { it.groupId }.distinct().size == 1
+                    val isTouchInsideGroupBounds = if (isGroupSelected) {
+                        val groupBounds = getCombinedSelectedBounds()
+                        groupBounds.contains(x, y)
+                    } else false
+
+                    if (isTouchInsideGroupBounds && !isPanMode) {
+                        // Touch on empty space inside the already selected group -> drag the group as a unit
+                        currentMode = Mode.DRAG
+                        touchStartX = x
+                        touchStartY = y
+                        vibrateSoft()
+                        selectedElements.firstOrNull()?.let {
+                            onStartBatchUpdate?.invoke(it.id, "drag")
+                        }
+                        invalidate()
+                        return true
+                    }
+
                     // isPanMode ON hai, ya empty canvas tap — pan mode set karo
                     val bg =
                         canvasElements.firstOrNull { it.type == ElementType.BACKGROUND && !it.isLocked }
@@ -5660,6 +5760,7 @@ class CanvasView @JvmOverloads constructor(
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 showVerticalGuide = false
                 showHorizontalGuide = false
+                activeSnapLines.clear()
                 showRotationVerticalGuide = false // Reset rotation guides on ACTION_UP
                 showRotationHorizontalGuide = false // Reset rotation guides on ACTION_UP
                 showCanvasCenterVerticalSnap = false
@@ -5716,9 +5817,7 @@ class CanvasView @JvmOverloads constructor(
                     // If we just finished dragging a single group child, restore GROUP_EDIT
                     // so the user stays "inside" the group (Photoshop behaviour).
                     // Tap outside will exit GROUP_EDIT via the existing bounds check.
-                    if (activeGroupId != null &&
-                        selectedElements.size == 1 &&
-                        selectedElements.first().groupId == activeGroupId) {
+                    if (activeGroupId != null) {
                         currentMode = Mode.GROUP_EDIT
                     } else {
                         currentMode = Mode.NONE
@@ -5820,15 +5919,22 @@ class CanvasView @JvmOverloads constructor(
 
         gridPaint.strokeWidth = (1f / overallScale).coerceIn(0.8f, 1.5f)
 
+        val roundedTop = Math.round(top).toFloat()
+        val roundedBottom = Math.round(bottom).toFloat()
+        val roundedLeft = Math.round(left).toFloat()
+        val roundedRight = Math.round(right).toFloat()
+
         var x = left
         while (x <= right + 0.5f) {
-            canvas.drawLine(x, top, x, bottom, gridPaint)
+            val rx = Math.round(x).toFloat()
+            canvas.drawLine(rx, roundedTop, rx, roundedBottom, gridPaint)
             x += stepPx
         }
 
         var y = top
         while (y <= bottom + 0.5f) {
-            canvas.drawLine(left, y, right, y, gridPaint)
+            val ry = Math.round(y).toFloat()
+            canvas.drawLine(roundedLeft, ry, roundedRight, ry, gridPaint)
             y += stepPx
         }
     }

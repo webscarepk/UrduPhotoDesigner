@@ -300,6 +300,42 @@ class EditorFragment : Fragment() {
         // that fires synchronously already sees the live lambdas.
         rewireCanvasCallbacks()
 
+        // ── Restore state on process death / view recreation ──
+        if (savedInstanceState != null) {
+            val restoredModel = savedInstanceState.getSerializable("key_export_model") as? ExportResult
+            val restoredJsonPath = savedInstanceState.getString("key_json_path")
+            val restoredImagePath = savedInstanceState.getString("key_image_path")
+            val restoredCanvasSize = savedInstanceState.getSerializable("key_canvas_size") as? CanvasSize
+
+            if (restoredModel != null) {
+                exportModel = restoredModel
+                jsonPath = restoredModel.jsonPath
+                imagePath = restoredModel.imagePath
+                if (viewModel.canvasSize.value == null) {
+                    viewModel.loadTemplateFromJsonFile(restoredModel, requireContext())
+                }
+            } else if (restoredJsonPath != null && restoredImagePath != null && restoredCanvasSize != null) {
+                jsonPath = restoredJsonPath
+                imagePath = restoredImagePath
+                canvasSize = restoredCanvasSize
+                if (viewModel.canvasSize.value == null && File(restoredJsonPath).exists()) {
+                    val tempModel = ExportResult(
+                        imagePath = restoredImagePath,
+                        jsonPath = restoredJsonPath,
+                        fileName = "Project",
+                        fileSizeMB = 0.0,
+                        resolution = "Medium",
+                        format = "PNG",
+                        quality = "Normal",
+                        canvasSize = restoredCanvasSize,
+                        exportDate = "",
+                        updatedDate = ""
+                    )
+                    viewModel.loadTemplateFromJsonFile(tempModel, requireContext())
+                }
+            }
+        }
+
         // ── Eagerly re-attach the CanvasView so the container is never blank between
         // onViewCreated and the canvasSize observer firing.
         viewModel.getCanvasView()?.let { existing ->
@@ -680,6 +716,23 @@ class EditorFragment : Fragment() {
                     setPanelTouchBlocked(expanded)
                 }
             }
+        }
+
+        viewModel.isLoadingTemplate.observe(viewLifecycleOwner) { isLoading ->
+            if (isLoading == true) {
+                showExportProgressDialog()
+                updateExportDialog(0, "Restoring design...")
+            } else if (isLoading == false) {
+                dismissExportDialog()
+                if (viewModel.canvasSize.value == null) {
+                    android.widget.Toast.makeText(context, "Failed to restore project", android.widget.Toast.LENGTH_LONG).show()
+                    findNavController().navigateUp()
+                }
+            }
+        }
+
+        viewModel.loadingStage.observe(viewLifecycleOwner) { (message, percent) ->
+            updateExportDialog(percent, "$message...")
         }
 
         viewModel.canvasSize.observe(viewLifecycleOwner) { size ->
@@ -2152,6 +2205,16 @@ class EditorFragment : Fragment() {
         cbOnCanvasLongPressed = { _, _ -> }
         if (!BuildConfig.DEBUG) {
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putSerializable("key_export_model", exportModel)
+        outState.putString("key_json_path", jsonPath)
+        outState.putString("key_image_path", imagePath)
+        if (::canvasSize.isInitialized) {
+            outState.putSerializable("key_canvas_size", canvasSize)
         }
     }
 

@@ -1421,17 +1421,12 @@ class CanvasViewModel @Inject constructor(
         val selected = _selectedElements.value ?: return
         if (selected.isEmpty()) return
 
+        val oldList = _canvasElements.value?.map { it.copy(context = null) } ?: emptyList()
+
         val newGroupId = UUID.randomUUID().toString()
         _currentGroupId.value = newGroupId
 
-        // ── 1. Tag every selected element with the new groupId ────────────────
-        selected.forEach { element -> element.groupId = newGroupId }
-
-        // ── 2. Build the GROUP sentinel element ───────────────────────────────
-        // The sentinel sits in canvasElements as a first-class entry.
-        // It has no visual on the canvas — CanvasView already skips unknown
-        // types in its draw loop. Its zIndex is set to the highest zIndex
-        // among the selected children so it sorts above them in the layers list.
+        // ── 1. Build the GROUP sentinel element ───────────────────────────────
         val highestZ = selected.maxOf { it.zIndex }
         val groupSentinel = CanvasElement(
             type       = ElementType.GROUP,
@@ -1443,22 +1438,34 @@ class CanvasViewModel @Inject constructor(
             isGroupCollapsed = false
         )
 
-        // ── 3. Insert sentinel and refresh canvas elements ────────────────────
-        val current = _canvasElements.value?.toMutableList() ?: mutableListOf()
-        current.add(groupSentinel)
-        _canvasElements.value = current
+        // ── 2. Tag every selected element with the new groupId & add sentinel ────────────────
+        val updated = (_canvasElements.value ?: emptyList()).map { element ->
+            if (element.isSelected && element.type != ElementType.GROUP) {
+                element.copy(groupId = newGroupId)
+            } else {
+                element
+            }
+        }.toMutableList()
+        updated.add(groupSentinel)
+
+        _canvasElements.value = updated
+        _canvasActions.push(CanvasAction.UpdateCanvasElementsOrder(oldList, updated.map { it.copy(context = null) }))
+        _redoStack.clear()
+        notifyUndoRedoChanged()
     }
 
     fun ungroupElements() {
         val selected = _selectedElements.value ?: return
         if (selected.isEmpty()) return
 
+        val oldList = _canvasElements.value?.map { it.copy(context = null) } ?: emptyList()
+
         // Collect all groupIds that are being dissolved.
         // Works whether the user selected children or the sentinel itself.
         val groupIdsToDissolve = selected.mapNotNull { it.groupId }.toSet() +
                 selected.filter { it.type == ElementType.GROUP }.map { it.id }.toSet()
 
-        _canvasElements.value = _canvasElements.value?.mapNotNull { element ->
+        val updated = (_canvasElements.value ?: emptyList()).mapNotNull { element ->
             when {
                 // Remove the GROUP sentinel(s)
                 element.type == ElementType.GROUP && groupIdsToDissolve.contains(element.id) -> null
@@ -1468,8 +1475,14 @@ class CanvasViewModel @Inject constructor(
                 else -> element
             }
         }
+
+        _canvasElements.value = updated
         _selectedElements.value = emptyList()
         _currentGroupId.value = null
+
+        _canvasActions.push(CanvasAction.UpdateCanvasElementsOrder(oldList, updated.map { it.copy(context = null) }))
+        _redoStack.clear()
+        notifyUndoRedoChanged()
     }
 
     // ── Photoshop-style merge/group ──────────────────────────────────────────
@@ -1484,6 +1497,7 @@ class CanvasViewModel @Inject constructor(
         if (selected.size < 2) return
 
         val current = _canvasElements.value?.toMutableList() ?: return
+        val oldList = current.map { it.copy(context = null) }
         val newGroupId = UUID.randomUUID().toString()
 
         // Collect every real (non-sentinel) element that is selected or
@@ -1533,6 +1547,10 @@ class CanvasViewModel @Inject constructor(
         _canvasElements.value = updated
         _selectedElements.value = emptyList()
         _currentGroupId.value = newGroupId
+
+        _canvasActions.push(CanvasAction.UpdateCanvasElementsOrder(oldList, updated.map { it.copy(context = null) }))
+        _redoStack.clear()
+        notifyUndoRedoChanged()
     }
 
     // ── Apply drag-reorder from the layers panel ──────────────────────────────
@@ -3958,14 +3976,23 @@ class CanvasViewModel @Inject constructor(
         val currentList = _canvasElements.value ?: return
         val sentinel = currentList.firstOrNull { it.id == groupId && it.type == ElementType.GROUP } ?: return
         val newLockState = !sentinel.isLocked
-        _canvasElements.value = currentList.map { element ->
+
+        val oldList = currentList.map { it.copy(context = null) }
+
+        val updated = currentList.map { element ->
             if (element.id == groupId || element.groupId == groupId) {
                 element.copy(isLocked = newLockState).apply {
                     if (type == ElementType.TEXT) paint.typeface = applyTypefaceFromFontList()
                 }
             } else element
         }
+
+        _canvasElements.value = updated
         refreshSelectedElements()
+
+        _canvasActions.push(CanvasAction.UpdateCanvasElementsOrder(oldList, updated.map { it.copy(context = null) }))
+        _redoStack.clear()
+        notifyUndoRedoChanged()
     }
 
     fun toggleVisibilityOnSelected() {

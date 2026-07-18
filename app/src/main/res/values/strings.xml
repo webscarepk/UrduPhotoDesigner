@@ -87,6 +87,12 @@
     <string name="blending_options">Blending Options</string>
     <string name="align_to_canvas">Align to Canvas</string>
     <string name="align_to_selection">Align to Selection</string>
+    <string name="align_left_description">Align left edges</string>
+    <string name="align_right_description">Align right edges</string>
+    <string name="align_center_horizontal_description">Align horizontal centers</string>
+    <string name="align_center_vertical_description">Align vertical centers</string>
+    <string name="align_top_description">Align top edges</string>
+    <string name="align_bottom_description">Align bottom edges</string>
     <string name="layer_name">Layer name</string>
     <string name="properties">Properties</string>
     <string name="blending">Blending</string>

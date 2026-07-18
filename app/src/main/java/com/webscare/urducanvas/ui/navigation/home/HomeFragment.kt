@@ -576,15 +576,19 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                 showLoadingDialog()
             } else if (isLoading == false) {
                 dismissLoadingDialog()
-                lifecycleScope.launch {
-                    delay(500)
-                    if (findNavController().currentDestination?.id != R.id.editorFragment) {
-                        view?.post {
-                            findNavController().navigate(
-                                R.id.editorFragment, bundle, navOptions
-                            )
+                if (viewModel.canvasSize.value != null) {
+                    lifecycleScope.launch {
+                        delay(500)
+                        if (findNavController().currentDestination?.id != R.id.editorFragment) {
+                            view?.post {
+                                findNavController().navigate(
+                                    R.id.editorFragment, bundle, navOptions
+                                )
+                            }
                         }
                     }
+                } else {
+                    android.widget.Toast.makeText(context, "Failed to load template", android.widget.Toast.LENGTH_LONG).show()
                 }
             }
         }
