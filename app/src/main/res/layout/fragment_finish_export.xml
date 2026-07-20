@@ -480,6 +480,17 @@
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
+            <com.webscare.ads.WebsCareNativeView
+                android:id="@+id/export_success_native_ad"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                app:webscare_native_size="medium"
+                app:webscare_show_shimmer="true"
+                app:layout_constraintTop_toBottomOf="@id/quickActionsCard"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -488,7 +499,7 @@
                 android:padding="12dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/quickActionsCard">
+                app:layout_constraintTop_toBottomOf="@id/export_success_native_ad">
 
                 <ImageView
                     android:id="@+id/tipIcon"

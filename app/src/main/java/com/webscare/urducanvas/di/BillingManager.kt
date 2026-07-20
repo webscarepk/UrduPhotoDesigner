@@ -571,7 +571,9 @@ class BillingManager @Inject constructor(
     suspend fun loadSavedSubscriptionStatus() {
         val DEBUG_MODE = BuildConfig.DEBUG
         if (DEBUG_MODE) {
-            val debugSubscribed = true
+            // Default to false so ads are visible and can be tested in debug mode.
+            // Call enableSubscription() to toggle premium if needed.
+            val debugSubscribed = false
             val debugPlan = ""
             isSubscribedValue = debugSubscribed
             _isSubscribed.value = debugSubscribed

@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import androidx.core.content.FileProvider
 import androidx.core.content.ContextCompat
 import com.webscare.urducanvas.BuildConfig
+import com.webscare.ads.NativeSize
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
@@ -41,6 +42,9 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        
+        binding.exportSuccessNativeAd.setAdUnitIdAndSize(BuildConfig.AD_NATIVE_EXPORT_SUCCESS, NativeSize.MEDIUM)
+
         view.alpha = 0f
         view.translationY = 80f
         view.animate().alpha(1f).translationY(0f).setDuration(350).start()

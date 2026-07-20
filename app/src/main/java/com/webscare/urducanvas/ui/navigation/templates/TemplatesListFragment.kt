@@ -17,6 +17,8 @@ import androidx.recyclerview.widget.SimpleItemAnimator
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.google.android.material.chip.Chip
 import com.webscare.urducanvas.R
+import com.webscare.urducanvas.BuildConfig
+import com.webscare.ads.WebsCareAds
 import com.webscare.urducanvas.common.canvas.enums.ListViewState
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.common.canvas.sealed.HomeRow
@@ -324,9 +326,17 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
             isItemPrefetchEnabled = true
         }
 
+        val wrappedAdapter = WebsCareAds.wrapWithNativeAds(
+            originalAdapter = this@TemplatesListFragment.adapter,
+            adUnitId = BuildConfig.AD_NATIVE_TEMPLATES,
+            interval = 6,
+            startOffset = 3,
+            nativeSize = com.webscare.ads.NativeSize.SMALL
+        )
+
         binding.templatesRV.apply {
             layoutManager = sglm
-            adapter = this@TemplatesListFragment.adapter
+            adapter = wrappedAdapter
             setHasFixedSize(true)
             (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
             itemAnimator = null
@@ -424,7 +434,7 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
                             .filterIsInstance<HomeRow.TrendRow>()
                             .firstOrNull { it.title.equals(currentTrend, true) }
                             ?.templates?.map { it.id }?.toSet() ?: emptySet()
-                        all.filter { it.id in ids && it.subcategory?.trim()!!.equals(currentSubcategory!!.trim(), true) }
+                        all.filter { it.id in ids && it.subcategory?.trim()?.equals(currentSubcategory?.trim() ?: "", true) == true }
                     }
 
                     !currentTrend.isNullOrBlank() -> {
@@ -443,7 +453,7 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
 
                 val subcats = buildList {
                     add("All")
-                    addAll(baseTemplates.map { it.subcategory?.trim()!! }
+                    addAll(baseTemplates.mapNotNull { it.subcategory?.trim() }
                         .filter { it.isNotEmpty() }.distinct().sorted())
                 }
 

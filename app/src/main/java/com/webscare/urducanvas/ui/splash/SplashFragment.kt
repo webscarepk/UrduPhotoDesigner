@@ -12,6 +12,8 @@ import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.databinding.FragmentSplashBinding
+import com.webscare.urducanvas.BuildConfig
+import com.webscare.ads.WebsCareAds
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -124,8 +126,20 @@ class SplashFragment : Fragment(), TextureView.SurfaceTextureListener {
         val navOptions = NavOptions.Builder()
             .setPopUpTo(R.id.splashFragment, true)
             .build()
-        view?.post {
-            findNavController().navigate(R.id.homeFragment, null, navOptions)
+
+        val performNavigation = {
+            view?.post {
+                findNavController().navigate(R.id.homeFragment, null, navOptions)
+            }
+        }
+
+        val activity = activity
+        if (activity != null) {
+            WebsCareAds.showAppOpen(activity, BuildConfig.AD_APP_OPEN_SPLASH) {
+                performNavigation()
+            }
+        } else {
+            performNavigation()
         }
     }
 

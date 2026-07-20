@@ -41,6 +41,27 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("debug")
+
+            buildConfigField("String", "AD_APP_OPEN_SPLASH", "\"ca-app-pub-4379805490947109/2348663407\"")
+            buildConfigField("String", "AD_NATIVE_HOME", "\"ca-app-pub-4379805490947109/5002746903\"")
+            buildConfigField("String", "AD_NATIVE_CATEGORIES", "\"ca-app-pub-4379805490947109/1115472783\"")
+            buildConfigField("String", "AD_NATIVE_TEMPLATES", "\"ca-app-pub-4379805490947109/9281023402\"")
+            buildConfigField("String", "AD_NATIVE_EMPTY_STATE", "\"ca-app-pub-4379805490947109/9852014833\"")
+            buildConfigField("String", "AD_REWARDED_BG_REMOVAL", "\"ca-app-pub-4379805490947109/5341778394\"")
+            buildConfigField("String", "AD_INTERSTITIAL_EXPORT", "\"ca-app-pub-4379805490947109/7489309447\"")
+            buildConfigField("String", "AD_NATIVE_EXPORT_SUCCESS", "\"ca-app-pub-4379805490947109/2081336029\"")
+            buildConfigField("String", "AD_BANNER_SETTINGS", "\"ca-app-pub-4379805490947109/9089451712\"")
+        }
+        debug {
+            buildConfigField("String", "AD_APP_OPEN_SPLASH", "\"ca-app-pub-3940256099942544/9257395921\"")
+            buildConfigField("String", "AD_NATIVE_HOME", "\"ca-app-pub-3940256099942544/2247696110\"")
+            buildConfigField("String", "AD_NATIVE_CATEGORIES", "\"ca-app-pub-3940256099942544/2247696110\"")
+            buildConfigField("String", "AD_NATIVE_TEMPLATES", "\"ca-app-pub-3940256099942544/2247696110\"")
+            buildConfigField("String", "AD_NATIVE_EMPTY_STATE", "\"ca-app-pub-3940256099942544/2247696110\"")
+            buildConfigField("String", "AD_REWARDED_BG_REMOVAL", "\"ca-app-pub-3940256099942544/5224354917\"")
+            buildConfigField("String", "AD_INTERSTITIAL_EXPORT", "\"ca-app-pub-3940256099942544/1033173712\"")
+            buildConfigField("String", "AD_NATIVE_EXPORT_SUCCESS", "\"ca-app-pub-3940256099942544/2247696110\"")
+            buildConfigField("String", "AD_BANNER_SETTINGS", "\"ca-app-pub-3940256099942544/9214589741\"")
         }
     }
 
@@ -62,6 +83,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":webscare-ads"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

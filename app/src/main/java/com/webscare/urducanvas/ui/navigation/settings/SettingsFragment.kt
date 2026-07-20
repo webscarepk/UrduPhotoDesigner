@@ -19,6 +19,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.webscare.urducanvas.MainActivity
+import com.webscare.urducanvas.BuildConfig
 import com.webscare.urducanvas.di.BillingManager
 import com.webscare.urducanvas.di.BillingManager.SubscriptionStatus
 import kotlinx.coroutines.launch
@@ -45,6 +46,9 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        binding.settingsBannerAd.setAdUnitId(BuildConfig.AD_BANNER_SETTINGS)
+
         observeSubscription()
         setEvents()
         setVersionInfo()

@@ -23,3 +23,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "UrduCanvas"
 include(":app")
+include(":webscare-ads")
+project(":webscare-ads").projectDir = file("../WebsCareAds/webscare-ads")

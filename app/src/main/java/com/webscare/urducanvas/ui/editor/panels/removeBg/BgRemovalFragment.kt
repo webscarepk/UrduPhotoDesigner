@@ -21,6 +21,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.webscare.urducanvas.R
+import com.webscare.urducanvas.BuildConfig
+import com.webscare.ads.WebsCareAds
+import android.widget.Toast
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.views.BgRemovalCanvas
@@ -83,6 +86,10 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        
+        // Preload background removal rewarded ad to make sure it's ready when requested
+        WebsCareAds.preloadRewarded(requireContext(), BuildConfig.AD_REWARDED_BG_REMOVAL)
+
         setupImage()
         imageCallbacks()
         setEvents()
@@ -183,8 +190,34 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
                 R.id.nav_magic_wand -> { binding.imageCanvas.setToolMode(BgRemovalCanvas.ToolMode.MAGIC_WAND); true }
                 R.id.nav_subject -> {
                     val bmp = originalBitmap
-                    if (bmp != null) runSubjectSegmentation(bmp)
-                    else Log.e(TAG, "nav_subject: originalBitmap is null")
+                    if (bmp != null) {
+                        var rewardEarned = false
+                        WebsCareAds.showRewarded(
+                            activity = requireActivity(),
+                            adUnitId = BuildConfig.AD_REWARDED_BG_REMOVAL,
+                            onRewarded = { _, _ ->
+                                rewardEarned = true
+                            },
+                            onDismissed = {
+                                if (rewardEarned) {
+                                    // Delay execution until after activity returns to full screen and layouts fully settle
+                                    binding.imageCanvas.postDelayed({
+                                        if (isAdded) {
+                                            runSubjectSegmentation(bmp)
+                                        }
+                                    }, 400)
+                                } else {
+                                    Toast.makeText(requireContext(), "Watch ad to auto-remove background.", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            onNotReady = {
+                                // Fast non-blocking fallback if ad fails to load or premium bypass is active
+                                runSubjectSegmentation(bmp)
+                            }
+                        )
+                    } else {
+                        Log.e(TAG, "nav_subject: originalBitmap is null")
+                    }
                     true
                 }
                 else -> false

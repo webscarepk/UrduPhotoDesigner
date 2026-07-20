@@ -29,6 +29,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.webscare.urducanvas.BuildConfig
+import com.webscare.ads.WebsCareAds
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.io.ProjectCodec
@@ -77,6 +78,10 @@ class ExportFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        
+        // Preload export interstitial ad
+        WebsCareAds.preloadInterstitial(requireContext(), BuildConfig.AD_INTERSTITIAL_EXPORT)
+
         view.alpha = 0f
         view.translationY = 80f
         view.animate().alpha(1f).translationY(0f).setDuration(350).start()
@@ -497,8 +502,19 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                     b.btnExport.alpha = 1.0f
                     b.btnExport.text = "Export"
 
-                    view?.post {
-                        findNavController().navigate(R.id.finishExportFragment)
+                    val performFinishNavigation = {
+                        view?.post {
+                            findNavController().navigate(R.id.finishExportFragment)
+                        }
+                    }
+
+                    val activity = activity
+                    if (activity != null) {
+                        WebsCareAds.showInterstitial(activity, BuildConfig.AD_INTERSTITIAL_EXPORT) {
+                            performFinishNavigation()
+                        }
+                    } else {
+                        performFinishNavigation()
                     }
                 }
             } catch (e: Exception) {

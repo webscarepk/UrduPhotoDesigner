@@ -21,6 +21,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.snackbar.Snackbar
+import com.webscare.ads.NativeSize
+import com.webscare.urducanvas.BuildConfig
 import com.webscare.urducanvas.MainActivity
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.ErrorType
@@ -99,6 +101,8 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        binding.homeNativeAd.setAdUnitIdAndSize(BuildConfig.AD_NATIVE_HOME, NativeSize.SMALL)
 
         setEvents()
         initObservers()

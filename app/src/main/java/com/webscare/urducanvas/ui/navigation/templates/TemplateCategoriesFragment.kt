@@ -18,6 +18,8 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.google.android.material.chip.Chip
 import com.webscare.urducanvas.MainActivity
+import com.webscare.urducanvas.BuildConfig
+import com.webscare.ads.WebsCareAds
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.CatViewState
@@ -49,6 +51,8 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
     private val filtersVM: FiltersViewModel by activityViewModels()
 
     private lateinit var categoryAdapter: TemplateCategoriesAdapter
+    private lateinit var wrappedCategoryAdapter: RecyclerView.Adapter<*>
+    private lateinit var wrappedGridAdapter: RecyclerView.Adapter<*>
     private lateinit var canvasSizeAdapter: CanvasSizeAdapter
     private var downloadingTemplate: TemplateEntity? = null
     private var bundle: Bundle = Bundle()
@@ -68,7 +72,7 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
 
     private enum class ListMode { SECTIONS, GRID }
     private var listMode = ListMode.SECTIONS
-    private fun isGridMode(): Boolean = binding.categoriesRV.adapter === templatesAdapter
+    private fun isGridMode(): Boolean = binding.categoriesRV.adapter === wrappedGridAdapter
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentTemplatesCategoriesBinding.inflate(layoutInflater, container, false)
@@ -246,7 +250,15 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
                 }
             }
         )
-        binding.categoriesRV.adapter = categoryAdapter
+        
+        wrappedCategoryAdapter = WebsCareAds.wrapWithNativeAds(
+            originalAdapter = categoryAdapter,
+            adUnitId = BuildConfig.AD_NATIVE_CATEGORIES,
+            interval = 4,
+            startOffset = 2,
+            nativeSize = com.webscare.ads.NativeSize.SMALL
+        )
+        binding.categoriesRV.adapter = wrappedCategoryAdapter
 
         templatesAdapter = TemplatesAdapter { template, isDownloaded ->
             if (isDownloaded) {
@@ -257,6 +269,14 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
             downloadingTemplate = template
             mainViewModel.downloadTemplate(template)
         }
+        
+        wrappedGridAdapter = WebsCareAds.wrapWithNativeAds(
+            originalAdapter = templatesAdapter,
+            adUnitId = BuildConfig.AD_NATIVE_TEMPLATES,
+            interval = 6,
+            startOffset = 3,
+            nativeSize = com.webscare.ads.NativeSize.SMALL
+        )
 
         binding.categoriesRV.edgeEffectFactory = SpringEdgeEffectFactory()
         switchToSections()
@@ -266,9 +286,9 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
 
     private fun switchToSections() {
         val rv = binding.categoriesRV
-        if (rv.adapter !== categoryAdapter) {
+        if (rv.adapter !== wrappedCategoryAdapter) {
             rv.layoutManager = LinearLayoutManager(requireContext())
-            rv.adapter = categoryAdapter; rv.itemAnimator = null
+            rv.adapter = wrappedCategoryAdapter; rv.itemAnimator = null
             rv.isNestedScrollingEnabled = true
             rv.setPadding(0, rv.paddingTop, 0, rv.paddingBottom); rv.clipToPadding = false
         }
@@ -280,7 +300,7 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
             rv.layoutManager = StaggeredGridLayoutManager(2, RecyclerView.VERTICAL).apply {
                 gapStrategy = StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS
             }
-        if (rv.adapter !== templatesAdapter) rv.adapter = templatesAdapter
+        if (rv.adapter !== wrappedGridAdapter) rv.adapter = wrappedGridAdapter
         rv.itemAnimator = null; rv.isNestedScrollingEnabled = false
         val pad = resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._18sdp)
         rv.setPadding(pad, rv.paddingTop, pad, rv.paddingBottom); rv.clipToPadding = false
