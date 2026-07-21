@@ -18,8 +18,8 @@ class TemplateCategoriesAdapter(
     }
 
     override fun getItemId(position: Int): Long {
-        val row = currentList[position] as HomeRow.CategoryRow
-        return row.title.hashCode().toLong() // stable per category
+        val row = currentList.getOrNull(position) as? HomeRow.CategoryRow
+        return row?.title?.hashCode()?.toLong() ?: position.toLong()
     }
 
     private var hostRv: RecyclerView? = null

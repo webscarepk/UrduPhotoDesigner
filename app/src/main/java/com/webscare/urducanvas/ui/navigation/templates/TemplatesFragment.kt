@@ -50,6 +50,8 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
     private lateinit var subcategoryAdapter: TemplateCategoriesAdapter
     private lateinit var canvasSizeAdapter: CanvasSizeAdapter
     private lateinit var templatesAdapter: TemplatesAdapter
+    private lateinit var wrappedSubcategoryAdapter: RecyclerView.Adapter<*>
+    private lateinit var wrappedTemplatesAdapter: RecyclerView.Adapter<*>
 
     private var downloadingTemplate: TemplateEntity? = null
     private var bundle: Bundle = Bundle()
@@ -68,7 +70,7 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
 
     private enum class ListMode { SECTIONS, GRID }
     private var listMode = ListMode.SECTIONS
-    private fun isGridMode(): Boolean = _binding?.categoriesRV?.adapter === templatesAdapter
+    private fun isGridMode(): Boolean = _binding?.categoriesRV?.adapter === wrappedTemplatesAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -210,7 +212,14 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
                 }
             }
         )
-        binding.categoriesRV.adapter = subcategoryAdapter
+        wrappedSubcategoryAdapter = com.webscare.ads.WebsCareAds.wrapWithNativeAds(
+            originalAdapter = subcategoryAdapter,
+            adUnitId = com.webscare.urducanvas.BuildConfig.AD_NATIVE_CATEGORIES,
+            interval = 4,
+            startOffset = 2,
+            nativeSize = com.webscare.ads.NativeSize.SMALL
+        )
+        binding.categoriesRV.adapter = wrappedSubcategoryAdapter
     }
 
     private fun setupTemplatesAdapter() {
@@ -223,15 +232,22 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
             downloadingTemplate = template
             mainViewModel.downloadTemplate(template)
         }
+        wrappedTemplatesAdapter = com.webscare.ads.WebsCareAds.wrapWithNativeAds(
+            originalAdapter = templatesAdapter,
+            adUnitId = com.webscare.urducanvas.BuildConfig.AD_NATIVE_TEMPLATES,
+            interval = 6,
+            startOffset = 3,
+            nativeSize = com.webscare.ads.NativeSize.SMALL
+        )
     }
 
     // ─── Layout Switching ─────────────────────────────────────────────────────
 
     private fun switchToSections() {
         val rv = binding.categoriesRV
-        if (rv.adapter !== subcategoryAdapter) {
+        if (rv.adapter !== wrappedSubcategoryAdapter) {
             rv.layoutManager = LinearLayoutManager(requireContext())
-            rv.adapter = subcategoryAdapter; rv.itemAnimator = null
+            rv.adapter = wrappedSubcategoryAdapter; rv.itemAnimator = null
             rv.isNestedScrollingEnabled = true
             rv.setPadding(0, rv.paddingTop, 0, rv.paddingBottom); rv.clipToPadding = false
         }
@@ -243,7 +259,7 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
             rv.layoutManager = StaggeredGridLayoutManager(2, RecyclerView.VERTICAL).apply {
                 gapStrategy = StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS
             }
-        if (rv.adapter !== templatesAdapter) rv.adapter = templatesAdapter
+        if (rv.adapter !== wrappedTemplatesAdapter) rv.adapter = wrappedTemplatesAdapter
         rv.itemAnimator = null; rv.isNestedScrollingEnabled = false
         val pad = resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._18sdp)
         rv.setPadding(pad, rv.paddingTop, pad, rv.paddingBottom); rv.clipToPadding = false

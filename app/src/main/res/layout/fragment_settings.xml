@@ -287,8 +287,6 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:clipToPadding="false"
-        android:paddingBottom="160dp"
-        android:scrollbars="none"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintHorizontal_bias="0.0"
@@ -507,19 +505,17 @@
                 android:textSize="12sp"
                 android:gravity="center"
                 android:layout_marginTop="4dp"
-                android:layout_marginBottom="10dp"
-                android:paddingBottom="10dp"/>
+                android:layout_marginBottom="10dp"/>
+
             <com.webscare.ads.WebsCareBannerView
                 android:id="@+id/settings_banner_ad"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:layout_marginBottom="16dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="140dp"
                 app:webscare_banner_type="adaptive" />
 
         </LinearLayout>
     </com.webscare.urducanvas.common.views.SpringNestedScrollView>
-
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>

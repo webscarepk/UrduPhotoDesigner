@@ -171,6 +171,9 @@ class ExportFragment : androidx.fragment.app.Fragment() {
             }
         }
 
+        WebsCareAds.preloadInterstitial(requireContext(), BuildConfig.AD_INTERSTITIAL_EXPORT)
+        WebsCareAds.preloadRewarded(requireContext(), BuildConfig.AD_REWARDED_EXPORT)
+
         viewModel.exportResult.observe(viewLifecycleOwner) { result ->
             Log.d("ExportFragmentExportResult", "Received exportResult: $result")
             result?.let {
@@ -207,52 +210,144 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    private fun updatePremiumBannerVisibility(hasPremium: Boolean) = with(binding) {
-        val isFromPremiumTemplate = viewModel.exportResult.value?.isFromPremiumTemplate == true
-        val locked = isPremiumLocked()
+    private var isSessionExportUnlocked = false
+    private var isPendingRewardAnimation = false
 
-        premiumAssets.isVisible = (hasPremium || isFromPremiumTemplate)
-                && !subscriptionViewModel.isSubscribed.value
+    override fun onResume() {
+        super.onResume()
+        if (isPendingRewardAnimation) {
+            isPendingRewardAnimation = false
+            binding.root.postDelayed({
+                if (_binding != null && isAdded) {
+                    val hasPremiumAsset = viewModel.hasPremiumAsset.value == true
+                    animateRewardUnlockedUI(hasPremiumAsset)
+                }
+            }, 600)
+        }
+    }
+
+    private fun updatePremiumBannerVisibility(hasPremium: Boolean): Unit = with(binding) {
+        val isFromPremiumTemplate = viewModel.exportResult.value?.isFromPremiumTemplate == true
+        val options = viewModel.exportOptions.value
+        val hasPremiumOption = options?.format?.isPremium == true || options?.resolution?.isPremium == true
+
+        if (isSessionExportUnlocked) {
+            premiumAssets.isVisible = true
+            premiumTitle.text = "Export Unlocked! ✓"
+            premiumSubTitle.text = "You unlocked 1-time export for this design via Video Ad. Tap EXPORT NOW below."
+            seeMore.visibility = View.GONE
+
+            val boldFont = androidx.core.content.res.ResourcesCompat.getFont(requireContext(), R.font.bold)
+            btnWatchAdToExport.text = "Reward Granted ✓"
+            btnWatchAdToExport.typeface = boldFont
+            btnWatchAdToExport.isEnabled = false
+            btnWatchAdToExport.icon = null
+            btnWatchAdToExport.background = null
+            btnWatchAdToExport.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            btnWatchAdToExport.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.TRANSPARENT)
+            btnWatchAdToExport.setTextColor(ContextCompat.getColor(requireContext(), R.color.appColor))
+            btnWatchAdToExport.strokeWidth = 0
+
+            btnExport.text = getString(R.string.export)
+            btnExport.setIconResource(R.drawable.ic_export)
+            return@with
+        }
+
+        val locked = isPremiumLocked()
+        premiumAssets.isVisible = locked
 
         if (locked) {
             btnExport.text = getString(R.string.buy_now)
             btnExport.setIconResource(R.drawable.ic_premium_stroke)
 
             when {
-                // Project derived from a premium template, no extra premium assets
+                hasPremiumOption -> {
+                    seeMore.text = "Premium Format or Resolution selected"
+                    seeMore.paintFlags = 0
+                    premiumTitle.text = "Premium Export Settings"
+                    premiumSubTitle.text = "You selected a premium format or resolution. Upgrade to Pro or watch a video ad to export."
+                }
                 isFromPremiumTemplate && !hasPremium -> {
                     seeMore.text = "This project uses a premium template"
-                    // Update the card title + description
-                    premiumTitle.text =
-                        "Premium Template"
-                    premiumSubTitle.text =
-                        "This design is based on a premium template. Upgrade to export or share it."
+                    seeMore.paintFlags = 0
+                    premiumTitle.text = "Premium Template"
+                    premiumSubTitle.text = "This design is based on a premium template. Upgrade to Pro or watch a video ad to export."
                 }
-
-                // Premium assets inside canvas (with or without premium template origin)
                 hasPremium -> {
-                    seeMore.paintFlags = seeMore.paintFlags or Paint.UNDERLINE_TEXT_FLAG
+                    seeMore.paintFlags = seeMore.paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
                     seeMore.addPressEffect { openPremiumAssetDetailSheet() }
-                    premiumTitle.text =
-                        "Premium Assets Detected"
-                    premiumSubTitle.text =
-                        "This design contains premium fonts, stickers, or images. Upgrade to export without restrictions."
+                    premiumTitle.text = "Premium Assets Detected"
+                    premiumSubTitle.text = "This design contains premium fonts, stickers, or images. Upgrade to Pro or watch a video ad to export."
                 }
-
-                // Both — premium template AND premium assets inside it
                 isFromPremiumTemplate && hasPremium -> {
-                    seeMore.paintFlags = seeMore.paintFlags or Paint.UNDERLINE_TEXT_FLAG
+                    seeMore.paintFlags = seeMore.paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
                     seeMore.addPressEffect { openPremiumAssetDetailSheet() }
-                    premiumTitle.text =
-                        "Premium Template & Assets"
-                    premiumSubTitle.text =
-                        "This design uses a premium template and contains premium assets. Upgrade to unlock export."
+                    premiumTitle.text = "Premium Template & Assets"
+                    premiumSubTitle.text = "This design uses a premium template and contains premium assets. Upgrade to Pro or watch a video ad to export."
                 }
+            }
+
+            btnWatchAdToExport.isEnabled = true
+            btnWatchAdToExport.text = "Watch Video Ad to Export"
+            btnWatchAdToExport.setIconResource(R.drawable.ic_video_ad)
+            btnWatchAdToExport.backgroundTintList = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.appColor))
+            btnWatchAdToExport.setTextColor(ContextCompat.getColor(requireContext(), R.color.white))
+            btnWatchAdToExport.setOnClickListener {
+                WebsCareAds.showRewarded(
+                    activity = requireActivity(),
+                    adUnitId = BuildConfig.AD_REWARDED_EXPORT,
+                    onRewarded = { _, _ ->
+                        isSessionExportUnlocked = true
+                        isPendingRewardAnimation = true
+                    },
+                    onNotReady = {
+                        android.widget.Toast.makeText(context, "Ad loading, please try again in a moment.", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                )
             }
         } else {
             btnExport.text = getString(R.string.export)
             btnExport.setIconResource(R.drawable.ic_export)
         }
+    }
+
+    private fun animateRewardUnlockedUI(hasPremium: Boolean) = with(binding) {
+        if (_binding == null || !isAdded) return@with
+
+        val fadeOutDuration = 250L
+        val fadeInDuration = 350L
+        val viewsToFade = listOf(premiumTitle, premiumSubTitle, seeMore, btnWatchAdToExport, btnExport)
+
+        viewsToFade.forEach { v ->
+            v.animate().alpha(0f).setDuration(fadeOutDuration).start()
+        }
+
+        root.postDelayed({
+            if (_binding == null || !isAdded) return@postDelayed
+
+            premiumAssets.isVisible = true
+            premiumTitle.text = "Export Unlocked! ✓"
+            premiumSubTitle.text = "You unlocked 1-time export for this design via Video Ad. Tap EXPORT NOW below."
+            seeMore.visibility = View.GONE
+
+            val boldFont = androidx.core.content.res.ResourcesCompat.getFont(requireContext(), R.font.bold)
+            btnWatchAdToExport.text = "Reward Granted ✓"
+            btnWatchAdToExport.typeface = boldFont
+            btnWatchAdToExport.isEnabled = false
+            btnWatchAdToExport.icon = null
+            btnWatchAdToExport.background = null
+            btnWatchAdToExport.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            btnWatchAdToExport.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.TRANSPARENT)
+            btnWatchAdToExport.setTextColor(ContextCompat.getColor(requireContext(), R.color.appColor))
+            btnWatchAdToExport.strokeWidth = 0
+
+            btnExport.text = getString(R.string.export)
+            btnExport.setIconResource(R.drawable.ic_export)
+
+            viewsToFade.forEach { v ->
+                v.animate().alpha(1f).setDuration(fadeInDuration).start()
+            }
+        }, fadeOutDuration)
     }
 
     private fun openPremiumAssetDetailSheet() {
@@ -329,6 +424,17 @@ class ExportFragment : androidx.fragment.app.Fragment() {
             return@with
         }
 
+        if (isSessionExportUnlocked) {
+            // User already completed Rewarded Video Ad -> skip Interstitial ad to prevent double ads!
+            performExportRendering()
+        } else {
+            WebsCareAds.showInterstitial(requireActivity(), BuildConfig.AD_INTERSTITIAL_EXPORT) {
+                performExportRendering()
+            }
+        }
+    }
+
+    private fun performExportRendering() = with(binding) {
         binding.btnExport.isEnabled = false
         binding.btnExport.alpha = 0.7f
         btnExport.isEnabled = false
@@ -770,6 +876,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun isPremiumLocked(): Boolean {
+        if (isSessionExportUnlocked) return false
         val isSubscribed = subscriptionViewModel.isSubscribed.value
         if (isSubscribed) return false
 
@@ -778,7 +885,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
         val hasPremiumOption =
             options?.format?.isPremium == true || options?.resolution?.isPremium == true
 
-        // NEW: also check if the project came from a premium template
+        // check if the project came from a premium template
         val isFromPremiumTemplate = viewModel.exportResult.value?.isFromPremiumTemplate == true
 
         return hasPremiumAsset || hasPremiumOption || isFromPremiumTemplate

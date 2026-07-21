@@ -48,7 +48,7 @@ class SpringRecyclerView @JvmOverloads constructor(
         edgeEffectFactory = object : EdgeEffectFactory() {
             override fun createEdgeEffect(view: RecyclerView, direction: Int): EdgeEffect {
                 val isHorizontalEdge =
-                    direction == EdgeEffectFactory.DIRECTION_LEFT || direction == EdgeEffectFactory.DIRECTION_RIGHT
+                    direction == DIRECTION_LEFT || direction == EdgeEffectFactory.DIRECTION_RIGHT
                 return if (isHorizontalEdge) {
                     SpringEdgeEffect(direction)
                 } else {

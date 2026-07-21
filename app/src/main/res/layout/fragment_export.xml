@@ -465,6 +465,18 @@
                 app:layout_constraintEnd_toEndOf="parent"/>
 
             <TextView
+                android:id="@+id/premiumSubTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/regular"
+                android:text="@string/this_project_uses_premium_assets_please_remove_them_or_subscribe_to_export"
+                android:textColor="@color/gray"
+                android:textSize="12sp"
+                app:layout_constraintTop_toBottomOf="@id/premiumTitle"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+            <TextView
                 android:id="@+id/seeMore"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -477,17 +489,26 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"/>
 
-            <TextView
-                android:id="@+id/premiumSubTitle"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnWatchAdToExport"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:fontFamily="@font/regular"
-                android:text="@string/this_project_uses_premium_assets_please_remove_them_or_subscribe_to_export"
-                android:textColor="@color/gray"
+                android:layout_height="42dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/button_bg"
+                android:fontFamily="@font/medium"
+                android:gravity="center"
+                android:text="Watch Video Ad to Export"
+                android:textColor="@color/white"
                 android:textSize="12sp"
-                app:layout_constraintTop_toBottomOf="@id/premiumTitle"
+                app:backgroundTint="@color/appColor"
+                app:cornerRadius="8dp"
+                app:icon="@drawable/ic_video_ad"
+                app:iconGravity="textStart"
+                app:iconPadding="8dp"
+                app:iconTint="@color/white"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"/>
+                app:layout_constraintTop_toBottomOf="@id/seeMore" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
             <androidx.constraintlayout.widget.ConstraintLayout
