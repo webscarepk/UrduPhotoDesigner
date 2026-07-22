@@ -114,6 +114,7 @@ class FontsAdapter(
         abstract val loadingAnim: com.airbnb.lottie.LottieAnimationView
         abstract val premiumBadge: android.widget.ImageView
         abstract val downloadIcon: android.widget.ImageView
+        open val fontNameTextView: android.widget.TextView? get() = null
 
         fun bind(
             font: FontEntity,
@@ -129,6 +130,8 @@ class FontsAdapter(
             cardRoot.strokeColor = ContextCompat.getColor(
                 cardRoot.context, R.color.appColor
             )
+
+            fontNameTextView?.text = com.webscare.urducanvas.common.utils.Utils.cleanFontName(font.font_name)
 
             premiumBadge.isVisible = font.is_premium && !font.is_subscribed
             downloadIcon.visibility =
@@ -285,6 +288,7 @@ class FontsAdapter(
         override val loadingAnim  get() = binding.loading
         override val premiumBadge get() = binding.isPremium
         override val downloadIcon get() = binding.download
+        override val fontNameTextView get() = binding.fontName
     }
 
     class DiffCallback : DiffUtil.ItemCallback<FontEntity>() {

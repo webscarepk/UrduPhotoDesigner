@@ -924,9 +924,10 @@ class EditorFragment : Fragment() {
             sizedCanvasView.setGridEnabled(enabled)
         }
 
-        viewModel.isRulerEnabled.observe(viewLifecycleOwner) { enabled ->
-            updateToggleButton(binding.ruler, enabled)
-            sizedCanvasView.setRulerEnabled(enabled)
+        viewModel.rulerState.observe(viewLifecycleOwner) { rulerState ->
+            val isEnabled = rulerState != com.webscare.urducanvas.common.canvas.enums.RulerState.OFF
+            updateToggleButton(binding.ruler, isEnabled)
+            sizedCanvasView.setRulerState(rulerState)
         }
 
         viewModel.isPanMode.observe(viewLifecycleOwner) { enabled ->

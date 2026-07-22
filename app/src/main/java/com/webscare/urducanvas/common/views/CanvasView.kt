@@ -380,7 +380,16 @@ class CanvasView @JvmOverloads constructor(
     }
 
     // ── Ruler overlay ─────────────────────────────────────────────
-    private var showRuler = false
+    private var rulerState: com.webscare.urducanvas.common.canvas.enums.RulerState =
+        com.webscare.urducanvas.common.canvas.enums.RulerState.OFF
+    var topRulerY: Float = 0f
+    var bottomRulerY: Float = 0f
+    var leftRulerX: Float = 0f
+    var rightRulerX: Float = 0f
+
+    private enum class DraggingRuler { NONE, TOP, BOTTOM, LEFT, RIGHT }
+    private var activeDraggingRuler = DraggingRuler.NONE
+
     private val rulerPaint = Paint().apply {
         color = Color.argb(180, 50, 50, 50)
         strokeWidth = 1f
@@ -2001,7 +2010,7 @@ class CanvasView @JvmOverloads constructor(
         }
 
         // ── RULER ─────────────────────────────────────────────────
-        if (showRuler) {
+        if (rulerState != com.webscare.urducanvas.common.canvas.enums.RulerState.OFF) {
             drawRuler(canvas)
         }
     }
@@ -4886,6 +4895,12 @@ class CanvasView @JvmOverloads constructor(
             }
         }
 
+        if (rulerState != com.webscare.urducanvas.common.canvas.enums.RulerState.OFF) {
+            if (handleRulerTouch(event, x, y)) {
+                return true
+            }
+        }
+
         when (event.actionMasked) {
 
             MotionEvent.ACTION_POINTER_DOWN -> {
@@ -5974,7 +5989,84 @@ class CanvasView @JvmOverloads constructor(
         )
     }
 
+    private fun handleRulerTouch(event: MotionEvent, x: Float, y: Float): Boolean {
+        if (rulerState == com.webscare.urducanvas.common.canvas.enums.RulerState.OFF) return false
+
+        val hitMarginPx = 24f.dpToPx()
+        val hitMarginCanvas = (hitMarginPx / (scale * overallScale)).coerceAtLeast(12f)
+
+        val isTwoSides = rulerState == com.webscare.urducanvas.common.canvas.enums.RulerState.TWO_SIDES
+        val isFourSides = rulerState == com.webscare.urducanvas.common.canvas.enums.RulerState.FOUR_SIDES
+
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                var touchedRuler = DraggingRuler.NONE
+                var minDistance = Float.MAX_VALUE
+
+                if (isTwoSides || isFourSides) {
+                    val distLeft = abs(x - leftRulerX)
+                    if (distLeft <= hitMarginCanvas && distLeft < minDistance) {
+                        minDistance = distLeft
+                        touchedRuler = DraggingRuler.LEFT
+                    }
+
+                    val distTop = abs(y - topRulerY)
+                    if (distTop <= hitMarginCanvas && distTop < minDistance) {
+                        minDistance = distTop
+                        touchedRuler = DraggingRuler.TOP
+                    }
+                }
+
+                if (isFourSides) {
+                    val distRight = abs(x - rightRulerX)
+                    if (distRight <= hitMarginCanvas && distRight < minDistance) {
+                        minDistance = distRight
+                        touchedRuler = DraggingRuler.RIGHT
+                    }
+
+                    val distBottom = abs(y - bottomRulerY)
+                    if (distBottom <= hitMarginCanvas && distBottom < minDistance) {
+                        minDistance = distBottom
+                        touchedRuler = DraggingRuler.BOTTOM
+                    }
+                }
+
+                if (touchedRuler != DraggingRuler.NONE) {
+                    activeDraggingRuler = touchedRuler
+                    vibrateSoft()
+                    invalidate()
+                    return true
+                }
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                if (activeDraggingRuler != DraggingRuler.NONE) {
+                    when (activeDraggingRuler) {
+                        DraggingRuler.LEFT -> leftRulerX = x.coerceIn(0f, canvasWidth.toFloat())
+                        DraggingRuler.RIGHT -> rightRulerX = x.coerceIn(0f, canvasWidth.toFloat())
+                        DraggingRuler.TOP -> topRulerY = y.coerceIn(0f, canvasHeight.toFloat())
+                        DraggingRuler.BOTTOM -> bottomRulerY = y.coerceIn(0f, canvasHeight.toFloat())
+                        else -> {}
+                    }
+                    invalidate()
+                    return true
+                }
+            }
+
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (activeDraggingRuler != DraggingRuler.NONE) {
+                    activeDraggingRuler = DraggingRuler.NONE
+                    invalidate()
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
     private fun drawRuler(canvas: Canvas) {
+        if (rulerState == com.webscare.urducanvas.common.canvas.enums.RulerState.OFF) return
+
         val rulerThicknessPx = 16f.dpToPx()
         val majorTickLen = rulerThicknessPx * 0.6f
         val minorTickLen = rulerThicknessPx * 0.3f
@@ -5986,83 +6078,110 @@ class CanvasView @JvmOverloads constructor(
         )
 
         val rawSpacing = canvasWidth / 8f
-        // Round to nearest "nice" number: 50, 100, 200, 250, 500, 1000 etc
         val tickSpacing = niceNumber(rawSpacing)
-
-        // View pixels per one canvas unit tick
         val stepViewPx = tickSpacing * scale * overallScale
 
         if (stepViewPx < 4f) return
 
-        // ── TOP RULER background ─────────────────────────────────
-        canvas.drawRect(
-            canvasLeft, canvasTop, canvasRight, canvasTop + rulerThicknessPx, rulerBgPaint
-        )
-        canvas.drawLine(
-            canvasLeft,
-            canvasTop + rulerThicknessPx,
-            canvasRight,
-            canvasTop + rulerThicknessPx,
-            rulerPaint
-        )
+        val isTwoSides = rulerState == com.webscare.urducanvas.common.canvas.enums.RulerState.TWO_SIDES
+        val isFourSides = rulerState == com.webscare.urducanvas.common.canvas.enums.RulerState.FOUR_SIDES
 
-        // ── LEFT RULER background ────────────────────────────────
-        canvas.drawRect(
-            canvasLeft, canvasTop, canvasLeft + rulerThicknessPx, canvasBottom, rulerBgPaint
-        )
-        canvas.drawLine(
-            canvasLeft + rulerThicknessPx,
-            canvasTop,
-            canvasLeft + rulerThicknessPx,
-            canvasBottom,
-            rulerPaint
-        )
+        if (isTwoSides || isFourSides) {
+            drawHorizontalRulerStrip(canvas, topRulerY, canvasLeft, canvasRight, tickSpacing, stepViewPx, majorTickLen, minorTickLen, rulerThicknessPx, isBottom = false)
+            drawVerticalRulerStrip(canvas, leftRulerX, canvasTop, canvasBottom, tickSpacing, stepViewPx, majorTickLen, minorTickLen, rulerThicknessPx, isRight = false)
+        }
 
-        // Corner square
-        canvas.drawRect(
-            canvasLeft,
-            canvasTop,
-            canvasLeft + rulerThicknessPx,
-            canvasTop + rulerThicknessPx,
-            rulerBgPaint
-        )
+        if (isFourSides) {
+            drawHorizontalRulerStrip(canvas, bottomRulerY, canvasLeft, canvasRight, tickSpacing, stepViewPx, majorTickLen, minorTickLen, rulerThicknessPx, isBottom = true)
+            drawVerticalRulerStrip(canvas, rightRulerX, canvasTop, canvasBottom, tickSpacing, stepViewPx, majorTickLen, minorTickLen, rulerThicknessPx, isRight = true)
+        }
+    }
 
-        // ── TOP RULER ticks + labels (X axis) ───────────────────
+    private fun drawHorizontalRulerStrip(
+        canvas: Canvas,
+        rulerCanvasY: Float,
+        canvasLeft: Float,
+        canvasRight: Float,
+        tickSpacing: Float,
+        stepViewPx: Float,
+        majorTickLen: Float,
+        minorTickLen: Float,
+        rulerThicknessPx: Float,
+        isBottom: Boolean
+    ) {
+        val (_, viewY) = canvasToView(0f, rulerCanvasY)
+
+        val topPx = if (isBottom) viewY - rulerThicknessPx else viewY
+        val bottomPx = if (isBottom) viewY else viewY + rulerThicknessPx
+
+        canvas.drawRect(canvasLeft, topPx, canvasRight, bottomPx, rulerBgPaint)
+        canvas.drawLine(canvasLeft, viewY, canvasRight, viewY, rulerPaint)
+
         var tickIndex = 0
         var x = canvasLeft
+        val tickBaselineY = if (isBottom) topPx else bottomPx
+        val tickDir = if (isBottom) 1f else -1f
+
         while (x <= canvasRight + 0.5f) {
             val isMajor = tickIndex % 5 == 0
             val tickLen = if (isMajor) majorTickLen else minorTickLen
-            val tickTop = canvasTop + rulerThicknessPx - tickLen
+            val tickEnd = tickBaselineY + (tickLen * tickDir)
 
-            canvas.drawLine(x, tickTop, x, canvasTop + rulerThicknessPx, rulerPaint)
+            canvas.drawLine(x, tickBaselineY, x, tickEnd, rulerPaint)
 
             if (isMajor) {
+                val textY = if (isBottom) {
+                    tickEnd + rulerTextPaint.textSize
+                } else {
+                    tickEnd - 2f
+                }
                 canvas.drawText(
                     "${(tickIndex * tickSpacing).toInt()}",
                     x,
-                    canvasTop + rulerThicknessPx - majorTickLen - 2f,
+                    textY,
                     rulerTextPaint
                 )
             }
             x += stepViewPx
             tickIndex++
         }
+    }
 
-        // ── LEFT RULER ticks + labels (Y axis) ──────────────────
-        tickIndex = 0
+    private fun drawVerticalRulerStrip(
+        canvas: Canvas,
+        rulerCanvasX: Float,
+        canvasTop: Float,
+        canvasBottom: Float,
+        tickSpacing: Float,
+        stepViewPx: Float,
+        majorTickLen: Float,
+        minorTickLen: Float,
+        rulerThicknessPx: Float,
+        isRight: Boolean
+    ) {
+        val (viewX, _) = canvasToView(rulerCanvasX, 0f)
+
+        val leftPx = if (isRight) viewX - rulerThicknessPx else viewX
+        val rightPx = if (isRight) viewX else viewX + rulerThicknessPx
+
+        canvas.drawRect(leftPx, canvasTop, rightPx, canvasBottom, rulerBgPaint)
+        canvas.drawLine(viewX, canvasTop, viewX, canvasBottom, rulerPaint)
+
+        var tickIndex = 0
         var y = canvasTop
+        val tickBaselineX = if (isRight) leftPx else rightPx
+        val tickDir = if (isRight) 1f else -1f
+
         while (y <= canvasBottom + 0.5f) {
             val isMajor = tickIndex % 5 == 0
             val tickLen = if (isMajor) majorTickLen else minorTickLen
-            val tickLeft = canvasLeft + rulerThicknessPx - tickLen
+            val tickEnd = tickBaselineX + (tickLen * tickDir)
 
-            canvas.drawLine(tickLeft, y, canvasLeft + rulerThicknessPx, y, rulerPaint)
+            canvas.drawLine(tickBaselineX, y, tickEnd, y, rulerPaint)
 
             if (isMajor && tickIndex > 0) {
                 canvas.withSave {
-                    // Rotate text -90° so it reads bottom-to-top along left ruler
-                    val labelX = canvasLeft + rulerThicknessPx - majorTickLen - 2f
+                    val labelX = if (isRight) tickEnd + 2f else tickEnd - 2f
                     rotate(-90f, labelX, y)
                     canvas.drawText(
                         "${(tickIndex * tickSpacing).toInt()}",
@@ -6077,14 +6196,26 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
+    fun setRulerState(state: com.webscare.urducanvas.common.canvas.enums.RulerState) {
+        rulerState = state
+        if (state != com.webscare.urducanvas.common.canvas.enums.RulerState.OFF) {
+            if (bottomRulerY == 0f || bottomRulerY > canvasHeight.toFloat()) {
+                bottomRulerY = canvasHeight.toFloat()
+            }
+            if (rightRulerX == 0f || rightRulerX > canvasWidth.toFloat()) {
+                rightRulerX = canvasWidth.toFloat()
+            }
+        }
+        invalidate()
+    }
+
     fun setGridEnabled(enabled: Boolean) {
         showGrid = enabled
         invalidate()
     }
 
     fun setRulerEnabled(enabled: Boolean) {
-        showRuler = enabled
-        invalidate()
+        setRulerState(if (enabled) com.webscare.urducanvas.common.canvas.enums.RulerState.TWO_SIDES else com.webscare.urducanvas.common.canvas.enums.RulerState.OFF)
     }
 
     fun setPanMode(enabled: Boolean) {

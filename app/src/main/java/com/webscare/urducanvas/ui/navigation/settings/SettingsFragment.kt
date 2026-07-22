@@ -47,8 +47,6 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.settingsBannerAd.setAdUnitId(BuildConfig.AD_BANNER_SETTINGS)
-
         observeSubscription()
         setEvents()
         setVersionInfo()

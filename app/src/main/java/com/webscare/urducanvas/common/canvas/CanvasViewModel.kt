@@ -371,8 +371,9 @@ class CanvasViewModel @Inject constructor(
     private val _isGridEnabled = MutableLiveData(false)
     val isGridEnabled: LiveData<Boolean> get() = _isGridEnabled
 
-    private val _isRulerEnabled = MutableLiveData(false)
-    val isRulerEnabled: LiveData<Boolean> get() = _isRulerEnabled
+    private val _rulerState = MutableLiveData(com.webscare.urducanvas.common.canvas.enums.RulerState.OFF)
+    val rulerState: LiveData<com.webscare.urducanvas.common.canvas.enums.RulerState> get() = _rulerState
+    val isRulerEnabled: LiveData<Boolean> = _rulerState.map { it != com.webscare.urducanvas.common.canvas.enums.RulerState.OFF }
 
     private val _isPanMode = MutableLiveData(false)
     val isPanMode: LiveData<Boolean> get() = _isPanMode
@@ -455,7 +456,12 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun toggleRuler() {
-        _isRulerEnabled.value = !(_isRulerEnabled.value ?: false)
+        val nextState = when (_rulerState.value) {
+            com.webscare.urducanvas.common.canvas.enums.RulerState.OFF -> com.webscare.urducanvas.common.canvas.enums.RulerState.TWO_SIDES
+            com.webscare.urducanvas.common.canvas.enums.RulerState.TWO_SIDES -> com.webscare.urducanvas.common.canvas.enums.RulerState.FOUR_SIDES
+            else -> com.webscare.urducanvas.common.canvas.enums.RulerState.OFF
+        }
+        _rulerState.value = nextState
     }
 
     fun togglePanMode() {

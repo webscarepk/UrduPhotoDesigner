@@ -74,6 +74,81 @@
             android:layout_height="wrap_content">
 
             <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/formatCard"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:background="@drawable/button_bg"
+                android:backgroundTint="@color/selection"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:layout_marginTop="10dp">
+                <TextView
+                    android:id="@+id/formatTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/export_format"
+                    android:textColor="@color/black"
+                    android:fontFamily="@font/medium"
+                    android:textSize="14sp"
+                    android:padding="15dp"
+                    app:layout_constraintEnd_toStartOf="@id/format"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"/>
+
+                <ImageView
+                    android:id="@+id/formatDropdownIcon"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@drawable/ic_dropdown"
+                    app:tint="@color/gray"
+                    android:layout_marginEnd="15dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/formatTitle"
+                    app:layout_constraintBottom_toBottomOf="@id/formatTitle"/>
+
+                <ImageView
+                    android:id="@+id/formatPremiumBadge"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_premium_icon"
+                    android:visibility="gone"
+                    android:layout_marginEnd="6dp"
+                    app:layout_constraintEnd_toStartOf="@id/formatDropdownIcon"
+                    app:layout_constraintTop_toTopOf="@id/formatTitle"
+                    app:layout_constraintBottom_toBottomOf="@id/formatTitle"/>
+
+                <TextView
+                    android:id="@+id/format"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/png"
+                    android:textColor="@color/black"
+                    android:fontFamily="@font/regular"
+                    android:textSize="12sp"
+                    android:paddingVertical="15dp"
+                    android:layout_marginEnd="6dp"
+                    app:layout_constraintEnd_toStartOf="@id/formatPremiumBadge"
+                    app:layout_constraintTop_toTopOf="parent"/>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/formatTitle"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:id="@+id/formatList"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    tools:listitem="@layout/layout_resolutions_item_prefs"
+                    android:layout_marginHorizontal="15dp"
+                    android:layout_marginVertical="10dp"
+                    tools:itemCount="4"/>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/resolutionCard"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -96,19 +171,39 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"/>
 
+                <ImageView
+                    android:id="@+id/resolutionDropdownIcon"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@drawable/ic_dropdown"
+                    app:tint="@color/gray"
+                    android:layout_marginEnd="15dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/resolutionTitle"
+                    app:layout_constraintBottom_toBottomOf="@id/resolutionTitle"/>
+
+                <ImageView
+                    android:id="@+id/resolutionPremiumBadge"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_premium_icon"
+                    android:visibility="gone"
+                    android:layout_marginEnd="6dp"
+                    app:layout_constraintEnd_toStartOf="@id/resolutionDropdownIcon"
+                    app:layout_constraintTop_toTopOf="@id/resolutionTitle"
+                    app:layout_constraintBottom_toBottomOf="@id/resolutionTitle"/>
+
                 <TextView
                     android:id="@+id/resolution"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/original"
                     android:textColor="@color/black"
                     android:fontFamily="@font/regular"
                     android:textSize="12sp"
-                    android:padding="15dp"
-                    android:drawablePadding="10dp"
-                    app:drawableTint="@color/gray"
-                    app:drawableEndCompat="@drawable/ic_dropdown"
-                    app:layout_constraintEnd_toEndOf="parent"
+                    android:paddingVertical="15dp"
+                    android:layout_marginEnd="6dp"
+                    app:layout_constraintEnd_toStartOf="@id/resolutionPremiumBadge"
                     app:layout_constraintTop_toTopOf="parent"/>
 
                 <androidx.recyclerview.widget.RecyclerView
@@ -116,7 +211,7 @@
                     android:layout_height="wrap_content"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/resolution"
+                    app:layout_constraintTop_toBottomOf="@id/resolutionTitle"
                     app:layout_constraintBottom_toBottomOf="parent"
                     android:id="@+id/resolutionList"
                     app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
@@ -151,19 +246,28 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"/>
 
+                <ImageView
+                    android:id="@+id/qualityDropdownIcon"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@drawable/ic_dropdown"
+                    app:tint="@color/gray"
+                    android:layout_marginEnd="15dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/qualityTitle"
+                    app:layout_constraintBottom_toBottomOf="@id/qualityTitle"/>
+
                 <TextView
                     android:id="@+id/quality"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/high"
                     android:textColor="@color/black"
                     android:fontFamily="@font/regular"
-                    android:textSize="11sp"
-                    android:padding="15dp"
-                    android:drawablePadding="10dp"
-                    app:drawableTint="@color/gray"
-                    app:drawableEndCompat="@drawable/ic_dropdown"
-                    app:layout_constraintEnd_toEndOf="parent"
+                    android:textSize="12sp"
+                    android:paddingVertical="15dp"
+                    android:layout_marginEnd="6dp"
+                    app:layout_constraintEnd_toStartOf="@id/qualityDropdownIcon"
                     app:layout_constraintTop_toTopOf="parent"/>
 
                 <androidx.recyclerview.widget.RecyclerView
@@ -171,64 +275,9 @@
                     android:layout_height="wrap_content"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/quality"
+                    app:layout_constraintTop_toBottomOf="@id/qualityTitle"
                     app:layout_constraintBottom_toBottomOf="parent"
                     android:id="@+id/qualityList"
-                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                    android:orientation="vertical"
-                    android:visibility="gone"
-                    tools:listitem="@layout/layout_resolutions_item_prefs"
-                    android:layout_marginHorizontal="15dp"
-                    android:layout_marginVertical="10dp"
-                    tools:itemCount="4"/>
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/formatCard"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:background="@drawable/button_bg"
-                android:backgroundTint="@color/selection"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                android:layout_marginTop="10dp">
-                <TextView
-                    android:id="@+id/formatTitle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:text="@string/export_format"
-                    android:textColor="@color/black"
-                    android:fontFamily="@font/medium"
-                    android:textSize="14sp"
-                    android:padding="15dp"
-                    app:layout_constraintEnd_toStartOf="@id/format"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"/>
-
-                <TextView
-                    android:id="@+id/format"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:text="@string/png"
-                    android:textColor="@color/black"
-                    android:fontFamily="@font/regular"
-                    android:textSize="11sp"
-                    android:padding="15dp"
-                    android:drawablePadding="10dp"
-                    app:drawableTint="@color/gray"
-                    app:drawableEndCompat="@drawable/ic_dropdown"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"/>
-
-                <androidx.recyclerview.widget.RecyclerView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/format"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    android:id="@+id/formatList"
                     app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                     android:orientation="vertical"
                     android:visibility="gone"

@@ -605,10 +605,11 @@ class MainViewModel @Inject constructor(
                         val subscribed = billingManager.isSubscribed.value
 
                         val fontsToSave = response.data!!.fonts.map { font ->
+                            val cleanedName = com.webscare.urducanvas.common.utils.Utils.cleanFontName(font.font_name)
                             if (subscribed) {
-                                font.copy(is_subscribed = true)
+                                font.copy(font_name = cleanedName, is_subscribed = true)
                             } else {
-                                font
+                                font.copy(font_name = cleanedName)
                             }
                         }
                         insertFontsUseCase.invoke(

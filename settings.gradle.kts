@@ -18,10 +18,15 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven(url = "https://jitpack.io")
+        maven {
+            url = uri("https://maven.pkg.github.com/webscarepk/WebCareAds")
+            credentials {
+                username = "webscarepk"
+                password = providers.gradleProperty("gpr.key").getOrElse(System.getenv("GITHUB_TOKEN") ?: "")
+            }
+        }
     }
 }
 
 rootProject.name = "UrduCanvas"
 include(":app")
-include(":webscare-ads")
-project(":webscare-ads").projectDir = file("../WebsCareAds/webscare-ads")

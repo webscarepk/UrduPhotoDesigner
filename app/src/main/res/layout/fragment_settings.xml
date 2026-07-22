@@ -505,15 +505,7 @@
                 android:textSize="12sp"
                 android:gravity="center"
                 android:layout_marginTop="4dp"
-                android:layout_marginBottom="10dp"/>
-
-            <com.webscare.ads.WebsCareBannerView
-                android:id="@+id/settings_banner_ad"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:layout_marginBottom="140dp"
-                app:webscare_banner_type="adaptive" />
+                android:layout_marginBottom="100dp"/>
 
         </LinearLayout>
     </com.webscare.urducanvas.common.views.SpringNestedScrollView>

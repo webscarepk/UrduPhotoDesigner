@@ -7,7 +7,7 @@ circleimageview = "3.1.0"
 coreSplashscreen = "1.2.0"
 datastorePreferences = "1.2.1"
 dynamicanimationKtx = "1.1.0"
-firebaseCrashlytics = "20.0.6"
+firebaseCrashlytics = "20.1.0"
 coreKtx = "1.19.0"
 junit = "4.13.2"
 ksp = "2.3.9"
@@ -22,8 +22,8 @@ navigationFragmentKtx = "2.9.8"
 playServicesMlkitSubjectSegmentation = "16.0.0-beta1"
 roomRuntime = "2.8.4"
 sdpAndroid = "1.1.1"
-hiltAndroid = "2.60"
-glide = "5.0.7"
+hiltAndroid = "2.60.1"
+glide = "5.0.9"
 lottie = "6.7.1"
 okhttp = "5.4.0"
 retrofit = "3.0.0"
@@ -32,6 +32,7 @@ lifecycleViewmodelKtx = "2.11.0"
 converterScalars = "3.0.0"
 shimmer = "0.5.0"
 swiperefreshlayout = "1.2.0"
+webscareAds = "1.0.2"
 workRuntimeKtx = "2.11.2"
 print = "1.1.0"
 
@@ -78,6 +79,7 @@ hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", ve
 sdp-android = { module = "com.intuit.sdp:sdp-android", version.ref = "sdpAndroid" }
 shimmer = { module = "com.facebook.shimmer:shimmer", version.ref = "shimmer" }
 androidx-print = { group = "androidx.print", name = "print", version.ref = "print" }
+webscare-ads-v102 = { module = "com.webscare.ads:webscare-ads", version.ref = "webscareAds" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

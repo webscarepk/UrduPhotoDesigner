@@ -10,11 +10,13 @@ class InsertFontsUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(fontsResponse: com.webscare.urducanvas.data.model.FontsResponse) {
         fontsResponse.fonts.forEach { font ->
-            fontsRepo.insertFonts(font)
+            val cleanedFont = font.copy(font_name = com.webscare.urducanvas.common.utils.Utils.cleanFontName(font.font_name))
+            fontsRepo.insertFonts(cleanedFont)
         }
     }
 
     suspend fun insertSingleFont(fontEntity: com.webscare.urducanvas.data.model.FontEntity) {
-        fontsRepo.insertFonts(fontEntity)
+        val cleanedFont = fontEntity.copy(font_name = com.webscare.urducanvas.common.utils.Utils.cleanFontName(fontEntity.font_name))
+        fontsRepo.insertFonts(cleanedFont)
     }
 }

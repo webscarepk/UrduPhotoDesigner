@@ -61,22 +61,28 @@ class ExportOptionAdapter<T>(
 
         fun bind(item: Any) {
             var isSelected = false
+            var isPremium = false
             when (item) {
                 is com.webscare.urducanvas.common.canvas.model.ExportResolution -> {
                     binding.title.text = item.name
                     isSelected = item.isSelected
+                    isPremium = item.isPremium
                 }
 
                 is com.webscare.urducanvas.common.canvas.model.ExportQuality -> {
                     binding.title.text = item.label
                     isSelected = item.isSelected
+                    isPremium = item.isPremium
                 }
 
                 is com.webscare.urducanvas.common.canvas.model.ExportFormat -> {
                     binding.title.text = item.name
                     isSelected = item.isSelected
+                    isPremium = item.isPremium
                 }
             }
+
+            binding.isPremium.isVisible = isPremium && !isSubscribed
 
             // ✅ show drawableEnd checkmark if selected, else remove
             val checkDrawable = if (isSelected) ContextCompat.getDrawable(

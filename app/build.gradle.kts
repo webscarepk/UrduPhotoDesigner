@@ -85,7 +85,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":webscare-ads"))
+    implementation(libs.webscare.ads.v102)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

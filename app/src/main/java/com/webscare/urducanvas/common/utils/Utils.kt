@@ -26,6 +26,20 @@ object Utils {
     private var lastVibrateTime = 0L
     private const val VIBRATE_COOL_DOWN = 150L
 
+    fun cleanFontName(rawName: String): String {
+        if (rawName.isBlank()) return rawName
+        var cleaned = rawName.replace(Regex("\\(.*\\)|\\[.*\\]|\\{.*\\}"), "")
+        cleaned = cleaned.replace(Regex("[^a-zA-Z0-9\\s\\u0600-\\u06FF]"), " ")
+        cleaned = cleaned.replace(Regex("\\s+"), " ").trim()
+        if (cleaned.isEmpty()) return rawName.trim()
+        return cleaned.split(" ").joinToString(" ") { word ->
+            if (word.isEmpty()) ""
+            else word.lowercase().replaceFirstChar { char ->
+                if (char.isLowerCase()) char.titlecase() else char.toString()
+            }
+        }
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     fun View.addPressEffect(onClick: (() -> Unit)? = null) {
         var isInside = false
