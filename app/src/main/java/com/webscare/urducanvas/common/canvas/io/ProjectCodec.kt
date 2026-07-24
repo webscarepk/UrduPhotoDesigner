@@ -62,14 +62,14 @@ object ProjectCodec {
      * Your exportCanvas() already streamed JSON to [plainJsonFile]. Call this to produce the
      * encrypted file you actually ship/share.
      *
-     * @param encrypted defaults to !BuildConfig.DEBUG — debug keeps plain JSON, release encrypts.
+     * @param encrypted defaults to BuildConfig.IS_PROD_LOGIC — dev keeps plain JSON, prod encrypts.
      *                  If false, this just copies the JSON through unchanged.
      */
     fun wrapJsonFile(
         plainJsonFile: File,
         target: File,
         thumbnail: Bitmap? = null,
-        encrypted: Boolean = !BuildConfig.DEBUG
+        encrypted: Boolean = BuildConfig.IS_PROD_LOGIC
     ) {
         if (!encrypted) {
             if (plainJsonFile.absolutePath != target.absolutePath)

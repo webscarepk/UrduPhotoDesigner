@@ -162,7 +162,7 @@ class EditorFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        if (!BuildConfig.DEBUG) {
+        if (BuildConfig.IS_PROD_LOGIC) {
             activity?.window?.setFlags(
                 WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE
             )
@@ -2204,7 +2204,7 @@ class EditorFragment : Fragment() {
         cbOnElementSelected   = {}
         cbOnRequestOpenLayers = {}
         cbOnCanvasLongPressed = { _, _ -> }
-        if (!BuildConfig.DEBUG) {
+        if (BuildConfig.IS_PROD_LOGIC) {
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
     }

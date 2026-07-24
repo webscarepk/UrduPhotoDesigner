@@ -658,6 +658,7 @@ class LayersFragment : Fragment() {
                 val newName = editText.text.toString().trim()
                 if (newName.isNotEmpty()) {
                     element.customName = newName
+                    element.tag = newName
                     viewModel.updateElement(element)
                     val pos = adapter.currentList().indexOfFirst { it.id == element.id }
                     if (pos != -1) adapter.notifyItemChanged(pos)

@@ -115,9 +115,9 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                 return@addPressEffect
             }
 
-            // In release, always share as .urdc — even if the source is a plain .json
+            // In production logic, always share as .urdc — even if the source is a plain .json
             // template downloaded from the server. Wrap it on the fly into a temp .urdc.
-            val fileToShare: File = if (!BuildConfig.DEBUG &&
+            val fileToShare: File = if (BuildConfig.IS_PROD_LOGIC &&
                 !ProjectCodec.isUrdcFile(sourceFile)) {
                 val tmp = File(
                     requireContext().cacheDir,
@@ -524,7 +524,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                 //  DEBUG  -> stays plain JSON (encrypted=false). Designer/template pipeline
                 //            (zip share) keeps working untouched.
                 //  RELEASE-> AES-GCM encrypted .urdc with an embedded preview thumbnail.
-                val jsonPath = if (BuildConfig.DEBUG) {
+                val jsonPath = if (!BuildConfig.IS_PROD_LOGIC) {
                     // Authoring build: keep readable JSON exactly as before.
                     json.absolutePath
                 } else {

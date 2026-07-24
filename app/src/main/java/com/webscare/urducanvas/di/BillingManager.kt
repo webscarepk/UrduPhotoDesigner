@@ -126,7 +126,7 @@ class BillingManager @Inject constructor(
     // ─── Check on launch ───────────────────────────────────────────────────────
 
     fun checkSubscriptionOnLaunch() {
-        if (BuildConfig.DEBUG) return
+        if (!BuildConfig.IS_PROD_LOGIC) return
         startConnection {
             billingClient.queryPurchasesAsync(
                 QueryPurchasesParams.newBuilder()
@@ -545,7 +545,7 @@ class BillingManager @Inject constructor(
     }
 
     fun debugSetStatus(status: SubscriptionStatus, planId: Int = 2) {
-        if (!BuildConfig.DEBUG) return
+        if (BuildConfig.IS_PROD_LOGIC) return
         val pid = PLAN_PRODUCT_IDS[planId]
         // Use a fake future expiry for debug previewing (30 days from now).
         val debugExpiry = System.currentTimeMillis() + 30L * 24 * 60 * 60 * 1000
@@ -569,10 +569,26 @@ class BillingManager @Inject constructor(
     // ─── Load from DataStore (offline fallback) ────────────────────────────────
 
     suspend fun loadSavedSubscriptionStatus() {
-        val DEBUG_MODE = BuildConfig.DEBUG
-        if (DEBUG_MODE) {
-            // Default to false so ads are visible and can be tested in debug mode.
-            // Call enableSubscription() to toggle premium if needed.
+        if (BuildConfig.AUTO_SUBSCRIBE_DEV) {
+            val debugSubscribed = true
+            val debugPlan = PLAN_PRODUCT_IDS[3] ?: "urducanvas_yearly"
+            isSubscribedValue = debugSubscribed
+            _isSubscribed.value = debugSubscribed
+            _activePlan.value = debugPlan
+            _snapshot.value = PlayBillingSnapshot(
+                status = SubscriptionStatus.ACTIVE,
+                productId = debugPlan,
+                purchaseState = 1,
+                isAutoRenewing = true,
+                isAcknowledged = true,
+                orderId = "GPA.DEVDEBUG-AUTO",
+                isTrial = false,
+                expiryTimeMillis = System.currentTimeMillis() + 365L * 24 * 60 * 60 * 1000
+            )
+            return
+        }
+        if (!BuildConfig.IS_PROD_LOGIC) {
+            // DevDebugAds: Default to false so ads & premium purchase flow can be tested
             val debugSubscribed = false
             val debugPlan = ""
             isSubscribedValue = debugSubscribed

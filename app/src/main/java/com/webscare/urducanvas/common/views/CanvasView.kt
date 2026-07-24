@@ -406,6 +406,24 @@ class CanvasView @JvmOverloads constructor(
         color = Color.argb(160, 240, 240, 240)
         style = Paint.Style.FILL
     }
+    private val rulerIndicatorPaint = Paint().apply {
+        color = Color.parseColor("#E91E63")
+        strokeWidth = 1.5f.dpToPx()
+        style = Paint.Style.STROKE
+        isAntiAlias = true
+    }
+    private val rulerBadgeBgPaint = Paint().apply {
+        color = Color.parseColor("#00BCD4")
+        style = Paint.Style.FILL
+        isAntiAlias = true
+    }
+    private val rulerBadgeTextPaint = Paint().apply {
+        color = Color.WHITE
+        textSize = 9f.dpToPx()
+        isAntiAlias = true
+        typeface = Typeface.DEFAULT_BOLD
+        textAlign = Paint.Align.CENTER
+    }
 
     // ── Pan mode (single-finger pan without selecting elements) ───
     private var isPanMode = false
@@ -1666,14 +1684,16 @@ class CanvasView @JvmOverloads constructor(
             snapped && (element.rotation == 90f || element.rotation == 270f)
     }
 
+    private data class SnapTarget(val position: Float, val priority: Int)
+
     private fun checkDragSnap() {
         if (selectedElements.isEmpty()) return
 
         // 1. Clear previous snapping lines
         activeSnapLines.clear()
 
-        // 2. Scale-aware snap threshold (~3 screen pixels)
-        val snapThreshold = 3f / overallScale
+        // 2. Scale-aware snap threshold (~6 screen pixels to keep drag fluid)
+        val snapThreshold = 6f / (overallScale * scale)
 
         // 3. Determine boundaries of dragged items
         val bounds = if (selectedElements.size == 1) {
@@ -1685,57 +1705,93 @@ class CanvasView @JvmOverloads constructor(
         val dragXAnchors = listOf(bounds.left, bounds.centerX(), bounds.right)
         val dragYAnchors = listOf(bounds.top, bounds.centerY(), bounds.bottom)
 
-        // 4. Collect target anchors
-        val targetXAnchors = mutableListOf<Float>()
-        val targetYAnchors = mutableListOf<Float>()
+        val targetXAnchors = mutableListOf<SnapTarget>()
+        val targetYAnchors = mutableListOf<SnapTarget>()
 
-        // 4a. Canvas targets (edges and centers)
-        targetXAnchors.add(0f)
-        targetXAnchors.add(canvasWidth / 2f)
-        targetXAnchors.add(canvasWidth.toFloat())
+        // 4a. Priority 1: Ruler guidelines (Active when RulerState != OFF)
+        val isTwoSides = rulerState == com.webscare.urducanvas.common.canvas.enums.RulerState.TWO_SIDES
+        val isFourSides = rulerState == com.webscare.urducanvas.common.canvas.enums.RulerState.FOUR_SIDES
+        if (isTwoSides || isFourSides) {
+            targetXAnchors.add(SnapTarget(leftRulerX, priority = 1))
+            targetYAnchors.add(SnapTarget(topRulerY, priority = 1))
+            if (isFourSides) {
+                targetXAnchors.add(SnapTarget(rightRulerX, priority = 1))
+                targetYAnchors.add(SnapTarget(bottomRulerY, priority = 1))
+            }
+        }
 
-        targetYAnchors.add(0f)
-        targetYAnchors.add(canvasHeight / 2f)
-        targetYAnchors.add(canvasHeight.toFloat())
+        // 4b. Priority 2: Canvas targets (edges and center)
+        targetXAnchors.add(SnapTarget(0f, priority = 2))
+        targetXAnchors.add(SnapTarget(canvasWidth / 2f, priority = 2))
+        targetXAnchors.add(SnapTarget(canvasWidth.toFloat(), priority = 2))
 
-        // 4b. Other elements targets
+        targetYAnchors.add(SnapTarget(0f, priority = 2))
+        targetYAnchors.add(SnapTarget(canvasHeight / 2f, priority = 2))
+        targetYAnchors.add(SnapTarget(canvasHeight.toFloat(), priority = 2))
+
+        // 4c. Priority 3: Other elements targets
         val selectedIds = selectedElements.map { it.id }.toSet()
         canvasElements.forEach { e ->
             if (e.id !in selectedIds && e.type != ElementType.BACKGROUND && e.type != ElementType.GROUP) {
                 val eBounds = getElementAxisAlignedBounds(e)
-                targetXAnchors.add(eBounds.left)
-                targetXAnchors.add(eBounds.centerX())
-                targetXAnchors.add(eBounds.right)
+                targetXAnchors.add(SnapTarget(eBounds.left, priority = 3))
+                targetXAnchors.add(SnapTarget(eBounds.centerX(), priority = 3))
+                targetXAnchors.add(SnapTarget(eBounds.right, priority = 3))
 
-                targetYAnchors.add(eBounds.top)
-                targetYAnchors.add(eBounds.centerY())
-                targetYAnchors.add(eBounds.bottom)
+                targetYAnchors.add(SnapTarget(eBounds.top, priority = 3))
+                targetYAnchors.add(SnapTarget(eBounds.centerY(), priority = 3))
+                targetYAnchors.add(SnapTarget(eBounds.bottom, priority = 3))
             }
         }
 
-        // 5. Find closest snaps
+        // 4d. Priority 4: Canvas grid targets (Active when showGrid == true)
+        if (showGrid) {
+            val gridSpacing = 50f
+            var gx = 0f
+            while (gx <= canvasWidth) {
+                targetXAnchors.add(SnapTarget(gx, priority = 4))
+                gx += gridSpacing
+            }
+            var gy = 0f
+            while (gy <= canvasHeight) {
+                targetYAnchors.add(SnapTarget(gy, priority = 4))
+                gy += gridSpacing
+            }
+        }
+
+        // 5. Find closest snap respecting priority hierarchy
         var bestDeltaX = Float.MAX_VALUE
         var bestSnapLineX: Float? = null
+        var bestPriorityX = Int.MAX_VALUE
 
         for (dragX in dragXAnchors) {
-            for (targetX in targetXAnchors) {
-                val delta = targetX - dragX
-                if (abs(delta) < abs(bestDeltaX) && abs(delta) <= snapThreshold) {
-                    bestDeltaX = delta
-                    bestSnapLineX = targetX
+            for (target in targetXAnchors) {
+                val delta = target.position - dragX
+                val absDelta = abs(delta)
+                if (absDelta <= snapThreshold) {
+                    if (target.priority < bestPriorityX || (target.priority == bestPriorityX && absDelta < abs(bestDeltaX))) {
+                        bestPriorityX = target.priority
+                        bestDeltaX = delta
+                        bestSnapLineX = target.position
+                    }
                 }
             }
         }
 
         var bestDeltaY = Float.MAX_VALUE
         var bestSnapLineY: Float? = null
+        var bestPriorityY = Int.MAX_VALUE
 
         for (dragY in dragYAnchors) {
-            for (targetY in targetYAnchors) {
-                val delta = targetY - dragY
-                if (abs(delta) < abs(bestDeltaY) && abs(delta) <= snapThreshold) {
-                    bestDeltaY = delta
-                    bestSnapLineY = targetY
+            for (target in targetYAnchors) {
+                val delta = target.position - dragY
+                val absDelta = abs(delta)
+                if (absDelta <= snapThreshold) {
+                    if (target.priority < bestPriorityY || (target.priority == bestPriorityY && absDelta < abs(bestDeltaY))) {
+                        bestPriorityY = target.priority
+                        bestDeltaY = delta
+                        bestSnapLineY = target.position
+                    }
                 }
             }
         }
@@ -6041,11 +6097,60 @@ class CanvasView @JvmOverloads constructor(
 
             MotionEvent.ACTION_MOVE -> {
                 if (activeDraggingRuler != DraggingRuler.NONE) {
+                    val snapThresholdPx = 8f / (scale * overallScale)
                     when (activeDraggingRuler) {
-                        DraggingRuler.LEFT -> leftRulerX = x.coerceIn(0f, canvasWidth.toFloat())
-                        DraggingRuler.RIGHT -> rightRulerX = x.coerceIn(0f, canvasWidth.toFloat())
-                        DraggingRuler.TOP -> topRulerY = y.coerceIn(0f, canvasHeight.toFloat())
-                        DraggingRuler.BOTTOM -> bottomRulerY = y.coerceIn(0f, canvasHeight.toFloat())
+                        DraggingRuler.LEFT -> {
+                            var targetX = x.coerceIn(0f, canvasWidth.toFloat())
+                            val candidates = mutableListOf(0f, canvasWidth / 2f, canvasWidth.toFloat())
+                            if (showGrid) {
+                                var gx = 0f; while (gx <= canvasWidth) { candidates.add(gx); gx += 50f }
+                            }
+                            val snapMatch = candidates.firstOrNull { abs(targetX - it) <= snapThresholdPx }
+                            if (snapMatch != null) {
+                                if (leftRulerX != snapMatch) vibrateSoft()
+                                targetX = snapMatch
+                            }
+                            leftRulerX = targetX
+                        }
+                        DraggingRuler.RIGHT -> {
+                            var targetX = x.coerceIn(0f, canvasWidth.toFloat())
+                            val candidates = mutableListOf(0f, canvasWidth / 2f, canvasWidth.toFloat())
+                            if (showGrid) {
+                                var gx = 0f; while (gx <= canvasWidth) { candidates.add(gx); gx += 50f }
+                            }
+                            val snapMatch = candidates.firstOrNull { abs(targetX - it) <= snapThresholdPx }
+                            if (snapMatch != null) {
+                                if (rightRulerX != snapMatch) vibrateSoft()
+                                targetX = snapMatch
+                            }
+                            rightRulerX = targetX
+                        }
+                        DraggingRuler.TOP -> {
+                            var targetY = y.coerceIn(0f, canvasHeight.toFloat())
+                            val candidates = mutableListOf(0f, canvasHeight / 2f, canvasHeight.toFloat())
+                            if (showGrid) {
+                                var gy = 0f; while (gy <= canvasHeight) { candidates.add(gy); gy += 50f }
+                            }
+                            val snapMatch = candidates.firstOrNull { abs(targetY - it) <= snapThresholdPx }
+                            if (snapMatch != null) {
+                                if (topRulerY != snapMatch) vibrateSoft()
+                                targetY = snapMatch
+                            }
+                            topRulerY = targetY
+                        }
+                        DraggingRuler.BOTTOM -> {
+                            var targetY = y.coerceIn(0f, canvasHeight.toFloat())
+                            val candidates = mutableListOf(0f, canvasHeight / 2f, canvasHeight.toFloat())
+                            if (showGrid) {
+                                var gy = 0f; while (gy <= canvasHeight) { candidates.add(gy); gy += 50f }
+                            }
+                            val snapMatch = candidates.firstOrNull { abs(targetY - it) <= snapThresholdPx }
+                            if (snapMatch != null) {
+                                if (bottomRulerY != snapMatch) vibrateSoft()
+                                targetY = snapMatch
+                            }
+                            bottomRulerY = targetY
+                        }
                         else -> {}
                     }
                     invalidate()
@@ -6145,6 +6250,53 @@ class CanvasView @JvmOverloads constructor(
             x += stepViewPx
             tickIndex++
         }
+
+        // ── Active Selection Value Indicator Lines on Horizontal Scale ──
+        if (selectedElements.isNotEmpty()) {
+            val selBounds = if (selectedElements.size == 1) {
+                getElementAxisAlignedBounds(selectedElements.first())
+            } else {
+                getCombinedSelectedBounds()
+            }
+            val (vLeft, _) = canvasToView(selBounds.left, 0f)
+            val (vCenter, _) = canvasToView(selBounds.centerX(), 0f)
+            val (vRight, _) = canvasToView(selBounds.right, 0f)
+
+            listOf(vLeft to false, vCenter to true, vRight to false).forEach { (vx, isCenter) ->
+                if (vx in (canvasLeft - 1f)..(canvasRight + 1f)) {
+                    if (isCenter) {
+                        rulerIndicatorPaint.pathEffect = DashPathEffect(floatArrayOf(3f, 3f), 0f)
+                    } else {
+                        rulerIndicatorPaint.pathEffect = null
+                    }
+                    canvas.drawLine(vx, topPx, vx, bottomPx, rulerIndicatorPaint)
+                }
+            }
+        }
+
+        // ── Active Guideline Pointer & Badge ──
+        val activeGuidelineX = when (activeDraggingRuler) {
+            DraggingRuler.LEFT -> leftRulerX
+            DraggingRuler.RIGHT -> rightRulerX
+            else -> null
+        }
+        if (activeGuidelineX != null) {
+            val (vGuideX, _) = canvasToView(activeGuidelineX, 0f)
+            if (vGuideX in (canvasLeft - 1f)..(canvasRight + 1f)) {
+                canvas.drawLine(vGuideX, topPx, vGuideX, bottomPx, rulerIndicatorPaint)
+                val label = "X: ${activeGuidelineX.toInt()}"
+                val textWidth = rulerBadgeTextPaint.measureText(label)
+                val badgeWidth = textWidth + 8f.dpToPx()
+                val badgeHeight = rulerThicknessPx * 0.85f
+                val minLeft = canvasLeft
+                val maxLeft = (canvasRight - badgeWidth).coerceAtLeast(minLeft)
+                val badgeLeft = (vGuideX - badgeWidth / 2f).coerceIn(minLeft, maxLeft)
+                val badgeTop = topPx + (rulerThicknessPx - badgeHeight) / 2f
+                val rect = RectF(badgeLeft, badgeTop, badgeLeft + badgeWidth, badgeTop + badgeHeight)
+                canvas.drawRoundRect(rect, 4f.dpToPx(), 4f.dpToPx(), rulerBadgeBgPaint)
+                canvas.drawText(label, rect.centerX(), rect.centerY() + rulerBadgeTextPaint.textSize / 3f, rulerBadgeTextPaint)
+            }
+        }
     }
 
     private fun drawVerticalRulerStrip(
@@ -6193,6 +6345,53 @@ class CanvasView @JvmOverloads constructor(
             }
             y += stepViewPx
             tickIndex++
+        }
+
+        // ── Active Selection Value Indicator Lines on Vertical Scale ──
+        if (selectedElements.isNotEmpty()) {
+            val selBounds = if (selectedElements.size == 1) {
+                getElementAxisAlignedBounds(selectedElements.first())
+            } else {
+                getCombinedSelectedBounds()
+            }
+            val (_, vTop) = canvasToView(0f, selBounds.top)
+            val (_, vCenter) = canvasToView(0f, selBounds.centerY())
+            val (_, vBottom) = canvasToView(0f, selBounds.bottom)
+
+            listOf(vTop to false, vCenter to true, vBottom to false).forEach { (vy, isCenter) ->
+                if (vy in (canvasTop - 1f)..(canvasBottom + 1f)) {
+                    if (isCenter) {
+                        rulerIndicatorPaint.pathEffect = DashPathEffect(floatArrayOf(3f, 3f), 0f)
+                    } else {
+                        rulerIndicatorPaint.pathEffect = null
+                    }
+                    canvas.drawLine(leftPx, vy, rightPx, vy, rulerIndicatorPaint)
+                }
+            }
+        }
+
+        // ── Active Guideline Pointer & Badge ──
+        val activeGuidelineY = when (activeDraggingRuler) {
+            DraggingRuler.TOP -> topRulerY
+            DraggingRuler.BOTTOM -> bottomRulerY
+            else -> null
+        }
+        if (activeGuidelineY != null) {
+            val (_, vGuideY) = canvasToView(0f, activeGuidelineY)
+            if (vGuideY in (canvasTop - 1f)..(canvasBottom + 1f)) {
+                canvas.drawLine(leftPx, vGuideY, rightPx, vGuideY, rulerIndicatorPaint)
+                val label = "Y: ${activeGuidelineY.toInt()}"
+                val textWidth = rulerBadgeTextPaint.measureText(label)
+                val badgeWidth = textWidth + 8f.dpToPx()
+                val badgeHeight = rulerThicknessPx * 0.85f
+                val minTop = canvasTop
+                val maxTop = (canvasBottom - badgeHeight).coerceAtLeast(minTop)
+                val badgeTop = (vGuideY - badgeHeight / 2f).coerceIn(minTop, maxTop)
+                val badgeLeft = leftPx + (rulerThicknessPx - badgeWidth) / 2f
+                val rect = RectF(badgeLeft, badgeTop, badgeLeft + badgeWidth, badgeTop + badgeHeight)
+                canvas.drawRoundRect(rect, 4f.dpToPx(), 4f.dpToPx(), rulerBadgeBgPaint)
+                canvas.drawText(label, rect.centerX(), rect.centerY() + rulerBadgeTextPaint.textSize / 3f, rulerBadgeTextPaint)
+            }
         }
     }
 

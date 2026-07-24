@@ -22,25 +22,28 @@ class MyApplication : Application() {
         super.onCreate()
         
         // Hilt field injection completes before this, so billingManager is ready
+        val adsEnabled = BuildConfig.ENABLE_ADS
         WebsCareAds.init(this) {
             testMode = BuildConfig.DEBUG
             premiumCheck = { billingManager.isSubscribed.value }
             
             // Connect remote config / local overrides
-            homeNativeEnabled = true
-            categoriesNativeEnabled = true
-            templatesNativeEnabled = true
-            emptyStateNativeEnabled = true
-            exportInterstitialEnabled = true
-            exportSuccessNativeEnabled = true
-            settingsBannerEnabled = true
-            rewardedBgRemovalEnabled = true
-            appOpenSplashEnabled = true
+            homeNativeEnabled = adsEnabled
+            categoriesNativeEnabled = adsEnabled
+            templatesNativeEnabled = adsEnabled
+            emptyStateNativeEnabled = adsEnabled
+            exportInterstitialEnabled = adsEnabled
+            exportSuccessNativeEnabled = adsEnabled
+            settingsBannerEnabled = adsEnabled
+            rewardedBgRemovalEnabled = adsEnabled
+            appOpenSplashEnabled = adsEnabled
         }
 
-        // Enable process-lifecycle warm-starts for App Open ads
-        WebsCareAds.enableAutoAppOpen(BuildConfig.AD_APP_OPEN_SPLASH, minBackgroundSeconds = 30)
-        WebsCareAds.preloadAppOpen(this, BuildConfig.AD_APP_OPEN_SPLASH)
+        // Enable process-lifecycle warm-starts for App Open ads if ads enabled
+        if (adsEnabled && BuildConfig.AD_APP_OPEN_SPLASH.isNotEmpty()) {
+            WebsCareAds.enableAutoAppOpen(BuildConfig.AD_APP_OPEN_SPLASH, minBackgroundSeconds = 30)
+            WebsCareAds.preloadAppOpen(this, BuildConfig.AD_APP_OPEN_SPLASH)
+        }
 
         com.webscare.urducanvas.common.utils.SvgLoader.init(this)
         FirebaseApp.initializeApp(this)

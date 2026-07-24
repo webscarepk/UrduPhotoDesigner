@@ -41,19 +41,21 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("debug")
-
-            buildConfigField("String", "AD_APP_OPEN_SPLASH", "\"ca-app-pub-4379805490947109/2348663407\"")
-            buildConfigField("String", "AD_NATIVE_HOME", "\"ca-app-pub-4379805490947109/5002746903\"")
-            buildConfigField("String", "AD_NATIVE_CATEGORIES", "\"ca-app-pub-4379805490947109/1115472783\"")
-            buildConfigField("String", "AD_NATIVE_TEMPLATES", "\"ca-app-pub-4379805490947109/9281023402\"")
-            buildConfigField("String", "AD_NATIVE_EMPTY_STATE", "\"ca-app-pub-4379805490947109/9852014833\"")
-            buildConfigField("String", "AD_REWARDED_BG_REMOVAL", "\"ca-app-pub-4379805490947109/5341778394\"")
-            buildConfigField("String", "AD_REWARDED_EXPORT", "\"ca-app-pub-4379805490947109/7496102785\"")
-            buildConfigField("String", "AD_INTERSTITIAL_EXPORT", "\"ca-app-pub-4379805490947109/7489309447\"")
-            buildConfigField("String", "AD_NATIVE_EXPORT_SUCCESS", "\"ca-app-pub-4379805490947109/2081336029\"")
-            buildConfigField("String", "AD_BANNER_SETTINGS", "\"ca-app-pub-4379805490947109/9089451712\"")
         }
         debug {
+        }
+    }
+
+    flavorDimensions += "mode"
+
+    productFlavors {
+        create("devAds") {
+            dimension = "mode"
+            buildConfigField("Boolean", "ENABLE_ADS", "true")
+            buildConfigField("Boolean", "AUTO_SUBSCRIBE_DEV", "false")
+            buildConfigField("Boolean", "IS_PROD_LOGIC", "false")
+
+            // Test AdMob IDs
             buildConfigField("String", "AD_APP_OPEN_SPLASH", "\"ca-app-pub-3940256099942544/9257395921\"")
             buildConfigField("String", "AD_NATIVE_HOME", "\"ca-app-pub-3940256099942544/2247696110\"")
             buildConfigField("String", "AD_NATIVE_CATEGORIES", "\"ca-app-pub-3940256099942544/2247696110\"")
@@ -64,6 +66,44 @@ android {
             buildConfigField("String", "AD_INTERSTITIAL_EXPORT", "\"ca-app-pub-3940256099942544/1033173712\"")
             buildConfigField("String", "AD_NATIVE_EXPORT_SUCCESS", "\"ca-app-pub-3940256099942544/2247696110\"")
             buildConfigField("String", "AD_BANNER_SETTINGS", "\"ca-app-pub-3940256099942544/9214589741\"")
+        }
+
+        create("dev") {
+            dimension = "mode"
+            buildConfigField("Boolean", "ENABLE_ADS", "false")
+            buildConfigField("Boolean", "AUTO_SUBSCRIBE_DEV", "true")
+            buildConfigField("Boolean", "IS_PROD_LOGIC", "false")
+
+            // Empty AdMob IDs for no-ads build
+            buildConfigField("String", "AD_APP_OPEN_SPLASH", "\"\"")
+            buildConfigField("String", "AD_NATIVE_HOME", "\"\"")
+            buildConfigField("String", "AD_NATIVE_CATEGORIES", "\"\"")
+            buildConfigField("String", "AD_NATIVE_TEMPLATES", "\"\"")
+            buildConfigField("String", "AD_NATIVE_EMPTY_STATE", "\"\"")
+            buildConfigField("String", "AD_REWARDED_BG_REMOVAL", "\"\"")
+            buildConfigField("String", "AD_REWARDED_EXPORT", "\"\"")
+            buildConfigField("String", "AD_INTERSTITIAL_EXPORT", "\"\"")
+            buildConfigField("String", "AD_NATIVE_EXPORT_SUCCESS", "\"\"")
+            buildConfigField("String", "AD_BANNER_SETTINGS", "\"\"")
+        }
+
+        create("prod") {
+            dimension = "mode"
+            buildConfigField("Boolean", "ENABLE_ADS", "true")
+            buildConfigField("Boolean", "AUTO_SUBSCRIBE_DEV", "false")
+            buildConfigField("Boolean", "IS_PROD_LOGIC", "true")
+
+            // Production AdMob IDs
+            buildConfigField("String", "AD_APP_OPEN_SPLASH", "\"ca-app-pub-4379805490947109/2348663407\"")
+            buildConfigField("String", "AD_NATIVE_HOME", "\"ca-app-pub-4379805490947109/5002746903\"")
+            buildConfigField("String", "AD_NATIVE_CATEGORIES", "\"ca-app-pub-4379805490947109/1115472783\"")
+            buildConfigField("String", "AD_NATIVE_TEMPLATES", "\"ca-app-pub-4379805490947109/9281023402\"")
+            buildConfigField("String", "AD_NATIVE_EMPTY_STATE", "\"ca-app-pub-4379805490947109/9852014833\"")
+            buildConfigField("String", "AD_REWARDED_BG_REMOVAL", "\"ca-app-pub-4379805490947109/5341778394\"")
+            buildConfigField("String", "AD_REWARDED_EXPORT", "\"ca-app-pub-4379805490947109/7496102785\"")
+            buildConfigField("String", "AD_INTERSTITIAL_EXPORT", "\"ca-app-pub-4379805490947109/7489309447\"")
+            buildConfigField("String", "AD_NATIVE_EXPORT_SUCCESS", "\"ca-app-pub-4379805490947109/2081336029\"")
+            buildConfigField("String", "AD_BANNER_SETTINGS", "\"ca-app-pub-4379805490947109/9089451712\"")
         }
     }
 
@@ -81,6 +121,18 @@ android {
     buildFeatures {
         viewBinding = true
         buildConfig = true
+    }
+}
+
+androidComponents {
+    beforeVariants { variantBuilder ->
+        val mode = variantBuilder.productFlavors.firstOrNull { it.first == "mode" }?.second
+        val buildType = variantBuilder.buildType
+        if ((mode == "devAds" && buildType == "release") ||
+            (mode == "dev" && buildType == "release") ||
+            (mode == "prod" && buildType == "debug")) {
+            variantBuilder.enable = false
+        }
     }
 }
 

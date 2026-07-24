@@ -286,8 +286,8 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
 
     private fun switchToSections() {
         val rv = binding.categoriesRV
-        if (rv.adapter !== wrappedCategoryAdapter) {
-            rv.layoutManager = LinearLayoutManager(requireContext())
+        if (rv.adapter !== wrappedCategoryAdapter || rv.layoutManager !is com.webscare.urducanvas.common.views.SafeLinearLayoutManager) {
+            rv.layoutManager = com.webscare.urducanvas.common.views.SafeLinearLayoutManager(requireContext())
             rv.adapter = wrappedCategoryAdapter; rv.itemAnimator = null
             rv.isNestedScrollingEnabled = true
             rv.setPadding(0, rv.paddingTop, 0, rv.paddingBottom); rv.clipToPadding = false
@@ -296,8 +296,8 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
 
     private fun switchToGrid() {
         val rv = binding.categoriesRV
-        if (rv.layoutManager !is StaggeredGridLayoutManager)
-            rv.layoutManager = StaggeredGridLayoutManager(2, RecyclerView.VERTICAL).apply {
+        if (rv.layoutManager !is com.webscare.urducanvas.common.views.SafeStaggeredGridLayoutManager)
+            rv.layoutManager = com.webscare.urducanvas.common.views.SafeStaggeredGridLayoutManager(2, RecyclerView.VERTICAL).apply {
                 gapStrategy = StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS
             }
         if (rv.adapter !== wrappedGridAdapter) rv.adapter = wrappedGridAdapter

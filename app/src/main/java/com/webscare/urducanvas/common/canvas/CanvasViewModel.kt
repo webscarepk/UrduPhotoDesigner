@@ -3605,6 +3605,7 @@ class CanvasViewModel @Inject constructor(
             alignment = TextAlignment.CENTER,
             paintAlpha = 255,
             fontId = fontEntity?.id.toString(),
+            fontUrl = fontEntity?.file_url,
             zIndex = newZIndex,
             isPremium = fontEntity?.is_premium ?: false
         )
@@ -3612,6 +3613,7 @@ class CanvasViewModel @Inject constructor(
         // If a fontEntity was provided, try to apply it
         if (fontEntity != null) {
             element.fontId = fontEntity.id.toString()
+            element.fontUrl = fontEntity.file_url
             element.paint.typeface = try {
                 Typeface.createFromFile(fontEntity.file_path)
             } catch (e: Exception) {
@@ -3670,6 +3672,7 @@ class CanvasViewModel @Inject constructor(
                 affectedElementsData.add(element.id to element.fontId)
                 element.copy(context = context).apply {
                     fontId = fontEntity.id.toString()
+                    fontUrl = fontEntity.file_url
                     isPremium = fontEntity.is_premium
                     paint.typeface = try {
                         Typeface.createFromFile(fontEntity.file_path)

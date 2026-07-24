@@ -128,7 +128,7 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
         binding.share.addPressEffect {
             val export = viewModel.exportResult.value ?: return@addPressEffect
 
-            if (BuildConfig.DEBUG) {
+            if (!BuildConfig.IS_PROD_LOGIC) {
                 // Debug: zip json + thumbnail image and share
                 val jsonFile = File(export.jsonPath)
                 val imageFile = File(export.imagePath)

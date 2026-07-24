@@ -31,6 +31,7 @@ data class CanvasElement(
 
     @SerializedName("type") var type: ElementType?,
     @SerializedName("customName") var customName: String? = null,
+    @SerializedName("tag") var tag: String? = null,
     @Transient  // or @Exclude if using Gson's @Expose
     @com.google.gson.annotations.JsonAdapter(value = Nothing::class) // skip serialization
     var svgDrawable: android.graphics.drawable.PictureDrawable? = null,
@@ -85,6 +86,8 @@ data class CanvasElement(
     @SerializedName("isSelected") var isSelected: Boolean = false,
 
     @SerializedName("fontId") var fontId: String? = null,
+
+    @SerializedName("fontUrl") var fontUrl: String? = null,
 
     @SerializedName("paintColor") var paintColor: Int = Color.BLACK,
 

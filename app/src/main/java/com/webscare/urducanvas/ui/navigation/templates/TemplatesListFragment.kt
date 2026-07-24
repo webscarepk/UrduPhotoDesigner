@@ -321,7 +321,7 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
             mainViewModel.downloadTemplate(template)
         }
 
-        sglm = StaggeredGridLayoutManager(2, RecyclerView.VERTICAL).apply {
+        sglm = com.webscare.urducanvas.common.views.SafeStaggeredGridLayoutManager(2, RecyclerView.VERTICAL).apply {
             gapStrategy = StaggeredGridLayoutManager.GAP_HANDLING_NONE
             isItemPrefetchEnabled = true
         }
