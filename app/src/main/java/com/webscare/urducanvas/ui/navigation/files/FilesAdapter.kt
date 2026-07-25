@@ -130,20 +130,14 @@ class FilesAdapter(
             bindItem(binding, item)
 
             binding.root.addPressEffectWithLongClick(onClick = {
-                val itemId = when (item) {
-                    is ImageEntity -> item.id
-                    is FontEntity -> item.id
-                    is ExportResult -> item.id
-                    else -> null
-                }
-                if (editingItemId != itemId) {
-                    if (multiSelectMode) {
-                        handleSelection(item)
-                    } else {
-                        onItemClick(item)
-                    }
+                if (editingItemId != null) return@addPressEffectWithLongClick
+                if (multiSelectMode) {
+                    handleSelection(item)
+                } else {
+                    onItemClick(item)
                 }
             }, onLongClick = {
+                if (editingItemId != null) return@addPressEffectWithLongClick
                 if (!multiSelectMode) {
                     toggleMultiSelectMode(true)
                 }
@@ -151,7 +145,10 @@ class FilesAdapter(
                 handleSelection(item)
             })
 
-            binding.moreOptions.addPressEffect { onOptionsClick(item, binding.moreOptions) }
+            binding.moreOptions.addPressEffect {
+                if (editingItemId != null) return@addPressEffect
+                onOptionsClick(item, binding.moreOptions)
+            }
         }
     }
 
@@ -161,20 +158,14 @@ class FilesAdapter(
             bindItem(binding, item)
 
             binding.root.addPressEffectWithLongClick(onClick = {
-                val itemId = when (item) {
-                    is ImageEntity -> item.id
-                    is FontEntity -> item.id
-                    is ExportResult -> item.id
-                    else -> null
-                }
-                if (editingItemId != itemId) {
-                    if (multiSelectMode) {
-                        handleSelection(item)
-                    } else {
-                        onItemClick(item)
-                    }
+                if (editingItemId != null) return@addPressEffectWithLongClick
+                if (multiSelectMode) {
+                    handleSelection(item)
+                } else {
+                    onItemClick(item)
                 }
             }, onLongClick = {
+                if (editingItemId != null) return@addPressEffectWithLongClick
                 if (!multiSelectMode) {
                     toggleMultiSelectMode(true)
                 }
@@ -182,7 +173,10 @@ class FilesAdapter(
                 handleSelection(item)
             })
 
-            binding.moreOptions.addPressEffect { onOptionsClick(item, binding.moreOptions) }
+            binding.moreOptions.addPressEffect {
+                if (editingItemId != null) return@addPressEffect
+                onOptionsClick(item, binding.moreOptions)
+            }
         }
     }
 
@@ -214,16 +208,27 @@ class FilesAdapter(
                         }
                     )
 
-                    editText.requestFocus()
-                    val imm =
-                        editText.context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                    imm.showSoftInput(
-                        editText, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT
-                    )
+                    editText.maxLines = 1
+                    editText.isSingleLine = true
+                    editText.inputType = android.text.InputType.TYPE_CLASS_TEXT
+                    editText.imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
+
+                    editText.post {
+                        editText.requestFocus()
+                        if (editText.text != null) {
+                            editText.setSelection(editText.text.length)
+                        }
+                        val imm =
+                            editText.context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                        imm.showSoftInput(
+                            editText, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT
+                        )
+                    }
 
                     // IME Done
-                    editText.setOnEditorActionListener { v, actionId, _ ->
-                        if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                    editText.setOnEditorActionListener { v, actionId, event ->
+                        if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE ||
+                            (event != null && event.keyCode == android.view.KeyEvent.KEYCODE_ENTER && event.action == android.view.KeyEvent.ACTION_DOWN)) {
                             val newName = v.text.toString().trim()
                             if (newName.isNotEmpty()) onRename?.invoke(item, newName)
                             closeKeyboard(v)
@@ -232,18 +237,19 @@ class FilesAdapter(
                         } else false
                     }
 
-                    // DrawableEnd click
+                    // DrawableEnd Cross Icon click: ONLY cross icon or IME Done exits editing mode
                     editText.setOnTouchListener { v, event ->
                         if (event.action == android.view.MotionEvent.ACTION_UP) {
-                            val drawableEnd = editText.compoundDrawablesRelative[2]
-                            if (drawableEnd != null && event.rawX >= (editText.right - drawableEnd.bounds.width())) {
-                                val imm =
-                                    v.context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                                imm.hideSoftInputFromWindow(v.windowToken, 0)
-
-                                editText.clearFocus()
-                                stopEditing()
-                                return@setOnTouchListener true
+                            val drawableEnd = editText.compoundDrawablesRelative[2] ?: editText.compoundDrawables[2]
+                            if (drawableEnd != null) {
+                                val touchX = event.x.toInt()
+                                val iconWidth = drawableEnd.bounds.width()
+                                val iconStart = editText.width - editText.paddingRight - iconWidth
+                                if (touchX >= iconStart) {
+                                    closeKeyboard(v)
+                                    stopEditing()
+                                    return@setOnTouchListener true
+                                }
                             }
                         }
                         false

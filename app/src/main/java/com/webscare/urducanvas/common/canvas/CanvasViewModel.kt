@@ -69,6 +69,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.Stack
 import java.util.UUID
 import javax.inject.Inject
@@ -635,6 +638,10 @@ class CanvasViewModel @Inject constructor(
         val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
         val canvasW = _canvasSize.value?.width ?: 0f
         val canvasH = _canvasSize.value?.height ?: 0f
+        val (logicalW, logicalH) = when (_currentShapeType.value) {
+            ShapeType.RECTANGLE -> Pair(225f, 150f)
+            else -> Pair(150f, 150f)
+        }
         val element = CanvasElement(
             id = UUID.randomUUID().toString(),
             type = ElementType.SHAPE,
@@ -653,8 +660,8 @@ class CanvasViewModel @Inject constructor(
             rotation = 0f,
             zIndex = newZIndex,
             isSelected = true,
-            logicalContentWidth = 150f,
-            logicalContentHeight = 150f
+            logicalContentWidth = logicalW,
+            logicalContentHeight = logicalH
         )
 
         _canvasElements.value = _canvasElements.value?.plus(element)
@@ -777,48 +784,9 @@ class CanvasViewModel @Inject constructor(
                 val fullCanvas = android.graphics.Canvas(fullBitmap)
 
                 session.drawStrokes?.forEach { stroke ->
-                    when (stroke.style) {
-                        BrushStyle.BRUSH ->
-                            com.webscare.urducanvas.common.utils.BrushRenderUtils.drawBrushStroke(
-                                fullCanvas,
-                                stroke,
-                                255
-                            )
-
-                        BrushStyle.PEN ->
-                            com.webscare.urducanvas.common.utils.BrushRenderUtils.drawTaperedPenStroke(
-                                fullCanvas,
-                                stroke,
-                                255
-                            )
-
-                        BrushStyle.HIGHLIGHTER -> {
-                            val paint =
-                                com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
-                                    stroke,
-                                    canvasW,
-                                    canvasH
-                                )
-                            paint.alpha = 130
-                            paint.strokeCap = android.graphics.Paint.Cap.BUTT
-                            val path = Path(stroke.path)
-                            val m = android.graphics.Matrix()
-                            m.postTranslate(0f, stroke.thickness * 0.3f)
-                            path.transform(m)
-                            fullCanvas.drawPath(path, paint)
-                        }
-
-                        else -> {
-                            val paint =
-                                com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
-                                    stroke,
-                                    canvasW,
-                                    canvasH
-                                )
-                            paint.alpha = 255
-                            fullCanvas.drawPath(stroke.path!!, paint)
-                        }
-                    }
+                    com.webscare.urducanvas.common.utils.BrushRenderUtils.drawSingleStroke(
+                        fullCanvas, stroke, 255
+                    )
                 }
 
                 // --- Step 3: Crop to tight bounds ---
@@ -3455,6 +3423,7 @@ class CanvasViewModel @Inject constructor(
         bitmap: Bitmap?, context: Context, elementType: ElementType, isPremium: Boolean = false
     ) {
         if (bitmap == null) return
+        _loadingStage.value = "Loading Image" to 50
 
         val currentList = _canvasElements.value ?: emptyList()
         val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
@@ -3589,6 +3558,7 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun addTextWithFont(text: String, fontEntity: FontEntity?, context: Context) {
+        _loadingStage.value = "Loading Font" to 50
         val currentList = _canvasElements.value ?: emptyList()
         val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
         val canvasW = _canvasSize.value?.width ?: 0f
@@ -4106,6 +4076,24 @@ class CanvasViewModel @Inject constructor(
         allToRemove.forEach { elem ->
             val element = elem.copy(context = null)
             element.paint.typeface = element.applyTypefaceFromFontList()
+            if (element.bitmapData == null && element.svgData == null) {
+                if (element.bitmap != null && !element.bitmap!!.isRecycled) {
+                    element.bitmapData = ImageProcessor.bitmapToBase64Lossless(element.bitmap!!)
+                } else if (element.svgDrawable != null) {
+                    try {
+                        val w = (element.logicalContentWidth.takeIf { it > 0 } ?: 512f).toInt()
+                        val h = (element.logicalContentHeight.takeIf { it > 0 } ?: 512f).toInt()
+                        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                        val c = android.graphics.Canvas(bmp)
+                        element.svgDrawable!!.setBounds(0, 0, w, h)
+                        element.svgDrawable!!.draw(c)
+                        element.bitmapData = ImageProcessor.bitmapToBase64Lossless(bmp)
+                        bmp.recycle()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
             _canvasActions.push(CanvasAction.RemoveElement(element))
         }
         _redoStack.clear()
@@ -4122,6 +4110,24 @@ class CanvasViewModel @Inject constructor(
         if (currentList.any { it.id == element.id }) {
             val newElement = element.copy(context = null)
             newElement.paint.typeface = newElement.applyTypefaceFromFontList()
+            if (newElement.bitmapData == null && newElement.svgData == null) {
+                if (newElement.bitmap != null && !newElement.bitmap!!.isRecycled) {
+                    newElement.bitmapData = ImageProcessor.bitmapToBase64Lossless(newElement.bitmap!!)
+                } else if (newElement.svgDrawable != null) {
+                    try {
+                        val w = (newElement.logicalContentWidth.takeIf { it > 0 } ?: 512f).toInt()
+                        val h = (newElement.logicalContentHeight.takeIf { it > 0 } ?: 512f).toInt()
+                        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                        val c = android.graphics.Canvas(bmp)
+                        newElement.svgDrawable!!.setBounds(0, 0, w, h)
+                        newElement.svgDrawable!!.draw(c)
+                        newElement.bitmapData = ImageProcessor.bitmapToBase64Lossless(bmp)
+                        bmp.recycle()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
             _canvasActions.push(CanvasAction.RemoveElement(newElement))
             _redoStack.clear()
             // If deleting a GROUP sentinel, also delete all its children.
@@ -4184,17 +4190,9 @@ class CanvasViewModel @Inject constructor(
                     paint.typeface = applyTypefaceFromFontList(context)
                 }
 
-                ElementType.IMAGE -> {
-                    if (bitmap == null) {
-                        bitmapData?.let { data ->
-                            bitmap = ImageProcessor.base64ToBitmap(data)
-                        }
-                    }
-                }
-
-                ElementType.STICKER -> {
-                    if (svgDrawable == null && bitmap == null) {
-                        if (svgData != null) {
+                ElementType.IMAGE, ElementType.STICKER, ElementType.SHAPE, ElementType.BACKGROUND, ElementType.DRAW -> {
+                    if (svgDrawable == null && (bitmap == null || bitmap?.isRecycled == true)) {
+                        if (!svgData.isNullOrBlank()) {
                             try {
                                 val svg = com.caverock.androidsvg.SVG.getFromString(svgData)
                                 val vb = svg.documentViewBox
@@ -4207,50 +4205,19 @@ class CanvasViewModel @Inject constructor(
                                 svg.documentWidth = w
                                 svg.documentHeight = h
 
-                                svgDrawable =
-                                    PictureDrawable(svg.renderToPicture())
-                                        .trimTransparentEdges()
+                                svgDrawable = PictureDrawable(svg.renderToPicture()).trimTransparentEdges()
                                 bitmap = null
                             } catch (e: Exception) {
-                                // SVG parse failed — fall back to bitmapData if available
                                 bitmapData?.let { data ->
-                                    bitmap = ImageProcessor.base64ToBitmap(data)
+                                    if (data.isNotBlank()) bitmap = ImageProcessor.base64ToBitmap(data)
                                 }
                             }
-                        } else {
-                            // Legacy element — no svgData, restore from rasterized bitmap
-                            bitmapData?.let { data ->
-                                bitmap = ImageProcessor.base64ToBitmap(data)
-                            }
-                        }
-                    }
-                }
-
-                ElementType.SHAPE -> {
-                    if (bitmap == null) {
-                        bitmapData?.let { data ->
-                            bitmap = ImageProcessor.base64ToBitmap(data)
-                        }
-                    }
-                }
-
-                ElementType.BACKGROUND -> {
-                    if (bitmap == null) {
-                        bitmapData?.let { data ->
-                            bitmap = ImageProcessor.base64ToBitmap(data)
-                        }
-                    }
-                }
-
-                ElementType.DRAW -> {
-                    if (bitmap == null) {
-                        if (drawStrokes.isNullOrEmpty()) {
-                            bitmapData?.let { data ->
-                                bitmap = ImageProcessor.base64ToBitmap(data)
-                            }
-                        } else {
-                            // Legacy stroke-based draw element — restore paths
+                        } else if (type == ElementType.DRAW && !drawStrokes.isNullOrEmpty()) {
                             drawStrokes?.forEach { stroke -> stroke.restorePath() }
+                        } else {
+                            bitmapData?.let { data ->
+                                if (data.isNotBlank()) bitmap = ImageProcessor.base64ToBitmap(data)
+                            }
                         }
                     }
                 }
@@ -4278,17 +4245,9 @@ class CanvasViewModel @Inject constructor(
                     paint.typeface = applyTypefaceFromFontList(context)
                 }
 
-                ElementType.IMAGE -> {
-                    if (bitmap == null) {
-                        bitmapData?.let { data ->
-                            bitmap = ImageProcessor.base64ToBitmap(data)
-                        }
-                    }
-                }
-
-                ElementType.STICKER -> {
-                    if (svgDrawable == null && bitmap == null) {
-                        if (svgData != null) {
+                ElementType.IMAGE, ElementType.STICKER, ElementType.SHAPE, ElementType.BACKGROUND, ElementType.DRAW -> {
+                    if (svgDrawable == null && (bitmap == null || bitmap?.isRecycled == true)) {
+                        if (!svgData.isNullOrBlank()) {
                             try {
                                 val svg = com.caverock.androidsvg.SVG.getFromString(svgData)
                                 val vb = svg.documentViewBox
@@ -4301,47 +4260,19 @@ class CanvasViewModel @Inject constructor(
                                 svg.documentWidth = w
                                 svg.documentHeight = h
 
-                                svgDrawable =
-                                    PictureDrawable(svg.renderToPicture())
-                                        .trimTransparentEdges()
+                                svgDrawable = PictureDrawable(svg.renderToPicture()).trimTransparentEdges()
                                 bitmap = null
                             } catch (e: Exception) {
                                 bitmapData?.let { data ->
-                                    bitmap = ImageProcessor.base64ToBitmap(data)
+                                    if (data.isNotBlank()) bitmap = ImageProcessor.base64ToBitmap(data)
                                 }
                             }
-                        } else {
-                            bitmapData?.let { data ->
-                                bitmap = ImageProcessor.base64ToBitmap(data)
-                            }
-                        }
-                    }
-                }
-
-                ElementType.SHAPE -> {
-                    if (bitmap == null) {
-                        bitmapData?.let { data ->
-                            bitmap = ImageProcessor.base64ToBitmap(data)
-                        }
-                    }
-                }
-
-                ElementType.BACKGROUND -> {
-                    if (bitmap == null) {
-                        bitmapData?.let { data ->
-                            bitmap = ImageProcessor.base64ToBitmap(data)
-                        }
-                    }
-                }
-
-                ElementType.DRAW -> {
-                    if (bitmap == null) {
-                        if (drawStrokes.isNullOrEmpty()) {
-                            bitmapData?.let { data ->
-                                bitmap = ImageProcessor.base64ToBitmap(data)
-                            }
-                        } else {
+                        } else if (type == ElementType.DRAW && !drawStrokes.isNullOrEmpty()) {
                             drawStrokes?.forEach { stroke -> stroke.restorePath() }
+                        } else {
+                            bitmapData?.let { data ->
+                                if (data.isNotBlank()) bitmap = ImageProcessor.base64ToBitmap(data)
+                            }
                         }
                     }
                 }
@@ -4703,11 +4634,31 @@ class CanvasViewModel @Inject constructor(
                 // Trigger a canvas redraw so the live preview updates immediately
                 _canvasView.value?.invalidate()
             }
+
+            is CanvasAction.TransformCanvas -> {
+                val zoom = if (isRedo) action.newZoom else action.oldZoom
+                val panX = if (isRedo) action.newPanX else action.oldPanX
+                val panY = if (isRedo) action.newPanY else action.oldPanY
+
+                _canvasView.value?.setZoomAndPan(zoom, panX, panY)
+                _zoomLevel.value = zoom
+            }
         }
 
         notifyUndoRedoChanged()
         // Force LiveData re-emit if needed
         _canvasElements.value = _canvasElements.value
+    }
+
+    fun recordCanvasTransform(
+        oldZoom: Float, oldPanX: Float, oldPanY: Float,
+        newZoom: Float, newPanX: Float, newPanY: Float
+    ) {
+        if (kotlin.math.abs(oldZoom - newZoom) < 0.01f && kotlin.math.abs(oldPanX - newPanX) < 2f && kotlin.math.abs(oldPanY - newPanY) < 2f) return
+        val action = CanvasAction.TransformCanvas(oldZoom, oldPanX, oldPanY, newZoom, newPanX, newPanY)
+        _canvasActions.push(action)
+        _redoStack.clear()
+        notifyUndoRedoChanged()
     }
 
     fun populateAdjustmentsFromElement(elementId: String) {
@@ -4768,13 +4719,35 @@ class CanvasViewModel @Inject constructor(
         projectSourceName = null
     }
 
-    fun loadTemplateFromJsonFile(exportResult: ExportResult, context: Context) {
+    fun resetCanvasState() {
+        _canvasSize.value = null
+        _canvasElements.value = emptyList()
+        _exportResult.value = null
+        _backgroundImage.value = null
+        _backgroundColor.value = Color.WHITE
+        _backgroundGradient.value = null
+        _canvasActions.clear()
+        _redoStack.clear()
+        _canUndo.value = false
+        _canRedo.value = false
+        _isExplicitChange = false
+        _canvasView.value = null
+    }
+
+    fun loadTemplateFromJsonFile(
+        exportResult: ExportResult,
+        context: Context,
+        titleHint: String? = null,
+        onComplete: ((Boolean) -> Unit)? = null
+    ) {
+        resetCanvasState()
+        val defaultTitle = if (exportResult.isExported) "Loading Project" else "Loading Template"
+        val initialTitle = titleHint ?: defaultTitle
+        _isLoadingTemplate.value = true
+        _loadingStage.value = initialTitle to 10
         viewModelScope.launch(Dispatchers.Default) {
 
-            _isLoadingTemplate.postValue(true)
-
             try {
-                _loadingStage.postValue("Reading file" to 10)
                 val jsonFilePath = exportResult.jsonPath
                 val sourceFile = File(jsonFilePath)
 
@@ -4812,7 +4785,9 @@ class CanvasViewModel @Inject constructor(
                         .distinct()
 
                 _loadingStage.postValue("Preparing fonts" to 40)
-                fontGate.ensureFonts(requiredFontIds)
+                fontGate.ensureFonts(requiredFontIds) { stageMsg, pct ->
+                    _loadingStage.postValue(stageMsg to pct)
+                }
 
                 _loadingStage.postValue("Fonts ready" to 55)
 
@@ -4910,7 +4885,27 @@ class CanvasViewModel @Inject constructor(
                         _clarity.postValue(it.adjustments.clarity)
                         _fade.postValue(it.adjustments.fade)
                     }
-                    _exportResult.value = exportResult
+
+                    val isTemplateOpening = exportResult.id == 0L && (exportResult.sourceTemplateId != null || jsonFilePath.contains("downloaded_templates", ignoreCase = true) || jsonFilePath.contains("template_", ignoreCase = true))
+
+                    val activeExportResult = if (isTemplateOpening) {
+                        val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
+                        val newJsonFileName = "project_$timestamp.json"
+                        val newImageFileName = "project_img_$timestamp.png"
+                        val newJsonPath = File(context.filesDir, newJsonFileName).absolutePath
+                        val newImagePath = File(context.filesDir, newImageFileName).absolutePath
+
+                        exportResult.copy(
+                            id = 0L,
+                            jsonPath = newJsonPath,
+                            imagePath = newImagePath,
+                            fileName = if (exportResult.fileName.isNotBlank() && !exportResult.fileName.startsWith("template_", ignoreCase = true)) exportResult.fileName else "Project_$timestamp"
+                        )
+                    } else {
+                        exportResult
+                    }
+
+                    _exportResult.value = activeExportResult
                 }
                 Log.e("CanvasViewModel", "Successful")
 
@@ -4921,6 +4916,9 @@ class CanvasViewModel @Inject constructor(
                 withContext(Dispatchers.Main) {
                     _loadingStage.value = "Done" to 100
                     _isLoadingTemplate.value = false
+                    val loaded = _canvasSize.value != null
+                    onComplete?.invoke(loaded)
+                    _isLoadingTemplate.value = null
                 }
             }
         }

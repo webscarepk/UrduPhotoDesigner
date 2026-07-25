@@ -664,10 +664,13 @@ class MainActivity : AppCompatActivity() {
             )
 
             withContext(Dispatchers.Main) {
-                viewModel.loadTemplateFromJsonFile(result, this@MainActivity)
-                val opts = NavOptions.Builder().setLaunchSingleTop(true)
-                    .setPopUpTo(R.id.editorFragment, inclusive = true).build()
-                navController.navigate(R.id.editorFragment, null, opts)
+                viewModel.loadTemplateFromJsonFile(result, this@MainActivity) { success ->
+                    if (success) {
+                        val opts = NavOptions.Builder().setLaunchSingleTop(true)
+                            .setPopUpTo(R.id.editorFragment, inclusive = true).build()
+                        navController.navigate(R.id.editorFragment, null, opts)
+                    }
+                }
             }
             true
         } catch (e: Exception) {

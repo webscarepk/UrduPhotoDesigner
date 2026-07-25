@@ -245,7 +245,11 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
                     }
                 } else {
                     val exportResult = template.toExportResultFinal()
-                    lifecycleScope.launch { withContext(Dispatchers.Default) { viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) } }
+                    viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) { success ->
+                        if (success && isAdded) {
+                            findNavController().navigate(R.id.editorFragment)
+                        }
+                    }
                     return@TemplateCategoriesAdapter
                 }
             }
@@ -263,7 +267,11 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
         templatesAdapter = TemplatesAdapter { template, isDownloaded ->
             if (isDownloaded) {
                 val exportResult = template.toExportResultFinal()
-                lifecycleScope.launch { withContext(Dispatchers.Default) { viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) } }
+                viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) { success ->
+                    if (success && isAdded) {
+                        findNavController().navigate(R.id.editorFragment)
+                    }
+                }
                 return@TemplatesAdapter
             }
             downloadingTemplate = template
@@ -525,7 +533,7 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
         }
         viewModel.isLoadingTemplate.observe(viewLifecycleOwner) { isLoading ->
             if (isLoading == true) showLoadingDialog()
-            else if (isLoading == false) { dismissLoadingDialog(); view?.post { findNavController().navigate(R.id.editorFragment, bundle) } }
+            else if (isLoading == false) dismissLoadingDialog()
         }
         viewLifecycleOwner.lifecycleScope.launch {
             mainViewModel.templateDownloadStates.collect { ds ->
@@ -541,7 +549,11 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
                             if (!isGridMode()) { categoryAdapter.updateTemplateProgress(t.id, 100, false, true); categoryAdapter.notifyTemplateStateChanged(t.copy(is_downloading = false, is_downloaded = true)) }
                             showGlobalSuccessSnack("Template ready") {
                                 val exportResult = t.toExportResultFinal()
-                                lifecycleScope.launch { withContext(Dispatchers.Default) { viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) } }
+                                viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) { success ->
+                                    if (success && isAdded) {
+                                        findNavController().navigate(R.id.editorFragment)
+                                    }
+                                }
                             }
                             downloadingTemplate = null
                         }

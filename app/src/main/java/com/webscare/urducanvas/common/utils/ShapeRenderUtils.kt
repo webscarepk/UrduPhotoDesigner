@@ -19,6 +19,7 @@ object ShapeRenderUtils {
         ShapeType.ELLIPSE,
         ShapeType.LINE,
         ShapeType.HEART,
+        ShapeType.SQUARE,
         ShapeType.RECTANGLE,
         ShapeType.ROUNDED_RECTANGLE,
     )
@@ -62,6 +63,7 @@ object ShapeRenderUtils {
         val cy = rect.centerY()
 
         when (shapeType) {
+            ShapeType.SQUARE,
             ShapeType.RECTANGLE,
             ShapeType.ROUNDED_RECTANGLE ->
                 canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint)
@@ -91,6 +93,7 @@ object ShapeRenderUtils {
         val path = Path()
 
         when (shapeType) {
+            ShapeType.SQUARE,
             ShapeType.RECTANGLE ->
                 path.addRoundRect(rect, cornerRadius, cornerRadius, Path.Direction.CW)
 

@@ -314,7 +314,11 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
         adapter = TemplatesAdapter { template, isDownloaded ->
             if (isDownloaded) {
                 val exportResult = template.toExportResultFinal()
-                lifecycleScope.launch { withContext(Dispatchers.Default) { viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) } }
+                viewModel.loadTemplateFromJsonFile(exportResult, requireContext(), titleHint = "Loading Template") { success ->
+                    if (success && isAdded) {
+                        findNavController().navigate(R.id.editorFragment)
+                    }
+                }
                 return@TemplatesAdapter
             }
             downloadingTemplate = template
@@ -474,7 +478,7 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
         viewModel.isLoadingTemplate.observe(viewLifecycleOwner) { isLoading ->
             binding.swipeRefresh.isRefreshing = false
             if (isLoading == true) showLoadingDialog()
-            else if (isLoading == false) { dismissLoadingDialog(); view?.post { findNavController().navigate(R.id.editorFragment, bundle) } }
+            else if (isLoading == false) dismissLoadingDialog()
         }
 
         viewModel.loadingStage.observe(viewLifecycleOwner) { stage ->
@@ -496,7 +500,11 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
                             downloadingTemplate = t
                             showGlobalSuccessSnack("Template ready") {
                                 val exportResult = t.toExportResultFinal()
-                                lifecycleScope.launch { withContext(Dispatchers.Default) { viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) } }
+                                viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) { success ->
+                                    if (success && isAdded) {
+                                        findNavController().navigate(R.id.editorFragment)
+                                    }
+                                }
                             }
                         }
                         is TemplateDownloadState.Success -> mainViewModel.clearTemplateDownloadState()

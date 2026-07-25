@@ -1310,7 +1310,7 @@ class CanvasView @JvmOverloads constructor(
 
                     // Regular bitmap element
                     else -> {
-                        element.bitmap?.let {
+                        element.bitmap?.takeIf { !it.isRecycled }?.let {
                             element.bitmapData = ImageProcessor.bitmapToBase64Lossless(it)
                         }
                     }
@@ -1414,7 +1414,9 @@ class CanvasView @JvmOverloads constructor(
                     // Regular bitmap — bitmapData was already set when the bitmap was added.
                     // If it's missing for some reason, encode it now (should be rare).
                     element.bitmap != null && element.bitmapData == null -> {
-                        element.bitmapData = ImageProcessor.bitmapToBase64(element.bitmap!!)
+                        element.bitmap?.takeIf { !it.isRecycled }?.let { bmp ->
+                            element.bitmapData = ImageProcessor.bitmapToBase64(bmp)
+                        }
                         element.bitmap = null
                     }
 
@@ -1559,7 +1561,7 @@ class CanvasView @JvmOverloads constructor(
 
                         // Regular bitmap
                         else -> {
-                            element.bitmap?.let {
+                            element.bitmap?.takeIf { !it.isRecycled }?.let {
                                 element.bitmapData = ImageProcessor.bitmapToBase64(it)
                             }
                         }
@@ -1642,7 +1644,7 @@ class CanvasView @JvmOverloads constructor(
 
                 // Regular bitmap element
                 else -> {
-                    element.bitmap?.let {
+                    element.bitmap?.takeIf { !it.isRecycled }?.let {
                         element.bitmapData = ImageProcessor.bitmapToBase64Lossless(it)
                     }
                 }
@@ -1913,10 +1915,10 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private fun drawLivePreviewStroke(canvas: Canvas) {
-        if (currentStrokePath == null) return
+        val path = currentStrokePath ?: return
 
         val tempStroke = StrokeData(
-            path = currentStrokePath!!,
+            path = path,
             color = currentBrushColor,
             thickness = currentBrushThickness,
             hardness = currentBrushHardness,
@@ -1924,52 +1926,9 @@ class CanvasView @JvmOverloads constructor(
             gradient = currentBrushGradient
         )
 
-        when (currentBrushStyle) {
-            BrushStyle.BRUSH -> com.webscare.urducanvas.common.utils.BrushRenderUtils.drawBrushStroke(
-                canvas, tempStroke, 255
-            )
-
-            BrushStyle.PEN -> com.webscare.urducanvas.common.utils.BrushRenderUtils.drawTaperedPenStroke(
-                canvas, tempStroke, 255
-            )
-
-            BrushStyle.PENCIL -> {
-                val paint = com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
-                    tempStroke, width, height
-                ).apply {
-                    pathEffect = DashPathEffect(floatArrayOf(4f, 4f), 0f)
-                    alpha = 180
-                }
-                canvas.drawPath(tempStroke.path!!, paint)
-            }
-
-            BrushStyle.HIGHLIGHTER -> {
-                val paint = com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
-                    tempStroke, width, height
-                ).apply {
-                    alpha = 130
-                    strokeCap = Paint.Cap.BUTT
-                }
-                canvas.drawPath(tempStroke.path!!, paint)
-            }
-
-            BrushStyle.MARKER -> {
-                val paint = com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
-                    tempStroke, width, height
-                ).apply {
-                    alpha = 240
-                    strokeCap = Paint.Cap.BUTT
-                }
-                canvas.drawPath(tempStroke.path!!, paint)
-            }
-
-            else -> {
-                val paint = com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
-                    tempStroke, width, height
-                )
-                canvas.drawPath(tempStroke.path!!, paint)
-            }
-        }
+        com.webscare.urducanvas.common.utils.BrushRenderUtils.drawSingleStroke(
+            canvas, tempStroke, 255
+        )
     }
 
     @SuppressLint("DrawAllocation")
@@ -3855,48 +3814,9 @@ class CanvasView @JvmOverloads constructor(
         canvas: Canvas, element: CanvasElement
     ) {
         element.drawStrokes?.forEach { stroke ->
-
-            when (stroke.style) {
-                BrushStyle.BRUSH -> {
-                    com.webscare.urducanvas.common.utils.BrushRenderUtils.drawBrushStroke(
-                        canvas, stroke, element.paintAlpha
-                    )
-                }
-
-                BrushStyle.PEN -> {
-                    com.webscare.urducanvas.common.utils.BrushRenderUtils.drawTaperedPenStroke(
-                        canvas, stroke, element.paintAlpha
-                    )
-                }
-
-                BrushStyle.HIGHLIGHTER -> {
-                    val paint =
-                        com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
-                            stroke, width, height
-                        )
-                    paint.alpha = element.paintAlpha
-                    val offset = stroke.thickness * 0.3f
-                    val path = Path(stroke.path)
-                    val m = Matrix()
-                    m.postTranslate(0f, offset)
-                    path.transform(m)
-                    canvas.drawPath(path, paint)
-                }
-
-                else -> {
-                    val paint =
-                        com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(
-                            stroke, width, height
-                        )
-                    paint.alpha = element.paintAlpha
-                    canvas.drawPath(stroke.path!!, paint)
-                }
-            }
-        }
-
-        // 🟢 Live in-progress stroke for active session
-        if (element == activeSessionElement && currentStrokePath != null && currentStrokePaint != null) {
-            canvas.drawPath(currentStrokePath!!, currentStrokePaint!!)
+            com.webscare.urducanvas.common.utils.BrushRenderUtils.drawSingleStroke(
+                canvas, stroke, element.paintAlpha
+            )
         }
     }
 
@@ -4853,6 +4773,7 @@ class CanvasView @JvmOverloads constructor(
                 MotionEvent.ACTION_DOWN -> {
                     currentStrokePath = Path().apply {
                         moveTo(x, y)
+                        lineTo(x + 0.01f, y + 0.01f)
                     }
                     currentStrokePoints.clear()
                     currentStrokePoints.add(x to y)
@@ -4954,6 +4875,14 @@ class CanvasView @JvmOverloads constructor(
         if (rulerState != com.webscare.urducanvas.common.canvas.enums.RulerState.OFF) {
             if (handleRulerTouch(event, x, y)) {
                 return true
+            }
+        }
+
+        if (event.actionMasked == MotionEvent.ACTION_DOWN || event.actionMasked == MotionEvent.ACTION_POINTER_DOWN) {
+            if (gestureStartZoom == null) {
+                gestureStartZoom = overallScale
+                gestureStartPanX = overallOffsetX
+                gestureStartPanY = overallOffsetY
             }
         }
 
@@ -5829,6 +5758,23 @@ class CanvasView @JvmOverloads constructor(
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (gestureStartZoom != null && gestureStartPanX != null && gestureStartPanY != null) {
+                    val startZoom = gestureStartZoom!!
+                    val startPanX = gestureStartPanX!!
+                    val startPanY = gestureStartPanY!!
+                    gestureStartZoom = null
+                    gestureStartPanX = null
+                    gestureStartPanY = null
+
+                    if (!isRestoringTransformFromUndoRedo) {
+                        val zoomChanged = abs(overallScale - startZoom) > 0.01f
+                        val panXChanged = abs(overallOffsetX - startPanX) > 2f
+                        val panYChanged = abs(overallOffsetY - startPanY) > 2f
+                        if (zoomChanged || panXChanged || panYChanged) {
+                            onTransformChanged?.invoke(startZoom, startPanX, startPanY, overallScale, overallOffsetX, overallOffsetY)
+                        }
+                    }
+                }
                 showVerticalGuide = false
                 showHorizontalGuide = false
                 activeSnapLines.clear()
@@ -6431,16 +6377,39 @@ class CanvasView @JvmOverloads constructor(
         isCanvasPanLocked = locked
     }
 
+    var onTransformChanged: ((oldZoom: Float, oldPanX: Float, oldPanY: Float, newZoom: Float, newPanX: Float, newPanY: Float) -> Unit)? = null
+    private var gestureStartZoom: Float? = null
+    private var gestureStartPanX: Float? = null
+    private var gestureStartPanY: Float? = null
+    var isRestoringTransformFromUndoRedo = false
+
+    fun setZoomAndPan(zoom: Float, panX: Float, panY: Float) {
+        isRestoringTransformFromUndoRedo = true
+        overallScale = zoom.coerceIn(0.5f, 3.0f)
+        overallOffsetX = panX
+        overallOffsetY = panY
+        clampOverallPan()
+        invalidate()
+        isRestoringTransformFromUndoRedo = false
+    }
+
     fun resetZoomAndPan() {
+        if (isRestoringTransformFromUndoRedo) return
+        val oldZoom = overallScale
+        val oldPanX = overallOffsetX
+        val oldPanY = overallOffsetY
         overallScale = 1f
         overallOffsetX = 0f
         overallOffsetY = 0f
         clampOverallPan()
         invalidate()
+        if (oldZoom != 1f || oldPanX != 0f || oldPanY != 0f) {
+            onTransformChanged?.invoke(oldZoom, oldPanX, oldPanY, 1f, 0f, 0f)
+        }
     }
 
     fun setZoomLevel(zoom: Float) {
-        if (suppressZoomCallback) return
+        if (suppressZoomCallback || isRestoringTransformFromUndoRedo) return
         var newScale = zoom.coerceIn(0.5f, 3.0f)
 
         // Snap to 50%, 100%, 150%, 200%, 250%, 300%
@@ -6457,6 +6426,8 @@ class CanvasView @JvmOverloads constructor(
     }
 
     fun getCurrentZoom(): Float = overallScale
+    fun getCurrentPanX(): Float = overallOffsetX
+    fun getCurrentPanY(): Float = overallOffsetY
 
     /**
      * Returns true if the canvas is currently centered in both axes

@@ -197,19 +197,9 @@ class FilesListFragment : Fragment() {
         )
 
         _binding!!.filesRV.adapter = adapter
-        _binding!!.filesRV.layoutManager = LinearLayoutManager(requireContext())
+        _binding!!.filesRV.layoutManager = com.webscare.urducanvas.common.views.SafeLinearLayoutManager(requireContext())
 
-        _binding!!.filesRV.setOnTouchListener { v, event ->
-            if (event.action == android.view.MotionEvent.ACTION_DOWN && adapter.isEditing()) {
-                val imm = requireContext()
-                    .getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
-                        as android.view.inputmethod.InputMethodManager
-                imm.hideSoftInputFromWindow(v.windowToken, 0)
-                requireActivity().currentFocus?.clearFocus()
-                adapter.stopEditing()
-            }
-            false
-        }
+
     }
 
     // ─── Multi-file import ────────────────────────────────────────────────────
@@ -447,9 +437,11 @@ class FilesListFragment : Fragment() {
 
     private fun openItem(item: Any) {
         when (item) {
-            is ExportResult -> lifecycleScope.launch {
-                withContext(Dispatchers.Default) {
-                    canvasViewModel.loadTemplateFromJsonFile(item, requireContext())
+            is ExportResult -> {
+                canvasViewModel.loadTemplateFromJsonFile(item, requireContext(), titleHint = "Loading Project") { success ->
+                    if (success && isAdded) {
+                        findNavController().navigate(R.id.editorFragment, bundle, navOptions)
+                    }
                 }
             }
             is FontEntity -> {
@@ -683,9 +675,9 @@ class FilesListFragment : Fragment() {
                 filtersViewModel.isGrid.collect { isGrid ->
                     val b = _binding ?: return@collect
                     b.filesRV.layoutManager = if (isGrid)
-                        GridLayoutManager(requireContext(), 2)
+                        com.webscare.urducanvas.common.views.SafeGridLayoutManager(requireContext(), 2)
                     else
-                        LinearLayoutManager(requireContext())
+                        com.webscare.urducanvas.common.views.SafeLinearLayoutManager(requireContext())
                     adapter.toggleViewType(isGrid)
                 }
             }

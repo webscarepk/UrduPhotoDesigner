@@ -339,84 +339,156 @@ object ImageProcessor {
     }
 
     fun Bitmap.trimTransparentEdges(): Bitmap {
-        val width = this.width
-        val height = this.height
-        val pixels = IntArray(width * height)
-        this.getPixels(pixels, 0, width, 0, 0, width, height)
+        if (isRecycled || width <= 0 || height <= 0) return this
+        val w = this.width
+        val h = this.height
 
-        var top = height
-        var left = width
-        var right = 0
-        var bottom = 0
+        try {
+            var top = h
+            var bottom = -1
+            var left = w
+            var right = -1
 
-        for (y in 0 until height) {
-            for (x in 0 until width) {
-                val alpha = pixels[x + y * width] shr 24 and 0xff
-                if (alpha > 0) { // pixel is not transparent
-                    if (x < left) left = x
-                    if (x > right) right = x
-                    if (y < top) top = y
-                    if (y > bottom) bottom = y
+            val rowBuffer = IntArray(w)
+
+            // Scan top-down for top edge
+            for (y in 0 until h) {
+                getPixels(rowBuffer, 0, w, 0, y, w, 1)
+                var hasOpaque = false
+                for (x in 0 until w) {
+                    if ((rowBuffer[x] ushr 24 and 0xff) > 0) {
+                        hasOpaque = true
+                        if (x < left) left = x
+                        if (x > right) right = x
+                    }
+                }
+                if (hasOpaque) {
+                    top = y
+                    break
                 }
             }
-        }
 
-        return if (right < left || bottom < top) {
-            this // image fully transparent, return original
-        } else {
-            Bitmap.createBitmap(this, left, top, right - left + 1, bottom - top + 1)
+            if (top >= h) return this // Completely transparent
+
+            // Scan bottom-up for bottom edge
+            for (y in h - 1 downTo top) {
+                getPixels(rowBuffer, 0, w, 0, y, w, 1)
+                var hasOpaque = false
+                for (x in 0 until w) {
+                    if ((rowBuffer[x] ushr 24 and 0xff) > 0) {
+                        hasOpaque = true
+                        if (x < left) left = x
+                        if (x > right) right = x
+                    }
+                }
+                if (hasOpaque) {
+                    bottom = y
+                    break
+                }
+            }
+
+            // Fine-scan left and right edges between top and bottom rows
+            for (y in (top + 1) until bottom) {
+                getPixels(rowBuffer, 0, w, 0, y, w, 1)
+                for (x in 0 until w) {
+                    if ((rowBuffer[x] ushr 24 and 0xff) > 0) {
+                        if (x < left) left = x
+                        if (x > right) right = x
+                    }
+                }
+            }
+
+            if (left > right || top > bottom) return this
+
+            val cropW = right - left + 1
+            val cropH = bottom - top + 1
+
+            if (cropW == w && cropH == h) return this
+
+            return Bitmap.createBitmap(this, left, top, cropW, cropH)
+        } catch (e: OutOfMemoryError) {
+            e.printStackTrace()
+            return this
+        } catch (e: Throwable) {
+            e.printStackTrace()
+            return this
         }
     }
 
 
     fun PictureDrawable.trimTransparentEdges(): PictureDrawable {
-        val w = intrinsicWidth.takeIf { it > 0 } ?: picture.width
-        val h = intrinsicHeight.takeIf { it > 0 } ?: picture.height
+        try {
+            val origW = intrinsicWidth.takeIf { it > 0 } ?: picture.width
+            val origH = intrinsicHeight.takeIf { it > 0 } ?: picture.height
+            if (origW <= 0 || origH <= 0) return this
 
-        // ✅ Must set bounds before draw() works correctly
-        setBounds(0, 0, w, h)
+            setBounds(0, 0, origW, origH)
 
-        val tempBitmap = createBitmap(w, h)
-        Canvas(tempBitmap).also { draw(it) }
+            // Cap sample size to max 512px on either dimension to prevent OOM
+            val maxSample = 512f
+            val maxDim = maxOf(origW, origH).toFloat()
+            val sampleScale = if (maxDim > maxSample) maxSample / maxDim else 1f
 
-        // Debug: check if any transparent pixels exist at all
-        val hasTransparency = (0 until w).any { x ->
-            (0 until h).any { y -> Color.alpha(tempBitmap.getPixel(x, y)) == 0 }
-        }
-        Log.d("SVG_TRIM", "hasTransparency: $hasTransparency, size: ${w}x${h}")
+            val sampleW = (origW * sampleScale).toInt().coerceAtLeast(1)
+            val sampleH = (origH * sampleScale).toInt().coerceAtLeast(1)
 
-        val bounds = tempBitmap.findNonTransparentBounds()
-        tempBitmap.recycle()
+            val tempBitmap = createBitmap(sampleW, sampleH)
+            val canvas = Canvas(tempBitmap)
+            canvas.scale(sampleScale, sampleScale)
+            draw(canvas)
 
-        if (bounds == null) return this
+            val sampleBounds = tempBitmap.findNonTransparentBounds()
+            tempBitmap.recycle()
 
-        val newW = bounds.width()
-        val newH = bounds.height()
+            if (sampleBounds == null) return this
 
-        val trimmedPicture = Picture()
-        val canvas = trimmedPicture.beginRecording(newW, newH)
-        canvas.translate(-bounds.left.toFloat(), -bounds.top.toFloat())
-        canvas.drawPicture(picture)
-        trimmedPicture.endRecording()
+            // Map sample bounds back to original vector dimensions
+            val invScale = 1f / sampleScale
+            val left = (sampleBounds.left * invScale).toInt().coerceIn(0, origW - 1)
+            val top = (sampleBounds.top * invScale).toInt().coerceIn(0, origH - 1)
+            val right = (sampleBounds.right * invScale).toInt().coerceIn(left + 1, origW)
+            val bottom = (sampleBounds.bottom * invScale).toInt().coerceIn(top + 1, origH)
 
-        return PictureDrawable(trimmedPicture).also {
-            it.setBounds(0, 0, newW, newH)
+            val newW = right - left
+            val newH = bottom - top
+
+            if (newW <= 0 || newH <= 0 || (newW == origW && newH == origH)) return this
+
+            val trimmedPicture = Picture()
+            val trimCanvas = trimmedPicture.beginRecording(newW, newH)
+            trimCanvas.translate(-left.toFloat(), -top.toFloat())
+            trimCanvas.drawPicture(picture)
+            trimmedPicture.endRecording()
+
+            return PictureDrawable(trimmedPicture).also {
+                it.setBounds(0, 0, newW, newH)
+            }
+        } catch (e: OutOfMemoryError) {
+            e.printStackTrace()
+            return this
+        } catch (e: Throwable) {
+            e.printStackTrace()
+            return this
         }
     }
 
     private fun Bitmap.findNonTransparentBounds(alphaThreshold: Int = 10): Rect? {
-        var minX = width
-        var minY = height
-        var maxX = 0
-        var maxY = 0
+        if (isRecycled || width <= 0 || height <= 0) return null
+        val w = width
+        val h = height
 
-        val pixels = IntArray(width * height)
-        getPixels(pixels, 0, width, 0, 0, width, height)  // ✅ batch read, faster too
+        var minX = w
+        var minY = h
+        var maxX = -1
+        var maxY = -1
 
-        for (y in 0 until height) {
-            for (x in 0 until width) {
-                val alpha = pixels[x + y * width] shr 24 and 0xff
-                if (alpha > alphaThreshold) {  // ✅ ignore near-transparent anti-aliased edge pixels
+        val rowBuffer = IntArray(w)
+
+        for (y in 0 until h) {
+            getPixels(rowBuffer, 0, w, 0, y, w, 1)
+            for (x in 0 until w) {
+                val alpha = rowBuffer[x] ushr 24 and 0xff
+                if (alpha > alphaThreshold) {
                     if (x < minX) minX = x
                     if (x > maxX) maxX = x
                     if (y < minY) minY = y
@@ -449,39 +521,51 @@ object ImageProcessor {
      * Convert Bitmap -> Base64 (PNG encoding by default).
      */
     fun bitmapToBase64(bitmap: Bitmap): String {
-        val maxDimension = 1920
-        val scaled = if (bitmap.width > maxDimension || bitmap.height > maxDimension) {
-            val scale = maxDimension.toFloat() / maxOf(bitmap.width, bitmap.height)
-            bitmap.scale((bitmap.width * scale).roundToInt(), (bitmap.height * scale).roundToInt())
-        } else bitmap
+        if (bitmap.isRecycled) return ""
+        return try {
+            val maxDimension = 1920
+            val scaled = if (bitmap.width > maxDimension || bitmap.height > maxDimension) {
+                val scale = maxDimension.toFloat() / maxOf(bitmap.width, bitmap.height)
+                bitmap.scale((bitmap.width * scale).roundToInt(), (bitmap.height * scale).roundToInt())
+            } else bitmap
 
-        val stream = ByteArrayOutputStream()
+            val stream = ByteArrayOutputStream()
 
-        if (bitmap.hasAlpha()) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                scaled.compress(Bitmap.CompressFormat.WEBP_LOSSY, 80, stream)
+            if (bitmap.hasAlpha()) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    scaled.compress(Bitmap.CompressFormat.WEBP_LOSSY, 80, stream)
+                } else {
+                    @Suppress("DEPRECATION")
+                    scaled.compress(Bitmap.CompressFormat.WEBP, 80, stream)
+                }
             } else {
-                @Suppress("DEPRECATION")
-                scaled.compress(Bitmap.CompressFormat.WEBP, 80, stream)
+                scaled.compress(Bitmap.CompressFormat.JPEG, 80, stream)
             }
-        } else {
-            scaled.compress(Bitmap.CompressFormat.JPEG, 80, stream)
+
+            val result = Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
+
+            stream.reset()
+            if (scaled !== bitmap && !scaled.isRecycled) scaled.recycle()
+
+            result
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ""
         }
-
-        val result = Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
-
-        stream.reset()
-        if (scaled !== bitmap) scaled.recycle()
-
-        return result
     }
 
     fun bitmapToBase64Lossless(bitmap: Bitmap): String {
-        val stream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-        val result = Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
-        stream.reset()
-        return result
+        if (bitmap.isRecycled) return ""
+        return try {
+            val stream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            val result = Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
+            stream.reset()
+            result
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ""
+        }
     }
 
     /**

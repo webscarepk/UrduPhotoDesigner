@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 enum class ShapeType(val displayName: String) {
+    SQUARE("Square"),
     RECTANGLE("Rectangle"),
     ROUNDED_RECTANGLE("Rounded Rectangle"),
     ELLIPSE("Ellipse"),

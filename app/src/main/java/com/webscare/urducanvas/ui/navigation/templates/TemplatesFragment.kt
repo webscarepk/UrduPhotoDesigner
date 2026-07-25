@@ -208,7 +208,11 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
                     }
                 } else {
                     val exportResult = template.toExportResultFinal()
-                    lifecycleScope.launch { withContext(Dispatchers.Default) { viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) } }
+                    viewModel.loadTemplateFromJsonFile(exportResult, requireContext(), titleHint = "Loading Template") { success ->
+                        if (success && isAdded) {
+                            findNavController().navigate(R.id.editorFragment)
+                        }
+                    }
                 }
             }
         )
@@ -226,7 +230,11 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
         templatesAdapter = TemplatesAdapter { template, isDownloaded ->
             if (isDownloaded) {
                 val exportResult = template.toExportResultFinal()
-                lifecycleScope.launch { withContext(Dispatchers.Default) { viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) } }
+                viewModel.loadTemplateFromJsonFile(exportResult, requireContext(), titleHint = "Loading Template") { success ->
+                    if (success && isAdded) {
+                        findNavController().navigate(R.id.editorFragment)
+                    }
+                }
                 return@TemplatesAdapter
             }
             downloadingTemplate = template
@@ -471,7 +479,7 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
 
         viewModel.isLoadingTemplate.observe(viewLifecycleOwner) { isLoading ->
             if (isLoading == true) showLoadingDialog()
-            else if (isLoading == false) { dismissLoadingDialog(); view?.post { findNavController().navigate(R.id.editorFragment, bundle) } }
+            else if (isLoading == false) dismissLoadingDialog()
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -492,7 +500,11 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
                             }
                             showGlobalSuccessSnack("Template ready") {
                                 val exportResult = t.toExportResultFinal()
-                                lifecycleScope.launch { withContext(Dispatchers.Default) { viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) } }
+                                viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) { success ->
+                                    if (success && isAdded) {
+                                        findNavController().navigate(R.id.editorFragment)
+                                    }
+                                }
                             }
                             downloadingTemplate = null
                         }

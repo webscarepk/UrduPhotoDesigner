@@ -255,10 +255,10 @@ class BrushPanelFragment : Fragment() {
 
         val styleCards = listOf(
             binding.pen to BrushStyle.PEN,
+            binding.pencil to BrushStyle.PENCIL,
             binding.marker to BrushStyle.MARKER,
-            binding.brush to BrushStyle.BRUSH,
             binding.highlighter to BrushStyle.HIGHLIGHTER,
-            binding.pencil to BrushStyle.PENCIL
+            binding.brush to BrushStyle.BRUSH
         )
 
         styleCards.forEach { (card, brushType) ->

@@ -48,7 +48,8 @@ object Utils {
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     isInside = true
-                    v.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80).start()
+                    v.vibrateSoft()
+                    v.animate().scaleX(0.9f).scaleY(0.9f).setDuration(60).start()
                     true
                 }
 
@@ -57,33 +58,32 @@ object Utils {
                     val insideNow =
                         event.x >= 0 && event.x <= v.width && event.y >= 0 && event.y <= v.height
                     if (isInside && !insideNow) {
-                        // Finger moveRd out → cancel press effect
+                        // Finger moved out → cancel press effect
                         isInside = false
-                        v.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
+                        v.animate().scaleX(1f).scaleY(1f).setDuration(80).start()
                     } else if (!isInside && insideNow) {
                         // Finger moved back in → reapply press effect
                         isInside = true
-                        v.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80).start()
+                        v.animate().scaleX(0.9f).scaleY(0.9f).setDuration(60).start()
                     }
                     true
                 }
 
                 MotionEvent.ACTION_UP -> {
-                    v.animate().scaleX(1f).scaleY(1f).setDuration(120).withEndAction {
-                        if (isInside && v.isAttachedToWindow) {
-                            onClick?.invoke() ?: v.performClick()
-                        }
-                    }.start()
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(80).start()
+                    if (isInside && v.isAttachedToWindow) {
+                        onClick?.invoke() ?: v.performClick()
+                    }
                     true
                 }
 
                 MotionEvent.ACTION_CANCEL -> {
                     isInside = false
-                    v.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(80).start()
                     true
                 }
 
-                else -> true
+                else -> false
             }
         }
     }

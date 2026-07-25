@@ -99,4 +99,13 @@ sealed class CanvasAction {
     data class DrawSessionStroke(
         val strokeData: StrokeData  // a deep copy of the stroke that was just added
     ) : CanvasAction()
+
+    data class TransformCanvas(
+        val oldZoom: Float,
+        val oldPanX: Float,
+        val oldPanY: Float,
+        val newZoom: Float,
+        val newPanX: Float,
+        val newPanY: Float
+    ) : CanvasAction()
 }

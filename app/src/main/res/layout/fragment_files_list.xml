@@ -19,7 +19,7 @@
         android:paddingHorizontal="@dimen/_12sdp"
         android:paddingTop="20dp"
         android:visibility="visible"
-        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+        app:layoutManager="com.webscare.urducanvas.common.views.SafeGridLayoutManager"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

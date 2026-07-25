@@ -23,14 +23,18 @@ class ExportResultsRepositoryImpl @Inject constructor(
 
     override suspend fun deleteExportResult(exportResult: com.webscare.urducanvas.data.model.ExportResult) {
         try {
-            exportResult.imagePath.let {
-                val imageFile = File(it)
-                if (imageFile.exists()) imageFile.delete()
+            exportResult.imagePath.let { path ->
+                if (!path.startsWith("http", ignoreCase = true) && !path.contains("downloaded_templates", ignoreCase = true)) {
+                    val imageFile = File(path)
+                    if (imageFile.exists()) imageFile.delete()
+                }
             }
 
-            exportResult.jsonPath.let {
-                val jsonFile = File(it)
-                if (jsonFile.exists()) jsonFile.delete()
+            exportResult.jsonPath.let { path ->
+                if (!path.contains("downloaded_templates", ignoreCase = true) && !path.contains("/template_", ignoreCase = true)) {
+                    val jsonFile = File(path)
+                    if (jsonFile.exists()) jsonFile.delete()
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()

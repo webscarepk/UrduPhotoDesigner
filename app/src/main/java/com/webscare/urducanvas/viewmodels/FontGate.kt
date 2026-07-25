@@ -20,7 +20,7 @@ class FontGate @Inject constructor(
     private val updateFontsUseCase: com.webscare.urducanvas.domain.usecase.UpdateFontsUseCase
 ) {
 
-    suspend fun ensureFonts(fontIds: List<String>) {
+    suspend fun ensureFonts(fontIds: List<String>, onProgress: ((String, Int) -> Unit)? = null) {
 
         if (fontIds.isEmpty()) return
 
@@ -32,12 +32,15 @@ class FontGate @Inject constructor(
 
         if (missingFonts.isEmpty()) return
 
+        onProgress?.invoke("Fetching fonts", 45)
+
         coroutineScope {
             missingFonts.map { font ->
                 async { downloadSingleFont(font) }
             }.awaitAll()
         }
 
+        onProgress?.invoke("Preparing fonts", 50)
         waitUntilFontsReady(fontIds)
     }
 

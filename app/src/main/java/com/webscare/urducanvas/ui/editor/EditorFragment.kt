@@ -293,7 +293,6 @@ class EditorFragment : Fragment() {
         fabMargin = 8.dpToPx(requireContext())
         // FIX: Reset on every onViewCreated — view is being recreated so UI needs full re-init.
         uiFullyInitialized = false
-        viewModel.clearLoading()
 
         // ── Update all callback references to point at this (fresh) fragment instance.
         // Must happen before observeViewModel() so that any LiveData re-delivery
@@ -336,12 +335,13 @@ class EditorFragment : Fragment() {
             }
         }
 
-        // ── Eagerly re-attach the CanvasView so the container is never blank between
-        // onViewCreated and the canvasSize observer firing.
-        viewModel.getCanvasView()?.let { existing ->
-            if (existing.parent !== binding.canvasContainer) {
-                (existing.parent as? ViewGroup)?.removeView(existing)
-                binding.canvasContainer.addView(existing)
+        // ── Re-attach CanvasView only if state matches active project size ──
+        if (viewModel.canvasSize.value != null) {
+            viewModel.getCanvasView()?.let { existing ->
+                if (existing.parent !== binding.canvasContainer) {
+                    (existing.parent as? ViewGroup)?.removeView(existing)
+                    binding.canvasContainer.addView(existing)
+                }
             }
         }
 
@@ -721,13 +721,21 @@ class EditorFragment : Fragment() {
         viewModel.isLoadingTemplate.observe(viewLifecycleOwner) { isLoading ->
             if (isLoading == true) {
                 showExportProgressDialog()
-                updateExportDialog(0, "Restoring design...")
+                val initialStage = viewModel.loadingStage.value
+                val title = initialStage?.first ?: "Loading..."
+                val pct = initialStage?.second ?: 0
+                updateExportDialog(pct, title)
             } else if (isLoading == false) {
                 dismissExportDialog()
-                if (viewModel.canvasSize.value == null) {
+                if (isAdded && isResumed && viewModel.canvasSize.value == null) {
                     android.widget.Toast.makeText(context, "Failed to restore project", android.widget.Toast.LENGTH_LONG).show()
-                    findNavController().navigateUp()
+                    try {
+                        findNavController().navigateUp()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Navigation failed: ${e.message}")
+                    }
                 }
+                viewModel.clearLoading()
             }
         }
 
@@ -761,6 +769,13 @@ class EditorFragment : Fragment() {
             }
         }
 
+        viewModel.exportResult.observe(viewLifecycleOwner) { result ->
+            if (result != null) {
+                exportModel = result
+                jsonPath = result.jsonPath
+                imagePath = result.imagePath
+            }
+        }
     }
 
     private fun observeAfterCanvasReady() {
@@ -808,11 +823,13 @@ class EditorFragment : Fragment() {
         }
 
         viewModel.canvasElements.observe(viewLifecycleOwner) { elements ->
-            if (isAdded) {
-                if (!elements.isNullOrEmpty()) {
+            if (isAdded && elements != null) {
+                if (::canvasManager.isInitialized) {
                     canvasManager.syncElements(elements)
                     binding.canvasContainer.invalidate()
-                    scheduleJsonSave()
+                    if (elements.isNotEmpty()) {
+                        scheduleJsonSave()
+                    }
                 }
                 val panelDestinations = listOf(
                     R.id.adjustmentsParentFragment,
@@ -943,7 +960,9 @@ class EditorFragment : Fragment() {
         }
 
         viewModel.zoomLevel.observe(viewLifecycleOwner) { zoom ->
-            sizedCanvasView.setZoomLevel(zoom)
+            if (sizedCanvasView.getCurrentZoom() != zoom) {
+                sizedCanvasView.setZoomLevel(zoom)
+            }
         }
 
         viewModel.selectedElements.observe(viewLifecycleOwner) { newSelection ->
@@ -1247,6 +1266,9 @@ class EditorFragment : Fragment() {
             ).apply {
                 binding.canvasContainer.addView(this)
             }
+            sizedCanvasView.onTransformChanged = { oldZoom, oldPanX, oldPanY, newZoom, newPanX, newPanY ->
+                viewModel.recordCanvasTransform(oldZoom, oldPanX, oldPanY, newZoom, newPanX, newPanY)
+            }
             viewModel.setCanvasView(sizedCanvasView)
         }
 
@@ -1351,18 +1373,16 @@ class EditorFragment : Fragment() {
         var lastUndoClickTime = 0L
         binding.undo.addPressEffect {
             val currentTime = System.currentTimeMillis()
-            if (currentTime - lastUndoClickTime > 300L) {
+            if (currentTime - lastUndoClickTime > 100L) {
                 lastUndoClickTime = currentTime
-                binding.undo.vibrateSoft()
                 viewModel.undo()
             }
         }
         var lastRedoClickTime = 0L
         binding.redo.addPressEffect {
             val currentTime = System.currentTimeMillis()
-            if (currentTime - lastRedoClickTime > 300L) {
+            if (currentTime - lastRedoClickTime > 100L) {
                 lastRedoClickTime = currentTime
-                binding.redo.vibrateSoft()
                 viewModel.redo()
             }
         }
@@ -1714,26 +1734,32 @@ class EditorFragment : Fragment() {
     }
 
     private fun showExportProgressDialog() {
+        if (!isAdded || activity?.isFinishing == true) return
         if (exportDialog?.isShowing == true) return
 
-        exportDialogBinding = DialogAutoSavingLayoutBinding.inflate(layoutInflater)
+        try {
+            exportDialogBinding = DialogAutoSavingLayoutBinding.inflate(layoutInflater)
 
-        exportDialog = Dialog(requireContext()).apply {
-            setContentView(exportDialogBinding!!.root)
-            setCancelable(false)
-            window?.setBackgroundDrawableResource(android.R.color.transparent)
-            val params = window?.attributes
-            params?.width = (resources.displayMetrics.widthPixels * 0.8).toInt() // 80% width
-            params?.height = ViewGroup.LayoutParams.WRAP_CONTENT
-            window?.attributes = params
+            exportDialog = Dialog(requireContext()).apply {
+                setContentView(exportDialogBinding!!.root)
+                setCancelable(false)
+                window?.setBackgroundDrawableResource(android.R.color.transparent)
+                val params = window?.attributes
+                params?.width = (resources.displayMetrics.widthPixels * 0.8).toInt() // 80% width
+                params?.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                window?.attributes = params
 
-            window?.setGravity(Gravity.CENTER)
-            show()
+                window?.setGravity(Gravity.CENTER)
+                show()
+            }
+            startIconRotation()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to show export dialog: ${e.message}")
         }
-        startIconRotation()
     }
 
     private fun updateExportDialog(percent: Int, stage: String) {
+        if (!isAdded) return
         exportDialogBinding?.apply {
             progressBar.progress = percent
             tvProgressPercent.text = getString(R.string.complete, percent)
@@ -1743,31 +1769,47 @@ class EditorFragment : Fragment() {
 
     private fun dismissExportDialog() {
         stopIconRotation()
-        exportDialog?.dismiss()
-        exportDialog = null
-        exportDialogBinding = null
+        try {
+            exportDialog?.dismiss()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to dismiss export dialog: ${e.message}")
+        } finally {
+            exportDialog = null
+            exportDialogBinding = null
+        }
     }
 
     private fun autoSaveSilent() {
-        if (!::sizedCanvasView.isInitialized) {
+        if (!isAdded || !::sizedCanvasView.isInitialized) {
             return
         }
         val options = viewModel.exportOptions.value ?: return
         val canvasSize = viewModel.canvasSize.value ?: return
 
         lifecycleScope.launch {
-            val (thumbnailBitmap, jsonFile) = withContext(Dispatchers.Default) {
-                sizedCanvasView.exportCanvasThumbnailBitmap { _, _ -> }
-            }
-            withContext(Dispatchers.IO) {
-                saveOnExitSafe(options, thumbnailBitmap, jsonFile, false, canvasSize)
+            try {
+                val (thumbnailBitmap, jsonFile) = withContext(Dispatchers.Default) {
+                    sizedCanvasView.exportCanvasThumbnailBitmap { _, _ -> }
+                }
+                withContext(Dispatchers.IO) {
+                    saveOnExitSafe(options, thumbnailBitmap, jsonFile, false, canvasSize)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "autoSaveSilent failed: ${e.message}")
             }
         }
     }
 
     private fun autoSave() {
-        if (!viewModel.hasChanges.value!!) {
-            findNavController().navigateUp()
+        if (!isAdded) return
+        if (!::sizedCanvasView.isInitialized || viewModel.hasChanges.value != true) {
+            if (isAdded && isResumed) {
+                try {
+                    findNavController().navigateUp()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Navigation failed: ${e.message}")
+                }
+            }
             return
         }
         if (isSaving) return
@@ -1778,27 +1820,43 @@ class EditorFragment : Fragment() {
         showExportProgressDialog()
 
         lifecycleScope.launch {
-            // exportCanvasThumbnailBitmap returns Pair<Bitmap, File>.
-            // The File is a temp JSON file written via bufferedWriter — the JSON is never
-            // held as a String in RAM. saveOnExitSafe stream-copies it to the final path.
-            val (thumbnailBitmap, jsonFile) = withContext(Dispatchers.Default) {
-                sizedCanvasView.exportCanvasThumbnailBitmap { percent, stage ->
-                    lifecycleScope.launch(Dispatchers.Main) {
-                        updateExportDialog(percent, stage)
+            try {
+                val (thumbnailBitmap, jsonFile) = withContext(Dispatchers.Default) {
+                    sizedCanvasView.exportCanvasThumbnailBitmap { percent, stage ->
+                        lifecycleScope.launch(Dispatchers.Main) {
+                            if (isAdded) updateExportDialog(percent, stage)
+                        }
                     }
                 }
-            }
-            withContext(Dispatchers.Main) {
-                updateExportDialog(97, "Saving files...")
-            }
-            withContext(Dispatchers.IO) {
-                saveOnExitSafe(options, thumbnailBitmap, jsonFile, true, canvasSize)
-            }
-            withContext(Dispatchers.Main) {
-                updateExportDialog(100, "Saved successfully")
-                delay(1000)
-                dismissExportDialog()
-                findNavController().navigateUp()
+                if (!isAdded) return@launch
+
+                withContext(Dispatchers.Main) {
+                    if (isAdded) updateExportDialog(97, "Saving files...")
+                }
+                withContext(Dispatchers.IO) {
+                    saveOnExitSafe(options, thumbnailBitmap, jsonFile, true, canvasSize)
+                }
+                withContext(Dispatchers.Main) {
+                    if (isAdded) {
+                        updateExportDialog(100, "Saved successfully")
+                        delay(500)
+                        dismissExportDialog()
+                        if (isAdded && isResumed) {
+                            try {
+                                findNavController().navigateUp()
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Navigation up failed: ${e.message}")
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "autoSave failed: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    dismissExportDialog()
+                }
+            } finally {
+                isSaving = false
             }
         }
     }
@@ -1845,6 +1903,10 @@ class EditorFragment : Fragment() {
         popupBinding.zoomSeekbar.progress = initialProgress
         refreshLabel(initialProgress)
 
+        var seekbarStartZoom = sizedCanvasView.getCurrentZoom()
+        var seekbarStartPanX = sizedCanvasView.getCurrentPanX()
+        var seekbarStartPanY = sizedCanvasView.getCurrentPanY()
+
         popupBinding.zoomSeekbar.setOnSeekBarChangeListener(object :
             SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
@@ -1859,8 +1921,20 @@ class EditorFragment : Fragment() {
                 }
             }
 
-            override fun onStartTrackingTouch(seekBar: SeekBar) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar) {}
+            override fun onStartTrackingTouch(seekBar: SeekBar) {
+                seekbarStartZoom = sizedCanvasView.getCurrentZoom()
+                seekbarStartPanX = sizedCanvasView.getCurrentPanX()
+                seekbarStartPanY = sizedCanvasView.getCurrentPanY()
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                val endZoom = sizedCanvasView.getCurrentZoom()
+                val endPanX = sizedCanvasView.getCurrentPanX()
+                val endPanY = sizedCanvasView.getCurrentPanY()
+                if (kotlin.math.abs(endZoom - seekbarStartZoom) > 0.01f || kotlin.math.abs(endPanX - seekbarStartPanX) > 2f || kotlin.math.abs(endPanY - seekbarStartPanY) > 2f) {
+                    viewModel.recordCanvasTransform(seekbarStartZoom, seekbarStartPanX, seekbarStartPanY, endZoom, endPanX, endPanY)
+                }
+            }
         })
 
         popupBinding.reset.addPressEffect {
@@ -2190,6 +2264,7 @@ class EditorFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         saveJsonJob?.cancel()
+        viewModel.clearLoading()
         // Cancel the spring animation before nulling binding — its onSlide/onStateSettled
         // lambdas capture binding, and Choreographer can deliver one more frame after
         // onDestroyView, causing NPE on _binding!!.

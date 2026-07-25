@@ -107,9 +107,9 @@ class SearchFragment : Fragment() {
                 } else {
                     canvasViewModel.setProjectSourceName(template.category ?: template.subcategory)
                     val exportResult = template.toExportResultFinal().copy(fileName = canvasViewModel.buildProjectFileName())
-                    lifecycleScope.launch {
-                        withContext(Dispatchers.Default) {
-                            canvasViewModel.loadTemplateFromJsonFile(exportResult, requireContext())
+                    canvasViewModel.loadTemplateFromJsonFile(exportResult, requireContext()) { success ->
+                        if (success && isAdded) {
+                            findNavController().navigate(R.id.editorFragment, bundle, navOptions)
                         }
                     }
                 }
@@ -126,7 +126,7 @@ class SearchFragment : Fragment() {
         binding.popularTemplateRV.apply {
             adapter = templatesAdapter
             layoutManager =
-                LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+                com.webscare.urducanvas.common.views.SafeLinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         }
 
         // Fonts
@@ -152,7 +152,7 @@ class SearchFragment : Fragment() {
         binding.fontsRV.apply {
             adapter = fontsAdapter
             layoutManager =
-                LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+                com.webscare.urducanvas.common.views.SafeLinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         }
 
         filesAdapter = FilesAdapter(
@@ -165,16 +165,16 @@ class SearchFragment : Fragment() {
             onSelectionChanged = {})
         binding.filesRV.apply {
             adapter = filesAdapter
-            layoutManager = LinearLayoutManager(requireContext())
+            layoutManager = com.webscare.urducanvas.common.views.SafeLinearLayoutManager(requireContext())
         }
     }
 
     private fun openItem(item: Any) {
         when (item) {
             is ExportResult -> {
-                lifecycleScope.launch {
-                    withContext(Dispatchers.Default) {
-                        canvasViewModel.loadTemplateFromJsonFile(item, requireContext())
+                canvasViewModel.loadTemplateFromJsonFile(item, requireContext()) { success ->
+                    if (success && isAdded) {
+                        findNavController().navigate(R.id.editorFragment, bundle, navOptions)
                     }
                 }
             }
@@ -231,6 +231,22 @@ class SearchFragment : Fragment() {
             findNavController().navigateUp()
         }
 
+        binding.searchBar.apply {
+            maxLines = 1
+            isSingleLine = true
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH or android.view.inputmethod.EditorInfo.IME_ACTION_DONE
+            setOnEditorActionListener { v, actionId, _ ->
+                if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH ||
+                    actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                    val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                    imm.hideSoftInputFromWindow(v.windowToken, 0)
+                    v.clearFocus()
+                    true
+                } else false
+            }
+        }
+
         binding.searchBar.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
                 mainViewModel.setQuery(s.toString())
@@ -283,20 +299,6 @@ class SearchFragment : Fragment() {
                 showLoadingDialog()
             } else if (isLoading == false) {
                 dismissLoadingDialog()
-                if (canvasViewModel.canvasSize.value != null) {
-                    lifecycleScope.launch {
-                        delay(500)
-                        if (findNavController().currentDestination?.id != R.id.editorFragment) {
-                            view?.post {
-                                findNavController().navigate(
-                                    R.id.editorFragment, bundle, navOptions
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    android.widget.Toast.makeText(context, "Failed to load template", android.widget.Toast.LENGTH_LONG).show()
-                }
             }
         }
 

@@ -171,9 +171,9 @@ class HomeFragment : androidx.fragment.app.Fragment() {
         }
 
         recentAdapter = RecentAdapter(onClick = { exportResult ->
-            lifecycleScope.launch {
-                withContext(Dispatchers.Default) {
-                    viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
+            viewModel.loadTemplateFromJsonFile(exportResult, requireContext(), titleHint = "Loading Project") { success ->
+                if (success && isAdded) {
+                    findNavController().navigate(R.id.editorFragment)
                 }
             }
         })
@@ -216,9 +216,9 @@ class HomeFragment : androidx.fragment.app.Fragment() {
             } else {
                 viewModel.setProjectSourceName(template.category ?: template.subcategory)
                 val exportResult = template.toExportResultFinal().copy(fileName = viewModel.buildProjectFileName())
-                lifecycleScope.launch {
-                    withContext(Dispatchers.Default) {
-                        viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
+                viewModel.loadTemplateFromJsonFile(exportResult, requireContext(), titleHint = "Loading Template") { success ->
+                    if (success && isAdded) {
+                        findNavController().navigate(R.id.editorFragment)
                     }
                 }
                 return@TrendsAdapter
@@ -230,24 +230,16 @@ class HomeFragment : androidx.fragment.app.Fragment() {
             setHasFixedSize(true)
         }
 
-        popularTemplatesAdapter = PopularTemplatesAdapter(onClick = { template, isDownloaded ->
+        popularTemplatesAdapter = PopularTemplatesAdapter { template, isDownloaded ->
             if (template.is_downloading) return@PopularTemplatesAdapter
+
             if (isDownloaded) {
-                if (template.file_path.isNullOrEmpty()) {
-                    popularTemplatesAdapter.updateProgress(
-                        template.id,
-                        ProgressUi(
-                            progress = 0, isDownloading = true, isDownloaded = false
-                        )
-                    )
-                    mainViewModel.downloadTemplate(template)
-                    return@PopularTemplatesAdapter
-                } else {
+                if (!template.file_path.isNullOrBlank()) {
                     viewModel.setProjectSourceName(template.category ?: template.subcategory)
                     val exportResult = template.toExportResultFinal().copy(fileName = viewModel.buildProjectFileName())
-                    lifecycleScope.launch {
-                        withContext(Dispatchers.Default) {
-                            viewModel.loadTemplateFromJsonFile(exportResult, requireContext())
+                    viewModel.loadTemplateFromJsonFile(exportResult, requireContext(), titleHint = "Loading Template") { success ->
+                        if (success && isAdded) {
+                            findNavController().navigate(R.id.editorFragment)
                         }
                     }
                 }
@@ -260,7 +252,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                 )
                 mainViewModel.downloadTemplate(template)
             }
-        })
+        }
 
         binding.popularTemplateRV.apply {
             adapter = popularTemplatesAdapter
@@ -409,10 +401,10 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                                 showGlobalSuccessSnack("Template ready") {
                                     viewModel.setProjectSourceName(t.category ?: t.subcategory)
                                     val exportResult = t.toExportResultFinal().copy(fileName = viewModel.buildProjectFileName())
-                                    lifecycleScope.launch {
-                                        viewModel.loadTemplateFromJsonFile(
-                                            exportResult, requireContext()
-                                        )
+                                    viewModel.loadTemplateFromJsonFile(exportResult, requireContext()) { success ->
+                                        if (success && isAdded) {
+                                            findNavController().navigate(R.id.editorFragment)
+                                        }
                                     }
                                 }
                             }

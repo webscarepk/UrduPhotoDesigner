@@ -182,6 +182,8 @@
             android:maxLines="1"
             android:paddingHorizontal="12dp"
             android:singleLine="true"
+            android:inputType="text"
+            android:imeOptions="actionSearch"
             android:textColor="@color/black"
             android:textColorHint="@android:color/darker_gray"
             android:textSize="12sp"

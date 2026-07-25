@@ -269,7 +269,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
 
                     if (isAdded) {
                         if (svgDrawable != null) {
-                            val trimmed = svgDrawable.trimTransparentEdges()
+                            val trimmed = try { svgDrawable.trimTransparentEdges() } catch (e: Throwable) { svgDrawable }
                             Log.d("SVG",
                                 "${svgDrawable.intrinsicWidth}x${svgDrawable.intrinsicHeight}" +
                                         " → ${trimmed.intrinsicWidth}x${trimmed.intrinsicHeight}")
@@ -278,8 +278,9 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                                 applyWhiteTintInDarkMode = true
                             )
                         } else {
+                            val trimmedBmp = try { bitmap?.trimTransparentEdges() } catch (e: Throwable) { bitmap }
                             viewModel.addSticker(
-                                bitmap?.trimTransparentEdges(),
+                                trimmedBmp,
                                 requireActivity(),
                                 ElementType.IMAGE,
                                 entity.is_premium

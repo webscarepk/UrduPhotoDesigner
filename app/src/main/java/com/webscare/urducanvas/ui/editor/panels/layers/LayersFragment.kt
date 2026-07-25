@@ -645,10 +645,20 @@ class LayersFragment : Fragment() {
 
         val editText = dialog.findViewById<EditText>(R.id.edit_text_input)
         editText.apply {
+            maxLines = 1
+            isSingleLine = true
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
             setText(element.customName ?: defaultNameFor(element))
             selectAll()
             hint = getString(R.string.layer_name_hint)
             requestFocus()
+            setOnEditorActionListener { _, actionId, _ ->
+                if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                    dialog.dismiss()
+                    true
+                } else false
+            }
         }
         dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
 

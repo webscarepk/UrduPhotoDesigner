@@ -76,7 +76,12 @@ class ShapeAdapter(
             style       = Paint.Style.STROKE
         }
         val pad    = size * PAD
-        val rect   = RectF(pad, pad, size - pad, size - pad)
+        val rect   = if (shape == ShapeType.RECTANGLE) {
+            val vPad = pad + (size - 2 * pad) * 0.16f
+            RectF(pad, vPad, size - pad, size - vPad)
+        } else {
+            RectF(pad, pad, size - pad, size - pad)
+        }
         drawShape(canvas, paint, shape, rect, 0f)
         return bitmap
     }
