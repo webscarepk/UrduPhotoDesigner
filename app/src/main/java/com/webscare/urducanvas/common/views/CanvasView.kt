@@ -3417,9 +3417,8 @@ class CanvasView @JvmOverloads constructor(
                     iconMap["resize"] = Pair(
                         corners[4], corners[5]
                     )
-                    if (element.type == ElementType.SHAPE) {
+                    if (element.type == ElementType.SHAPE || element.type == ElementType.TEXT) {
                         iconMap["transform"] = Pair(corners[6], corners[7])
-
                     }
 
                 }
@@ -4223,7 +4222,7 @@ class CanvasView @JvmOverloads constructor(
     ) {
         if (element.paintAlpha == 0) return
 
-        val lines = element.getTextWithKashida().split("\n")
+        val lines = element.getVisualLines()
         val fm = try {
             element.paint.fontMetrics
         } catch (e: Exception) {
@@ -5013,8 +5012,13 @@ class CanvasView @JvmOverloads constructor(
                                         currentMode = Mode.TRANSFORM
                                         touchStartX = x; touchStartY = y
                                         selectedElements.forEach { el ->
+                                            val startW = if (el.type == ElementType.TEXT) {
+                                                el.boxWidth ?: el.getLocalContentWidth()
+                                            } else {
+                                                el.logicalContentWidth
+                                            }
                                             initialElementSizes[el.id] = Pair(
-                                                el.logicalContentWidth, el.logicalContentHeight
+                                                startW, el.logicalContentHeight
                                             )
                                             onStartBatchUpdate?.invoke(el.id, "transform")
                                         }
@@ -5160,8 +5164,13 @@ class CanvasView @JvmOverloads constructor(
 
                                 // Store initial logical sizes for direct geometry resize
                                 selectedElements.forEach { element ->
+                                    val startW = if (element.type == ElementType.TEXT) {
+                                        element.boxWidth ?: element.getLocalContentWidth()
+                                    } else {
+                                        element.logicalContentWidth
+                                    }
                                     initialElementSizes[element.id] = Pair(
-                                        element.logicalContentWidth, element.logicalContentHeight
+                                        startW, element.logicalContentHeight
                                     )
                                     onStartBatchUpdate?.invoke(element.id, "transform")
                                 }
@@ -5715,11 +5724,17 @@ class CanvasView @JvmOverloads constructor(
                             val (initialW, initialH) = initialElementSizes[element.id]
                                 ?: return@forEach
 
-                            val newW = (initialW - dx).coerceAtLeast(10f)
-                            val newH = (initialH + dy).coerceAtLeast(10f)
+                            if (element.type == ElementType.TEXT) {
+                                val newW = (initialW - dx).coerceAtLeast(40f)
+                                element.boxWidth = newW
+                                element.logicalContentWidth = newW
+                            } else {
+                                val newW = (initialW - dx).coerceAtLeast(10f)
+                                val newH = (initialH + dy).coerceAtLeast(10f)
 
-                            element.logicalContentWidth = newW
-                            element.logicalContentHeight = newH
+                                element.logicalContentWidth = newW
+                                element.logicalContentHeight = newH
+                            }
                             onElementChanged?.invoke(element)
                         }
 

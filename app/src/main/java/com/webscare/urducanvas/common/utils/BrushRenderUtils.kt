@@ -330,4 +330,22 @@ object BrushRenderUtils {
             path.moveTo(position[0], position[1])
         }
     }
+
+    fun drawSingleStroke(
+        canvas: Canvas,
+        stroke: StrokeData,
+        paintAlpha: Int
+    ) {
+        val path = stroke.path ?: return
+        when (stroke.style) {
+            BrushStyle.BRUSH -> drawBrushStroke(canvas, stroke, paintAlpha)
+            BrushStyle.PEN -> drawTaperedPenStroke(canvas, stroke, paintAlpha)
+            else -> {
+                val paint = makeStrokePaint(stroke, canvas.width, canvas.height).apply {
+                    alpha = paintAlpha
+                }
+                canvas.drawPath(path, paint)
+            }
+        }
+    }
 }

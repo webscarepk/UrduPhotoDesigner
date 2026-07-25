@@ -89,6 +89,10 @@ data class CanvasElement(
 
     @SerializedName("fontUrl") var fontUrl: String? = null,
 
+    @SerializedName("boxWidth") var boxWidth: Float? = null,
+
+    @SerializedName("boxHeight") var boxHeight: Float? = null,
+
     @SerializedName("paintColor") var paintColor: Int = Color.BLACK,
 
     @SerializedName("paintTextSize") var paintTextSize: Float = 80f,
@@ -247,11 +251,15 @@ data class CanvasElement(
         } else if (type == ElementType.SHAPE) {
             logicalContentWidth
         } else if (type == ElementType.TEXT) {
-            val lines = getTextWithKashida().split("\n")
-            if (::paint.isInitialized) {
-                lines.maxOfOrNull { line -> paint.measureText(line) } ?: 0f
+            if (boxWidth != null && boxWidth!! > 0f) {
+                boxWidth!!
             } else {
-                0f
+                val lines = getVisualLines()
+                if (::paint.isInitialized) {
+                    lines.maxOfOrNull { line -> paint.measureText(line) } ?: 0f
+                } else {
+                    0f
+                }
             }
         } else {
             if (svgDrawable != null) {
@@ -259,14 +267,6 @@ data class CanvasElement(
                     ?: svgDrawable?.picture?.width?.toFloat()?.takeIf { it > 0 }
                     ?: 0f
             } else {
-                // ── Prefer logicalContentWidth over bitmap.width ──────────────
-                // bitmap.width changes after JPEG encode/decode: bitmapToBase64
-                // downsamples a 4000px image to ~1920px. After undo/reload, the
-                // decoded bitmap is smaller, so draw rect shrinks and visual size
-                // drops even though element.scale is correct.
-                // logicalContentWidth stores the ORIGINAL pixel dimensions set
-                // at add-time (serialized to JSON), so it survives encode/decode
-                // and keeps visual size consistent across undo/redo/reload.
                 logicalContentWidth.takeIf { it > 0 }
                     ?: bitmap?.width?.toFloat()
                     ?: 0f
@@ -283,7 +283,7 @@ data class CanvasElement(
             if (::paint.isInitialized) {
                 val fm = paint.fontMetrics
                 val lineHeight = (fm.bottom - fm.top) * lineSpacing
-                val lines = getTextWithKashida().split("\n")
+                val lines = getVisualLines()
                 lines.size * lineHeight
             } else {
                 0f
@@ -294,8 +294,6 @@ data class CanvasElement(
                     ?: svgDrawable?.picture?.height?.toFloat()?.takeIf { it > 0 }
                     ?: 0f
             } else {
-                // ── Prefer logicalContentHeight over bitmap.height ────────────
-                // Same reason as getLocalContentWidth above.
                 logicalContentHeight.takeIf { it > 0 }
                     ?: bitmap?.height?.toFloat()
                     ?: 0f
@@ -305,6 +303,48 @@ data class CanvasElement(
 
     fun getTextWithKashida(): String {
         return applyKashidaToText(text, kashidaSize)
+    }
+
+    fun getVisualLines(targetWidth: Float? = null): List<String> {
+        val rawText = getTextWithKashida()
+        if (rawText.isEmpty()) return listOf("")
+        val explicitLines = rawText.split("\n")
+        val effectiveWidth = targetWidth ?: boxWidth
+        if (effectiveWidth == null || effectiveWidth <= 0f || !::paint.isInitialized) {
+            return explicitLines
+        }
+
+        val resultLines = mutableListOf<String>()
+        for (line in explicitLines) {
+            if (line.isEmpty()) {
+                resultLines.add("")
+                continue
+            }
+            val measured = paint.measureText(line)
+            if (measured <= effectiveWidth) {
+                resultLines.add(line)
+            } else {
+                val words = line.split(Regex("(?<=\\s)|(?=\\s)"))
+                var currentLine = StringBuilder()
+                for (word in words) {
+                    if (currentLine.isEmpty()) {
+                        currentLine.append(word)
+                    } else {
+                        val testLine = currentLine.toString() + word
+                        if (paint.measureText(testLine) <= effectiveWidth) {
+                            currentLine.append(word)
+                        } else {
+                            resultLines.add(currentLine.toString().trimEnd())
+                            currentLine = StringBuilder(word.trimStart())
+                        }
+                    }
+                }
+                if (currentLine.isNotEmpty()) {
+                    resultLines.add(currentLine.toString())
+                }
+            }
+        }
+        return resultLines
     }
 
     private fun applyKashidaToText(inputText: String, size: Int): String {
@@ -322,7 +362,7 @@ data class CanvasElement(
         val bounds = RectF()
 
         if (type == ElementType.TEXT && ::paint.isInitialized) {
-            val lines = getTextWithKashida().split("\n")
+            val lines = getVisualLines()
             val fm = paint.fontMetrics
             val lineHeight = (fm.descent - fm.ascent) * lineSpacing
 
@@ -335,10 +375,11 @@ data class CanvasElement(
                 maxLineWidth = maxOf(maxLineWidth, tempRect.width().toFloat())
             }
 
+            val boxW = boxWidth ?: maxLineWidth
             val totalHeight = lines.size * lineHeight
 
             bounds.set(
-                -maxLineWidth / 2f, -totalHeight / 2f, maxLineWidth / 2f, totalHeight / 2f
+                -boxW / 2f, -totalHeight / 2f, boxW / 2f, totalHeight / 2f
             )
         } else if (type == ElementType.DRAW) {
             val drawBounds = getDrawBounds()

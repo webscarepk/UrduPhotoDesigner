@@ -2076,6 +2076,9 @@ class CanvasViewModel @Inject constructor(
         // Prepare to store old sizes for undo/redo purposes
         val oldSizes = selectedElements.map { it.paintTextSize }
 
+        val canvasW = _canvasSize.value?.width ?: 0f
+        val maxW = if (canvasW > 0f) canvasW * 0.85f else 0f
+
         // Update the font size for each selected element
         val updatedList = currentList.map { element ->
             if (element.isSelected && element.type == ElementType.TEXT) {
@@ -2084,6 +2087,9 @@ class CanvasViewModel @Inject constructor(
                     paintTextSize = size
                     paint.textSize = size
                     paint.typeface = applyTypefaceFromFontList() // Reapply the typeface if needed
+                    if (boxWidth == null && maxW > 0f && paint.measureText(getTextWithKashida()) > maxW) {
+                        boxWidth = maxW
+                    }
                 }
             } else {
                 element
@@ -3547,6 +3553,11 @@ class CanvasViewModel @Inject constructor(
         element.originalTypeface = element.applyTypefaceFromFontList()
         element.paint.typeface = element.applyTypefaceFromFontList()
 
+        val maxW = if (canvasW > 0f) canvasW * 0.85f else 0f
+        if (maxW > 0f && element.paint.measureText(element.getTextWithKashida()) > maxW) {
+            element.boxWidth = maxW
+        }
+
         val action = CanvasAction.AddText(
             text, element.copy(context = null)
         ) // Push a copy for undo, without transient data
@@ -3595,6 +3606,11 @@ class CanvasViewModel @Inject constructor(
 
         // Update paint props after assigning typeface
         element.updatePaintProperties()
+
+        val maxW = if (canvasW > 0f) canvasW * 0.85f else 0f
+        if (maxW > 0f && element.paint.measureText(element.getTextWithKashida()) > maxW) {
+            element.boxWidth = maxW
+        }
 
         // Push action for undo/redo (store a copy without transient fields)
         val action = CanvasAction.AddText(
