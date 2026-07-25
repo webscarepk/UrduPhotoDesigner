@@ -540,10 +540,11 @@ class EditorFragment : Fragment() {
 
     private fun showTextEditDialog(element: CanvasElement) {
         val dialog = Dialog(requireContext())
-        dialog.setContentView(R.layout.dialog_edit_text)
+        dialog.setContentView(R.layout.dialog_canvas_text_edit)
 
         val editText = dialog.findViewById<EditText>(R.id.edit_text_input)
         editText.setText(element.text)
+        editText.setSelection(editText.text.length)
         editText.requestFocus()
         dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
 

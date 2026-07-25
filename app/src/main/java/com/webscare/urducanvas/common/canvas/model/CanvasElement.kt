@@ -327,6 +327,30 @@ data class CanvasElement(
                 val words = line.split(Regex("(?<=\\s)|(?=\\s)"))
                 var currentLine = StringBuilder()
                 for (word in words) {
+                    // If a single word/token is wider than effectiveWidth, break it character-by-character
+                    if (paint.measureText(word.trim()) > effectiveWidth) {
+                        // Flush any accumulated text first
+                        if (currentLine.isNotEmpty()) {
+                            resultLines.add(currentLine.toString().trimEnd())
+                            currentLine = StringBuilder()
+                        }
+                        // Break the long word character by character
+                        val trimmedWord = word.trim()
+                        val charLine = StringBuilder()
+                        for (ch in trimmedWord) {
+                            val test = charLine.toString() + ch
+                            if (paint.measureText(test) > effectiveWidth && charLine.isNotEmpty()) {
+                                resultLines.add(charLine.toString())
+                                charLine.clear()
+                            }
+                            charLine.append(ch)
+                        }
+                        if (charLine.isNotEmpty()) {
+                            currentLine = charLine
+                        }
+                        continue
+                    }
+
                     if (currentLine.isEmpty()) {
                         currentLine.append(word)
                     } else {

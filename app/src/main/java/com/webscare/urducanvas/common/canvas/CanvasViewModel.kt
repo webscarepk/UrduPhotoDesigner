@@ -3872,6 +3872,15 @@ class CanvasViewModel @Inject constructor(
         val updatedElement = textElement.copy(text = element.text, context = context).apply {
             if (type == ElementType.TEXT) {
                 paint.typeface = element.applyTypefaceFromFontList()
+                // Auto-constrain boxWidth when typed text overflows 85% canvas width
+                val canvasW = _canvasSize.value?.width ?: 0f
+                val maxW = if (canvasW > 0f) canvasW * 0.85f else 0f
+                if (boxWidth == null && maxW > 0f) {
+                    val rawWidth = paint.measureText(getTextWithKashida())
+                    if (rawWidth > maxW) {
+                        boxWidth = maxW
+                    }
+                }
             }
         }
 
