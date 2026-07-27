@@ -687,14 +687,10 @@ class LayersFragment : Fragment() {
         dialog.show()
     }
 
-    private fun defaultNameFor(element: CanvasElement): String = when (element.type) {
-        ElementType.TEXT    -> element.text ?: "Text"
-        ElementType.IMAGE   -> "Image"
-        ElementType.STICKER -> "Sticker"
-        ElementType.DRAW    -> "Brush"
-        ElementType.SHAPE   -> element.shapeType?.displayName ?: "Shape"
-        ElementType.GROUP   -> element.customName ?: "Group"
-        else                -> "Background"
+    private fun defaultNameFor(element: CanvasElement): String {
+        val list = viewModel.canvasElements.value ?: emptyList()
+        val uniqueMap = com.webscare.urducanvas.common.utils.ImageUtils.computeUniqueLayerNames(list)
+        return uniqueMap[element.id] ?: com.webscare.urducanvas.common.utils.ImageUtils.getBaseLayerName(element)
     }
 
     override fun onDestroyView() {

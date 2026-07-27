@@ -106,6 +106,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:background="@color/white"
+        app:layout_constrainedHeight="true"
         app:layout_constraintTop_toBottomOf="@id/back"
         app:layout_constraintBottom_toTopOf="@+id/miniToolbar"
         app:layout_constraintStart_toEndOf="@id/startGuide"
@@ -200,12 +201,12 @@
             android:foreground="?selectableItemBackground"
             android:src="@drawable/ic_add"
             android:background="@drawable/ic_circle"
-            android:backgroundTint="@color/light_gray"
+            android:backgroundTint="@color/appColor"
             android:layout_marginEnd="5dp"
             app:layout_constraintEnd_toStartOf="@id/removeIcon"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:tint="@color/black"/>
+            app:tint="@color/white"/>
 
         <ImageView
             android:visibility="visible"
@@ -230,7 +231,7 @@
         android:layout_height="63dp"
         android:layout_gravity="center_vertical"
         android:background="@color/white"
-        android:fitsSystemWindows="true"
+        android:fitsSystemWindows="false"
         android:padding="0dp"
         android:paddingBottom="0dp"
         app:itemIconTint="@color/bottom_nav_icon_color"
@@ -238,10 +239,10 @@
         app:itemActiveIndicatorStyle="@null"
         app:itemBackground="@null"
         app:labelVisibilityMode="unlabeled"
+        app:layout_constrainedHeight="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:menu="@menu/bottom_nav_selection"
-        app:paddingBottomSystemWindowInsets="true" />
+        app:menu="@menu/bottom_nav_selection" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

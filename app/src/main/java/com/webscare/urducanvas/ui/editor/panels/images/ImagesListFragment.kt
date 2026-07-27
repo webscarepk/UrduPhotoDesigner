@@ -200,9 +200,13 @@ class ImagesListFragment : Fragment() {
 
                     if (!isAdded) return@ImagesAdapter
 
+                    val layerName = com.webscare.urducanvas.common.utils.ImageUtils.getLayerNameForEntity(
+                        entity.file_name, entity.alt_text, entity.category, defaultFallback = "Image"
+                    )
+
                     // Always add as image element — never as background
                     if (svgDrawable != null) {
-                        viewModel.addSvgSticker(svgDrawable, svgXml, requireActivity(), entity.is_premium)
+                        viewModel.addSvgSticker(svgDrawable, svgXml, requireActivity(), entity.is_premium, customName = layerName)
                     } else {
                         val resized = viewModel.canvasSize.value?.height?.roundToInt()
                             ?.let { h ->
@@ -213,7 +217,8 @@ class ImagesListFragment : Fragment() {
                             resized?.trimTransparentEdges(),
                             requireActivity(),
                             ElementType.IMAGE,
-                            entity.is_premium
+                            entity.is_premium,
+                            customName = layerName
                         )
                     }
                 },

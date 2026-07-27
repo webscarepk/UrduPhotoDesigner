@@ -351,6 +351,7 @@ class EditorFragment : Fragment() {
     private fun handlePickedUri(uri: Uri) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
+                val fileName = com.webscare.urducanvas.common.utils.ImageUtils.getFileNameFromUri(requireActivity(), uri)
                 val filePath =
                     ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
                         ?: return@launch
@@ -366,7 +367,7 @@ class EditorFragment : Fragment() {
                 )
 
                 withContext(Dispatchers.Main) {
-                    viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE)
+                    viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE, customName = fileName)
                 }
             } catch (e: Exception) {
                 Log.e("EditorFragment", "Failed to import image", e)

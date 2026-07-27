@@ -228,13 +228,16 @@ class BgRemovalCanvas @JvmOverloads constructor(
         return withContext(Dispatchers.Default) {
             buffer.rewind()
             val bitmap = createBitmap(maskWidth, maskHeight)
-            for (y in 0 until maskHeight) {
-                for (x in 0 until maskWidth) {
+            val pixels = IntArray(maskWidth * maskHeight)
+            
+            // Lower threshold (0.12f) ensures all secondary domes, minarets, and building walls are captured
+            for (i in 0 until (maskWidth * maskHeight)) {
+                if (buffer.hasRemaining()) {
                     val confidence = buffer.get()
-                    val color = if (confidence > 0.5f) Color.WHITE else Color.TRANSPARENT
-                    bitmap[x, y] = color
+                    pixels[i] = if (confidence >= 0.12f) Color.WHITE else Color.TRANSPARENT
                 }
             }
+            bitmap.setPixels(pixels, 0, maskWidth, 0, 0, maskWidth, maskHeight)
             bitmap
         }
     }
@@ -245,7 +248,6 @@ class BgRemovalCanvas @JvmOverloads constructor(
             onProcessingChanged?.invoke(true)
             val maskBitmap = maskBufferToBitmap(buffer, maskWidth, maskHeight)
 
-            // Trace the contour at native mask resolution (extremely fast!)
             val subjectPath = withContext(Dispatchers.Default) {
                 maskToContourPath(maskBitmap)
             }.apply {
@@ -260,6 +262,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
                 }
             }
             withContext(Dispatchers.Main) {
+                selectionPath = null
                 commitPath(subjectPath)
                 isApplyingMask = false
                 onProcessingChanged?.invoke(false)
@@ -275,49 +278,25 @@ class BgRemovalCanvas @JvmOverloads constructor(
             val h = mask.height
             val pixels = IntArray(w * h)
             mask.getPixels(pixels, 0, w, 0, 0, w, h)
-            val visited = Array(h) { BooleanArray(w) }
 
-            val dirs = arrayOf(
-                intArrayOf(1, 0), intArrayOf(1, 1), intArrayOf(0, 1), intArrayOf(-1, 1),
-                intArrayOf(-1, 0), intArrayOf(-1, -1), intArrayOf(0, -1), intArrayOf(1, -1)
-            )
-
-            fun traceContour(startX: Int, startY: Int) {
-                var x = startX
-                var y = startY
-                path.moveTo(x.toFloat(), y.toFloat())
-                visited[y][x] = true
-                var dir = 0
-                do {
-                    if (isCancelled) return
-                    var found = false
-                    for (i in 0 until 8) {
-                        val ndir = (dir + i) % 8
-                        val nx = x + dirs[ndir][0]
-                        val ny = y + dirs[ndir][1]
-                        if (nx in 0 until w && ny in 0 until h && ((pixels[ny * w + nx] ushr 24) > 127)) {
-                            x = nx; y = ny
-                            path.lineTo(x.toFloat(), y.toFloat())
-                            visited[y][x] = true
-                            dir = (ndir + 6) % 8
-                            found = true
-                            break
+            for (y in 0 until h) {
+                var x = 0
+                while (x < w) {
+                    if (isCancelled) return@withContext path
+                    if ((pixels[y * w + x] ushr 24) > 127) {
+                        val xStart = x
+                        while (x < w && (pixels[y * w + x] ushr 24) > 127) {
+                            x++
                         }
-                    }
-                    if (!found) break
-                } while (!(x == startX && y == startY))
-                path.close()
-            }
-
-            for (y in 1 until h - 1) {
-                for (x in 1 until w - 1) {
-                    if (!visited[y][x] && ((pixels[y * w + x] ushr 24) > 127)) {
-                        val isEdge =
-                            ((pixels[y * w + (x - 1)] ushr 24) <= 127) ||
-                            ((pixels[y * w + (x + 1)] ushr 24) <= 127) ||
-                            ((pixels[(y - 1) * w + x] ushr 24) <= 127) ||
-                            ((pixels[(y + 1) * w + x] ushr 24) <= 127)
-                        if (isEdge) traceContour(x, y)
+                        path.addRect(
+                            xStart.toFloat(),
+                            y.toFloat(),
+                            x.toFloat(),
+                            (y + 1).toFloat(),
+                            Path.Direction.CW
+                        )
+                    } else {
+                        x++
                     }
                 }
             }
@@ -394,7 +373,6 @@ class BgRemovalCanvas @JvmOverloads constructor(
                 val saveCount = saveLayer(rect, null)
                 drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
 
-                // Draw path filled with the image
                 val shaderMatrix = Matrix()
                 shaderMatrix.setRectToRect(
                     RectF(0f, 0f, bmp.width.toFloat(), bmp.height.toFloat()),
@@ -413,18 +391,8 @@ class BgRemovalCanvas @JvmOverloads constructor(
                 }
                 restoreToCount(saveCount)
             } else {
-                // In edit mode: draw original image + semi-transparent white overlay + cutout selection
+                // In edit mode: draw original image cleanly (NO black fill / overlay!)
                 drawBitmap(bmp, null, rect, null)
-                val saveCount = saveLayer(rect, null)
-                drawRect(rect, whiteOverlayPaint) // White overlay unselected areas
-
-                val punchPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
-                }
-                selectionPath?.let {
-                    drawPath(it, punchPaint)
-                }
-                restoreToCount(saveCount)
             }
         }
 
@@ -444,8 +412,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
                 }
             }
 
-            // Draw marching ants — ONLY on the outer edge, not internal scanline borders.
-            // Draw marching ants — ONLY on the outer edge, not internal scanline borders.
+            // Draw marching ants — ONLY on the outer edge boundary, no internal scanline lines or black fills.
             selectionOutlinePath?.let { outline ->
                 val currentWidth = 2f / scaleFactor
                 antsBackPaint.strokeWidth = currentWidth
@@ -687,28 +654,89 @@ class BgRemovalCanvas @JvmOverloads constructor(
     }
 
     /**
-     * Derives a clean stroke-able outline from a filled scanline path.
-     *
-     * The selectionPath is composed of thousands of 1px-tall horizontal rectangles.
-     * Stroking that directly draws all internal scanline edges → the crosshatch/grid bug.
-     *
-     * Fix: use a Paint with style=FILL_AND_STROKE + PathEffect=null on a software
-     * layer, then exploit the fact that Path.Op.UNION merges overlapping geometry.
-     * The cleanest pure-Path approach on Android is to take the filled path, inflate it
-     * by half-stroke-width using a stroke paint and getFillPath(), which gives the
-     * outer border as a proper closed contour with zero internal lines.
+     * Derives a clean, continuous outer boundary contour for marching ants.
+     * Traces connected perimeter loops so DashPathEffect smoothly marches along the outline
+     * without blinking or internal scanline artifacts.
      */
     private fun buildOutlinePath(source: Path?): Path? {
         source ?: return null
+        val rect = imageRect ?: return source
 
-        val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = 4f
-            strokeJoin = Paint.Join.ROUND
-            strokeCap = Paint.Cap.ROUND
+        val scale = 0.25f // 1/4 resolution for ultra fast continuous contour extraction
+        val w = (rect.width() * scale).toInt().coerceAtLeast(1)
+        val h = (rect.height() * scale).toInt().coerceAtLeast(1)
+
+        val bmp = createBitmap(w, h, Bitmap.Config.ALPHA_8)
+        val c = Canvas(bmp)
+        val m = Matrix()
+        m.setRectToRect(rect, RectF(0f, 0f, w.toFloat(), h.toFloat()), Matrix.ScaleToFit.FILL)
+        c.setMatrix(m)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            style = Paint.Style.FILL
         }
+        c.drawPath(source, paint)
+
+        val pixels = IntArray(w * h)
+        bmp.getPixels(pixels, 0, w, 0, 0, w, h)
+        bmp.recycle()
+
+        fun isMasked(x: Int, y: Int): Boolean {
+            if (x !in 0 until w || y !in 0 until h) return false
+            return (pixels[y * w + x] ushr 24) > 127
+        }
+
         val outline = Path()
-        strokePaint.getFillPath(source, outline)
+        val visited = Array(h) { BooleanArray(w) }
+        val dx = intArrayOf(1, 1, 0, -1, -1, -1, 0, 1)
+        val dy = intArrayOf(0, 1, 1, 1, 0, -1, -1, -1)
+
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                if (isMasked(x, y) && !visited[y][x]) {
+                    val isEdge = !isMasked(x - 1, y) || !isMasked(x + 1, y) ||
+                                 !isMasked(x, y - 1) || !isMasked(x, y + 1)
+                    if (isEdge) {
+                        var currX = x
+                        var currY = y
+                        var dir = 0
+                        outline.moveTo(currX.toFloat() + 0.5f, currY.toFloat() + 0.5f)
+                        visited[currY][currX] = true
+                        
+                        var steps = 0
+                        val maxSteps = w * h
+                        do {
+                            var found = false
+                            for (i in 0 until 8) {
+                                val nDir = (dir + i) % 8
+                                val nx = currX + dx[nDir]
+                                val ny = currY + dy[nDir]
+                                if (nx in 0 until w && ny in 0 until h && isMasked(nx, ny)) {
+                                    val neighborIsEdge = !isMasked(nx - 1, ny) || !isMasked(nx + 1, ny) ||
+                                                         !isMasked(nx, ny - 1) || !isMasked(nx, ny + 1)
+                                    if (neighborIsEdge) {
+                                        currX = nx
+                                        currY = ny
+                                        visited[currY][currX] = true
+                                        outline.lineTo(currX.toFloat() + 0.5f, currY.toFloat() + 0.5f)
+                                        dir = (nDir + 5) % 8
+                                        found = true
+                                        break
+                                    }
+                                }
+                            }
+                            steps++
+                            if (!found || steps > maxSteps) break
+                        } while (!(currX == x && currY == y))
+                        outline.close()
+                    }
+                }
+            }
+        }
+
+        val invM = Matrix()
+        invM.setRectToRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), rect, Matrix.ScaleToFit.FILL)
+        outline.transform(invM)
         return outline
     }
 

@@ -173,15 +173,20 @@ class ShapesListFragment : Fragment() {
                     else entity.copy(is_recent = true)
                     mainViewModel.updateImage(updated)
                     if (!isAdded) return@ImagesAdapter
+                    val layerName = com.webscare.urducanvas.common.utils.ImageUtils.getLayerNameForEntity(
+                        entity.file_name, entity.alt_text, entity.category, defaultFallback = "Shape"
+                    )
+
                     if (svgDrawable != null) {
                         val trimmed = svgDrawable.trimTransparentEdges()
                         Log.d("SVG", "${svgDrawable.intrinsicWidth}x${svgDrawable.intrinsicHeight} → ${trimmed.intrinsicWidth}x${trimmed.intrinsicHeight}")
                         viewModel.addSvgSticker(
                             trimmed, svgXml, requireActivity(), entity.is_premium,
-                            applyWhiteTintInDarkMode = true
+                            applyWhiteTintInDarkMode = true,
+                            customName = layerName
                         )
                     } else if (bitmap != null) {
-                        viewModel.addSticker(bitmap.trimTransparentEdges(), requireActivity(), ElementType.IMAGE, entity.is_premium)
+                        viewModel.addSticker(bitmap.trimTransparentEdges(), requireActivity(), ElementType.IMAGE, entity.is_premium, customName = layerName)
                     }
                     if (mainViewModel.isPanelExpanded(PanelType.SHAPES)) mainViewModel.togglePanel(PanelType.SHAPES)
                 },

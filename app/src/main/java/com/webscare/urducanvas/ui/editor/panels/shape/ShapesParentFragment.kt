@@ -319,6 +319,9 @@ class ShapesParentFragment : Fragment() {
             toAdd.forEach { entity ->
                 val url = Constants.BASE_URL_GLIDE + entity.file_url
                 val isSvg = entity.file_name.endsWith(".svg", ignoreCase = true)
+                val layerName = com.webscare.urducanvas.common.utils.ImageUtils.getLayerNameForEntity(
+                    entity.file_name, entity.alt_text, entity.category, defaultFallback = "Shape"
+                )
 
                 if (isSvg) {
                     val result = withContext(Dispatchers.IO) {
@@ -330,7 +333,8 @@ class ShapesParentFragment : Fragment() {
                             xml,
                             requireActivity(),
                             entity.is_premium,
-                            applyWhiteTintInDarkMode = true
+                            applyWhiteTintInDarkMode = true,
+                            customName = layerName
                         )
                     }
                 } else {
@@ -345,7 +349,8 @@ class ShapesParentFragment : Fragment() {
                             it.trimTransparentEdges(),
                             requireActivity(),
                             com.webscare.urducanvas.common.canvas.enums.ElementType.IMAGE,
-                            entity.is_premium
+                            entity.is_premium,
+                            customName = layerName
                         )
                     }
                 }

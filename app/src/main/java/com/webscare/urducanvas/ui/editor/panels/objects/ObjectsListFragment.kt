@@ -229,7 +229,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                 initialEmojis  = emptyList(),
                 onEmojiClicked = { bmp ->
                     if (isPanelExpanded) mainViewModel.togglePanel(PanelType.OBJECTS)
-                    viewModel.addSticker(bmp, requireActivity(), ElementType.STICKER)
+                    viewModel.addSticker(bmp, requireActivity(), ElementType.STICKER, customName = "Emoji")
                 },
                 onEmojiLongPress = { emoji ->
                     mainViewModel.toggleEmojiSelection(emoji.char)
@@ -268,6 +268,10 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                     mainViewModel.updateImage(updated)
 
                     if (isAdded) {
+                        val layerName = com.webscare.urducanvas.common.utils.ImageUtils.getLayerNameForEntity(
+                            entity.file_name, entity.alt_text, entity.category, defaultFallback = "Sticker"
+                        )
+
                         if (svgDrawable != null) {
                             val trimmed = try { svgDrawable.trimTransparentEdges() } catch (e: Throwable) { svgDrawable }
                             Log.d("SVG",
@@ -275,7 +279,8 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                                         " → ${trimmed.intrinsicWidth}x${trimmed.intrinsicHeight}")
                             viewModel.addSvgSticker(
                                 trimmed, svgXml, requireActivity(), entity.is_premium,
-                                applyWhiteTintInDarkMode = true
+                                applyWhiteTintInDarkMode = true,
+                                customName = layerName
                             )
                         } else {
                             val trimmedBmp = try { bitmap?.trimTransparentEdges() } catch (e: Throwable) { bitmap }
@@ -283,7 +288,8 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                                 trimmedBmp,
                                 requireActivity(),
                                 ElementType.IMAGE,
-                                entity.is_premium
+                                entity.is_premium,
+                                customName = layerName
                             )
                         }
                     }
@@ -447,7 +453,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                 val bmp = withContext(Dispatchers.IO) {
                     EmojiBitmapRenderer.render(char, sizePx = 512)
                 }
-                viewModel.addSticker(bmp, requireActivity(), ElementType.STICKER)
+                viewModel.addSticker(bmp, requireActivity(), ElementType.STICKER, customName = "Emoji")
             }
         }
     }

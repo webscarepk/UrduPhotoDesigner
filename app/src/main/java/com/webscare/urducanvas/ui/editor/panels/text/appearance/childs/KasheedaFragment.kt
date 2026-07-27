@@ -36,6 +36,16 @@ class KasheedaFragment : androidx.fragment.app.Fragment() {
         initObserver()
     }
 
+    private fun updateCardStroke(
+        card: com.google.android.material.card.MaterialCardView,
+        isSelected: Boolean
+    ) {
+        val context = card.context
+        card.strokeColor = androidx.core.content.ContextCompat.getColor(context, com.webscare.urducanvas.R.color.appColor)
+        card.strokeWidth = if (isSelected) 4 else 0
+        card.setCardBackgroundColor(androidx.core.content.ContextCompat.getColor(context, com.webscare.urducanvas.R.color.contrast))
+    }
+
     private fun initObserver() {
         viewModel.kasheeda.observe(viewLifecycleOwner) { kasheeda ->
             val kasheedaCards = listOf(
@@ -46,8 +56,8 @@ class KasheedaFragment : androidx.fragment.app.Fragment() {
             )
 
             kasheedaCards.forEach { (card, kasheedaSize) ->
-                card.strokeWidth =
-                    if (mapKasheedaSizeToFrequency(kasheedaSize) == mapProgressToFrequency(kasheeda)) 4 else 0
+                val isSelected = mapKasheedaSizeToFrequency(kasheedaSize) == mapProgressToFrequency(kasheeda)
+                updateCardStroke(card, isSelected)
             }
 
             // Update SeekBar to match frequency range
@@ -77,6 +87,9 @@ class KasheedaFragment : androidx.fragment.app.Fragment() {
                 // Set the Kashida size based on selected card
                 if (currentFrequency != newFrequency) {
                     viewModel.setKasheeda(newFrequency)
+                }
+                kasheedaCards.forEach { (otherCard, otherKasheedaType) ->
+                    updateCardStroke(otherCard, otherKasheedaType == kasheedaType)
                 }
             }
         }

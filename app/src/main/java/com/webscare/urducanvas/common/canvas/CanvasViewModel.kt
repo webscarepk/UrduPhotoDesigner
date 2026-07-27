@@ -3384,7 +3384,8 @@ class CanvasViewModel @Inject constructor(
         svgXml: String?,          // ✅ nullable — graceful fallback for legacy/import
         context: Context,
         isPremium: Boolean = false,
-        applyWhiteTintInDarkMode: Boolean = false
+        applyWhiteTintInDarkMode: Boolean = false,
+        customName: String? = null
     ) {
         val currentList = _canvasElements.value ?: emptyList()
         val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
@@ -3404,6 +3405,7 @@ class CanvasViewModel @Inject constructor(
         val element = CanvasElement(
             context = context,
             type = ElementType.STICKER,
+            customName = customName,
             bitmap = null,
             bitmapData = null,
             svgData = svgXml,     // ✅ persisted — survives any scale, forever
@@ -3426,7 +3428,11 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun addSticker(
-        bitmap: Bitmap?, context: Context, elementType: ElementType, isPremium: Boolean = false
+        bitmap: Bitmap?,
+        context: Context,
+        elementType: ElementType,
+        isPremium: Boolean = false,
+        customName: String? = null
     ) {
         if (bitmap == null) return
         _loadingStage.value = "Loading Image" to 50
@@ -3470,6 +3476,7 @@ class CanvasViewModel @Inject constructor(
         val element = CanvasElement(
             context = context,
             type = elementType,
+            customName = customName,
             bitmap = bitmap,         // ← full-resolution bitmap, untouched
             bitmapData = ImageProcessor.bitmapToBase64(bitmap),
             x = canvasW / 2f,
@@ -3557,6 +3564,7 @@ class CanvasViewModel @Inject constructor(
         if (maxW > 0f && element.paint.measureText(element.getTextWithKashida()) > maxW) {
             element.boxWidth = maxW
         }
+        element.autoFitTextSize(canvasW, canvasH)
 
         val action = CanvasAction.AddText(
             text, element.copy(context = null)
@@ -3611,6 +3619,7 @@ class CanvasViewModel @Inject constructor(
         if (maxW > 0f && element.paint.measureText(element.getTextWithKashida()) > maxW) {
             element.boxWidth = maxW
         }
+        element.autoFitTextSize(canvasW, canvasH)
 
         // Push action for undo/redo (store a copy without transient fields)
         val action = CanvasAction.AddText(
@@ -3874,6 +3883,7 @@ class CanvasViewModel @Inject constructor(
                 paint.typeface = element.applyTypefaceFromFontList()
                 // Auto-constrain boxWidth when typed text overflows 85% canvas width
                 val canvasW = _canvasSize.value?.width ?: 0f
+                val canvasH = _canvasSize.value?.height ?: 0f
                 val maxW = if (canvasW > 0f) canvasW * 0.85f else 0f
                 if (boxWidth == null && maxW > 0f) {
                     val rawWidth = paint.measureText(getTextWithKashida())
@@ -3881,6 +3891,7 @@ class CanvasViewModel @Inject constructor(
                         boxWidth = maxW
                     }
                 }
+                autoFitTextSize(canvasW, canvasH)
             }
         }
 

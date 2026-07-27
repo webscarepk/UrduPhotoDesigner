@@ -8,8 +8,8 @@ plugins {
     id("com.google.firebase.crashlytics")
 }
 
-val appVersionCode = 27
-val appVersionName = "1.2.7"
+val appVersionCode = 28
+val appVersionName = "1.2.8"
 
 base.archivesName.set("UrduCanvas - V$appVersionCode($appVersionName)")
 

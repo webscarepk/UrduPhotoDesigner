@@ -43,6 +43,16 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
         initObservers()
     }
 
+    private fun updateCardStroke(
+        card: com.google.android.material.card.MaterialCardView,
+        isSelected: Boolean
+    ) {
+        val context = card.context
+        card.strokeColor = androidx.core.content.ContextCompat.getColor(context, com.webscare.urducanvas.R.color.appColor)
+        card.strokeWidth = if (isSelected) 4 else 0
+        card.setCardBackgroundColor(androidx.core.content.ContextCompat.getColor(context, com.webscare.urducanvas.R.color.contrast))
+    }
+
     private fun setEvents() {
 
         val caseCards = listOf(
@@ -60,8 +70,8 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
                     viewModel.setLetterCasing(caseType)
                 }
                 // Update stroke for the selected card
-                caseCards.forEach { (otherCard, _) ->
-                    otherCard.strokeWidth = if (otherCard == card) 4 else 0
+                caseCards.forEach { (otherCard, otherCaseType) ->
+                    updateCardStroke(otherCard, otherCaseType == caseType)
                 }
             }
         }
@@ -80,8 +90,8 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
                 if (decorationType == TextDecoration.NONE) {
                     if (currentDecorations.isEmpty()) return@addPressEffect
                     viewModel.setTextDecoration(emptySet())
-                    decorationCards.forEach { (otherCard, _) ->
-                        otherCard.strokeWidth = if (otherCard == card) 4 else 0
+                    decorationCards.forEach { (otherCard, otherDecorationType) ->
+                        updateCardStroke(otherCard, otherDecorationType == TextDecoration.NONE)
                     }
                 } else {
                     if (currentDecorations.contains(TextDecoration.NONE)) {
@@ -94,8 +104,12 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
                     }
                     viewModel.setTextDecoration(updatedDecorations)
                     decorationCards.forEach { (otherCard, otherDecorationType) ->
-                        otherCard.strokeWidth =
-                            if (updatedDecorations.contains(otherDecorationType)) 4 else 0
+                        val isSel = if (otherDecorationType == TextDecoration.NONE) {
+                            updatedDecorations.isEmpty()
+                        } else {
+                            updatedDecorations.contains(otherDecorationType)
+                        }
+                        updateCardStroke(otherCard, isSel)
                     }
                 }
             }
@@ -114,8 +128,8 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
                 if (currentAlign != alignType) {
                     viewModel.setTextAlignment(alignType)
                 }
-                alignCards.forEach { (otherCard, _) ->
-                    otherCard.strokeWidth = if (otherCard == card) 4 else 0
+                alignCards.forEach { (otherCard, otherAlignType) ->
+                    updateCardStroke(otherCard, otherAlignType == alignType)
                 }
             }
         }
@@ -141,11 +155,15 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
                         viewModel.decreaseIndent()
                     }
                 }
-                val paraValue = viewModel.paragraphIndentation.value
+                val paraValue = viewModel.paragraphIndentation.value ?: 0f
 
                 paraCards.forEach { (otherCard, otherIndent) ->
-                    otherCard.strokeWidth =
-                        if (paraValue?.toInt() == 0 && otherIndent == ParagraphIndentation.NONE) 4 else 0
+                    val isSel = when (otherIndent) {
+                        ParagraphIndentation.NONE -> paraValue == 0f
+                        ParagraphIndentation.INCREASE_INDENT -> paraValue > 0f
+                        ParagraphIndentation.DECREASE_INDENT -> paraValue < 0f
+                    }
+                    updateCardStroke(otherCard, isSel)
                 }
             }
         }
@@ -164,8 +182,8 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
                     viewModel.setListStyle(listType)
                 }
                 // Update stroke for selected list style
-                listCards.forEach { (otherCard, _) ->
-                    otherCard.strokeWidth = if (otherCard == card) 4 else 0
+                listCards.forEach { (otherCard, otherListType) ->
+                    updateCardStroke(otherCard, otherListType == listType)
                 }
             }
         }
@@ -243,7 +261,7 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
             )
 
             alignCards.forEach { (card, alignType) ->
-                card.strokeWidth = if (alignType == alignment) 4 else 0
+                updateCardStroke(card, alignType == alignment)
             }
         }
 
@@ -255,7 +273,7 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
             )
 
             listCards.forEach { (card, list) ->
-                card.strokeWidth = if (list == listStyle) 4 else 0
+                updateCardStroke(card, list == listStyle)
             }
         }
 
@@ -268,10 +286,9 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
             )
 
             caseCards.forEach { (card, letterCase) ->
-                card.strokeWidth = if (letterCase == case) 4 else 0
+                updateCardStroke(card, letterCase == case)
             }
         }
-
 
         viewModel.textDecoration.observe(viewLifecycleOwner) { currentDecorations ->
             val decorationCards = listOf(
@@ -282,7 +299,12 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
             )
 
             decorationCards.forEach { (card, decorationType) ->
-                card.strokeWidth = if (currentDecorations.contains(decorationType)) 4 else 0
+                val isSel = if (decorationType == TextDecoration.NONE) {
+                    currentDecorations.isEmpty()
+                } else {
+                    currentDecorations.contains(decorationType)
+                }
+                updateCardStroke(card, isSel)
             }
         }
 
@@ -293,9 +315,14 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
                 binding.increaseIndent to ParagraphIndentation.INCREASE_INDENT
             )
 
+            val indentVal = para ?: 0f
             paraCards.forEach { (card, indent) ->
-                card.strokeWidth =
-                    if (para?.toInt() == 0 && indent == ParagraphIndentation.NONE) 4 else 0
+                val isSel = when (indent) {
+                    ParagraphIndentation.NONE -> indentVal == 0f
+                    ParagraphIndentation.INCREASE_INDENT -> indentVal > 0f
+                    ParagraphIndentation.DECREASE_INDENT -> indentVal < 0f
+                }
+                updateCardStroke(card, isSel)
             }
         }
     }

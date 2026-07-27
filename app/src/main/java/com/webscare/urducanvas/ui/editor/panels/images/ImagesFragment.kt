@@ -331,6 +331,9 @@ class ImagesFragment : Fragment() {
                 // resolveUrl() handles both Pexels (full URL) and own images (needs base prefix)
                 val url = resolveUrl(entity)
                 val isSvg = entity.file_name.endsWith(".svg", ignoreCase = true)
+                val layerName = com.webscare.urducanvas.common.utils.ImageUtils.getLayerNameForEntity(
+                    entity.file_name, entity.alt_text, entity.category, defaultFallback = "Image"
+                )
 
                 // Always add as image element — never as background
                 if (isSvg) {
@@ -342,7 +345,8 @@ class ImagesFragment : Fragment() {
                             drawable.trimTransparentEdges(),
                             xml,
                             requireActivity(),
-                            entity.is_premium
+                            entity.is_premium,
+                            customName = layerName
                         )
                     }
                 } else {
@@ -359,7 +363,8 @@ class ImagesFragment : Fragment() {
                             it.trimTransparentEdges(),
                             requireActivity(),
                             ElementType.IMAGE,
-                            entity.is_premium
+                            entity.is_premium,
+                            customName = layerName
                         )
                     }
                 }
@@ -662,6 +667,7 @@ class ImagesFragment : Fragment() {
     private fun handlePickedUri(uri: Uri) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
+                val fileName = com.webscare.urducanvas.common.utils.ImageUtils.getFileNameFromUri(requireActivity(), uri)
                 val filePath =
                     ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
                         ?: return@launch
@@ -672,7 +678,7 @@ class ImagesFragment : Fragment() {
                  val bitmap = downsampleIfNeeded(rawBitmap, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)
 
                 withContext(Dispatchers.Main) {
-                    viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE)
+                    viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE, customName = fileName)
                 }
             } catch (e: Exception) {
                 Log.e("ImagesFragment", "Failed to import image", e)

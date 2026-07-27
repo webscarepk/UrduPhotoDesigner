@@ -345,6 +345,9 @@ class ObjectsFragment : Fragment() {
             toAdd.forEach { entity ->
                 val url   = Constants.BASE_URL_GLIDE + entity.file_url
                 val isSvg = entity.file_name.endsWith(".svg", ignoreCase = true)
+                val layerName = com.webscare.urducanvas.common.utils.ImageUtils.getLayerNameForEntity(
+                    entity.file_name, entity.alt_text, entity.category, defaultFallback = "Sticker"
+                )
 
                 if (isSvg) {
                     val result = withContext(Dispatchers.IO) {
@@ -354,7 +357,8 @@ class ObjectsFragment : Fragment() {
                         viewModel.addSvgSticker(
                             drawable.trimTransparentEdges(), xml,
                             requireActivity(), entity.is_premium,
-                            applyWhiteTintInDarkMode = true
+                            applyWhiteTintInDarkMode = true,
+                            customName = layerName
                         )
                     }
                 } else {
@@ -374,7 +378,8 @@ class ObjectsFragment : Fragment() {
                             it.trimTransparentEdges(),
                             requireActivity(),
                             ElementType.IMAGE,
-                            entity.is_premium
+                            entity.is_premium,
+                            customName = layerName
                         )
                     }
                 }
@@ -668,6 +673,7 @@ class ObjectsFragment : Fragment() {
     private fun handlePickedUri(uri: Uri) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
+                val fileName = com.webscare.urducanvas.common.utils.ImageUtils.getFileNameFromUri(requireActivity(), uri)
                 val filePath = ImageProcessor.copyUriToTempFile(requireActivity(), uri)
                     ?.absolutePath ?: return@launch
                 val rawBitmap = ImageProcessor.filePathToBitmap(filePath) ?: return@launch
@@ -679,7 +685,7 @@ class ObjectsFragment : Fragment() {
                  val bitmap = downsampleIfNeeded(rawBitmap, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)
 
                 withContext(Dispatchers.Main) {
-                    viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE)
+                    viewModel.addSticker(bitmap, requireActivity(), ElementType.IMAGE, customName = fileName)
                 }
             } catch (e: Exception) {
                 Log.e("PhotoPicker", "Failed compressing image", e)

@@ -20,6 +20,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import androidx.core.widget.ImageViewCompat
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.BuildConfig
 import com.webscare.ads.WebsCareAds
@@ -33,6 +34,8 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.segmentation.subject.SubjectSegmentation
 import com.google.mlkit.vision.segmentation.subject.SubjectSegmenter
 import com.google.mlkit.vision.segmentation.subject.SubjectSegmenterOptions
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -87,7 +90,14 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        // Preload background removal rewarded ad to make sure it's ready when requested
+        // Handle bottom navigation bar system insets so bottom nav is never cut off
+        ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavigation) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, systemBars.bottom)
+            insets
+        }
+
+        // Preload background removal rewarded ad to make sure it's ready when user taps Done
         WebsCareAds.preloadRewarded(requireContext(), BuildConfig.AD_REWARDED_BG_REMOVAL)
 
         setupImage()
@@ -191,30 +201,7 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
                 R.id.nav_subject -> {
                     val bmp = originalBitmap
                     if (bmp != null) {
-                        var rewardEarned = false
-                        WebsCareAds.showRewarded(
-                            activity = requireActivity(),
-                            adUnitId = BuildConfig.AD_REWARDED_BG_REMOVAL,
-                            onRewarded = { _, _ ->
-                                rewardEarned = true
-                            },
-                            onDismissed = {
-                                if (rewardEarned) {
-                                    // Delay execution until after activity returns to full screen and layouts fully settle
-                                    binding.imageCanvas.postDelayed({
-                                        if (isAdded) {
-                                            runSubjectSegmentation(bmp)
-                                        }
-                                    }, 400)
-                                } else {
-                                    Toast.makeText(requireContext(), "Watch ad to auto-remove background.", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            onNotReady = {
-                                // Fast non-blocking fallback if ad fails to load or premium bypass is active
-                                runSubjectSegmentation(bmp)
-                            }
-                        )
+                        runSubjectSegmentation(bmp)
                     } else {
                         Log.e(TAG, "nav_subject: originalBitmap is null")
                     }
@@ -245,11 +232,26 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
         binding.back.addPressEffect { findNavController().navigateUp() }
 
         binding.done.addPressEffect {
-            // Show a saving indicator while we encode the bitmap off-thread.
-            // Navigation back to EditorFragment happens via EditorFragment observing
-            // viewModel.maskAppliedEvent — AFTER the data is committed to LiveData.
-            // DO NOT call navigateUp() here — that was the race condition bug.
-            binding.imageCanvas.confirmMask()
+            // Show rewarded ad when user presses Done
+            var rewardEarned = false
+            WebsCareAds.showRewarded(
+                activity = requireActivity(),
+                adUnitId = BuildConfig.AD_REWARDED_BG_REMOVAL,
+                onRewarded = { _, _ ->
+                    rewardEarned = true
+                },
+                onDismissed = {
+                    if (rewardEarned) {
+                        if (isAdded) binding.imageCanvas.confirmMask()
+                    } else {
+                        Toast.makeText(requireContext(), "Please watch the full ad to apply background removal.", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onNotReady = {
+                    // Fallback if ad fails to load or premium bypass is active
+                    if (isAdded) binding.imageCanvas.confirmMask()
+                }
+            )
         }
 
         binding.undo.addPressEffect { binding.imageCanvas.undo() }
@@ -278,15 +280,10 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
             setIconSelected(binding.previewIcon, enabled)
         }
 
-        // onMaskConfirmed: hand bitmap to ViewModel, show a brief loading state.
-        // Navigation happens in the maskAppliedEvent collector above (in onViewCreated),
-        // which fires AFTER the encode coroutine commits data — dismiss dialog → navigateUp().
         binding.imageCanvas.onMaskConfirmed = { maskedBitmap ->
             Log.d(TAG, "onMaskConfirmed: ${maskedBitmap.width}x${maskedBitmap.height}")
             showLoadingDialog()           // brief spinner while encoding on background thread
             viewModel.applyMaskToSelected(maskedBitmap)
-            // navigateUp() is NOT called here — the maskAppliedEvent collector handles it
-            // AFTER the data is committed, so EditorFragment always sees the new bitmap.
         }
     }
 
@@ -319,25 +316,28 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
         brushMaskBitmap = createBitmap(bitmap.width, bitmap.height)
         binding.imageCanvas.setImage(originalBitmap!!)
         Log.d(TAG, "setupImage: loaded ${bitmap.width}x${bitmap.height} bitmap")
+
+        // Auto-run subject segmentation on image load for instant result
+        runSubjectSegmentation(originalBitmap!!)
     }
 
     private fun setIconSelected(view: ImageView, selected: Boolean) {
         if (selected) {
             view.backgroundTintList = ContextCompat.getColorStateList(requireContext(), R.color.appColor)
-            view.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.white)
+            ImageViewCompat.setImageTintList(view, ContextCompat.getColorStateList(requireContext(), R.color.appColor))
         } else {
             view.backgroundTintList = ContextCompat.getColorStateList(requireContext(), R.color.contrast)
-            view.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.black)
+            ImageViewCompat.setImageTintList(view, ContextCompat.getColorStateList(requireContext(), R.color.black))
         }
     }
 
     private fun setActionIconSelected(view: ImageView, selected: Boolean) {
         if (selected) {
             view.backgroundTintList = ContextCompat.getColorStateList(requireContext(), R.color.appColor)
-            view.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.appColor)
+            ImageViewCompat.setImageTintList(view, ContextCompat.getColorStateList(requireContext(), R.color.appColor))
         } else {
             view.backgroundTintList = ContextCompat.getColorStateList(requireContext(), R.color.light_gray)
-            view.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.light_gray)
+            ImageViewCompat.setImageTintList(view, ContextCompat.getColorStateList(requireContext(), R.color.light_gray))
         }
     }
 
@@ -345,7 +345,6 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
         Log.d(TAG, "runSubjectSegmentation: ${bitmap.width}x${bitmap.height}")
         showLoadingDialog()
 
-        // Downscale image to a reasonable size (max 1024px) for ML Kit to optimize quality and speed
         val maxDim = 1024
         val isScaled = bitmap.width > maxDim || bitmap.height > maxDim
         val mlKitBitmap = if (isScaled) {
@@ -385,7 +384,6 @@ class BgRemovalFragment : androidx.fragment.app.Fragment() {
                     mlKitBitmap.recycle()
                 }
                 if (_binding != null && isAdded) {
-                    // Switch back to nav_lasso so nav_subject is deselected and immediately re-clickable
                     binding.bottomNavigation.selectedItemId = R.id.nav_lasso
                 }
             }

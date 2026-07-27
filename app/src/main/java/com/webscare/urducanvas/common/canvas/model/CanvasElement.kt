@@ -280,7 +280,9 @@ data class CanvasElement(
         } else if (type == ElementType.SHAPE) {
             logicalContentHeight
         } else if (type == ElementType.TEXT) {
-            if (::paint.isInitialized) {
+            if (boxHeight != null && boxHeight!! > 0f) {
+                boxHeight!!
+            } else if (::paint.isInitialized) {
                 val fm = paint.fontMetrics
                 val lineHeight = (fm.bottom - fm.top) * lineSpacing
                 val lines = getVisualLines()
@@ -305,36 +307,51 @@ data class CanvasElement(
         return applyKashidaToText(text, kashidaSize)
     }
 
+    @Transient private var cachedRawTextForTokens: String? = null
+    @Transient private var cachedExplicitLinesTokens: List<List<String>>? = null
+
+    private fun getExplicitLinesTokens(): List<List<String>> {
+        val rawText = getTextWithKashida()
+        if (rawText == cachedRawTextForTokens && cachedExplicitLinesTokens != null) {
+            return cachedExplicitLinesTokens!!
+        }
+        val explicitLines = rawText.split("\n")
+        val tokenized = explicitLines.map { line ->
+            if (line.isEmpty()) emptyList()
+            else line.split(Regex("(?<=\\s)|(?=\\s)"))
+        }
+        cachedRawTextForTokens = rawText
+        cachedExplicitLinesTokens = tokenized
+        return tokenized
+    }
+
     fun getVisualLines(targetWidth: Float? = null): List<String> {
         val rawText = getTextWithKashida()
         if (rawText.isEmpty()) return listOf("")
-        val explicitLines = rawText.split("\n")
+        val explicitTokens = getExplicitLinesTokens()
         val effectiveWidth = targetWidth ?: boxWidth
         if (effectiveWidth == null || effectiveWidth <= 0f || !::paint.isInitialized) {
-            return explicitLines
+            return rawText.split("\n")
         }
 
         val resultLines = mutableListOf<String>()
-        for (line in explicitLines) {
-            if (line.isEmpty()) {
+        for (tokens in explicitTokens) {
+            if (tokens.isEmpty()) {
                 resultLines.add("")
                 continue
             }
-            val measured = paint.measureText(line)
+            val lineStr = tokens.joinToString("")
+            val measured = paint.measureText(lineStr)
             if (measured <= effectiveWidth) {
-                resultLines.add(line)
+                resultLines.add(lineStr)
             } else {
-                val words = line.split(Regex("(?<=\\s)|(?=\\s)"))
                 var currentLine = StringBuilder()
-                for (word in words) {
-                    // If a single word/token is wider than effectiveWidth, break it character-by-character
+                for (word in tokens) {
                     if (paint.measureText(word.trim()) > effectiveWidth) {
-                        // Flush any accumulated text first
                         if (currentLine.isNotEmpty()) {
                             resultLines.add(currentLine.toString().trimEnd())
                             currentLine = StringBuilder()
                         }
-                        // Break the long word character by character
                         val trimmedWord = word.trim()
                         val charLine = StringBuilder()
                         for (ch in trimmedWord) {
@@ -382,6 +399,109 @@ data class CanvasElement(
         }
     }
 
+    fun getNaturalUnwrappedWidth(): Float {
+        if (type != ElementType.TEXT || !::paint.isInitialized) return 0f
+        val rawText = getTextWithKashida()
+        if (rawText.isEmpty()) return 0f
+        val explicitLines = rawText.split("\n")
+        var maxW = 0f
+        for (line in explicitLines) {
+            if (line.isEmpty()) continue
+            maxW = maxOf(maxW, paint.measureText(line))
+        }
+        return maxW.coerceAtLeast(40f)
+    }
+
+    fun getNaturalContentHeight(targetW: Float? = null): Float {
+        if (type != ElementType.TEXT || !::paint.isInitialized) return 0f
+        val lines = getVisualLines(targetW)
+        val fm = paint.fontMetrics
+        val lineHeight = (fm.descent - fm.ascent) * lineSpacing
+        return (lines.size * lineHeight).coerceAtLeast(30f)
+    }
+
+    fun getMinWordWidth(): Float {
+        if (type != ElementType.TEXT || !::paint.isInitialized) return 40f
+        val rawText = getTextWithKashida()
+        if (rawText.isEmpty()) return 40f
+        val words = rawText.split(Regex("\\s+"))
+        var maxWordW = 0f
+        for (w in words) {
+            if (w.trim().isEmpty()) continue
+            maxWordW = maxOf(maxWordW, paint.measureText(w.trim()))
+        }
+        return maxWordW.coerceAtLeast(40f)
+    }
+
+    fun autoFitTextSize(canvasWidth: Float, canvasHeight: Float) {
+        if (type != ElementType.TEXT || text.isEmpty()) return
+        if (!::paint.isInitialized) updatePaintProperties()
+
+        val maxCanvasW = if (canvasWidth > 0f) canvasWidth * 0.85f else 0f
+        val maxCanvasH = if (canvasHeight > 0f) canvasHeight * 0.85f else 0f
+
+        val targetW = if (boxWidth != null && boxWidth!! > 0f) boxWidth!! else maxCanvasW
+        val targetH = if (boxHeight != null && boxHeight!! > 0f) boxHeight!! else maxCanvasH
+
+        if (targetW <= 0f) return
+
+        val refDim = minOf(
+            if (canvasWidth > 0f) canvasWidth else 1000f,
+            if (canvasHeight > 0f) canvasHeight else 1000f
+        )
+        val minTextSize = maxOf(12f, refDim * 0.015f)
+
+        fun testFits(size: Float): Boolean {
+            paint.textSize = size
+            val lines = getVisualLines(targetW)
+            val fm = paint.fontMetrics
+            val lineHeight = (fm.descent - fm.ascent) * lineSpacing
+            val totalH = lines.size * lineHeight
+            val maxW = lines.maxOfOrNull { paint.measureText(it) } ?: 0f
+            val fitsW = targetW <= 0f || maxW <= targetW + 1f
+            val fitsH = targetH <= 0f || totalH <= targetH + 1f
+            return fitsW && fitsH
+        }
+
+        var currentSize = paintTextSize
+        if (!testFits(currentSize)) {
+            var low = minTextSize
+            var high = currentSize
+            var bestSize = minTextSize
+
+            repeat(10) {
+                val mid = (low + high) / 2f
+                if (testFits(mid)) {
+                    bestSize = mid
+                    low = mid
+                } else {
+                    high = mid
+                }
+            }
+            currentSize = bestSize
+            paintTextSize = currentSize
+            updatePaintProperties()
+        }
+
+        paint.textSize = paintTextSize
+        val lines = getVisualLines(boxWidth)
+        val fm = paint.fontMetrics
+        val lineHeight = (fm.descent - fm.ascent) * lineSpacing
+        val totalH = lines.size * lineHeight
+        val maxW = lines.maxOfOrNull { paint.measureText(it) } ?: 0f
+
+        val naturalMaxW = getNaturalUnwrappedWidth()
+        if (boxWidth != null) {
+            boxWidth = boxWidth!!.coerceIn(getMinWordWidth(), naturalMaxW)
+        }
+        if (boxHeight != null) {
+            boxHeight = boxHeight!!.coerceIn(lineHeight, getNaturalContentHeight(boxWidth))
+        }
+
+        logicalContentWidth = boxWidth ?: maxW
+        logicalContentHeight = boxHeight ?: totalH
+    }
+
     fun getTightTextBounds(): RectF {
         val bounds = RectF()
 
@@ -400,10 +520,11 @@ data class CanvasElement(
             }
 
             val boxW = boxWidth ?: maxLineWidth
-            val totalHeight = lines.size * lineHeight
+            val textContentHeight = lines.size * lineHeight
+            val boxH = if (boxHeight != null && boxHeight!! > 0f) maxOf(boxHeight!!, textContentHeight) else textContentHeight
 
             bounds.set(
-                -boxW / 2f, -totalHeight / 2f, boxW / 2f, totalHeight / 2f
+                -boxW / 2f, -boxH / 2f, boxW / 2f, boxH / 2f
             )
         } else if (type == ElementType.DRAW) {
             val drawBounds = getDrawBounds()

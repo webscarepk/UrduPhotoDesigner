@@ -365,14 +365,8 @@ class LayersAdapter(
                     root.radius = 6f.dpToPx(root.context)
                 }
 
-                title.text = element.customName ?: when (element.type) {
-                    ElementType.TEXT    -> element.text ?: "Text"
-                    ElementType.IMAGE   -> "Image"
-                    ElementType.STICKER -> "Sticker"
-                    ElementType.DRAW    -> "Brush"
-                    ElementType.SHAPE   -> element.shapeType?.displayName ?: "Shape"
-                    else                -> "Background"
-                }
+                val uniqueMap = com.webscare.urducanvas.common.utils.ImageUtils.computeUniqueLayerNames(adapter.items.map { it.element })
+                title.text = uniqueMap[element.id] ?: com.webscare.urducanvas.common.utils.ImageUtils.getBaseLayerName(element)
 
                 image.setImageResource(when (element.type) {
                     ElementType.TEXT    -> R.drawable.ic_text_layer
