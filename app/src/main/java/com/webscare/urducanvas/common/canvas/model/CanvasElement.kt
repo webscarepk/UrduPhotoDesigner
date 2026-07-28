@@ -325,11 +325,17 @@ data class CanvasElement(
         return tokenized
     }
 
-    fun getVisualLines(targetWidth: Float? = null): List<String> {
+    fun getVisualLines(targetWidth: Float? = null, maxCanvasWidth: Float? = null): List<String> {
         val rawText = getTextWithKashida()
         if (rawText.isEmpty()) return listOf("")
         val explicitTokens = getExplicitLinesTokens()
-        val effectiveWidth = targetWidth ?: boxWidth
+
+        val defaultMaxW = maxCanvasWidth
+            ?: (context?.resources?.displayMetrics?.widthPixels?.let { it * 0.85f } ?: 800f)
+
+        val effectiveWidth = targetWidth
+            ?: (if (boxWidth != null && boxWidth!! > 0f) boxWidth else defaultMaxW)
+
         if (effectiveWidth == null || effectiveWidth <= 0f || !::paint.isInitialized) {
             return rawText.split("\n")
         }

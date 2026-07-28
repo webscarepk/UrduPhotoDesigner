@@ -42,6 +42,7 @@ import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.ImagesData
 import com.webscare.urducanvas.databinding.FragmentImagesBinding
 import com.webscare.urducanvas.ui.editor.EditorFragment
+import com.webscare.urducanvas.ui.editor.panels.text.fonts.imported.ImportedFontsBottomSheet.Companion.TAG
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import com.webscare.urducanvas.viewmodels.PexelsViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -668,6 +669,7 @@ class ImagesFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val fileName = com.webscare.urducanvas.common.utils.ImageUtils.getFileNameFromUri(requireActivity(), uri)
+                Log.d(TAG, "handlePickedUri: $fileName")
                 val filePath =
                     ImageProcessor.copyUriToTempFile(requireActivity(), uri)?.absolutePath
                         ?: return@launch

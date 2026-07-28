@@ -4398,7 +4398,8 @@ class CanvasView @JvmOverloads constructor(
     ) {
         if (element.paintAlpha == 0) return
 
-        val lines = element.getVisualLines()
+        val maxCanvasW = if (canvasWidth > 0) canvasWidth * 0.85f else 0f
+        val lines = element.getVisualLines(maxCanvasWidth = maxCanvasW)
         val fm = try {
             element.paint.fontMetrics
         } catch (e: Exception) {
