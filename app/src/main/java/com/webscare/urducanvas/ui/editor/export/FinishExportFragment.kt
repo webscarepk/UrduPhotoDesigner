@@ -24,7 +24,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import androidx.core.graphics.scale
-import android.widget.Toast
+import com.google.android.material.snackbar.Snackbar
 
 @AndroidEntryPoint
 class FinishExportFragment : androidx.fragment.app.Fragment() {
@@ -239,7 +239,7 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
 
                 val activity = requireActivity()
                 if (!PrintHelper.systemSupportsPrint()) {
-                    Toast.makeText(activity, "Printing is not supported on this device", Toast.LENGTH_SHORT).show()
+                    Snackbar.make(binding.root, "Printing is not supported on this device", Snackbar.LENGTH_SHORT).show()
                     return@addPressEffect
                 }
 
@@ -251,7 +251,7 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
                             }.printBitmap(fileName, bitmap)
                         } catch (e: Exception) {
                             e.printStackTrace()
-                            Toast.makeText(activity, "Failed to start printing", Toast.LENGTH_SHORT).show()
+                            Snackbar.make(binding.root, "Failed to start printing", Snackbar.LENGTH_SHORT).show()
                         }
                     }
                 }

@@ -2,6 +2,7 @@
 <resources>
     <color name="black">#FFFFFF</color>
     <color name="white">#202024</color>
+    <color name="whiteLow">#80202024</color>
     <color name="shadowColor">#66000000</color>
     <color name="whiteText">#FFFFFF</color>
     <color name="contrast">#121214</color>

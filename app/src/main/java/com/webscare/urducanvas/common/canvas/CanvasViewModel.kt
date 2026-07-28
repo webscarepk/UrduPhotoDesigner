@@ -16,6 +16,8 @@ import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.map
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.webscare.urducanvas.R
@@ -451,8 +453,8 @@ class CanvasViewModel @Inject constructor(
     // Emits once when applyMaskToSelected finishes committing to LiveData.
     // BgRemovalFragment (or EditorFragment) observes this to know the safe
     // moment to call navigateUp() — after the data is committed, not before.
-    private val _maskAppliedEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val maskAppliedEvent = _maskAppliedEvent
+    private val _maskAppliedEvent = Channel<Unit>(Channel.BUFFERED)
+    val maskAppliedEvent = _maskAppliedEvent.receiveAsFlow()
 
     fun toggleGrid() {
         _isGridEnabled.value = !(_isGridEnabled.value ?: false)
@@ -2724,7 +2726,7 @@ class CanvasViewModel @Inject constructor(
             // and calls navigateUp() only AFTER the data is committed to LiveData.
             // Without this, navigateUp() was called synchronously in onMaskConfirmed
             // before this coroutine ran, so the fragment was gone before the canvas updated.
-            _maskAppliedEvent.tryEmit(Unit)
+            _maskAppliedEvent.trySend(Unit)
         }
     }
 
@@ -3282,7 +3284,7 @@ class CanvasViewModel @Inject constructor(
 //        }
 //    }
 
-    fun setCanvasBackgroundImage(bitmap: Bitmap?, context: Context) {
+    fun setCanvasBackgroundImage(bitmap: Bitmap?, context: Context, customName: String? = null) {
         if (bitmap?.width!! <= 0 || bitmap.height!! <= 0) return
 
         val currentList = _canvasElements.value ?: emptyList()
@@ -3297,6 +3299,7 @@ class CanvasViewModel @Inject constructor(
         val element = CanvasElement(
             context = context,
             type = ElementType.IMAGE,
+            customName = customName,
             bitmap = bitmap,
             bitmapData = ImageProcessor.bitmapToBase64(bitmap),
             x = canvasW / 2f,

@@ -37,6 +37,7 @@ import com.webscare.urducanvas.common.canvas.enums.ExportViewType
 import com.webscare.urducanvas.common.canvas.model.ExportOptions
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.google.android.material.snackbar.Snackbar
 import com.webscare.urducanvas.common.views.CanvasView
 import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.databinding.FragmentExportBinding
@@ -301,7 +302,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
                         isPendingRewardAnimation = true
                     },
                     onNotReady = {
-                        android.widget.Toast.makeText(context, "Ad loading, please try again in a moment.", android.widget.Toast.LENGTH_SHORT).show()
+                        Snackbar.make(binding.root, "Ad loading, please try again in a moment.", Snackbar.LENGTH_SHORT).show()
                     }
                 )
             }

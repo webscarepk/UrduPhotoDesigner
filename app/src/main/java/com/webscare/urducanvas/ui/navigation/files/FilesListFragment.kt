@@ -34,8 +34,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.snackbar.Snackbar
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
@@ -57,6 +55,8 @@ import androidx.core.content.FileProvider
 import com.webscare.urducanvas.MainActivity
 import com.webscare.urducanvas.common.canvas.io.ProjectCodec
 import com.webscare.urducanvas.common.utils.SpringEdgeEffectFactory
+import com.webscare.urducanvas.common.views.SafeGridLayoutManager
+import com.webscare.urducanvas.common.views.SafeLinearLayoutManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -665,7 +665,7 @@ class FilesListFragment : Fragment() {
                         }
                     }
                 } else {
-                    android.widget.Toast.makeText(context, "Failed to load project", android.widget.Toast.LENGTH_LONG).show()
+                    Snackbar.make(_binding!!.root, "Failed to load project", Snackbar.LENGTH_LONG).show()
                 }
             }
         }
@@ -675,9 +675,9 @@ class FilesListFragment : Fragment() {
                 filtersViewModel.isGrid.collect { isGrid ->
                     val b = _binding ?: return@collect
                     b.filesRV.layoutManager = if (isGrid)
-                        com.webscare.urducanvas.common.views.SafeGridLayoutManager(requireContext(), 2)
+                        SafeGridLayoutManager(requireContext(), 2)
                     else
-                        com.webscare.urducanvas.common.views.SafeLinearLayoutManager(requireContext())
+                        SafeLinearLayoutManager(requireContext())
                     adapter.toggleViewType(isGrid)
                 }
             }

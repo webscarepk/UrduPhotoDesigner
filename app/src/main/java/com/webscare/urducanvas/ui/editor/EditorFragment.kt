@@ -43,6 +43,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnLayout
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
+import com.google.android.material.snackbar.Snackbar
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
@@ -730,7 +731,7 @@ class EditorFragment : Fragment() {
             } else if (isLoading == false) {
                 dismissExportDialog()
                 if (isAdded && isResumed && viewModel.canvasSize.value == null) {
-                    android.widget.Toast.makeText(context, "Failed to restore project", android.widget.Toast.LENGTH_LONG).show()
+                    Snackbar.make(binding.root, "Failed to restore project", Snackbar.LENGTH_LONG).show()
                     try {
                         findNavController().navigateUp()
                     } catch (e: Exception) {

@@ -8,7 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
-import android.widget.Toast
+import com.google.android.material.snackbar.Snackbar
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
@@ -251,8 +251,11 @@ class ManageSubscriptionFragment : Fragment() {
         } catch (_: Exception) { }
     }
 
-    private fun toast(msg: String) =
-        Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+    private fun toast(msg: String) {
+        if (_binding != null) {
+            Snackbar.make(binding.root, msg, Snackbar.LENGTH_SHORT).show()
+        }
+    }
 
     private fun color(res: Int) = ContextCompat.getColor(requireContext(), res)
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()

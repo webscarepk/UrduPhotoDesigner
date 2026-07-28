@@ -28,6 +28,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.webscare.ads.WebsCareAds
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.databinding.ActivityMainBinding
@@ -62,6 +63,7 @@ class MainActivity : AppCompatActivity() {
             uri?.let {
                 lifecycleScope.launch(Dispatchers.IO) {
                     try {
+                        val fileName = com.webscare.urducanvas.common.utils.ImageUtils.getFileNameFromUri(this@MainActivity, it)
                         val rawBitmap = com.webscare.urducanvas.common.utils.ImageProcessor
                             .decodeUriSafely(contentResolver, it, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)
                             ?: return@launch
@@ -78,7 +80,7 @@ class MainActivity : AppCompatActivity() {
                             )
                             viewModel.clearCanvas()
                             viewModel.setCanvasSize(canvasSize)
-                            viewModel.setCanvasBackgroundImage(bitmap, this@MainActivity)
+                            viewModel.setCanvasBackgroundImage(bitmap, this@MainActivity, customName = fileName)
                             val editorNavOptions = NavOptions.Builder().setLaunchSingleTop(true)
                                 .setPopUpTo(R.id.editorFragment, inclusive = true).build()
                             navController.navigate(R.id.editorFragment, null, editorNavOptions)
@@ -165,6 +167,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupBottomNav() {
         binding.fabAddImage.visibility = View.GONE
+        binding.mainBannerAd.setAdUnitId(BuildConfig.AD_BANNER_MAIN)
 
         // Force FAB above the nav bar (z-order + elevation)
         binding.fabAddImage.elevation = 16f * resources.displayMetrics.density
@@ -229,6 +232,7 @@ class MainActivity : AppCompatActivity() {
             )
 
             if (destination.id in visibleDestinations) {
+                binding.mainBannerAd.visibility = View.VISIBLE
                 if (!nav.isVisible) {
                     nav.apply {
                         visibility = View.VISIBLE
@@ -245,6 +249,7 @@ class MainActivity : AppCompatActivity() {
                 binding.fabAddImage.visibility = View.VISIBLE
                 indicatorView?.visibility = View.VISIBLE
             } else {
+                binding.mainBannerAd.visibility = View.GONE
                 if (nav.isVisible) {
                     nav.animate().translationY(nav.height.toFloat() + 40f).setDuration(300)
                         .setUpdateListener { syncIndicatorToNav(nav) }
@@ -394,14 +399,24 @@ class MainActivity : AppCompatActivity() {
         val fabTargetBottom = screenH - margin               // desired bottom
         val fabTargetY = (fabTargetBottom - fabCurrentBottom).toFloat()
 
+        val bannerExtraY = if (binding.mainBannerAd.isVisible) binding.mainBannerAd.height.toFloat() else 0f
+
         if (hidden) {
             nav.animate()
-                .translationY(nav.height.toFloat() + 40f)
+                .translationY(nav.height.toFloat() + bannerExtraY + 40f)
                 .setDuration(250)
                 .setInterpolator(android.view.animation.AccelerateInterpolator())
                 .setUpdateListener { syncIndicatorToNav(nav) }
                 .withEndAction { indicatorView?.visibility = View.GONE }
                 .start()
+
+            if (binding.mainBannerAd.isVisible) {
+                binding.mainBannerAd.animate()
+                    .translationY(bannerExtraY + 40f)
+                    .setDuration(250)
+                    .setInterpolator(android.view.animation.AccelerateInterpolator())
+                    .start()
+            }
 
             // FAB diagonally → bottom-right corner (right + neeche, equal margins)
             fab.animate()
@@ -419,6 +434,14 @@ class MainActivity : AppCompatActivity() {
                 .setInterpolator(android.view.animation.DecelerateInterpolator())
                 .setUpdateListener { syncIndicatorToNav(nav) }
                 .start()
+
+            if (binding.mainBannerAd.isVisible) {
+                binding.mainBannerAd.animate()
+                    .translationY(0f)
+                    .setDuration(250)
+                    .setInterpolator(android.view.animation.DecelerateInterpolator())
+                    .start()
+            }
 
             fab.animate()
                 .translationX(0f)
@@ -596,6 +619,7 @@ class MainActivity : AppCompatActivity() {
 
                 // ── 2) Existing image handling (unchanged) ──
                 if (intent.type?.startsWith("image/") == true) {
+                    val fileName = com.webscare.urducanvas.common.utils.ImageUtils.getFileNameFromUri(this@MainActivity, uri)
                     val rawBitmap = com.webscare.urducanvas.common.utils.ImageProcessor.decodeUriSafely(
                         contentResolver,
                         uri,
@@ -616,7 +640,7 @@ class MainActivity : AppCompatActivity() {
                             )
                             viewModel.clearCanvas()
                             viewModel.setCanvasSize(canvasSize)
-                            viewModel.setCanvasBackgroundImage(bitmap, this@MainActivity)
+                            viewModel.setCanvasBackgroundImage(bitmap, this@MainActivity, customName = fileName)
                             val opts = NavOptions.Builder().setLaunchSingleTop(true)
                                 .setPopUpTo(R.id.editorFragment, inclusive = true).build()
                             navController.navigate(R.id.editorFragment, null, opts)

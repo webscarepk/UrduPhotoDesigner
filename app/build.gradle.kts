@@ -66,6 +66,7 @@ android {
             buildConfigField("String", "AD_INTERSTITIAL_EXPORT", "\"ca-app-pub-3940256099942544/1033173712\"")
             buildConfigField("String", "AD_NATIVE_EXPORT_SUCCESS", "\"ca-app-pub-3940256099942544/2247696110\"")
             buildConfigField("String", "AD_BANNER_SETTINGS", "\"ca-app-pub-3940256099942544/9214589741\"")
+            buildConfigField("String", "AD_BANNER_MAIN", "\"ca-app-pub-3940256099942544/6300978111\"")
         }
 
         create("dev") {
@@ -85,6 +86,7 @@ android {
             buildConfigField("String", "AD_INTERSTITIAL_EXPORT", "\"\"")
             buildConfigField("String", "AD_NATIVE_EXPORT_SUCCESS", "\"\"")
             buildConfigField("String", "AD_BANNER_SETTINGS", "\"\"")
+            buildConfigField("String", "AD_BANNER_MAIN", "\"\"")
         }
 
         create("prod") {
@@ -104,6 +106,7 @@ android {
             buildConfigField("String", "AD_INTERSTITIAL_EXPORT", "\"ca-app-pub-4379805490947109/7489309447\"")
             buildConfigField("String", "AD_NATIVE_EXPORT_SUCCESS", "\"ca-app-pub-4379805490947109/2081336029\"")
             buildConfigField("String", "AD_BANNER_SETTINGS", "\"ca-app-pub-4379805490947109/9089451712\"")
+            buildConfigField("String", "AD_BANNER_MAIN", "\"ca-app-pub-4379805490947109/1420335941\"")
         }
     }
 

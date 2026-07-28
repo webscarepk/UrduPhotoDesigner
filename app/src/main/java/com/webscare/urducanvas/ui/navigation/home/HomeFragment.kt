@@ -584,7 +584,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
                         }
                     }
                 } else {
-                    android.widget.Toast.makeText(context, "Failed to load template", android.widget.Toast.LENGTH_LONG).show()
+                    Snackbar.make(binding.root, "Failed to load template", Snackbar.LENGTH_LONG).show()
                 }
             }
         }
