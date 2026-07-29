@@ -38,6 +38,7 @@ import com.webscare.urducanvas.common.canvas.model.ExportOptions
 import com.webscare.urducanvas.common.utils.ImageProcessor
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.google.android.material.snackbar.Snackbar
+import com.webscare.urducanvas.common.utils.NetworkUtils
 import com.webscare.urducanvas.common.views.CanvasView
 import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.databinding.FragmentExportBinding
@@ -294,22 +295,35 @@ class ExportFragment : androidx.fragment.app.Fragment() {
             btnWatchAdToExport.backgroundTintList = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.appColor))
             btnWatchAdToExport.setTextColor(ContextCompat.getColor(requireContext(), R.color.white))
             btnWatchAdToExport.setOnClickListener {
-                WebsCareAds.showRewarded(
-                    activity = requireActivity(),
-                    adUnitId = BuildConfig.AD_REWARDED_EXPORT,
-                    onRewarded = { _, _ ->
-                        isSessionExportUnlocked = true
-                        isPendingRewardAnimation = true
-                    },
-                    onNotReady = {
-                        Snackbar.make(binding.root, "Ad loading, please try again in a moment.", Snackbar.LENGTH_SHORT).show()
-                    }
-                )
+                attemptExportRewardedAd()
             }
         } else {
             btnExport.text = getString(R.string.export)
             btnExport.setIconResource(R.drawable.ic_export)
         }
+    }
+
+    private fun attemptExportRewardedAd() {
+        if (!NetworkUtils.isInternetAvailable(requireContext())) {
+            Snackbar.make(binding.root, "No internet connection. Please turn on internet and watch ad to export.", Snackbar.LENGTH_INDEFINITE)
+                .setAction("Retry") { attemptExportRewardedAd() }
+                .show()
+            return
+        }
+
+        WebsCareAds.showRewarded(
+            activity = requireActivity(),
+            adUnitId = BuildConfig.AD_REWARDED_EXPORT,
+            onRewarded = { _, _ ->
+                isSessionExportUnlocked = true
+                isPendingRewardAnimation = true
+            },
+            onNotReady = {
+                Snackbar.make(binding.root, "Ad not available. Please try again.", Snackbar.LENGTH_INDEFINITE)
+                    .setAction("Retry") { attemptExportRewardedAd() }
+                    .show()
+            }
+        )
     }
 
     private fun animateRewardUnlockedUI(hasPremium: Boolean) = with(binding) {

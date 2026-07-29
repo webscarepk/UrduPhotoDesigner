@@ -233,6 +233,8 @@ class MainActivity : AppCompatActivity() {
 
             if (destination.id in visibleDestinations) {
                 binding.mainBannerAd.visibility = View.VISIBLE
+                binding.bannerAdDivider.visibility = View.VISIBLE
+                binding.bottomNavTopShadow.visibility = View.VISIBLE
                 if (!nav.isVisible) {
                     nav.apply {
                         visibility = View.VISIBLE
@@ -250,6 +252,8 @@ class MainActivity : AppCompatActivity() {
                 indicatorView?.visibility = View.VISIBLE
             } else {
                 binding.mainBannerAd.visibility = View.GONE
+                binding.bannerAdDivider.visibility = View.GONE
+                binding.bottomNavTopShadow.visibility = View.GONE
                 if (nav.isVisible) {
                     nav.animate().translationY(nav.height.toFloat() + 40f).setDuration(300)
                         .setUpdateListener { syncIndicatorToNav(nav) }
@@ -257,12 +261,16 @@ class MainActivity : AppCompatActivity() {
                             if (!isDestroyed) {
                                 nav.visibility = View.GONE
                                 binding.fabAddImage.visibility = View.GONE
+                                binding.bottomNavTopShadow.visibility = View.GONE
+                                binding.bannerAdDivider.visibility = View.GONE
                                 indicatorView?.visibility = View.GONE
                             }
                         }.start()
                 }
                 // hide immediately so they don't linger on splash/editor
                 binding.fabAddImage.visibility = View.GONE
+                binding.bottomNavTopShadow.visibility = View.GONE
+                binding.bannerAdDivider.visibility = View.GONE
                 indicatorView?.visibility = View.GONE
             }
 

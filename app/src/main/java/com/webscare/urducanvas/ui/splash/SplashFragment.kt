@@ -86,7 +86,7 @@ class SplashFragment : Fragment(), TextureView.SurfaceTextureListener {
 
             prepareAsync()
             setOnPreparedListener {
-                playbackParams = playbackParams.setSpeed(1.7f)
+                playbackParams = playbackParams.setSpeed(3.4f)
                 start()
             }
         }

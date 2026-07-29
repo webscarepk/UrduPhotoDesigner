@@ -43,7 +43,8 @@ class BgRemovalCanvas @JvmOverloads constructor(
     var onMaskConfirmed: ((Bitmap) -> Unit)? = null,
     var onProcessingChanged: ((Boolean) -> Unit)? = null,
     var onProcessingCancelled: (() -> Unit)? = null,
-    var onZoomChanged: ((Float) -> Unit)? = null
+    var onZoomChanged: ((Float) -> Unit)? = null,
+    var onMaskStateChanged: ((Boolean) -> Unit)? = null
 ) : View(context, attrs) {
 
 
@@ -52,6 +53,13 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
     private var previewEnabled = false
     private var isApplyingMask = false
+
+    /** Returns true when a non-empty selection mask exists on the canvas. */
+    fun hasMask(): Boolean = selectionPath != null && !selectionPath!!.isEmpty
+
+    private fun notifyMaskState() {
+        onMaskStateChanged?.invoke(hasMask())
+    }
 
     // Magnifier variables
     private var showMagnifier = false
@@ -217,6 +225,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
         selectionOutlinePath = null
         markRenderCacheDirty()
         invalidate()
+        notifyMaskState()
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -327,6 +336,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
         markRenderCacheDirty()
         invalidate()
+        notifyMaskState()
     }
 
     fun undo() {
@@ -335,6 +345,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
             selectionPath = if (donePaths.isNotEmpty()) Path(donePaths.last()) else null
             markRenderCacheDirty()
             invalidate()
+            notifyMaskState()
         }
     }
 
@@ -345,6 +356,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
             selectionPath = Path(redoPath)
             markRenderCacheDirty()
             invalidate()
+            notifyMaskState()
         }
     }
 
@@ -521,6 +533,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
             markRenderCacheDirty()
             invalidate()
+            notifyMaskState()
         }
     }
 
@@ -606,48 +619,7 @@ class BgRemovalCanvas @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-
         renderContent(canvas)
-        if (showMagnifier && magnifierAlpha > 0f) {
-            val offsetY =
-                if (magnifierY - magnifierOffset - magnifierRadius < 0) magnifierOffset else -magnifierOffset
-            val magnifierCenterX = magnifierX
-            val magnifierCenterY = magnifierY + offsetY
-
-            val clipPath = Path().apply {
-                addCircle(magnifierCenterX, magnifierCenterY, magnifierRadius, Path.Direction.CW)
-            }
-            canvas.clipPath(clipPath)
-
-            val fullBmp = createBitmap(width, height)
-            val c = Canvas(fullBmp)
-            renderContent(c)
-
-            val srcRect = Rect(
-                (magnifierX - magnifierRadius / magnifierScale).toInt()
-                    .coerceIn(0, fullBmp.width - 1),
-                (magnifierY - magnifierRadius / magnifierScale).toInt()
-                    .coerceIn(0, fullBmp.height - 1),
-                (magnifierX + magnifierRadius / magnifierScale).toInt().coerceAtMost(fullBmp.width),
-                (magnifierY + magnifierRadius / magnifierScale).toInt().coerceAtMost(fullBmp.height)
-            )
-            val dstRect = Rect(
-                (magnifierCenterX - magnifierRadius).toInt(),
-                (magnifierCenterY - magnifierRadius).toInt(),
-                (magnifierCenterX + magnifierRadius).toInt(),
-                (magnifierCenterY + magnifierRadius).toInt()
-            )
-            canvas.drawBitmap(fullBmp, srcRect, dstRect, null)
-            fullBmp.recycle()
-
-            val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.BLACK
-                style = Paint.Style.STROKE
-                strokeWidth = 4f
-                alpha = (magnifierAlpha * 255).toInt()
-            }
-            canvas.drawCircle(magnifierCenterX, magnifierCenterY, magnifierRadius, borderPaint)
-        }
     }
 
     private fun markRenderCacheDirty() {
@@ -971,34 +943,17 @@ class BgRemovalCanvas @JvmOverloads constructor(
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 currentPath = Path().apply { moveTo(x, y) }
-
-                magnifierX = event.x
-                magnifierY = event.y
-                if (!showMagnifier) {
-                    showMagnifier = true
-                    animateMagnifier(true)
-                }
-
                 invalidate()
             }
 
             MotionEvent.ACTION_MOVE -> {
                 currentPath?.lineTo(x, y)
-
-                magnifierX = event.x
-                magnifierY = event.y
-
                 invalidate()
             }
 
             MotionEvent.ACTION_UP -> {
                 currentPath?.let { commitPath(it) }
                 currentPath = null
-
-                if (showMagnifier) {
-                    animateMagnifier(false)
-                }
-
                 invalidate()
             }
         }
@@ -1015,14 +970,6 @@ class BgRemovalCanvas @JvmOverloads constructor(
                 startY = y
                 endX = startX
                 endY = startY
-
-                magnifierX = event.x
-                magnifierY = event.y
-                if (!showMagnifier) {
-                    showMagnifier = true
-                    animateMagnifier(true)
-                }
-
                 invalidate()
             }
 
@@ -1037,10 +984,6 @@ class BgRemovalCanvas @JvmOverloads constructor(
                     preview.addOval(RectF(startX, startY, endX, endY), Path.Direction.CW)
                 }
                 currentPath = preview
-
-                magnifierX = event.x
-                magnifierY = event.y
-
                 invalidate()
             }
 
@@ -1053,11 +996,6 @@ class BgRemovalCanvas @JvmOverloads constructor(
                 }
                 commitPath(path)
                 currentPath = null
-
-                if (showMagnifier) {
-                    animateMagnifier(false)
-                }
-
                 invalidate()
             }
         }

@@ -32,11 +32,39 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- AdMob Policy Separator between Bottom Navigation and Banner Ad -->
+    <View
+        android:id="@+id/bannerAdDivider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#1F000000"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/mainBannerAd"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Top-only shadow above bottom navigation -->
+    <View
+        android:id="@+id/bottomNavTopShadow"
+        android:layout_width="match_parent"
+        android:layout_height="14dp"
+        android:background="@drawable/bottom_nav_top_shadow"
+        android:visibility="gone"
+        android:importantForAccessibility="no"
+        app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/white"
+        android:visibility="gone"
+        android:elevation="0dp"
+        app:elevation="0dp"
+        android:translationZ="0dp"
+        android:outlineProvider="none"
         android:clipChildren="false"
         android:clipToPadding="false"
         android:fitsSystemWindows="true"
@@ -50,7 +78,7 @@
         app:labelVisibilityMode="unlabeled"
         app:menu="@menu/home_bottom_nav_menu"
         app:paddingBottomSystemWindowInsets="true"
-        app:layout_constraintBottom_toTopOf="@id/mainBannerAd"
+        app:layout_constraintBottom_toTopOf="@id/bannerAdDivider"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
@@ -60,14 +88,15 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@drawable/ic_add"
+        android:visibility="gone"
         android:contentDescription="Add image"
         app:backgroundTint="@color/appColor"
         app:tint="@color/white"
         app:borderWidth="0dp"
-        app:elevation="16dp"
+        app:elevation="4dp"
         app:fabCustomSize="56dp"
         app:maxImageSize="24dp"
-        android:translationZ="16dp"
+        android:translationZ="0dp"
         app:ensureMinTouchTargetSize="false"
         app:layout_constraintTop_toTopOf="@id/bottomNavigation"
         app:layout_constraintBottom_toTopOf="@id/bottomNavigation"

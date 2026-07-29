@@ -58,6 +58,8 @@ import com.webscare.urducanvas.domain.usecase.UpdateGradientUseCase
 import com.webscare.urducanvas.domain.usecase.UpdateImagesUseCase
 import com.webscare.urducanvas.domain.usecase.UpdateTemplatesUseCase
 import com.webscare.urducanvas.domain.repo.PexelsRepo
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import com.webscare.urducanvas.common.utils.PexelsCategories
 import com.webscare.urducanvas.ui.editor.panels.objects.ObjectsFragment
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -765,11 +767,19 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    private val _fontImportedEvent = MutableSharedFlow<FontEntity>(extraBufferCapacity = 1)
+    val fontImportedEvent = _fontImportedEvent.asSharedFlow()
+
+    fun notifyFontImported(fontEntity: FontEntity) {
+        _fontImportedEvent.tryEmit(fontEntity)
+    }
+
     fun insertFont(fontEntity: FontEntity) {
         viewModelScope.launch {
             try {
                 // Call InsertFontsUseCase to insert the font
                 insertFontsUseCase.insertSingleFont(fontEntity)
+                notifyFontImported(fontEntity)
                 Log.d("MainViewModel", "Font inserted successfully: ${fontEntity.file_name}")
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Error inserting font: ${e.message}")

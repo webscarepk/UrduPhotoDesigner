@@ -25,6 +25,13 @@ dependencyResolutionManagement {
                 password = providers.gradleProperty("gpr.key").getOrElse(System.getenv("GITHUB_TOKEN") ?: "")
             }
         }
+        maven {
+            url = uri("https://maven.pkg.github.com/webscarepk/WebsCareCanvas")
+            credentials {
+                username = "webscarepk"
+                password = providers.gradleProperty("gpr.key").getOrElse(System.getenv("GITHUB_TOKEN") ?: "")
+            }
+        }
     }
 }
 

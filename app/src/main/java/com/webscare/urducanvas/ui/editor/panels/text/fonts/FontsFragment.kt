@@ -56,6 +56,7 @@ class FontsFragment : Fragment() {
         setupViewPager()
         observeExpansion()
         observeLocalFontsForLanguages()
+        observeFontImported()
     }
 
     // ── Language side list ────────────────────────────────────────────────────
@@ -163,6 +164,33 @@ class FontsFragment : Fragment() {
 
     // ── Derive FontLanguages from localFonts ──────────────────────────────────
 
+    private var pendingSelectImported = false
+
+    private fun observeFontImported() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.fontImportedEvent.collect {
+                    selectImportedCategory()
+                }
+            }
+        }
+    }
+
+    private fun selectImportedCategory() {
+        val categories = pagerAdapter.categories
+        val position = categories.indexOfFirst { it.name.equals("Imported", ignoreCase = true) }
+        if (position >= 0) {
+            selectedLanguage = "Imported"
+            binding.viewPager.setCurrentItem(position, false)
+            val updated = categories.mapIndexed { i, lang ->
+                lang.copy(is_selected = i == position)
+            }
+            languagesAdapter.submitList(updated)
+        } else {
+            pendingSelectImported = true
+        }
+    }
+
     private fun observeLocalFontsForLanguages() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -174,6 +202,14 @@ class FontsFragment : Fragment() {
                         val languages = buildFontLanguages(fonts)
                         languagesAdapter.submitList(languages)
                         pagerAdapter.updateCategories(languages)
+                        if (pendingSelectImported) {
+                            val pos = languages.indexOfFirst { it.name.equals("Imported", ignoreCase = true) }
+                            if (pos >= 0) {
+                                pendingSelectImported = false
+                                selectedLanguage = "Imported"
+                                binding.viewPager.setCurrentItem(pos, false)
+                            }
+                        }
                     }
             }
         }

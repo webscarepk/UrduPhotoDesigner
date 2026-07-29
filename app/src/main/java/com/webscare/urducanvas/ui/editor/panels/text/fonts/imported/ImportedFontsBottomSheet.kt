@@ -161,9 +161,13 @@ class ImportedFontsBottomSheet : BottomSheetDialogFragment() {
                 // 1. Save to Room
                 mainViewModel.insertFont(fontEntity)
 
-                // 2. Apply to canvas + dismiss
+                // 2. Apply to canvas + show snackbar + dismiss
                 withContext(Dispatchers.Main) {
                     applyFont(fontEntity)
+                    com.webscare.urducanvas.common.utils.GlobalSnackbar.showSuccess(
+                        requireActivity(),
+                        message = "Font '${fontEntity.font_name}' imported successfully!"
+                    )
                     dismiss()
                 }
             } catch (e: Exception) {
