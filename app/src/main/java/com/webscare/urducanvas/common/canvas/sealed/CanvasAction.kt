@@ -93,7 +93,9 @@ sealed class CanvasAction {
     data class ApplyImageFilter(
         val elementId: String,
         val newFilter: ImageFilter?,
-        val oldFilter: ImageFilter?
+        val oldFilter: ImageFilter?,
+        val newIntensity: Float = 1.0f,
+        val oldIntensity: Float = 1.0f
     ) : CanvasAction()
 
     data class DrawSessionStroke(

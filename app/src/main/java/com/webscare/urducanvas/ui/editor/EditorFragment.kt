@@ -108,7 +108,8 @@ class EditorFragment : Fragment() {
     private lateinit var canvasSize: CanvasSize
     private var currentUnit = UnitType.PIXELS
     private val viewModel: CanvasViewModel by activityViewModels()
-    private var lastSelection: List<CanvasElement> = emptyList()
+    private var lastSelection: List<CanvasElement>? = null
+    private val pendingHideRunnables = HashMap<View, Runnable>()
     private var activePanel: View? = null
     private val mainViewModel: MainViewModel by activityViewModels()
     private var currentPanelItemId: Int? = null
@@ -975,7 +976,10 @@ class EditorFragment : Fragment() {
             val selectionChanged = !newSelection.sameSelectionAs(lastSelection)
             if (!selectionChanged) return@observe
 
+            val wasAnySelected = !lastSelection.isNullOrEmpty()
             lastSelection = newSelection.toList()
+            val anySelected = newSelection.isNotEmpty()
+            val isSelectionSwitch = wasAnySelected && anySelected
 
             // ── Toolbar visibility ────────────────────────────────────────────────
             // When panel is expanded (full-screen sticker browser), suppress ALL
@@ -989,7 +993,8 @@ class EditorFragment : Fragment() {
             }
 
             resetPanelsOnSelectionChange()
-            updateToolbarVisibility(newSelection)
+            val effectiveSelection = if (selectionFromUserInteraction) newSelection else emptyList()
+            updateToolbarVisibility(effectiveSelection, animate = !isSelectionSwitch && selectionFromUserInteraction)
 
             if (viewModel.inSelectionMode.value == true) {
                 selectionFromUserInteraction = false
@@ -1092,7 +1097,8 @@ class EditorFragment : Fragment() {
 
     }
 
-    private fun List<CanvasElement>.sameSelectionAs(other: List<CanvasElement>): Boolean {
+    private fun List<CanvasElement>.sameSelectionAs(other: List<CanvasElement>?): Boolean {
+        if (other == null) return false
         if (size != other.size) return false
         // FIX: Comparing only IDs was not enough. After applyMaskToSelected the element
         // ID stays the same but the bitmap changes. The observer would early-return thinking
@@ -1112,26 +1118,26 @@ class EditorFragment : Fragment() {
         binding.blendSpinner.isVisible = false
     }
 
-    private fun updateToolbarVisibility(selected: List<CanvasElement>) {
+    private fun updateToolbarVisibility(selected: List<CanvasElement>, animate: Boolean = true) {
         // Toggle button stays on screen instantly — no slide animation
         binding.showHideContainer.visibility =
             if (selected.isNotEmpty()) View.VISIBLE else View.GONE
         if (panelsLocked) {
             // 🔒 force hide everything
             resetPanelsOnSelectionChange()
-            updateIconVisibility(binding.opacityPane, false,
+            updateIconVisibility(binding.opacityPane, false, animate = animate,
                 animHide = R.anim.slide_out_left)
-            updateIconVisibility(binding.blendPane, false,
+            updateIconVisibility(binding.blendPane, false, animate = animate,
                 animHide = R.anim.slide_out_left)
-            updateIconVisibility(binding.fontSizePane, false,
+            updateIconVisibility(binding.fontSizePane, false, animate = animate,
                 animHide = R.anim.slide_out_left)
-            updateIconVisibility(binding.copyIcon, false,
+            updateIconVisibility(binding.copyIcon, false, animate = animate,
                 animHide = R.anim.slide_out_left)
-            updateIconVisibility(binding.cutOutIcon, false,
+            updateIconVisibility(binding.cutOutIcon, false, animate = animate,
                 animHide = R.anim.slide_out_left)
-            updateIconVisibility(binding.alignmentKit, false,
+            updateIconVisibility(binding.alignmentKit, false, animate = animate,
                 animHide = R.anim.slide_out)
-            updateIconVisibility(binding.selection, false)
+            updateIconVisibility(binding.selection, false, animate = animate)
             return
         }
 
@@ -1150,53 +1156,78 @@ class EditorFragment : Fragment() {
         val showRemoveBg = (hasImage || hasBackground || hasShapeMask) && !isMulti && !isSvg
 
         updateIconVisibility(
-            binding.opacityPane, anySelected,
+            binding.opacityPane, anySelected, animate = animate,
             animShow = R.anim.slide_in_left, animHide = R.anim.slide_out_left
         )
         updateIconVisibility(
-            binding.blendPane, anySelected,
+            binding.blendPane, anySelected, animate = animate,
             animShow = R.anim.slide_in_left, animHide = R.anim.slide_out_left
         )
         updateIconVisibility(
-            binding.fontSizePane, showFont,
+            binding.fontSizePane, showFont, animate = animate,
             animShow = R.anim.slide_in_left, animHide = R.anim.slide_out_left
         )
         updateIconVisibility(
-            binding.copyIcon, showCopy,
+            binding.copyIcon, showCopy, animate = animate,
             animShow = R.anim.slide_in_left, animHide = R.anim.slide_out_left
         )
         updateIconVisibility(
-            binding.cutOutIcon, showRemoveBg,
+            binding.cutOutIcon, showRemoveBg, animate = animate,
             animShow = R.anim.slide_in_left, animHide = R.anim.slide_out_left
         )
         updateIconVisibility(
             binding.alignmentKit,
-            anySelected,
+            anySelected, animate = animate,
             animShow = R.anim.slide_in,
             animHide = R.anim.slide_out
         )
-        updateIconVisibility(binding.selection, showAlignWithSelection)
+        updateIconVisibility(binding.selection, showAlignWithSelection, animate = animate)
     }
 
     private fun updateIconVisibility(
         view: View,
         shouldBeVisible: Boolean,
+        animate: Boolean = true,
         @AnimRes animShow: Int = R.anim.slide_up_2,
         @AnimRes animHide: Int = R.anim.slide_down_2
     ) {
-        val isVisible = view.isVisible
+        val pendingHide = pendingHideRunnables[view]
 
-        if (shouldBeVisible && !isVisible) {
-            view.visibility = View.VISIBLE
-            view.startAnimation(AnimationUtils.loadAnimation(view.context, animShow))
-        } else if (!shouldBeVisible && isVisible) {
+        if (pendingHide != null) {
+            view.removeCallbacks(pendingHide)
+            pendingHideRunnables.remove(view)
+            view.clearAnimation()
+        }
+
+        if (shouldBeVisible) {
+            if (view.visibility != View.VISIBLE) {
+                view.visibility = View.VISIBLE
+                if (animate) {
+                    view.startAnimation(AnimationUtils.loadAnimation(view.context, animShow))
+                }
+            }
+        } else {
             if (view == binding.fontSizePane) {
                 binding.seekBarFontSize.isVisible = false
             }
-            val anim = AnimationUtils.loadAnimation(view.context, animHide)
-            view.startAnimation(anim)
-            val duration = anim.duration
-            view.postDelayed({ view.visibility = View.GONE }, duration)
+
+            if (!animate) {
+                view.clearAnimation()
+                view.visibility = View.GONE
+            } else if (view.visibility == View.VISIBLE) {
+                val anim = AnimationUtils.loadAnimation(view.context, animHide)
+                view.startAnimation(anim)
+                val duration = anim.duration
+
+                val hideRunnable = Runnable {
+                    view.visibility = View.GONE
+                    pendingHideRunnables.remove(view)
+                }
+                pendingHideRunnables[view] = hideRunnable
+                view.postDelayed(hideRunnable, duration)
+            } else {
+                view.visibility = View.GONE
+            }
         }
     }
 

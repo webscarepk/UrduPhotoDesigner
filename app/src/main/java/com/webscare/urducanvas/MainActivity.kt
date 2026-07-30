@@ -236,48 +236,40 @@ class MainActivity : AppCompatActivity() {
                 R.id.settingsFragment
             )
 
-            if (destination.id in visibleDestinations) {
+            val isNavVisible = destination.id in visibleDestinations
+
+            if (isNavVisible) {
                 binding.mainBannerAd.visibility = View.VISIBLE
                 binding.bannerAdDivider.visibility = View.VISIBLE
                 binding.bottomNavTopShadow.visibility = View.VISIBLE
-                if (!nav.isVisible) {
-                    binding.bottomNavTopShadow.translationY = nav.height.toFloat()
-                    binding.bannerAdDivider.translationY = nav.height.toFloat()
-                    nav.apply {
-                        visibility = View.VISIBLE
-                        translationY = height.toFloat()
-                        animate().translationY(0f).setDuration(400)
-                            .withStartAction {
-                                binding.fabAddImage.visibility = View.VISIBLE
-                                indicatorView?.visibility = View.VISIBLE
-                            }
-                            .setUpdateListener { syncIndicatorToNav(nav) } // follow nav slide
-                            .start()
-                    }
-                }
                 binding.fabAddImage.visibility = View.VISIBLE
                 indicatorView?.visibility = View.VISIBLE
-            } else {
-                binding.mainBannerAd.visibility = View.GONE
-                binding.bannerAdDivider.visibility = View.GONE
-                if (nav.isVisible) {
-                    nav.animate().translationY(nav.height.toFloat() + 40f).setDuration(300)
+
+                if (!nav.isVisible) {
+                    nav.visibility = View.VISIBLE
+                    val navH = if (nav.height > 0) nav.height.toFloat() else 200f
+                    nav.translationY = navH
+                    binding.bottomNavTopShadow.translationY = navH
+                    binding.bannerAdDivider.translationY = navH
+                    nav.animate().translationY(0f).setDuration(350)
                         .setUpdateListener { syncIndicatorToNav(nav) }
                         .withEndAction {
                             if (!isDestroyed) {
-                                nav.visibility = View.GONE
-                                binding.fabAddImage.visibility = View.GONE
-                                binding.bottomNavTopShadow.visibility = View.GONE
-                                binding.bannerAdDivider.visibility = View.GONE
-                                indicatorView?.visibility = View.GONE
+                                syncIndicatorToNav(nav)
                             }
-                        }.start()
+                        }
+                        .start()
                 } else {
-                    binding.fabAddImage.visibility = View.GONE
-                    binding.bottomNavTopShadow.visibility = View.GONE
-                    binding.bannerAdDivider.visibility = View.GONE
-                    indicatorView?.visibility = View.GONE
+                    nav.translationY = 0f
+                    syncIndicatorToNav(nav)
                 }
+            } else {
+                binding.mainBannerAd.visibility = View.GONE
+                binding.bannerAdDivider.visibility = View.GONE
+                binding.bottomNavTopShadow.visibility = View.GONE
+                binding.bottomNavigation.visibility = View.GONE
+                binding.fabAddImage.visibility = View.GONE
+                indicatorView?.visibility = View.GONE
             }
 
             applyStatusBarColor()
@@ -568,6 +560,15 @@ class MainActivity : AppCompatActivity() {
         )
         indicator.visibility = if (navVisibleNow) View.VISIBLE else View.GONE
         binding.fabAddImage.visibility = if (navVisibleNow) View.VISIBLE else View.GONE
+
+        if (navVisibleNow) {
+            nav.post {
+                if (!isDestroyed && indicatorView != null) {
+                    syncIndicatorToNav(nav)
+                    moveIndicatorTo(nav, startIndex)
+                }
+            }
+        }
     }
 
     // ──────────────────────────────────────────────────────────

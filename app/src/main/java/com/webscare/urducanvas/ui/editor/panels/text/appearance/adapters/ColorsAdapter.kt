@@ -67,16 +67,20 @@ class ColorsAdapter(
             val b = Color.blue(colorInt)
             val luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
 
+            val density = binding.root.resources.displayMetrics.density
+            val strokeSelectedPx = (1.5f * density + 0.5f).toInt()
+            val strokeUnselectedPx = (1.0f * density + 0.5f).toInt()
+
             if (isSelected) {
                 // Selected color — use app color stroke
-                binding.root.strokeWidth = 4
+                binding.root.strokeWidth = strokeSelectedPx
                 binding.root.setCardBackgroundColor(Color.WHITE)
                 binding.root.strokeColor =
                     ContextCompat.getColor(binding.root.context, R.color.appColor)
             } else {
                 // Not selected — handle white or very light colors
                 binding.root.setCardBackgroundColor(Color.WHITE)
-                binding.root.strokeWidth = 2
+                binding.root.strokeWidth = strokeUnselectedPx
 
                 if (luminance > 0.8) {
                     // Very light color, use dark border

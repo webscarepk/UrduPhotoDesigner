@@ -10,6 +10,7 @@ import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
@@ -42,6 +43,9 @@ object Utils {
 
     @SuppressLint("ClickableViewAccessibility")
     fun View.addPressEffect(onClick: (() -> Unit)? = null) {
+        scaleX = 1f
+        scaleY = 1f
+
         var isInside = false
 
         setOnTouchListener { v, event ->
@@ -49,22 +53,19 @@ object Utils {
                 MotionEvent.ACTION_DOWN -> {
                     isInside = true
                     v.vibrateSoft()
-                    v.animate().scaleX(0.9f).scaleY(0.9f).setDuration(60).start()
+                    v.animate().scaleX(0.92f).scaleY(0.92f).setDuration(60).start()
                     true
                 }
 
                 MotionEvent.ACTION_MOVE -> {
-                    // Check if finger is still inside view bounds
                     val insideNow =
                         event.x >= 0 && event.x <= v.width && event.y >= 0 && event.y <= v.height
                     if (isInside && !insideNow) {
-                        // Finger moved out → cancel press effect
                         isInside = false
                         v.animate().scaleX(1f).scaleY(1f).setDuration(80).start()
                     } else if (!isInside && insideNow) {
-                        // Finger moved back in → reapply press effect
                         isInside = true
-                        v.animate().scaleX(0.9f).scaleY(0.9f).setDuration(60).start()
+                        v.animate().scaleX(0.92f).scaleY(0.92f).setDuration(60).start()
                     }
                     true
                 }
@@ -86,12 +87,19 @@ object Utils {
                 else -> false
             }
         }
+
+        isClickable = true
+        isFocusable = true
     }
 
     @SuppressLint("ClickableViewAccessibility")
     fun View.addPressEffectWithLongClick(
-        onClick: (() -> Unit)? = null, onLongClick: (() -> Unit)? = null
+        onLongClick: (() -> Unit)? = null,
+        onClick: (() -> Unit)? = null
     ) {
+        scaleX = 1f
+        scaleY = 1f
+
         var isInside = false
         var longPressed = false
         val longPressTimeout = ViewConfiguration.getLongPressTimeout().toLong()
@@ -112,7 +120,7 @@ object Utils {
                     longPressed = false
                     handler.postDelayed(longPressRunnable, longPressTimeout)
 
-                    v.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80).start()
+                    v.animate().scaleX(0.92f).scaleY(0.92f).setDuration(80).start()
 
                     true
                 }
@@ -128,7 +136,7 @@ object Utils {
                     } else if (insideNow && !isInside) {
                         isInside = true
                         handler.postDelayed(longPressRunnable, longPressTimeout)
-                        v.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80).start()
+                        v.animate().scaleX(0.92f).scaleY(0.92f).setDuration(80).start()
                     }
 
                     true
@@ -136,13 +144,11 @@ object Utils {
 
                 MotionEvent.ACTION_UP -> {
                     handler.removeCallbacks(longPressRunnable)
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(80).start()
 
                     if (isInside && !longPressed) {
-                        // Trigger click directly here instead of relying on animation
                         onClick?.invoke()
                     }
-
-                    v.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
 
                     isInside = false
                     true
@@ -151,7 +157,7 @@ object Utils {
                 MotionEvent.ACTION_CANCEL -> {
                     handler.removeCallbacks(longPressRunnable)
                     isInside = false
-                    v.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(80).start()
                     true
                 }
 
@@ -163,23 +169,38 @@ object Utils {
         isFocusable = true
     }
 
-    fun View.vibrateSoft(durationMs: Long = 30L, amplitude: Int = 40) {
+    fun View.vibrateSoft(durationMs: Long = 10L, amplitude: Int = 20) {
         val now = System.currentTimeMillis()
-        if (now - (lastVibrateTime) < VIBRATE_COOL_DOWN) return
+        if (now - lastVibrateTime < VIBRATE_COOL_DOWN) return
         lastVibrateTime = now
 
-        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val manager =
-                context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            manager.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION") context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-        }
+        // 1. Primary: Use Keyboard Tap Haptic Tick
+        val performed = this.performHapticFeedback(
+            HapticFeedbackConstants.KEYBOARD_TAP,
+            HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+        )
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(durationMs, amplitude))
-        } else {
-            @Suppress("DEPRECATION") vibrator.vibrate(durationMs)
+        // 2. Fallback: Predefined TICK / SHORT CLICK effect via Vibrator service
+        if (!performed) {
+            try {
+                val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val manager =
+                        context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                    manager.defaultVibrator
+                } else {
+                    @Suppress("DEPRECATION") context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK))
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(10L, 20))
+                } else {
+                    @Suppress("DEPRECATION") vibrator.vibrate(10L)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 

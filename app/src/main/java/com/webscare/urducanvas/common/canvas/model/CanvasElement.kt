@@ -51,6 +51,8 @@ data class CanvasElement(
 
     @SerializedName("imageFilter") var imageFilter: ImageFilter = ImageFilter.None,
 
+    @SerializedName("filterIntensity") var filterIntensity: Float = 1.0f,
+
     @SerializedName("adjustments") var adjustments: AdjustmentValues = AdjustmentValues(),
 
     @SerializedName("x") var x: Float = 0f,

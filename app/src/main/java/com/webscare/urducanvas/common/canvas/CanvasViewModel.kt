@@ -3914,17 +3914,27 @@ class CanvasViewModel @Inject constructor(
      * @param newFilter The ImageFilter to apply.
      */
     fun applyImageFilter(
-        elementId: String, newFilter: ImageFilter?, isExplicit: Boolean = true
+        elementId: String,
+        newFilter: ImageFilter?,
+        intensity: Float = 1.0f,
+        isExplicit: Boolean = true
     ) {
         _isExplicitChange = isExplicit
         val currentList = _canvasElements.value ?: return
         val targetElement = currentList.find { it.id == elementId } ?: return
 
         val oldFilter = targetElement.imageFilter
-        if (oldFilter != newFilter) {
+        val oldIntensity = targetElement.filterIntensity
+        val filterToApply = newFilter ?: oldFilter
+
+        if (oldFilter != filterToApply || oldIntensity != intensity) {
             val context = targetElement.context
             val updatedElement =
-                targetElement.copy(imageFilter = newFilter!!, context = context).also {
+                targetElement.copy(
+                    imageFilter = filterToApply,
+                    filterIntensity = intensity,
+                    context = context
+                ).also {
                     // ✅ Stale cached bitmap must be discarded when the filter changes
                     it.isAdjustmentDirty = true
                     it.cachedAdjustedBitmap?.recycle()
@@ -3933,8 +3943,16 @@ class CanvasViewModel @Inject constructor(
 
             _canvasElements.value =
                 currentList.map { if (it.id == updatedElement.id) updatedElement else it }
-            if (updatedElement.isSelected) _currentImageFilter.value = newFilter
-            _canvasActions.push(CanvasAction.ApplyImageFilter(elementId, newFilter, oldFilter))
+            if (updatedElement.isSelected) _currentImageFilter.value = filterToApply
+            _canvasActions.push(
+                CanvasAction.ApplyImageFilter(
+                    elementId = elementId,
+                    newFilter = filterToApply,
+                    oldFilter = oldFilter,
+                    newIntensity = intensity,
+                    oldIntensity = oldIntensity
+                )
+            )
             _redoStack.clear()
             _isExplicitChange = false
             notifyUndoRedoChanged()
@@ -4644,17 +4662,18 @@ class CanvasViewModel @Inject constructor(
             }
 
             is CanvasAction.ApplyImageFilter -> {
+                val filterToApply = if (isRedo) action.newFilter else action.oldFilter
+                val intensityToApply = if (isRedo) action.newIntensity else action.oldIntensity
                 updateSingleElement(elementId = action.elementId, getNewValue = {
-                    // Note: in original code, imageFilter swap seemed inverted; ensure correct:
-                    if (isRedo) action.newFilter else action.oldFilter
+                    filterToApply
                 }, applyValue = { elem, raw ->
                     (raw as? ImageFilter)?.let {
-                        elem.copy(context = elem.context, imageFilter = it)
+                        elem.copy(context = elem.context, imageFilter = it, filterIntensity = intensityToApply)
                     } ?: elem
                 })
                 // If selected element, update LiveData
                 _canvasElements.value?.find { it.id == action.elementId && it.isSelected }?.let {
-                    _currentImageFilter.value = if (isRedo) action.newFilter else action.oldFilter
+                    _currentImageFilter.value = filterToApply
                 }
             }
 

@@ -52,10 +52,15 @@ class GradientsAdapter(
             )
             val gradientDrawable = GradientDrawable(GradientDrawable.Orientation.RIGHT_LEFT, item.colors.toIntArray())
 
+            val density = binding.root.resources.displayMetrics.density
+            val strokeSelectedPx = (1.5f * density + 0.5f).toInt()
+
             if (isSelected) {
+                binding.root.strokeWidth = strokeSelectedPx
                 binding.root.strokeColor = ContextCompat.getColor(binding.root.context, R.color.appColor)
                 binding.edit.visibility = View.VISIBLE
             } else {
+                binding.root.strokeWidth = 0
                 binding.root.strokeColor = Color.TRANSPARENT
                 binding.edit.visibility = View.GONE
             }

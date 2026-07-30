@@ -1,54 +1,139 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".ui.editor.panels.adjustments.filters.FiltersFragment"
-    android:background="@color/white">
+    android:background="@color/white"
+    android:paddingBottom="6dp"
+    tools:context=".ui.editor.panels.adjustments.filters.FiltersFragment">
 
-    <androidx.constraintlayout.widget.Guideline
-        android:layout_width="wrap_content"
+    <!-- 1. Main Filters & Categories View Mode Container -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/mainFiltersView"
+        android:layout_width="0dp"
+        android:layout_marginTop="10dp"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.01"
-        android:id="@+id/topGuide"/>
+        android:visibility="visible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
-    <androidx.constraintlayout.widget.Guideline
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.99"
-        android:orientation="horizontal"
-        android:id="@+id/bottomGuide"/>
+        <!-- Top: Filters Horizontal RecyclerView -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/filtersRecyclerView"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:clipToPadding="false"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="0dp"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            app:layout_constraintBottom_toTopOf="@id/categoriesRecyclerView"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_chainStyle="packed"
+            tools:itemCount="10"
+            tools:listitem="@layout/layout_filter_item" />
 
-    <androidx.constraintlayout.widget.Guideline
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.02"
-        android:orientation="vertical"
-        android:id="@+id/startGuide"/>
+        <!-- Bottom: Categories Horizontal Capsule Pills Bar -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/categoriesRecyclerView"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:clipToPadding="false"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            android:paddingTop="0dp"
+            android:paddingBottom="2dp"
+            android:layout_marginTop="10dp"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/filtersRecyclerView"
+            tools:itemCount="6"
+            tools:listitem="@layout/layout_filter_category_item" />
 
-    <androidx.constraintlayout.widget.Guideline
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.98"
-        android:orientation="vertical"
-        android:id="@+id/endGuide"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
+    <!-- 2. Dedicated Filter Intensity Adjustment Sub-View (Shown when re-tapping a filter) -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/intensityAdjustView"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:paddingHorizontal="5dp"
-        android:clipToPadding="false"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
-        app:layout_constraintEnd_toStartOf="@id/endGuide"
-        app:layout_constraintTop_toBottomOf="@id/topGuide"
-        app:layout_constraintBottom_toTopOf="@id/bottomGuide"
-        android:orientation="horizontal"
-        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-        app:spanCount="2"
-        tools:itemCount="10"
-        android:id="@+id/filtersRecyclerView"
-        tools:listitem="@layout/layout_filter_item"/>
+        android:layout_marginHorizontal="16dp"
+        android:paddingHorizontal="8dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="12dp"
+        android:visibility="gone"
+        android:layout_marginTop="10dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <!-- Left: Intensity Title -->
+        <TextView
+            android:id="@+id/intensityTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:fontFamily="@font/medium"
+            android:text="Filter Intensity"
+            android:textColor="@color/black"
+            android:textSize="13sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Value Box next to title -->
+        <TextView
+            android:id="@+id/intensityValueText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/edit_bg_stroke"
+            android:fontFamily="@font/regular"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp"
+            android:text="100"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@id/intensityTitle"
+            app:layout_constraintStart_toEndOf="@id/intensityTitle"
+            app:layout_constraintTop_toTopOf="@id/intensityTitle" />
+
+        <!-- Right: Tick / Done Button to return to filters view -->
+        <ImageView
+            android:id="@+id/btnDoneIntensity"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:contentDescription="Done"
+            android:src="@drawable/ic_done"
+            android:padding="5dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="@id/intensityValueText"
+            app:layout_constraintTop_toTopOf="@id/intensityValueText"
+            app:tint="@color/appColor" />
+
+        <!-- Full Width Intensity Slider -->
+        <SeekBar
+            android:id="@+id/filterIntensitySeekBar"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:indeterminateTint="@color/appColor"
+            android:max="100"
+            android:progress="100"
+            android:progressBackgroundTint="@color/light_gray"
+            android:progressTint="@color/appColor"
+            android:thumbTint="@color/appColor"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/intensityValueText" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

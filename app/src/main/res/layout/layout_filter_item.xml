@@ -1,38 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/filterView"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="5dp"
-    android:layout_marginBottom="5dp"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:id="@+id/filterView">
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
 
-    <com.google.android.material.card.MaterialCardView
+    <!-- Light Gray Category Divider -->
+    <View
+        android:id="@+id/categoryDivider"
+        android:layout_width="1.5dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="8dp"
+        android:background="@color/light_gray"
+        android:visibility="gone" />
+
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:cardCornerRadius="5dp"
-        app:cardBackgroundColor="@color/contrast"
-        app:strokeColor="@color/appColor"
-        app:strokeWidth="0dp"
-        app:cardElevation="0dp"
-        android:id="@+id/card">
+        android:layout_marginHorizontal="3dp"
+        android:gravity="center"
+        android:orientation="vertical">
 
-        <ImageView
-            android:id="@+id/filterPreview"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:contentDescription="@string/filter_preview" />
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/contrast"
+            app:cardCornerRadius="6dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/appColor"
+            app:strokeWidth="0dp">
 
-    </com.google.android.material.card.MaterialCardView>
+            <FrameLayout
+                android:layout_width="60dp"
+                android:layout_height="60dp">
 
-    <TextView
-        android:id="@+id/filterName"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:fontFamily="@font/regular"
-        android:textColor="@color/black"
-        android:textSize="12sp"/>
+                <ImageView
+                    android:id="@+id/filterPreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@string/filter_preview"
+                    android:scaleType="centerCrop" />
+
+                <!-- Selected Dim Overlay -->
+                <View
+                    android:id="@+id/selectedOverlay"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="gone" />
+
+                <!-- Adjust / Tune Icon -->
+                <ImageView
+                    android:id="@+id/adjustIcon"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_tune"
+                    android:visibility="gone"
+                    app:tint="@color/white" />
+
+            </FrameLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:id="@+id/filterName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="@font/regular"
+            android:textColor="@color/black"
+            android:textSize="11sp" />
+    </LinearLayout>
+
 </LinearLayout>
