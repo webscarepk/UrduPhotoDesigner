@@ -1113,16 +1113,24 @@ class EditorFragment : Fragment() {
     }
 
     private fun updateToolbarVisibility(selected: List<CanvasElement>) {
-        updateIconVisibility(binding.showHideContainer, selected.isNotEmpty())
+        // Toggle button stays on screen instantly — no slide animation
+        binding.showHideContainer.visibility =
+            if (selected.isNotEmpty()) View.VISIBLE else View.GONE
         if (panelsLocked) {
             // 🔒 force hide everything
             resetPanelsOnSelectionChange()
-            updateIconVisibility(binding.opacityPane, false)
-            updateIconVisibility(binding.blendPane, false)
-            updateIconVisibility(binding.fontSizePane, false)
-            updateIconVisibility(binding.copyIcon, false)
-            updateIconVisibility(binding.cutOutIcon, false)
-            updateIconVisibility(binding.alignmentKit, false)
+            updateIconVisibility(binding.opacityPane, false,
+                animHide = R.anim.slide_out_left)
+            updateIconVisibility(binding.blendPane, false,
+                animHide = R.anim.slide_out_left)
+            updateIconVisibility(binding.fontSizePane, false,
+                animHide = R.anim.slide_out_left)
+            updateIconVisibility(binding.copyIcon, false,
+                animHide = R.anim.slide_out_left)
+            updateIconVisibility(binding.cutOutIcon, false,
+                animHide = R.anim.slide_out_left)
+            updateIconVisibility(binding.alignmentKit, false,
+                animHide = R.anim.slide_out)
             updateIconVisibility(binding.selection, false)
             return
         }
@@ -1141,12 +1149,26 @@ class EditorFragment : Fragment() {
         val showAlignWithSelection = isMulti
         val showRemoveBg = (hasImage || hasBackground || hasShapeMask) && !isMulti && !isSvg
 
-        updateIconVisibility(binding.opacityPane, anySelected)
-        updateIconVisibility(binding.blendPane, anySelected)
-        updateIconVisibility(binding.fontSizePane, showFont)
-        updateIconVisibility(binding.copyIcon, showCopy)
-        updateIconVisibility(binding.copyIcon, showCopy)
-        updateIconVisibility(binding.cutOutIcon, showRemoveBg)
+        updateIconVisibility(
+            binding.opacityPane, anySelected,
+            animShow = R.anim.slide_in_left, animHide = R.anim.slide_out_left
+        )
+        updateIconVisibility(
+            binding.blendPane, anySelected,
+            animShow = R.anim.slide_in_left, animHide = R.anim.slide_out_left
+        )
+        updateIconVisibility(
+            binding.fontSizePane, showFont,
+            animShow = R.anim.slide_in_left, animHide = R.anim.slide_out_left
+        )
+        updateIconVisibility(
+            binding.copyIcon, showCopy,
+            animShow = R.anim.slide_in_left, animHide = R.anim.slide_out_left
+        )
+        updateIconVisibility(
+            binding.cutOutIcon, showRemoveBg,
+            animShow = R.anim.slide_in_left, animHide = R.anim.slide_out_left
+        )
         updateIconVisibility(
             binding.alignmentKit,
             anySelected,

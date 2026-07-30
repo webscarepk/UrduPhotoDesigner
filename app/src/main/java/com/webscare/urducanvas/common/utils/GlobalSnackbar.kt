@@ -39,9 +39,14 @@ object GlobalSnackbar {
 
             snack.view.backgroundTintList = ColorStateList.valueOf(successColor)
             snack.setActionTextColor(ContextCompat.getColor(activity, R.color.appColor))
-            snack.view.findViewById<TextView>(
+            val textView = snack.view.findViewById<TextView>(
                 com.google.android.material.R.id.snackbar_text
-            )?.setTextColor(ContextCompat.getColor(activity, android.R.color.black))
+            )
+            textView?.apply {
+                setTextColor(ContextCompat.getColor(activity, android.R.color.black))
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            }
 
             if (anchor != null) snack.anchorView = anchor
 

@@ -393,6 +393,33 @@ class TextFragment : Fragment() {
         tabListener = null
     }
 
+    fun selectImportedTab() {
+        inCategoryMode = false
+        selectedCategory = null
+        selectedLanguage = "Imported"
+
+        mainViewModel.lastFontsLanguage = "Imported"
+        mainViewModel.lastFontsCategory = null
+        mainViewModel.lastFontsInCategoryMode = false
+
+        val fonts = mainViewModel.localFonts.value
+        languageCategoryMap = buildLanguageCategoryMap(fonts)
+        languageList = buildLanguageList(fonts)
+
+        showLanguageTabs()
+        rebindFonts()
+
+        val idx = languageList.indexOf("Imported")
+        if (idx >= 0) {
+            listOf(_binding?.tabLayout, _binding?.tabLayoutExpanded).forEach { tl ->
+                tl?.post {
+                    tl.getTabAt(idx)?.select()
+                    tl.setScrollPosition(idx, 0f, true)
+                }
+            }
+        }
+    }
+
     private fun applyTabScales(tl: TabLayout, selectedIdx: Int) {
         for (i in 0 until tl.tabCount) {
             tl.getTabAt(i)?.view?.apply {

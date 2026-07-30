@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
@@ -161,9 +162,10 @@ class ImportedFontsBottomSheet : BottomSheetDialogFragment() {
                 // 1. Save to Room
                 mainViewModel.insertFont(fontEntity)
 
-                // 2. Apply to canvas + show snackbar + dismiss
+                // 2. Apply to canvas + navigate to Imported tab + show snackbar + dismiss
                 withContext(Dispatchers.Main) {
                     applyFont(fontEntity)
+                    (parentFragment as? com.webscare.urducanvas.ui.editor.panels.text.TextFragment)?.selectImportedTab()
                     com.webscare.urducanvas.common.utils.GlobalSnackbar.showSuccess(
                         requireActivity(),
                         message = "Font '${fontEntity.font_name}' imported successfully!"
@@ -239,7 +241,14 @@ class ImportedFontsBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun showSnack(message: String) {
-        view?.let { Snackbar.make(it, message, Snackbar.LENGTH_SHORT).show() }
+        view?.let {
+            val snack = Snackbar.make(it, message, Snackbar.LENGTH_SHORT)
+            snack.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)?.apply {
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            }
+            snack.show()
+        }
     }
 
     // ── Bottom sheet styling (identical to CreateFragment) ───────────────────

@@ -170,8 +170,13 @@ class MainActivity : AppCompatActivity() {
         binding.mainBannerAd.setAdUnitId(BuildConfig.AD_BANNER_MAIN)
 
         // Force FAB above the nav bar (z-order + elevation)
-        binding.fabAddImage.elevation = 16f * resources.displayMetrics.density
-        binding.bottomNavigation.elevation = 8f * resources.displayMetrics.density
+        val density = resources.displayMetrics.density
+        binding.bottomNavigation.elevation = 0f
+        ViewCompat.setElevation(binding.bottomNavigation, 0f)
+        binding.bottomNavTopShadow.elevation = 6f * density
+        ViewCompat.setElevation(binding.bottomNavTopShadow, 6f * density)
+        binding.fabAddImage.elevation = 16f * density
+        ViewCompat.setElevation(binding.fabAddImage, 16f * density)
         binding.fabAddImage.bringToFront()
 
         binding.fabAddImage.setOnClickListener {
@@ -236,6 +241,8 @@ class MainActivity : AppCompatActivity() {
                 binding.bannerAdDivider.visibility = View.VISIBLE
                 binding.bottomNavTopShadow.visibility = View.VISIBLE
                 if (!nav.isVisible) {
+                    binding.bottomNavTopShadow.translationY = nav.height.toFloat()
+                    binding.bannerAdDivider.translationY = nav.height.toFloat()
                     nav.apply {
                         visibility = View.VISIBLE
                         translationY = height.toFloat()
@@ -253,7 +260,6 @@ class MainActivity : AppCompatActivity() {
             } else {
                 binding.mainBannerAd.visibility = View.GONE
                 binding.bannerAdDivider.visibility = View.GONE
-                binding.bottomNavTopShadow.visibility = View.GONE
                 if (nav.isVisible) {
                     nav.animate().translationY(nav.height.toFloat() + 40f).setDuration(300)
                         .setUpdateListener { syncIndicatorToNav(nav) }
@@ -266,12 +272,12 @@ class MainActivity : AppCompatActivity() {
                                 indicatorView?.visibility = View.GONE
                             }
                         }.start()
+                } else {
+                    binding.fabAddImage.visibility = View.GONE
+                    binding.bottomNavTopShadow.visibility = View.GONE
+                    binding.bannerAdDivider.visibility = View.GONE
+                    indicatorView?.visibility = View.GONE
                 }
-                // hide immediately so they don't linger on splash/editor
-                binding.fabAddImage.visibility = View.GONE
-                binding.bottomNavTopShadow.visibility = View.GONE
-                binding.bannerAdDivider.visibility = View.GONE
-                indicatorView?.visibility = View.GONE
             }
 
             applyStatusBarColor()
@@ -493,8 +499,10 @@ class MainActivity : AppCompatActivity() {
         return nav.y + topInset
     }
 
-    /** Keep the indicator glued to the nav while the nav slides in/out. */
+    /** Keep the indicator, top shadow, and banner divider glued to the nav while the nav slides in/out. */
     private fun syncIndicatorToNav(nav: BottomNavigationView) {
+        binding.bottomNavTopShadow.translationY = nav.translationY
+        binding.bannerAdDivider.translationY = nav.translationY
         val iv = indicatorView ?: return
         iv.translationY = nav.translationY      // match the slide
         iv.y = yForIndicator(nav) + nav.translationY
@@ -521,8 +529,9 @@ class MainActivity : AppCompatActivity() {
                 cornerRadius = indicatorH / 2f
                 setColor(androidx.core.content.ContextCompat.getColor(ctx, R.color.appColor))
             }
-            // Above the nav bar (nav = 8dp) but below the FAB (16dp)
-            elevation = 12f * density
+            // Above top shadow (6dp) but below FAB (16dp)
+            elevation = 10f * density
+            ViewCompat.setElevation(this, 10f * density)
         }
 
         val root = binding.root as androidx.constraintlayout.widget.ConstraintLayout
