@@ -186,6 +186,12 @@ class PreferencesFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onDestroyView() {
+        _binding?.formatList?.adapter = null
+        _binding?.resolutionList?.adapter = null
+        _binding?.qualityList?.adapter = null
+        resolutionAdapter = null
+        qualityAdapter = null
+        formatAdapter = null
         super.onDestroyView()
         _binding = null
     }

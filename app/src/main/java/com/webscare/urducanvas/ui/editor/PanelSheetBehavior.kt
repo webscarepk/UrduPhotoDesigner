@@ -47,6 +47,7 @@ class PanelSheetBehavior(
     // ── State ─────────────────────────────────────────────────────────────────
 
     var isSwipeEnabled = true
+    var touchDragZoneEnabled = true
     private var isExpanded = false
     private var springAnim: SpringAnimation? = null
     private var velocityTracker: VelocityTracker? = null
@@ -163,6 +164,7 @@ class PanelSheetBehavior(
         dragHandleView.setOnTouchListener { _, event -> onTouch(event) }
 
         root.setOnTouchListener { _, event ->
+            if (!touchDragZoneEnabled) return@setOnTouchListener false
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     val panelTop = getPanelTopY()

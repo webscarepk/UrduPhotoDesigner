@@ -622,6 +622,10 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onDestroyView() {
+        _binding?.categoriesRV?.adapter = null
+        loadingDialog?.dismiss()
+        loadingDialog = null
+        dialogBinding = null
         super.onDestroyView()
         _binding = null
     }

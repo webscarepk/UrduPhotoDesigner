@@ -161,8 +161,9 @@ class SplashFragment : Fragment(), TextureView.SurfaceTextureListener {
     }
 
     override fun onDestroyView() {
-        super.onDestroyView()
         releasePlayer()
+        _binding?.splashVideo?.surfaceTextureListener = null
+        super.onDestroyView()
         _binding = null
     }
 }

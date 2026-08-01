@@ -38,10 +38,13 @@ import kotlinx.coroutines.withContext
 // ── Top-level URL resolver ────────────────────────────────────────────────────
 // Pexels images store full https:// URLs directly in file_url.
 // Your own images store relative paths that need BASE_URL_GLIDE prepended.
-// id >= PEXELS_ID_OFFSET (10_000_000) means it's a Pexels image.
-fun resolveUrl(image: ImageEntity): String =
-    if (image.id >= Constants.PEXELS_ID_OFFSET) image.file_url
-    else Constants.BASE_URL_GLIDE + image.file_url
+fun resolveUrl(image: ImageEntity): String {
+    val raw = image.file_url.trim()
+    if (raw.startsWith("http://") || raw.startsWith("https://")) return raw
+    val baseUrl = Constants.BASE_URL_GLIDE.trimEnd('/')
+    val path = if (raw.startsWith("/")) raw else "/$raw"
+    return baseUrl + path
+}
 
 class ImagesAdapter(
     private val context: Context,
@@ -293,7 +296,7 @@ class ImagesAdapter(
 
         private fun wireClicks(image: ImageEntity) {
             itemView.addPressEffectWithLongClick(
-                {
+                onClick = {
                     val currentImage = boundImage ?: image
                     if (adapter.isInMultiSelectMode) {
                         onLongPress(currentImage)
@@ -303,7 +306,8 @@ class ImagesAdapter(
                         tapJob?.cancel()
                         tapJob = scope.launch { handleTap(currentImage, url, isSvg) }
                     }
-                }, {
+                },
+                onLongClick = {
                     val currentImage = boundImage ?: image
                     onLongPress(currentImage)
                 }
@@ -336,6 +340,7 @@ class ImagesAdapter(
                 Glide.with(itemView.context)
                     .load(displayUrl)
                     .centerInside()
+                    .error(R.drawable.ic_nothing_found)
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .listener(object : RequestListener<Drawable> {
                         override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean): Boolean {

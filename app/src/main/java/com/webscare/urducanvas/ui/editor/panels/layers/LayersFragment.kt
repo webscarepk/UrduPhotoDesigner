@@ -74,7 +74,6 @@ class LayersFragment : Fragment() {
         setupRecyclerView()
         setupToolbarInitial()
         attachDragHandleSwipe()
-        setupSwipeToCollapse()
         observeViewModel()
         observePanelExpanded()
     }
@@ -86,10 +85,11 @@ class LayersFragment : Fragment() {
         while (f != null) {
             if (f is EditorFragment) {
                 f.attachDragHandle(binding.dragHandle)
+                val sheet = (f as EditorFragment).panelSheetBehavior()
+                sheet?.touchDragZoneEnabled = false
                 binding.root.post {
                     val b = _binding ?: return@post
-                    (f as EditorFragment).panelSheetBehavior()
-                        ?.attachAdditionalHandle(b.toolBarContainer)
+                    sheet?.attachAdditionalHandle(b.toolBarContainer)
                 }
                 return
             }
@@ -694,6 +694,10 @@ class LayersFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        if (::itemTouchHelper.isInitialized) {
+            itemTouchHelper.attachToRecyclerView(null)
+        }
+        _binding?.layers?.adapter = null
         super.onDestroyView()
         _binding = null
     }

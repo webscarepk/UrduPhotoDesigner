@@ -385,6 +385,9 @@ class SearchFragment : Fragment() {
     )
 
     override fun onDestroyView() {
+        _binding?.popularTemplateRV?.adapter = null
+        _binding?.fontsRV?.adapter = null
+        _binding?.filesRV?.adapter = null
         super.onDestroyView()
         _binding = null
     }

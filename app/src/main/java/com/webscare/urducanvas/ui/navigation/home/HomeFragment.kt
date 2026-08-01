@@ -598,6 +598,13 @@ class HomeFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onDestroyView() {
+        _binding?.recentsRV?.adapter = null
+        _binding?.fontsRV?.adapter = null
+        _binding?.trendsRV?.adapter = null
+        _binding?.popularTemplateRV?.adapter = null
+        loadingDialog?.dismiss()
+        loadingDialog = null
+        dialogBinding = null
         super.onDestroyView()
         _binding = null
     }

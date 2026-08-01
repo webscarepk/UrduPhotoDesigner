@@ -109,12 +109,10 @@ class ShapesListFragment : Fragment() {
 
     override fun onDestroyView() {
         saveScrollPos()
-        // Stop background preload for this tab — switching away should not leave
-        // rasterization/decoding running. That work stacking across visited tabs
-        // was the allocation storm behind the tab-switch lag.
         imagesAdapter?.cancelPreload()
-        _binding = null
+        _binding?.objects?.adapter = null
         super.onDestroyView()
+        _binding = null
     }
 
     // ── SwipeRefreshLayout ────────────────────────────────────────────────────
@@ -191,7 +189,9 @@ class ShapesListFragment : Fragment() {
                     if (mainViewModel.isPanelExpanded(PanelType.SHAPES)) mainViewModel.togglePanel(PanelType.SHAPES)
                 },
                 onLongPress = { entity ->
-                    mainViewModel.toggleShapesSelection(entity.id)
+                    if (mainViewModel.isPanelExpanded(PanelType.SHAPES)) {
+                        mainViewModel.toggleShapesSelection(entity.id)
+                    }
                 }
             )
         }

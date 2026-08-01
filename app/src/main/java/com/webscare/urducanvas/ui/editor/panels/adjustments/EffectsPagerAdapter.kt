@@ -22,11 +22,11 @@ class EffectsPagerAdapter(
     override fun getItemCount(): Int = tabs.size
 
     override fun createFragment(position: Int): Fragment {
-        return when (position) {
-            0 -> EffectsFragment.newInstance()
-            1 -> AdjustmentsFragment.newInstance()
-            2 -> FiltersFragment.newInstance(elementId)
-            3 -> MaskFragment.newInstance(elementId)
+        return when (tabs.getOrNull(position)) {
+            "Effects" -> EffectsFragment.newInstance()
+            "Adjust" -> AdjustmentsFragment.newInstance()
+            "Filters" -> FiltersFragment.newInstance(elementId)
+            "Mask" -> MaskFragment.newInstance(elementId)
             else -> EffectsFragment.newInstance()
         }
     }

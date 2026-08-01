@@ -1080,17 +1080,33 @@ class MainViewModel @Inject constructor(
         _selectedShapesIds.value = emptySet()
     }
 
+    fun clearAllSelections() {
+        clearImagesSelection()
+        clearShapesSelection()
+    }
+
     fun setPanelSlideOffset(offset: Float) { _panelSlideOffset.value = offset }
 
     /** Sets the expanded panel type directly (used by sheet behavior on settle). */
-    fun setPanelExpandedType(panel: PanelType) { _expandedPanel.value = panel }
+    fun setPanelExpandedType(panel: PanelType?) {
+        _expandedPanel.value = panel
+        if (panel == null) clearAllSelections()
+    }
 
     fun isPanelExpanded(panel: PanelType): Boolean = _expandedPanel.value == panel
     fun togglePanel(panel: PanelType) {
-        _expandedPanel.value = if (_expandedPanel.value == panel) null else panel
+        val newExpanded = if (_expandedPanel.value == panel) null else panel
+        _expandedPanel.value = newExpanded
+        if (newExpanded == null) clearAllSelections()
     }
-    fun collapsePanel() { _expandedPanel.value = null }
+    fun collapsePanel() {
+        _expandedPanel.value = null
+        clearAllSelections()
+    }
     fun collapsePanelIfExpanded(panel: PanelType) {
-        if (_expandedPanel.value == panel) _expandedPanel.value = null
+        if (_expandedPanel.value == panel) {
+            _expandedPanel.value = null
+            clearAllSelections()
+        }
     }
 }

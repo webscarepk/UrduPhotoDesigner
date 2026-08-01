@@ -147,6 +147,7 @@ object Utils {
                     v.animate().scaleX(1f).scaleY(1f).setDuration(80).start()
 
                     if (isInside && !longPressed) {
+                        vibrateSoft()
                         onClick?.invoke()
                     }
 

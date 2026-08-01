@@ -208,8 +208,10 @@ class ShapeFragment : Fragment() {
     }
 
     override fun onDestroyView() {
-        _binding = null
+        _binding?.categories?.adapter = null
+        _binding?.viewPager?.adapter = null
         super.onDestroyView()
+        _binding = null
     }
 
     companion object {

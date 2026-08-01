@@ -42,6 +42,17 @@ object SvgLoader {
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .connectionPool(ConnectionPool(10, 5, TimeUnit.MINUTES))
+            .addInterceptor { chain ->
+                val request = chain.request()
+                var response = runCatching { chain.proceed(request) }.getOrNull()
+                var tryCount = 0
+                while ((response == null || !response.isSuccessful) && tryCount < 3) {
+                    tryCount++
+                    response?.close()
+                    response = runCatching { chain.proceed(request) }.getOrNull()
+                }
+                response ?: chain.proceed(request)
+            }
             .addNetworkInterceptor { chain ->
                 val request = chain.request()
                 val response = chain.proceed(request)

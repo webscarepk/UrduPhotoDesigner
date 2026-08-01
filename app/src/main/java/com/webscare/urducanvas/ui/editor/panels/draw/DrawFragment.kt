@@ -200,7 +200,13 @@ class DrawFragment : Fragment() {
 
     override fun onPause()       { super.onPause();       viewModel.exitDrawingMode(commit = false) }
     override fun onStop()        { super.onStop();        viewModel.exitDrawingMode(commit = false) }
-    override fun onDestroyView() { super.onDestroyView(); viewModel.exitDrawingMode(commit = false); _binding = null }
+    override fun onDestroyView() {
+        _binding?.categories?.adapter = null
+        _binding?.viewPager?.adapter = null
+        viewModel.exitDrawingMode(commit = false)
+        super.onDestroyView()
+        _binding = null
+    }
 
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)

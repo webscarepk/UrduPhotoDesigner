@@ -87,6 +87,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
 
     override fun onDestroyView() {
         saveScrollPos()
+        _binding?.englishRV?.adapter = null
         super.onDestroyView()
         _binding = null
     }

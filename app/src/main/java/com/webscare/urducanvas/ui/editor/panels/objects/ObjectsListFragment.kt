@@ -123,8 +123,10 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
 
     override fun onDestroyView() {
         saveScrollPos()
-        _binding = null
+        imagesAdapter?.cancelPreload()
+        _binding?.objects?.adapter = null
         super.onDestroyView()
+        _binding = null
     }
 
     // ── SwipeRefreshLayout ────────────────────────────────────────────────────
@@ -295,7 +297,9 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                     }
                 },
                 onLongPress = { entity ->
-                    mainViewModel.toggleImageSelection(entity.id)
+                    if (mainViewModel.isPanelExpanded(PanelType.OBJECTS)) {
+                        mainViewModel.toggleImageSelection(entity.id)
+                    }
                 }
             )
         }

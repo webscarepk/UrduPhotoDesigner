@@ -353,6 +353,9 @@ class ShapePanelFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        _binding?.shapes?.adapter = null
+        _binding?.colors?.adapter = null
+        _binding?.gradients?.adapter = null
         super.onDestroyView()
         _binding = null
     }

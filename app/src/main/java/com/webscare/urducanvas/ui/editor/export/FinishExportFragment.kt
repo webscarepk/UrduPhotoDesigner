@@ -293,6 +293,7 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onDestroyView() {
+        _binding?.previewImage?.setImageBitmap(null)
         super.onDestroyView()
         _binding = null
     }

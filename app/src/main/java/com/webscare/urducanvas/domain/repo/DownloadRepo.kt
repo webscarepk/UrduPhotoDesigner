@@ -112,9 +112,9 @@ class DownloadRepo @Inject constructor(
                 throw Exception("Failed to download font: ${response.code}")
             }
 
-            val contentLength = response.body?.contentLength() ?: 0L
+            val contentLength = response.body?.contentLength() ?: -1L
             var bytesDownloaded = 0L
-            var lastProgress = 0
+            var lastProgress = -1
 
             response.body?.byteStream()?.use { inputStream ->
                 FileOutputStream(outputFile).use { outputStream ->
@@ -124,18 +124,23 @@ class DownloadRepo @Inject constructor(
                     while (inputStream.read(buffer).also { bytesRead = it } != -1) {
                         outputStream.write(buffer, 0, bytesRead)
                         bytesDownloaded += bytesRead
-                        Log.d(TAG, "downloadAssets: $contentLength")
                         if (contentLength > 0) {
-                            val progress = ((bytesDownloaded * 100) / contentLength).toInt()
+                            val progress = ((bytesDownloaded * 100) / contentLength).toInt().coerceIn(0, 99)
                             if (progress > lastProgress) {
-                                Log.d(TAG, "downloadAssets: $progress")
                                 lastProgress = progress
                                 onProgress(progress)
+                            }
+                        } else {
+                            val estProgress = ((bytesDownloaded / (1024 * 64)) % 90 + 5).toInt()
+                            if (estProgress != lastProgress) {
+                                lastProgress = estProgress
+                                onProgress(estProgress)
                             }
                         }
                     }
                 }
             }
+            onProgress(100)
         }
         return@withContext outputFile
     }

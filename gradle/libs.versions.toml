@@ -1,5 +1,5 @@
 [versions]
-agp = "9.2.1"
+agp = "9.3.1"
 androidsvg = "1.4"
 appUpdateKtx = "2.1.0"
 billingKtx = "9.1.0"

@@ -108,7 +108,7 @@ class MaskFragment : androidx.fragment.app.Fragment() {
 
     private fun updateAddMaskButtonText() {
         val selectedElement = viewModel.canvasElements.value?.find { it.isSelected }
-        if (selectedElement != null && (selectedElement.type == ElementType.IMAGE || selectedElement.type == ElementType.STICKER)) {
+        if (selectedElement != null && (selectedElement.type == ElementType.IMAGE || selectedElement.type == ElementType.STICKER || selectedElement.type == ElementType.DRAW)) {
             binding.editShape.text = getString(R.string.mask_image_as_shape)
         } else {
             binding.editShape.text = getString(R.string.edit_shape)

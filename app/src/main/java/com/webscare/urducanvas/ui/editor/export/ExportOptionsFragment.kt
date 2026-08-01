@@ -122,6 +122,7 @@ class ExportOptionsFragment : com.google.android.material.bottomsheet.BottomShee
     }
 
     override fun onDestroyView() {
+        _binding?.options?.adapter = null
         super.onDestroyView()
         _binding = null
     }

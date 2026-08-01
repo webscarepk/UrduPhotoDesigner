@@ -602,8 +602,10 @@ class CanvasViewModel @Inject constructor(
 
     private fun updateSelectedShape(update: (CanvasElement) -> CanvasElement) {
         val currentList = _canvasElements.value ?: return
+        val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
         val updatedList = currentList.map { element ->
-            if (element.isSelected && element.type == ElementType.SHAPE) {
+            val isTargeted = element.isSelected || (element.groupId != null && element.groupId in selectedGroupIds)
+            if (isTargeted && element.type == ElementType.SHAPE) {
                 val oldElement = element.copy()
                 val newElement = update(element)
                 _canvasActions.push(CanvasAction.UpdateElement(element.id, newElement, oldElement))
@@ -954,15 +956,14 @@ class CanvasViewModel @Inject constructor(
     fun setBlur(value: Float) {
         _blur.value = value
         val currentList = _canvasElements.value ?: return
+        val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
         val updatedList = currentList.map { element ->
-            if (element.isSelected) {
+            val isTargeted = element.isSelected || (element.groupId != null && element.groupId in selectedGroupIds)
+            if (isTargeted) {
                 startAutoBatchIfNeeded(element.id)
                 val old = element.copy(context = null)
                 element.blurValue = value
-                // hasBlur must stay consistent with blurValue so blur doesn't vanish
-                // when the element is redrawn after a move/resize gesture.
                 element.hasBlur = value > 0f
-                // Invalidate the adjustment cache so the new blur is applied on next draw.
                 element.isAdjustmentDirty = true
                 element.cachedAdjustedBitmap?.recycle()
                 element.cachedAdjustedBitmap = null
@@ -989,8 +990,10 @@ class CanvasViewModel @Inject constructor(
     fun setFeatherDirection(direction: FeatherDirection) {
         _featherDirection.value = direction
         val currentList = _canvasElements.value ?: return
+        val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
         val updatedList = currentList.map { element ->
-            if (element.isSelected) {
+            val isTargeted = element.isSelected || (element.groupId != null && element.groupId in selectedGroupIds)
+            if (isTargeted) {
                 startAutoBatchIfNeeded(element.id)
                 val old = element.copy(context = null)
                 element.featherDirection = direction
@@ -1016,14 +1019,14 @@ class CanvasViewModel @Inject constructor(
     fun setFeather(value: Float) {
         _featherRadius.value = value
         val currentList = _canvasElements.value ?: return
+        val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
         val updatedList = currentList.map { element ->
-            if (element.isSelected) {
+            val isTargeted = element.isSelected || (element.groupId != null && element.groupId in selectedGroupIds)
+            if (isTargeted) {
                 startAutoBatchIfNeeded(element.id)
                 val old = element.copy(context = null)
                 element.featherRadius = value
                 element.hasFeather = value > 0f
-                // Feather is composited on the GPU in CanvasView — no pixel processing,
-                // no adjustment cache to invalidate. Just push the value and redraw.
                 if (currentBatchAction == null) {
                     _canvasActions.push(
                         CanvasAction.UpdateElement(
@@ -1046,13 +1049,14 @@ class CanvasViewModel @Inject constructor(
     fun setFeatherWidth(value: Float) {
         _featherWidth.value = value
         val currentList = _canvasElements.value ?: return
+        val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
         val updatedList = currentList.map { element ->
-            if (element.isSelected) {
+            val isTargeted = element.isSelected || (element.groupId != null && element.groupId in selectedGroupIds)
+            if (isTargeted) {
                 startAutoBatchIfNeeded(element.id)
                 val old = element.copy(context = null)
                 element.featherWidth = value
                 if (element.featherRadius > 0f) element.hasFeather = true
-                // Feather softness is GPU compositing — no cache to clear, just redraw.
                 if (currentBatchAction == null) {
                     _canvasActions.push(
                         CanvasAction.UpdateElement(
@@ -1074,8 +1078,10 @@ class CanvasViewModel @Inject constructor(
 
     private fun updateSelectedElementValue(updateBlock: (CanvasElement) -> Unit) {
         val currentList = _canvasElements.value ?: return
+        val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
         val updatedList = currentList.map {
-            if (it.isSelected) {
+            val isTargeted = it.isSelected || (it.groupId != null && it.groupId in selectedGroupIds)
+            if (isTargeted) {
                 it.apply(updateBlock)
                 it
             } else it
@@ -1125,8 +1131,10 @@ class CanvasViewModel @Inject constructor(
 
     private fun updateSelectedElementAdjustments(update: (AdjustmentValues) -> AdjustmentValues) {
         val currentList = _canvasElements.value ?: return
+        val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
         val updatedList = currentList.map { element ->
-            if (element.isSelected && (element.type == ElementType.IMAGE || element.type == ElementType.STICKER || element.type == ElementType.SHAPE || (element.type == ElementType.BACKGROUND && element.bitmap != null))) {
+            val isTargeted = element.isSelected || (element.groupId != null && element.groupId in selectedGroupIds)
+            if (isTargeted && (element.type == ElementType.IMAGE || element.type == ElementType.STICKER || element.type == ElementType.SHAPE || element.type == ElementType.DRAW || (element.type == ElementType.BACKGROUND && element.bitmap != null))) {
                 startAutoBatchIfNeeded(element.id)
                 val oldElement = element.copy(context = null)
 
@@ -1417,7 +1425,15 @@ class CanvasViewModel @Inject constructor(
         // ── 2. Tag every selected element with the new groupId & add sentinel ────────────────
         val updated = (_canvasElements.value ?: emptyList()).map { element ->
             if (element.isSelected && element.type != ElementType.GROUP) {
-                element.copy(groupId = newGroupId)
+                val copied = element.copy(groupId = newGroupId)
+                copied.originalTypeface = element.originalTypeface ?: element.paint.typeface
+                if (element.type == ElementType.TEXT) {
+                    copied.updatePaintProperties()
+                    val tf = element.originalTypeface ?: element.paint.typeface ?: element.applyTypefaceFromFontList()
+                    copied.originalTypeface = tf
+                    copied.paint.typeface = tf
+                }
+                copied
             } else {
                 element
             }
@@ -1446,8 +1462,17 @@ class CanvasViewModel @Inject constructor(
                 // Remove the GROUP sentinel(s)
                 element.type == ElementType.GROUP && groupIdsToDissolve.contains(element.id) -> null
                 // Clear groupId from children
-                element.groupId != null && groupIdsToDissolve.contains(element.groupId) ->
-                    element.copy(groupId = null)
+                element.groupId != null && groupIdsToDissolve.contains(element.groupId) -> {
+                    val copied = element.copy(groupId = null)
+                    copied.originalTypeface = element.originalTypeface ?: element.paint.typeface
+                    if (element.type == ElementType.TEXT) {
+                        copied.updatePaintProperties()
+                        val tf = element.originalTypeface ?: element.paint.typeface ?: element.applyTypefaceFromFontList()
+                        copied.originalTypeface = tf
+                        copied.paint.typeface = tf
+                    }
+                    copied
+                }
                 else -> element
             }
         }
@@ -1514,7 +1539,17 @@ class CanvasViewModel @Inject constructor(
                 // Drop absorbed old sentinels
                 el.type == ElementType.GROUP && el.id in oldSentinelIdsToRemove -> null
                 // Re-assign members to new group
-                membersToMerge.any { m -> m.id == el.id } -> el.copy(groupId = newGroupId)
+                membersToMerge.any { m -> m.id == el.id } -> {
+                    val copied = el.copy(groupId = newGroupId)
+                    copied.originalTypeface = el.originalTypeface ?: el.paint.typeface
+                    if (el.type == ElementType.TEXT) {
+                        copied.updatePaintProperties()
+                        val tf = el.originalTypeface ?: el.paint.typeface ?: el.applyTypefaceFromFontList()
+                        copied.originalTypeface = tf
+                        copied.paint.typeface = tf
+                    }
+                    copied
+                }
                 else -> el
             }
         }.toMutableList()
@@ -1959,14 +1994,20 @@ class CanvasViewModel @Inject constructor(
 
     private fun markSelectedTextElementAsPremium(isPremium: Boolean) {
         val isSubscribed = billingManager.isSubscribed.value
-        val updatedList = _canvasElements.value?.map { element ->
-            if (element.isSelected && element.type == ElementType.TEXT) {
-                element.copy(
+        val currentList = _canvasElements.value ?: return
+        val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
+        val updatedList = currentList.map { element ->
+            val isTargeted = element.isSelected || (element.groupId != null && element.groupId in selectedGroupIds)
+            if (isTargeted && element.type == ElementType.TEXT) {
+                val copied = element.copy(
                     isPremium = isPremium,
                     isSubscribed = isSubscribed
                 )
+                copied.originalTypeface = element.originalTypeface ?: element.paint.typeface
+                copied.paint.typeface = copied.originalTypeface
+                copied
             } else element
-        } ?: return
+        }
         _canvasElements.value = updatedList
     }
 
@@ -2081,9 +2122,12 @@ class CanvasViewModel @Inject constructor(
         val canvasW = _canvasSize.value?.width ?: 0f
         val maxW = if (canvasW > 0f) canvasW * 0.85f else 0f
 
+        val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
+
         // Update the font size for each selected element
         val updatedList = currentList.map { element ->
-            if (element.isSelected && element.type == ElementType.TEXT) {
+            val isTargeted = element.isSelected || (element.groupId != null && element.groupId in selectedGroupIds)
+            if (isTargeted && element.type == ElementType.TEXT) {
                 element.copy().apply {
                     // Apply new font size
                     paintTextSize = size
@@ -2148,7 +2192,7 @@ class CanvasViewModel @Inject constructor(
         var targetId: String? = null
 
         val updatedList = currentList.map { element ->
-            if (element.isSelected && (element.type == ElementType.IMAGE || element.type == ElementType.STICKER || element.type == ElementType.SHAPE)) {
+            if (element.isSelected && (element.type == ElementType.IMAGE || element.type == ElementType.STICKER || element.type == ElementType.SHAPE || element.type == ElementType.DRAW)) {
                 oldElement = element.copy(context = null)
                 targetId = element.id
 
@@ -2189,8 +2233,10 @@ class CanvasViewModel @Inject constructor(
      */
     private fun applyChangesToSelectedTextElementsPreview() {
         val currentList = _canvasElements.value?.toMutableList() ?: return
+        val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
         val updatedList = currentList.map { element ->
-            if (element.isSelected && element.type == ElementType.TEXT) {
+            val isTargeted = element.isSelected || (element.groupId != null && element.groupId in selectedGroupIds)
+            if (isTargeted && element.type == ElementType.TEXT) {
                 element.copy(
                     lineSpacing = _lineSpacing.value ?: element.lineSpacing,
                     letterSpacing = _letterSpacing.value ?: element.letterSpacing,
@@ -2223,7 +2269,9 @@ class CanvasViewModel @Inject constructor(
                     blendType = _blendingType.value ?: element.blendType,
                     kashidaSize = _kasheeda.value ?: element.kashidaSize
                 ).apply {
-                    paint.typeface = element.applyTypefaceFromFontList()
+                    val tf = element.originalTypeface ?: element.paint.typeface ?: element.applyTypefaceFromFontList()
+                    originalTypeface = tf
+                    paint.typeface = tf
                 }
             } else element
         }
@@ -2233,12 +2281,14 @@ class CanvasViewModel @Inject constructor(
 
     private fun applyChangesToSelectedTextElements() {
         val currentList = _canvasElements.value?.toMutableList() ?: return
+        val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
         var oldElement: CanvasElement? = null
         var newElement: CanvasElement? = null
         var targetId: String? = null
 
         val updatedList = currentList.map { element ->
-            if (element.isSelected && element.type == ElementType.TEXT) {
+            val isTargeted = element.isSelected || (element.groupId != null && element.groupId in selectedGroupIds)
+            if (isTargeted && element.type == ElementType.TEXT) {
                 oldElement = element.copy(context = null)
                 targetId = element.id
 
@@ -2281,7 +2331,9 @@ class CanvasViewModel @Inject constructor(
                     blendType = _blendingType.value ?: element.blendType,
                     kashidaSize = _kasheeda.value ?: element.kashidaSize
                 ).apply {
-                    paint.typeface = element.applyTypefaceFromFontList()
+                    val tf = element.originalTypeface ?: element.paint.typeface ?: element.applyTypefaceFromFontList()
+                    originalTypeface = tf
+                    paint.typeface = tf
                 }
 
                 newElement = updated.copy(context = null)
@@ -2672,7 +2724,7 @@ class CanvasViewModel @Inject constructor(
 
         // Handle image filter for first selected image
         val firstSelectedImageElement =
-            elementsToSelect.firstOrNull { it.type == ElementType.IMAGE || it.type == ElementType.STICKER }
+            elementsToSelect.firstOrNull { it.type == ElementType.IMAGE || it.type == ElementType.STICKER || it.type == ElementType.DRAW }
         _currentImageFilter.value = firstSelectedImageElement?.imageFilter
     }
 
@@ -2681,7 +2733,7 @@ class CanvasViewModel @Inject constructor(
         val currentList = canvasElements.value ?: return
         val selected = currentList.firstOrNull {
             it.isSelected && (it.type == ElementType.IMAGE || it.type == ElementType.STICKER
-                    || it.type == ElementType.SHAPE || it.type == ElementType.BACKGROUND)
+                    || it.type == ElementType.SHAPE || it.type == ElementType.DRAW || it.type == ElementType.BACKGROUND)
         } ?: return
 
         val context = selected.context ?: return
@@ -2787,7 +2839,7 @@ class CanvasViewModel @Inject constructor(
 
         val firstText = selectedListFromCanvas.firstOrNull { it.type == ElementType.TEXT }
         val firstImage =
-            selectedListFromCanvas.firstOrNull { it.type == ElementType.IMAGE || it.type == ElementType.STICKER }
+            selectedListFromCanvas.firstOrNull { it.type == ElementType.IMAGE || it.type == ElementType.STICKER || (it.type == ElementType.DRAW && (it.bitmap != null || it.bitmapData != null)) }
         val firstDraw = selectedListFromCanvas.firstOrNull { it.type == ElementType.DRAW }
         val firstShape = selectedListFromCanvas.firstOrNull { it.type == ElementType.SHAPE }
 
@@ -3137,7 +3189,7 @@ class CanvasViewModel @Inject constructor(
     private fun applyBlurPresets(element: CanvasElement) {
         // Check if it's a valid type for blur
         val isValidType =
-            element.type == ElementType.IMAGE || element.type == ElementType.STICKER || element.type == ElementType.SHAPE || (element.type == ElementType.BACKGROUND && element.bitmap != null)
+            element.type == ElementType.IMAGE || element.type == ElementType.STICKER || element.type == ElementType.SHAPE || element.type == ElementType.DRAW || (element.type == ElementType.BACKGROUND && element.bitmap != null)
 
         if (isValidType && element.blurValue == 0f) {
             element.blurValue = 10f // Default preset

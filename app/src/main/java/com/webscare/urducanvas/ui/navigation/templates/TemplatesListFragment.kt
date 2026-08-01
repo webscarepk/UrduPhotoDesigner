@@ -516,7 +516,14 @@ class TemplatesListFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    override fun onDestroy() { super.onDestroy(); _binding = null }
+    override fun onDestroyView() {
+        _binding?.templatesRV?.adapter = null
+        loadingDialog?.dismiss()
+        loadingDialog = null
+        dialogBinding = null
+        super.onDestroyView()
+        _binding = null
+    }
 
     companion object {
         fun newInstance(tabName: String) = TemplatesListFragment().apply {

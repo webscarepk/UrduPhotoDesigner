@@ -28,6 +28,7 @@ import android.graphics.Typeface
 import android.graphics.Xfermode
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.PictureDrawable
 import android.text.TextPaint
 import android.util.AttributeSet
 import android.util.Log
@@ -78,6 +79,7 @@ import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -197,6 +199,7 @@ class CanvasView @JvmOverloads constructor(
 
     private val canvasElements = CopyOnWriteArrayList<CanvasElement>()
     private lateinit var backgroundElement: CanvasElement
+    private var isExportRendering = false
 
     private var touchStartX = 0f
     private var touchStartY = 0f
@@ -1094,7 +1097,9 @@ class CanvasView @JvmOverloads constructor(
             // Check if the file_path is not blank before attempting to create a typeface
             if (fontEntity.file_path?.isNotBlank()!!) {
                 try {
-                    element.paint.typeface = Typeface.createFromFile(fontEntity.file_path)
+                    val tf = Typeface.createFromFile(fontEntity.file_path)
+                    element.originalTypeface = tf
+                    element.paint.typeface = tf
                 } catch (e: Exception) {
                     // Handle potential errors if the file path is valid but the file itself is corrupt or unreadable
                     // You might log the error or set a default typeface here if needed
@@ -1165,18 +1170,63 @@ class CanvasView @JvmOverloads constructor(
     }
 
     private fun renderCanvasTo(canvas: Canvas, scaleFactor: Float) {
-        val scaledWidth = canvasWidth * scaleFactor
-        val scaledHeight = canvasHeight * scaleFactor
-        val offsetX = (canvas.width - scaledWidth) / 2f
-        val offsetY = (canvas.height - scaledHeight) / 2f
+        val wasExporting = isExportRendering
+        isExportRendering = true
+        try {
+            val scaledWidth = canvasWidth * scaleFactor
+            val scaledHeight = canvasHeight * scaleFactor
+            val offsetX = (canvas.width - scaledWidth) / 2f
+            val offsetY = (canvas.height - scaledHeight) / 2f
 
-        canvas.drawFilter = android.graphics.PaintFlagsDrawFilter(
-            0, android.graphics.Paint.ANTI_ALIAS_FLAG or android.graphics.Paint.FILTER_BITMAP_FLAG
-        )
+            canvas.drawFilter = android.graphics.PaintFlagsDrawFilter(
+                0, android.graphics.Paint.ANTI_ALIAS_FLAG or android.graphics.Paint.FILTER_BITMAP_FLAG
+            )
 
-        canvas.withTranslation(offsetX, offsetY) {
-            scale(scaleFactor, scaleFactor)
-            this@CanvasView.drawCanvasElements(this, showOverlays = false, showCheckerboard = false)
+            canvas.withTranslation(offsetX, offsetY) {
+                scale(scaleFactor, scaleFactor)
+                this@CanvasView.drawCanvasElements(this, showOverlays = false, showCheckerboard = false)
+            }
+        } finally {
+            isExportRendering = wasExporting
+        }
+    }
+
+    private fun ensureElementHydrated(element: CanvasElement) {
+        if (element.type == ElementType.TEXT) {
+            val tf = element.originalTypeface ?: element.paint.typeface
+            if (tf != null) {
+                element.originalTypeface = tf
+                element.paint.typeface = tf
+            }
+        }
+        if (element.svgDrawable == null && (element.bitmap == null || element.bitmap?.isRecycled == true)) {
+            if (!element.svgData.isNullOrBlank()) {
+                try {
+                    val svg = com.caverock.androidsvg.SVG.getFromString(element.svgData)
+                    val vb = svg.documentViewBox
+                    var w = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.width() else svg.documentWidth
+                    var h = if (vb != null && vb.width() > 0f && vb.height() > 0f) vb.height() else svg.documentHeight
+                    if (w <= 0f || h <= 0f) {
+                        w = 512f
+                        h = 512f
+                    }
+                    svg.documentWidth = w
+                    svg.documentHeight = h
+
+                    element.svgDrawable = PictureDrawable(svg.renderToPicture()).trimTransparentEdges()
+                    element.bitmap = null
+                } catch (e: Exception) {
+                    element.bitmapData?.let { data ->
+                        if (data.isNotBlank()) element.bitmap = ImageProcessor.base64ToBitmap(data)
+                    }
+                }
+            } else if (element.type == ElementType.DRAW && !element.drawStrokes.isNullOrEmpty()) {
+                element.drawStrokes?.forEach { stroke -> stroke.restorePath() }
+            } else {
+                element.bitmapData?.let { data ->
+                    if (data.isNotBlank()) element.bitmap = ImageProcessor.base64ToBitmap(data)
+                }
+            }
         }
     }
 
@@ -2104,6 +2154,8 @@ class CanvasView @JvmOverloads constructor(
             // Isolation mode: only draw elements in the isolated set
             if (isolatedIds != null && element.id !in isolatedIds) return@forEach
 
+            ensureElementHydrated(element)
+
             if (element.type == ElementType.BACKGROUND) {
                 drawBackgroundElement(canvas, element)
                 return@forEach
@@ -2129,31 +2181,16 @@ class CanvasView @JvmOverloads constructor(
                         canvas.saveLayer(null, reusableOpacityPaint)
                     }
 
-                    when (element.type) {
-                        ElementType.DRAW -> {
-                            if (element.bitmap != null) {
-                                // Committed/rasterized draw layer — render as bitmap
-                                val bmp = element.bitmap!!
-                                if (!bmp.isRecycled) {
-                                    val left = -bmp.width / 2f
-                                    val top = -bmp.height / 2f
-                                    reusableDrawPaint.reset()
-                                    reusableDrawPaint.alpha = if (needsLayer) 255 else element.paintAlpha
-                                    reusableDrawPaint.isAntiAlias = true
-                                    reusableDrawPaint.isFilterBitmap = true
-                                    canvas.drawBitmap(bmp, left, top, reusableDrawPaint)
-                                }
-                            } else {
-                                // Active session strokes — render paths
-                                drawDrawElement(canvas, element)
-                            }
+                    when {
+                        element.type == ElementType.DRAW && element.bitmap == null -> {
+                            drawDrawElement(canvas, element)
                         }
 
-                        ElementType.SHAPE -> drawShapeElement(
+                        element.type == ElementType.SHAPE -> drawShapeElement(
                             canvas, element
                         )
 
-                        ElementType.TEXT -> drawTextElement(
+                        element.type == ElementType.TEXT -> drawTextElement(
                             canvas, element
                         )
 
@@ -2575,7 +2612,10 @@ class CanvasView @JvmOverloads constructor(
                             }
 
                             element.bitmap?.let { bmp ->
-                                if (bmp.isRecycled) return@let
+                                if (bmp.isRecycled) {
+                                    Log.w("CanvasView", "drawCanvasElements: bitmap is recycled for element ${element.id} (${element.customName ?: element.type})")
+                                    return@let
+                                }
 
                                 // ── Async adjustment: never block onDraw with full-res processing ──
                                 val finalBitmap: Bitmap = resolveAdjustedBitmapAsync(element, bmp)
@@ -2810,6 +2850,9 @@ class CanvasView @JvmOverloads constructor(
                                     )
                                 }
                                 canvas.restore()  // restore saveLayer opened above for feather compositing
+                            }
+                            if (element.svgDrawable == null && element.bitmap == null) {
+                                Log.w("CanvasView", "drawCanvasElements: element ${element.id} (${element.customName ?: element.type}) has null svgDrawable and null bitmap after hydration")
                             }
                         }
                     }
@@ -3458,6 +3501,12 @@ class CanvasView @JvmOverloads constructor(
         reusableBgPaint.style = Paint.Style.FILL
         reusableBgPaint.isAntiAlias = true
 
+        ensureElementHydrated(e)
+
+        if (e.bitmap == null || e.bitmap?.isRecycled == true) {
+            Log.w("CanvasView", "drawBackgroundElement: background bitmap is null or recycled for element ${e.id}")
+        }
+
         e.bitmap?.let { bmp ->
             if (bmp.isRecycled) return@let
 
@@ -3771,6 +3820,8 @@ class CanvasView @JvmOverloads constructor(
     private fun getOrBuildDisplayBitmap(
         cacheKey: String, source: Bitmap, targetW: Int, targetH: Int
     ): Bitmap {
+        if (isExportRendering) return source
+
         // If source IS already at or below display size, use it directly (no copy needed)
         if (source.width <= targetW && source.height <= targetH) return source
 
@@ -3798,6 +3849,8 @@ class CanvasView @JvmOverloads constructor(
 
         // Build a high-quality downscale using FILTER_BITMAP_FLAG (bilinear)
         val scaled = Bitmap.createScaledBitmap(source, discreteW, discreteH, true)
+        if (scaled === source) return source
+
         // Do NOT recycle the old cached bitmap immediately — the export pipeline runs on a
         // background thread and may hold a reference to it mid-draw. Let it become unreachable
         // and be GC'd rather than risk a "Canvas: trying to use a recycled bitmap" crash.
@@ -6312,12 +6365,18 @@ class CanvasView @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        // Cancel all pending async adjustment jobs to prevent leaks
-        adjustmentScope.coroutineContext[Job]?.cancel()
+        // Cancel pending async adjustment child jobs to prevent leaks without destroying scope
+        adjustmentScope.coroutineContext[Job]?.cancelChildren()
         pendingAdjustmentJobs.values.forEach { it.cancel() }
         pendingAdjustmentJobs.clear()
-        // Release all display-proxy bitmaps
-        displayBitmapCache.values.forEach { if (!it.bitmap.isRecycled) it.bitmap.recycle() }
+        // Release display-proxy bitmaps that are not owned by active elements
+        val owned = canvasElements.mapNotNullTo(HashSet<Bitmap>()) { it.bitmap }
+            .also { set -> canvasElements.forEach { e -> e.cachedAdjustedBitmap?.let(set::add) } }
+        displayBitmapCache.values.forEach { entry ->
+            if (entry.bitmap !in owned && !entry.bitmap.isRecycled) {
+                entry.bitmap.recycle()
+            }
+        }
         displayBitmapCache.clear()
     }
 }

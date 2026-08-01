@@ -468,6 +468,7 @@ class CreateFragment : BottomSheetDialogFragment() {
     }
 
     override fun onDestroyView() {
+        dialog?.window?.decorView?.setOnSystemUiVisibilityChangeListener(null)
         super.onDestroyView()
         _binding = null
     }

@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.doOnLayout
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavOptions
@@ -67,6 +68,23 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
         binding.viewPager.isSaveEnabled = false
         binding.viewPager.adapter = null
 
+        val isMixedGroup = arguments?.getBoolean("isMixedGroup") ?: false
+        val groupId = arguments?.getString("groupId")
+        if (isMixedGroup) {
+            binding.groupToggleContainer.visibility = View.VISIBLE
+            val toggleAction = {
+                val bundle = Bundle().apply {
+                    putString("elementId", elementId)
+                    putBoolean("isMixedGroup", true)
+                    putString("groupId", groupId)
+                }
+                val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
+                findNavController().navigate(R.id.textAdjustmentsFragment, bundle, navOptions)
+            }
+            binding.btnPrevGroupTab.addPressEffect { toggleAction() }
+            binding.btnNextGroupTab.addPressEffect { toggleAction() }
+        }
+
         setEvents()
     }
 
@@ -76,12 +94,16 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
         }
 
         val isSvgElement = selectedElement?.svgDrawable != null
+        val isDrawElement = selectedElement?.type == ElementType.DRAW
+        val isGroupElement = selectedElement?.type == ElementType.GROUP
 
-        // Hide Mask tab for SVG elements — masking requires a raster bitmap
-        tabs = if (isSvgElement) {
-            mutableListOf("Effects", "Adjust", "Filters")
-        } else {
-            mutableListOf("Effects", "Adjust", "Filters", "Mask")
+        // DRAW layers show Effects & Mask tabs only (no Adjust or Filters)
+        // SVG elements and GROUP layers hide Mask tab (requires individual raster bitmap)
+        tabs = when {
+            isGroupElement -> mutableListOf("Effects", "Adjust", "Filters")
+            isDrawElement -> mutableListOf("Effects", "Mask")
+            isSvgElement -> mutableListOf("Effects", "Adjust", "Filters")
+            else -> mutableListOf("Effects", "Adjust", "Filters", "Mask")
         }
 
         elementId?.let {
@@ -117,8 +139,8 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
         }
         mediator?.attach()
 
-        binding.tabLayout.viewTreeObserver.addOnGlobalLayoutListener {
-            if (isAdded && _binding!=null) {
+        binding.tabLayout.doOnLayout {
+            if (isAdded && _binding != null) {
                 for (i in 0 until binding.tabLayout.tabCount) {
                     val tabView = (binding.tabLayout.getChildAt(0) as? ViewGroup)?.getChildAt(i)
                     tabView?.scaleX = 0.9f

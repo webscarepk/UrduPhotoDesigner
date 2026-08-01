@@ -312,6 +312,8 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
     }
 
     override fun onDestroyView() {
+        _binding?.colors?.adapter = null
+        _binding?.gradients?.adapter = null
         super.onDestroyView()
         _binding = null
     }

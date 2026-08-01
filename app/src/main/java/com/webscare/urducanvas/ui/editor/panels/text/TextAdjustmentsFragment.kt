@@ -14,8 +14,10 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.view.doOnLayout
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
@@ -55,6 +57,25 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
         super.onViewCreated(view, savedInstanceState)
         binding.viewPager.isSaveEnabled = false
         binding.viewPager.adapter = null
+
+        val isMixedGroup = arguments?.getBoolean("isMixedGroup") ?: false
+        val groupId = arguments?.getString("groupId")
+        val elementId = arguments?.getString("elementId")
+        if (isMixedGroup) {
+            binding.groupToggleContainer.visibility = View.VISIBLE
+            val toggleAction = {
+                val bundle = Bundle().apply {
+                    putString("elementId", elementId)
+                    putBoolean("isMixedGroup", true)
+                    putString("groupId", groupId)
+                }
+                val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
+                findNavController().navigate(R.id.adjustmentsParentFragment, bundle, navOptions)
+            }
+            binding.btnPrevGroupTab.addPressEffect { toggleAction() }
+            binding.btnNextGroupTab.addPressEffect { toggleAction() }
+        }
+
         setEvents()
     }
 
@@ -106,7 +127,7 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
         }
         mediator?.attach()
 
-        binding.tabLayout.viewTreeObserver.addOnGlobalLayoutListener {
+        binding.tabLayout.doOnLayout {
             if (isAdded && _binding != null) {
                 for (i in 0 until binding.tabLayout.tabCount) {
                     val tabView = (binding.tabLayout.getChildAt(0) as? ViewGroup)?.getChildAt(i)

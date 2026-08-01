@@ -129,6 +129,7 @@ class TextFragment : Fragment() {
     override fun onDestroyView() {
         tabListenerAttached = false
         clearTabListeners()
+        _binding?.fontsRV?.adapter = null
         super.onDestroyView()
         _binding = null
     }

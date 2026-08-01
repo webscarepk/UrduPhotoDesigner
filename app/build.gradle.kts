@@ -228,4 +228,7 @@ dependencies {
 
     //In-App Updates
     implementation(libs.app.update.ktx)
+
+    //LeakCanary (Memory Leak Detection)
+    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")
 }

@@ -103,9 +103,11 @@ class ShapesParentFragment : Fragment() {
     override fun onDestroyView() {
         tabListenerAttached = false
         lastSlideExpanded = null
+        _binding?.selectedThumbnails?.adapter = null
+        thumbnailAdapter = null
         fragmentCache.clear()
-        _binding = null
         super.onDestroyView()
+        _binding = null
     }
 
     // ── Thumbnail strip ───────────────────────────────────────────────────────

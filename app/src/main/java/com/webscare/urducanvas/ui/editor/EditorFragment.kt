@@ -184,25 +184,25 @@ class EditorFragment : Fragment() {
 
         binding.panelNavContainer.dragListener = object : com.webscare.urducanvas.common.views.GestureFrameLayout.DragListener {
             override fun onDragBegin(downRawY: Float, currentRawY: Float) {
-                if (isPanelExpandable && panelSheet?.isCurrentlyExpanded() == false) {
+                if (isPanelExpandable && panelSheet?.isCurrentlyExpanded() == false && _navController?.currentDestination?.id != R.id.layersFragment) {
                     panelSheet?.externalDragBegin(downRawY, currentRawY)
                 }
             }
 
             override fun onDragBy(currentRawY: Float) {
-                if (isPanelExpandable && panelSheet?.isCurrentlyExpanded() == false) {
+                if (isPanelExpandable && panelSheet?.isCurrentlyExpanded() == false && _navController?.currentDestination?.id != R.id.layersFragment) {
                     panelSheet?.externalDragBy(currentRawY)
                 }
             }
 
             override fun onDragEnd() {
-                if (isPanelExpandable && panelSheet?.isCurrentlyExpanded() == false) {
+                if (isPanelExpandable && panelSheet?.isCurrentlyExpanded() == false && _navController?.currentDestination?.id != R.id.layersFragment) {
                     panelSheet?.externalDragEnd()
                 }
             }
         }
         binding.panelNavContainer.isSwipeUpEnabled = {
-            isPanelExpandable && panelSheet?.isCurrentlyExpanded() == false
+            isPanelExpandable && panelSheet?.isCurrentlyExpanded() == false && _navController?.currentDestination?.id != R.id.layersFragment
         }
 
         binding.panelNavHost.outlineProvider = object : android.view.ViewOutlineProvider() {
@@ -1016,19 +1016,42 @@ class EditorFragment : Fragment() {
             if (!selectionFromUserInteraction) return@observe
             selectionFromUserInteraction = false   // consume — one-shot flag
 
+            var isMixedGroupSelection = false
+            var targetGroupId: String? = null
+
             val targetDestination = when {
                 newSelection.size == 1 && first != null -> {
                     when (first.type) {
 
                         ElementType.TEXT -> R.id.textAdjustmentsFragment
 
-                        ElementType.IMAGE, ElementType.STICKER, ElementType.BACKGROUND -> R.id.adjustmentsParentFragment
+                        ElementType.IMAGE, ElementType.STICKER, ElementType.BACKGROUND, ElementType.DRAW -> R.id.adjustmentsParentFragment
 
                         ElementType.SHAPE -> if (shapeJustAdded) {
                             shapeJustAdded = false
                             null
                         } else {
                             R.id.shapeFragment
+                        }
+
+                        ElementType.GROUP -> {
+                            targetGroupId = first.id
+                            val children = viewModel.canvasElements.value?.filter { it.groupId == first.id } ?: emptyList()
+                            when {
+                                children.isNotEmpty() && children.all { it.type == ElementType.TEXT } -> {
+                                    R.id.textAdjustmentsFragment
+                                }
+                                children.isNotEmpty() && children.all { it.type == ElementType.SHAPE } -> {
+                                    R.id.shapeFragment
+                                }
+                                children.isNotEmpty() && children.all { it.type in listOf(ElementType.IMAGE, ElementType.STICKER, ElementType.BACKGROUND, ElementType.DRAW) } -> {
+                                    R.id.adjustmentsParentFragment
+                                }
+                                else -> {
+                                    isMixedGroupSelection = true
+                                    null
+                                }
+                            }
                         }
 
                         else -> null
@@ -1056,11 +1079,24 @@ class EditorFragment : Fragment() {
             if (currentDest == targetDestination) return@observe
 
             first?.let { element ->
-                val bundle = Bundle().apply { putString("elementId", element.id) }
+                val bundle = Bundle().apply {
+                    putString("elementId", element.id)
+                    if (isMixedGroupSelection) putBoolean("isMixedGroup", true)
+                    if (targetGroupId != null) putString("groupId", targetGroupId)
+                }
 
                 if (targetDestination == R.id.adjustmentsParentFragment) {
                     if (element.bitmap != null) {
                         BitmapCache.put(element.id, element.bitmap!!)
+                    } else if (!element.bitmapData.isNullOrBlank()) {
+                        val decoded = com.webscare.urducanvas.common.utils.ImageProcessor.base64ToBitmap(element.bitmapData!!)
+                        if (decoded != null) {
+                            element.bitmap = decoded
+                            BitmapCache.put(element.id, decoded)
+                        } else {
+                            val bmp = Bitmap.createBitmap(512, 512, Bitmap.Config.ARGB_8888)
+                            BitmapCache.put(element.id, bmp)
+                        }
                     } else if (element.svgDrawable != null) {
                         val svg = element.svgDrawable!!
                         val w = svg.intrinsicWidth.takeIf { it > 0 } ?: 512
@@ -1068,6 +1104,19 @@ class EditorFragment : Fragment() {
                         svg.setBounds(0, 0, w, h)
                         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
                         Canvas(bmp).also { svg.draw(it) }
+                        BitmapCache.put(element.id, bmp)
+                    } else if (element.type == ElementType.DRAW && !element.drawStrokes.isNullOrEmpty()) {
+                        val w = (element.logicalContentWidth.takeIf { it > 0 } ?: 512f).toInt()
+                        val h = (element.logicalContentHeight.takeIf { it > 0 } ?: 512f).toInt()
+                        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                        val c = android.graphics.Canvas(bmp)
+                        element.drawStrokes?.forEach { s ->
+                            com.webscare.urducanvas.common.utils.BrushRenderUtils.drawSingleStroke(c, s, 255)
+                        }
+                        element.bitmap = bmp
+                        BitmapCache.put(element.id, bmp)
+                    } else if (element.type == ElementType.GROUP || element.type == ElementType.DRAW) {
+                        val bmp = Bitmap.createBitmap(512, 512, Bitmap.Config.ARGB_8888)
                         BitmapCache.put(element.id, bmp)
                     }
                 } else if (targetDestination == R.id.textAdjustmentsFragment || targetDestination == R.id.shapesParentFragment) {
@@ -1153,7 +1202,9 @@ class EditorFragment : Fragment() {
         val showFont = anySelected && hasText && !isMulti && !hasImage && !hasBackground
         val showCopy = anySelected && !hasBackground && !isMulti
         val showAlignWithSelection = isMulti
-        val showRemoveBg = (hasImage || hasBackground || hasShapeMask) && !isMulti && !isSvg
+        val firstEl = selected.firstOrNull()
+        val isGroupSel = firstEl?.type == ElementType.GROUP || (selected.size > 1 && selected.mapNotNull { it.groupId }.distinct().size == 1)
+        val showRemoveBg = (hasImage || hasBackground || hasShapeMask) && !isMulti && !isGroupSel && !isSvg
 
         updateIconVisibility(
             binding.opacityPane, anySelected, animate = animate,
@@ -1397,6 +1448,9 @@ class EditorFragment : Fragment() {
                 mainViewModel.collapsePanel()
                 binding.panelNavHost.visibility = View.VISIBLE
                 currentPanelItemId = menuItem.itemId
+                if (menuItem.itemId != R.id.nav_layers) {
+                    panelSheet?.touchDragZoneEnabled = true
+                }
                 when (menuItem.itemId) {
                     R.id.nav_shapes -> navController.navigate(R.id.shapesParentFragment)
                     R.id.nav_stickers -> navController.navigate(R.id.objectsFragment)
@@ -2087,6 +2141,9 @@ class EditorFragment : Fragment() {
 
     /** Called by child panels to hand their drag handle to the sheet behavior. */
     fun attachDragHandle(handleView: View) {
+        if (currentDragHandle != null && currentDragHandle != handleView) {
+            currentDragHandle?.setOnTouchListener(null)
+        }
         // Called only by expandable panel fragments — restore expandable state.
         isPanelExpandable = true
         currentDragHandle = handleView
@@ -2318,7 +2375,9 @@ class EditorFragment : Fragment() {
     }
 
     override fun onDestroyView() {
-        super.onDestroyView()
+        currentDragHandle?.setOnTouchListener(null)
+        currentDragHandle = null
+        registeredDragHandles.clear()
         saveJsonJob?.cancel()
         viewModel.clearLoading()
         // Cancel the spring animation before nulling binding — its onSlide/onStateSettled
@@ -2326,11 +2385,8 @@ class EditorFragment : Fragment() {
         // onDestroyView, causing NPE on _binding!!.
         panelSheet?.snapTo(expanded = false, immediate = true)
         panelSheet = null
-        _binding = null
+        _binding?.canvasContainer?.removeAllViews()
         _navController = null
-        // Null out CanvasView callbacks that capture fragment state. CanvasView lives in the
-        // ViewModel across fragment recreation; without this, a GestureDetector long-press
-        // arriving after onDestroyView throws IllegalStateException on requireActivity().
         cbOnEditTextRequested = {}
         cbOnElementSelected   = {}
         cbOnRequestOpenLayers = {}
@@ -2338,6 +2394,7 @@ class EditorFragment : Fragment() {
         if (BuildConfig.IS_PROD_LOGIC) {
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
+        _binding = null
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

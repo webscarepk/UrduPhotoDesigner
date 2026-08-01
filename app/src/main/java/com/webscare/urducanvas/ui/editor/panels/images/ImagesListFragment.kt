@@ -118,8 +118,10 @@ class ImagesListFragment : Fragment() {
 
     override fun onDestroyView() {
         saveScrollPos()
-        _binding = null
+        imagesAdapter?.cancelPreload()
+        _binding?.backgrounds?.adapter = null
         super.onDestroyView()
+        _binding = null
     }
 
     // ── SwipeRefreshLayout ────────────────────────────────────────────────────
@@ -222,7 +224,11 @@ class ImagesListFragment : Fragment() {
                         )
                     }
                 },
-                onLongPress = { entity -> mainViewModel.toggleImagesSelection(entity.id) }
+                onLongPress = { entity ->
+                    if (mainViewModel.isPanelExpanded(PanelType.IMAGES)) {
+                        mainViewModel.toggleImagesSelection(entity.id)
+                    }
+                }
             )
         }
 
