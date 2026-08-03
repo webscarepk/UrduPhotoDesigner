@@ -85,6 +85,10 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
             binding.btnNextGroupTab.addPressEffect { toggleAction() }
         }
 
+        viewModel.isProcessingAdjustments.observe(viewLifecycleOwner) { isProcessing ->
+            binding.processingProgress.visibility = if (isProcessing == true) View.VISIBLE else View.GONE
+        }
+
         setEvents()
     }
 

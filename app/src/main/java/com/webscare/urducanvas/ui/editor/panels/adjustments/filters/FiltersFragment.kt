@@ -247,20 +247,51 @@ class FiltersFragment : Fragment() {
             .start()
     }
 
+    private fun createFallbackPreviewBitmap(): Bitmap {
+        val bmp = createBitmap(150, 150)
+        val c = android.graphics.Canvas(bmp)
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        val shader = android.graphics.LinearGradient(
+            0f, 0f, 150f, 150f,
+            intArrayOf(
+                android.graphics.Color.parseColor("#FF7E5F"),
+                android.graphics.Color.parseColor("#FEB47B"),
+                android.graphics.Color.parseColor("#6A11CB"),
+                android.graphics.Color.parseColor("#2575FC")
+            ),
+            null, android.graphics.Shader.TileMode.CLAMP
+        )
+        paint.shader = shader
+        c.drawRect(0f, 0f, 150f, 150f, paint)
+        return bmp
+    }
+
     private fun initObservers() {
         viewModel.selectedElements.observe(viewLifecycleOwner) { elements ->
             val element = elements.firstOrNull() ?: return@observe
 
-            // Always ensure previewBitmap is created and loaded for the active element
+            // Always ensure previewBitmap is created and loaded for the active element or group
             if (previewBitmap == null || elementId != element.id) {
                 elementId = element.id
 
-                val sourceBitmap = element.bitmap ?: BitmapCache.get(element.id)
+                val targetElement = if (element.type == com.webscare.urducanvas.common.canvas.enums.ElementType.GROUP) {
+                    val groupChildren = viewModel.canvasElements.value?.filter { it.groupId == element.id } ?: emptyList()
+                    groupChildren.firstOrNull {
+                        it.bitmap != null || BitmapCache.get(it.id) != null || it.svgDrawable != null || !it.bitmapData.isNullOrBlank()
+                    } ?: element
+                } else element
+
+                val sourceBitmap = targetElement.bitmap
+                    ?: BitmapCache.get(targetElement.id)
+                    ?: BitmapCache.get(element.id)
+                    ?: targetElement.bitmapData?.let { data ->
+                        if (data.isNotBlank()) com.webscare.urducanvas.common.utils.ImageProcessor.base64ToBitmap(data) else null
+                    }
 
                 previewBitmap = if (sourceBitmap != null && !sourceBitmap.isRecycled) {
                     sourceBitmap.copy(sourceBitmap.config ?: Bitmap.Config.ARGB_8888, false)
                 } else {
-                    element.svgDrawable?.let { drawable ->
+                    targetElement.svgDrawable?.let { drawable ->
                         val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: 512
                         val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: 512
                         val bmp = createBitmap(width, height)
@@ -268,7 +299,7 @@ class FiltersFragment : Fragment() {
                         drawable.setBounds(0, 0, width, height)
                         drawable.draw(canvas)
                         bmp
-                    }
+                    } ?: createFallbackPreviewBitmap()
                 }
 
                 if (previewBitmap != null) {

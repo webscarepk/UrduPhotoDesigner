@@ -320,6 +320,9 @@ class ImagesAdapter(
             displayJob?.cancel()
             val isDark = itemView.context.isDarkModeEnabled()
             if (isSvg) {
+                imageView.scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+                val p = (6 * itemView.context.resources.displayMetrics.density).toInt()
+                imageView.setPadding(p, p, p, p)
                 val cached = SvgLoader.peekThumbnail(displayUrl, adapter.applyWhiteTint)
                 if (cached != null) {
                     shimmer.stopShimmer(); shimmer.setShimmer(null)
@@ -336,10 +339,12 @@ class ImagesAdapter(
                     }
                 }
             } else {
+                imageView.scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+                imageView.setPadding(0, 0, 0, 0)
                 shimmer.startShimmerSoft(isDark)
                 Glide.with(itemView.context)
                     .load(displayUrl)
-                    .centerInside()
+                    .centerCrop()
                     .error(R.drawable.ic_nothing_found)
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .listener(object : RequestListener<Drawable> {

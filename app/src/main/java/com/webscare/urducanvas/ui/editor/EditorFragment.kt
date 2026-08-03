@@ -1304,6 +1304,9 @@ class EditorFragment : Fragment() {
         }
         cbOnRequestOpenLayers = { handleRequestOpenLayers() }
         cbOnCanvasLongPressed = { sx, sy -> showCanvasPopupMenu(sx, sy) }
+        if (::sizedCanvasView.isInitialized) {
+            sizedCanvasView.onProcessingStateChanged = { isProcessing -> viewModel.setProcessingAdjustments(isProcessing) }
+        }
     }
 
     /** Attach/restore CanvasView inside container */
@@ -1369,7 +1372,8 @@ class EditorFragment : Fragment() {
                 onExitSelectionMode = { viewModel.exitSelectionMode() },
                 onStrokeCompleted = { stroke -> viewModel.notifyDrawStrokeAdded(stroke) },
                 onZoomChanged = { zoom -> viewModel.setZoomLevel(zoom) },
-                onCanvasLongPressed = { sx, sy -> cbOnCanvasLongPressed(sx, sy) }
+                onCanvasLongPressed = { sx, sy -> cbOnCanvasLongPressed(sx, sy) },
+                onProcessingStateChanged = { isProcessing -> viewModel.setProcessingAdjustments(isProcessing) }
             ).apply {
                 binding.canvasContainer.addView(this)
             }

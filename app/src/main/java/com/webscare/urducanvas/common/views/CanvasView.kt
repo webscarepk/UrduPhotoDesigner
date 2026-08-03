@@ -114,7 +114,8 @@ class CanvasView @JvmOverloads constructor(
     var onExitSelectionMode: (() -> Unit)? = null,
     var onStrokeCompleted: ((StrokeData) -> Unit)? = null,
     var onZoomChanged: ((Float) -> Unit)? = null,
-    var onCanvasLongPressed: ((screenX: Float, screenY: Float) -> Unit)? = null
+    var onCanvasLongPressed: ((screenX: Float, screenY: Float) -> Unit)? = null,
+    var onProcessingStateChanged: ((Boolean) -> Unit)? = null
 ) : View(context, attrs) {
 
     private val gson: Gson by lazy {
@@ -3784,6 +3785,7 @@ class CanvasView @JvmOverloads constructor(
         // Dirty or missing — schedule background processing (once per element)
         val existing = pendingAdjustmentJobs[element.id]
         if (existing == null || !existing.isActive) {
+            onProcessingStateChanged?.invoke(true)
             val job = adjustmentScope.launch {
                 // Prefer the element's context; fall back to the View's context
                 // so adjustments (especially RenderScript blur) never silently skip.
@@ -3802,6 +3804,9 @@ class CanvasView @JvmOverloads constructor(
                     displayBitmapCache.remove(element.id)
                     displayBitmapCache.remove(element.id + "_bg")
                     pendingAdjustmentJobs.remove(element.id)
+                    if (pendingAdjustmentJobs.isEmpty()) {
+                        onProcessingStateChanged?.invoke(false)
+                    }
                     invalidate()
                 }
             }
@@ -4101,6 +4106,7 @@ class CanvasView @JvmOverloads constructor(
                 val sp = TextPaint(fillPaint).apply {
                     shader = null
                     color = sc
+                    xfermode = null
                     maskFilter = BlurMaskFilter(element.shadowRadius, BlurMaskFilter.Blur.NORMAL)
                 }
                 val sa = sp.alpha
