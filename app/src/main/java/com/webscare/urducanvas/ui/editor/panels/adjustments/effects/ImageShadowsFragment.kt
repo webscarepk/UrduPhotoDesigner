@@ -46,20 +46,25 @@ class ImageShadowsFragment : Fragment() {
         colorsAdapter = ColorsAdapter(
             Constants.shadowColorList,
             { color ->
-                val element = viewModel.selectedElements.value?.firstOrNull() ?: return@ColorsAdapter
+                val dx = viewModel.shadowDx.value ?: 1f
+                val dy = viewModel.shadowDy.value ?: 1f
+                val radius = viewModel.shadowRadius.value ?: 8f
+                val opacity = viewModel.shadowOpacity.value ?: 64
                 viewModel.setImageShadow(
                     true, color.colorCode.toColorInt(),
-                    element.shadowDx, element.shadowDy,
-                    element.shadowRadius, element.shadowOpacity,
+                    dx, dy, radius, opacity,
                     pushToUndo = true
                 )
             },
             {
-                val element = viewModel.selectedElements.value?.firstOrNull() ?: return@ColorsAdapter
+                val shadowColor = viewModel.shadowColor.value ?: Color.GRAY
+                val dx = viewModel.shadowDx.value ?: 1f
+                val dy = viewModel.shadowDy.value ?: 1f
+                val radius = viewModel.shadowRadius.value ?: 8f
+                val opacity = viewModel.shadowOpacity.value ?: 64
                 viewModel.setImageShadow(
-                    false, element.shadowColor,
-                    element.shadowDx, element.shadowDy,
-                    element.shadowRadius, element.shadowOpacity,
+                    false, shadowColor,
+                    dx, dy, radius, opacity,
                     pushToUndo = true
                 )
             },
@@ -75,22 +80,34 @@ class ImageShadowsFragment : Fragment() {
         binding.colors.adapter = colorsAdapter
     }
 
+    private var isSeekingAngle = false
+    private var isSeekingDistance = false
+
     private fun initSeekBars() {
 
         // ── ANGLE (replaces Shadow X + Shadow Y) ─────────────────────────────
         // 0–360°. Converted to dx/dy inside ViewModel via setShadowAngle().
         binding.shadowX.apply {
             max = 360
-            setOnSeekBarChangeListener(createSeekListener { progress, push ->
-                binding.shadowXSize.text = "${progress}°"
-                viewModel.setShadowAngle(progress.toFloat())
-                if (push) {
-                    val element = viewModel.selectedElements.value?.firstOrNull() ?: return@createSeekListener
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                    if (!fromUser) return
+                    binding.shadowXSize.text = "${progress}°"
+                    viewModel.setShadowAngle(progress.toFloat())
+                }
+                override fun onStartTrackingTouch(sb: SeekBar?) {
+                    isSeekingAngle = true
+                    viewModel.enableFeature("Shadow")
+                }
+                override fun onStopTrackingTouch(seekBar: SeekBar) {
+                    isSeekingAngle = false
+                    val color = viewModel.shadowColor.value ?: android.graphics.Color.GRAY
+                    val dx = viewModel.shadowDx.value ?: 1f
+                    val dy = viewModel.shadowDy.value ?: 1f
+                    val radius = viewModel.shadowRadius.value ?: 8f
+                    val opacity = viewModel.shadowOpacity.value ?: 64
                     viewModel.setImageShadow(
-                        true, element.shadowColor,
-                        element.shadowDx, element.shadowDy,
-                        element.shadowRadius, element.shadowOpacity,
-                        pushToUndo = true
+                        true, color, dx, dy, radius, opacity, pushToUndo = true
                     )
                 }
             })
@@ -100,16 +117,25 @@ class ImageShadowsFragment : Fragment() {
         // 0–100px. Converted to dx/dy inside ViewModel via setShadowDistance().
         binding.shadowY.apply {
             max = 100
-            setOnSeekBarChangeListener(createSeekListener { progress, push ->
-                binding.shadowYSize.text = "$progress"
-                viewModel.setShadowDistance(progress.toFloat())
-                if (push) {
-                    val element = viewModel.selectedElements.value?.firstOrNull() ?: return@createSeekListener
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                    if (!fromUser) return
+                    binding.shadowYSize.text = "$progress"
+                    viewModel.setShadowDistance(progress.toFloat())
+                }
+                override fun onStartTrackingTouch(sb: SeekBar?) {
+                    isSeekingDistance = true
+                    viewModel.enableFeature("Shadow")
+                }
+                override fun onStopTrackingTouch(seekBar: SeekBar) {
+                    isSeekingDistance = false
+                    val color = viewModel.shadowColor.value ?: android.graphics.Color.GRAY
+                    val dx = viewModel.shadowDx.value ?: 1f
+                    val dy = viewModel.shadowDy.value ?: 1f
+                    val radius = viewModel.shadowRadius.value ?: 8f
+                    val opacity = viewModel.shadowOpacity.value ?: 64
                     viewModel.setImageShadow(
-                        true, element.shadowColor,
-                        element.shadowDx, element.shadowDy,
-                        element.shadowRadius, element.shadowOpacity,
-                        pushToUndo = true
+                        true, color, dx, dy, radius, opacity, pushToUndo = true
                     )
                 }
             })
@@ -117,23 +143,23 @@ class ImageShadowsFragment : Fragment() {
 
         // ── OPACITY ───────────────────────────────────────────────────────────
         binding.opacity.setOnSeekBarChangeListener(createSeekListener { progress, push ->
-            val element = viewModel.selectedElements.value?.firstOrNull() ?: return@createSeekListener
+            val color = viewModel.shadowColor.value ?: android.graphics.Color.GRAY
+            val dx = viewModel.shadowDx.value ?: 1f
+            val dy = viewModel.shadowDy.value ?: 1f
+            val radius = viewModel.shadowRadius.value ?: 8f
             viewModel.setImageShadow(
-                true, element.shadowColor,
-                element.shadowDx, element.shadowDy,
-                element.shadowRadius, progress,
-                pushToUndo = push
+                true, color, dx, dy, radius, progress, pushToUndo = push
             )
         })
 
         // ── RADIUS ────────────────────────────────────────────────────────────
         binding.radius.setOnSeekBarChangeListener(createSeekListener { progress, push ->
-            val element = viewModel.selectedElements.value?.firstOrNull() ?: return@createSeekListener
+            val color = viewModel.shadowColor.value ?: android.graphics.Color.GRAY
+            val dx = viewModel.shadowDx.value ?: 1f
+            val dy = viewModel.shadowDy.value ?: 1f
+            val opacity = viewModel.shadowOpacity.value ?: 64
             viewModel.setImageShadow(
-                true, element.shadowColor,
-                element.shadowDx, element.shadowDy,
-                progress.toFloat(), element.shadowOpacity,
-                pushToUndo = push
+                true, color, dx, dy, progress.toFloat(), opacity, pushToUndo = push
             )
         })
     }
@@ -160,15 +186,17 @@ class ImageShadowsFragment : Fragment() {
             colorsAdapter.selectedColor = color ?: Color.BLACK
         }
 
-        // Angle seekbar (was shadowX)
+        // Angle seekbar (was shadowX) — skip update while user is actively dragging
         viewModel.shadowAngle.observe(viewLifecycleOwner) { angle ->
+            if (isSeekingAngle) return@observe
             val safeAngle = angle?.roundToInt() ?: 135
             binding.shadowXSize.text = "${safeAngle}°"
             if (binding.shadowX.progress != safeAngle) binding.shadowX.progress = safeAngle
         }
 
-        // Distance seekbar (was shadowY)
+        // Distance seekbar (was shadowY) — skip update while user is actively dragging
         viewModel.shadowDistance.observe(viewLifecycleOwner) { dist ->
+            if (isSeekingDistance) return@observe
             val safeDist = dist?.roundToInt() ?: 21
             binding.shadowYSize.text = "$safeDist"
             if (binding.shadowY.progress != safeDist) binding.shadowY.progress = safeDist

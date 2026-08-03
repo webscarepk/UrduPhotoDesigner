@@ -2858,11 +2858,19 @@ class CanvasViewModel @Inject constructor(
         _canvasElements.value = updatedList
         refreshSelectedElements()
 
-        val firstText = selectedListFromCanvas.firstOrNull { it.type == ElementType.TEXT }
+        // When collapsed to sentinel, resolve group children so adjustment LiveData
+        // is populated from real child element values, not the GROUP sentinel defaults.
+        val resolvedElements = if (collapseToSentinel && commonGroupId != null) {
+            updatedList.filter { it.groupId == commonGroupId }
+        } else {
+            selectedListFromCanvas
+        }
+
+        val firstText = resolvedElements.firstOrNull { it.type == ElementType.TEXT }
         val firstImage =
-            selectedListFromCanvas.firstOrNull { it.type == ElementType.IMAGE || it.type == ElementType.STICKER || (it.type == ElementType.DRAW && (it.bitmap != null || it.bitmapData != null)) }
-        val firstDraw = selectedListFromCanvas.firstOrNull { it.type == ElementType.DRAW }
-        val firstShape = selectedListFromCanvas.firstOrNull { it.type == ElementType.SHAPE }
+            resolvedElements.firstOrNull { it.type == ElementType.IMAGE || it.type == ElementType.STICKER || (it.type == ElementType.DRAW && (it.bitmap != null || it.bitmapData != null)) }
+        val firstDraw = resolvedElements.firstOrNull { it.type == ElementType.DRAW }
+        val firstShape = resolvedElements.firstOrNull { it.type == ElementType.SHAPE }
 
         when {
             firstText != null -> {
@@ -3040,15 +3048,22 @@ class CanvasViewModel @Inject constructor(
     fun syncShadowStateFromSelected() {
         val element = _selectedElements.value?.firstOrNull() ?: return
 
-        _shadowColor.value = element.shadowColor
-        _shadowDx.value = element.shadowDx
-        _shadowDy.value = element.shadowDy
-        _shadowRadius.value = element.shadowRadius
-        _shadowOpacity.value = element.shadowOpacity
+        // If selected element is a GROUP sentinel, resolve the first real child
+        // so we read actual shadow values instead of sentinel defaults.
+        val sourceElement = if (element.type == ElementType.GROUP) {
+            _canvasElements.value?.firstOrNull { it.groupId == element.id && it.type != ElementType.GROUP } ?: element
+        } else element
+
+        _shadowColor.value = sourceElement.shadowColor
+        _shadowDx.value = sourceElement.shadowDx
+        _shadowDy.value = sourceElement.shadowDy
+        _shadowRadius.value = sourceElement.shadowRadius
+        _shadowOpacity.value = sourceElement.shadowOpacity
+        _hasShadow.value = sourceElement.hasShadow
 
         // Derive UI angle/distance from the stored dx/dy so existing templates
         // show sensible values in the new seekbars without any data migration.
-        val (angle, distance) = dxDyToAngleDistance(element.shadowDx, element.shadowDy)
+        val (angle, distance) = dxDyToAngleDistance(sourceElement.shadowDx, sourceElement.shadowDy)
         _shadowAngle.value = angle
         _shadowDistance.value = distance
     }
@@ -3074,98 +3089,126 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun disableFeature(type: String) {
-        val element = _selectedElements.value?.firstOrNull() ?: return
+        val currentList = _canvasElements.value?.toMutableList() ?: return
+        val context = currentList.firstOrNull()?.context
+        val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
+        val oldList = currentList.map { it.copy(context = null) }
+        var modifiedAny = false
 
-        val alreadyDisabled = when (type) {
-            "Shadow"  -> !element.hasShadow
-            "Stroke"  -> !element.hasStroke
-            "Blur"    -> !element.hasBlur
-            "Overlay" -> !element.hasOverlay
-            "Light"   -> !element.hasLight
-            "Color"   -> !element.hasColor
-            "Detail"  -> !element.hasDetail
-            "Feather" -> !element.hasFeather   // ← ADD
-            else      -> false
+        val updatedList = currentList.map { element ->
+            val isTargeted = element.isSelected || (element.groupId != null && element.groupId in selectedGroupIds)
+            if (isTargeted) {
+                modifiedAny = true
+                val updated = element.copy()
+                when (type) {
+                    "Shadow"  -> updated.hasShadow  = false
+                    "Stroke"  -> updated.hasStroke  = false
+                    "Blur"    -> updated.hasBlur    = false
+                    "Overlay" -> updated.hasOverlay = false
+                    "Light"   -> updated.hasLight   = false
+                    "Color"   -> updated.hasColor   = false
+                    "Detail"  -> updated.hasDetail  = false
+                    "Feather" -> updated.hasFeather = false
+                }
+                updated.context = context
+                updated
+            } else element
         }
 
-        if (!alreadyDisabled) {
-            val updatedElement = element.copy().apply {
-                when (type) {
-                    "Shadow"  -> hasShadow  = false
-                    "Stroke"  -> hasStroke  = false
-                    "Blur"    -> hasBlur    = false
-                    "Overlay" -> hasOverlay = false
-                    "Light"   -> hasLight   = false
-                    "Color"   -> hasColor   = false
-                    "Detail"  -> hasDetail  = false
-                    "Feather" -> hasFeather = false   // ← ADD
-                }
+        if (modifiedAny) {
+            _canvasElements.value = updatedList
+            when (type) {
+                "Shadow"  -> _hasShadow.value = false
+                "Stroke"  -> _hasBorder.value = false
+                "Blur"    -> _hasBlur.value = false
             }
-            updateCanvasElement(updatedElement)
+            _canvasActions.push(
+                CanvasAction.UpdateCanvasElementsOrder(
+                    oldList,
+                    updatedList.map { it.copy(context = null) }
+                )
+            )
+            _redoStack.clear()
+            notifyUndoRedoChanged()
+            markChanged()
+            refreshSelectedElements()
+        }
+    }
+
+    fun enableFeature(type: String) {
+        val currentList = _canvasElements.value?.toMutableList() ?: return
+        val context = currentList.firstOrNull()?.context
+        val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
+        val oldList = currentList.map { it.copy(context = null) }
+        var modifiedAny = false
+
+        val updatedList = currentList.map { element ->
+            val isTargeted = element.isSelected || (element.groupId != null && element.groupId in selectedGroupIds)
+            if (isTargeted) {
+                modifiedAny = true
+                val updated = element.copy()
+                when (type) {
+                    "Shadow"  -> { updated.hasShadow  = true; applyShadowPresets(updated) }
+                    "Stroke"  -> { updated.hasStroke  = true; applyStrokePresets(updated) }
+                    "Blur"    -> { updated.hasBlur    = true; applyBlurPresets(updated) }
+                    "Overlay" -> { updated.hasOverlay = true; applyOverlayPresets(updated) }
+                    "Feather" -> { updated.hasFeather = true; applyFeatherPresets(updated) }
+                    "Light"   -> updated.hasLight   = true
+                    "Color"   -> updated.hasColor   = true
+                    "Detail"  -> updated.hasDetail  = true
+                }
+                updated.context = context
+                updated
+            } else element
+        }
+
+        if (modifiedAny) {
+            _canvasElements.value = updatedList
+            when (type) {
+                "Shadow"  -> _hasShadow.value = true
+                "Stroke"  -> _hasBorder.value = true
+                "Blur"    -> _hasBlur.value = true
+            }
+            _canvasActions.push(
+                CanvasAction.UpdateCanvasElementsOrder(
+                    oldList,
+                    updatedList.map { it.copy(context = null) }
+                )
+            )
+            _redoStack.clear()
+            notifyUndoRedoChanged()
+            markChanged()
+            refreshSelectedElements()
         }
     }
 
     fun toggleFeature(type: String) {
-        val element = _selectedElements.value?.firstOrNull() ?: return
-        val updatedElement = element.copy().apply {
-            when (type) {
-                "Shadow" -> {
-                    hasShadow = !hasShadow
-                    if (hasShadow) applyShadowPresets(this)
-                }
-                "Stroke" -> {
-                    hasStroke = !hasStroke
-                    if (hasStroke) applyStrokePresets(this)
-                }
-                "Blur" -> {
-                    hasBlur = !hasBlur
-                    if (hasBlur) applyBlurPresets(this)
-                }
-                "Overlay" -> {
-                    hasOverlay = !hasOverlay
-                    if (hasOverlay) applyOverlayPresets(this)
-                }
-                "Feather" -> {                            // ← ADD
-                    hasFeather = !hasFeather               // ← ADD
-                    if (hasFeather) applyFeatherPresets(this)  // ← ADD
-                }                                          // ← ADD
-                "Light"  -> hasLight  = !hasLight
-                "Color"  -> hasColor  = !hasColor
-                "Detail" -> hasDetail = !hasDetail
-            }
-        }
-        updateCanvasElement(updatedElement)
-    }
+        val currentList = _canvasElements.value ?: return
+        val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
 
-    fun enableFeature(type: String) {
-        val element = _selectedElements.value?.firstOrNull() ?: return
+        val firstTargeted = currentList.firstOrNull { el ->
+            (el.isSelected || (el.groupId != null && el.groupId in selectedGroupIds)) && el.type != ElementType.GROUP
+        } ?: currentList.firstOrNull { el ->
+            el.isSelected || (el.groupId != null && el.groupId in selectedGroupIds)
+        } ?: return
 
-        val alreadyEnabled = when (type) {
-            "Shadow"  -> element.hasShadow
-            "Stroke"  -> element.hasStroke
-            "Blur"    -> element.hasBlur
-            "Overlay" -> element.hasOverlay
-            "Light"   -> element.hasLight
-            "Color"   -> element.hasColor
-            "Detail"  -> element.hasDetail
-            "Feather" -> element.hasFeather   // ← ADD
-            else      -> true
+        val currentlyEnabled = when (type) {
+            "Shadow"  -> firstTargeted.hasShadow
+            "Stroke"  -> firstTargeted.hasStroke
+            "Blur"    -> firstTargeted.hasBlur
+            "Overlay" -> firstTargeted.hasOverlay
+            "Feather" -> firstTargeted.hasFeather
+            "Light"   -> firstTargeted.hasLight
+            "Color"   -> firstTargeted.hasColor
+            "Detail"  -> firstTargeted.hasDetail
+            else      -> false
         }
 
-        if (!alreadyEnabled) {
-            val updatedElement = element.copy().apply {
-                when (type) {
-                    "Shadow"  -> { hasShadow  = true; applyShadowPresets(this) }
-                    "Stroke"  -> { hasStroke  = true; applyStrokePresets(this) }
-                    "Blur"    -> { hasBlur    = true; applyBlurPresets(this) }
-                    "Overlay" -> { hasOverlay = true; applyOverlayPresets(this) }
-                    "Feather" -> { hasFeather = true; applyFeatherPresets(this) }  // ← ADD
-                    "Light"   -> hasLight  = true
-                    "Color"   -> hasColor  = true
-                    "Detail"  -> hasDetail = true
-                }
-            }
-            updateCanvasElement(updatedElement)
+        val targetEnabled = !currentlyEnabled
+        if (targetEnabled) {
+            enableFeature(type)
+        } else {
+            disableFeature(type)
         }
     }
 
@@ -3235,7 +3278,8 @@ class CanvasViewModel @Inject constructor(
         dy: Float,
         radius: Float,
         opacity: Int,
-        pushToUndo: Boolean = true
+        pushToUndo: Boolean = true,
+        skipAngleDistSync: Boolean = false
     ) {
         val currentList = _canvasElements.value?.toMutableList() ?: return
         val context = currentList.firstOrNull()?.context
@@ -3276,9 +3320,14 @@ class CanvasViewModel @Inject constructor(
             _shadowRadius.value = radius
             _shadowOpacity.value = opacity
             _hasShadow.value = enabled
-            val (angle, dist) = dxDyToAngleDistance(dx, dy)
-            _shadowAngle.value = angle
-            _shadowDistance.value = dist
+
+            // Only re-derive angle/distance when NOT called from setShadowAngle/setShadowDistance
+            // to prevent feedback loops that reset seekbars mid-drag.
+            if (!skipAngleDistSync) {
+                val (angle, dist) = dxDyToAngleDistance(dx, dy)
+                _shadowAngle.value = angle
+                _shadowDistance.value = dist
+            }
 
             if (pushToUndo) {
                 _canvasActions.push(
@@ -3815,7 +3864,7 @@ class CanvasViewModel @Inject constructor(
         val radius = _shadowRadius.value ?: 8f
         val opacity = _shadowOpacity.value ?: 64
         val enabled = _hasShadow.value ?: true
-        setImageShadow(enabled, color, dx, dy, radius, opacity, pushToUndo = false)
+        setImageShadow(enabled, color, dx, dy, radius, opacity, pushToUndo = false, skipAngleDistSync = true)
     }
 
     // Called from the Distance seekbar (0–100px). Converts to dx/dy and applies.
@@ -3827,7 +3876,7 @@ class CanvasViewModel @Inject constructor(
         val radius = _shadowRadius.value ?: 8f
         val opacity = _shadowOpacity.value ?: 64
         val enabled = _hasShadow.value ?: true
-        setImageShadow(enabled, color, dx, dy, radius, opacity, pushToUndo = false)
+        setImageShadow(enabled, color, dx, dy, radius, opacity, pushToUndo = false, skipAngleDistSync = true)
     }
 
     fun setShadowRadius(radius: Float) {

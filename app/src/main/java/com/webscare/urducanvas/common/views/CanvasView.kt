@@ -2638,6 +2638,75 @@ class CanvasView @JvmOverloads constructor(
                                     element.id, finalBitmap, onScreenW, onScreenH
                                 )
 
+                                // ── Cached shadow (Problem 3 fix for IMAGE type) ─────────────────
+                                if (element.hasShadow && element.shadowOpacity > 0) {
+                                    val shadowFp = Objects.hash(
+                                        element.id + "_img_shadow",
+                                        element.shadowRadius,
+                                        element.shadowColor,
+                                        element.shadowOpacity,
+                                        finalBitmap.width,
+                                        finalBitmap.height
+                                    )
+                                    val cached = shadowBitmapCache[element.id + "_img_shadow"]
+                                    val entry: ShadowCacheEntry =
+                                        if (cached != null && cached.fingerprint == shadowFp && !cached.bitmap.isRecycled) {
+                                            cached
+                                        } else {
+                                            cached?.bitmap?.recycle()
+                                            val blurPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                                                maskFilter = BlurMaskFilter(
+                                                    element.shadowRadius.coerceAtLeast(0.1f),
+                                                    BlurMaskFilter.Blur.NORMAL
+                                                )
+                                            }
+                                            val offset = IntArray(2)
+                                            val blurred =
+                                                finalBitmap.extractAlpha(blurPaint, offset)
+                                            ShadowCacheEntry(
+                                                bitmap = blurred,
+                                                fingerprint = shadowFp,
+                                                scaleX = 1f,
+                                                scaleY = 1f,
+                                                offsetX = offset[0].toFloat(),
+                                                offsetY = offset[1].toFloat()
+                                            ).also {
+                                                shadowBitmapCache[element.id + "_img_shadow"] = it
+                                            }
+                                        }
+
+                                    val shadowColor = Color.argb(
+                                        element.shadowOpacity.coerceIn(0, 255),
+                                        Color.red(element.shadowColor),
+                                        Color.green(element.shadowColor),
+                                        Color.blue(element.shadowColor)
+                                    )
+                                    reusableDrawPaint.reset()
+                                    reusableDrawPaint.isAntiAlias = true
+                                    reusableDrawPaint.isFilterBitmap = true
+                                    reusableDrawPaint.colorFilter =
+                                        android.graphics.PorterDuffColorFilter(
+                                            shadowColor, PorterDuff.Mode.SRC_IN
+                                        )
+
+                                    val dstLeft = left + entry.offsetX + element.shadowDx
+                                    val dstTop = top + entry.offsetY + element.shadowDy
+                                    reusableRectF.set(
+                                        dstLeft,
+                                        dstTop,
+                                        dstLeft + entry.bitmap.width,
+                                        dstTop + entry.bitmap.height
+                                    )
+
+                                    canvas.save()
+                                    if (!entry.bitmap.isRecycled) {
+                                        canvas.drawBitmap(
+                                            entry.bitmap, null, reusableRectF, reusableDrawPaint
+                                        )
+                                    }
+                                    canvas.restore()
+                                }
+
                                 // ── Cached stroke (Problem 3 fix for IMAGE type) ─────────────────
                                 if (element.hasStroke && element.strokeWidth > 0f) {
                                     val strokeFp = Objects.hash(
@@ -2707,75 +2776,6 @@ class CanvasView @JvmOverloads constructor(
                                             null,
                                             reusableRectF,
                                             reusableStrokePaint
-                                        )
-                                    }
-                                    canvas.restore()
-                                }
-
-                                // ── Cached shadow (Problem 3 fix for IMAGE type) ─────────────────
-                                if (element.hasShadow && element.shadowOpacity > 0) {
-                                    val shadowFp = Objects.hash(
-                                        element.id + "_img_shadow",
-                                        element.shadowRadius,
-                                        element.shadowColor,
-                                        element.shadowOpacity,
-                                        finalBitmap.width,
-                                        finalBitmap.height
-                                    )
-                                    val cached = shadowBitmapCache[element.id + "_img_shadow"]
-                                    val entry: ShadowCacheEntry =
-                                        if (cached != null && cached.fingerprint == shadowFp && !cached.bitmap.isRecycled) {
-                                            cached
-                                        } else {
-                                            cached?.bitmap?.recycle()
-                                            val blurPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                                                maskFilter = BlurMaskFilter(
-                                                    element.shadowRadius.coerceAtLeast(0.1f),
-                                                    BlurMaskFilter.Blur.NORMAL
-                                                )
-                                            }
-                                            val offset = IntArray(2)
-                                            val blurred =
-                                                finalBitmap.extractAlpha(blurPaint, offset)
-                                            ShadowCacheEntry(
-                                                bitmap = blurred,
-                                                fingerprint = shadowFp,
-                                                scaleX = 1f,
-                                                scaleY = 1f,
-                                                offsetX = offset[0].toFloat(),
-                                                offsetY = offset[1].toFloat()
-                                            ).also {
-                                                shadowBitmapCache[element.id + "_img_shadow"] = it
-                                            }
-                                        }
-
-                                    val shadowColor = Color.argb(
-                                        element.shadowOpacity.coerceIn(0, 255),
-                                        Color.red(element.shadowColor),
-                                        Color.green(element.shadowColor),
-                                        Color.blue(element.shadowColor)
-                                    )
-                                    reusableDrawPaint.reset()
-                                    reusableDrawPaint.isAntiAlias = true
-                                    reusableDrawPaint.isFilterBitmap = true
-                                    reusableDrawPaint.colorFilter =
-                                        android.graphics.PorterDuffColorFilter(
-                                            shadowColor, PorterDuff.Mode.SRC_IN
-                                        )
-
-                                    val dstLeft = left + entry.offsetX + element.shadowDx
-                                    val dstTop = top + entry.offsetY + element.shadowDy
-                                    reusableRectF.set(
-                                        dstLeft,
-                                        dstTop,
-                                        dstLeft + entry.bitmap.width,
-                                        dstTop + entry.bitmap.height
-                                    )
-
-                                    canvas.save()
-                                    if (!entry.bitmap.isRecycled) {
-                                        canvas.drawBitmap(
-                                            entry.bitmap, null, reusableRectF, reusableDrawPaint
                                         )
                                     }
                                     canvas.restore()
@@ -4101,7 +4101,7 @@ class CanvasView @JvmOverloads constructor(
             fillPaint.xfermode = drawWithBlend(element)
 
             // Shadow
-            if (element.hasShadow) {
+            if (element.hasShadow && element.shadowOpacity > 0) {
                 val sc = (element.shadowColor and 0x00FFFFFF) or (element.shadowOpacity shl 24)
                 val sp = TextPaint(fillPaint).apply {
                     shader = null
