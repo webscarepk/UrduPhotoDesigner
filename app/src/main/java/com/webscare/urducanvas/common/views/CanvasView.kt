@@ -3786,6 +3786,7 @@ class CanvasView @JvmOverloads constructor(
         val existing = pendingAdjustmentJobs[element.id]
         if (existing == null || !existing.isActive) {
             onProcessingStateChanged?.invoke(true)
+            val targetAdjustments = element.adjustments.copy()
             val job = adjustmentScope.launch {
                 // Prefer the element's context; fall back to the View's context
                 // so adjustments (especially RenderScript blur) never silently skip.
@@ -3794,12 +3795,11 @@ class CanvasView @JvmOverloads constructor(
                     ctx, rawBitmap, element
                 )
                 withContext(Dispatchers.Main) {
-                    // Do NOT recycle the old cachedAdjustedBitmap immediately — the export
-                    // pipeline runs on a background thread and may be mid-draw with a reference
-                    // to the old bitmap. Recycling here causes "Canvas: trying to use a recycled
-                    // bitmap" crashes. Let the old bitmap become unreachable and be GC'd instead.
                     element.cachedAdjustedBitmap = result
-                    element.isAdjustmentDirty = false
+                    // Only mark clean if adjustments haven't changed while we were processing
+                    if (element.adjustments == targetAdjustments) {
+                        element.isAdjustmentDirty = false
+                    }
                     // Invalidate display cache so next frame resamples from the fresh adjusted bitmap
                     displayBitmapCache.remove(element.id)
                     displayBitmapCache.remove(element.id + "_bg")

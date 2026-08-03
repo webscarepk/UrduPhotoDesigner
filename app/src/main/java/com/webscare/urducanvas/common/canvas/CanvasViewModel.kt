@@ -974,7 +974,6 @@ class CanvasViewModel @Inject constructor(
                 element.blurValue = value
                 element.hasBlur = value > 0f
                 element.isAdjustmentDirty = true
-                element.cachedAdjustedBitmap?.recycle()
                 element.cachedAdjustedBitmap = null
 
                 if (currentBatchAction == null) {
@@ -1149,8 +1148,10 @@ class CanvasViewModel @Inject constructor(
 
                 val newAdjustments = update(element.adjustments)
                 val updated = element.copy(adjustments = newAdjustments)
+                updated.hasLight = updated.hasLight || newAdjustments.brightness != 0f || newAdjustments.contrast != 1f || newAdjustments.shadows != 0f || newAdjustments.highlights != 0f
+                updated.hasColor = updated.hasColor || newAdjustments.saturation != 1f || newAdjustments.temperature != 0f || newAdjustments.tint != 0f || newAdjustments.vibrance != 1f
+                updated.hasDetail = updated.hasDetail || newAdjustments.sharpness != 0f || newAdjustments.clarity != 0f || newAdjustments.fade != 0f
                 updated.isAdjustmentDirty = true
-                updated.cachedAdjustedBitmap?.recycle()
                 updated.cachedAdjustedBitmap = null
 
                 if (currentBatchAction == null) {
@@ -4087,7 +4088,6 @@ class CanvasViewModel @Inject constructor(
                 ).also {
                     // ✅ Stale cached bitmap must be discarded when the filter changes
                     it.isAdjustmentDirty = true
-                    it.cachedAdjustedBitmap?.recycle()
                     it.cachedAdjustedBitmap = null
                 }
 
