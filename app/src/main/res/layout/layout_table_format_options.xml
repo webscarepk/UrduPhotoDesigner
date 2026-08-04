@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:id="@+id/container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- ═══ ALIGN CATEGORY VIEW (Matching Image 3) ═══ -->
+        <LinearLayout
+            android:id="@+id/viewAlign"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- Horizontal Alignment Tiles -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/btnAlignLeft"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/contrast"
+                    android:fontFamily="@font/bold"
+                    android:gravity="center"
+                    android:text="≡"
+                    android:textColor="@color/black"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/btnAlignCenter"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/appColor"
+                    android:fontFamily="@font/bold"
+                    android:gravity="center"
+                    android:text="≡"
+                    android:textColor="@color/white"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/btnAlignRight"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/contrast"
+                    android:fontFamily="@font/bold"
+                    android:gravity="center"
+                    android:text="≡"
+                    android:textColor="@color/black"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:fontFamily="@font/medium"
+                android:text="Vertical"
+                android:textColor="#8E94A2"
+                android:textSize="12sp" />
+
+            <!-- Vertical Alignment Tiles -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/btnVAlignTop"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/contrast"
+                    android:fontFamily="@font/bold"
+                    android:gravity="center"
+                    android:text="┬"
+                    android:textColor="@color/black"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/btnVAlignCenter"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/appColor"
+                    android:fontFamily="@font/bold"
+                    android:gravity="center"
+                    android:text="┼"
+                    android:textColor="@color/white"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/btnVAlignBottom"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/contrast"
+                    android:fontFamily="@font/bold"
+                    android:gravity="center"
+                    android:text="┴"
+                    android:textColor="@color/black"
+                    android:textSize="16sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ═══ PADDING CATEGORY VIEW (Matching Image 5) ═══ -->
+        <LinearLayout
+            android:id="@+id/viewPadding"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="@font/medium"
+                    android:text="Cell padding"
+                    android:textColor="@color/black"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/tvPaddingValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/contrast"
+                    android:fontFamily="@font/bold"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:text="8 dp"
+                    android:textColor="@color/black"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seekPadding"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:max="24"
+                android:progress="8" />
+        </LinearLayout>
+
+        <!-- ═══ SIZE CATEGORY VIEW (Matching Image 4) ═══ -->
+        <LinearLayout
+            android:id="@+id/viewSize"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- Text Size Stepper -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:background="@drawable/button_bg_small"
+                android:backgroundTint="@color/contrast"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="@font/medium"
+                    android:text="Text size"
+                    android:textColor="@color/black"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/btnDecTextSize"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:gravity="center"
+                    android:text="—"
+                    android:textColor="@color/black"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/tvTextSizeVal"
+                    android:layout_width="32dp"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/bold"
+                    android:gravity="center"
+                    android:text="24"
+                    android:textColor="@color/black"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/btnIncTextSize"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:gravity="center"
+                    android:text="+"
+                    android:textColor="@color/black"
+                    android:textSize="16sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ═══ SPACING CATEGORY VIEW ═══ -->
+        <LinearLayout
+            android:id="@+id/viewSpacing"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvLetterSpacingLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/medium"
+                android:text="Letter spacing"
+                android:textColor="@color/black"
+                android:textSize="13sp" />
+
+            <SeekBar
+                android:id="@+id/seekLetterSpacing"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:max="20"
+                android:progress="0" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

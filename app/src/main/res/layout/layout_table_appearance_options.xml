@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:id="@+id/container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- ═══ FILL CATEGORY VIEW ═══ -->
+        <LinearLayout
+            android:id="@+id/viewFill"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/medium"
+                android:text="Fill Color"
+                android:textColor="@color/black"
+                android:textSize="13sp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvFillColors"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+        </LinearLayout>
+
+        <!-- ═══ STROKE CATEGORY VIEW (Matching Image 5) ═══ -->
+        <LinearLayout
+            android:id="@+id/viewStroke"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/medium"
+                android:text="Apply to"
+                android:textColor="#8E94A2"
+                android:textSize="12sp" />
+
+            <!-- Mode Tiles Row (All, Outer, Inner, Horiz, Vert, None) -->
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tileAll"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="@drawable/button_bg_small"
+                        android:backgroundTint="@color/contrast"
+                        android:fontFamily="@font/medium"
+                        android:gravity="center"
+                        android:text="All"
+                        android:textColor="@color/black"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tileOuter"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/button_bg_small"
+                        android:backgroundTint="@color/contrast"
+                        android:fontFamily="@font/medium"
+                        android:gravity="center"
+                        android:text="Outer"
+                        android:textColor="@color/black"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tileInner"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/button_bg_small"
+                        android:backgroundTint="@color/contrast"
+                        android:fontFamily="@font/medium"
+                        android:gravity="center"
+                        android:text="Inner"
+                        android:textColor="@color/black"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tileHoriz"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/button_bg_small"
+                        android:backgroundTint="@color/contrast"
+                        android:fontFamily="@font/medium"
+                        android:gravity="center"
+                        android:text="Horiz"
+                        android:textColor="@color/black"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tileVert"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/button_bg_small"
+                        android:backgroundTint="@color/contrast"
+                        android:fontFamily="@font/medium"
+                        android:gravity="center"
+                        android:text="Vert"
+                        android:textColor="@color/black"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tileNone"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/button_bg_small"
+                        android:backgroundTint="@color/contrast"
+                        android:fontFamily="@font/medium"
+                        android:gravity="center"
+                        android:text="None"
+                        android:textColor="@color/black"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </HorizontalScrollView>
+
+            <TextView
+                android:id="@+id/tvBorderWidth"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:fontFamily="@font/medium"
+                android:text="Border Width: 1dp"
+                android:textColor="@color/black"
+                android:textSize="13sp" />
+
+            <SeekBar
+                android:id="@+id/seekBorderWidth"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:max="10"
+                android:progress="1" />
+        </LinearLayout>
+
+        <!-- ═══ SHADOW CATEGORY VIEW ═══ -->
+        <LinearLayout
+            android:id="@+id/viewShadow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switchShadow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Drop Shadow"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

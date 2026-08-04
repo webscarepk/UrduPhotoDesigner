@@ -3925,6 +3925,26 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
+    fun updateSelectedTableData(transform: (com.webscare.urducanvas.common.canvas.model.TableData) -> Unit) {
+        val currentList = _canvasElements.value?.toMutableList() ?: return
+        var modified = false
+        val updatedList = currentList.map { element ->
+            if (element.isSelected && element.type == ElementType.TABLE) {
+                modified = true
+                val data = element.tableData ?: com.webscare.urducanvas.common.canvas.model.TableData.createDefault()
+                val updatedData = data.deepCopy()
+                transform(updatedData)
+                element.copy(tableData = updatedData).also {
+                    it.tableLayoutCache = null
+                }
+            } else element
+        }
+        if (modified) {
+            _canvasElements.value = updatedList
+            markChanged()
+        }
+    }
+
     fun setTextShadow(enabled: Boolean, color: Int, dx: Float, dy: Float) {
         val radius = _shadowRadius.value ?: 8f
         val opacity = _shadowOpacity.value ?: 64
