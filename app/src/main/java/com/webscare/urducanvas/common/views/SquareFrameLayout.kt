@@ -18,7 +18,15 @@ class SquareFrameLayout @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        // Force height = width — always a perfect square
-        super.onMeasure(widthMeasureSpec, widthMeasureSpec)
+        val heightMode = MeasureSpec.getMode(heightMeasureSpec)
+        if (heightMode == MeasureSpec.EXACTLY) {
+            val heightSize = MeasureSpec.getSize(heightMeasureSpec)
+            val widthSize = MeasureSpec.getSize(widthMeasureSpec)
+            val size = minOf(widthSize, heightSize)
+            val spec = MeasureSpec.makeMeasureSpec(size, MeasureSpec.EXACTLY)
+            super.onMeasure(spec, spec)
+        } else {
+            super.onMeasure(widthMeasureSpec, widthMeasureSpec)
+        }
     }
 }

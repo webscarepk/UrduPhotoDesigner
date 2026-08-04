@@ -881,9 +881,7 @@ class EditorFragment : Fragment() {
         }
 
         viewModel.currentImageFilter.observe(viewLifecycleOwner) { filter ->
-            if (filter != null && viewModel.isExplicitChange()) {
-                canvasManager.applyImageFilter(filter)
-            }
+            // Filter changes are handled via canvasElements observer syncing elements with filterIntensity preserved.
         }
 
         viewModel.opacity.observe(viewLifecycleOwner) { opacity ->

@@ -300,6 +300,10 @@ class CanvasView @JvmOverloads constructor(
     // Track in-flight jobs so we don't double-schedule for the same element.
     private val pendingAdjustmentJobs = mutableMapOf<String, Job>()
 
+    private val shimmerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
+    }
+
     // ── Reusable objects to eliminate per-frame allocations in onDraw ────────
     private val reusableRectF = RectF()
     private val reusableDrawPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { isFilterBitmap = true }
@@ -873,7 +877,33 @@ class CanvasView @JvmOverloads constructor(
      * Updates the internal `selectedElements` list based on the `isSelected` flag of incoming elements.
      */
     fun syncElements(newElements: List<CanvasElement>) {
+        val existingMap = canvasElements.associateBy { it.id }
         val oldSize = canvasElements.size
+
+        // Preserve cached adjusted bitmap & clean dirty flag across syncs if image adjustments haven't changed
+        // This prevents drag/move/rotate/scale/selection updates from clearing the cache or triggering re-processing
+        newElements.forEach { newEl ->
+            val existing = existingMap[newEl.id]
+            if (existing != null) {
+                val adjustmentsEqual = existing.adjustments == newEl.adjustments &&
+                        existing.blurValue == newEl.blurValue &&
+                        existing.hasBlur == newEl.hasBlur &&
+                        existing.imageFilter == newEl.imageFilter &&
+                        existing.filterIntensity == newEl.filterIntensity &&
+                        existing.bitmap === newEl.bitmap &&
+                        existing.bitmapData == newEl.bitmapData
+
+                if (adjustmentsEqual) {
+                    if (newEl.cachedAdjustedBitmap == null) {
+                        newEl.cachedAdjustedBitmap = existing.cachedAdjustedBitmap
+                    }
+                    if (existing.cachedAdjustedBitmap != null && !existing.isAdjustmentDirty) {
+                        newEl.isAdjustmentDirty = false
+                    }
+                }
+            }
+        }
+
         canvasElements.clear()
         canvasElements.addAll(newElements.sortedBy { it.zIndex })
 
@@ -2506,12 +2536,13 @@ class CanvasView @JvmOverloads constructor(
 
                                         ImageFilter.Glow -> {
                                             canvas.drawBitmap(
-                                                finalBitmap, null, reusableRectF, element.paint
+                                                finalBitmap, null, reusableRectF, reusableDrawPaint
                                             )
                                             val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                                                 color = Color.argb(180, 255, 255, 200)
                                                 maskFilter =
                                                     BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
+                                                colorFilter = colorFilterFor(element.imageFilter, element.filterIntensity)
                                             }
                                             canvas.drawBitmap(
                                                 finalBitmap, null, reusableRectF, glowPaint
@@ -2553,6 +2584,9 @@ class CanvasView @JvmOverloads constructor(
                                             element.featherWidth,
                                             element.featherDirection ?: FeatherDirection.ALL
                                         )
+                                    }
+                                    if (pendingAdjustmentJobs.containsKey(element.id)) {
+                                        drawShimmerOverlay(canvas, reusableRectF)
                                     }
 
                                     canvas.restore()
@@ -2802,12 +2836,13 @@ class CanvasView @JvmOverloads constructor(
 
                                         ImageFilter.Glow -> {
                                             canvas.drawBitmap(
-                                                displayBmp, null, reusableRectF, element.paint
+                                                displayBmp, null, reusableRectF, reusableDrawPaint
                                             )
                                             val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                                                 color = Color.argb(180, 255, 255, 200)
                                                 maskFilter =
                                                     BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
+                                                colorFilter = colorFilterFor(element.imageFilter, element.filterIntensity)
                                             }
                                             canvas.drawBitmap(
                                                 displayBmp, null, reusableRectF, glowPaint
@@ -2849,6 +2884,9 @@ class CanvasView @JvmOverloads constructor(
                                         element.featherWidth,
                                         element.featherDirection ?: FeatherDirection.ALL
                                     )
+                                }
+                                if (pendingAdjustmentJobs.containsKey(element.id)) {
+                                    drawShimmerOverlay(canvas, reusableRectF)
                                 }
                                 canvas.restore()  // restore saveLayer opened above for feather compositing
                             }
@@ -3610,6 +3648,9 @@ class CanvasView @JvmOverloads constructor(
                     }
                     drawRect(0f, 0f, bmp.width.toFloat(), bmp.height.toFloat(), overlayPaint)
                 }
+                if (pendingAdjustmentJobs.containsKey(e.id)) {
+                    drawShimmerOverlay(this, dstRect)
+                }
             }
             reusableBgPaint.xfermode = drawWithBlend(e)
             return
@@ -3761,6 +3802,35 @@ class CanvasView @JvmOverloads constructor(
         // t=0 → 0.0 (transparent edge), t=1 → 1.0 (fully opaque interior).
         val smooth = t * t * (3f - 2f * t)
         return Math.pow(smooth.toDouble(), exponent).toFloat().coerceIn(0f, 1f)
+    }
+
+    private fun drawShimmerOverlay(canvas: Canvas, rectF: RectF) {
+        val width = rectF.width()
+        val height = rectF.height()
+        if (width <= 0f || height <= 0f) return
+
+        val time = System.currentTimeMillis() % 1600L
+        val progress = time / 1600f
+
+        val startX = rectF.left + (progress * 2.2f - 0.6f) * width
+        val startY = rectF.top
+        val endX = startX + width * 0.45f
+        val endY = rectF.bottom
+
+        shimmerPaint.shader = LinearGradient(
+            startX, startY, endX, endY,
+            intArrayOf(
+                Color.TRANSPARENT,
+                Color.argb(95, 255, 255, 255),
+                Color.argb(45, 255, 255, 255),
+                Color.TRANSPARENT
+            ),
+            floatArrayOf(0.0f, 0.35f, 0.65f, 1.0f),
+            Shader.TileMode.CLAMP
+        )
+        canvas.drawRect(rectF, shimmerPaint)
+        shimmerPaint.shader = null
+        postInvalidateOnAnimation()
     }
 
     // ─────────────────────────────────────────────────────────────────────────

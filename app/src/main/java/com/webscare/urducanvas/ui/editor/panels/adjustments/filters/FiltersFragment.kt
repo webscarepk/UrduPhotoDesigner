@@ -107,6 +107,7 @@ class FiltersFragment : Fragment() {
             filterList = availableFilters,
             baseBitmap = previewBitmap,
             onFilterSelected = { filterItem ->
+                filtersAdapter.selectedFilter = filterItem.filter
                 elementId?.let { id ->
                     val intensityProgress = binding.filterIntensitySeekBar.progress
                     val intensity = if (filterItem.filter is ImageFilter.None) 1.0f else (intensityProgress / 100f)
@@ -189,7 +190,9 @@ class FiltersFragment : Fragment() {
                 if (fromUser) {
                     elementId?.let { id ->
                         val intensity = progress / 100f
-                        val currentFilter = filtersAdapter.selectedFilter ?: viewModel.currentImageFilter.value
+                        val currentFilter = filtersAdapter.selectedFilter
+                            ?: viewModel.canvasElements.value?.find { it.id == id }?.imageFilter
+                            ?: viewModel.currentImageFilter.value
                         if (currentFilter != null && currentFilter !is ImageFilter.None) {
                             viewModel.applyImageFilter(id, currentFilter, intensity, isExplicit = false)
                         }
@@ -202,7 +205,9 @@ class FiltersFragment : Fragment() {
                 seekBar?.let { sb ->
                     elementId?.let { id ->
                         val intensity = sb.progress / 100f
-                        val currentFilter = filtersAdapter.selectedFilter ?: viewModel.currentImageFilter.value
+                        val currentFilter = filtersAdapter.selectedFilter
+                            ?: viewModel.canvasElements.value?.find { it.id == id }?.imageFilter
+                            ?: viewModel.currentImageFilter.value
                         if (currentFilter != null && currentFilter !is ImageFilter.None) {
                             viewModel.applyImageFilter(id, currentFilter, intensity, isExplicit = true)
                         }

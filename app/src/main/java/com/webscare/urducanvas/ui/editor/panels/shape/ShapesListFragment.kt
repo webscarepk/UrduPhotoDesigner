@@ -97,6 +97,14 @@ class ShapesListFragment : Fragment() {
         val isExpandedNow = mainViewModel.isPanelExpanded(PanelType.SHAPES)
         isPanelExpanded = !isExpandedNow
         onPanelExpanded(isExpandedNow)
+
+        binding.objects.post {
+            if (_binding != null) {
+                isPanelExpanded = !isExpandedNow
+                onPanelExpanded(isExpandedNow)
+                imagesAdapter?.notifyDataSetChanged()
+            }
+        }
     }
 
     override fun onHiddenChanged(hidden: Boolean) {

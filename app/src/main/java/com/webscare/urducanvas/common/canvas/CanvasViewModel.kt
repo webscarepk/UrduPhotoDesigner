@@ -4074,39 +4074,47 @@ class CanvasViewModel @Inject constructor(
         val currentList = _canvasElements.value ?: return
         val targetElement = currentList.find { it.id == elementId } ?: return
 
+        val targetIds = if (targetElement.type == ElementType.GROUP) {
+            currentList.filter { it.groupId == targetElement.id && (it.type == ElementType.IMAGE || it.type == ElementType.STICKER || it.type == ElementType.SHAPE) }.map { it.id }.toSet()
+        } else {
+            setOf(targetElement.id)
+        }
+
         val oldFilter = targetElement.imageFilter
         val oldIntensity = targetElement.filterIntensity
         val filterToApply = newFilter ?: oldFilter
 
-        if (oldFilter != filterToApply || oldIntensity != intensity) {
-            val context = targetElement.context
-            val updatedElement =
-                targetElement.copy(
+        val updatedList = currentList.map { el ->
+            if (el.id in targetIds || el.id == elementId) {
+                el.copy(
                     imageFilter = filterToApply,
                     filterIntensity = intensity,
-                    context = context
+                    context = el.context
                 ).also {
-                    // ✅ Stale cached bitmap must be discarded when the filter changes
                     it.isAdjustmentDirty = true
                     it.cachedAdjustedBitmap = null
                 }
-
-            _canvasElements.value =
-                currentList.map { if (it.id == updatedElement.id) updatedElement else it }
-            if (updatedElement.isSelected) _currentImageFilter.value = filterToApply
-            _canvasActions.push(
-                CanvasAction.ApplyImageFilter(
-                    elementId = elementId,
-                    newFilter = filterToApply,
-                    oldFilter = oldFilter,
-                    newIntensity = intensity,
-                    oldIntensity = oldIntensity
-                )
-            )
-            _redoStack.clear()
-            _isExplicitChange = false
-            notifyUndoRedoChanged()
+            } else {
+                el
+            }
         }
+
+        _canvasElements.value = updatedList
+        if (targetElement.isSelected || targetIds.any { id -> currentList.find { it.id == id }?.isSelected == true }) {
+            _currentImageFilter.value = filterToApply
+        }
+        _canvasActions.push(
+            CanvasAction.ApplyImageFilter(
+                elementId = elementId,
+                newFilter = filterToApply,
+                oldFilter = oldFilter,
+                newIntensity = intensity,
+                oldIntensity = oldIntensity
+            )
+        )
+        _redoStack.clear()
+        _isExplicitChange = false
+        notifyUndoRedoChanged()
     }
 
     /**
