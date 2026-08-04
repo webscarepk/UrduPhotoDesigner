@@ -66,4 +66,10 @@
         android:name="com.webscare.urducanvas.ui.editor.panels.text.TextAdjustmentsFragment"
         android:label="fragment_text_adjustments"
         tools:layout="@layout/fragment_text_adjustments" />
+
+    <fragment
+        android:id="@+id/tableAdjustmentsFragment"
+        android:name="com.webscare.urducanvas.ui.editor.panels.table.TableAdjustmentsFragment"
+        android:label="fragment_table_adjustments"
+        tools:layout="@layout/fragment_table_adjustments" />
 </navigation>

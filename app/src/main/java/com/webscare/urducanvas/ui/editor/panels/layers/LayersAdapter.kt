@@ -221,6 +221,7 @@ class LayersAdapter(
                         ElementType.STICKER -> R.drawable.ic_sticker
                         ElementType.DRAW    -> R.drawable.ic_pen
                         ElementType.SHAPE   -> R.drawable.ic_shapes
+                        ElementType.TABLE   -> R.drawable.ic_grid
                         else                -> R.drawable.ic_stickers
                     }
                 }

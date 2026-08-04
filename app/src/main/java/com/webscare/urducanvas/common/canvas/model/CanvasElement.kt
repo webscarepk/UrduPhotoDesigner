@@ -48,6 +48,7 @@ data class CanvasElement(
     @SerializedName("bitmapData") var bitmapData: String? = null,
 
     @SerializedName("groupId") var groupId: String? = null,
+    @SerializedName("isGroupCollapsed") var isGroupCollapsed: Boolean = false,
 
     @SerializedName("imageFilter") var imageFilter: ImageFilter = ImageFilter.None,
 
@@ -220,15 +221,14 @@ data class CanvasElement(
 
     @SerializedName("isSubscribed") var isSubscribed: Boolean = false,
 
-    // ── Grouping ──────────────────────────────────────────────────────────────
-    // Only meaningful when type == ElementType.GROUP.
-    // Controls whether child rows are visible in the layers panel.
-    @SerializedName("isGroupCollapsed") var isGroupCollapsed: Boolean = false,
+    // ── Table Data ────────────────────────────────────────────────────────────
+    @SerializedName("tableData") var tableData: TableData? = null,
 
     ) : Serializable {
 
     @field:Transient var cachedAdjustedBitmap: Bitmap? = null
     @field:Transient var isAdjustmentDirty: Boolean = true
+    @field:Transient var tableLayoutCache: Any? = null
 
     @field:Transient
     lateinit var paint: TextPaint
@@ -248,9 +248,7 @@ data class CanvasElement(
     }
 
     fun getLocalContentWidth(): Float {
-        return if (type == ElementType.BACKGROUND) {
-            logicalContentWidth
-        } else if (type == ElementType.SHAPE) {
+        return if (type == ElementType.BACKGROUND || type == ElementType.SHAPE || type == ElementType.TABLE) {
             logicalContentWidth
         } else if (type == ElementType.TEXT) {
             if (boxWidth != null && boxWidth!! > 0f) {
@@ -277,9 +275,7 @@ data class CanvasElement(
     }
 
     fun getLocalContentHeight(): Float {
-        return if (type == ElementType.BACKGROUND) {
-            logicalContentHeight
-        } else if (type == ElementType.SHAPE) {
+        return if (type == ElementType.BACKGROUND || type == ElementType.SHAPE || type == ElementType.TABLE) {
             logicalContentHeight
         } else if (type == ElementType.TEXT) {
             if (boxHeight != null && boxHeight!! > 0f) {
@@ -559,6 +555,7 @@ data class CanvasElement(
                 val dynamicPadding = if (::paint.isInitialized) paint.textSize * 0.25f else 0f
                 basePadding + dynamicPadding
             }
+            ElementType.TABLE -> 4f
             ElementType.SHAPE -> {
                 val strokePad = if (shapeHasStroke) shapeStrokeWidth / 2f else 0f
                 strokePad + 12f
@@ -570,6 +567,12 @@ data class CanvasElement(
         bounds.inset(-totalPadding, -totalPadding)
 
         return bounds
+    }
+
+    fun collectFontIds(): List<String> = when (type) {
+        ElementType.TEXT -> listOfNotNull(fontId)
+        ElementType.TABLE -> tableData?.allFontIds().orEmpty()
+        else -> emptyList()
     }
 
     fun getRotatedCorners(): FloatArray {

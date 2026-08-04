@@ -49,6 +49,10 @@ import kotlinx.coroutines.withContext
 @AndroidEntryPoint
 class ShapesParentFragment : Fragment() {
 
+    companion object {
+        const val TABLES_TAB = "Tables"
+    }
+
     private var _binding: FragmentShapesParentBinding? = null
     private val binding get() = _binding!!
 
@@ -83,8 +87,9 @@ class ShapesParentFragment : Fragment() {
 
         val initial = mainViewModel.shapesData.value
         tabs.clear()
+        tabs.add(TABLES_TAB)
         tabs.add(ShapesListFragment.VECTORS_TAB)
-        tabs.addAll(initial.tabs.filter { it != ShapesListFragment.VECTORS_TAB })
+        tabs.addAll(initial.tabs.filter { it != TABLES_TAB && it != ShapesListFragment.VECTORS_TAB })
 
         currentTabIndex = mainViewModel.lastShapesTabCategory?.let { saved ->
             tabs.indexOf(saved).takeIf { it >= 0 }
@@ -387,10 +392,10 @@ class ShapesParentFragment : Fragment() {
         currentTabIndex = position
         mainViewModel.lastShapesTabCategory = category
 
-        val target: Fragment = if (category == ShapesListFragment.VECTORS_TAB) {
-            fragmentCache.getOrPut(category) { VectorsTabFragment() }
-        } else {
-            fragmentCache.getOrPut(category) {
+        val target: Fragment = when (category) {
+            TABLES_TAB -> fragmentCache.getOrPut(category) { TablesTabFragment() }
+            ShapesListFragment.VECTORS_TAB -> fragmentCache.getOrPut(category) { VectorsTabFragment() }
+            else -> fragmentCache.getOrPut(category) {
                 ShapesListFragment.newInstance(category, currentQuery).also { f ->
                     f.onFilterResult = { cat, count -> onTabFilterResult(cat, count > 0) }
                 }
@@ -510,8 +515,8 @@ class ShapesParentFragment : Fragment() {
         if (lastShapesData === data) return
         lastShapesData = data
 
-        val newApiTabs = data.tabs.filter { it != ShapesListFragment.VECTORS_TAB }
-        val newTabs = mutableListOf(ShapesListFragment.VECTORS_TAB) + newApiTabs
+        val newApiTabs = data.tabs.filter { it != TABLES_TAB && it != ShapesListFragment.VECTORS_TAB }
+        val newTabs = mutableListOf(TABLES_TAB, ShapesListFragment.VECTORS_TAB) + newApiTabs
 
         if (newTabs != tabs) {
             val currentCategory = tabs.getOrNull(currentTabIndex)

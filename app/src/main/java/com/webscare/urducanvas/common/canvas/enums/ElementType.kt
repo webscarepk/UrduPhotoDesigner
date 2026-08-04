@@ -21,5 +21,8 @@ enum class ElementType {
     SHAPE,
 
     @SerializedName("Group")
-    GROUP
+    GROUP,
+
+    @SerializedName("Table")
+    TABLE
 }

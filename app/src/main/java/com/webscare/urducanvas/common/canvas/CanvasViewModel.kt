@@ -513,6 +513,31 @@ class CanvasViewModel @Inject constructor(
         _zoomLevel.value = 1.0f   // 100%
     }
 
+    private val _currentTableScope = MutableStateFlow<com.webscare.urducanvas.common.canvas.enums.TableScope>(com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE)
+    val currentTableScope: StateFlow<com.webscare.urducanvas.common.canvas.enums.TableScope> = _currentTableScope.asStateFlow()
+
+    private val _selectedTableRow = MutableStateFlow<Int>(0)
+    val selectedTableRow: StateFlow<Int> = _selectedTableRow.asStateFlow()
+
+    private val _selectedTableCol = MutableStateFlow<Int>(0)
+    val selectedTableCol: StateFlow<Int> = _selectedTableCol.asStateFlow()
+
+    fun cycleTableScope() {
+        val next = when (_currentTableScope.value) {
+            com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> com.webscare.urducanvas.common.canvas.enums.TableScope.ROW
+            com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN
+            com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> com.webscare.urducanvas.common.canvas.enums.TableScope.CELL
+            com.webscare.urducanvas.common.canvas.enums.TableScope.CELL -> com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE
+        }
+        _currentTableScope.value = next
+    }
+
+    fun setTableScope(scope: com.webscare.urducanvas.common.canvas.enums.TableScope, row: Int = 0, col: Int = 0) {
+        _currentTableScope.value = scope
+        _selectedTableRow.value = row
+        _selectedTableCol.value = col
+    }
+
     fun markChanged() {
         hasChanges.value = true
     }
@@ -1503,6 +1528,42 @@ class CanvasViewModel @Inject constructor(
     //   - Pure standalones → new group
     //   - Mix of standalones + existing group children → new group absorbs all
     //   - Two group sentinels selected → nested flat merge into one new group
+    fun addTableElement(rows: Int = 3, cols: Int = 3, activity: android.app.Activity) {
+        val size = _canvasSize.value ?: return
+        val tableData = com.webscare.urducanvas.common.canvas.model.TableData.createDefault(rows, cols)
+
+        val totalW = size.width * 0.8f
+        val totalH = (totalW * 0.6f).coerceAtLeast(200f)
+        val initialX = size.width / 2f
+        val initialY = size.height / 2f
+
+        val highestZIndex = _canvasElements.value?.maxOfOrNull { it.zIndex } ?: -1
+        val newZIndex = highestZIndex + 1
+
+        val newElement = CanvasElement(
+            context = activity,
+            type = ElementType.TABLE,
+            customName = "Table",
+            x = initialX,
+            y = initialY,
+            logicalContentWidth = totalW,
+            logicalContentHeight = totalH,
+            zIndex = newZIndex,
+            isSelected = true,
+            tableData = tableData
+        )
+
+        val currentElements = _canvasElements.value?.map { it.copy(isSelected = false) } ?: emptyList()
+        val updatedElements = currentElements + newElement
+
+        _canvasElements.value = updatedElements
+        _selectedElements.value = listOf(newElement)
+
+        _canvasActions.push(CanvasAction.AddTable(newElement.copy(context = null)))
+        _redoStack.clear()
+        notifyUndoRedoChanged()
+    }
+
     fun mergeIntoGroup() {
         val selected = _selectedElements.value ?: return
         if (selected.size < 2) return
@@ -3793,11 +3854,12 @@ class CanvasViewModel @Inject constructor(
         val context = currentList.firstOrNull()?.context
         val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
 
-        val hasSelectedText = currentList.any {
-            (it.isSelected || (it.groupId != null && it.groupId in selectedGroupIds)) && it.type == ElementType.TEXT
+        val hasSelectedTarget = currentList.any {
+            (it.isSelected || (it.groupId != null && it.groupId in selectedGroupIds)) &&
+            (it.type == ElementType.TEXT || it.type == ElementType.TABLE)
         }
 
-        if (!hasSelectedText) {
+        if (!hasSelectedTarget) {
             context?.let {
                 addTextWithFont(
                     text = context.getString(R.string.dummyText),
@@ -3828,6 +3890,19 @@ class CanvasViewModel @Inject constructor(
                 ).apply {
                     originalTypeface = tf
                     paint.typeface = tf
+                }
+            } else if (isTargeted && element.type == ElementType.TABLE) {
+                val tableData = element.tableData ?: com.webscare.urducanvas.common.canvas.model.TableData.createDefault()
+                val updatedData = tableData.deepCopy().apply {
+                    applyFontToScope(
+                        fontEntity.id.toString(),
+                        _currentTableScope.value,
+                        _selectedTableRow.value,
+                        _selectedTableCol.value
+                    )
+                }
+                element.copy(tableData = updatedData).also {
+                    it.tableLayoutCache = null
                 }
             } else element
         }
@@ -4645,6 +4720,16 @@ class CanvasViewModel @Inject constructor(
                     _canvasElements.value = currentList + restored
                 } else {
                     // Undo: remove by ID
+                    _canvasElements.value = currentList.filter { it.id != action.element.id }
+                }
+            }
+
+            is CanvasAction.AddTable -> {
+                val currentList = _canvasElements.value.orEmpty()
+                if (isRedo) {
+                    val restored = action.element.restoreWithContext(context)
+                    _canvasElements.value = currentList + restored
+                } else {
                     _canvasElements.value = currentList.filter { it.id != action.element.id }
                 }
             }

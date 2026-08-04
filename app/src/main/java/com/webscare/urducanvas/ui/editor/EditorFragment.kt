@@ -221,7 +221,8 @@ class EditorFragment : Fragment() {
             binding.bottomNavigation.isVisible =
                 destination.id != R.id.adjustmentsParentFragment &&
                         destination.id != R.id.shapeFragment &&
-                        destination.id != R.id.textAdjustmentsFragment
+                        destination.id != R.id.textAdjustmentsFragment &&
+                        destination.id != R.id.tableAdjustmentsFragment
 
             // Lock the panel sheet collapsed for adjustment panels (non-expandable).
             // When the user navigates back to an expandable panel, attachDragHandle()
@@ -838,7 +839,8 @@ class EditorFragment : Fragment() {
                 val panelDestinations = listOf(
                     R.id.adjustmentsParentFragment,
                     R.id.shapeFragment,
-                    R.id.textAdjustmentsFragment   // ← ADD THIS
+                    R.id.textAdjustmentsFragment,
+                    R.id.tableAdjustmentsFragment
                 )
                 val currentDest = navController.currentDestination?.id
                 if (currentDest != null && currentDest in panelDestinations) {
@@ -1023,6 +1025,8 @@ class EditorFragment : Fragment() {
 
                         ElementType.TEXT -> R.id.textAdjustmentsFragment
 
+                        ElementType.TABLE -> R.id.tableAdjustmentsFragment
+
                         ElementType.IMAGE, ElementType.STICKER, ElementType.BACKGROUND, ElementType.DRAW -> R.id.adjustmentsParentFragment
 
                         ElementType.SHAPE -> if (shapeJustAdded) {
@@ -1038,6 +1042,9 @@ class EditorFragment : Fragment() {
                             when {
                                 children.isNotEmpty() && children.all { it.type == ElementType.TEXT } -> {
                                     R.id.textAdjustmentsFragment
+                                }
+                                children.isNotEmpty() && children.all { it.type == ElementType.TABLE } -> {
+                                    R.id.tableAdjustmentsFragment
                                 }
                                 children.isNotEmpty() && children.all { it.type == ElementType.SHAPE } -> {
                                     R.id.shapeFragment
@@ -1062,7 +1069,8 @@ class EditorFragment : Fragment() {
             val panelDestinations = listOf(
                 R.id.adjustmentsParentFragment,
                 R.id.shapeFragment,
-                R.id.textAdjustmentsFragment
+                R.id.textAdjustmentsFragment,
+                R.id.tableAdjustmentsFragment
             )
 
             if (targetDestination == null) {
@@ -1188,7 +1196,7 @@ class EditorFragment : Fragment() {
             return
         }
 
-        val hasText = selected.any { it.type == ElementType.TEXT }
+        val hasText = selected.any { it.type == ElementType.TEXT || it.type == ElementType.TABLE }
         val hasImage =
             selected.any { it.type == ElementType.IMAGE || it.type == ElementType.STICKER }
         val hasBackground = selected.any { it.type == ElementType.BACKGROUND }

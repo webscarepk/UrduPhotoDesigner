@@ -2225,6 +2225,10 @@ class CanvasView @JvmOverloads constructor(
                             canvas, element
                         )
 
+                        element.type == ElementType.TABLE -> drawTableElement(
+                            canvas, element
+                        )
+
                         else -> {
                             element.svgDrawable?.let { drawable ->
                                 val w = element.logicalContentWidth.takeIf { it > 0 }
@@ -2952,6 +2956,133 @@ class CanvasView @JvmOverloads constructor(
 
         canvas.restore()
         drawElementOverlays(canvas, showOverlays)
+    }
+
+    private fun drawTableElement(canvas: Canvas, element: CanvasElement) {
+        val tableData = element.tableData ?: com.webscare.urducanvas.common.canvas.model.TableData.createDefault().also { element.tableData = it }
+        val totalW = element.logicalContentWidth.takeIf { it > 0f } ?: (canvasWidth * 0.8f)
+        val totalH = element.logicalContentHeight.takeIf { it > 0f } ?: 300f
+        if (element.logicalContentWidth <= 0f) element.logicalContentWidth = totalW
+        if (element.logicalContentHeight <= 0f) element.logicalContentHeight = totalH
+
+        val cache = (element.tableLayoutCache as? com.webscare.urducanvas.common.canvas.cache.TableLayoutCache)
+            ?.takeIf { it.width == totalW && it.height == totalH && it.rows == tableData.rows && it.cols == tableData.cols }
+            ?: com.webscare.urducanvas.common.canvas.cache.TableLayoutCache.build(tableData, totalW, totalH).also { element.tableLayoutCache = it }
+
+        val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            color = tableData.borderColor
+            strokeWidth = tableData.borderWidth
+        }
+
+        val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+        }
+
+        // Pass 1: Cell Background Fills
+        for (r in 0 until cache.rows) {
+            for (c in 0 until cache.cols) {
+                val layout = cache.cellLayouts[r][c]
+                val bg = layout.style.bgColor ?: Color.WHITE
+                if (bg != Color.TRANSPARENT) {
+                    fillPaint.color = bg
+                    if (tableData.cornerRadius > 0f) {
+                        canvas.drawRoundRect(layout.rect, tableData.cornerRadius, tableData.cornerRadius, fillPaint)
+                    } else {
+                        canvas.drawRect(layout.rect, fillPaint)
+                    }
+                }
+            }
+        }
+
+        // Pass 2: Two-Pass Grid Border Lines (horizontals & verticals)
+        val left = -totalW / 2f
+        val top = -totalH / 2f
+        val right = totalW / 2f
+        val bottom = totalH / 2f
+
+        when (tableData.borderMode) {
+            com.webscare.urducanvas.common.canvas.enums.TableBorderMode.ALL -> {
+                for (r in 0..cache.rows) {
+                    val y = top + cache.rowHeightsPx.take(r).sum()
+                    canvas.drawLine(left, y, right, y, borderPaint)
+                }
+                for (c in 0..cache.cols) {
+                    val x = left + cache.colWidthsPx.take(c).sum()
+                    canvas.drawLine(x, top, x, bottom, borderPaint)
+                }
+            }
+            com.webscare.urducanvas.common.canvas.enums.TableBorderMode.OUTER -> {
+                if (tableData.cornerRadius > 0f) {
+                    val rect = RectF(left, top, right, bottom)
+                    canvas.drawRoundRect(rect, tableData.cornerRadius, tableData.cornerRadius, borderPaint)
+                } else {
+                    canvas.drawRect(left, top, right, bottom, borderPaint)
+                }
+            }
+            com.webscare.urducanvas.common.canvas.enums.TableBorderMode.INNER -> {
+                for (r in 1 until cache.rows) {
+                    val y = top + cache.rowHeightsPx.take(r).sum()
+                    canvas.drawLine(left, y, right, y, borderPaint)
+                }
+                for (c in 1 until cache.cols) {
+                    val x = left + cache.colWidthsPx.take(c).sum()
+                    canvas.drawLine(x, top, x, bottom, borderPaint)
+                }
+            }
+            com.webscare.urducanvas.common.canvas.enums.TableBorderMode.HORIZONTAL -> {
+                for (r in 0..cache.rows) {
+                    val y = top + cache.rowHeightsPx.take(r).sum()
+                    canvas.drawLine(left, y, right, y, borderPaint)
+                }
+            }
+            com.webscare.urducanvas.common.canvas.enums.TableBorderMode.VERTICAL -> {
+                for (c in 0..cache.cols) {
+                    val x = left + cache.colWidthsPx.take(c).sum()
+                    canvas.drawLine(x, top, x, bottom, borderPaint)
+                }
+            }
+            com.webscare.urducanvas.common.canvas.enums.TableBorderMode.NONE -> {
+                // No borders
+            }
+        }
+
+        // Pass 3: Cell Texts
+        for (r in 0 until cache.rows) {
+            for (c in 0 until cache.cols) {
+                val layout = cache.cellLayouts[r][c]
+                if (layout.lines.isEmpty()) continue
+
+                val rect = layout.rect
+                val padH = tableData.paddingH
+                val padV = tableData.paddingV
+
+                val fm = layout.paint.fontMetrics
+                val lineHeight = fm.descent - fm.ascent
+                val totalTextH = layout.lines.size * lineHeight
+
+                val startY = when (layout.style.vAlign) {
+                    com.webscare.urducanvas.common.canvas.enums.VAlign.TOP -> rect.top + padV - fm.ascent
+                    com.webscare.urducanvas.common.canvas.enums.VAlign.BOTTOM -> rect.bottom - padV - totalTextH - fm.ascent
+                    else -> rect.centerY() - (totalTextH / 2f) - fm.ascent
+                }
+
+                var currentY = startY
+                for (line in layout.lines) {
+                    val textW = layout.paint.measureText(line)
+                    val textX = when (layout.style.hAlign) {
+                        TextAlignment.LEFT -> rect.left + padH
+                        TextAlignment.CENTER -> rect.centerX() - (textW / 2f)
+                        else -> rect.right - padH - textW
+                    }
+                    canvas.drawText(line, textX, currentY, layout.paint)
+                    currentY += lineHeight
+                }
+            }
+        }
+    }
+
+    private fun drawElementOverlays(canvas: Canvas, showOverlays: Boolean = true) {
 
         // colorPickerBitmap is built asynchronously after enableColorPicker() is called.
         // It is legitimately null for the first few frames while the coroutine renders it,
@@ -2990,9 +3121,7 @@ class CanvasView @JvmOverloads constructor(
                     isAntiAlias = true
                 })
         }
-    }
 
-    private fun drawElementOverlays(canvas: Canvas, showOverlays: Boolean = true) {
         if (showOverlays && selectedElements.isNotEmpty()) {
             val desiredScreenStrokeWidth = 2f
             val dashLengthOnScreen = 10f
@@ -3107,7 +3236,7 @@ class CanvasView @JvmOverloads constructor(
                     iconMap["resize"] = Pair(
                         corners[4], corners[5]
                     )
-                    if (element.type == ElementType.SHAPE || element.type == ElementType.TEXT) {
+                    if (element.type == ElementType.SHAPE || element.type == ElementType.TEXT || element.type == ElementType.TABLE) {
                         iconMap["transform"] = Pair(corners[6], corners[7])
                     }
 
