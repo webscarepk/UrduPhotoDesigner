@@ -72,5 +72,15 @@ enum class PickerTarget {
   @SerializedName("ColorPickerShapeFill")
   COLOR_PICKER_SHAPE_FILL,
   @SerializedName("ColorPickerGradient")
-  COLOR_PICKER_GRADIENT
+  COLOR_PICKER_GRADIENT,
+
+  @SerializedName("EyeDropperTableFill")
+  EYE_DROPPER_TABLE_FILL,
+  @SerializedName("EyeDropperTableStroke")
+  EYE_DROPPER_TABLE_STROKE,
+
+  @SerializedName("ColorPickerTableFill")
+  COLOR_PICKER_TABLE_FILL,
+  @SerializedName("ColorPickerTableStroke")
+  COLOR_PICKER_TABLE_STROKE
 }

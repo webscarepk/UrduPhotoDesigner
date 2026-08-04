@@ -68,34 +68,71 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
                 Constants.colorList,
                 onColorSelected = { color ->
                     val selectedColor = color.colorCode.toColorInt()
-                    when (currentTab?.lowercase()) {
-                        "stroke" -> {
-                            val width = viewModel.borderWidth.value ?: 1f
-                            viewModel.clearStrokeGradients()
-                            viewModel.setTextBorder(true, selectedColor, width)
+                    val isTable = viewModel.selectedElements.value?.any { it.isSelected && it.type == com.webscare.urducanvas.common.canvas.enums.ElementType.TABLE } == true
+                    if (isTable) {
+                        if (currentTab?.lowercase() == "stroke") {
+                            viewModel.updateSelectedTableData { data -> data.borderColor = selectedColor }
+                        } else {
+                            viewModel.updateSelectedTableData { data ->
+                                val scope = viewModel.currentTableScope.value
+                                val r = viewModel.selectedTableRow.value
+                                val c = viewModel.selectedTableCol.value
+                                when (scope) {
+                                    com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> data.base.bgColor = selectedColor
+                                    com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> data.rowStyles.getOrPut(r) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.bgColor = selectedColor
+                                    com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> data.colStyles.getOrPut(c) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.bgColor = selectedColor
+                                    com.webscare.urducanvas.common.canvas.enums.TableScope.CELL -> {
+                                        if (r in 0 until data.rows && c in 0 until data.cols) {
+                                            val cell = data.cells[r][c]
+                                            val override = cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
+                                            override.bgColor = selectedColor
+                                        }
+                                    }
+                                }
+                            }
                         }
+                    } else {
+                        when (currentTab?.lowercase()) {
+                            "stroke" -> {
+                                val width = viewModel.borderWidth.value ?: 1f
+                                viewModel.clearStrokeGradients()
+                                viewModel.setTextBorder(true, selectedColor, width)
+                            }
 
-                        else -> {
-                            viewModel.clearFillGradients()
-                            viewModel.setTextColor(selectedColor)
+                            else -> {
+                                viewModel.clearFillGradients()
+                                viewModel.setTextColor(selectedColor)
+                            }
                         }
                     }
                 },
                 onNoneSelected = {
-                    when (currentTab?.lowercase()) {
-                        "stroke" -> {
-                            viewModel.setTextBorder(false, android.R.color.transparent, 0f)
-                        }
+                    val isTable = viewModel.selectedElements.value?.any { it.isSelected && it.type == com.webscare.urducanvas.common.canvas.enums.ElementType.TABLE } == true
+                    if (!isTable) {
+                        when (currentTab?.lowercase()) {
+                            "stroke" -> {
+                                viewModel.setTextBorder(false, android.R.color.transparent, 0f)
+                            }
 
-                        else -> viewModel.setTextColor(android.R.color.transparent)
+                            else -> viewModel.setTextColor(android.R.color.transparent)
+                        }
                     }
                 },
                 onColorPickerClicked = {
+                    val isTable = viewModel.selectedElements.value?.any { it.isSelected && it.type == com.webscare.urducanvas.common.canvas.enums.ElementType.TABLE } == true
                     viewModel.clearLabelGradients()
-                    if (currentTab?.lowercase() == "stroke") {
-                        viewModel.startPicking(PickerTarget.COLOR_PICKER_TEXT_STROKE)
+                    if (isTable) {
+                        if (currentTab?.lowercase() == "stroke") {
+                            viewModel.startPicking(PickerTarget.COLOR_PICKER_TABLE_STROKE)
+                        } else {
+                            viewModel.startPicking(PickerTarget.COLOR_PICKER_TABLE_FILL)
+                        }
                     } else {
-                        viewModel.startPicking(PickerTarget.COLOR_PICKER_TEXT_FILL)
+                        if (currentTab?.lowercase() == "stroke") {
+                            viewModel.startPicking(PickerTarget.COLOR_PICKER_TEXT_STROKE)
+                        } else {
+                            viewModel.startPicking(PickerTarget.COLOR_PICKER_TEXT_FILL)
+                        }
                     }
                     viewModel.setPagingLocked(true)
                     childFragmentManager.beginTransaction().replace(
@@ -104,11 +141,20 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
                         ).addToBackStack(null).commit()
                 },
                 onEyeDropperClicked = {
+                    val isTable = viewModel.selectedElements.value?.any { it.isSelected && it.type == com.webscare.urducanvas.common.canvas.enums.ElementType.TABLE } == true
                     viewModel.clearLabelGradients()
-                    if (currentTab?.lowercase() == "stroke") {
-                        viewModel.startPicking(PickerTarget.EYE_DROPPER_TEXT_STROKE)
+                    if (isTable) {
+                        if (currentTab?.lowercase() == "stroke") {
+                            viewModel.startPicking(PickerTarget.EYE_DROPPER_TABLE_STROKE)
+                        } else {
+                            viewModel.startPicking(PickerTarget.EYE_DROPPER_TABLE_FILL)
+                        }
                     } else {
-                        viewModel.startPicking(PickerTarget.EYE_DROPPER_TEXT_FILL)
+                        if (currentTab?.lowercase() == "stroke") {
+                            viewModel.startPicking(PickerTarget.EYE_DROPPER_TEXT_STROKE)
+                        } else {
+                            viewModel.startPicking(PickerTarget.EYE_DROPPER_TEXT_FILL)
+                        }
                     }
                 })
 

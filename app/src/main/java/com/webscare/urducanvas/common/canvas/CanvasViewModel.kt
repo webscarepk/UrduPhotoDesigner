@@ -1867,6 +1867,32 @@ class CanvasViewModel @Inject constructor(
                 updateSelectedStopColor(color)
             }
 
+            PickerTarget.EYE_DROPPER_TABLE_FILL, PickerTarget.COLOR_PICKER_TABLE_FILL -> {
+                updateSelectedTableData { data ->
+                    val scope = _currentTableScope.value
+                    val r = _selectedTableRow.value
+                    val c = _selectedTableCol.value
+                    when (scope) {
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> data.base.bgColor = color
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> data.rowStyles.getOrPut(r) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.bgColor = color
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> data.colStyles.getOrPut(c) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.bgColor = color
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.CELL -> {
+                            if (r in 0 until data.rows && c in 0 until data.cols) {
+                                val cell = data.cells[r][c]
+                                val override = cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
+                                override.bgColor = color
+                            }
+                        }
+                    }
+                }
+            }
+
+            PickerTarget.EYE_DROPPER_TABLE_STROKE, PickerTarget.COLOR_PICKER_TABLE_STROKE -> {
+                updateSelectedTableData { data ->
+                    data.borderColor = color
+                }
+            }
+
             PickerTarget.EYE_DROPPER_GRADIENT -> {
                 updateSelectedStopColor(color)   // same fix
             }

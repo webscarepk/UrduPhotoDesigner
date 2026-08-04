@@ -41,25 +41,12 @@
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintTop_toBottomOf="@id/topGuide" />
 
-    <TextView
-        android:id="@+id/title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
-        android:fontFamily="@font/bold"
-        android:text="Table"
-        android:textColor="@color/black"
-        android:textSize="16sp"
-        app:layout_constraintBottom_toBottomOf="@id/back"
-        app:layout_constraintStart_toEndOf="@id/back"
-        app:layout_constraintTop_toTopOf="@id/back" />
-
-    <!-- Scope Chip -->
+    <!-- Scope Chip (anchored right next to back arrow for maximum screen space) -->
     <TextView
         android:id="@+id/scopeChip"
         android:layout_width="wrap_content"
         android:layout_height="30dp"
-        android:layout_marginStart="10dp"
+        android:layout_marginStart="8dp"
         android:background="@drawable/button_bg_small"
         android:backgroundTint="#E4F3E9"
         android:drawablePadding="6dp"
@@ -72,7 +59,7 @@
         app:drawableStartCompat="@drawable/ic_grid"
         app:drawableTint="#005D28"
         app:layout_constraintBottom_toBottomOf="@id/back"
-        app:layout_constraintStart_toEndOf="@id/title"
+        app:layout_constraintStart_toEndOf="@id/back"
         app:layout_constraintTop_toTopOf="@id/back" />
 
     <!-- ── Row 2: TabLayout & Search ── -->

@@ -112,6 +112,12 @@ class ColorPickerFragment : Fragment() {
             PickerTarget.COLOR_PICKER_IMAGE_STROKE, PickerTarget.EYE_DROPPER_IMAGE_STROKE -> {
                 viewModel.borderColor.value ?: Color.BLACK
             }
+            PickerTarget.COLOR_PICKER_TABLE_FILL, PickerTarget.EYE_DROPPER_TABLE_FILL -> {
+                Color.WHITE
+            }
+            PickerTarget.COLOR_PICKER_TABLE_STROKE, PickerTarget.EYE_DROPPER_TABLE_STROKE -> {
+                Color.parseColor("#005D28")
+            }
         }
     }
 
