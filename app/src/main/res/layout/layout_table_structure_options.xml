@@ -12,29 +12,30 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- ═══ SIZE CATEGORY VIEW ═══ -->
+        <!-- ═══ GRID CATEGORY VIEW (Size + Header) ═══ -->
         <LinearLayout
-            android:id="@+id/viewSize"
+            android:id="@+id/viewGrid"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:visibility="gone">
 
-            <!-- Rows Stepper -->
+            <!-- Rows Stepper (No gray fill, clean stroke, no vertical text wrap) -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:background="@drawable/button_bg_small"
-                android:backgroundTint="@color/contrast"
+                android:layout_height="36dp"
+                android:background="@drawable/edit_bg_stroke"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="12dp">
+                android:paddingHorizontal="10dp">
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:fontFamily="@font/medium"
+                    android:minWidth="60dp"
+                    android:singleLine="true"
                     android:text="Rows"
                     android:textColor="@color/black"
                     android:textSize="13sp" />
@@ -46,17 +47,17 @@
                     android:gravity="center"
                     android:text="—"
                     android:textColor="@color/black"
-                    android:textSize="16sp" />
+                    android:textSize="14sp" />
 
                 <TextView
                     android:id="@+id/tvRowsCount"
-                    android:layout_width="32dp"
+                    android:layout_width="28dp"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/bold"
                     android:gravity="center"
                     android:text="3"
                     android:textColor="@color/black"
-                    android:textSize="14sp" />
+                    android:textSize="13sp" />
 
                 <TextView
                     android:id="@+id/btnIncRows"
@@ -65,25 +66,26 @@
                     android:gravity="center"
                     android:text="+"
                     android:textColor="@color/black"
-                    android:textSize="16sp" />
+                    android:textSize="14sp" />
             </LinearLayout>
 
-            <!-- Columns Stepper -->
+            <!-- Cols Stepper -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="36dp"
                 android:layout_marginTop="8dp"
-                android:background="@drawable/button_bg_small"
-                android:backgroundTint="@color/contrast"
+                android:background="@drawable/edit_bg_stroke"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="12dp">
+                android:paddingHorizontal="10dp">
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:fontFamily="@font/medium"
+                    android:minWidth="60dp"
+                    android:singleLine="true"
                     android:text="Columns"
                     android:textColor="@color/black"
                     android:textSize="13sp" />
@@ -95,17 +97,17 @@
                     android:gravity="center"
                     android:text="—"
                     android:textColor="@color/black"
-                    android:textSize="16sp" />
+                    android:textSize="14sp" />
 
                 <TextView
                     android:id="@+id/tvColsCount"
-                    android:layout_width="32dp"
+                    android:layout_width="28dp"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/bold"
                     android:gravity="center"
                     android:text="3"
                     android:textColor="@color/black"
-                    android:textSize="14sp" />
+                    android:textSize="13sp" />
 
                 <TextView
                     android:id="@+id/btnIncCols"
@@ -114,95 +116,81 @@
                     android:gravity="center"
                     android:text="+"
                     android:textColor="@color/black"
-                    android:textSize="16sp" />
+                    android:textSize="14sp" />
             </LinearLayout>
-        </LinearLayout>
 
-        <!-- ═══ HEADER / FOOTER CATEGORY VIEW ═══ -->
-        <LinearLayout
-            android:id="@+id/viewHeader"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone">
-
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/switchHeaderRow"
+            <!-- Header / Footer Toggle Chips -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Header Row"
-                android:textSize="13sp" />
+                android:layout_marginTop="10dp"
+                android:orientation="horizontal">
 
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/switchFooterRow"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Footer Row"
-                android:textSize="13sp" />
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/btnToggleHeaderRow"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    app:cardBackgroundColor="@color/contrast"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
 
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/switchHeaderCol"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Header Column"
-                android:textSize="13sp" />
-        </LinearLayout>
+                    <TextView
+                        android:id="@+id/tvHeaderRowText"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:fontFamily="@font/medium"
+                        android:gravity="center"
+                        android:text="Header Row"
+                        android:textColor="@color/black"
+                        android:textSize="11sp" />
+                </com.google.android.material.card.MaterialCardView>
 
-        <!-- ═══ DIRECTION CATEGORY VIEW ═══ -->
-        <LinearLayout
-            android:id="@+id/viewDirection"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:visibility="gone">
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/btnToggleFooterRow"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    app:cardBackgroundColor="@color/contrast"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
 
-            <TextView
-                android:id="@+id/btnRtl"
-                android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:layout_weight="1"
-                android:background="@drawable/button_bg_small"
-                android:backgroundTint="@color/appColor"
-                android:fontFamily="@font/bold"
-                android:gravity="center"
-                android:text="RTL"
-                android:textColor="@color/white"
-                android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tvFooterRowText"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:fontFamily="@font/medium"
+                        android:gravity="center"
+                        android:text="Footer Row"
+                        android:textColor="@color/black"
+                        android:textSize="11sp" />
+                </com.google.android.material.card.MaterialCardView>
 
-            <TextView
-                android:id="@+id/btnLtr"
-                android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:background="@drawable/button_bg_small"
-                android:backgroundTint="@color/contrast"
-                android:fontFamily="@font/medium"
-                android:gravity="center"
-                android:text="LTR"
-                android:textColor="@color/black"
-                android:textSize="12sp" />
-        </LinearLayout>
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/btnToggleHeaderCol"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    app:cardBackgroundColor="@color/contrast"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
 
-        <!-- ═══ FIT CATEGORY VIEW ═══ -->
-        <LinearLayout
-            android:id="@+id/viewFit"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone">
-
-            <TextView
-                android:id="@+id/btnFitContent"
-                android:layout_width="match_parent"
-                android:layout_height="38dp"
-                android:background="@drawable/button_bg_small"
-                android:backgroundTint="@color/contrast"
-                android:fontFamily="@font/bold"
-                android:gravity="center"
-                android:text="Fit Content to Text"
-                android:textColor="@color/black"
-                android:textSize="13sp" />
+                    <TextView
+                        android:id="@+id/tvHeaderColText"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:fontFamily="@font/medium"
+                        android:gravity="center"
+                        android:text="Header Col"
+                        android:textColor="@color/black"
+                        android:textSize="11sp" />
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
         </LinearLayout>
 
         <!-- ═══ RADIUS CATEGORY VIEW ═══ -->
@@ -213,25 +201,106 @@
             android:orientation="vertical"
             android:visibility="gone">
 
-            <TextView
-                android:id="@+id/tvRadiusLabel"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/medium"
-                android:text="Corner Radius: 0dp"
-                android:textColor="@color/black"
-                android:textSize="13sp" />
+                android:layout_marginStart="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/medium"
+                    android:text="Corner radius"
+                    android:textColor="@color/black"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/tvRadiusValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/edit_bg_stroke"
+                    android:fontFamily="@font/bold"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:text="0 dp"
+                    android:textColor="@color/black"
+                    android:textSize="12sp" />
+            </LinearLayout>
 
             <SeekBar
                 android:id="@+id/seekRadius"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
+                android:indeterminateTint="@color/appColor"
                 android:max="32"
-                android:progress="0" />
+                android:progress="0"
+                android:progressBackgroundTint="@color/light_gray"
+                android:progressTint="@color/appColor"
+                android:thumbTint="@color/appColor" />
         </LinearLayout>
 
-        <!-- ═══ STYLE / PRESETS CATEGORY VIEW ═══ -->
+        <!-- ═══ LAYOUT CATEGORY VIEW (Direction + Fit) ═══ -->
+        <LinearLayout
+            android:id="@+id/viewLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- RTL / LTR Toggle -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/btnRtl"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/appColor"
+                    android:fontFamily="@font/bold"
+                    android:gravity="center"
+                    android:text="RTL"
+                    android:textColor="@color/white"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/btnLtr"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/contrast"
+                    android:fontFamily="@font/medium"
+                    android:gravity="center"
+                    android:text="LTR"
+                    android:textColor="@color/black"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Fit Content Button -->
+            <TextView
+                android:id="@+id/btnFitContent"
+                android:layout_width="match_parent"
+                android:layout_height="38dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/button_bg_small"
+                android:backgroundTint="@color/contrast"
+                android:fontFamily="@font/bold"
+                android:gravity="center"
+                android:text="Fit Content to Text"
+                android:textColor="@color/black"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- ═══ STYLE CATEGORY VIEW (Presets) ═══ -->
         <LinearLayout
             android:id="@+id/viewStyle"
             android:layout_width="match_parent"
@@ -239,10 +308,21 @@
             android:orientation="vertical"
             android:visibility="gone">
 
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:fontFamily="@font/medium"
+                android:text="Table Themes"
+                android:textColor="@color/black"
+                android:textSize="13sp" />
+
+            <!-- Presets Recycler -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvPresets"
                 android:layout_width="match_parent"
                 android:layout_height="70dp"
+                android:layout_marginTop="8dp"
                 android:orientation="horizontal"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
         </LinearLayout>

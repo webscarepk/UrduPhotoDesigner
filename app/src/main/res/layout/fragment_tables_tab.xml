@@ -55,15 +55,13 @@
 
     </RelativeLayout>
 
-    <!-- ═══ FULL-WIDTH CONTRAST GRID CONTAINER ═══ -->
+    <!-- ═══ FULL-WIDTH GRID CONTAINER ═══ -->
     <GridLayout
         android:id="@+id/gridContainer"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:columnCount="10"
-        android:rowCount="10"
-        android:background="@drawable/button_bg_small"
-        android:backgroundTint="@color/contrast"
-        android:padding="4dp" />
+        android:rowCount="10" />
 
 </LinearLayout>

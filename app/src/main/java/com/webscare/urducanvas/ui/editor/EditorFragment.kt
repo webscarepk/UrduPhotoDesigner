@@ -929,7 +929,7 @@ class EditorFragment : Fragment() {
         viewModel.activePicker.observe(viewLifecycleOwner) { slot ->
             if (::sizedCanvasView.isInitialized) {
                 when (slot) {
-                    PickerTarget.EYE_DROPPER_LABEL, PickerTarget.EYE_DROPPER_OVERLAY, PickerTarget.EYE_DROPPER_SHADOW, PickerTarget.EYE_DROPPER_BACKGROUND, PickerTarget.EYE_DROPPER_TEXT_FILL, PickerTarget.EYE_DROPPER_TEXT_STROKE, PickerTarget.EYE_DROPPER_GRADIENT, PickerTarget.EYE_DROPPER_DRAW_STROKE, PickerTarget.EYE_DROPPER_DRAW_FILL, PickerTarget.EYE_DROPPER_IMAGE_STROKE, PickerTarget.EYE_DROPPER_SHAPE_STROKE, PickerTarget.EYE_DROPPER_SHAPE_FILL -> {
+                    PickerTarget.EYE_DROPPER_LABEL, PickerTarget.EYE_DROPPER_OVERLAY, PickerTarget.EYE_DROPPER_SHADOW, PickerTarget.EYE_DROPPER_BACKGROUND, PickerTarget.EYE_DROPPER_TEXT_FILL, PickerTarget.EYE_DROPPER_TEXT_STROKE, PickerTarget.EYE_DROPPER_GRADIENT, PickerTarget.EYE_DROPPER_DRAW_STROKE, PickerTarget.EYE_DROPPER_DRAW_FILL, PickerTarget.EYE_DROPPER_IMAGE_STROKE, PickerTarget.EYE_DROPPER_SHAPE_STROKE, PickerTarget.EYE_DROPPER_SHAPE_FILL, PickerTarget.EYE_DROPPER_TABLE_FILL, PickerTarget.EYE_DROPPER_TABLE_STROKE -> {
                         sizedCanvasView.enableColorPicker()
                     }
 
@@ -966,6 +966,16 @@ class EditorFragment : Fragment() {
         viewModel.zoomLevel.observe(viewLifecycleOwner) { zoom ->
             if (sizedCanvasView.getCurrentZoom() != zoom) {
                 sizedCanvasView.setZoomLevel(zoom)
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.localFonts.collect { fonts ->
+                    if (::sizedCanvasView.isInitialized) {
+                        sizedCanvasView.localFonts = fonts
+                    }
+                }
             }
         }
 

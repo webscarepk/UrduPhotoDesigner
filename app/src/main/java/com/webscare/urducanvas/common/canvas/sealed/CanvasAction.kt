@@ -111,4 +111,10 @@ sealed class CanvasAction {
         val newPanX: Float,
         val newPanY: Float
     ) : CanvasAction()
+
+    data class UpdateTableData(
+        val elementId: String,
+        val oldData: com.webscare.urducanvas.common.canvas.model.TableData,
+        val newData: com.webscare.urducanvas.common.canvas.model.TableData
+    ) : CanvasAction()
 }

@@ -524,7 +524,10 @@ class CanvasViewModel @Inject constructor(
 
     fun cycleTableScope() {
         val next = when (_currentTableScope.value) {
-            com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> com.webscare.urducanvas.common.canvas.enums.TableScope.ROW
+            com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW
+            com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW
+            com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL
+            com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> com.webscare.urducanvas.common.canvas.enums.TableScope.ROW
             com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN
             com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> com.webscare.urducanvas.common.canvas.enums.TableScope.CELL
             com.webscare.urducanvas.common.canvas.enums.TableScope.CELL -> com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE
@@ -1874,6 +1877,9 @@ class CanvasViewModel @Inject constructor(
                     val c = _selectedTableCol.value
                     when (scope) {
                         com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> data.base.bgColor = color
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> data.headerStyle.bgColor = color
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> data.footerStyle.bgColor = color
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> data.headerColStyle.bgColor = color
                         com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> data.rowStyles.getOrPut(r) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.bgColor = color
                         com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> data.colStyles.getOrPut(c) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.bgColor = color
                         com.webscare.urducanvas.common.canvas.enums.TableScope.CELL -> {
@@ -2217,9 +2223,6 @@ class CanvasViewModel @Inject constructor(
         // Start auto-batching if needed
         selectedElements.firstOrNull()?.let { startAutoBatchIfNeeded(it.id) }
 
-        // Prepare to store old sizes for undo/redo purposes
-        val oldSizes = selectedElements.map { it.paintTextSize }
-
         val canvasW = _canvasSize.value?.width ?: 0f
         val maxW = if (canvasW > 0f) canvasW * 0.85f else 0f
 
@@ -2228,12 +2231,34 @@ class CanvasViewModel @Inject constructor(
         // Update the font size for each selected element
         val updatedList = currentList.map { element ->
             val isTargeted = element.isSelected || (element.groupId != null && element.groupId in selectedGroupIds)
-            if (isTargeted && element.type == ElementType.TEXT) {
+            if (isTargeted && element.type == ElementType.TABLE) {
+                val data = element.tableData ?: com.webscare.urducanvas.common.canvas.model.TableData.createDefault()
+                val updatedData = data.deepCopy()
+                val scope = _currentTableScope.value
+                val r = _selectedTableRow.value
+                val c = _selectedTableCol.value
+                when (scope) {
+                    com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> updatedData.base.textSize = size
+                    com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> updatedData.headerStyle.textSize = size
+                    com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> updatedData.footerStyle.textSize = size
+                    com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> updatedData.headerColStyle.textSize = size
+                    com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> updatedData.rowStyles.getOrPut(r) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.textSize = size
+                    com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> updatedData.colStyles.getOrPut(c) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.textSize = size
+                    com.webscare.urducanvas.common.canvas.enums.TableScope.CELL -> {
+                        if (r in 0 until updatedData.rows && c in 0 until updatedData.cols) {
+                            val cell = updatedData.cells[r][c]
+                            val override = cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
+                            override.textSize = size
+                        }
+                    }
+                }
+                element.copy(tableData = updatedData).also { it.tableLayoutCache = null }
+            } else if (isTargeted && element.type == ElementType.TEXT) {
                 element.copy().apply {
                     // Apply new font size
                     paintTextSize = size
                     paint.textSize = size
-                    paint.typeface = applyTypefaceFromFontList() // Reapply the typeface if needed
+                    paint.typeface = applyTypefaceFromFontList()
                     if (boxWidth == null && maxW > 0f && paint.measureText(getTextWithKashida()) > maxW) {
                         boxWidth = maxW
                     }
@@ -2243,28 +2268,14 @@ class CanvasViewModel @Inject constructor(
             }
         }
 
-        // Update the canvas with the new list of elements
         _canvasElements.value = updatedList
 
         if (currentBatchAction == null) {
-            // Push the undo action for all updated elements
-            selectedElements.forEachIndexed { idx, oldElement ->
-                val newElement = updatedList.find { it.id == oldElement.id }!!
-                _canvasActions.push(
-                    CanvasAction.UpdateElement(
-                        elementId = newElement.id,
-                        newElement = newElement.copy(context = null),
-                        oldElement = oldElement.copy(paintTextSize = oldSizes[idx], context = null) // Revert back to old size on undo
-                    )
-                )
-            }
-
-            // Clear redo stack after applying changes
             _redoStack.clear()
-
-            // Notify UI to update undo/redo status
             notifyUndoRedoChanged()
         }
+
+        markChanged()
     }
 
     fun setImageBorder(enabled: Boolean, color: Int, width: Float) {
@@ -3897,11 +3908,13 @@ class CanvasViewModel @Inject constructor(
         }
 
         val affectedElementsData = mutableListOf<Pair<String, String?>>()
+        var modified = false
 
         val updatedList = currentList.map { element ->
             val isTargeted = element.isSelected || (element.groupId != null && element.groupId in selectedGroupIds)
             if (isTargeted && element.type == ElementType.TEXT && element.fontId != fontEntity.id.toString()) {
                 affectedElementsData.add(element.id to element.fontId)
+                modified = true
                 val tf = try {
                     Typeface.createFromFile(fontEntity.file_path)
                 } catch (e: Exception) {
@@ -3918,6 +3931,7 @@ class CanvasViewModel @Inject constructor(
                     paint.typeface = tf
                 }
             } else if (isTargeted && element.type == ElementType.TABLE) {
+                modified = true
                 val tableData = element.tableData ?: com.webscare.urducanvas.common.canvas.model.TableData.createDefault()
                 val updatedData = tableData.deepCopy().apply {
                     applyFontToScope(
@@ -3933,18 +3947,15 @@ class CanvasViewModel @Inject constructor(
             } else element
         }
 
-        if (affectedElementsData.isNotEmpty()) {
+        if (modified) {
             val targetedTextElements =
                 updatedList.filter { (it.isSelected || (it.groupId != null && it.groupId in selectedGroupIds)) && it.type == ElementType.TEXT }
-            _currentFont.value = when {
-                targetedTextElements.isEmpty() -> null
-                targetedTextElements.all { it.fontId == fontEntity.id.toString() } -> fontEntity
-                targetedTextElements.any { it.fontId == fontEntity.id.toString() } -> null // mixed
-                else -> fontEntity
-            }
+            _currentFont.value = fontEntity
 
             _canvasElements.value = updatedList
-            _canvasActions.push(CanvasAction.SetFont(fontEntity, affectedElementsData))
+            if (affectedElementsData.isNotEmpty()) {
+                _canvasActions.push(CanvasAction.SetFont(fontEntity, affectedElementsData))
+            }
             _redoStack.clear()
             _isExplicitChange = false
             notifyUndoRedoChanged()
@@ -3954,19 +3965,30 @@ class CanvasViewModel @Inject constructor(
     fun updateSelectedTableData(transform: (com.webscare.urducanvas.common.canvas.model.TableData) -> Unit) {
         val currentList = _canvasElements.value?.toMutableList() ?: return
         var modified = false
+        var targetElementId: String? = null
+        var oldData: com.webscare.urducanvas.common.canvas.model.TableData? = null
+        var newData: com.webscare.urducanvas.common.canvas.model.TableData? = null
+
         val updatedList = currentList.map { element ->
             if (element.isSelected && element.type == ElementType.TABLE) {
                 modified = true
+                targetElementId = element.id
                 val data = element.tableData ?: com.webscare.urducanvas.common.canvas.model.TableData.createDefault()
+                oldData = data.deepCopy()
                 val updatedData = data.deepCopy()
                 transform(updatedData)
+                newData = updatedData
                 element.copy(tableData = updatedData).also {
                     it.tableLayoutCache = null
                 }
             } else element
         }
-        if (modified) {
+        if (modified && targetElementId != null && oldData != null && newData != null) {
             _canvasElements.value = updatedList
+            _canvasActions.push(CanvasAction.UpdateTableData(targetElementId!!, oldData!!, newData!!))
+            _redoStack.clear()
+            _isExplicitChange = false
+            notifyUndoRedoChanged()
             markChanged()
         }
     }
@@ -4656,6 +4678,19 @@ class CanvasViewModel @Inject constructor(
         val context = _canvasElements.value?.firstOrNull()?.context
 
         when (action) {
+            is CanvasAction.UpdateTableData -> {
+                val list = _canvasElements.value.orEmpty()
+                val updated = list.map { element ->
+                    if (element.id == action.elementId && element.type == ElementType.TABLE) {
+                        val targetData = if (isRedo) action.newData else action.oldData
+                        element.copy(tableData = targetData.deepCopy()).also {
+                            it.tableLayoutCache = null
+                        }
+                    } else element
+                }
+                _canvasElements.value = updated
+            }
+
             is CanvasAction.UpdateElement -> {
                 val list = _canvasElements.value.orEmpty()
                 val updated = list.map { element ->

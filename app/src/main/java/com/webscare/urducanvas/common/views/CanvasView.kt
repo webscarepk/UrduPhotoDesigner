@@ -436,6 +436,8 @@ class CanvasView @JvmOverloads constructor(
         textAlign = Paint.Align.CENTER
     }
 
+    var localFonts: List<com.webscare.urducanvas.data.model.FontEntity> = emptyList()
+
     // ── Pan mode (single-finger pan without selecting elements) ───
     private var isPanMode = false
     private var isCanvasPanLocked = false
@@ -2967,39 +2969,97 @@ class CanvasView @JvmOverloads constructor(
 
         val cache = (element.tableLayoutCache as? com.webscare.urducanvas.common.canvas.cache.TableLayoutCache)
             ?.takeIf { it.width == totalW && it.height == totalH && it.rows == tableData.rows && it.cols == tableData.cols }
-            ?: com.webscare.urducanvas.common.canvas.cache.TableLayoutCache.build(tableData, totalW, totalH).also { element.tableLayoutCache = it }
+            ?: com.webscare.urducanvas.common.canvas.cache.TableLayoutCache.build(
+                data = tableData,
+                totalW = totalW,
+                totalH = totalH,
+                fontLookup = { fontId ->
+                    if (fontId == null) null
+                    else {
+                        val font = localFonts.find { it.id.toString() == fontId }
+                        font?.file_path?.takeIf { it.isNotBlank() }?.let { path ->
+                            try {
+                                if (path.startsWith("fonts/") || !path.startsWith("/")) {
+                                    Typeface.createFromAsset(context.assets, path)
+                                } else {
+                                    Typeface.createFromFile(path)
+                                }
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
+                    }
+                }
+            ).also { element.tableLayoutCache = it }
+
+        val left = -totalW / 2f
+        val top = -totalH / 2f
+        val right = totalW / 2f
+        val bottom = totalH / 2f
+
+        // Pass 0: Table Outer Shadow
+        if (element.hasShadow && element.shadowRadius > 0f) {
+            val alpha = ((element.shadowOpacity.coerceIn(0, 255) / 255f) * Color.alpha(element.shadowColor)).toInt()
+            val sColor = Color.argb(alpha, Color.red(element.shadowColor), Color.green(element.shadowColor), Color.blue(element.shadowColor))
+            val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = sColor
+                maskFilter = BlurMaskFilter(element.shadowRadius.coerceAtLeast(0.1f), BlurMaskFilter.Blur.NORMAL)
+            }
+            val shadowRect = RectF(left + element.shadowDx, top + element.shadowDy, right + element.shadowDx, bottom + element.shadowDy)
+            if (tableData.cornerRadius > 0f) {
+                canvas.drawRoundRect(shadowRect, tableData.cornerRadius, tableData.cornerRadius, shadowPaint)
+            } else {
+                canvas.drawRect(shadowRect, shadowPaint)
+            }
+        }
 
         val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             color = tableData.borderColor
             strokeWidth = tableData.borderWidth
+            val bGrad = tableData.borderGradient
+            if (bGrad != null && bGrad.colors.isNotEmpty()) {
+                val colors = bGrad.colors.toIntArray()
+                val positions = bGrad.positions.takeIf { it.size == colors.size }?.toFloatArray()
+                shader = LinearGradient(left, top, right, bottom, colors, positions, Shader.TileMode.CLAMP)
+            }
         }
 
         val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.FILL
         }
 
+        val tableRect = RectF(left, top, right, bottom)
+        val radiusPx = tableData.cornerRadius.coerceAtLeast(0f)
+        val clipSave = if (radiusPx > 0f) {
+            val count = canvas.save()
+            val path = Path().apply { addRoundRect(tableRect, radiusPx, radiusPx, Path.Direction.CW) }
+            canvas.clipPath(path)
+            count
+        } else -1
+
         // Pass 1: Cell Background Fills
         for (r in 0 until cache.rows) {
             for (c in 0 until cache.cols) {
                 val layout = cache.cellLayouts[r][c]
-                val bg = layout.style.bgColor ?: Color.WHITE
-                if (bg != Color.TRANSPARENT) {
-                    fillPaint.color = bg
-                    if (tableData.cornerRadius > 0f) {
-                        canvas.drawRoundRect(layout.rect, tableData.cornerRadius, tableData.cornerRadius, fillPaint)
-                    } else {
+                val bgGrad = layout.style.bgGradient
+                if (bgGrad != null && bgGrad.colors.isNotEmpty()) {
+                    val colors = bgGrad.colors.toIntArray()
+                    val positions = bgGrad.positions.takeIf { it.size == colors.size }?.toFloatArray()
+                    fillPaint.shader = LinearGradient(layout.rect.left, layout.rect.top, layout.rect.right, layout.rect.bottom, colors, positions, Shader.TileMode.CLAMP)
+                    canvas.drawRect(layout.rect, fillPaint)
+                    fillPaint.shader = null
+                } else {
+                    val bg = layout.style.bgColor ?: Color.WHITE
+                    if (bg != Color.TRANSPARENT) {
+                        fillPaint.color = bg
+                        fillPaint.shader = null
                         canvas.drawRect(layout.rect, fillPaint)
                     }
                 }
             }
         }
-
-        // Pass 2: Two-Pass Grid Border Lines (horizontals & verticals)
-        val left = -totalW / 2f
-        val top = -totalH / 2f
-        val right = totalW / 2f
-        val bottom = totalH / 2f
 
         when (tableData.borderMode) {
             com.webscare.urducanvas.common.canvas.enums.TableBorderMode.ALL -> {
@@ -3058,7 +3118,8 @@ class CanvasView @JvmOverloads constructor(
                 val padV = tableData.paddingV
 
                 val fm = layout.paint.fontMetrics
-                val lineHeight = fm.descent - fm.ascent
+                val lineSpacingMult = (layout.style.lineSpacing ?: 1.0f).coerceAtLeast(0.5f)
+                val lineHeight = (fm.descent - fm.ascent) * lineSpacingMult
                 val totalTextH = layout.lines.size * lineHeight
 
                 val startY = when (layout.style.vAlign) {
@@ -3080,6 +3141,10 @@ class CanvasView @JvmOverloads constructor(
                 }
             }
         }
+
+        if (clipSave >= 0) {
+            canvas.restoreToCount(clipSave)
+        }
     }
 
     private fun drawElementOverlays(canvas: Canvas, showOverlays: Boolean = true) {
@@ -3093,8 +3158,10 @@ class CanvasView @JvmOverloads constructor(
             val bmp = colorPickerBitmap
 
             if (bmp != null && !bmp.isRecycled) {
-                val px = pickerX.roundToInt().coerceIn(0, bmp.width - 1)
-                val py = pickerY.roundToInt().coerceIn(0, bmp.height - 1)
+                val scaleX = bmp.width.toFloat() / canvasWidth.toFloat()
+                val scaleY = bmp.height.toFloat() / canvasHeight.toFloat()
+                val px = (pickerX * scaleX).roundToInt().coerceIn(0, bmp.width - 1)
+                val py = (pickerY * scaleY).roundToInt().coerceIn(0, bmp.height - 1)
                 val pixelColor = bmp.getPixel(px, py)
                 val dark = isColorDark(pixelColor)
 
@@ -4771,8 +4838,10 @@ class CanvasView @JvmOverloads constructor(
                     if (isDraggingPicker) {
                         val bmp = colorPickerBitmap
                         if (bmp != null && !bmp.isRecycled) {
-                            val px = pickerX.roundToInt().coerceIn(0, bmp.width - 1)
-                            val py = pickerY.roundToInt().coerceIn(0, bmp.height - 1)
+                            val scaleX = bmp.width.toFloat() / canvasWidth.toFloat()
+                            val scaleY = bmp.height.toFloat() / canvasHeight.toFloat()
+                            val px = (pickerX * scaleX).roundToInt().coerceIn(0, bmp.width - 1)
+                            val py = (pickerY * scaleY).roundToInt().coerceIn(0, bmp.height - 1)
                             val color = bmp.getPixel(px, py)
                             onColorPicked?.invoke(color)
                         }

@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- ═══ ALIGN CATEGORY VIEW (Matching Image 3) ═══ -->
+        <!-- ═══ ALIGN CATEGORY VIEW (Matching Image 4) ═══ -->
         <LinearLayout
             android:id="@+id/viewAlign"
             android:layout_width="match_parent"
@@ -26,49 +26,67 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
 
-                <TextView
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/btnAlignLeft"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:background="@drawable/button_bg_small"
-                    android:backgroundTint="@color/contrast"
-                    android:fontFamily="@font/bold"
-                    android:gravity="center"
-                    android:text="≡"
-                    android:textColor="@color/black"
-                    android:textSize="16sp" />
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    app:cardBackgroundColor="@color/contrast"
+                    app:cardCornerRadius="6dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
 
-                <TextView
+                    <ImageView
+                        android:id="@+id/imgAlignLeft"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:padding="6dp"
+                        android:src="@drawable/ic_left"
+                        app:tint="@color/black" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/btnAlignCenter"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     android:layout_marginStart="8dp"
-                    android:background="@drawable/button_bg_small"
-                    android:backgroundTint="@color/appColor"
-                    android:fontFamily="@font/bold"
-                    android:gravity="center"
-                    android:text="≡"
-                    android:textColor="@color/white"
-                    android:textSize="16sp" />
+                    app:cardBackgroundColor="@color/contrast"
+                    app:cardCornerRadius="6dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
 
-                <TextView
+                    <ImageView
+                        android:id="@+id/imgAlignCenter"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:padding="6dp"
+                        android:src="@drawable/ic_center_horizontal"
+                        app:tint="@color/black" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/btnAlignRight"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     android:layout_marginStart="8dp"
-                    android:background="@drawable/button_bg_small"
-                    android:backgroundTint="@color/contrast"
-                    android:fontFamily="@font/bold"
-                    android:gravity="center"
-                    android:text="≡"
-                    android:textColor="@color/black"
-                    android:textSize="16sp" />
+                    app:cardBackgroundColor="@color/contrast"
+                    app:cardCornerRadius="6dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
+
+                    <ImageView
+                        android:id="@+id/imgAlignRight"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:padding="6dp"
+                        android:src="@drawable/ic_right"
+                        app:tint="@color/black" />
+                </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="8dp"
                 android:fontFamily="@font/medium"
                 android:text="Vertical"
                 android:textColor="#8E94A2"
@@ -78,50 +96,68 @@
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="4dp"
                 android:orientation="horizontal">
 
-                <TextView
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/btnVAlignTop"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:background="@drawable/button_bg_small"
-                    android:backgroundTint="@color/contrast"
-                    android:fontFamily="@font/bold"
-                    android:gravity="center"
-                    android:text="┬"
-                    android:textColor="@color/black"
-                    android:textSize="16sp" />
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    app:cardBackgroundColor="@color/contrast"
+                    app:cardCornerRadius="6dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
 
-                <TextView
+                    <ImageView
+                        android:id="@+id/imgVAlignTop"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:padding="6dp"
+                        android:src="@drawable/ic_top"
+                        app:tint="@color/black" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/btnVAlignCenter"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     android:layout_marginStart="8dp"
-                    android:background="@drawable/button_bg_small"
-                    android:backgroundTint="@color/appColor"
-                    android:fontFamily="@font/bold"
-                    android:gravity="center"
-                    android:text="┼"
-                    android:textColor="@color/white"
-                    android:textSize="16sp" />
+                    app:cardBackgroundColor="@color/contrast"
+                    app:cardCornerRadius="6dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
 
-                <TextView
+                    <ImageView
+                        android:id="@+id/imgVAlignCenter"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:padding="6dp"
+                        android:src="@drawable/ic_center_vertical"
+                        app:tint="@color/black" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/btnVAlignBottom"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     android:layout_marginStart="8dp"
-                    android:background="@drawable/button_bg_small"
-                    android:backgroundTint="@color/contrast"
-                    android:fontFamily="@font/bold"
-                    android:gravity="center"
-                    android:text="┴"
-                    android:textColor="@color/black"
-                    android:textSize="16sp" />
+                    app:cardBackgroundColor="@color/contrast"
+                    app:cardCornerRadius="6dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
+
+                    <ImageView
+                        android:id="@+id/imgVAlignBottom"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:padding="6dp"
+                        android:src="@drawable/ic_bottom"
+                        app:tint="@color/black" />
+                </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ═══ PADDING CATEGORY VIEW (Matching Image 5) ═══ -->
+        <!-- ═══ PADDING CATEGORY VIEW ═══ -->
         <LinearLayout
             android:id="@+id/viewPadding"
             android:layout_width="match_parent"
@@ -130,14 +166,15 @@
             android:visibility="gone">
 
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <TextView
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:fontFamily="@font/medium"
                     android:text="Cell padding"
                     android:textColor="@color/black"
@@ -147,11 +184,11 @@
                     android:id="@+id/tvPaddingValue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/button_bg_small"
-                    android:backgroundTint="@color/contrast"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/edit_bg_stroke"
                     android:fontFamily="@font/bold"
-                    android:paddingHorizontal="10dp"
-                    android:paddingVertical="4dp"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
                     android:text="8 dp"
                     android:textColor="@color/black"
                     android:textSize="12sp" />
@@ -162,11 +199,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
+                android:indeterminateTint="@color/appColor"
                 android:max="24"
-                android:progress="8" />
+                android:progress="8"
+                android:progressBackgroundTint="@color/light_gray"
+                android:progressTint="@color/appColor"
+                android:thumbTint="@color/appColor" />
         </LinearLayout>
 
-        <!-- ═══ SIZE CATEGORY VIEW (Matching Image 4) ═══ -->
+        <!-- ═══ SIZE CATEGORY VIEW ═══ -->
         <LinearLayout
             android:id="@+id/viewSize"
             android:layout_width="match_parent"
@@ -174,53 +215,47 @@
             android:orientation="vertical"
             android:visibility="gone">
 
-            <!-- Text Size Stepper -->
+            <!-- Font Size Slider -->
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:background="@drawable/button_bg_small"
-                android:backgroundTint="@color/contrast"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
                 android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="12dp">
+                android:orientation="horizontal">
 
                 <TextView
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:fontFamily="@font/medium"
                     android:text="Text size"
                     android:textColor="@color/black"
                     android:textSize="13sp" />
 
                 <TextView
-                    android:id="@+id/btnDecTextSize"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:gravity="center"
-                    android:text="—"
-                    android:textColor="@color/black"
-                    android:textSize="16sp" />
-
-                <TextView
-                    android:id="@+id/tvTextSizeVal"
-                    android:layout_width="32dp"
+                    android:id="@+id/tvTextSizeBadge"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/edit_bg_stroke"
                     android:fontFamily="@font/bold"
-                    android:gravity="center"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
                     android:text="24"
                     android:textColor="@color/black"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:id="@+id/btnIncTextSize"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:gravity="center"
-                    android:text="+"
-                    android:textColor="@color/black"
-                    android:textSize="16sp" />
+                    android:textSize="12sp" />
             </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seekTextSize"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:indeterminateTint="@color/appColor"
+                android:max="72"
+                android:progress="24"
+                android:progressBackgroundTint="@color/light_gray"
+                android:progressTint="@color/appColor"
+                android:thumbTint="@color/appColor" />
         </LinearLayout>
 
         <!-- ═══ SPACING CATEGORY VIEW ═══ -->
@@ -231,22 +266,90 @@
             android:orientation="vertical"
             android:visibility="gone">
 
-            <TextView
-                android:id="@+id/tvLetterSpacingLabel"
+            <!-- Letter Spacing -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/medium"
-                android:text="Letter spacing"
-                android:textColor="@color/black"
-                android:textSize="13sp" />
+                android:layout_marginStart="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/medium"
+                    android:text="Letter spacing"
+                    android:textColor="@color/black"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/tvLetterSpacingBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/edit_bg_stroke"
+                    android:fontFamily="@font/bold"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:text="0"
+                    android:textColor="@color/black"
+                    android:textSize="12sp" />
+            </LinearLayout>
 
             <SeekBar
                 android:id="@+id/seekLetterSpacing"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="8dp"
+                android:indeterminateTint="@color/appColor"
                 android:max="20"
-                android:progress="0" />
+                android:progress="0"
+                android:progressBackgroundTint="@color/light_gray"
+                android:progressTint="@color/appColor"
+                android:thumbTint="@color/appColor" />
+
+            <!-- Line Spacing -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginTop="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/medium"
+                    android:text="Line spacing"
+                    android:textColor="@color/black"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/tvLineSpacingBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/edit_bg_stroke"
+                    android:fontFamily="@font/bold"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:text="1.2"
+                    android:textColor="@color/black"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seekLineSpacing"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:indeterminateTint="@color/appColor"
+                android:max="30"
+                android:progress="12"
+                android:progressBackgroundTint="@color/light_gray"
+                android:progressTint="@color/appColor"
+                android:thumbTint="@color/appColor" />
         </LinearLayout>
 
     </LinearLayout>

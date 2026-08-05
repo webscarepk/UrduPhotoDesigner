@@ -225,6 +225,7 @@ class ShapesParentFragment : Fragment() {
             when (fragment) {
                 is ShapesListFragment -> fragment.onPanelSlide(offset)
                 is VectorsTabFragment -> fragment.onPanelSlide(offset)
+                is TablesTabFragment -> fragment.onPanelSlide(offset)
             }
         }
     }

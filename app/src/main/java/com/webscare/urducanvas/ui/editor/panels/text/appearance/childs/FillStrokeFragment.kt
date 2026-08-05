@@ -79,6 +79,9 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
                                 val c = viewModel.selectedTableCol.value
                                 when (scope) {
                                     com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> data.base.bgColor = selectedColor
+                                    com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> data.headerStyle.bgColor = selectedColor
+                                    com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> data.footerStyle.bgColor = selectedColor
+                                    com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> data.headerColStyle.bgColor = selectedColor
                                     com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> data.rowStyles.getOrPut(r) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.bgColor = selectedColor
                                     com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> data.colStyles.getOrPut(c) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.bgColor = selectedColor
                                     com.webscare.urducanvas.common.canvas.enums.TableScope.CELL -> {
