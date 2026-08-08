@@ -86,7 +86,12 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
         }
 
         viewModel.isProcessingAdjustments.observe(viewLifecycleOwner) { isProcessing ->
-            binding.processingProgress.visibility = if (isProcessing == true) View.VISIBLE else View.GONE
+            val processing = (isProcessing == true)
+            binding.processingProgress.visibility = if (processing) View.VISIBLE else View.GONE
+            viewModel.getCanvasView()?.let { canvasView ->
+                canvasView.isProcessingAdjustments = processing
+                canvasView.processingElementId = elementId
+            }
         }
 
         setEvents()

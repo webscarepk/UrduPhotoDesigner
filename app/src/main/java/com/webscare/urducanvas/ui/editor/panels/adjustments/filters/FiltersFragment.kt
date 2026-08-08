@@ -42,6 +42,7 @@ class FiltersFragment : Fragment() {
         FilterItem("Lark", ImageFilter.Lark),
         FilterItem("Valencia", ImageFilter.Valencia),
         FilterItem("Juno", ImageFilter.Juno),
+        FilterItem("Vivid", ImageFilter.Vivid),
         FilterItem("Cool Tint", ImageFilter.CoolTint),
         FilterItem("Warm Tint", ImageFilter.WarmTint),
 
@@ -51,6 +52,8 @@ class FiltersFragment : Fragment() {
         FilterItem("Dramatic", ImageFilter.Dramatic),
         FilterItem("Golden Hour", ImageFilter.GoldenHour),
         FilterItem("Cyberpunk", ImageFilter.Cyberpunk),
+        FilterItem("Emerald", ImageFilter.Emerald),
+        FilterItem("Retro Film", ImageFilter.RetroFilm),
 
         // Vintage
         FilterItem("Gingham", ImageFilter.Gingham),
@@ -60,12 +63,15 @@ class FiltersFragment : Fragment() {
         FilterItem("Vintage", ImageFilter.Vintage),
         FilterItem("Lomo", ImageFilter.Lomo),
         FilterItem("Pastel", ImageFilter.Pastel),
+        FilterItem("Matte", ImageFilter.Matte),
 
         // B&W
         FilterItem("Moon", ImageFilter.Moon),
         FilterItem("Grayscale", ImageFilter.Grayscale),
         FilterItem("Black White", ImageFilter.BlackWhite),
         FilterItem("High Contrast", ImageFilter.HighContrast),
+        FilterItem("Noir", ImageFilter.Noir),
+        FilterItem("Silver", ImageFilter.Silver),
 
         // Artistic
         FilterItem("HDR", ImageFilter.HDR),
@@ -75,7 +81,12 @@ class FiltersFragment : Fragment() {
         FilterItem("Sketch", ImageFilter.Sketch),
         FilterItem("Cartoon", ImageFilter.Cartoon),
         FilterItem("Bright Boost", ImageFilter.BrightnessBoost),
-        FilterItem("Invert", ImageFilter.Invert)
+        FilterItem("Invert", ImageFilter.Invert),
+        FilterItem("Vignette", ImageFilter.Vignette),
+        FilterItem("Oil Paint", ImageFilter.OilPaint),
+        FilterItem("Pixelate", ImageFilter.Pixelate),
+        FilterItem("Emboss", ImageFilter.Emboss),
+        FilterItem("Pop Art", ImageFilter.PopArt)
     )
 
     private val categories = listOf("All", "Portrait", "Cinematic", "Vintage", "B&W", "Artistic")
@@ -147,10 +158,6 @@ class FiltersFragment : Fragment() {
                         val displayCategory = if (category == "Basic") "Portrait" else category
                         if (categoryAdapter.selectedCategory != displayCategory) {
                             categoryAdapter.selectedCategory = displayCategory
-                            val catIndex = categories.indexOf(displayCategory)
-                            if (catIndex != -1) {
-                                binding.categoriesRecyclerView.smoothScrollToPosition(catIndex)
-                            }
                         }
                     }
                 }
@@ -160,10 +167,6 @@ class FiltersFragment : Fragment() {
         categoryAdapter = FilterCategoryAdapter(categories) { categoryName ->
             isProgrammaticScroll = true
             categoryAdapter.selectedCategory = categoryName
-            val catIndex = categories.indexOf(categoryName)
-            if (catIndex != -1) {
-                binding.categoriesRecyclerView.smoothScrollToPosition(catIndex)
-            }
             if (categoryName == categories.last()) {
                 binding.filtersRecyclerView.scrollToPosition(availableFilters.size - 1)
             } else {

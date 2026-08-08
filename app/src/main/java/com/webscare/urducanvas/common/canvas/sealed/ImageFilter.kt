@@ -3,7 +3,7 @@ package com.webscare.urducanvas.common.canvas.sealed
 sealed class ImageFilter(val name: String, val category: String = "Basic") {
 
     object None : ImageFilter("None", "Basic")
-    object Invert : ImageFilter("Invert", "Basic")
+    object Invert : ImageFilter("Invert", "Artistic")
     object Grayscale : ImageFilter("Grayscale", "B&W")
     object Sepia : ImageFilter("Sepia", "Vintage")
     data object CoolTint : ImageFilter("CoolTint", "Portrait")
@@ -26,7 +26,7 @@ sealed class ImageFilter(val name: String, val category: String = "Basic") {
     data object GoldenHour : ImageFilter("GoldenHour", "Cinematic")
     data object Cyberpunk : ImageFilter("Cyberpunk", "Cinematic")
     
-    // Instagram Filter Presets
+    // Additional Preset Filters
     data object Clarendon : ImageFilter("Clarendon", "Portrait")
     data object Lark : ImageFilter("Lark", "Portrait")
     data object Valencia : ImageFilter("Valencia", "Portrait")
@@ -35,6 +35,19 @@ sealed class ImageFilter(val name: String, val category: String = "Basic") {
     data object Juno : ImageFilter("Juno", "Portrait")
     data object Reyes : ImageFilter("Reyes", "Vintage")
     data object Slumber : ImageFilter("Slumber", "Vintage")
+    data object Noir : ImageFilter("Noir", "B&W")
+    data object Silver : ImageFilter("Silver", "B&W")
+    data object Vivid : ImageFilter("Vivid", "Portrait")
+    data object Emerald : ImageFilter("Emerald", "Cinematic")
+    data object RetroFilm : ImageFilter("RetroFilm", "Cinematic")
+    data object Matte : ImageFilter("Matte", "Vintage")
+
+    // Additional Artistic Filters
+    data object Vignette : ImageFilter("Vignette", "Artistic")
+    data object OilPaint : ImageFilter("OilPaint", "Artistic")
+    data object Pixelate : ImageFilter("Pixelate", "Artistic")
+    data object Emboss : ImageFilter("Emboss", "Artistic")
+    data object PopArt : ImageFilter("PopArt", "Artistic")
 
     fun createColorFilter(intensity: Float = 1.0f): android.graphics.ColorFilter? {
         return Companion.getColorFilter(this, intensity)
@@ -210,6 +223,72 @@ sealed class ImageFilter(val name: String, val category: String = "Basic") {
                     0.05f, 0.05f, 0.80f, 0f, 10f,
                     0f, 0f, 0f, 1f, 0f
                 )
+                Noir -> floatArrayOf(
+                    0.2f, 0.7f, 0.1f, 0f, -30f,
+                    0.2f, 0.7f, 0.1f, 0f, -30f,
+                    0.2f, 0.7f, 0.1f, 0f, -30f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+                Silver -> floatArrayOf(
+                    0.3f, 0.6f, 0.1f, 0f, 20f,
+                    0.3f, 0.6f, 0.1f, 0f, 20f,
+                    0.3f, 0.6f, 0.1f, 0f, 20f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+                Vivid -> floatArrayOf(
+                    1.3f, 0f, 0f, 0f, 15f,
+                    0f, 1.3f, 0f, 0f, 15f,
+                    0f, 0f, 1.3f, 0f, 15f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+                Emerald -> floatArrayOf(
+                    0.9f, 0.1f, 0f, 0f, 0f,
+                    0.1f, 1.3f, 0.1f, 0f, 15f,
+                    0f, 0.1f, 1.0f, 0f, 5f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+                RetroFilm -> floatArrayOf(
+                    1.1f, 0.1f, 0.1f, 0f, 20f,
+                    0.1f, 1.0f, 0.1f, 0f, 10f,
+                    0.1f, 0.1f, 0.8f, 0f, 5f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+                Matte -> floatArrayOf(
+                    0.85f, 0.1f, 0.1f, 0f, 25f,
+                    0.1f, 0.85f, 0.1f, 0f, 25f,
+                    0.1f, 0.1f, 0.85f, 0f, 25f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+                Vignette -> floatArrayOf(
+                    0.9f, 0f, 0f, 0f, -10f,
+                    0f, 0.9f, 0f, 0f, -10f,
+                    0f, 0f, 0.8f, 0f, -15f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+                OilPaint -> floatArrayOf(
+                    1.2f, 0.2f, 0f, 0f, 10f,
+                    0.1f, 1.1f, 0.1f, 0f, 10f,
+                    0f, 0.2f, 1.2f, 0f, 10f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+                Pixelate -> floatArrayOf(
+                    1.3f, 0f, 0f, 0f, -25f,
+                    0f, 1.3f, 0f, 0f, -25f,
+                    0f, 0f, 1.3f, 0f, -25f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+                Emboss -> floatArrayOf(
+                    2.0f, -1.0f, 0f, 0f, 0f,
+                    -1.0f, 1.0f, 0f, 0f, 0f,
+                    0f, 0f, 0f, 0f, 0f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+                PopArt -> floatArrayOf(
+                    1.4f, 0f, 0.3f, 0f, 25f,
+                    0.2f, 1.2f, 0f, 0f, 10f,
+                    0f, 0.3f, 1.5f, 0f, 35f,
+                    0f, 0f, 0f, 1f, 0f
+                )
                 else -> null
             } ?: return null
 
@@ -262,8 +341,19 @@ sealed class ImageFilter(val name: String, val category: String = "Basic") {
                 "Juno" -> Juno
                 "Reyes" -> Reyes
                 "Slumber" -> Slumber
+                "Noir" -> Noir
+                "Silver" -> Silver
+                "Vivid" -> Vivid
+                "Emerald" -> Emerald
+                "RetroFilm" -> RetroFilm
+                "Matte" -> Matte
+                "Vignette" -> Vignette
+                "OilPaint" -> OilPaint
+                "Pixelate" -> Pixelate
+                "Emboss" -> Emboss
+                "PopArt" -> PopArt
                 else -> None
             }
         }
     }
-}
+}

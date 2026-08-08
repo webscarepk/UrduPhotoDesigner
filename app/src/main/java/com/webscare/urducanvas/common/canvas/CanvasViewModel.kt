@@ -1533,7 +1533,7 @@ class CanvasViewModel @Inject constructor(
     //   - Two group sentinels selected → nested flat merge into one new group
     fun addTableElement(rows: Int = 3, cols: Int = 3, activity: android.app.Activity) {
         val size = _canvasSize.value ?: return
-        val tableData = com.webscare.urducanvas.common.canvas.model.TableData.createDefault(rows, cols)
+        val tableData = com.webscare.urducanvas.common.canvas.model.TableData.createDefault(rows, cols, withHeader = true)
 
         val totalW = size.width * 0.8f
         val totalH = (totalW * 0.6f).coerceAtLeast(200f)
@@ -1899,6 +1899,29 @@ class CanvasViewModel @Inject constructor(
                 }
             }
 
+            PickerTarget.EYE_DROPPER_TABLE_TEXT_COLOR, PickerTarget.COLOR_PICKER_TABLE_TEXT_COLOR -> {
+                updateSelectedTableData { data ->
+                    val scope = _currentTableScope.value
+                    val r = _selectedTableRow.value
+                    val c = _selectedTableCol.value
+                    when (scope) {
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> data.base.textColor = color
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> data.headerStyle.textColor = color
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> data.footerStyle.textColor = color
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> data.headerColStyle.textColor = color
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> data.rowStyles.getOrPut(r) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.textColor = color
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> data.colStyles.getOrPut(c) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.textColor = color
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.CELL -> {
+                            if (r in 0 until data.rows && c in 0 until data.cols) {
+                                val cell = data.cells[r][c]
+                                val override = cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
+                                override.textColor = color
+                            }
+                        }
+                    }
+                }
+            }
+
             PickerTarget.EYE_DROPPER_GRADIENT -> {
                 updateSelectedStopColor(color)   // same fix
             }
@@ -2247,8 +2270,8 @@ class CanvasViewModel @Inject constructor(
                     com.webscare.urducanvas.common.canvas.enums.TableScope.CELL -> {
                         if (r in 0 until updatedData.rows && c in 0 until updatedData.cols) {
                             val cell = updatedData.cells[r][c]
-                            val override = cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
-                            override.textSize = size
+                            val cellOverride = cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
+                            cellOverride.textSize = size
                         }
                     }
                 }
@@ -3991,6 +4014,120 @@ class CanvasViewModel @Inject constructor(
             notifyUndoRedoChanged()
             markChanged()
         }
+    }
+
+    // ── Table Scope-Aware Helper Setters ──
+
+    fun setTableScopeTextStyle(updateBlock: (com.webscare.urducanvas.common.canvas.model.TableTextStyle) -> Unit) {
+        updateSelectedTableData { data ->
+            val scope = _currentTableScope.value
+            val r = _selectedTableRow.value
+            val c = _selectedTableCol.value
+            val style = when (scope) {
+                com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> data.base
+                com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> data.headerStyle
+                com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> data.footerStyle
+                com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> data.headerColStyle
+                com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> data.rowStyles.getOrPut(r) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }
+                com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> data.colStyles.getOrPut(c) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }
+                com.webscare.urducanvas.common.canvas.enums.TableScope.CELL -> {
+                    if (r in 0 until data.rows && c in 0 until data.cols) {
+                        val cell = data.cells[r][c]
+                        cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
+                    } else data.base
+                }
+            }
+            updateBlock(style)
+        }
+    }
+
+    fun setTableTextColor(color: Int) = setTableScopeTextStyle { it.textColor = color }
+    fun setTableBgColor(color: Int) = setTableScopeTextStyle { it.bgColor = color }
+    fun setTableTextSize(size: Float) = setTableScopeTextStyle { it.textSize = size }
+    fun setTableBold(enabled: Boolean) = setTableScopeTextStyle { it.isBold = enabled }
+    fun setTableItalic(enabled: Boolean) = setTableScopeTextStyle { it.isItalic = enabled }
+    fun setTableUnderline(enabled: Boolean) = setTableScopeTextStyle { it.isUnderline = enabled }
+    fun setTableHAlign(align: TextAlignment) = setTableScopeTextStyle { it.hAlign = align }
+    fun setTableVAlign(vAlign: com.webscare.urducanvas.common.canvas.enums.VAlign) = setTableScopeTextStyle { it.vAlign = vAlign }
+    fun setTableLineSpacing(spacing: Float) = setTableScopeTextStyle { it.lineSpacing = spacing }
+    fun setTableLetterSpacing(spacing: Float) = setTableScopeTextStyle { it.letterSpacing = spacing }
+
+    fun setTablePaddingH(padding: Float) {
+        updateSelectedTableData { data -> data.paddingH = padding }
+    }
+
+    fun setTablePaddingV(padding: Float) {
+        updateSelectedTableData { data -> data.paddingV = padding }
+    }
+
+    fun setTableCornerRadius(radius: Float) {
+        updateSelectedTableData { data -> data.cornerRadius = radius }
+    }
+
+    fun setTableHeader(enabled: Boolean) {
+        updateSelectedTableData { data ->
+            data.hasHeader = enabled
+            if (enabled && data.rows > 0) {
+                if (data.headerStyle.bgColor == null) {
+                    data.headerStyle.bgColor = android.graphics.Color.parseColor("#E4F3E9")
+                    data.headerStyle.isBold = true
+                }
+            }
+        }
+    }
+
+    fun setTableFooter(enabled: Boolean) {
+        updateSelectedTableData { data -> data.hasFooter = enabled }
+    }
+
+    fun setTableCellText(row: Int, col: Int, text: String) {
+        updateSelectedTableData { data ->
+            if (row in 0 until data.rows && col in 0 until data.cols) {
+                data.cells[row][col].text = text
+            }
+        }
+    }
+
+    fun setTableRTL(isRTL: Boolean) {
+        updateSelectedTableData { data -> data.isRTL = isRTL }
+    }
+
+    fun setTableContentWrap(wrap: Boolean) {
+        updateSelectedTableData { data -> data.contentWrap = wrap }
+    }
+
+    fun applyTablePreset(preset: com.webscare.urducanvas.common.canvas.enums.TablePreset) {
+        updateSelectedTableData { data -> preset.applyTo(data) }
+    }
+
+    fun alignHorizontal(hAlign: com.webscare.urducanvas.common.canvas.enums.HAlign) {
+        val selected = selectedElements.value ?: return
+        if (selected.isEmpty()) return
+        val cW = _canvasSize.value?.width?.toFloat() ?: 1080f
+        selected.forEach { elem ->
+            val eW = elem.logicalContentWidth.takeIf { it > 0f } ?: 300f
+            when (hAlign) {
+                com.webscare.urducanvas.common.canvas.enums.HAlign.LEFT -> elem.x = eW / 2f
+                com.webscare.urducanvas.common.canvas.enums.HAlign.CENTER -> elem.x = cW / 2f
+                com.webscare.urducanvas.common.canvas.enums.HAlign.RIGHT -> elem.x = cW - (eW / 2f)
+            }
+        }
+        _canvasElements.value = _canvasElements.value
+    }
+
+    fun alignVertical(vAlign: com.webscare.urducanvas.common.canvas.enums.VAlign) {
+        val selected = selectedElements.value ?: return
+        if (selected.isEmpty()) return
+        val cH = _canvasSize.value?.height?.toFloat() ?: 1080f
+        selected.forEach { elem ->
+            val eH = elem.logicalContentHeight.takeIf { it > 0f } ?: 300f
+            when (vAlign) {
+                com.webscare.urducanvas.common.canvas.enums.VAlign.TOP -> elem.y = eH / 2f
+                com.webscare.urducanvas.common.canvas.enums.VAlign.MIDDLE -> elem.y = cH / 2f
+                com.webscare.urducanvas.common.canvas.enums.VAlign.BOTTOM -> elem.y = cH - (eH / 2f)
+            }
+        }
+        _canvasElements.value = _canvasElements.value
     }
 
     fun setTextShadow(enabled: Boolean, color: Int, dx: Float, dy: Float) {

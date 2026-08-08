@@ -1,0 +1,36 @@
+#!/bin/sh
+# Blocks a commit if any file under app/src is being ignored by git.
+#
+# Why this exists: on 2026-07-06 a bare `UrduCanvas` line was added to
+# .gitignore. Unanchored patterns match at every depth, and with
+# core.ignorecase=true on Windows it also matched the source package
+# app/src/main/java/com/webscare/urducanvas/. Every new .kt file created
+# after that date was silently skipped by `git add`, never pushed, and was
+# lost when the project was cloned onto another machine. `git status` was
+# clean the whole time — nothing warned.
+#
+# The `!/app/src/**` safety net in .gitignore only wins while it remains the
+# LAST matching pattern; anything appended below it defeats the net. This
+# hook is order-independent, so it catches the mistake regardless.
+
+ignored=$(git ls-files --others --ignored --exclude-standard -- app/src)
+
+if [ -n "$ignored" ]; then
+	echo "" >&2
+	echo "COMMIT BLOCKED — these files under app/src are being IGNORED by git:" >&2
+	echo "" >&2
+	echo "$ignored" | sed 's/^/    /' >&2
+	echo "" >&2
+	echo "They will NOT be committed and WILL be lost on the next clone." >&2
+	echo "Almost certainly an unanchored pattern in .gitignore is matching a" >&2
+	echo "directory name. Find the culprit with:" >&2
+	echo "" >&2
+	echo "    git check-ignore -v $(echo "$ignored" | head -1)" >&2
+	echo "" >&2
+	echo "Anchor that pattern with a leading slash, then commit again." >&2
+	echo "To override once (you had better be sure): git commit --no-verify" >&2
+	echo "" >&2
+	exit 1
+fi
+
+exit 0

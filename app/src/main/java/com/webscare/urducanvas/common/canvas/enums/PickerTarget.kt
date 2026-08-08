@@ -78,9 +78,13 @@ enum class PickerTarget {
   EYE_DROPPER_TABLE_FILL,
   @SerializedName("EyeDropperTableStroke")
   EYE_DROPPER_TABLE_STROKE,
+  @SerializedName("EyeDropperTableTextColor")
+  EYE_DROPPER_TABLE_TEXT_COLOR,
 
   @SerializedName("ColorPickerTableFill")
   COLOR_PICKER_TABLE_FILL,
   @SerializedName("ColorPickerTableStroke")
-  COLOR_PICKER_TABLE_STROKE
+  COLOR_PICKER_TABLE_STROKE,
+  @SerializedName("ColorPickerTableTextColor")
+  COLOR_PICKER_TABLE_TEXT_COLOR
 }

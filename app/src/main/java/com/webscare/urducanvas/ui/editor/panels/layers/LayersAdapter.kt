@@ -367,7 +367,7 @@ class LayersAdapter(
                 }
 
                 val uniqueMap = com.webscare.urducanvas.common.utils.ImageUtils.computeUniqueLayerNames(adapter.items.map { it.element })
-                title.text = uniqueMap[element.id] ?: com.webscare.urducanvas.common.utils.ImageUtils.getBaseLayerName(element)
+                title.text = uniqueMap.get(element.id) ?: com.webscare.urducanvas.common.utils.ImageUtils.getBaseLayerName(element)
 
                 image.setImageResource(when (element.type) {
                     ElementType.TEXT    -> R.drawable.ic_text_layer

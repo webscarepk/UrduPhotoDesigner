@@ -690,7 +690,7 @@ class LayersFragment : Fragment() {
     private fun defaultNameFor(element: CanvasElement): String {
         val list = viewModel.canvasElements.value ?: emptyList()
         val uniqueMap = com.webscare.urducanvas.common.utils.ImageUtils.computeUniqueLayerNames(list)
-        return uniqueMap[element.id] ?: com.webscare.urducanvas.common.utils.ImageUtils.getBaseLayerName(element)
+        return uniqueMap.get(element.id) ?: com.webscare.urducanvas.common.utils.ImageUtils.getBaseLayerName(element)
     }
 
     override fun onDestroyView() {

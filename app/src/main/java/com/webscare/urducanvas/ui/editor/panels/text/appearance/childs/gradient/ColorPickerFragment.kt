@@ -118,6 +118,9 @@ class ColorPickerFragment : Fragment() {
             PickerTarget.COLOR_PICKER_TABLE_STROKE, PickerTarget.EYE_DROPPER_TABLE_STROKE -> {
                 Color.parseColor("#005D28")
             }
+            PickerTarget.COLOR_PICKER_TABLE_TEXT_COLOR, PickerTarget.EYE_DROPPER_TABLE_TEXT_COLOR -> {
+                Color.BLACK
+            }
         }
     }
 

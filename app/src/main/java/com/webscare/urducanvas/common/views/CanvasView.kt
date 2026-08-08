@@ -300,6 +300,27 @@ class CanvasView @JvmOverloads constructor(
     // Track in-flight jobs so we don't double-schedule for the same element.
     private val pendingAdjustmentJobs = mutableMapOf<String, Job>()
 
+    var isProcessingAdjustments: Boolean = false
+        set(value) {
+            if (field != value) {
+                field = value
+                postInvalidateOnAnimation()
+            }
+        }
+
+    var processingElementId: String? = null
+        set(value) {
+            if (field != value) {
+                field = value
+                postInvalidateOnAnimation()
+            }
+        }
+
+    private fun isElementProcessing(elementId: String): Boolean {
+        return pendingAdjustmentJobs.containsKey(elementId) ||
+            (isProcessingAdjustments && (processingElementId == null || processingElementId == elementId))
+    }
+
     private val shimmerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
     }
@@ -2591,7 +2612,7 @@ class CanvasView @JvmOverloads constructor(
                                             element.featherDirection ?: FeatherDirection.ALL
                                         )
                                     }
-                                    if (pendingAdjustmentJobs.containsKey(element.id)) {
+                                    if (isElementProcessing(element.id)) {
                                         drawShimmerOverlay(canvas, reusableRectF)
                                     }
 
@@ -2891,7 +2912,7 @@ class CanvasView @JvmOverloads constructor(
                                         element.featherDirection ?: FeatherDirection.ALL
                                     )
                                 }
-                                if (pendingAdjustmentJobs.containsKey(element.id)) {
+                                if (isElementProcessing(element.id)) {
                                     drawShimmerOverlay(canvas, reusableRectF)
                                 }
                                 canvas.restore()  // restore saveLayer opened above for feather compositing
@@ -3031,7 +3052,8 @@ class CanvasView @JvmOverloads constructor(
         }
 
         val tableRect = RectF(left, top, right, bottom)
-        val radiusPx = tableData.cornerRadius.coerceAtLeast(0f)
+        val density = resources.displayMetrics.density
+        val radiusPx = (tableData.cornerRadius * density).coerceAtLeast(0f)
         val clipSave = if (radiusPx > 0f) {
             val count = canvas.save()
             val path = Path().apply { addRoundRect(tableRect, radiusPx, radiusPx, Path.Direction.CW) }
@@ -3071,13 +3093,15 @@ class CanvasView @JvmOverloads constructor(
                     val x = left + cache.colWidthsPx.take(c).sum()
                     canvas.drawLine(x, top, x, bottom, borderPaint)
                 }
+                if (radiusPx > 0f) {
+                    canvas.drawRoundRect(tableRect, radiusPx, radiusPx, borderPaint)
+                }
             }
             com.webscare.urducanvas.common.canvas.enums.TableBorderMode.OUTER -> {
-                if (tableData.cornerRadius > 0f) {
-                    val rect = RectF(left, top, right, bottom)
-                    canvas.drawRoundRect(rect, tableData.cornerRadius, tableData.cornerRadius, borderPaint)
+                if (radiusPx > 0f) {
+                    canvas.drawRoundRect(tableRect, radiusPx, radiusPx, borderPaint)
                 } else {
-                    canvas.drawRect(left, top, right, bottom, borderPaint)
+                    canvas.drawRect(tableRect, borderPaint)
                 }
             }
             com.webscare.urducanvas.common.canvas.enums.TableBorderMode.INNER -> {
@@ -3844,7 +3868,7 @@ class CanvasView @JvmOverloads constructor(
                     }
                     drawRect(0f, 0f, bmp.width.toFloat(), bmp.height.toFloat(), overlayPaint)
                 }
-                if (pendingAdjustmentJobs.containsKey(e.id)) {
+                if (isElementProcessing(e.id)) {
                     drawShimmerOverlay(this, dstRect)
                 }
             }

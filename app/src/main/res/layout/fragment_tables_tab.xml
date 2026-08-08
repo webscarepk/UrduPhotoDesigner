@@ -4,15 +4,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:paddingHorizontal="12dp"
-    android:paddingTop="2dp"
-    android:paddingBottom="4dp">
+    android:paddingHorizontal="16dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
 
     <!-- ═══ SINGLE LINE HEADER: Title & Subtitle Left · Tick Right ═══ -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="4dp">
+        android:layout_marginBottom="8dp">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -28,28 +28,26 @@
                 android:fontFamily="@font/bold"
                 android:text="3 × 3"
                 android:textColor="@color/black"
-                android:textSize="13sp" />
+                android:textSize="16sp" />
 
             <TextView
                 android:id="@+id/tvGridSubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="8dp"
                 android:fontFamily="@font/regular"
                 android:text="rows × columns · RTL"
                 android:textColor="#8E94A2"
-                android:textSize="11sp" />
+                android:textSize="12sp" />
         </LinearLayout>
 
         <ImageView
             android:id="@+id/btnInsertTable"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:background="@drawable/button_bg_round"
-            android:backgroundTint="@color/contrast"
-            android:padding="6dp"
+            android:padding="7dp"
             android:src="@drawable/ic_done"
             app:tint="@color/black" />
 
@@ -59,9 +57,10 @@
     <GridLayout
         android:id="@+id/gridContainer"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:alignmentMode="alignMargins"
         android:columnCount="10"
-        android:rowCount="10" />
+        android:rowCount="10"
+        android:useDefaultMargins="false" />
 
 </LinearLayout>

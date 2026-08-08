@@ -1,0 +1,285 @@
+package com.webscare.urducanvas.ui.editor.panels.table
+
+import android.annotation.SuppressLint
+import android.content.Context
+import android.os.Bundle
+import android.text.Editable
+import android.text.InputType
+import android.text.TextWatcher
+import android.view.LayoutInflater
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
+import android.widget.ImageView
+import android.widget.PopupMenu
+import android.widget.TextView
+import androidx.core.content.ContextCompat
+import androidx.core.view.doOnLayout
+import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayoutMediator
+import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.canvas.enums.TableScope
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.databinding.FragmentTableAdjustmentsBinding
+import com.webscare.urducanvas.viewmodels.MainViewModel
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+
+@AndroidEntryPoint
+class TableAdjustmentsFragment : Fragment() {
+
+    private var _binding: FragmentTableAdjustmentsBinding? = null
+    private val binding get() = _binding!!
+
+    private var mediator: TabLayoutMediator? = null
+    private val tabs = listOf("Font", "Appearance", "Format", "Structure")
+    private lateinit var adapter: TableAdjustmentsPagerAdapter
+
+    private val viewModel: CanvasViewModel by activityViewModels()
+    private val mainViewModel: MainViewModel by activityViewModels()
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentTableAdjustmentsBinding.inflate(layoutInflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        binding.viewPager.isSaveEnabled = false
+        binding.viewPager.adapter = null
+
+        setEvents()
+        observeScope()
+    }
+
+    private fun setEvents() {
+        adapter = TableAdjustmentsPagerAdapter(
+            childFragmentManager,
+            viewLifecycleOwner.lifecycle,
+            tabs
+        )
+        adapter.stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT
+
+        binding.viewPager.adapter = adapter
+        binding.viewPager.isUserInputEnabled = false
+
+        setupTabLayout()
+        setupSearchBar()
+
+        binding.back.addPressEffect {
+            hideKeyboard()
+            findNavController().navigateUp()
+        }
+
+        binding.scopeChip.addPressEffect {
+            showScopePopupMenu(binding.scopeChip)
+        }
+    }
+
+    private fun observeScope() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.currentTableScope.collectLatest { scope ->
+                    updateScopeChip(scope)
+                }
+            }
+        }
+    }
+
+    private fun updateScopeChip(scope: TableScope) {
+        if (_binding == null) return
+        val r = viewModel.selectedTableRow.value + 1
+        val c = viewModel.selectedTableCol.value + 1
+        val label = when (scope) {
+            TableScope.WHOLE_TABLE -> "Whole Table"
+            TableScope.HEADER_ROW -> "Header Row"
+            TableScope.FOOTER_ROW -> "Footer Row"
+            TableScope.HEADER_COL -> "Header Column"
+            TableScope.ROW -> "Row $r"
+            TableScope.COLUMN -> "Column $c"
+            TableScope.CELL -> "Cell ($r, $c)"
+        }
+        binding.scopeChip.text = label
+    }
+
+    private fun showScopePopupMenu(anchor: View) {
+        val context = context ?: return
+        val popup = PopupMenu(context, anchor)
+        val r = viewModel.selectedTableRow.value + 1
+        val c = viewModel.selectedTableCol.value + 1
+
+        popup.menu.add(0, 1, 0, "🌐 Whole Table")
+        popup.menu.add(0, 2, 1, "▔ Header Row")
+        popup.menu.add(0, 3, 2, " Footer Row")
+        popup.menu.add(0, 4, 3, " Row $r")
+        popup.menu.add(0, 5, 4, " Column $c")
+        popup.menu.add(0, 6, 5, "◽ Cell ($r, $c)")
+        popup.menu.add(0, 7, 6, "✏️ Edit Cell Text")
+
+        popup.setOnMenuItemClickListener { item ->
+            val scope = when (item.itemId) {
+                1 -> TableScope.WHOLE_TABLE
+                2 -> TableScope.HEADER_ROW
+                3 -> TableScope.FOOTER_ROW
+                4 -> TableScope.ROW
+                5 -> TableScope.COLUMN
+                6 -> TableScope.CELL
+                7 -> {
+                    CellTextEditDialog.newInstance().show(childFragmentManager, "CellTextEditDialog")
+                    return@setOnMenuItemClickListener true
+                }
+                else -> TableScope.WHOLE_TABLE
+            }
+            viewModel.setTableScope(scope, viewModel.selectedTableRow.value, viewModel.selectedTableCol.value)
+            if (item.itemId == 6) {
+                CellTextEditDialog.newInstance().show(childFragmentManager, "CellTextEditDialog")
+            }
+            true
+        }
+        popup.show()
+    }
+
+    private fun setupTabLayout() {
+        mediator = TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
+            val tabView = LayoutInflater.from(context).inflate(R.layout.custom_tab, null)
+            tabView.findViewById<TextView>(R.id.tabTitle).text = tabs[position]
+            tab.customView = tabView
+        }
+        mediator?.attach()
+
+        binding.tabLayout.doOnLayout {
+            if (isAdded && _binding != null) {
+                for (i in 0 until binding.tabLayout.tabCount) {
+                    val tabView = (binding.tabLayout.getChildAt(0) as? ViewGroup)?.getChildAt(i)
+                    tabView?.scaleX = 0.9f
+                    tabView?.scaleY = 0.9f
+                }
+                binding.tabLayout.getTabAt(binding.tabLayout.selectedTabPosition)?.view?.apply {
+                    scaleX = 1.0f
+                    scaleY = 1.0f
+                }
+            }
+        }
+
+        binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                tab?.view?.animate()?.scaleX(1.0f)?.scaleY(1.0f)?.setDuration(150)
+                    ?.setInterpolator(android.view.animation.OvershootInterpolator())?.start()
+
+                if (tab?.position != 0) {
+                    mainViewModel.setQuery("")
+                    collapseSearch()
+                    hideKeyboard()
+                }
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab?) {
+                tab?.view?.animate()?.scaleX(0.9f)?.scaleY(0.9f)?.setDuration(150)?.start()
+            }
+
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+        })
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupSearchBar() {
+        binding.searchIcon.addPressEffect {
+            binding.searchIcon.isVisible = false
+            binding.searchBar.isVisible = true
+            binding.searchBar.requestFocus()
+            binding.searchBar.setSelection(binding.searchBar.text?.length ?: 0)
+            showKeyboard(binding.searchBar)
+        }
+
+        binding.searchBar.imeOptions = EditorInfo.IME_ACTION_SEARCH
+        binding.searchBar.setRawInputType(InputType.TYPE_CLASS_TEXT)
+
+        binding.searchBar.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                mainViewModel.setQuery(binding.searchBar.text.toString())
+                hideKeyboard()
+                collapseSearch()
+                true
+            } else false
+        }
+
+        binding.searchBar.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun afterTextChanged(s: Editable?) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                binding.searchBar.setCompoundDrawablesWithIntrinsicBounds(
+                    null, null,
+                    if (!s.isNullOrEmpty())
+                        ContextCompat.getDrawable(requireContext(), R.drawable.ic_close)
+                    else null, null
+                )
+                mainViewModel.setQuery(s?.toString().orEmpty())
+            }
+        })
+
+        binding.searchBar.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_UP) {
+                val dr = binding.searchBar.compoundDrawables[2]
+                if (dr != null && event.x >= binding.searchBar.width -
+                    binding.searchBar.paddingRight - dr.bounds.width()
+                ) {
+                    binding.searchBar.text.clear()
+                    mainViewModel.setQuery("")
+                    hideKeyboard()
+                    binding.searchBar.clearFocus()
+                    collapseSearch()
+                    return@setOnTouchListener true
+                }
+            }
+            false
+        }
+
+        binding.searchBar.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus && binding.searchBar.text.isNullOrEmpty()) {
+                collapseSearch()
+            }
+        }
+    }
+
+    private fun collapseSearch() {
+        if (_binding == null) return
+        binding.searchBar.isVisible = false
+        binding.searchIcon.isVisible = true
+    }
+
+    private fun showKeyboard(v: View) {
+        (requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
+            .showSoftInput(v, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    private fun hideKeyboard() {
+        val b = _binding ?: return
+        requireContext().getSystemService(InputMethodManager::class.java)
+            ?.hideSoftInputFromWindow(b.root.windowToken, 0)
+        b.searchBar.clearFocus()
+    }
+
+    override fun onDestroyView() {
+        mediator?.detach()
+        mediator = null
+        _binding?.viewPager?.adapter = null
+        mainViewModel.setQuery("")
+        super.onDestroyView()
+        _binding = null
+    }
+}

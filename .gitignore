@@ -1,16 +1,88 @@
+# ─────────────────────────────────────────────────────────────
+# IMPORTANT — read before adding a pattern here.
+#
+# A pattern with NO slash in it matches that name at EVERY depth,
+# not just the repo root. Combined with core.ignorecase=true on
+# Windows, a bare line like `UrduCanvas` silently swallowed the
+# whole `com/webscare/urducanvas/` source package for a month:
+# new .kt files were never staged, never pushed, and were lost on
+# the next clone. `git status` stayed clean the entire time.
+#
+# RULE: if you mean a specific file or folder, anchor it with a
+# leading slash (`/UrduCanvas`). Only leave a pattern unanchored
+# when you genuinely want it matched everywhere (e.g. *.iml).
+#
+# After editing this file, ALWAYS verify nothing in the source
+# tree got caught:
+#   git ls-files --others --ignored --exclude-standard -- app/src
+# That must print nothing.
+#
+# .githooks/pre-commit runs exactly that check and blocks the commit
+# if it finds anything. Enable it once per clone with:
+#   git config core.hooksPath .githooks
+# ─────────────────────────────────────────────────────────────
+
+# ── Gradle / build output ────────────────────────────────────
+.gradle/
+.kotlin/
+/build
+/captures
+.externalNativeBuild
+.cxx
+
+# ── IDE ──────────────────────────────────────────────────────
 *.iml
-.gradle
-/local.properties
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
+/.idea/deploymentTargetSelector.xml
+/.idea/deploymentTargetDropDown.xml
+
+# ── OS cruft ─────────────────────────────────────────────────
 .DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
-UrduCanvas
+Thumbs.db
+
+# ── Local machine config (never commit) ──────────────────────
+/local.properties
+
+# ── Signing material (never commit) ──────────────────────────
+# `/UrduCanvas` is the root-level PKCS#12 keystore. It is ANCHORED
+# on purpose — unanchored, it also matched app/src/main/java/com/
+# webscare/urducanvas/. That was the bug described above.
+/UrduCanvas
+*.jks
+*.keystore
+*.p12
+keystore.properties
+signing.properties
+
+# ── Build artifacts ──────────────────────────────────────────
+*.apk
+*.aab
+*.aar
+/app/release/
+/app/prod/release/
+/app/dev/
+/app/devAds/
+
+# ─────────────────────────────────────────────────────────────
+# SAFETY NET — THIS MUST STAY AT THE BOTTOM OF THE FILE.
+# Add new patterns ABOVE this block, never below it.
+#
+# gitignore resolves by "last matching pattern wins", so these
+# negations re-include the source tree even if a pattern above
+# accidentally matched it. Appending a pattern *below* them
+# defeats them — which is why .githooks/pre-commit exists as an
+# order-independent backstop.
+# ─────────────────────────────────────────────────────────────
+!/app/src/**
+!/app/*.gradle.kts
+!/app/proguard-rules.pro
+!/build.gradle.kts
+!/settings.gradle.kts
+!/gradle/**
+!/gradlew
+!/gradlew.bat

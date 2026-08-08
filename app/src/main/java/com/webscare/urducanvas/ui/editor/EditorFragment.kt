@@ -1323,6 +1323,10 @@ class EditorFragment : Fragment() {
         if (::sizedCanvasView.isInitialized) {
             sizedCanvasView.onProcessingStateChanged = { isProcessing -> viewModel.setProcessingAdjustments(isProcessing) }
         }
+        viewModel.isProcessingAdjustments.observe(viewLifecycleOwner) { isProcessing ->
+            val canvasView = if (::sizedCanvasView.isInitialized) sizedCanvasView else viewModel.getCanvasView()
+            canvasView?.isProcessingAdjustments = (isProcessing == true)
+        }
     }
 
     /** Attach/restore CanvasView inside container */
@@ -2395,6 +2399,7 @@ class EditorFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        super.onDestroyView()
         currentDragHandle?.setOnTouchListener(null)
         currentDragHandle = null
         registeredDragHandles.clear()
