@@ -41,6 +41,16 @@ class TableDirectionFragment : Fragment() {
             viewModel.setTableRTL(false)
             updatePillSelection(binding.btnLTR, binding.btnRTL)
         }
+
+        // Set initial state from table data
+        val tableData = viewModel.getSelectedTableData()
+        if (tableData != null) {
+            if (tableData.isRTL) {
+                updatePillSelection(binding.btnRTL, binding.btnLTR)
+            } else {
+                updatePillSelection(binding.btnLTR, binding.btnRTL)
+            }
+        }
     }
 
     private fun updatePillSelection(selected: TextView, unselected: TextView) {

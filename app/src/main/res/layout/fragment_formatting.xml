@@ -30,20 +30,17 @@
             android:textColor="@color/black"/>
 
         <TextView
+            android:id="@+id/lineSpacing"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="1.0"
+            android:layout_marginEnd="12dp"
             android:fontFamily="@font/regular"
-            app:layout_constraintTop_toTopOf="@id/lineTitle"
-            app:layout_constraintBottom_toBottomOf="@id/lineTitle"
-            app:layout_constraintStart_toEndOf="@id/lineTitle"
-            android:textSize="12sp"
-            android:background="@drawable/edit_bg_stroke"
-            android:paddingHorizontal="6dp"
-            android:paddingVertical="4dp"
+            android:text="1.0"
             android:textColor="@color/black"
-            android:layout_marginStart="6dp"
-            android:id="@+id/lineSpacing"/>
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@id/lineTitle"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/lineTitle" />
 
         <SeekBar
                 android:progressBackgroundTint="@color/light_gray"
@@ -55,7 +52,8 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toBottomOf="@id/lineSpacing"
-            android:thumbTint="@color/appColor"
+            android:splitTrack="false"
+            android:thumb="@drawable/seekbar_thumb_custom"
             android:indeterminateTint="@color/appColor"
             android:progressTint="@color/appColor"
             android:progress="20"/>
@@ -84,20 +82,17 @@
             android:textColor="@color/black"/>
 
         <TextView
+            android:id="@+id/letterSpacing"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="1.0"
+            android:layout_marginEnd="12dp"
             android:fontFamily="@font/regular"
-            app:layout_constraintTop_toTopOf="@id/letterTitle"
-            app:layout_constraintBottom_toBottomOf="@id/letterTitle"
-            app:layout_constraintStart_toEndOf="@id/letterTitle"
-            android:textSize="12sp"
-            android:background="@drawable/edit_bg_stroke"
-            android:paddingHorizontal="6dp"
-            android:paddingVertical="4dp"
+            android:text="1.0"
             android:textColor="@color/black"
-            android:layout_marginStart="6dp"
-            android:id="@+id/letterSpacing"/>
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@id/letterTitle"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/letterTitle" />
 
         <SeekBar
                 android:progressBackgroundTint="@color/light_gray"
@@ -109,7 +104,8 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toBottomOf="@id/letterSpacing"
-            android:thumbTint="@color/appColor"
+            android:splitTrack="false"
+            android:thumb="@drawable/seekbar_thumb_custom"
             android:indeterminateTint="@color/appColor"
             android:progressTint="@color/appColor"
             android:progress="20"/>

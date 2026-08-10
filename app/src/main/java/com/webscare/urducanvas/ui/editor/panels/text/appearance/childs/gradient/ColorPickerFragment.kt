@@ -27,6 +27,7 @@ class ColorPickerFragment : Fragment() {
     private var currentHue = 0f          // 0–360
     private var currentBrightness = 0.5f // 0–1 (0=black, 0.5=pure, 1=white)
     private var tempColor: Int = Color.RED
+    private var hasInteracted = false
 
     private val rainbow = intArrayOf(
         Color.RED, Color.YELLOW, Color.GREEN,
@@ -113,13 +114,13 @@ class ColorPickerFragment : Fragment() {
                 viewModel.borderColor.value ?: Color.BLACK
             }
             PickerTarget.COLOR_PICKER_TABLE_FILL, PickerTarget.EYE_DROPPER_TABLE_FILL -> {
-                Color.WHITE
+                viewModel.getTableScopeStyle()?.bgColor ?: Color.WHITE
             }
             PickerTarget.COLOR_PICKER_TABLE_STROKE, PickerTarget.EYE_DROPPER_TABLE_STROKE -> {
-                Color.parseColor("#005D28")
+                viewModel.getSelectedTableData()?.borderColor ?: Color.parseColor("#005D28")
             }
             PickerTarget.COLOR_PICKER_TABLE_TEXT_COLOR, PickerTarget.EYE_DROPPER_TABLE_TEXT_COLOR -> {
-                Color.BLACK
+                viewModel.getTableScopeStyle()?.textColor ?: Color.BLACK
             }
         }
     }
@@ -132,6 +133,7 @@ class ColorPickerFragment : Fragment() {
             progress = currentHue / 360f
 
             onProgressChanged = { hueDeg ->
+                hasInteracted = true
                 currentHue = hueDeg.toFloat()
                 rebuildBrightnessGradient()
                 updateColor()
@@ -151,6 +153,7 @@ class ColorPickerFragment : Fragment() {
             rebuildBrightnessGradient()
 
             onProgressChanged = { value ->
+                hasInteracted = true
                 currentBrightness = value / 100f
                 updateColor()
             }
@@ -188,7 +191,9 @@ class ColorPickerFragment : Fragment() {
         }
 
         binding.colorCode.text = colorToHex(tempColor)
-        viewModel.finishPicking(tempColor)
+        if (hasInteracted) {
+            viewModel.finishPicking(tempColor)
+        }
     }
 
     // ── Apply color from dialog or external source ─────────────────────────────

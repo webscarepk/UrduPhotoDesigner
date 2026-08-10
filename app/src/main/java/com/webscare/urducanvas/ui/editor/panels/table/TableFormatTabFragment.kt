@@ -71,7 +71,7 @@ class TableFormatTabFragment : Fragment() {
                 tabs.clear()
                 tabs.add(PanelTabs(0, "Alignment", true))
                 tabs.add(PanelTabs(1, "Padding", false))
-                tabs.add(PanelTabs(2, "Heading", false))
+                tabs.add(PanelTabs(2, "Text", false))
                 tabs.add(PanelTabs(3, "Spacing", false))
 
                 adapter.submitList(ArrayList(tabs))

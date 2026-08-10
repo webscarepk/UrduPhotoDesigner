@@ -10,7 +10,6 @@ import androidx.fragment.app.activityViewModels
 import com.google.android.material.card.MaterialCardView
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
-import com.webscare.urducanvas.common.canvas.enums.HAlign
 import com.webscare.urducanvas.common.canvas.enums.TextAlignment
 import com.webscare.urducanvas.common.canvas.enums.VAlign
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
@@ -32,30 +31,9 @@ class TableAlignmentFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        setupCanvasAlignmentKit()
         setupHAlignCards()
         setupVAlignCards()
-    }
-
-    private fun setupCanvasAlignmentKit() {
-        binding.btnCanvasLeft.addPressEffect {
-            viewModel.alignHorizontal(HAlign.LEFT)
-        }
-        binding.btnCanvasCenterHoriz.addPressEffect {
-            viewModel.alignHorizontal(HAlign.CENTER)
-        }
-        binding.btnCanvasRight.addPressEffect {
-            viewModel.alignHorizontal(HAlign.RIGHT)
-        }
-        binding.btnCanvasTop.addPressEffect {
-            viewModel.alignVertical(VAlign.TOP)
-        }
-        binding.btnCanvasCenterVert.addPressEffect {
-            viewModel.alignVertical(VAlign.MIDDLE)
-        }
-        binding.btnCanvasBottom.addPressEffect {
-            viewModel.alignVertical(VAlign.BOTTOM)
-        }
+        syncInitialSelection()
     }
 
     private fun setupHAlignCards() {
@@ -89,19 +67,47 @@ class TableAlignmentFragment : Fragment() {
         }
     }
 
+    private fun syncInitialSelection() {
+        val style = viewModel.getTableScopeStyle()
+        val currentH = style?.hAlign ?: TextAlignment.LEFT
+        val currentV = style?.vAlign ?: VAlign.TOP
+
+        val hAlignCards = listOf(
+            binding.btnAlignLeft to TextAlignment.LEFT,
+            binding.btnAlignCenter to TextAlignment.CENTER,
+            binding.btnAlignRight to TextAlignment.RIGHT,
+            binding.btnAlignJustify to TextAlignment.JUSTIFY
+        )
+        val vAlignCards = listOf(
+            binding.btnVAlignTop to VAlign.TOP,
+            binding.btnVAlignCenter to VAlign.MIDDLE,
+            binding.btnVAlignBottom to VAlign.BOTTOM
+        )
+
+        val hMatch = hAlignCards.firstOrNull { it.second == currentH }?.first ?: binding.btnAlignLeft
+        updateCardSelection(hMatch, hAlignCards.map { it.first })
+
+        val vMatch = vAlignCards.firstOrNull { it.second == currentV }?.first ?: binding.btnVAlignTop
+        updateCardSelection(vMatch, vAlignCards.map { it.first })
+    }
+
     private fun updateCardSelection(selectedCard: MaterialCardView, allCards: List<MaterialCardView>) {
         val context = context ?: return
         val appColor = ContextCompat.getColor(context, R.color.appColor)
         val contrast = ContextCompat.getColor(context, R.color.contrast)
+        val white = ContextCompat.getColor(context, R.color.white)
+        val black = ContextCompat.getColor(context, R.color.black)
 
         allCards.forEach { card ->
+            val iconView = (card.getChildAt(0) as? android.widget.ImageView)
             if (card == selectedCard) {
-                card.strokeColor = appColor
-                card.strokeWidth = 4
-                card.setCardBackgroundColor(contrast)
+                card.strokeWidth = 0
+                card.setCardBackgroundColor(appColor)
+                iconView?.imageTintList = android.content.res.ColorStateList.valueOf(white)
             } else {
                 card.strokeWidth = 0
                 card.setCardBackgroundColor(contrast)
+                iconView?.imageTintList = android.content.res.ColorStateList.valueOf(black)
             }
         }
     }

@@ -59,6 +59,11 @@
     <string name="_0_0">0.0</string>
     <string name="layers">Layers</string>
     <string name="layer_properties">Layer Properties</string>
+    <string name="text_properties">Text Properties</string>
+    <string name="table_properties">Table Properties</string>
+    <string name="shape_properties">Shape Properties</string>
+    <string name="image_properties">Image Properties</string>
+    <string name="sticker_properties">Sticker Properties</string>
     <string name="opacity">Opacity</string>
     <string name="urdu_fonts">Urdu Fonts</string>
     <string name="english_fonts">English Fonts</string>

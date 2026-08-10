@@ -51,6 +51,21 @@ class TableHeaderFooterFragment : Fragment() {
             viewModel.setTableFooter(false)
             updatePillSelection(binding.btnFooterDisable, binding.btnFooterEnable)
         }
+
+        // Set initial state from table data
+        val tableData = viewModel.getSelectedTableData()
+        if (tableData != null) {
+            if (tableData.hasHeader) {
+                updatePillSelection(binding.btnHeaderEnable, binding.btnHeaderDisable)
+            } else {
+                updatePillSelection(binding.btnHeaderDisable, binding.btnHeaderEnable)
+            }
+            if (tableData.hasFooter) {
+                updatePillSelection(binding.btnFooterEnable, binding.btnFooterDisable)
+            } else {
+                updatePillSelection(binding.btnFooterDisable, binding.btnFooterEnable)
+            }
+        }
     }
 
     private fun updatePillSelection(selected: TextView, unselected: TextView) {

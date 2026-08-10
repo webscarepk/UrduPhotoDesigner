@@ -85,8 +85,8 @@ class PreferencesFragment : androidx.fragment.app.Fragment() {
         }
 
         mainViewModel.isDarkMode.observe(viewLifecycleOwner) { isChecked ->
-            if (binding.darkModeSwitch.isChecked != isChecked) {
-                binding.darkModeSwitch.isChecked = isChecked
+            if (binding.darkModeSwitch.isChecked() != isChecked) {
+                binding.darkModeSwitch.setCheckedQuietly(isChecked)
             }
         }
     }
@@ -169,7 +169,7 @@ class PreferencesFragment : androidx.fragment.app.Fragment() {
         binding.quality.addPressEffect { toggleQuality() }
         binding.qualityDropdownIcon.addPressEffect { toggleQuality() }
 
-        binding.darkModeSwitch.setOnCheckedChangeListener { _, isChecked ->
+        binding.darkModeSwitch.onCheckedChangeListener = { isChecked ->
             if (mainViewModel.isDarkMode.value != isChecked) {
                 mainViewModel.updateDarkMode(isChecked)
                 if (isChecked) {

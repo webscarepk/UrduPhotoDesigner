@@ -5,7 +5,7 @@
     android:clipToPadding="false"
     android:fillViewport="true"
     android:paddingTop="8dp"
-    android:paddingBottom="40dp">
+    android:paddingBottom="24dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -19,8 +19,9 @@
             android:orientation="horizontal">
 
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:layout_marginStart="12dp"
                 android:fontFamily="@font/medium"
                 android:text="Corner Radius"
@@ -31,11 +32,8 @@
                 android:id="@+id/tvRadiusValue"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/edit_bg_stroke"
+                android:layout_marginEnd="12dp"
                 android:fontFamily="@font/regular"
-                android:paddingHorizontal="6dp"
-                android:paddingVertical="2dp"
                 android:text="0dp"
                 android:textColor="@color/black"
                 android:textSize="12sp" />
@@ -46,14 +44,13 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="3dp"
-            android:layout_marginStart="0dp"
-            android:layout_marginEnd="0dp"
             android:indeterminateTint="@color/appColor"
             android:max="50"
             android:progress="0"
             android:progressBackgroundTint="@color/light_gray"
             android:progressTint="@color/appColor"
-            android:thumbTint="@color/appColor" />
+            android:splitTrack="false"
+            android:thumb="@drawable/seekbar_thumb_custom" />
 
     </LinearLayout>
 </ScrollView>

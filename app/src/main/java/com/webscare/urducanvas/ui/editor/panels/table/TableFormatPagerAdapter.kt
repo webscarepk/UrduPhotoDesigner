@@ -15,7 +15,7 @@ class TableFormatPagerAdapter(
         return when (tabs[position].tab_name) {
             "Alignment" -> TableAlignmentFragment.newInstance()
             "Padding"   -> TablePaddingFragment.newInstance()
-            "Heading"   -> TableHeadingFragment.newInstance()
+            "Text"      -> TableHeadingFragment.newInstance()
             "Spacing"   -> TableSpacingFragment.newInstance()
             else        -> TableAlignmentFragment.newInstance()
         }

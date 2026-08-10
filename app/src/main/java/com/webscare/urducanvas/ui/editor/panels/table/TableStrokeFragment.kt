@@ -112,6 +112,7 @@ class TableStrokeFragment : Fragment() {
             Constants.colorList,
             onColorSelected = { color ->
                 val colorInt = color.colorCode.toColorInt()
+                colorsAdapter.selectedColor = colorInt
                 viewModel.updateSelectedTableData { data ->
                     data.borderColor = colorInt
                     data.borderGradient = null

@@ -28,7 +28,6 @@ class TablePresetsAdapter(
 
     override fun onBindViewHolder(holder: PresetViewHolder, position: Int) {
         val item = presets[position]
-        holder.binding.tvPresetTitle.text = item.title
 
         val context = holder.itemView.context
         val isSelected = selectedPreset == item

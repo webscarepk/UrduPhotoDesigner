@@ -47,7 +47,7 @@
         android:layout_height="wrap_content"
         android:fontFamily="@font/bold"
         android:layout_marginStart="10dp"
-        android:text="@string/layer_properties"
+        android:text="@string/text_properties"
         android:textColor="@color/black"
         android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="@id/back"
@@ -164,7 +164,7 @@
         android:layout_marginTop="4dp"
         android:saveEnabled="false"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/toolbarRow"/>
 

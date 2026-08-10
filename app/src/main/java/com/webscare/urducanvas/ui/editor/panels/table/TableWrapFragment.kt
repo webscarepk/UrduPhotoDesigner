@@ -41,6 +41,16 @@ class TableWrapFragment : Fragment() {
             viewModel.setTableContentWrap(false)
             updatePillSelection(binding.btnFixedWidth, binding.btnAutoWidth)
         }
+
+        // Set initial state from table data
+        val tableData = viewModel.getSelectedTableData()
+        if (tableData != null) {
+            if (tableData.contentWrap) {
+                updatePillSelection(binding.btnAutoWidth, binding.btnFixedWidth)
+            } else {
+                updatePillSelection(binding.btnFixedWidth, binding.btnAutoWidth)
+            }
+        }
     }
 
     private fun updatePillSelection(selected: TextView, unselected: TextView) {

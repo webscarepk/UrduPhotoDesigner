@@ -58,40 +58,35 @@ class ColorsAdapter(
             val colorInt = colorItem.colorCode.toColorInt()
             val isSelected = colorInt == selectedColor
 
-            // Set main color background
             binding.colorView.setBackgroundColor(colorInt)
 
-            // Calculate luminance to detect if it's a light color
             val r = Color.red(colorInt)
             val g = Color.green(colorInt)
             val b = Color.blue(colorInt)
             val luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
 
             val density = binding.root.resources.displayMetrics.density
-            val strokeSelectedPx = (1.5f * density + 0.5f).toInt()
-            val strokeUnselectedPx = (1.0f * density + 0.5f).toInt()
+            val strokePx = (2.0f * density + 0.5f).toInt()
+            val marginPx = (3.5f * density + 0.5f).toInt()
+
+            val lp = binding.cardInner.layoutParams as ViewGroup.MarginLayoutParams
 
             if (isSelected) {
-                // Selected color — use app color stroke
-                binding.root.strokeWidth = strokeSelectedPx
-                binding.root.setCardBackgroundColor(Color.WHITE)
-                binding.root.strokeColor =
-                    ContextCompat.getColor(binding.root.context, R.color.appColor)
+                binding.cardOuter.strokeWidth = strokePx
+                binding.cardOuter.strokeColor = ContextCompat.getColor(binding.root.context, R.color.appColor)
+                lp.setMargins(marginPx, marginPx, marginPx, marginPx)
             } else {
-                // Not selected — handle white or very light colors
-                binding.root.setCardBackgroundColor(Color.WHITE)
-                binding.root.strokeWidth = strokeUnselectedPx
-
-                if (luminance > 0.8) {
-                    // Very light color, use dark border
-                    binding.root.strokeColor = "#A0A0A0".toColorInt() // light gray border
+                lp.setMargins(0, 0, 0, 0)
+                if (luminance > 0.85) {
+                    binding.cardOuter.strokeWidth = (1f * density + 0.5f).toInt()
+                    binding.cardOuter.strokeColor = "#D0D5DD".toColorInt()
                 } else {
-                    // Normal color, use subtle border
-                    binding.root.strokeColor = Color.TRANSPARENT
+                    binding.cardOuter.strokeWidth = 0
+                    binding.cardOuter.strokeColor = Color.TRANSPARENT
                 }
             }
+            binding.cardInner.layoutParams = lp
             binding.root.addPressEffect { onColorSelected.invoke(colorItem) }
-
         }
     }
 

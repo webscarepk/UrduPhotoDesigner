@@ -13,7 +13,6 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.card.MaterialCardView
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.utils.Constants
@@ -37,10 +36,6 @@ class TableHeadingFragment : Fragment() {
     private lateinit var colorsAdapter: ColorsAdapter
     private lateinit var gradientsAdapter: GradientsAdapter
 
-    private var isBold = false
-    private var isItalic = false
-    private var isUnderline = false
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -52,7 +47,6 @@ class TableHeadingFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupFontSizeSeekbar()
-        setupFormattingCards()
         setupColorAdapters()
         setupToggle()
         observeViewModel()
@@ -74,38 +68,12 @@ class TableHeadingFragment : Fragment() {
         })
     }
 
-    private fun setupFormattingCards() {
-        binding.cardBold.addPressEffect {
-            isBold = !isBold
-            viewModel.setTableBold(isBold)
-            updateCardStroke(binding.cardBold, isBold)
-        }
-
-        binding.cardItalic.addPressEffect {
-            isItalic = !isItalic
-            viewModel.setTableItalic(isItalic)
-            updateCardStroke(binding.cardItalic, isItalic)
-        }
-
-        binding.cardUnderline.addPressEffect {
-            isUnderline = !isUnderline
-            viewModel.setTableUnderline(isUnderline)
-            updateCardStroke(binding.cardUnderline, isUnderline)
-        }
-    }
-
-    private fun updateCardStroke(card: MaterialCardView, selected: Boolean) {
-        val context = context ?: return
-        val appColor = ContextCompat.getColor(context, R.color.appColor)
-        card.strokeColor = appColor
-        card.strokeWidth = if (selected) 4 else 0
-    }
-
     private fun setupColorAdapters() {
         colorsAdapter = ColorsAdapter(
             Constants.colorList,
             onColorSelected = { color ->
                 val colorInt = color.colorCode.toColorInt()
+                colorsAdapter.selectedColor = colorInt
                 viewModel.setTableTextColor(colorInt)
             },
             onNoneSelected = {

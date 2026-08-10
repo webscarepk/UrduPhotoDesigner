@@ -141,16 +141,13 @@
             android:id="@+id/kashidaValue"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/edit_bg_stroke"
+            android:layout_marginEnd="12dp"
             android:fontFamily="@font/regular"
-            android:paddingHorizontal="6dp"
-            android:paddingVertical="4dp"
             android:text="1.0"
             android:textColor="@color/black"
             android:textSize="12sp"
             app:layout_constraintBottom_toBottomOf="@id/lineTitle"
-            app:layout_constraintStart_toEndOf="@id/lineTitle"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@id/lineTitle" />
 
         <ImageView
@@ -174,7 +171,8 @@
             android:progress="0"
             android:progressBackgroundTint="@color/light_gray"
             android:progressTint="@color/appColor"
-            android:thumbTint="@color/appColor"
+            android:splitTrack="false"
+            android:thumb="@drawable/seekbar_thumb_custom"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"

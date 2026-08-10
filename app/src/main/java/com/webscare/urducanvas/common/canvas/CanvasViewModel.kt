@@ -315,7 +315,7 @@ class CanvasViewModel @Inject constructor(
     private val _currentShapeType = MutableLiveData(ShapeType.RECTANGLE)
     val currentShapeType: LiveData<ShapeType> = _currentShapeType
 
-    private val _shapeFillEnabled = MutableLiveData(false)
+    private val _shapeFillEnabled = MutableLiveData(true)
     val shapeFillEnabled: LiveData<Boolean> = _shapeFillEnabled
 
     private val _shapeStrokeEnabled = MutableLiveData(true)
@@ -521,6 +521,29 @@ class CanvasViewModel @Inject constructor(
 
     private val _selectedTableCol = MutableStateFlow<Int>(0)
     val selectedTableCol: StateFlow<Int> = _selectedTableCol.asStateFlow()
+
+    fun setSelectedTableCells(cells: Set<Pair<Int, Int>>) {
+        updateSelectedTableData { data ->
+            data.selectedCells = cells.toMutableSet()
+        }
+    }
+
+    fun toggleTableCellSelected(r: Int, c: Int) {
+        updateSelectedTableData { data ->
+            val pair = Pair(r, c)
+            if (data.selectedCells.contains(pair)) {
+                data.selectedCells.remove(pair)
+            } else {
+                data.selectedCells.add(pair)
+            }
+        }
+    }
+
+    fun clearTableCellSelection() {
+        updateSelectedTableData { data ->
+            data.selectedCells.clear()
+        }
+    }
 
     fun cycleTableScope() {
         val next = when (_currentTableScope.value) {
@@ -1876,7 +1899,16 @@ class CanvasViewModel @Inject constructor(
                     val r = _selectedTableRow.value
                     val c = _selectedTableCol.value
                     when (scope) {
-                        com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> data.base.bgColor = color
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> {
+                            data.base.bgColor = color
+                            data.base.bgGradient = null
+                            data.headerStyle.bgColor = null
+                            data.headerStyle.bgGradient = null
+                            data.footerStyle.bgColor = null
+                            data.footerStyle.bgGradient = null
+                            data.headerColStyle.bgColor = null
+                            data.headerColStyle.bgGradient = null
+                        }
                         com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> data.headerStyle.bgColor = color
                         com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> data.footerStyle.bgColor = color
                         com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> data.headerColStyle.bgColor = color
@@ -2002,6 +2034,43 @@ class CanvasViewModel @Inject constructor(
             GradientPickerTarget.IMAGE_STROKE -> if (gradientItem != null) setImageStrokeGradient(
                 gradientItem, _borderWidth.value ?: 1f
             ) else clearImageStrokeGradients()
+
+            GradientPickerTarget.TABLE_FILL -> {
+                updateSelectedTableData { data ->
+                    val scope = _currentTableScope.value
+                    val r = _selectedTableRow.value
+                    val c = _selectedTableCol.value
+                    when (scope) {
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> {
+                            data.base.bgGradient = gradientItem
+                            data.headerStyle.bgColor = null
+                            data.headerStyle.bgGradient = null
+                            data.footerStyle.bgColor = null
+                            data.footerStyle.bgGradient = null
+                            data.headerColStyle.bgColor = null
+                            data.headerColStyle.bgGradient = null
+                        }
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> data.headerStyle.bgGradient = gradientItem
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> data.footerStyle.bgGradient = gradientItem
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> data.headerColStyle.bgGradient = gradientItem
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> data.rowStyles.getOrPut(r) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.bgGradient = gradientItem
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> data.colStyles.getOrPut(c) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.bgGradient = gradientItem
+                        com.webscare.urducanvas.common.canvas.enums.TableScope.CELL -> {
+                            if (r in 0 until data.rows && c in 0 until data.cols) {
+                                val cell = data.cells[r][c]
+                                val cellOverride = cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
+                                cellOverride.bgGradient = gradientItem
+                            }
+                        }
+                    }
+                }
+            }
+
+            GradientPickerTarget.TABLE_STROKE -> {
+                updateSelectedTableData { data ->
+                    data.borderGradient = gradientItem
+                }
+            }
         }
     }
 
@@ -4020,25 +4089,66 @@ class CanvasViewModel @Inject constructor(
 
     fun setTableScopeTextStyle(updateBlock: (com.webscare.urducanvas.common.canvas.model.TableTextStyle) -> Unit) {
         updateSelectedTableData { data ->
-            val scope = _currentTableScope.value
-            val r = _selectedTableRow.value
-            val c = _selectedTableCol.value
-            val style = when (scope) {
-                com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> data.base
-                com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> data.headerStyle
-                com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> data.footerStyle
-                com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> data.headerColStyle
-                com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> data.rowStyles.getOrPut(r) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }
-                com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> data.colStyles.getOrPut(c) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }
-                com.webscare.urducanvas.common.canvas.enums.TableScope.CELL -> {
+            val cells = data.selectedCells
+            if (cells.isNotEmpty()) {
+                for (cellPair in cells) {
+                    val r = cellPair.first
+                    val c = cellPair.second
                     if (r in 0 until data.rows && c in 0 until data.cols) {
                         val cell = data.cells[r][c]
-                        cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
-                    } else data.base
+                        val cellOverride = cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
+                        updateBlock(cellOverride)
+                    }
                 }
+            } else if (_currentTableScope.value == com.webscare.urducanvas.common.canvas.enums.TableScope.CELL) {
+                val r = _selectedTableRow.value
+                val c = _selectedTableCol.value
+                if (r in 0 until data.rows && c in 0 until data.cols) {
+                    val cell = data.cells[r][c]
+                    val cellOverride = cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
+                    updateBlock(cellOverride)
+                }
+            } else {
+                updateBlock(data.base)
             }
-            updateBlock(style)
         }
+    }
+
+    /** Read-only: returns the current scope's [TableTextStyle] (or base if scope is invalid). */
+    fun getTableScopeStyle(): com.webscare.urducanvas.common.canvas.model.TableTextStyle? {
+        val data = getSelectedTableData() ?: return null
+        val cells = data.selectedCells
+        if (cells.isNotEmpty()) {
+            val first = cells.first()
+            val r = first.first
+            val c = first.second
+            if (r in 0 until data.rows && c in 0 until data.cols) {
+                return data.cells[r][c].override ?: data.base
+            }
+        }
+        val scope = _currentTableScope.value
+        val r = _selectedTableRow.value
+        val c = _selectedTableCol.value
+        return when (scope) {
+            com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> data.base
+            com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> data.headerStyle
+            com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> data.footerStyle
+            com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> data.headerColStyle
+            com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> data.rowStyles[r] ?: data.base
+            com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> data.colStyles[c] ?: data.base
+            com.webscare.urducanvas.common.canvas.enums.TableScope.CELL -> {
+                if (r in 0 until data.rows && c in 0 until data.cols) {
+                    data.cells[r][c].override ?: data.base
+                } else data.base
+            }
+        }
+    }
+
+    /** Read-only: returns the selected table element's [TableData], or null. */
+    fun getSelectedTableData(): com.webscare.urducanvas.common.canvas.model.TableData? {
+        return _canvasElements.value
+            ?.firstOrNull { it.isSelected && it.type == ElementType.TABLE }
+            ?.tableData
     }
 
     fun setTableTextColor(color: Int) = setTableScopeTextStyle { it.textColor = color }
@@ -4064,6 +4174,22 @@ class CanvasViewModel @Inject constructor(
         updateSelectedTableData { data -> data.cornerRadius = radius }
     }
 
+    private val _isTableEditMode = MutableLiveData<Boolean>(false)
+    val isTableEditMode: LiveData<Boolean> get() = _isTableEditMode
+
+    fun enterTableEditMode() {
+        _isTableEditMode.value = true
+    }
+
+    fun exitTableEditMode() {
+        _isTableEditMode.value = false
+        _selectedTableRow.value = -1
+        _selectedTableCol.value = -1
+        updateSelectedTableData { data ->
+            data.selectedCells.clear()
+        }
+    }
+
     fun setTableHeader(enabled: Boolean) {
         updateSelectedTableData { data ->
             data.hasHeader = enabled
@@ -4078,6 +4204,10 @@ class CanvasViewModel @Inject constructor(
 
     fun setTableFooter(enabled: Boolean) {
         updateSelectedTableData { data -> data.hasFooter = enabled }
+    }
+
+    fun setTableHeaderCol(enabled: Boolean) {
+        updateSelectedTableData { data -> data.hasHeaderCol = enabled }
     }
 
     fun setTableCellText(row: Int, col: Int, text: String) {
@@ -4144,7 +4274,7 @@ class CanvasViewModel @Inject constructor(
         val color = _shadowColor.value ?: Color.GRAY
         val radius = _shadowRadius.value ?: 8f
         val opacity = _shadowOpacity.value ?: 64
-        val enabled = _hasShadow.value ?: true
+        val enabled = true
         setImageShadow(enabled, color, dx, dy, radius, opacity, pushToUndo = false, skipAngleDistSync = true)
     }
 
@@ -4156,7 +4286,7 @@ class CanvasViewModel @Inject constructor(
         val color = _shadowColor.value ?: Color.GRAY
         val radius = _shadowRadius.value ?: 8f
         val opacity = _shadowOpacity.value ?: 64
-        val enabled = _hasShadow.value ?: true
+        val enabled = true
         setImageShadow(enabled, color, dx, dy, radius, opacity, pushToUndo = false, skipAngleDistSync = true)
     }
 
@@ -4166,7 +4296,7 @@ class CanvasViewModel @Inject constructor(
         val dx = _shadowDx.value ?: 1f
         val dy = _shadowDy.value ?: 1f
         val opacity = _shadowOpacity.value ?: 64
-        val enabled = _hasShadow.value ?: true
+        val enabled = true
         setImageShadow(enabled, color, dx, dy, radius, opacity, pushToUndo = false)
     }
 
@@ -4176,7 +4306,7 @@ class CanvasViewModel @Inject constructor(
         val dx = _shadowDx.value ?: 1f
         val dy = _shadowDy.value ?: 1f
         val radius = _shadowRadius.value ?: 8f
-        val enabled = _hasShadow.value ?: true
+        val enabled = true
         setImageShadow(enabled, color, dx, dy, radius, opacity, pushToUndo = false)
     }
 

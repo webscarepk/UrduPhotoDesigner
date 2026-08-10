@@ -113,23 +113,20 @@ class FontLanguagesAdapter(
             binding.rvCategories.visibility = if (showCategories) View.VISIBLE else View.GONE
             catAdapter.submit(font.categories)
 
-            // Background tint (collapsed) / left-border accent (expanded)
-            if (isExpandedMode) {
-                // Remove background fill; left border is handled by the layout drawable
-                binding.tabTitle.backgroundTintList = ColorStateList.valueOf(
-                    ContextCompat.getColor(binding.root.context, android.R.color.transparent)
-                )
-                // Swap a left-border indicator drawable on the root
-                binding.tabRoot.setBackgroundResource(
-                    if (font.is_selected) R.drawable.button_bg_small
-                    else android.R.color.transparent
-                )
+            val context = binding.root.context
+            val appColor = ContextCompat.getColor(context, R.color.appColor)
+            val selectedBgColor = ContextCompat.getColor(context, R.color.contrast)
+
+            if (font.is_selected) {
+                binding.tabRoot.setBackgroundColor(selectedBgColor)
+                binding.tabTitle.setTextColor(appColor)
+                androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(binding.tabTitle, ColorStateList.valueOf(appColor))
+                binding.selectedIndicator.visibility = View.VISIBLE
             } else {
-                val color = if (font.is_selected) R.color.selection else android.R.color.transparent
-                binding.tabTitle.backgroundTintList = ColorStateList.valueOf(
-                    ContextCompat.getColor(binding.root.context, color)
-                )
-                binding.tabRoot.setBackgroundResource(android.R.color.transparent)
+                binding.tabRoot.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                binding.tabTitle.setTextColor(ContextCompat.getColor(context, R.color.black))
+                androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(binding.tabTitle, ColorStateList.valueOf(ContextCompat.getColor(context, R.color.gray)))
+                binding.selectedIndicator.visibility = View.GONE
             }
         }
     }

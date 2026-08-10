@@ -100,6 +100,15 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
     private fun setEvents() {
         val selectedElement = elementId?.let { id ->
             viewModel.canvasElements.value?.find { it.id == id }
+        } ?: viewModel.selectedElements.value?.firstOrNull()
+
+        binding.title.text = when (selectedElement?.type) {
+            ElementType.TEXT -> getString(R.string.text_properties)
+            ElementType.TABLE -> getString(R.string.table_properties)
+            ElementType.SHAPE -> getString(R.string.shape_properties)
+            ElementType.STICKER -> getString(R.string.sticker_properties)
+            ElementType.IMAGE -> getString(R.string.image_properties)
+            else -> getString(R.string.image_properties)
         }
 
         val isSvgElement = selectedElement?.svgDrawable != null

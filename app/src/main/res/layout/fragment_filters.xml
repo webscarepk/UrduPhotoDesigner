@@ -87,21 +87,18 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Value Box next to title -->
+        <!-- Value Text aligned to end -->
         <TextView
             android:id="@+id/intensityValueText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/edit_bg_stroke"
+            android:layout_marginEnd="12dp"
             android:fontFamily="@font/regular"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="4dp"
             android:text="100"
             android:textColor="@color/black"
             android:textSize="12sp"
             app:layout_constraintBottom_toBottomOf="@id/intensityTitle"
-            app:layout_constraintStart_toEndOf="@id/intensityTitle"
+            app:layout_constraintEnd_toStartOf="@id/btnDoneIntensity"
             app:layout_constraintTop_toTopOf="@id/intensityTitle" />
 
         <!-- Right: Tick / Done Button to return to filters view -->
@@ -128,7 +125,8 @@
             android:progress="100"
             android:progressBackgroundTint="@color/light_gray"
             android:progressTint="@color/appColor"
-            android:thumbTint="@color/appColor"
+            android:splitTrack="false"
+            android:thumb="@drawable/seekbar_thumb_custom"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"

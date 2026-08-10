@@ -73,7 +73,6 @@ class TableStructureTabFragment : Fragment() {
                 tabs.add(PanelTabs(1, "Header", false))
                 tabs.add(PanelTabs(2, "Direction", false))
                 tabs.add(PanelTabs(3, "Wrap", false))
-                tabs.add(PanelTabs(4, "Styles", false))
 
                 adapter.submitList(ArrayList(tabs))
                 handleTabSelection(tabs.firstOrNull())

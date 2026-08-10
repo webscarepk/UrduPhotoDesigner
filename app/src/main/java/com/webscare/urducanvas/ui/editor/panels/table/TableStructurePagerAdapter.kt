@@ -17,7 +17,6 @@ class TableStructurePagerAdapter(
             "Header"    -> TableHeaderFooterFragment.newInstance()
             "Direction" -> TableDirectionFragment.newInstance()
             "Wrap"      -> TableWrapFragment.newInstance()
-            "Styles"    -> TableStylesFragment.newInstance()
             else        -> TableGridFragment.newInstance()
         }
     }

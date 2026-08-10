@@ -1321,11 +1321,17 @@ class EditorFragment : Fragment() {
         cbOnRequestOpenLayers = { handleRequestOpenLayers() }
         cbOnCanvasLongPressed = { sx, sy -> showCanvasPopupMenu(sx, sy) }
         if (::sizedCanvasView.isInitialized) {
+            sizedCanvasView.onExitTableEditMode = { viewModel.exitTableEditMode() }
+            sizedCanvasView.onTableCellSelected = { r, c -> viewModel.setTableScope(com.webscare.urducanvas.common.canvas.enums.TableScope.CELL, r, c) }
             sizedCanvasView.onProcessingStateChanged = { isProcessing -> viewModel.setProcessingAdjustments(isProcessing) }
         }
         viewModel.isProcessingAdjustments.observe(viewLifecycleOwner) { isProcessing ->
             val canvasView = if (::sizedCanvasView.isInitialized) sizedCanvasView else viewModel.getCanvasView()
             canvasView?.isProcessingAdjustments = (isProcessing == true)
+        }
+        viewModel.isTableEditMode.observe(viewLifecycleOwner) { isTableEdit ->
+            val canvasView = if (::sizedCanvasView.isInitialized) sizedCanvasView else viewModel.getCanvasView()
+            canvasView?.isTableEditMode = (isTableEdit == true)
         }
     }
 
@@ -1436,6 +1442,11 @@ class EditorFragment : Fragment() {
                             val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
                             navController.navigate(R.id.drawFragment, bundle, navOptions)
                         }
+                    }
+                    ElementType.TABLE -> {
+                        viewModel.enterTableEditMode()
+                        val dialog = com.webscare.urducanvas.ui.editor.panels.table.CellTextEditDialog.newInstance()
+                        dialog.show(childFragmentManager, "CellTextEditDialog")
                     }
                     else -> showTextEditDialog(element)
                 }

@@ -5,168 +5,21 @@
     android:layout_height="match_parent"
     android:clipToPadding="false"
     android:fillViewport="true"
-    android:paddingTop="8dp"
-    android:paddingBottom="40dp">
+    android:paddingTop="4dp"
+    android:paddingBottom="16dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Apply To Section Title -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:fontFamily="@font/medium"
-            android:text="Apply to"
-            android:textColor="#8E94A2"
-            android:textSize="12sp" />
-
-        <!-- Border Mode Pill Tiles (28dp height) -->
-        <HorizontalScrollView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:paddingHorizontal="12dp"
-            android:scrollbars="none">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/tileAll"
-                    android:layout_width="48dp"
-                    android:layout_height="28dp"
-                    android:background="@drawable/button_bg_small"
-                    android:backgroundTint="@color/appColor"
-                    android:fontFamily="@font/medium"
-                    android:gravity="center"
-                    android:text="All"
-                    android:textColor="@color/white"
-                    android:textSize="11sp" />
-
-                <TextView
-                    android:id="@+id/tileOuter"
-                    android:layout_width="48dp"
-                    android:layout_height="28dp"
-                    android:layout_marginStart="6dp"
-                    android:background="@drawable/button_bg_small"
-                    android:backgroundTint="@color/contrast"
-                    android:fontFamily="@font/medium"
-                    android:gravity="center"
-                    android:text="Outer"
-                    android:textColor="@color/black"
-                    android:textSize="11sp" />
-
-                <TextView
-                    android:id="@+id/tileInner"
-                    android:layout_width="48dp"
-                    android:layout_height="28dp"
-                    android:layout_marginStart="6dp"
-                    android:background="@drawable/button_bg_small"
-                    android:backgroundTint="@color/contrast"
-                    android:fontFamily="@font/medium"
-                    android:gravity="center"
-                    android:text="Inner"
-                    android:textColor="@color/black"
-                    android:textSize="11sp" />
-
-                <TextView
-                    android:id="@+id/tileHoriz"
-                    android:layout_width="48dp"
-                    android:layout_height="28dp"
-                    android:layout_marginStart="6dp"
-                    android:background="@drawable/button_bg_small"
-                    android:backgroundTint="@color/contrast"
-                    android:fontFamily="@font/medium"
-                    android:gravity="center"
-                    android:text="Horiz"
-                    android:textColor="@color/black"
-                    android:textSize="11sp" />
-
-                <TextView
-                    android:id="@+id/tileVert"
-                    android:layout_width="48dp"
-                    android:layout_height="28dp"
-                    android:layout_marginStart="6dp"
-                    android:background="@drawable/button_bg_small"
-                    android:backgroundTint="@color/contrast"
-                    android:fontFamily="@font/medium"
-                    android:gravity="center"
-                    android:text="Vert"
-                    android:textColor="@color/black"
-                    android:textSize="11sp" />
-
-                <TextView
-                    android:id="@+id/tileNone"
-                    android:layout_width="48dp"
-                    android:layout_height="28dp"
-                    android:layout_marginStart="6dp"
-                    android:background="@drawable/button_bg_small"
-                    android:backgroundTint="@color/contrast"
-                    android:fontFamily="@font/medium"
-                    android:gravity="center"
-                    android:text="None"
-                    android:textColor="@color/black"
-                    android:textSize="11sp" />
-            </LinearLayout>
-        </HorizontalScrollView>
-
-        <!-- Border Width Seekbar with Title aligned to start -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:fontFamily="@font/medium"
-                android:text="Border Width"
-                android:textColor="@color/black"
-                android:textSize="12sp" />
-
-            <TextView
-                android:id="@+id/tvBorderWidth"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/edit_bg_stroke"
-                android:fontFamily="@font/regular"
-                android:paddingHorizontal="6dp"
-                android:paddingVertical="2dp"
-                android:text="2dp"
-                android:textColor="@color/black"
-                android:textSize="12sp" />
-        </LinearLayout>
-
-        <SeekBar
-            android:id="@+id/seekBorderWidth"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
-            android:layout_marginStart="0dp"
-            android:layout_marginEnd="0dp"
-            android:indeterminateTint="@color/appColor"
-            android:max="10"
-            android:progress="2"
-            android:progressBackgroundTint="@color/light_gray"
-            android:progressTint="@color/appColor"
-            android:thumbTint="@color/appColor" />
-
-        <!-- Solid / Gradient Segmented Pill Toolbar (Matching FillStrokeFragment) -->
+        <!-- 1. TOP: Solid / Gradient Toggle -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="12dp"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="2dp"
             android:background="@drawable/button_bg_small"
             android:backgroundTint="@color/contrast"
             android:padding="1dp">
@@ -207,24 +60,175 @@
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
+        <!-- Color / Gradient Swatches Row -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/colors"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="8dp"
-            android:paddingHorizontal="12dp"
+            android:layout_height="44dp"
+            android:layout_marginTop="4dp"
+            android:clipToPadding="false"
             android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="16dp"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/gradients"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="8dp"
-            android:paddingHorizontal="12dp"
+            android:layout_height="44dp"
+            android:layout_marginTop="4dp"
+            android:clipToPadding="false"
             android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="16dp"
             android:visibility="gone"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+        <!-- 2. MIDDLE: Border Width Seekbar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:fontFamily="@font/medium"
+                android:text="Border Width"
+                android:textColor="@color/black"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tvBorderWidth"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="12dp"
+                android:fontFamily="@font/regular"
+                android:text="2dp"
+                android:textColor="@color/black"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <SeekBar
+            android:id="@+id/seekBorderWidth"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:indeterminateTint="@color/appColor"
+            android:max="10"
+            android:progress="2"
+            android:progressBackgroundTint="@color/light_gray"
+            android:progressTint="@color/appColor"
+            android:splitTrack="false"
+            android:thumb="@drawable/seekbar_thumb_custom" />
+
+        <!-- 3. BOTTOM: Apply To (Border Mode) -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="4dp"
+            android:fontFamily="@font/medium"
+            android:text="Apply to"
+            android:textColor="#8E94A2"
+            android:textSize="12sp" />
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:clipToPadding="false"
+            android:paddingStart="12dp"
+            android:paddingEnd="16dp"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tileAll"
+                    android:layout_width="44dp"
+                    android:layout_height="26dp"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/appColor"
+                    android:fontFamily="@font/medium"
+                    android:gravity="center"
+                    android:text="All"
+                    android:textColor="@color/white"
+                    android:textSize="10sp" />
+
+                <TextView
+                    android:id="@+id/tileOuter"
+                    android:layout_width="44dp"
+                    android:layout_height="26dp"
+                    android:layout_marginStart="4dp"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/contrast"
+                    android:fontFamily="@font/medium"
+                    android:gravity="center"
+                    android:text="Outer"
+                    android:textColor="@color/black"
+                    android:textSize="10sp" />
+
+                <TextView
+                    android:id="@+id/tileInner"
+                    android:layout_width="44dp"
+                    android:layout_height="26dp"
+                    android:layout_marginStart="4dp"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/contrast"
+                    android:fontFamily="@font/medium"
+                    android:gravity="center"
+                    android:text="Inner"
+                    android:textColor="@color/black"
+                    android:textSize="10sp" />
+
+                <TextView
+                    android:id="@+id/tileHoriz"
+                    android:layout_width="44dp"
+                    android:layout_height="26dp"
+                    android:layout_marginStart="4dp"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/contrast"
+                    android:fontFamily="@font/medium"
+                    android:gravity="center"
+                    android:text="Horiz"
+                    android:textColor="@color/black"
+                    android:textSize="10sp" />
+
+                <TextView
+                    android:id="@+id/tileVert"
+                    android:layout_width="44dp"
+                    android:layout_height="26dp"
+                    android:layout_marginStart="4dp"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/contrast"
+                    android:fontFamily="@font/medium"
+                    android:gravity="center"
+                    android:text="Vert"
+                    android:textColor="@color/black"
+                    android:textSize="10sp" />
+
+                <TextView
+                    android:id="@+id/tileNone"
+                    android:layout_width="44dp"
+                    android:layout_height="26dp"
+                    android:layout_marginStart="4dp"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/contrast"
+                    android:fontFamily="@font/medium"
+                    android:gravity="center"
+                    android:text="None"
+                    android:textColor="@color/black"
+                    android:textSize="10sp" />
+            </LinearLayout>
+        </HorizontalScrollView>
 
     </LinearLayout>
 </ScrollView>

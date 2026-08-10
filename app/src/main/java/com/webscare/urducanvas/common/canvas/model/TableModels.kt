@@ -49,6 +49,7 @@ data class TableData(
     @SerializedName("paddingV") var paddingV: Float = 8f,
     @SerializedName("hasHeader") var hasHeader: Boolean = true,
     @SerializedName("hasFooter") var hasFooter: Boolean = false,
+    @SerializedName("hasHeaderCol") var hasHeaderCol: Boolean = false,
     @SerializedName("isRTL") var isRTL: Boolean = true,
     @SerializedName("contentWrap") var contentWrap: Boolean = false,
     @SerializedName("base") var base: TableTextStyle = TableTextStyle(),
@@ -57,7 +58,8 @@ data class TableData(
     @SerializedName("headerColStyle") var headerColStyle: TableTextStyle = TableTextStyle(),
     @SerializedName("rowStyles") var rowStyles: MutableMap<Int, TableTextStyle> = mutableMapOf(),
     @SerializedName("colStyles") var colStyles: MutableMap<Int, TableTextStyle> = mutableMapOf(),
-    @SerializedName("cells") var cells: MutableList<MutableList<TableCell>> = mutableListOf()
+    @SerializedName("cells") var cells: MutableList<MutableList<TableCell>> = mutableListOf(),
+    @SerializedName("selectedCells") var selectedCells: MutableSet<Pair<Int, Int>> = mutableSetOf()
 ) {
     fun deepCopy(): TableData {
         return TableData(
@@ -72,6 +74,7 @@ data class TableData(
             paddingV = paddingV,
             hasHeader = hasHeader,
             hasFooter = hasFooter,
+            hasHeaderCol = hasHeaderCol,
             isRTL = isRTL,
             contentWrap = contentWrap,
             base = base.deepCopy(),
@@ -80,7 +83,8 @@ data class TableData(
             headerColStyle = headerColStyle.deepCopy(),
             rowStyles = rowStyles.mapValues { it.value.deepCopy() }.toMutableMap(),
             colStyles = colStyles.mapValues { it.value.deepCopy() }.toMutableMap(),
-            cells = cells.map { row -> row.map { cell -> cell.deepCopy() }.toMutableList() }.toMutableList()
+            cells = cells.map { row -> row.map { cell -> cell.deepCopy() }.toMutableList() }.toMutableList(),
+            selectedCells = selectedCells.toMutableSet()
         )
     }
 

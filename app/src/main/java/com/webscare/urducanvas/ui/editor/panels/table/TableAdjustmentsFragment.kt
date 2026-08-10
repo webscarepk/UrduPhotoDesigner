@@ -14,7 +14,7 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ImageView
-import android.widget.PopupMenu
+
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.view.doOnLayout
@@ -45,7 +45,7 @@ class TableAdjustmentsFragment : Fragment() {
     private val binding get() = _binding!!
 
     private var mediator: TabLayoutMediator? = null
-    private val tabs = listOf("Font", "Appearance", "Format", "Structure")
+    private val tabs = listOf("Font", "Appearance", "Format", "Structure", "Styles")
     private lateinit var adapter: TableAdjustmentsPagerAdapter
 
     private val viewModel: CanvasViewModel by activityViewModels()
@@ -60,11 +60,11 @@ class TableAdjustmentsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        binding.title.text = getString(R.string.table_properties)
         binding.viewPager.isSaveEnabled = false
         binding.viewPager.adapter = null
 
         setEvents()
-        observeScope()
     }
 
     private fun setEvents() {
@@ -85,73 +85,6 @@ class TableAdjustmentsFragment : Fragment() {
             hideKeyboard()
             findNavController().navigateUp()
         }
-
-        binding.scopeChip.addPressEffect {
-            showScopePopupMenu(binding.scopeChip)
-        }
-    }
-
-    private fun observeScope() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.currentTableScope.collectLatest { scope ->
-                    updateScopeChip(scope)
-                }
-            }
-        }
-    }
-
-    private fun updateScopeChip(scope: TableScope) {
-        if (_binding == null) return
-        val r = viewModel.selectedTableRow.value + 1
-        val c = viewModel.selectedTableCol.value + 1
-        val label = when (scope) {
-            TableScope.WHOLE_TABLE -> "Whole Table"
-            TableScope.HEADER_ROW -> "Header Row"
-            TableScope.FOOTER_ROW -> "Footer Row"
-            TableScope.HEADER_COL -> "Header Column"
-            TableScope.ROW -> "Row $r"
-            TableScope.COLUMN -> "Column $c"
-            TableScope.CELL -> "Cell ($r, $c)"
-        }
-        binding.scopeChip.text = label
-    }
-
-    private fun showScopePopupMenu(anchor: View) {
-        val context = context ?: return
-        val popup = PopupMenu(context, anchor)
-        val r = viewModel.selectedTableRow.value + 1
-        val c = viewModel.selectedTableCol.value + 1
-
-        popup.menu.add(0, 1, 0, "🌐 Whole Table")
-        popup.menu.add(0, 2, 1, "▔ Header Row")
-        popup.menu.add(0, 3, 2, " Footer Row")
-        popup.menu.add(0, 4, 3, " Row $r")
-        popup.menu.add(0, 5, 4, " Column $c")
-        popup.menu.add(0, 6, 5, "◽ Cell ($r, $c)")
-        popup.menu.add(0, 7, 6, "✏️ Edit Cell Text")
-
-        popup.setOnMenuItemClickListener { item ->
-            val scope = when (item.itemId) {
-                1 -> TableScope.WHOLE_TABLE
-                2 -> TableScope.HEADER_ROW
-                3 -> TableScope.FOOTER_ROW
-                4 -> TableScope.ROW
-                5 -> TableScope.COLUMN
-                6 -> TableScope.CELL
-                7 -> {
-                    CellTextEditDialog.newInstance().show(childFragmentManager, "CellTextEditDialog")
-                    return@setOnMenuItemClickListener true
-                }
-                else -> TableScope.WHOLE_TABLE
-            }
-            viewModel.setTableScope(scope, viewModel.selectedTableRow.value, viewModel.selectedTableCol.value)
-            if (item.itemId == 6) {
-                CellTextEditDialog.newInstance().show(childFragmentManager, "CellTextEditDialog")
-            }
-            true
-        }
-        popup.show()
     }
 
     private fun setupTabLayout() {

@@ -20,6 +20,7 @@ class TableAdjustmentsPagerAdapter(
             "Appearance" -> TableAppearanceTabFragment.newInstance()
             "Format"     -> TableFormatTabFragment.newInstance()
             "Structure"  -> TableStructureTabFragment.newInstance()
+            "Styles"     -> TableStylesFragment.newInstance()
             else         -> FontsFragment.newInstance(standaloneMode = true)
         }
     }

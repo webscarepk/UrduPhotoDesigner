@@ -1,49 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    Root has android:id="@+id/tabRoot" so FontLanguagesAdapter can swap
-    bg_lang_selected_border (left blue bar) vs transparent in expanded mode.
--->
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/tabRoot"
-    android:backgroundTint="@color/contrast"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:minHeight="32dp">
 
     <TextView
         android:id="@+id/tabTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:drawablePadding="10dp"
+        android:fontFamily="@font/regular"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="8dp"
+        android:paddingVertical="6dp"
         android:text="@string/all"
         android:textColor="@color/black"
         android:textSize="12sp"
-        android:fontFamily="@font/regular"
-        android:paddingVertical="6dp"
-        android:paddingHorizontal="12dp"
-        android:background="@drawable/button_bg_small"
-        android:backgroundTint="@android:color/transparent"
         app:drawableEndCompat="@drawable/ic_dropdown"
-        android:drawablePadding="@dimen/_10sdp"
+        app:layout_constraintBottom_toTopOf="@id/rvCategories"
+        app:layout_constraintEnd_toStartOf="@id/selectedIndicator"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <View
+        android:id="@+id/selectedIndicator"
+        android:layout_width="3dp"
+        android:layout_height="0dp"
+        android:background="@drawable/bg_selected_indicator_bar"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/tabTitle"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/rvCategories" />
+        app:layout_constraintTop_toTopOf="@id/tabTitle"
+        tools:visibility="visible" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvCategories"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="5dp"
-        android:layout_marginEnd="12dp"
         android:orientation="vertical"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        tools:listitem="@layout/layout_tabs_item"
-        tools:itemCount="3"
-        app:layout_constraintTop_toBottomOf="@id/tabTitle"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="@id/tabTitle"
-        app:layout_constraintEnd_toEndOf="@id/tabTitle" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tabTitle"
+        tools:itemCount="3"
+        tools:listitem="@layout/layout_tabs_item" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

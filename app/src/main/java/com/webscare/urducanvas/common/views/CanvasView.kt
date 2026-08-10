@@ -115,8 +115,16 @@ class CanvasView @JvmOverloads constructor(
     var onStrokeCompleted: ((StrokeData) -> Unit)? = null,
     var onZoomChanged: ((Float) -> Unit)? = null,
     var onCanvasLongPressed: ((screenX: Float, screenY: Float) -> Unit)? = null,
-    var onProcessingStateChanged: ((Boolean) -> Unit)? = null
+    var onProcessingStateChanged: ((Boolean) -> Unit)? = null,
+    var onExitTableEditMode: (() -> Unit)? = null,
+    var onTableCellSelected: ((row: Int, col: Int) -> Unit)? = null
 ) : View(context, attrs) {
+
+    var isTableEditMode: Boolean = false
+        set(value) {
+            field = value
+            invalidate()
+        }
 
     private val gson: Gson by lazy {
         EntryPointAccessors.fromApplication(
@@ -2096,6 +2104,21 @@ class CanvasView @JvmOverloads constructor(
                     if (currentStrokePath != null && currentStrokePaint != null) {
                         drawLivePreviewStroke(this)
                     }
+                } else if (isTableEditMode) {
+                    drawCanvasShadow(this)
+                    val activeTable = selectedElements.firstOrNull { it.type == ElementType.TABLE }
+                    val nonTableIds = canvasElements.filter { it.id != activeTable?.id }.map { it.id }.toSet()
+                    drawCanvasElements(this, showOverlays = false, showCheckerboard = false, isolatedIds = nonTableIds)
+                    drawRect(
+                        0f,
+                        0f,
+                        canvasWidth.toFloat(),
+                        canvasHeight.toFloat(),
+                        drawingModeOverlayPaint
+                    )
+                    activeTable?.let { tableElement ->
+                        drawCanvasElements(this, showOverlays = true, showCheckerboard = false, isolatedIds = setOf(tableElement.id))
+                    }
                 } else {
                     drawCanvasShadow(this)
                     if (activeGroupId != null) {
@@ -3131,7 +3154,7 @@ class CanvasView @JvmOverloads constructor(
             }
         }
 
-        // Pass 3: Cell Texts
+        // Pass 3: Cell Texts (with strict cell bounds clipping)
         for (r in 0 until cache.rows) {
             for (c in 0 until cache.cols) {
                 val layout = cache.cellLayouts[r][c]
@@ -3140,6 +3163,9 @@ class CanvasView @JvmOverloads constructor(
                 val rect = layout.rect
                 val padH = tableData.paddingH
                 val padV = tableData.paddingV
+
+                val cellSave = canvas.save()
+                canvas.clipRect(rect)
 
                 val fm = layout.paint.fontMetrics
                 val lineSpacingMult = (layout.style.lineSpacing ?: 1.0f).coerceAtLeast(0.5f)
@@ -3163,12 +3189,70 @@ class CanvasView @JvmOverloads constructor(
                     canvas.drawText(line, textX, currentY, layout.paint)
                     currentY += lineHeight
                 }
+
+                canvas.restoreToCount(cellSave)
+            }
+        }
+
+        // Pass 4: Cell Selection Highlights
+        if (tableData.selectedCells.isNotEmpty() && element.isSelected) {
+            val highlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                color = Color.parseColor("#005D28")
+                strokeWidth = 3f * density
+            }
+            val fillHighlight = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = Color.parseColor("#33005D28")
+            }
+            for (cellPair in tableData.selectedCells) {
+                val sr = cellPair.first
+                val sc = cellPair.second
+                if (sr in 0 until cache.rows && sc in 0 until cache.cols) {
+                    val cellRect = cache.cellLayouts[sr][sc].rect
+                    canvas.drawRect(cellRect, fillHighlight)
+                    canvas.drawRect(cellRect, highlightPaint)
+                }
             }
         }
 
         if (clipSave >= 0) {
             canvas.restoreToCount(clipSave)
         }
+    }
+
+    private fun getTableCellAt(element: CanvasElement, canvasX: Float, canvasY: Float): Pair<Int, Int>? {
+        val tableData = element.tableData ?: return null
+        val totalW = element.logicalContentWidth.takeIf { it > 0f } ?: (canvasWidth * 0.8f)
+        val totalH = element.logicalContentHeight.takeIf { it > 0f } ?: 300f
+
+        val cache = (element.tableLayoutCache as? com.webscare.urducanvas.common.canvas.cache.TableLayoutCache)
+            ?.takeIf { it.width == totalW && it.height == totalH && it.rows == tableData.rows && it.cols == tableData.cols }
+            ?: com.webscare.urducanvas.common.canvas.cache.TableLayoutCache.build(
+                data = tableData,
+                totalW = totalW,
+                totalH = totalH,
+                fontLookup = { null }
+            )
+
+        val matrix = Matrix().apply {
+            postTranslate(-element.x, -element.y)
+            postRotate(-element.rotation)
+            postScale(1f / element.scale, 1f / element.scale)
+        }
+        val pts = floatArrayOf(canvasX, canvasY)
+        matrix.mapPoints(pts)
+        val lx = pts[0]
+        val ly = pts[1]
+
+        for (r in 0 until cache.rows) {
+            for (c in 0 until cache.cols) {
+                if (cache.cellLayouts[r][c].rect.contains(lx, ly)) {
+                    return Pair(r, c)
+                }
+            }
+        }
+        return null
     }
 
     private fun drawElementOverlays(canvas: Canvas, showOverlays: Boolean = true) {
@@ -4644,6 +4728,18 @@ class CanvasView @JvmOverloads constructor(
                 invalidate()
                 return true
             } else if (touchedElement != null) {
+                if (touchedElement.type == ElementType.TABLE) {
+                    val cellPair = getTableCellAt(touchedElement, x, y)
+                    if (cellPair != null) {
+                        val (r, c) = cellPair
+                        val pair = Pair(r, c)
+                        touchedElement.tableData?.let { data ->
+                            data.selectedCells.clear()
+                            data.selectedCells.add(pair)
+                        }
+                        onTableCellSelected?.invoke(r, c)
+                    }
+                }
                 canvasElements.forEach { it.isSelected = false }
                 selectedElements.clear()
                 touchedElement.isSelected = true
@@ -4908,6 +5004,10 @@ class CanvasView @JvmOverloads constructor(
                     initialOffsetYAtPinch = overallOffsetY
 
                     when {
+                        // Table element selected → canvas zoom & pan
+                        selectedElements.any { it.type == ElementType.TABLE } -> {
+                            currentMode = Mode.CANVAS_PAN
+                        }
                         // Elements selected → element scale/rotate (pan mode OFF only)
                         selectedElements.isNotEmpty() && !isPanMode -> {
                             currentMode = Mode.MULTI_TOUCH
@@ -5243,6 +5343,11 @@ class CanvasView @JvmOverloads constructor(
                             tightBounds.contains(touchPoint[0], touchPoint[1])
                         }
 
+                if (isTableEditMode && (touchedElement == null || touchedElement.type != ElementType.TABLE)) {
+                    isTableEditMode = false
+                    onExitTableEditMode?.invoke()
+                }
+
                 if (touchedElement != null && !isPanMode) {
 
                     if (touchedElement.groupId != null) {
@@ -5313,7 +5418,33 @@ class CanvasView @JvmOverloads constructor(
                                 vibrateSoft()
                             }
                         } else {
-                            if (touchedElement.isSelected) {
+                            if (touchedElement.type == ElementType.TABLE) {
+                                canvasElements.forEach { it.isSelected = false }
+                                selectedElements.clear()
+                                touchedElement.isSelected = true
+                                selectedElements.add(touchedElement)
+                                lastTouchedElement = touchedElement
+
+                                if (isTableEditMode) {
+                                    val cellPair = getTableCellAt(touchedElement, x, y)
+                                    if (cellPair != null) {
+                                        val (r, c) = cellPair
+                                        val pair = Pair(r, c)
+                                        val data = touchedElement.tableData
+                                        if (data != null) {
+                                            data.selectedCells.clear()
+                                            data.selectedCells.add(pair)
+                                        }
+                                        onTableCellSelected?.invoke(r, c)
+                                    }
+                                    currentMode = Mode.NONE
+                                } else {
+                                    lastTouchedElement = touchedElement
+                                    currentMode = Mode.DRAG
+                                    touchStartX = x
+                                    touchStartY = y
+                                }
+                            } else if (touchedElement.isSelected) {
                                 lastTouchedElement = touchedElement
                                 currentMode = Mode.DRAG
                                 touchStartX = x
@@ -5508,8 +5639,8 @@ class CanvasView @JvmOverloads constructor(
                                     element.x = newX
                                     element.y = newY
                                 }
-                            } else {
-                                // non-background elements: regular drag
+                            } else if (element.type != ElementType.TABLE) {
+                                // non-table elements: regular drag
                                 element.x += dx
                                 element.y += dy
                             }

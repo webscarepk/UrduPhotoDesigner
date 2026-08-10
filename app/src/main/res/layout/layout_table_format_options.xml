@@ -165,18 +165,20 @@
             android:orientation="vertical"
             android:visibility="gone">
 
+            <!-- Padding Slider -->
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
                     android:fontFamily="@font/medium"
-                    android:text="Cell padding"
+                    android:text="Cell Padding"
                     android:textColor="@color/black"
                     android:textSize="13sp" />
 
@@ -184,11 +186,8 @@
                     android:id="@+id/tvPaddingValue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/edit_bg_stroke"
+                    android:layout_marginEnd="12dp"
                     android:fontFamily="@font/bold"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="2dp"
                     android:text="8 dp"
                     android:textColor="@color/black"
                     android:textSize="12sp" />
@@ -204,7 +203,8 @@
                 android:progress="8"
                 android:progressBackgroundTint="@color/light_gray"
                 android:progressTint="@color/appColor"
-                android:thumbTint="@color/appColor" />
+                android:splitTrack="false"
+                android:thumb="@drawable/seekbar_thumb_custom" />
         </LinearLayout>
 
         <!-- ═══ SIZE CATEGORY VIEW ═══ -->
@@ -217,15 +217,16 @@
 
             <!-- Font Size Slider -->
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
                     android:fontFamily="@font/medium"
                     android:text="Text size"
                     android:textColor="@color/black"
@@ -235,11 +236,8 @@
                     android:id="@+id/tvTextSizeBadge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/edit_bg_stroke"
+                    android:layout_marginEnd="12dp"
                     android:fontFamily="@font/bold"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="2dp"
                     android:text="24"
                     android:textColor="@color/black"
                     android:textSize="12sp" />
@@ -255,7 +253,8 @@
                 android:progress="24"
                 android:progressBackgroundTint="@color/light_gray"
                 android:progressTint="@color/appColor"
-                android:thumbTint="@color/appColor" />
+                android:splitTrack="false"
+                android:thumb="@drawable/seekbar_thumb_custom" />
         </LinearLayout>
 
         <!-- ═══ SPACING CATEGORY VIEW ═══ -->
@@ -268,15 +267,16 @@
 
             <!-- Letter Spacing -->
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
                     android:fontFamily="@font/medium"
                     android:text="Letter spacing"
                     android:textColor="@color/black"
@@ -286,11 +286,8 @@
                     android:id="@+id/tvLetterSpacingBadge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/edit_bg_stroke"
+                    android:layout_marginEnd="12dp"
                     android:fontFamily="@font/bold"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="2dp"
                     android:text="0"
                     android:textColor="@color/black"
                     android:textSize="12sp" />
@@ -306,20 +303,22 @@
                 android:progress="0"
                 android:progressBackgroundTint="@color/light_gray"
                 android:progressTint="@color/appColor"
-                android:thumbTint="@color/appColor" />
+                android:splitTrack="false"
+                android:thumb="@drawable/seekbar_thumb_custom" />
 
             <!-- Line Spacing -->
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
                 android:layout_marginTop="12dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
                     android:fontFamily="@font/medium"
                     android:text="Line spacing"
                     android:textColor="@color/black"
@@ -329,11 +328,8 @@
                     android:id="@+id/tvLineSpacingBadge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/edit_bg_stroke"
+                    android:layout_marginEnd="12dp"
                     android:fontFamily="@font/bold"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="2dp"
                     android:text="1.2"
                     android:textColor="@color/black"
                     android:textSize="12sp" />
@@ -349,7 +345,8 @@
                 android:progress="12"
                 android:progressBackgroundTint="@color/light_gray"
                 android:progressTint="@color/appColor"
-                android:thumbTint="@color/appColor" />
+                android:splitTrack="false"
+                android:thumb="@drawable/seekbar_thumb_custom" />
         </LinearLayout>
 
     </LinearLayout>

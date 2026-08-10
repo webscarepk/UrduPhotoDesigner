@@ -184,8 +184,8 @@ class TablesTabFragment : Fragment() {
                         setColor(contrastColor)
                         setStroke((1f * density).toInt(), appColor)
                     } else {
-                        setColor(Color.WHITE)
-                        setStroke((1f * density).toInt(), lightGray)
+                        setColor(contrastColor)
+                        setStroke((0.5f * density).toInt(), lightGray)
                     }
                 }
                 cell.background = bg

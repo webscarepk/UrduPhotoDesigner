@@ -36,7 +36,7 @@ class ShapeFragment : Fragment() {
     private lateinit var pagerAdapter: ShapePanelPagerAdapter
     private val viewModel: CanvasViewModel by activityViewModels()
 
-    private var isFillEnabled   = false
+    private var isFillEnabled   = true
     private var isStrokeEnabled = true
     private var isCornerEnabled = true
 
@@ -72,6 +72,7 @@ class ShapeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        binding.title.text = getString(R.string.shape_properties)
         setupTabs()
         initObservers()
         setEvents()
@@ -88,9 +89,9 @@ class ShapeFragment : Fragment() {
         binding.viewPager.offscreenPageLimit = 1
 
         tabs.addAll(listOf(
-            AdjustmentPanelTabs(0, "Fill",   true,  is_enabled = false),
-            AdjustmentPanelTabs(1, "Stroke", false, is_enabled = false),
-            AdjustmentPanelTabs(2, "Corner", false, is_enabled = false),
+            AdjustmentPanelTabs(0, "Fill",   true,  is_enabled = isFillEnabled),
+            AdjustmentPanelTabs(1, "Stroke", false, is_enabled = isStrokeEnabled),
+            AdjustmentPanelTabs(2, "Corner", false, is_enabled = isCornerEnabled),
             AdjustmentPanelTabs(3, "Mask",   false, is_enabled = false)
         ))
 
@@ -111,20 +112,24 @@ class ShapeFragment : Fragment() {
     }
 
     private fun handleUserTap(selected: AdjustmentPanelTabs) {
-        when (selected.tab_name) {
-            "Fill"   -> viewModel.toggleFillEnabled(!isFillEnabled)
-            "Stroke" -> viewModel.toggleStrokeEnabled(!isStrokeEnabled)
-            "Corner" -> viewModel.toggleCornerEnabled(!isCornerEnabled)
-            "Mask"   -> {
-                val element = viewModel.selectedElements.value?.firstOrNull()
-                val hasImage = element?.bitmap != null || element?.bitmapData != null
-                if (!hasImage) {
-                    pickImageLauncher.launch("image/*")
-                    return
+        val currentSelected = tabs.find { it.is_selected }
+        if (currentSelected?.tab_name == selected.tab_name) {
+            when (selected.tab_name) {
+                "Fill"   -> viewModel.toggleFillEnabled(!isFillEnabled)
+                "Stroke" -> viewModel.toggleStrokeEnabled(!isStrokeEnabled)
+                "Corner" -> viewModel.toggleCornerEnabled(!isCornerEnabled)
+                "Mask"   -> {
+                    val element = viewModel.selectedElements.value?.firstOrNull()
+                    val hasImage = element?.bitmap != null || element?.bitmapData != null
+                    if (!hasImage) {
+                        pickImageLauncher.launch("image/*")
+                        return
+                    }
                 }
             }
+        } else {
+            navigateTo(selected)
         }
-        navigateTo(selected)
     }
 
     private fun navigateTo(selected: AdjustmentPanelTabs) {

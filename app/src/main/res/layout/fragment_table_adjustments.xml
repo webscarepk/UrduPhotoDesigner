@@ -28,7 +28,7 @@
         android:orientation="vertical"
         app:layout_constraintGuide_percent="0.98" />
 
-    <!-- ── Row 1: back + title (Layer Properties) + Scope Chip Toggle (Right End) ── -->
+    <!-- ── Row 1: back + title (Table Properties) ── -->
     <ImageView
         android:id="@+id/back"
         android:layout_width="30dp"
@@ -47,31 +47,11 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
         android:fontFamily="@font/bold"
-        android:text="@string/layer_properties"
+        android:text="@string/table_properties"
         android:textColor="@color/black"
         android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="@id/back"
         app:layout_constraintStart_toEndOf="@id/back"
-        app:layout_constraintTop_toTopOf="@id/back" />
-
-    <!-- Scope Chip Toggle Button (anchored at right end, matching Image 1 fix) -->
-    <TextView
-        android:id="@+id/scopeChip"
-        android:layout_width="wrap_content"
-        android:layout_height="26dp"
-        android:background="@drawable/button_bg_small"
-        android:backgroundTint="#E4F3E9"
-        android:drawablePadding="4dp"
-        android:fontFamily="@font/regular"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="8dp"
-        android:text="Whole Table"
-        android:textColor="#005D28"
-        android:textSize="11sp"
-        app:drawableStartCompat="@drawable/ic_grid"
-        app:drawableTint="#005D28"
-        app:layout_constraintBottom_toBottomOf="@id/back"
-        app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toTopOf="@id/back" />
 
     <!-- ── Row 2: TabLayout & Search ── -->
@@ -145,7 +125,7 @@
         android:saveEnabled="false"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/toolbarRow" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

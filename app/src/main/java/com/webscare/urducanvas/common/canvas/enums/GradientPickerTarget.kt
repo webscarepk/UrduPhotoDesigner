@@ -10,5 +10,7 @@ enum class GradientPickerTarget {
   SHAPE_FILL,
   BACKGROUND,
   OVERLAY,
-  IMAGE_STROKE
+  IMAGE_STROKE,
+  TABLE_FILL,
+  TABLE_STROKE
 }

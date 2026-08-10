@@ -568,7 +568,8 @@
                     android:min="0"
                     android:progressBackgroundTint="@color/light_gray"
                     android:progressTint="@color/appColor"
-                    android:thumbTint="@color/appColor"
+                    android:splitTrack="false"
+                    android:thumb="@drawable/seekbar_thumb_custom"
                     android:visibility="gone" />
 
             </LinearLayout>
@@ -652,7 +653,8 @@
                     android:min="0"
                     android:progressBackgroundTint="@color/light_gray"
                     android:progressTint="@color/appColor"
-                    android:thumbTint="@color/appColor"
+                    android:splitTrack="false"
+                    android:thumb="@drawable/seekbar_thumb_custom"
                     android:visibility="gone" />
 
             </LinearLayout>

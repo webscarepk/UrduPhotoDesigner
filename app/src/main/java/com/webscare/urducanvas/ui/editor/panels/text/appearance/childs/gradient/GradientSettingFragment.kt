@@ -96,7 +96,7 @@ class GradientSettingFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun setEvents() {
-        binding.done.addPressEffect {
+        binding.root.findViewById<View>(com.webscare.urducanvas.R.id.done)?.addPressEffect {
             parentFragment?.childFragmentManager?.popBackStack()
         }
 

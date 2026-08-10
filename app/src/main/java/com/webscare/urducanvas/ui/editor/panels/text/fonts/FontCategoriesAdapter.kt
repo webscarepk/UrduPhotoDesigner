@@ -50,7 +50,7 @@ class FontCategoriesAdapter(
             binding.tabTitle.setTextColor(
                 ContextCompat.getColor(
                     binding.root.context,
-                    if (isSelected) R.color.black else R.color.gray
+                    if (isSelected) R.color.appColor else R.color.gray
                 )
             )
 

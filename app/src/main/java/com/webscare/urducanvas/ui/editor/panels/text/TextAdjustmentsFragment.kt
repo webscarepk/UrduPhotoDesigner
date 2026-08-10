@@ -55,6 +55,7 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        binding.title.text = getString(R.string.text_properties)
         binding.viewPager.isSaveEnabled = false
         binding.viewPager.adapter = null
 

@@ -53,17 +53,23 @@ class GradientsAdapter(
             val gradientDrawable = GradientDrawable(GradientDrawable.Orientation.RIGHT_LEFT, item.colors.toIntArray())
 
             val density = binding.root.resources.displayMetrics.density
-            val strokeSelectedPx = (1.5f * density + 0.5f).toInt()
+            val strokePx = (2.0f * density + 0.5f).toInt()
+            val marginPx = (3.5f * density + 0.5f).toInt()
+
+            val lp = binding.cardInner.layoutParams as ViewGroup.MarginLayoutParams
 
             if (isSelected) {
-                binding.root.strokeWidth = strokeSelectedPx
-                binding.root.strokeColor = ContextCompat.getColor(binding.root.context, R.color.appColor)
+                binding.cardOuter.strokeWidth = strokePx
+                binding.cardOuter.strokeColor = ContextCompat.getColor(binding.root.context, R.color.appColor)
+                lp.setMargins(marginPx, marginPx, marginPx, marginPx)
                 binding.edit.visibility = View.VISIBLE
             } else {
-                binding.root.strokeWidth = 0
-                binding.root.strokeColor = Color.TRANSPARENT
+                binding.cardOuter.strokeWidth = 0
+                binding.cardOuter.strokeColor = Color.TRANSPARENT
+                lp.setMargins(0, 0, 0, 0)
                 binding.edit.visibility = View.GONE
             }
+            binding.cardInner.layoutParams = lp
 
             binding.root.addPressEffect {
                 val previousSelected = selectedPosition

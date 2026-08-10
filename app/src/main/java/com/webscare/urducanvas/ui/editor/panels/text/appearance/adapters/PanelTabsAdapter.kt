@@ -1,15 +1,16 @@
 package com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters
 
-import android.content.res.ColorStateList
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
+import androidx.core.widget.TextViewCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.PanelTabs
 import com.webscare.urducanvas.databinding.LayoutTabsItemBinding
-import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class PanelTabsAdapter(
     private val onFontSelected: (PanelTabs) -> Unit
@@ -37,22 +38,22 @@ class PanelTabsAdapter(
 
     inner class FontViewHolder(private val binding: LayoutTabsItemBinding) :
         RecyclerView.ViewHolder(binding.root) {
-        fun bind(font: com.webscare.urducanvas.data.model.PanelTabs) {
+        fun bind(font: PanelTabs) {
+            val context = binding.root.context
+            val appColor = ContextCompat.getColor(context, R.color.appColor)
+            val selectedBgColor = ContextCompat.getColor(context, R.color.contrast)
+
+            // Clear compound drawable tint so ic_done_small_filled and ic_done_small_stroke render their native vector drawables
+            TextViewCompat.setCompoundDrawableTintList(binding.tabTitle, null)
 
             if (font.is_selected) {
-                binding.tabTitle.backgroundTintList = ColorStateList.valueOf(
-                    ContextCompat.getColor(
-                        binding.root.context,
-                        R.color.selection
-                    )
-                )
+                binding.tabRoot.setBackgroundColor(selectedBgColor)
+                binding.tabTitle.setTextColor(appColor)
+                binding.selectedIndicator.isVisible = true
             } else {
-                binding.tabTitle.backgroundTintList = ColorStateList.valueOf(
-                    ContextCompat.getColor(
-                        binding.root.context,
-                        android.R.color.transparent
-                    )
-                )
+                binding.tabRoot.setBackgroundColor(Color.TRANSPARENT)
+                binding.tabTitle.setTextColor(ContextCompat.getColor(context, R.color.black))
+                binding.selectedIndicator.isVisible = false
             }
 
             binding.tabTitle.text = font.tab_name
