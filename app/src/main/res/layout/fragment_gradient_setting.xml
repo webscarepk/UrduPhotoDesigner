@@ -26,7 +26,6 @@
         android:fontFamily="@font/medium"
         android:gravity="start"
         android:maxLines="1"
-        android:paddingHorizontal="6dp"
         android:text="@string/gradient_setting"
         android:textColor="@color/black"
         app:layout_constraintBottom_toBottomOf="@id/done"
