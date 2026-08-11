@@ -1,57 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@color/white"
     tools:context=".ui.editor.panels.adjustments.mask.MaskFragment">
 
     <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/topGuide"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.01"
-        android:id="@+id/topGuide"/>
+        app:layout_constraintGuide_percent="0.01" />
 
     <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/centerGuide"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.3"
         android:orientation="vertical"
-        android:id="@+id/centerGuide"/>
+        app:layout_constraintGuide_percent="0.3" />
 
     <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/bottomGuide"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.99"
         android:orientation="horizontal"
-        android:id="@+id/bottomGuide"/>
+        app:layout_constraintGuide_percent="0.99" />
 
     <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/startGuide"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.02"
         android:orientation="vertical"
-        android:id="@+id/startGuide"/>
+        app:layout_constraintGuide_percent="0.02" />
 
     <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/endGuide"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.98"
         android:orientation="vertical"
-        android:id="@+id/endGuide"/>
+        app:layout_constraintGuide_percent="0.98" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/fitToolbar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:padding="1dp"
         android:background="@drawable/button_bg_small"
         android:backgroundTint="@color/contrast"
-        app:layout_constraintTop_toBottomOf="@id/topGuide"
+        android:padding="1dp"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintStart_toEndOf="@id/startGuide"
-        app:layout_constraintEnd_toStartOf="@id/endGuide">
+        app:layout_constraintTop_toBottomOf="@id/topGuide">
 
         <TextView
             android:id="@+id/cover"
@@ -107,14 +107,14 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/fitPane"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
-        app:layout_constraintBottom_toTopOf="@id/editShape"
-        app:layout_constraintTop_toBottomOf="@id/fitToolbar"
-        android:layout_marginHorizontal="10dp"
-        android:id="@+id/fitPane">
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintTop_toBottomOf="@id/fitToolbar">
+
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/zoomCard"
             android:layout_width="0dp"
@@ -122,9 +122,9 @@
             android:layout_marginBottom="3dp"
             android:visibility="visible"
             app:layout_constraintBottom_toTopOf="@id/panXCard"
-            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent">
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
             <TextView
                 android:id="@+id/zoomTitle"
@@ -142,26 +142,23 @@
                 android:id="@+id/zoom"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/edit_bg_stroke"
+                android:layout_marginEnd="12dp"
                 android:fontFamily="@font/regular"
-                android:paddingHorizontal="6dp"
-                android:paddingVertical="4dp"
                 android:text="10"
                 android:textColor="@color/black"
                 android:textSize="12sp"
                 app:layout_constraintBottom_toBottomOf="@id/zoomTitle"
-                app:layout_constraintStart_toEndOf="@id/zoomTitle"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@id/zoomTitle" />
 
             <SeekBar
-                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/zoomBar"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:indeterminateTint="@color/appColor"
                 android:progress="20"
+                android:progressBackgroundTint="@color/light_gray"
                 android:progressTint="@color/appColor"
                 android:splitTrack="false"
                 android:thumb="@drawable/seekbar_thumb_custom"
@@ -177,10 +174,10 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="3dp"
             android:visibility="visible"
-            app:layout_constraintTop_toBottomOf="@id/zoomCard"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/panYCard"
-            app:layout_constraintStart_toStartOf="parent">
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/zoomCard">
 
             <TextView
                 android:id="@+id/panXTitle"
@@ -198,26 +195,23 @@
                 android:id="@+id/panX"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/edit_bg_stroke"
+                android:layout_marginEnd="12dp"
                 android:fontFamily="@font/regular"
-                android:paddingHorizontal="6dp"
-                android:paddingVertical="4dp"
                 android:text="10"
                 android:textColor="@color/black"
                 android:textSize="12sp"
                 app:layout_constraintBottom_toBottomOf="@id/panXTitle"
-                app:layout_constraintStart_toEndOf="@id/panXTitle"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@id/panXTitle" />
 
             <SeekBar
-                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/panXBar"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:indeterminateTint="@color/appColor"
                 android:progress="20"
+                android:progressBackgroundTint="@color/light_gray"
                 android:progressTint="@color/appColor"
                 android:splitTrack="false"
                 android:thumb="@drawable/seekbar_thumb_custom"
@@ -232,10 +226,10 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:visibility="visible"
-            app:layout_constraintTop_toBottomOf="@id/zoomCard"
             app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/panXCard"
-            app:layout_constraintEnd_toEndOf="parent">
+            app:layout_constraintTop_toBottomOf="@id/zoomCard">
 
             <TextView
                 android:id="@+id/panYTitle"
@@ -253,26 +247,23 @@
                 android:id="@+id/panY"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/edit_bg_stroke"
+                android:layout_marginEnd="12dp"
                 android:fontFamily="@font/regular"
-                android:paddingHorizontal="6dp"
-                android:paddingVertical="4dp"
                 android:text="10"
                 android:textColor="@color/black"
                 android:textSize="12sp"
                 app:layout_constraintBottom_toBottomOf="@id/panYTitle"
-                app:layout_constraintStart_toEndOf="@id/panYTitle"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@id/panYTitle" />
 
             <SeekBar
-                android:progressBackgroundTint="@color/light_gray"
                 android:id="@+id/panYBar"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:indeterminateTint="@color/appColor"
                 android:progress="20"
+                android:progressBackgroundTint="@color/light_gray"
                 android:progressTint="@color/appColor"
                 android:splitTrack="false"
                 android:thumb="@drawable/seekbar_thumb_custom"
@@ -288,16 +279,17 @@
         android:id="@+id/editShape"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp"
         android:background="@drawable/edit_bg_stroke"
         android:fontFamily="@font/regular"
         android:paddingHorizontal="20dp"
         android:paddingVertical="10dp"
-        android:layout_marginBottom="20dp"
         android:text="@string/edit_shape"
         android:textColor="@color/black"
         android:textSize="12sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/fitPane"/>
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/fitPane" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

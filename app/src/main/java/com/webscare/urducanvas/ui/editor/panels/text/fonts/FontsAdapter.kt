@@ -125,8 +125,9 @@ class FontsAdapter(
             rvPadding: Int
         ) {
             val isSelected = font.id.toString() == selectedFontId
+            val strokePx = (1.5f * cardRoot.context.resources.displayMetrics.density + 0.5f).toInt()
 
-            cardRoot.strokeWidth = if (isSelected) 2 else 0
+            cardRoot.strokeWidth = if (isSelected) strokePx else 0
             cardRoot.strokeColor = ContextCompat.getColor(
                 cardRoot.context, R.color.appColor
             )

@@ -33,18 +33,22 @@ class LabelsFragment : androidx.fragment.app.Fragment() {
     private lateinit var gradientsAdapter: com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientsAdapter
 
     private val shapesList = listOf(
-        _root_ide_package_.com.webscare.urducanvas.data.model.ShapeItem(
+        com.webscare.urducanvas.data.model.ShapeItem(
             LabelShape.RECTANGLE_FILL, R.drawable.ic_rect_fill
-        ), _root_ide_package_.com.webscare.urducanvas.data.model.ShapeItem(
+        ), com.webscare.urducanvas.data.model.ShapeItem(
             LabelShape.RECTANGLE_STROKE, R.drawable.ic_rect_stroke
-        ), _root_ide_package_.com.webscare.urducanvas.data.model.ShapeItem(
+        ), com.webscare.urducanvas.data.model.ShapeItem(
             LabelShape.OVAL_FILL, R.drawable.ic_oval_fill
-        ), _root_ide_package_.com.webscare.urducanvas.data.model.ShapeItem(
+        ), com.webscare.urducanvas.data.model.ShapeItem(
             LabelShape.OVAL_STROKE, R.drawable.ic_oval_stroke
-        ), _root_ide_package_.com.webscare.urducanvas.data.model.ShapeItem(
+        ), com.webscare.urducanvas.data.model.ShapeItem(
             LabelShape.CIRCLE_FILL, R.drawable.ic_circle_fill
-        ), _root_ide_package_.com.webscare.urducanvas.data.model.ShapeItem(
+        ), com.webscare.urducanvas.data.model.ShapeItem(
             LabelShape.CIRCLE_STROKE, R.drawable.ic_circle_stroke
+        ), com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.ROUNDED_RECTANGLE_FILL, R.drawable.ic_rect_fill
+        ), com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.ROUNDED_RECTANGLE_STROKE, R.drawable.ic_rect_stroke
         )
     )
 

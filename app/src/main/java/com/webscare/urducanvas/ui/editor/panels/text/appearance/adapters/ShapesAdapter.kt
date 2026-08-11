@@ -27,14 +27,17 @@ class ShapesAdapter(
 
             // Check if the current item is selected
             val isSelected = shapeItem.shape == selectedShape
+            val context = binding.root.context
+            val contrastColor = ContextCompat.getColor(context, R.color.contrast)
+            val strokePx = (1.5f * context.resources.displayMetrics.density + 0.5f).toInt()
             if (isSelected) {
-                binding.root.strokeWidth = 4
+                binding.root.strokeWidth = strokePx
                 binding.root.setCardBackgroundColor(Color.WHITE)
                 binding.root.strokeColor =
-                    ContextCompat.getColor(binding.root.context, R.color.appColor)
+                    ContextCompat.getColor(context, R.color.appColor)
             } else {
                 binding.root.strokeWidth = 0
-                binding.root.setCardBackgroundColor(Color.WHITE)
+                binding.root.setCardBackgroundColor(contrastColor)
             }
 
             // Set on click listener to select the shape

@@ -2632,7 +2632,9 @@ class CanvasView @JvmOverloads constructor(
                                             bb,
                                             element.featherRadius,
                                             element.featherWidth,
-                                            element.featherDirection ?: FeatherDirection.ALL
+                                            element.featherDirection ?: FeatherDirection.ALL,
+                                            element.featherBiasX,
+                                            element.featherBiasY
                                         )
                                     }
                                     if (isElementProcessing(element.id)) {
@@ -2686,7 +2688,9 @@ class CanvasView @JvmOverloads constructor(
                                             top + h,
                                             element.featherRadius,
                                             element.featherWidth,
-                                            element.featherDirection ?: FeatherDirection.ALL
+                                            element.featherDirection ?: FeatherDirection.ALL,
+                                            element.featherBiasX,
+                                            element.featherBiasY
                                         )
                                     }
 
@@ -2932,7 +2936,9 @@ class CanvasView @JvmOverloads constructor(
                                         top + h,
                                         element.featherRadius,
                                         element.featherWidth,
-                                        element.featherDirection ?: FeatherDirection.ALL
+                                        element.featherDirection ?: FeatherDirection.ALL,
+                                        element.featherBiasX,
+                                        element.featherBiasY
                                     )
                                 }
                                 if (isElementProcessing(element.id)) {
@@ -3782,7 +3788,9 @@ class CanvasView @JvmOverloads constructor(
                         localRect.bottom,
                         element.featherRadius,
                         element.featherWidth,
-                        element.featherDirection ?: FeatherDirection.ALL
+                        element.featherDirection ?: FeatherDirection.ALL,
+                        element.featherBiasX,
+                        element.featherBiasY
                     )
                 }
 
@@ -4029,7 +4037,9 @@ class CanvasView @JvmOverloads constructor(
         bottom: Float,
         featherRadius: Float,
         featherWidth: Float,
-        direction: FeatherDirection = FeatherDirection.ALL
+        direction: FeatherDirection = FeatherDirection.ALL,
+        biasX: Float = 0f,
+        biasY: Float = 0f
     ) {
         if (featherRadius <= 0f) return
         val w = right - left
@@ -4039,7 +4049,7 @@ class CanvasView @JvmOverloads constructor(
         val maskW = 128
         val maskH = 128
 
-        val featherFp = Objects.hash(elementId, featherRadius, featherWidth, direction)
+        val featherFp = Objects.hash(elementId, featherRadius, featherWidth, direction, (biasX * 1000).toInt(), (biasY * 1000).toInt())
         val cached = featherBitmapCache[elementId]
         val maskBmp: Bitmap =
             if (cached != null && cached.fingerprint == featherFp && !cached.bitmap.isRecycled) {
@@ -4048,39 +4058,67 @@ class CanvasView @JvmOverloads constructor(
                 cached?.bitmap?.recycle()
 
                 val fraction = sqrt((featherRadius / 100.0)).toFloat().coerceIn(0f, 1f)
-                val bandX = (maskW / 2f) * fraction
-                val bandY = (maskH / 2f) * fraction
+                val baseBandX = (maskW / 2f) * fraction
+                val baseBandY = (maskH / 2f) * fraction
                 val exponent = 1.0 + ((100f - featherWidth) / 100.0) * 7.0
 
-                // Which edges are active
-                val doTop = direction == FeatherDirection.ALL || direction == FeatherDirection.TOP
-                val doBottom =
-                    direction == FeatherDirection.ALL || direction == FeatherDirection.BOTTOM
-                val doLeft = direction == FeatherDirection.ALL || direction == FeatherDirection.LEFT
-                val doRight =
-                    direction == FeatherDirection.ALL || direction == FeatherDirection.RIGHT
+                val bx = biasX.coerceIn(-1f, 1f)
+                val by = biasY.coerceIn(-1f, 1f)
+                val isBiasActive = (bx != 0f || by != 0f)
+
+                // Per-edge band widths according to continuous 2D bias vector:
+                // When snapped to cardinal axis -> 1 side ONLY.
+                // When off-axis / diagonal -> AT LEAST 2 sides fade.
+                val (bandTop, bandBottom, bandLeft, bandRight) = if (isBiasActive) {
+                    val isPureTop = (bx == 0f && by < 0f)
+                    val isPureBottom = (bx == 0f && by > 0f)
+                    val isPureLeft = (bx < 0f && by == 0f)
+                    val isPureRight = (bx > 0f && by == 0f)
+
+                    when {
+                        isPureTop -> {
+                            val mag = kotlin.math.abs(by)
+                            listOf(baseBandY * (mag * 1.5f + 0.5f), 0f, 0f, 0f)
+                        }
+                        isPureBottom -> {
+                            val mag = kotlin.math.abs(by)
+                            listOf(0f, baseBandY * (mag * 1.5f + 0.5f), 0f, 0f)
+                        }
+                        isPureLeft -> {
+                            val mag = kotlin.math.abs(bx)
+                            listOf(0f, 0f, baseBandX * (mag * 1.5f + 0.5f), 0f)
+                        }
+                        isPureRight -> {
+                            val mag = kotlin.math.abs(bx)
+                            listOf(0f, 0f, 0f, baseBandX * (mag * 1.5f + 0.5f))
+                        }
+                        else -> {
+                            val wTop = if (by < 0f) baseBandY * (kotlin.math.abs(by) * 1.5f + 0.3f) else 0f
+                            val wBottom = if (by > 0f) baseBandY * (kotlin.math.abs(by) * 1.5f + 0.3f) else 0f
+                            val wLeft = if (bx < 0f) baseBandX * (kotlin.math.abs(bx) * 1.5f + 0.3f) else 0f
+                            val wRight = if (bx > 0f) baseBandX * (kotlin.math.abs(bx) * 1.5f + 0.3f) else 0f
+                            listOf(wTop, wBottom, wLeft, wRight)
+                        }
+                    }
+                } else {
+                    listOf(baseBandY, baseBandY, baseBandX, baseBandX)
+                }
+
+                // Which edges are active (require band width > 0.5f to fade, otherwise edge stays 100% solid)
+                val doTop = (direction == FeatherDirection.ALL || direction == FeatherDirection.TOP || isBiasActive) && bandTop > 0.5f
+                val doBottom = (direction == FeatherDirection.ALL || direction == FeatherDirection.BOTTOM || isBiasActive) && bandBottom > 0.5f
+                val doLeft = (direction == FeatherDirection.ALL || direction == FeatherDirection.LEFT || isBiasActive) && bandLeft > 0.5f
+                val doRight = (direction == FeatherDirection.ALL || direction == FeatherDirection.RIGHT || isBiasActive) && bandRight > 0.5f
 
                 val pixels = IntArray(maskW * maskH)
                 for (py in 0 until maskH) {
-                    val topRamp = if (doTop && bandY > 0f) smoothStep(
-                        (py / bandY).coerceIn(0f, 1f), exponent
-                    ) else 1f
-                    val botRamp = if (doBottom && bandY > 0f) smoothStep(
-                        ((maskH - 1 - py) / bandY).coerceIn(
-                            0f, 1f
-                        ), exponent
-                    ) else 1f
+                    val topRamp = if (doTop) smoothStep((py / bandTop).coerceIn(0f, 1f), exponent) else 1f
+                    val botRamp = if (doBottom) smoothStep(((maskH - 1 - py) / bandBottom).coerceIn(0f, 1f), exponent) else 1f
                     val vRamp = topRamp * botRamp
 
                     for (px in 0 until maskW) {
-                        val leftRamp = if (doLeft && bandX > 0f) smoothStep(
-                            (px / bandX).coerceIn(0f, 1f), exponent
-                        ) else 1f
-                        val rightRamp = if (doRight && bandX > 0f) smoothStep(
-                            ((maskW - 1 - px) / bandX).coerceIn(
-                                0f, 1f
-                            ), exponent
-                        ) else 1f
+                        val leftRamp = if (doLeft) smoothStep((px / bandLeft).coerceIn(0f, 1f), exponent) else 1f
+                        val rightRamp = if (doRight) smoothStep(((maskW - 1 - px) / bandRight).coerceIn(0f, 1f), exponent) else 1f
                         val alpha = (vRamp * leftRamp * rightRamp * 255f).toInt().coerceIn(0, 255)
                         pixels[py * maskW + px] = Color.argb(alpha, 0, 0, 0)
                     }
@@ -5639,8 +5677,8 @@ class CanvasView @JvmOverloads constructor(
                                     element.x = newX
                                     element.y = newY
                                 }
-                            } else if (element.type != ElementType.TABLE) {
-                                // non-table elements: regular drag
+                            } else {
+                                // regular drag for all elements including tables
                                 element.x += dx
                                 element.y += dy
                             }

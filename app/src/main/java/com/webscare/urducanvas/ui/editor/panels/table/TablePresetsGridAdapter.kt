@@ -37,7 +37,9 @@ class TablePresetsGridAdapter(
             binding.previewFrame.setBackgroundColor(preset.borderColor)
 
             val isSelected = preset.id == selectedPresetId
-            binding.cardPreset.strokeWidth = if (isSelected) 4 else 0
+            val context = binding.root.context
+            val strokePx = (1.5f * context.resources.displayMetrics.density + 0.5f).toInt()
+            binding.cardPreset.strokeWidth = if (isSelected) strokePx else 0
 
             binding.cardPreset.addPressEffect {
                 selectedPresetId = preset.id

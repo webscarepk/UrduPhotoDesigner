@@ -25,6 +25,7 @@ import com.webscare.urducanvas.common.canvas.enums.BlendType
 import com.webscare.urducanvas.common.canvas.enums.BrushStyle
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.canvas.enums.FeatherDirection
+import com.webscare.urducanvas.common.views.Bias
 import com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget
 import com.webscare.urducanvas.common.canvas.enums.GradientType
 import com.webscare.urducanvas.common.canvas.enums.LabelShape
@@ -266,6 +267,8 @@ class CanvasViewModel @Inject constructor(
     val featherDirection: LiveData<FeatherDirection> = _featherDirection
     private val _featherWidth = MutableLiveData(50f)
     val featherWidth: LiveData<Float> = _featherWidth
+    private val _featherBias = MutableLiveData<Bias>(Bias(0f, 0f))
+    val featherBias: LiveData<Bias> = _featherBias
 
     private val _shadows = MutableLiveData(0f)
     val shadows: LiveData<Float> = _shadows
@@ -1056,6 +1059,39 @@ class CanvasViewModel @Inject constructor(
                 startAutoBatchIfNeeded(element.id)
                 val old = element.copy(context = null)
                 element.featherDirection = direction
+                if (currentBatchAction == null) {
+                    _canvasActions.push(
+                        CanvasAction.UpdateElement(
+                            elementId = element.id,
+                            newElement = element.copy(context = null),
+                            oldElement = old
+                        )
+                    )
+                }
+                element
+            } else element
+        }
+        _canvasElements.value = updatedList
+        if (currentBatchAction == null) {
+            _redoStack.clear()
+            notifyUndoRedoChanged()
+        }
+    }
+
+    fun setFeatherBias(bias: Bias) {
+        _featherBias.value = bias
+        val currentList = _canvasElements.value ?: return
+        val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
+        val updatedList = currentList.map { element ->
+            val isTargeted = element.isSelected || (element.groupId != null && element.groupId in selectedGroupIds)
+            if (isTargeted) {
+                startAutoBatchIfNeeded(element.id)
+                val old = element.copy(context = null)
+                element.featherBiasX = bias.x
+                element.featherBiasY = bias.y
+                if (element.featherRadius > 0f) {
+                    element.hasFeather = true
+                }
                 if (currentBatchAction == null) {
                     _canvasActions.push(
                         CanvasAction.UpdateElement(

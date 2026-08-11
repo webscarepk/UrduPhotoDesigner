@@ -48,8 +48,9 @@ class FormattingFragment : androidx.fragment.app.Fragment() {
         isSelected: Boolean
     ) {
         val context = card.context
+        val strokePx = (1.5f * context.resources.displayMetrics.density + 0.5f).toInt()
         card.strokeColor = androidx.core.content.ContextCompat.getColor(context, com.webscare.urducanvas.R.color.appColor)
-        card.strokeWidth = if (isSelected) 4 else 0
+        card.strokeWidth = if (isSelected) strokePx else 0
         card.setCardBackgroundColor(androidx.core.content.ContextCompat.getColor(context, com.webscare.urducanvas.R.color.contrast))
     }
 

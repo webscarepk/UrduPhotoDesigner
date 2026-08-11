@@ -5,7 +5,7 @@
     android:id="@+id/tabRoot"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:minHeight="32dp">
+    android:minHeight="26dp">
 
     <TextView
         android:id="@+id/tabTitle"
@@ -18,7 +18,7 @@
         android:maxLines="1"
         android:paddingStart="12dp"
         android:paddingEnd="8dp"
-        android:paddingVertical="6dp"
+        android:paddingVertical="4dp"
         android:text="@string/all"
         android:textColor="@color/black"
         android:textSize="12sp"

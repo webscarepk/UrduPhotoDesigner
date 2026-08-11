@@ -126,11 +126,14 @@ data class TableData(
         fun createDefault(r: Int = 3, c: Int = 3, withHeader: Boolean = true): TableData {
             val validR = r.coerceAtLeast(1)
             val validC = c.coerceAtLeast(1)
-            val data = TableData(rows = validR, cols = validC, hasHeader = withHeader)
+            val data = TableData(rows = validR, cols = validC, hasHeader = withHeader, paddingH = 10f, paddingV = 8f)
+            data.base = TableTextStyle(hAlign = TextAlignment.RIGHT, vAlign = VAlign.MIDDLE)
             data.cells = MutableList(validR) { MutableList(validC) { TableCell() } }
             if (withHeader && validR > 0) {
                 data.headerStyle = TableTextStyle(
                     isBold = true,
+                    hAlign = TextAlignment.RIGHT,
+                    vAlign = VAlign.MIDDLE,
                     bgColor = android.graphics.Color.parseColor("#E4F3E9")
                 )
                 val urduDigits = listOf("۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹", "۱۰")

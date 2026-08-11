@@ -240,10 +240,11 @@ class ShapeAdapter(
         }
 
         fun updateSelectionOnly(isSelected: Boolean) {
+            val strokePx = (1.5f * itemView.context.resources.displayMetrics.density + 0.5f).toInt()
             cardRoot.setCardBackgroundColor(
                 ContextCompat.getColor(itemView.context, R.color.contrast)
             )
-            cardRoot.strokeWidth = if (isSelected) 4 else 0
+            cardRoot.strokeWidth = if (isSelected) strokePx else 0
             if (isSelected) {
                 cardRoot.strokeColor = ContextCompat.getColor(itemView.context, R.color.appColor)
             }

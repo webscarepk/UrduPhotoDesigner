@@ -77,6 +77,7 @@ class ImageShadowsFragment : Fragment() {
             },
             { viewModel.startPicking(PickerTarget.EYE_DROPPER_SHADOW) }
         )
+        binding.colors.layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 2, androidx.recyclerview.widget.GridLayoutManager.HORIZONTAL, false)
         binding.colors.adapter = colorsAdapter
     }
 

@@ -11,6 +11,7 @@ import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.TablePreset
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.ItemTablePresetBinding
+import androidx.core.graphics.toColorInt
 
 class TablePresetsAdapter(
     private val presets: List<TablePreset>,
@@ -31,10 +32,9 @@ class TablePresetsAdapter(
 
         val context = holder.itemView.context
         val isSelected = selectedPreset == item
-        val appColor = ContextCompat.getColor(context, R.color.appColor)
-
-        holder.binding.cardPreset.strokeColor = appColor
-        holder.binding.cardPreset.strokeWidth = if (isSelected) 4 else 0
+        val strokePx = (1.5f * context.resources.displayMetrics.density + 0.5f).toInt()
+        holder.binding.cardPreset.strokeColor = context.getColor(R.color.appColor)
+        holder.binding.cardPreset.strokeWidth = if (isSelected) strokePx else 0
 
         // Custom visual thumbnail styling for each preset
         when (item) {
@@ -42,37 +42,37 @@ class TablePresetsAdapter(
                 holder.binding.headerPreview.setBackgroundColor(Color.WHITE)
                 holder.binding.row1Preview.setBackgroundColor(Color.WHITE)
                 holder.binding.row2Preview.setBackgroundColor(Color.WHITE)
-                setFrameBorder(holder.binding.previewFrame, Color.parseColor("#CCCCCC"), 2)
+                setFrameBorder(holder.binding.previewFrame, "#CCCCCC".toColorInt(), 2)
             }
             TablePreset.BORDERED -> {
-                holder.binding.headerPreview.setBackgroundColor(Color.parseColor("#EFEFEF"))
+                holder.binding.headerPreview.setBackgroundColor("#EFEFEF".toColorInt())
                 holder.binding.row1Preview.setBackgroundColor(Color.WHITE)
                 holder.binding.row2Preview.setBackgroundColor(Color.WHITE)
-                setFrameBorder(holder.binding.previewFrame, Color.parseColor("#333333"), 4)
+                setFrameBorder(holder.binding.previewFrame, "#333333".toColorInt(), 4)
             }
             TablePreset.STRIPED -> {
-                holder.binding.headerPreview.setBackgroundColor(Color.parseColor("#E4F3E9"))
+                holder.binding.headerPreview.setBackgroundColor("#E4F3E9".toColorInt())
                 holder.binding.row1Preview.setBackgroundColor(Color.WHITE)
-                holder.binding.row2Preview.setBackgroundColor(Color.parseColor("#EFEFEF"))
-                setFrameBorder(holder.binding.previewFrame, Color.parseColor("#CCCCCC"), 2)
+                holder.binding.row2Preview.setBackgroundColor("#EFEFEF".toColorInt())
+                setFrameBorder(holder.binding.previewFrame, "#CCCCCC".toColorInt(), 2)
             }
             TablePreset.HEADER_HIGHLIGHT -> {
-                holder.binding.headerPreview.setBackgroundColor(Color.parseColor("#005D28"))
+                holder.binding.headerPreview.setBackgroundColor("#005D28".toColorInt())
                 holder.binding.row1Preview.setBackgroundColor(Color.WHITE)
                 holder.binding.row2Preview.setBackgroundColor(Color.WHITE)
-                setFrameBorder(holder.binding.previewFrame, Color.parseColor("#005D28"), 3)
+                setFrameBorder(holder.binding.previewFrame, "#005D28".toColorInt(), 3)
             }
             TablePreset.MINIMAL -> {
-                holder.binding.headerPreview.setBackgroundColor(Color.parseColor("#F8F9FA"))
+                holder.binding.headerPreview.setBackgroundColor("#F8F9FA".toColorInt())
                 holder.binding.row1Preview.setBackgroundColor(Color.WHITE)
                 holder.binding.row2Preview.setBackgroundColor(Color.WHITE)
-                setFrameBorder(holder.binding.previewFrame, Color.parseColor("#E0E0E0"), 1)
+                setFrameBorder(holder.binding.previewFrame, "#E0E0E0".toColorInt(), 1)
             }
             TablePreset.BOXED -> {
                 holder.binding.headerPreview.setBackgroundColor(Color.WHITE)
                 holder.binding.row1Preview.setBackgroundColor(Color.WHITE)
                 holder.binding.row2Preview.setBackgroundColor(Color.WHITE)
-                setFrameBorder(holder.binding.previewFrame, Color.parseColor("#444444"), 4)
+                setFrameBorder(holder.binding.previewFrame, "#444444".toColorInt(), 4)
             }
         }
 

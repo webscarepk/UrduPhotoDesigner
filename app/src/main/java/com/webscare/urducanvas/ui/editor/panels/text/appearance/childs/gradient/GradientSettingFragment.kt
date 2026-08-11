@@ -34,7 +34,7 @@ class GradientSettingFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
+        view.setOnTouchListener { _, _ -> true }
         setEvents()
         initObservers()
     }

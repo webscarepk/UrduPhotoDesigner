@@ -309,7 +309,8 @@ class ImagesAdapter(
                     else R.drawable.ic_unselected_radio
                 )
             }
-            cardRoot.strokeWidth = if (isSelected) 2 else 0
+            val strokePx = (1.5f * itemView.context.resources.displayMetrics.density + 0.5f).toInt()
+            cardRoot.strokeWidth = if (isSelected) strokePx else 0
             if (isSelected) {
                 cardRoot.strokeColor = ContextCompat.getColor(itemView.context, R.color.appColor)
             }

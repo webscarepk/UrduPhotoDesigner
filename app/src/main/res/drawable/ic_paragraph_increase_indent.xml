@@ -1,9 +1,42 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="16dp"
-    android:height="13dp"
-    android:viewportWidth="16"
-    android:viewportHeight="13">
+    android:width="20dp"
+    android:height="17dp"
+    android:viewportWidth="20"
+    android:viewportHeight="17">
+  <!-- Top Full Line -->
   <path
-      android:pathData="M0,6.5L2.667,9.286V3.714L0,6.5ZM0,13H16V11.143H0V13ZM0,1.857H16V0H0V1.857ZM5.333,5.571H16V3.714H5.333V5.571ZM5.333,9.286H16V7.429H5.333V9.286Z"
-      android:fillColor="#ffffff"/>
+      android:pathData="M1,2.5H19"
+      android:strokeWidth="1"
+      android:fillColor="#00000000"
+      android:strokeColor="#171717"
+      android:strokeLineCap="round"/>
+  <!-- Middle Line 1 (Indented) -->
+  <path
+      android:pathData="M7.5,6.5H19"
+      android:strokeWidth="1"
+      android:fillColor="#00000000"
+      android:strokeColor="#171717"
+      android:strokeLineCap="round"/>
+  <!-- Middle Line 2 (Indented) -->
+  <path
+      android:pathData="M7.5,10.5H19"
+      android:strokeWidth="1"
+      android:fillColor="#00000000"
+      android:strokeColor="#171717"
+      android:strokeLineCap="round"/>
+  <!-- Bottom Full Line -->
+  <path
+      android:pathData="M1,14.5H19"
+      android:strokeWidth="1"
+      android:fillColor="#00000000"
+      android:strokeColor="#171717"
+      android:strokeLineCap="round"/>
+  <!-- Thin Increase Arrow (pointing right) -->
+  <path
+      android:pathData="M1.5,6L4.5,8.5L1.5,11"
+      android:strokeWidth="1.2"
+      android:fillColor="#00000000"
+      android:strokeColor="#171717"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"/>
 </vector>

@@ -74,8 +74,9 @@ class ImageFiltersAdapter(
 
             val isCurrentItemSelected = filterItem.filter == selectedFilter
             val context = binding.root.context
+            val strokePx = (1.5f * context.resources.displayMetrics.density + 0.5f).toInt()
 
-            binding.card.strokeWidth = if (isCurrentItemSelected) 4 else 0
+            binding.card.strokeWidth = if (isCurrentItemSelected) strokePx else 0
 
             // Font & Text Color
             val fontRes = if (isCurrentItemSelected) R.font.bold else R.font.regular

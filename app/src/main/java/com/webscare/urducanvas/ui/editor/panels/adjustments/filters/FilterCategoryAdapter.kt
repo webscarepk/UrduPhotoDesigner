@@ -76,16 +76,17 @@ class FilterCategoryAdapter(
 
         holder.cardView?.setCardBackgroundColor(whiteColor)
 
+        val fontRes = if (isSelected) R.font.bold else R.font.medium
+        holder.textView.typeface = androidx.core.content.res.ResourcesCompat.getFont(context, fontRes)
+
         if (isSelected) {
             holder.cardView?.strokeColor = appColor
             holder.cardView?.strokeWidth = (1.5f * context.resources.displayMetrics.density + 0.5f).toInt()
             holder.textView.setTextColor(appColor)
-            holder.textView.setTypeface(null, Typeface.BOLD)
         } else {
             holder.cardView?.strokeColor = strokeColor
             holder.cardView?.strokeWidth = (1f * context.resources.displayMetrics.density + 0.5f).toInt()
             holder.textView.setTextColor(blackColor)
-            holder.textView.setTypeface(null, Typeface.NORMAL)
         }
 
         holder.itemView.setOnClickListener {

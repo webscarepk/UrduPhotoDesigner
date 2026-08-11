@@ -167,6 +167,9 @@ data class CanvasElement(
     @SerializedName("featherDirection")
     var featherDirection: FeatherDirection? = FeatherDirection.ALL,
 
+    @SerializedName("featherBiasX") var featherBiasX: Float = 0f,
+    @SerializedName("featherBiasY") var featherBiasY: Float = 0f,
+
     @SerializedName("blendType") var blendType: BlendType = BlendType.NORMAL,
 
     @SerializedName("isVisible") var isVisible: Boolean = true,

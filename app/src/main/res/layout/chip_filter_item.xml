@@ -7,7 +7,7 @@
     android:text="All"
     android:textAllCaps="false"
     android:textColor="@color/chip_text_selector"
-    android:fontFamily="@font/medium"
+    android:fontFamily="@font/bold"
     app:chipIconVisible="false"
     app:checkedIconVisible="false"
     app:ensureMinTouchTargetSize="false"

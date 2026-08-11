@@ -112,14 +112,39 @@ class TableGridFragment : Fragment() {
         val white = ContextCompat.getColor(ctx, R.color.white)
         val black = ContextCompat.getColor(ctx, R.color.black)
 
-        binding.btnToggleHeaderRow.setCardBackgroundColor(if (data.hasHeader) appColor else contrast)
-        binding.tvHeaderRowText.setTextColor(if (data.hasHeader) white else black)
+        val strokePx = (1.5f * resources.displayMetrics.density + 0.5f).toInt()
+        if (data.hasHeader) {
+            binding.btnToggleHeaderRow.strokeColor = appColor
+            binding.btnToggleHeaderRow.strokeWidth = strokePx
+            binding.btnToggleHeaderRow.setCardBackgroundColor(contrast)
+            binding.tvHeaderRowText.setTextColor(black)
+        } else {
+            binding.btnToggleHeaderRow.strokeWidth = 0
+            binding.btnToggleHeaderRow.setCardBackgroundColor(contrast)
+            binding.tvHeaderRowText.setTextColor(black)
+        }
 
-        binding.btnToggleFooterRow.setCardBackgroundColor(if (data.hasFooter) appColor else contrast)
-        binding.tvFooterRowText.setTextColor(if (data.hasFooter) white else black)
+        if (data.hasFooter) {
+            binding.btnToggleFooterRow.strokeColor = appColor
+            binding.btnToggleFooterRow.strokeWidth = strokePx
+            binding.btnToggleFooterRow.setCardBackgroundColor(contrast)
+            binding.tvFooterRowText.setTextColor(black)
+        } else {
+            binding.btnToggleFooterRow.strokeWidth = 0
+            binding.btnToggleFooterRow.setCardBackgroundColor(contrast)
+            binding.tvFooterRowText.setTextColor(black)
+        }
 
-        binding.btnToggleHeaderCol.setCardBackgroundColor(if (data.hasHeaderCol) appColor else contrast)
-        binding.tvHeaderColText.setTextColor(if (data.hasHeaderCol) white else black)
+        if (data.hasHeaderCol) {
+            binding.btnToggleHeaderCol.strokeColor = appColor
+            binding.btnToggleHeaderCol.strokeWidth = strokePx
+            binding.btnToggleHeaderCol.setCardBackgroundColor(contrast)
+            binding.tvHeaderColText.setTextColor(black)
+        } else {
+            binding.btnToggleHeaderCol.strokeWidth = 0
+            binding.btnToggleHeaderCol.setCardBackgroundColor(contrast)
+            binding.tvHeaderColText.setTextColor(black)
+        }
     }
 
     override fun onDestroyView() {

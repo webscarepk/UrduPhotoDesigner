@@ -16,6 +16,8 @@ import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentFeatherBinding
 import dagger.hilt.android.AndroidEntryPoint
 
+import com.webscare.urducanvas.common.views.Bias
+
 @AndroidEntryPoint
 class FeatherFragment : Fragment() {
 
@@ -34,41 +36,16 @@ class FeatherFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        initDirectionButtons()
+        initBiasPad()
         initSeekBars()
         initObservers()
     }
 
-    // ── Direction buttons ─────────────────────────────────────────────────────
+    // ── Bias Pad ──────────────────────────────────────────────────────────────
 
-    private fun initDirectionButtons() {
-        binding.all.addPressEffect    { viewModel.setFeatherDirection(FeatherDirection.ALL)    }
-        binding.left.addPressEffect   { viewModel.setFeatherDirection(FeatherDirection.LEFT)   }
-        binding.right.addPressEffect  { viewModel.setFeatherDirection(FeatherDirection.RIGHT)  }
-        binding.top.addPressEffect    { viewModel.setFeatherDirection(FeatherDirection.TOP)    }
-        binding.bottom.addPressEffect { viewModel.setFeatherDirection(FeatherDirection.BOTTOM) }
-    }
-
-    private fun applyDirectionSelection(selected: FeatherDirection) {
-        val buttons = mapOf(
-            FeatherDirection.ALL    to binding.all,
-            FeatherDirection.LEFT   to binding.left,
-            FeatherDirection.RIGHT  to binding.right,
-            FeatherDirection.TOP    to binding.top,
-            FeatherDirection.BOTTOM to binding.bottom
-        )
-        buttons.forEach { (direction, button) ->
-            val isSelected = direction == selected
-            button.backgroundTintList = ContextCompat.getColorStateList(
-                requireContext(),
-                if (isSelected) R.color.appColor else R.color.contrast
-            )
-            button.setTextColor(
-                ContextCompat.getColor(
-                    requireContext(),
-                    if (isSelected) R.color.white else R.color.black
-                )
-            )
+    private fun initBiasPad() {
+        binding.biasPad.onBiasChanged = { bias ->
+            viewModel.setFeatherBias(bias)
         }
     }
 
@@ -123,15 +100,21 @@ class FeatherFragment : Fragment() {
 
     private fun initObservers() {
 
-        // Direction — reflects selected element's current direction on element switch
-        viewModel.featherDirection.observe(viewLifecycleOwner) { direction ->
-            applyDirectionSelection(direction ?: FeatherDirection.ALL)
+        viewModel.featherBias.observe(viewLifecycleOwner) { bias ->
+            binding.biasPad.bias = bias ?: Bias(0f, 0f)
         }
 
         viewModel.featherRadius.observe(viewLifecycleOwner) { value ->
             val safeValue = value?.toInt() ?: 0
             if (binding.feather.progress != safeValue) binding.feather.progress = safeValue
             binding.featherSize.text = safeValue.toString()
+
+            val isFeatherEnabled = safeValue > 0
+            binding.biasPad.isEnabled = isFeatherEnabled
+            binding.softness.isEnabled = isFeatherEnabled
+            binding.opacity.isEnabled = isFeatherEnabled
+            binding.softness.alpha = if (isFeatherEnabled) 1.0f else 0.42f
+            binding.opacity.alpha = if (isFeatherEnabled) 1.0f else 0.42f
         }
 
         viewModel.featherWidth.observe(viewLifecycleOwner) { value ->

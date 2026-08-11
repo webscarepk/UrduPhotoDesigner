@@ -40,8 +40,7 @@ class TableAlignmentFragment : Fragment() {
         val hAlignCards = listOf(
             binding.btnAlignLeft to TextAlignment.LEFT,
             binding.btnAlignCenter to TextAlignment.CENTER,
-            binding.btnAlignRight to TextAlignment.RIGHT,
-            binding.btnAlignJustify to TextAlignment.JUSTIFY
+            binding.btnAlignRight to TextAlignment.RIGHT
         )
 
         hAlignCards.forEach { (card, align) ->
@@ -69,14 +68,13 @@ class TableAlignmentFragment : Fragment() {
 
     private fun syncInitialSelection() {
         val style = viewModel.getTableScopeStyle()
-        val currentH = style?.hAlign ?: TextAlignment.LEFT
-        val currentV = style?.vAlign ?: VAlign.TOP
+        val currentH = style?.hAlign ?: TextAlignment.RIGHT
+        val currentV = style?.vAlign ?: VAlign.MIDDLE
 
         val hAlignCards = listOf(
             binding.btnAlignLeft to TextAlignment.LEFT,
             binding.btnAlignCenter to TextAlignment.CENTER,
-            binding.btnAlignRight to TextAlignment.RIGHT,
-            binding.btnAlignJustify to TextAlignment.JUSTIFY
+            binding.btnAlignRight to TextAlignment.RIGHT
         )
         val vAlignCards = listOf(
             binding.btnVAlignTop to VAlign.TOP,
@@ -84,10 +82,10 @@ class TableAlignmentFragment : Fragment() {
             binding.btnVAlignBottom to VAlign.BOTTOM
         )
 
-        val hMatch = hAlignCards.firstOrNull { it.second == currentH }?.first ?: binding.btnAlignLeft
+        val hMatch = hAlignCards.firstOrNull { it.second == currentH }?.first ?: binding.btnAlignRight
         updateCardSelection(hMatch, hAlignCards.map { it.first })
 
-        val vMatch = vAlignCards.firstOrNull { it.second == currentV }?.first ?: binding.btnVAlignTop
+        val vMatch = vAlignCards.firstOrNull { it.second == currentV }?.first ?: binding.btnVAlignCenter
         updateCardSelection(vMatch, vAlignCards.map { it.first })
     }
 
@@ -95,15 +93,16 @@ class TableAlignmentFragment : Fragment() {
         val context = context ?: return
         val appColor = ContextCompat.getColor(context, R.color.appColor)
         val contrast = ContextCompat.getColor(context, R.color.contrast)
-        val white = ContextCompat.getColor(context, R.color.white)
         val black = ContextCompat.getColor(context, R.color.black)
 
+        val strokePx = (1.5f * resources.displayMetrics.density + 0.5f).toInt()
         allCards.forEach { card ->
             val iconView = (card.getChildAt(0) as? android.widget.ImageView)
             if (card == selectedCard) {
-                card.strokeWidth = 0
-                card.setCardBackgroundColor(appColor)
-                iconView?.imageTintList = android.content.res.ColorStateList.valueOf(white)
+                card.strokeColor = appColor
+                card.strokeWidth = strokePx
+                card.setCardBackgroundColor(contrast)
+                iconView?.imageTintList = android.content.res.ColorStateList.valueOf(black)
             } else {
                 card.strokeWidth = 0
                 card.setCardBackgroundColor(contrast)
