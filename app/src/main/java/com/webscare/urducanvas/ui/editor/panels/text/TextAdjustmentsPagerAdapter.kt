@@ -8,6 +8,8 @@ import com.webscare.urducanvas.ui.editor.panels.text.appearance.AppearanceFragme
 import com.webscare.urducanvas.ui.editor.panels.text.fonts.FontsFragment
 import com.webscare.urducanvas.ui.editor.panels.text.format.FormatFragment
 
+import com.webscare.urducanvas.ui.editor.panels.text.styles.TextStylesFragment
+
 class TextAdjustmentsPagerAdapter(
     fragmentManager: FragmentManager,
     lifecycle: Lifecycle,
@@ -18,10 +20,11 @@ class TextAdjustmentsPagerAdapter(
 
     override fun createFragment(position: Int): Fragment {
         return when (tabs[position]) {
+            "Styles"     -> TextStylesFragment.newInstance()
             "Font"       -> FontsFragment.newInstance(standaloneMode = true)
             "Appearance" -> AppearanceFragment.newInstance()
             "Format"     -> FormatFragment.newInstance()
-            else         -> FontsFragment.newInstance(standaloneMode = true)
+            else         -> TextStylesFragment.newInstance()
         }
     }
 }

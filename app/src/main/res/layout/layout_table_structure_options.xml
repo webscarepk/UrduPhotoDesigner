@@ -312,19 +312,21 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="10dp"
                 android:fontFamily="@font/medium"
                 android:text="Table Themes"
                 android:textColor="@color/black"
                 android:textSize="13sp" />
 
-            <!-- Presets Recycler -->
+            <!-- Presets Recycler (Edge to edge, 0 margin) -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvPresets"
                 android:layout_width="match_parent"
                 android:layout_height="70dp"
                 android:layout_marginTop="8dp"
+                android:clipToPadding="false"
                 android:orientation="horizontal"
+                android:paddingHorizontal="10dp"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
         </LinearLayout>
 

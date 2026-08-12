@@ -64,5 +64,40 @@ enum class LabelShape {
     BADGE_FILL,
 
     @SerializedName("BadgeStroke")
-    BADGE_STROKE
+    BADGE_STROKE,
+
+    // Reverse Tag (Arrow Left)
+    @SerializedName("ReverseTagFill")
+    REVERSE_TAG_FILL,
+
+    @SerializedName("ReverseTagStroke")
+    REVERSE_TAG_STROKE,
+
+    // Hexagon Badge
+    @SerializedName("HexagonBadgeFill")
+    HEXAGON_BADGE_FILL,
+
+    @SerializedName("HexagonBadgeStroke")
+    HEXAGON_BADGE_STROKE,
+
+    // Diamond Shield Badge
+    @SerializedName("DiamondShieldFill")
+    DIAMOND_SHIELD_FILL,
+
+    @SerializedName("DiamondShieldStroke")
+    DIAMOND_SHIELD_STROKE,
+
+    // Underline Bar Accent
+    @SerializedName("UnderlineBarFill")
+    UNDERLINE_BAR_FILL,
+
+    @SerializedName("UnderlineBarStroke")
+    UNDERLINE_BAR_STROKE,
+
+    // Speech / Quote Bubble
+    @SerializedName("SpeechBubbleFill")
+    SPEECH_BUBBLE_FILL,
+
+    @SerializedName("SpeechBubbleStroke")
+    SPEECH_BUBBLE_STROKE
 }

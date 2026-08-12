@@ -17,7 +17,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="10dp"
             android:fontFamily="@font/medium"
             android:text="Header Row"
             android:textColor="@color/black"
@@ -26,7 +26,7 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="12dp"
+            android:layout_marginHorizontal="10dp"
             android:layout_marginTop="6dp"
             android:background="@drawable/button_bg_small"
             android:backgroundTint="@color/contrast"
@@ -71,7 +71,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="10dp"
             android:layout_marginTop="16dp"
             android:fontFamily="@font/medium"
             android:text="Footer Row"
@@ -81,7 +81,7 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="12dp"
+            android:layout_marginHorizontal="10dp"
             android:layout_marginTop="6dp"
             android:background="@drawable/button_bg_small"
             android:backgroundTint="@color/contrast"

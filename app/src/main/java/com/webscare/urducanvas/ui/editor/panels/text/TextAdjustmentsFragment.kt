@@ -36,7 +36,7 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
     private val binding get() = _binding!!
 
     private var mediator: TabLayoutMediator? = null
-    private val tabs = listOf("Font", "Appearance", "Format")
+    private val tabs = listOf("Styles", "Font", "Appearance", "Format")
     private lateinit var adapter: TextAdjustmentsPagerAdapter
 
     private val viewModel: CanvasViewModel by activityViewModels()

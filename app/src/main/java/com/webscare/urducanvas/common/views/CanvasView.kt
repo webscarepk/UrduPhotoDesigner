@@ -4484,6 +4484,29 @@ class CanvasView @JvmOverloads constructor(
             val prevAlpha = labelPaint.alpha
             labelPaint.alpha = element.paintAlpha
 
+            // ── COMPOSITE LAYER 1: Folded Dark Ribbon Flaps (Drawn Behind Main Banner) ──
+            if (element.hasFoldedRibbonFlaps && element.labelSecondaryColor != null) {
+                val flapPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = element.labelSecondaryColor!!
+                    style = Paint.Style.FILL
+                }
+                val flapWidth = labelRect.height() * 0.35f
+                val flapPath = Path().apply {
+                    // Left flap fold triangle
+                    moveTo(labelRect.left, labelRect.bottom)
+                    lineTo(labelRect.left - flapWidth, labelRect.bottom + flapWidth * 0.5f)
+                    lineTo(labelRect.left + flapWidth, labelRect.bottom)
+                    close()
+                    // Right flap fold triangle
+                    moveTo(labelRect.right, labelRect.top)
+                    lineTo(labelRect.right + flapWidth, labelRect.top - flapWidth * 0.5f)
+                    lineTo(labelRect.right - flapWidth, labelRect.top)
+                    close()
+                }
+                canvas.drawPath(flapPath, flapPaint)
+            }
+
+            // ── COMPOSITE LAYER 2: Main Shape Fill / Stroke ──
             when (element.labelShape) {
                 LabelShape.RECTANGLE_FILL -> canvas.drawRect(
                     labelRect, labelPaint
@@ -4565,6 +4588,34 @@ class CanvasView @JvmOverloads constructor(
                         close()
                     }
                     canvas.drawPath(tagPath, labelPaint)
+                }
+
+                LabelShape.REVERSE_TAG_FILL -> {
+                    val arrowWidth = labelRect.height() * 0.4f
+                    val revTagPath = Path().apply {
+                        moveTo(labelRect.left + arrowWidth, labelRect.top)
+                        lineTo(labelRect.right, labelRect.top)
+                        lineTo(labelRect.right, labelRect.bottom)
+                        lineTo(labelRect.left + arrowWidth, labelRect.bottom)
+                        lineTo(labelRect.left, labelRect.centerY())
+                        close()
+                    }
+                    canvas.drawPath(revTagPath, labelPaint)
+                }
+
+                LabelShape.REVERSE_TAG_STROKE -> {
+                    labelPaint.style = Paint.Style.STROKE
+                    labelPaint.strokeWidth = 4f
+                    val arrowWidth = labelRect.height() * 0.4f
+                    val revTagPath = Path().apply {
+                        moveTo(labelRect.left + arrowWidth, labelRect.top)
+                        lineTo(labelRect.right, labelRect.top)
+                        lineTo(labelRect.right, labelRect.bottom)
+                        lineTo(labelRect.left + arrowWidth, labelRect.bottom)
+                        lineTo(labelRect.left, labelRect.centerY())
+                        close()
+                    }
+                    canvas.drawPath(revTagPath, labelPaint)
                 }
 
                 LabelShape.RIBBON_FILL -> {
@@ -4656,6 +4707,118 @@ class CanvasView @JvmOverloads constructor(
                     }
                     canvas.drawPath(badgePath, labelPaint)
                 }
+
+                LabelShape.HEXAGON_BADGE_FILL -> {
+                    val hexIndent = labelRect.height() * 0.3f
+                    val hexPath = Path().apply {
+                        moveTo(labelRect.left + hexIndent, labelRect.top)
+                        lineTo(labelRect.right - hexIndent, labelRect.top)
+                        lineTo(labelRect.right, labelRect.centerY())
+                        lineTo(labelRect.right - hexIndent, labelRect.bottom)
+                        lineTo(labelRect.left + hexIndent, labelRect.bottom)
+                        lineTo(labelRect.left, labelRect.centerY())
+                        close()
+                    }
+                    canvas.drawPath(hexPath, labelPaint)
+                }
+
+                LabelShape.HEXAGON_BADGE_STROKE -> {
+                    labelPaint.style = Paint.Style.STROKE
+                    labelPaint.strokeWidth = 4f
+                    val hexIndent = labelRect.height() * 0.3f
+                    val hexPath = Path().apply {
+                        moveTo(labelRect.left + hexIndent, labelRect.top)
+                        lineTo(labelRect.right - hexIndent, labelRect.top)
+                        lineTo(labelRect.right, labelRect.centerY())
+                        lineTo(labelRect.right - hexIndent, labelRect.bottom)
+                        lineTo(labelRect.left + hexIndent, labelRect.bottom)
+                        lineTo(labelRect.left, labelRect.centerY())
+                        close()
+                    }
+                    canvas.drawPath(hexPath, labelPaint)
+                }
+
+                LabelShape.DIAMOND_SHIELD_FILL -> {
+                    val shieldPath = Path().apply {
+                        moveTo(labelRect.centerX(), labelRect.top)
+                        lineTo(labelRect.right, labelRect.top + labelRect.height() * 0.25f)
+                        lineTo(labelRect.centerX(), labelRect.bottom)
+                        lineTo(labelRect.left, labelRect.top + labelRect.height() * 0.25f)
+                        close()
+                    }
+                    canvas.drawPath(shieldPath, labelPaint)
+                }
+
+                LabelShape.DIAMOND_SHIELD_STROKE -> {
+                    labelPaint.style = Paint.Style.STROKE
+                    labelPaint.strokeWidth = 4f
+                    val shieldPath = Path().apply {
+                        moveTo(labelRect.centerX(), labelRect.top)
+                        lineTo(labelRect.right, labelRect.top + labelRect.height() * 0.25f)
+                        lineTo(labelRect.centerX(), labelRect.bottom)
+                        lineTo(labelRect.left, labelRect.top + labelRect.height() * 0.25f)
+                        close()
+                    }
+                    canvas.drawPath(shieldPath, labelPaint)
+                }
+
+                LabelShape.UNDERLINE_BAR_FILL, LabelShape.UNDERLINE_BAR_STROKE -> {
+                    val barHeight = 8f
+                    val barRect = RectF(labelRect.left, labelRect.bottom - barHeight, labelRect.right, labelRect.bottom)
+                    canvas.drawRoundRect(barRect, 4f, 4f, labelPaint)
+                }
+
+                LabelShape.SPEECH_BUBBLE_FILL -> {
+                    val bubblePath = Path().apply {
+                        val rx = 20f
+                        addRoundRect(RectF(labelRect.left, labelRect.top, labelRect.right, labelRect.bottom - 10f), rx, rx, Path.Direction.CW)
+                        moveTo(labelRect.left + 30f, labelRect.bottom - 10f)
+                        lineTo(labelRect.left + 20f, labelRect.bottom)
+                        lineTo(labelRect.left + 45f, labelRect.bottom - 10f)
+                    }
+                    canvas.drawPath(bubblePath, labelPaint)
+                }
+
+                LabelShape.SPEECH_BUBBLE_STROKE -> {
+                    labelPaint.style = Paint.Style.STROKE
+                    labelPaint.strokeWidth = 4f
+                    val bubblePath = Path().apply {
+                        val rx = 20f
+                        addRoundRect(RectF(labelRect.left, labelRect.top, labelRect.right, labelRect.bottom - 10f), rx, rx, Path.Direction.CW)
+                        moveTo(labelRect.left + 30f, labelRect.bottom - 10f)
+                        lineTo(labelRect.left + 20f, labelRect.bottom)
+                        lineTo(labelRect.left + 45f, labelRect.bottom - 10f)
+                    }
+                    canvas.drawPath(bubblePath, labelPaint)
+                }
+            }
+
+            // ── COMPOSITE LAYER 3: White / Inner Stroke Line ──
+            if (element.labelStrokeColor != null && element.labelStrokeWidth > 0f) {
+                val innerStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = element.labelStrokeColor!!
+                    style = Paint.Style.STROKE
+                    strokeWidth = element.labelStrokeWidth
+                }
+                val inset = element.labelStrokeWidth * 2f
+                val insetRect = RectF(labelRect.left + inset, labelRect.top + inset, labelRect.right - inset, labelRect.bottom - inset)
+                canvas.drawRoundRect(insetRect, 16f, 16f, innerStrokePaint)
+            }
+
+            // ── COMPOSITE LAYER 4: 3D Glossy Shine Arc Overlay ──
+            if (element.hasGlossHighlight) {
+                val glossPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    shader = LinearGradient(
+                        labelRect.left, labelRect.top,
+                        labelRect.left, labelRect.centerY(),
+                        Color.argb(120, 255, 255, 255),
+                        Color.argb(10, 255, 255, 255),
+                        Shader.TileMode.CLAMP
+                    )
+                    style = Paint.Style.FILL
+                }
+                val glossRect = RectF(labelRect.left + 2f, labelRect.top + 2f, labelRect.right - 2f, labelRect.centerY())
+                canvas.drawRoundRect(glossRect, 16f, 16f, glossPaint)
             }
 
             labelPaint.alpha = prevAlpha

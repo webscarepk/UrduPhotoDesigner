@@ -6,16 +6,16 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <!-- Top Horizontal Sub-Tabs Bar (Scrolls in/out of screen edge) -->
+    <!-- Top Horizontal Sub-Tabs Bar (Edge-to-edge scrolling, 0 margin) -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/categories"
         android:layout_width="match_parent"
         android:layout_height="36dp"
         android:clipToPadding="false"
         android:orientation="horizontal"
-        android:paddingHorizontal="12dp"
+        android:paddingHorizontal="10dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        tools:itemCount="4"
+        tools:itemCount="5"
         tools:listitem="@layout/layout_tabs_item" />
 
     <FrameLayout

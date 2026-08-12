@@ -2335,6 +2335,30 @@ class CanvasViewModel @Inject constructor(
         updateSelectedTextElements { it.copy(labelColor = color, labelShape = shape, hasLabel = enabled) }
     }
 
+    fun applyTextStylePreset(preset: com.webscare.urducanvas.data.model.TextStylePreset) {
+        updateSelectedTextElements { element ->
+            element.copy(
+                paintColor = preset.textColor ?: element.paintColor,
+                fillGradient = preset.textGradient,
+                strokeColor = preset.strokeColor ?: element.strokeColor,
+                strokeWidth = preset.strokeWidth,
+                shadowColor = preset.shadowColor ?: element.shadowColor,
+                shadowRadius = preset.shadowRadius,
+                shadowDx = preset.shadowDx,
+                shadowDy = preset.shadowDy,
+                hasLabel = preset.hasLabel,
+                labelShape = preset.labelShape,
+                labelColor = preset.labelColor,
+                labelGradient = preset.labelGradient,
+                labelSecondaryColor = preset.labelSecondaryColor,
+                labelStrokeColor = preset.labelStrokeColor,
+                labelStrokeWidth = preset.labelStrokeWidth,
+                hasGlossHighlight = preset.hasGlossHighlight,
+                hasFoldedRibbonFlaps = preset.hasFoldedRibbonFlaps
+            )
+        }
+    }
+
     fun clearLabelGradients() {
         _hasLabel.value = false
         _labelGradient.value = null

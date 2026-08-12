@@ -7,39 +7,19 @@
     android:background="@drawable/panel_bg"
     tools:context=".ui.editor.panels.table.TableAdjustmentsFragment">
 
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/topGuide"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.01" />
-
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/startGuide"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.02" />
-
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/endGuide"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.98" />
-
     <!-- ── Row 1: back + title (Table Properties) ── -->
     <ImageView
         android:id="@+id/back"
         android:layout_width="30dp"
         android:layout_height="30dp"
+        android:layout_marginStart="10dp"
         android:layout_marginTop="10dp"
         android:background="@drawable/button_bg_round"
         android:backgroundTint="@color/white"
         android:padding="7dp"
         android:src="@drawable/ic_back"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
-        app:layout_constraintTop_toBottomOf="@id/topGuide" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/title"
@@ -54,7 +34,7 @@
         app:layout_constraintStart_toEndOf="@id/back"
         app:layout_constraintTop_toTopOf="@id/back" />
 
-    <!-- ── Row 2: TabLayout & Search ── -->
+    <!-- ── Row 2: TabLayout & Search (Edge-to-edge container, no guide clipping) ── -->
     <LinearLayout
         android:id="@+id/toolbarRow"
         android:layout_width="0dp"
@@ -62,8 +42,9 @@
         android:layout_marginTop="4dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        app:layout_constraintEnd_toStartOf="@id/endGuide"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
+        android:paddingHorizontal="10dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/back">
 
         <ImageView
@@ -117,6 +98,7 @@
 
     </LinearLayout>
 
+    <!-- ViewPager2 spans 100% full width so tabs & options don't clip at right edge -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"
         android:layout_width="0dp"
@@ -124,7 +106,7 @@
         android:layout_marginTop="4dp"
         android:saveEnabled="false"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/endGuide"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/toolbarRow" />
 

@@ -1,40 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/shadowsFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/shadowsFragment"
-    tools:context=".ui.editor.panels.text.appearance.childs.ShadowsFragment"
     android:background="@color/white"
-    android:paddingHorizontal="16dp">
+    tools:context=".ui.editor.panels.text.appearance.childs.ShadowsFragment">
 
+    <!-- Top Swatches Horizontal Scroll List (Edge-to-edge scrolling, 0 margin) -->
     <androidx.recyclerview.widget.RecyclerView
-        android:layout_marginTop="6dp"
+        android:id="@+id/colors"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/footer"
+        android:layout_marginTop="6dp"
+        android:clipToPadding="false"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp"
         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+        app:layout_constraintBottom_toTopOf="@id/footer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         app:spanCount="2"
         tools:itemCount="100"
-        android:clipToPadding="false"
-        android:layout_marginStart="-16dp"
-        android:layout_marginEnd="-16dp"
-        android:paddingHorizontal="16dp"
-        android:orientation="horizontal"
-        android:id="@+id/colors"
-        tools:listitem="@layout/layout_color_item"/>
+        tools:listitem="@layout/layout_color_item" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/footer"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/colors">
 
         <!-- ANGLE (was Shadow X) -->
@@ -42,8 +40,8 @@
             android:id="@+id/shadowXCard"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
             android:layout_marginBottom="3dp"
-            android:layout_marginEnd="6dp"
             android:visibility="visible"
             app:layout_constraintBottom_toTopOf="@id/opacityCard"
             app:layout_constraintEnd_toStartOf="@id/shadowYCard"
@@ -53,7 +51,7 @@
                 android:id="@+id/shadowXTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="15dp"
                 android:fontFamily="@font/medium"
                 android:text="@string/angle"
                 android:textColor="@color/black"
@@ -65,7 +63,7 @@
                 android:id="@+id/shadowXSize"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="15dp"
                 android:fontFamily="@font/regular"
                 android:text="135°"
                 android:textColor="@color/black"
@@ -97,8 +95,9 @@
             android:id="@+id/shadowYCard"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="10dp"
             android:layout_marginBottom="3dp"
-            android:layout_marginStart="6dp"
             android:visibility="visible"
             app:layout_constraintBottom_toTopOf="@id/opacityCard"
             app:layout_constraintEnd_toEndOf="parent"
@@ -108,7 +107,7 @@
                 android:id="@+id/shadowYTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="15dp"
                 android:fontFamily="@font/medium"
                 android:text="@string/distance"
                 android:textColor="@color/black"
@@ -120,7 +119,7 @@
                 android:id="@+id/shadowYSize"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="15dp"
                 android:fontFamily="@font/regular"
                 android:text="21"
                 android:textColor="@color/black"
@@ -147,11 +146,12 @@
                 app:layout_constraintTop_toBottomOf="@id/shadowYSize" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
+        <!-- OPACITY -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/opacityCard"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="6dp"
+            android:layout_marginEnd="4dp"
             android:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/radiusCard"
@@ -161,7 +161,7 @@
                 android:id="@+id/opacityTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="15dp"
                 android:fontFamily="@font/medium"
                 android:text="@string/opacity"
                 android:textColor="@color/black"
@@ -173,7 +173,7 @@
                 android:id="@+id/opacitySize"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="15dp"
                 android:fontFamily="@font/regular"
                 android:text="10"
                 android:textColor="@color/black"
@@ -199,11 +199,13 @@
                 app:layout_constraintTop_toBottomOf="@id/opacitySize" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
+        <!-- RADIUS -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/radiusCard"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="10dp"
             android:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -213,7 +215,7 @@
                 android:id="@+id/radiusTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="15dp"
                 android:fontFamily="@font/medium"
                 android:text="@string/radius"
                 android:textColor="@color/black"
@@ -225,7 +227,7 @@
                 android:id="@+id/radiusSize"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="15dp"
                 android:fontFamily="@font/regular"
                 android:text="10"
                 android:textColor="@color/black"

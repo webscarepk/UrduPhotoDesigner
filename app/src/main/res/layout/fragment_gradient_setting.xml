@@ -5,7 +5,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/white"
-    android:paddingHorizontal="16dp"
     android:clickable="true"
     android:focusable="true"
     tools:context=".ui.editor.panels.text.appearance.childs.gradient.GradientSettingFragment">
@@ -14,6 +13,7 @@
         android:id="@+id/done"
         android:layout_width="30dp"
         android:layout_height="30dp"
+        android:layout_marginEnd="10dp"
         android:padding="6dp"
         android:src="@drawable/ic_done"
         app:layout_constraintEnd_toEndOf="parent"
@@ -23,6 +23,7 @@
     <TextView
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
         android:ellipsize="end"
         android:fontFamily="@font/medium"
         android:gravity="start"
@@ -38,17 +39,19 @@
         android:id="@+id/footer"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/done">
 
+        <!-- Gradient Colors Horizontal List (0 margin, 10dp padding) -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/gradientColors"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:clipToPadding="false"
             android:orientation="horizontal"
-            android:paddingEnd="16dp"
+            android:paddingHorizontal="10dp"
             android:visibility="gone"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             app:layout_constraintEnd_toEndOf="parent"
@@ -57,12 +60,13 @@
             tools:itemCount="10"
             tools:listitem="@layout/layout_color_item" />
 
+        <!-- Center X Card -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/shadowXCard"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
             android:layout_marginBottom="3dp"
-            android:layout_marginEnd="6dp"
             android:visibility="gone"
             app:layout_constraintBottom_toTopOf="@id/scaleCard"
             app:layout_constraintEnd_toStartOf="@id/shadowYCard"
@@ -72,7 +76,7 @@
                 android:id="@+id/shadowXTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="15dp"
                 android:fontFamily="@font/medium"
                 android:text="@string/center_x"
                 android:textColor="@color/black"
@@ -84,7 +88,7 @@
                 android:id="@+id/shadowXSize"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="15dp"
                 android:fontFamily="@font/regular"
                 android:text="10"
                 android:textColor="@color/black"
@@ -111,12 +115,14 @@
                 app:layout_constraintTop_toBottomOf="@id/shadowXSize" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
+        <!-- Center Y Card -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/shadowYCard"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="10dp"
             android:layout_marginBottom="3dp"
-            android:layout_marginStart="6dp"
             android:visibility="gone"
             app:layout_constraintBottom_toTopOf="@id/scaleCard"
             app:layout_constraintEnd_toEndOf="parent"
@@ -126,7 +132,7 @@
                 android:id="@+id/shadowYTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="15dp"
                 android:fontFamily="@font/medium"
                 android:text="@string/center_y"
                 android:textColor="@color/black"
@@ -138,7 +144,7 @@
                 android:id="@+id/shadowYSize"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="15dp"
                 android:fontFamily="@font/regular"
                 android:text="10"
                 android:textColor="@color/black"
@@ -165,11 +171,12 @@
                 app:layout_constraintTop_toBottomOf="@id/shadowYSize" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
+        <!-- Scale Card -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/scaleCard"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="6dp"
+            android:layout_marginEnd="4dp"
             android:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/angleLayout"
@@ -179,7 +186,7 @@
                 android:id="@+id/scaleTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="15dp"
                 android:fontFamily="@font/medium"
                 android:text="@string/scale"
                 android:textColor="@color/black"
@@ -191,7 +198,7 @@
                 android:id="@+id/scaleSize"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="15dp"
                 android:fontFamily="@font/regular"
                 android:text="10"
                 android:textColor="@color/black"
@@ -218,11 +225,13 @@
                 app:layout_constraintTop_toBottomOf="@id/scaleSize" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
+        <!-- Angle Layout -->
         <FrameLayout
             android:id="@+id/angleLayout"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="10dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/scaleCard">
@@ -237,7 +246,7 @@
                     android:id="@+id/angleTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="15dp"
                     android:fontFamily="@font/medium"
                     android:text="@string/angle"
                     android:textColor="@color/black"
@@ -249,7 +258,7 @@
                     android:id="@+id/angleSize"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="12dp"
+                    android:layout_marginEnd="15dp"
                     android:fontFamily="@font/regular"
                     android:text="10"
                     android:textColor="@color/black"
@@ -286,7 +295,7 @@
                     android:id="@+id/sweepAngleTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="15dp"
                     android:fontFamily="@font/medium"
                     android:text="@string/sweep_angle"
                     android:textColor="@color/black"
@@ -298,7 +307,7 @@
                     android:id="@+id/sweepAngleSize"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="12dp"
+                    android:layout_marginEnd="15dp"
                     android:fontFamily="@font/regular"
                     android:text="10"
                     android:textColor="@color/black"
@@ -335,7 +344,7 @@
                     android:id="@+id/radiusTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="15dp"
                     android:fontFamily="@font/medium"
                     android:text="@string/radius"
                     android:textColor="@color/black"
@@ -347,7 +356,7 @@
                     android:id="@+id/radiusSize"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="12dp"
+                    android:layout_marginEnd="15dp"
                     android:fontFamily="@font/regular"
                     android:text="10"
                     android:textColor="@color/black"

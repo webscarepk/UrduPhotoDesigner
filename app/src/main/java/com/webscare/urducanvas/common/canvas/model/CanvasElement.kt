@@ -126,6 +126,16 @@ data class CanvasElement(
 
     @SerializedName("labelShape") var labelShape: LabelShape = LabelShape.RECTANGLE_FILL,
 
+    @SerializedName("labelSecondaryColor") var labelSecondaryColor: Int? = null,
+
+    @SerializedName("labelStrokeColor") var labelStrokeColor: Int? = null,
+
+    @SerializedName("labelStrokeWidth") var labelStrokeWidth: Float = 0f,
+
+    @SerializedName("hasGlossHighlight") var hasGlossHighlight: Boolean = false,
+
+    @SerializedName("hasFoldedRibbonFlaps") var hasFoldedRibbonFlaps: Boolean = false,
+
     @SerializedName("lineSpacing") var lineSpacing: Float = 1.0f,
 
     @SerializedName("letterSpacing") var letterSpacing: Float = 0f,
