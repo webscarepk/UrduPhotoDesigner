@@ -76,11 +76,10 @@ class GradientBarView @JvmOverloads constructor(
     // ── Metrics ───────────────────────────────────────────────────────────────
 
     private val dp  = resources.displayMetrics.density
-    private val handleRadius    = dp * 11f
-    private val barCornerRadius = dp * 18f
-    /** Horizontal padding so handles at 0 and 1 don't clip at the edges. */
-    private val barPaddingH     = handleRadius + dp * 2f
-    private val barPaddingV     = dp * 4f
+    private val handleRadius    = dp * 10f
+    private val barPadding      = handleRadius + dp * 2f
+    private val trackHeight     = handleRadius * 2.4f
+    private val barCornerRadius = trackHeight / 2f
     private val strokeWidth     = dp * 2f
 
     // ── Paints ────────────────────────────────────────────────────────────────
@@ -101,27 +100,20 @@ class GradientBarView @JvmOverloads constructor(
         strokeWidth = this@GradientBarView.strokeWidth
     }
 
-    /** Slightly larger outer ring to separate overlapping stops. */
-    private val outerRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style       = Paint.Style.STROKE
-        strokeWidth = dp * 1.5f
-        color       = Color.argb(60, 0, 0, 0)
-    }
-
     // ── Geometry helpers ──────────────────────────────────────────────────────
 
     private val barRect get() = RectF(
-        barPaddingH,
-        barPaddingV,
-        width  - barPaddingH,
-        height - barPaddingV
+        0f,
+        (height - trackHeight) / 2f,
+        width.toFloat(),
+        (height + trackHeight) / 2f
     )
 
     /** Left pixel that maps to position 0. */
-    private val trackStart get() = barPaddingH
+    private val trackStart get() = barPadding
     /** Right pixel that maps to position 1. */
-    private val trackEnd   get() = width - barPaddingH
-    private val trackWidth get() = trackEnd - trackStart
+    private val trackEnd   get() = width - barPadding
+    private val trackWidth get() = (trackEnd - trackStart).coerceAtLeast(1f)
 
     /** Map a normalised [0,1] position to a canvas X coordinate. */
     private fun posToX(pos: Float) = trackStart + pos.coerceIn(0f, 1f) * trackWidth
@@ -213,18 +205,9 @@ class GradientBarView @JvmOverloads constructor(
             drawRoundRect(rect, barCornerRadius, barCornerRadius, barPaint)
         }
 
-        // 2 ── Stop handles
-        //
-        // The handle CENTRE is at posToX(pos), which is the exact pixel on the
-        // gradient that corresponds to that stop.  The fill colour is the stop
-        // colour.  No offset.  No shadow displacement.  Just a circle whose
-        // mathematical centre is the stop pixel.
+        // 2 ── Stop handles (matching ColorPickerBar design)
         positions.forEachIndexed { i, pos ->
             val cx = posToX(pos)
-
-            // Outer separation ring (semi-transparent dark) — helps legibility
-            // when two handles are close together.
-            canvas.drawCircle(cx, cy, handleRadius + strokeWidth, outerRingPaint)
 
             // Solid fill with the exact stop colour
             fillPaint.color = colors[i]
@@ -232,6 +215,7 @@ class GradientBarView @JvmOverloads constructor(
 
             // Contrasting stroke so white/black handles stay visible on the bar
             strokePaint.color = if (isColorDark(colors[i])) Color.WHITE else Color.BLACK
+            strokePaint.strokeWidth = strokeWidth
             canvas.drawCircle(cx, cy, handleRadius, strokePaint)
         }
     }
@@ -373,8 +357,9 @@ class GradientBarView @JvmOverloads constructor(
         val r = Color.red(color)
         val g = Color.green(color)
         val b = Color.blue(color)
-        // Relative luminance (sRGB)
-        val luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+        // compute luminance (0…255) matching ColorPickerBar
+        val luminance = 0.299 * r + 0.587 * g + 0.114 * b
         return luminance < 128
     }
 }

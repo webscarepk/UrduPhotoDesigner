@@ -91,7 +91,8 @@ class ShapesParentFragment : Fragment() {
         tabs.add(ShapesListFragment.VECTORS_TAB)
         tabs.addAll(initial.tabs.filter { it != TABLES_TAB && it != ShapesListFragment.VECTORS_TAB })
 
-        currentTabIndex = mainViewModel.lastShapesTabCategory?.let { saved ->
+        val requestedTab = arguments?.getString("TARGET_TAB") ?: mainViewModel.lastShapesTabCategory
+        currentTabIndex = requestedTab?.let { saved ->
             tabs.indexOf(saved).takeIf { it >= 0 }
         } ?: 0
 

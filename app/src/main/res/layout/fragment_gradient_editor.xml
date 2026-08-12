@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/white"
+    android:paddingHorizontal="16dp"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/gradientEditor"
     tools:context=".ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment">
@@ -91,7 +92,7 @@
         app:layout_constraintTop_toTopOf="@id/previewCard"
         app:layout_constraintBottom_toBottomOf="@id/previewCard"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginHorizontal="6dp">
+        android:layout_marginStart="8dp">
 
         <TextView
             android:id="@+id/linear"

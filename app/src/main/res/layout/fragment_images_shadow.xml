@@ -6,7 +6,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/imagesShadowsFragment"
     tools:context=".ui.editor.panels.image.ImagesShadowFragment"
-    android:background="@color/white">
+    android:background="@color/white"
+    android:paddingHorizontal="16dp">
 
     <androidx.recyclerview.widget.RecyclerView
         android:layout_marginTop="6dp"
@@ -20,7 +21,9 @@
         app:spanCount="2"
         tools:itemCount="100"
         android:clipToPadding="false"
-        android:paddingEnd="16dp"
+        android:layout_marginStart="-16dp"
+        android:layout_marginEnd="-16dp"
+        android:paddingHorizontal="16dp"
         android:orientation="horizontal"
         android:id="@+id/colors"
         tools:listitem="@layout/layout_color_item"/>
@@ -40,6 +43,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginBottom="3dp"
+            android:layout_marginEnd="6dp"
             android:visibility="visible"
             app:layout_constraintBottom_toTopOf="@id/opacityCard"
             app:layout_constraintEnd_toStartOf="@id/shadowYCard"
@@ -94,6 +98,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginBottom="3dp"
+            android:layout_marginStart="6dp"
             android:visibility="visible"
             app:layout_constraintBottom_toTopOf="@id/opacityCard"
             app:layout_constraintEnd_toEndOf="parent"
@@ -146,6 +151,7 @@
             android:id="@+id/opacityCard"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
             android:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/radiusCard"
@@ -197,6 +203,7 @@
             android:id="@+id/radiusCard"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
             android:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"

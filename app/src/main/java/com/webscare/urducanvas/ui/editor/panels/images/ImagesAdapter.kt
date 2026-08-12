@@ -256,40 +256,37 @@ class ImagesAdapter(
         fun updateSize(slideOffset: Float, rvWidth: Int, rvPadding: Int) {
             val context = itemView.context
             val density = context.resources.displayMetrics.density
-            val collapsedSize = (44 * density).toInt()
             val recyclerView = (itemView.parent as? androidx.recyclerview.widget.RecyclerView) ?: adapter.attachedRecyclerView
+
+            val marginEndPx = (6 * density).toInt()
+            val marginBottomPx = (6 * density).toInt()
+
+            val lm = recyclerView?.layoutManager as? androidx.recyclerview.widget.GridLayoutManager
+            val spanCount = lm?.spanCount?.coerceAtLeast(1) ?: 2
+
+            val rvHeight = recyclerView?.height ?: 0
+            val rvPaddingY = (recyclerView?.paddingTop ?: 0) + (recyclerView?.paddingBottom ?: 0)
+            val availHeight = rvHeight - rvPaddingY
+
+            val computedCollapsedHeight = if (availHeight > 0) {
+                ((availHeight - (spanCount * marginBottomPx)) / spanCount).coerceAtLeast((24 * density).toInt())
+            } else {
+                (44 * density).toInt()
+            }
+
+            val collapsedSize = computedCollapsedHeight
 
             val effectiveWidth = if (rvWidth > 0) rvWidth else (recyclerView?.width ?: 0)
             val columnWidth = if (effectiveWidth > 0) {
-                val marginPx = 18 * density
-                ((effectiveWidth - rvPadding - marginPx) / 3).toInt()
+                val totalMarginW = 18 * density
+                ((effectiveWidth - rvPadding - totalMarginW) / 3).toInt()
             } else collapsedSize
 
             val currentSize = (collapsedSize + (columnWidth - collapsedSize) * slideOffset).toInt()
+            val finalSize = currentSize.coerceAtLeast(1)
 
             val lp = cardRoot.layoutParams as? android.view.ViewGroup.MarginLayoutParams
             if (lp != null) {
-                val marginEndPx = (6 * density).toInt()
-                val marginBottomPx = (6 * density).toInt()
-
-                // Calculate vertical clamping when horizontal orientation to prevent overlapping rows
-                val lm = recyclerView?.layoutManager as? androidx.recyclerview.widget.GridLayoutManager
-                val finalSize = if (lm != null && lm.orientation == androidx.recyclerview.widget.GridLayoutManager.HORIZONTAL) {
-                    val rvHeight = recyclerView?.height ?: 0
-                    val rvPaddingY = (recyclerView?.paddingTop ?: 0) + (recyclerView?.paddingBottom ?: 0)
-                    val availHeight = rvHeight - rvPaddingY
-                    val spanCount = lm.spanCount.coerceAtLeast(1)
-                    if (availHeight > 0) {
-                        val rowHeight = availHeight / spanCount
-                        val maxAllowedHeight = rowHeight - marginBottomPx
-                        minOf(currentSize, maxAllowedHeight).coerceAtLeast((28 * density).toInt())
-                    } else {
-                        collapsedSize
-                    }
-                } else {
-                    currentSize
-                }
-
                 if (lp.width != finalSize || lp.height != finalSize || lp.rightMargin != marginEndPx || lp.bottomMargin != marginBottomPx) {
                     lp.width = finalSize
                     lp.height = finalSize

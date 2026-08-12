@@ -22,6 +22,7 @@ class MaskFragment : androidx.fragment.app.Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: com.webscare.urducanvas.common.canvas.CanvasViewModel by activityViewModels()
+    private val mainViewModel: com.webscare.urducanvas.viewmodels.MainViewModel by activityViewModels()
     private var elementId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -141,7 +142,10 @@ class MaskFragment : androidx.fragment.app.Fragment() {
 
         nav.popBackStack(R.id.adjustmentsParentFragment, true)
 
-        nav.navigate(R.id.shapesParentFragment, null, NavOptions.Builder().setLaunchSingleTop(true).build())
+        val vectorsTab = com.webscare.urducanvas.ui.editor.panels.shape.ShapesListFragment.VECTORS_TAB
+        mainViewModel.lastShapesTabCategory = vectorsTab
+        val bundle = androidx.core.os.bundleOf("TARGET_TAB" to vectorsTab)
+        nav.navigate(R.id.shapesParentFragment, bundle, NavOptions.Builder().setLaunchSingleTop(true).build())
     }
 
     private fun initObservers() {

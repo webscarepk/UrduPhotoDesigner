@@ -11,6 +11,7 @@ import android.view.animation.LinearInterpolator
 import androidx.core.content.ContextCompat
 import com.webscare.urducanvas.R
 import kotlin.math.sin
+import androidx.core.graphics.toColorInt
 
 class DotLoadingView @JvmOverloads constructor(
     context: Context,
@@ -23,7 +24,7 @@ class DotLoadingView @JvmOverloads constructor(
         try {
             ContextCompat.getColor(context, R.color.appColor)
         } catch (e: Exception) {
-            Color.parseColor("#005D28")
+            "#005D28".toColorInt()
         }
     }
 

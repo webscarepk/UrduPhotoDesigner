@@ -538,7 +538,9 @@ class CanvasView @JvmOverloads constructor(
             val bmpW = (canvasWidth * displayScale).toInt().coerceAtLeast(1)
             val bmpH = (canvasHeight * displayScale).toInt().coerceAtLeast(1)
             val bmp = createBitmap(bmpW, bmpH)
-            renderCanvasTo(Canvas(bmp), displayScale)
+            val canvas = Canvas(bmp)
+            canvas.drawColor(Color.WHITE)
+            renderCanvasTo(canvas, displayScale)
 
             withContext(Dispatchers.Main) {
                 colorPickerBitmap?.let { if (!it.isRecycled) it.recycle() }
@@ -2178,6 +2180,13 @@ class CanvasView @JvmOverloads constructor(
         if (rulerState != com.webscare.urducanvas.common.canvas.enums.RulerState.OFF) {
             drawRuler(canvas)
         }
+
+        // ── COLOR PICKER EYEDROPPER ────────────────────────────────
+        // Always drawn at the very top of onDraw so it is never hidden by isDrawing,
+        // showOverlays=false, or any canvas elements / dim overlays.
+        if (isColorPickerMode) {
+            drawColorPickerOverlay(canvas)
+        }
     }
 
     fun colorFilterFor(filter: ImageFilter?, intensity: Float = 1.0f): ColorFilter? {
@@ -2473,8 +2482,22 @@ class CanvasView @JvmOverloads constructor(
                                     canvas.restore()
                                 }
 
-                                // ── Stroke ───────────────────────────────────────────────────────────
-                                if (element.hasStroke && element.strokeWidth > 0f) {
+                                // ── Stroke & Feather Setup ───────────────────────────────────────────
+                                val hasFeather = element.hasFeather && element.featherRadius > 0f
+                                val hasStroke = element.hasStroke && element.strokeWidth > 0f
+                                val strokeWidth = if (hasStroke) element.strokeWidth else 0f
+
+                                val layerLeft = bl - strokeWidth
+                                val layerTop = bt - strokeWidth
+                                val layerRight = br + strokeWidth
+                                val layerBottom = bb + strokeWidth
+
+                                val needsLayer = (element.hasOverlay && element.overlayOpacity > 0) || hasFeather
+                                if (needsLayer) {
+                                    canvas.saveLayer(layerLeft, layerTop, layerRight, layerBottom, null)
+                                }
+
+                                if (hasStroke) {
                                     // Stroke alpha bitmap only depends on the shape, not color/gradient —
                                     // so fingerprint on shape dimensions only. Color is applied at draw time.
                                     val strokeFp = Objects.hash(
@@ -2541,14 +2564,8 @@ class CanvasView @JvmOverloads constructor(
                                         reusableStrokePaint.shader = null
                                         reusableStrokePaint.color = element.strokeColor
                                     }
-                                    canvas.save()
-                                    val strokeWidth = element.strokeWidth
-                                    reusableRectF.set(
-                                        bl - strokeWidth,
-                                        bt - strokeWidth,
-                                        br + strokeWidth,
-                                        bb + strokeWidth
-                                    )
+                                    if (!hasFeather) canvas.save()
+                                    reusableRectF.set(layerLeft, layerTop, layerRight, layerBottom)
                                     if (!strokedAlphaMask.isRecycled) {
                                         canvas.drawBitmap(
                                             strokedAlphaMask,
@@ -2557,16 +2574,15 @@ class CanvasView @JvmOverloads constructor(
                                             reusableStrokePaint
                                         )
                                     }
-                                    canvas.restore()
+                                    if (!hasFeather) canvas.restore()
                                 }
 
                                 // ── Main draw ─────────────────────────────────────────────────────────
                                 if (finalBitmap != null) {
-                                    // Only use saveLayer when compositing is actually required
-                                    val needsLayer =
-                                        (element.hasOverlay && element.overlayOpacity > 0) || (element.hasFeather && element.featherRadius > 0f)
-                                    if (needsLayer) canvas.saveLayer(bl, bt, br, bb, null)
-                                    else canvas.save()
+                                    if (!hasFeather && !needsLayer) canvas.save()
+                                    else if (!hasFeather && needsLayer) {
+                                        // Save already called above for needsLayer
+                                    }
 
                                     reusableDrawPaint.reset()
                                     reusableDrawPaint.isAntiAlias = true
@@ -2622,14 +2638,14 @@ class CanvasView @JvmOverloads constructor(
                                     }
 
                                     // ── Feather: soft edge fade, instant GPU, no pixel loops ────────
-                                    if (element.hasFeather && element.featherRadius > 0f) {
+                                    if (hasFeather) {
                                         drawFeatherMask(
                                             canvas,
                                             element.id,
-                                            bl,
-                                            bt,
-                                            br,
-                                            bb,
+                                            if (hasStroke) layerLeft else bl,
+                                            if (hasStroke) layerTop else bt,
+                                            if (hasStroke) layerRight else br,
+                                            if (hasStroke) layerBottom else bb,
                                             element.featherRadius,
                                             element.featherWidth,
                                             element.featherDirection ?: FeatherDirection.ALL,
@@ -2678,14 +2694,14 @@ class CanvasView @JvmOverloads constructor(
                                     }
 
                                     // ── Feather: soft edge fade, instant GPU, no pixel loops ────────
-                                    if (element.hasFeather && element.featherRadius > 0f) {
+                                    if (hasFeather) {
                                         drawFeatherMask(
                                             canvas,
                                             element.id,
-                                            left,
-                                            top,
-                                            left + w,
-                                            top + h,
+                                            if (hasStroke) layerLeft else left,
+                                            if (hasStroke) layerTop else top,
+                                            if (hasStroke) layerRight else left + w,
+                                            if (hasStroke) layerBottom else top + h,
                                             element.featherRadius,
                                             element.featherWidth,
                                             element.featherDirection ?: FeatherDirection.ALL,
@@ -2795,8 +2811,23 @@ class CanvasView @JvmOverloads constructor(
                                     canvas.restore()
                                 }
 
+                                // ── Stroke & Feather Setup ───────────────────────────────────────────
+                                val hasFeather = element.hasFeather && element.featherRadius > 0f
+                                val hasStroke = element.hasStroke && element.strokeWidth > 0f
+                                val strokeWidth = if (hasStroke) element.strokeWidth else 0f
+
+                                val layerLeft = left - strokeWidth
+                                val layerTop = top - strokeWidth
+                                val layerRight = left + w + strokeWidth
+                                val layerBottom = top + h + strokeWidth
+
+                                val needsImgLayer = (element.hasOverlay && element.overlayOpacity > 0) || hasFeather
+                                if (needsImgLayer) {
+                                    canvas.saveLayer(layerLeft, layerTop, layerRight, layerBottom, null)
+                                }
+
                                 // ── Cached stroke (Problem 3 fix for IMAGE type) ─────────────────
-                                if (element.hasStroke && element.strokeWidth > 0f) {
+                                if (hasStroke) {
                                     val strokeFp = Objects.hash(
                                         element.id + "_img",
                                         element.strokeWidth,
@@ -2839,7 +2870,6 @@ class CanvasView @JvmOverloads constructor(
                                                 }.bitmap
                                         }
 
-                                    val strokeWidth = element.strokeWidth
                                     reusableStrokePaint.reset()
                                     reusableStrokePaint.style = Paint.Style.FILL
                                     reusableStrokePaint.isFilterBitmap = true
@@ -2851,13 +2881,8 @@ class CanvasView @JvmOverloads constructor(
                                         reusableStrokePaint.color = element.strokeColor
                                     }
 
-                                    canvas.save()
-                                    reusableRectF.set(
-                                        left - strokeWidth,
-                                        top - strokeWidth,
-                                        left + w + strokeWidth,
-                                        top + h + strokeWidth
-                                    )
+                                    if (!hasFeather) canvas.save()
+                                    reusableRectF.set(layerLeft, layerTop, layerRight, layerBottom)
                                     if (!strokedAlphaMask.isRecycled) {
                                         canvas.drawBitmap(
                                             strokedAlphaMask,
@@ -2866,10 +2891,12 @@ class CanvasView @JvmOverloads constructor(
                                             reusableStrokePaint
                                         )
                                     }
-                                    canvas.restore()
+                                    if (!hasFeather) canvas.restore()
                                 }
 
-                                canvas.saveLayer(left, top, left + w, top + h, null)
+                                if (!hasFeather) {
+                                    canvas.saveLayer(left, top, left + w, top + h, null)
+                                }
 
                                 reusableDrawPaint.reset()
                                 reusableDrawPaint.isAntiAlias = true
@@ -2926,14 +2953,14 @@ class CanvasView @JvmOverloads constructor(
                                 }
 
                                 // ── Feather: soft edge fade, instant GPU, no pixel loops ────────────
-                                if (element.hasFeather && element.featherRadius > 0f) {
+                                if (hasFeather) {
                                     drawFeatherMask(
                                         canvas,
                                         element.id,
-                                        left,
-                                        top,
-                                        left + w,
-                                        top + h,
+                                        if (hasStroke) layerLeft else left,
+                                        if (hasStroke) layerTop else top,
+                                        if (hasStroke) layerRight else left + w,
+                                        if (hasStroke) layerBottom else top + h,
                                         element.featherRadius,
                                         element.featherWidth,
                                         element.featherDirection ?: FeatherDirection.ALL,
@@ -3261,47 +3288,73 @@ class CanvasView @JvmOverloads constructor(
         return null
     }
 
-    private fun drawElementOverlays(canvas: Canvas, showOverlays: Boolean = true) {
+    private fun drawColorPickerOverlay(canvas: Canvas) {
+        val halfIcon = desiredPickerIconSizePx
+        val bmp = colorPickerBitmap
+        val (screenX, screenY) = canvasToScreen(pickerX, pickerY)
 
-        // colorPickerBitmap is built asynchronously after enableColorPicker() is called.
-        // It is legitimately null for the first few frames while the coroutine renders it,
-        // AND it is null again immediately after disableColorPicker() recycles it.
-        // Guard every access — never use !! on a nullable Bitmap.
-        if (showOverlays && isColorPickerMode) {
-            val halfIcon = desiredPickerIconSizePx
-            val bmp = colorPickerBitmap
+        if (bmp != null && !bmp.isRecycled) {
+            val scaleX = bmp.width.toFloat() / canvasWidth.toFloat()
+            val scaleY = bmp.height.toFloat() / canvasHeight.toFloat()
+            val px = (pickerX * scaleX).roundToInt().coerceIn(0, bmp.width - 1)
+            val py = (pickerY * scaleY).roundToInt().coerceIn(0, bmp.height - 1)
+            val pixelColor = bmp.getPixel(px, py)
+            val dark = isColorDark(pixelColor)
 
-            if (bmp != null && !bmp.isRecycled) {
-                val scaleX = bmp.width.toFloat() / canvasWidth.toFloat()
-                val scaleY = bmp.height.toFloat() / canvasHeight.toFloat()
-                val px = (pickerX * scaleX).roundToInt().coerceIn(0, bmp.width - 1)
-                val py = (pickerY * scaleY).roundToInt().coerceIn(0, bmp.height - 1)
-                val pixelColor = bmp.getPixel(px, py)
-                val dark = isColorDark(pixelColor)
-
-                canvas.drawCircle(
-                    pickerX, pickerY - halfIcon * 3, halfIcon + 20f, Paint().apply {
-                        color = pixelColor
-                        style = Paint.Style.FILL
-                        isAntiAlias = true
-                    })
-
-                canvas.drawCircle(
-                    pickerX, pickerY - halfIcon * 3, halfIcon + 20f, Paint().apply {
-                        color = if (dark) Color.WHITE else Color.BLACK
-                        style = Paint.Style.STROKE
-                        strokeWidth = 4f
-                    })
-            }
-
-            // Crosshair cursor drawn regardless of whether the bitmap is ready yet
+            // Outer shadow bubble ring
             canvas.drawCircle(
-                pickerX, pickerY, halfIcon / 4, Paint().apply {
-                    color = Color.BLACK
+                screenX, screenY - halfIcon * 3, halfIcon + 22f, Paint().apply {
+                    color = Color.argb(100, 0, 0, 0)
                     style = Paint.Style.FILL
                     isAntiAlias = true
                 })
+
+            // Magnifying color bubble
+            canvas.drawCircle(
+                screenX, screenY - halfIcon * 3, halfIcon + 20f, Paint().apply {
+                    color = pixelColor
+                    style = Paint.Style.FILL
+                    isAntiAlias = true
+                })
+
+            // Magnifying bubble border
+            canvas.drawCircle(
+                screenX, screenY - halfIcon * 3, halfIcon + 20f, Paint().apply {
+                    color = if (dark) Color.WHITE else Color.BLACK
+                    style = Paint.Style.STROKE
+                    strokeWidth = 5f
+                    isAntiAlias = true
+                })
+
+            // Crosshair outer contrast circle
+            canvas.drawCircle(
+                screenX, screenY, halfIcon / 3 + 2f, Paint().apply {
+                    color = if (dark) Color.WHITE else Color.BLACK
+                    style = Paint.Style.STROKE
+                    strokeWidth = 4f
+                    isAntiAlias = true
+                })
+
+            // Crosshair inner fill circle
+            canvas.drawCircle(
+                screenX, screenY, halfIcon / 3, Paint().apply {
+                    color = pixelColor
+                    style = Paint.Style.FILL
+                    isAntiAlias = true
+                })
+        } else {
+            // Crosshair cursor drawn while bitmap is preparing
+            canvas.drawCircle(
+                screenX, screenY, halfIcon / 3, Paint().apply {
+                    color = Color.BLACK
+                    style = Paint.Style.STROKE
+                    strokeWidth = 4f
+                    isAntiAlias = true
+                })
         }
+    }
+
+    private fun drawElementOverlays(canvas: Canvas, showOverlays: Boolean = true) {
 
         if (showOverlays && selectedElements.isNotEmpty()) {
             val desiredScreenStrokeWidth = 2f
@@ -3777,6 +3830,32 @@ class CanvasView @JvmOverloads constructor(
                     overlayPaint.xfermode = null
                 }
 
+                if (element.hasFeather && element.featherRadius > 0f && element.shapeHasStroke) {
+                    val scaleSafe = element.scale.takeIf { it > 0f } ?: 1f
+                    val visualStrokeWidth = (element.shapeStrokeWidth ?: 1f) / scaleSafe
+
+                    val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        style = Paint.Style.STROKE
+                        strokeWidth = visualStrokeWidth
+
+                        if (element.shapeStrokeGradient != null) {
+                            shader = createGradientShader(
+                                element.shapeStrokeGradient!!, localRect.width(), localRect.height()
+                            )
+                        } else {
+                            color = element.shapeStrokeColor ?: Color.BLACK
+                        }
+
+                        alpha = element.paintAlpha
+                        strokeJoin = Paint.Join.ROUND
+                        strokeCap = Paint.Cap.ROUND
+                    }
+
+                    ShapeRenderUtils.withCornerEffect(strokePaint, cornerRadius, shapeType) {
+                        canvas.drawPath(path, strokePaint)
+                    }
+                }
+
                 // ── Feather: soft edge fade drawn on canvas — instant, no pixel loops ─
                 if (element.hasFeather && element.featherRadius > 0f) {
                     drawFeatherMask(
@@ -3802,7 +3881,7 @@ class CanvasView @JvmOverloads constructor(
         // 4️⃣ STROKE (TOP MOST)
         // -------------------------------------------------
 
-        if (element.shapeHasStroke) {
+        if (element.shapeHasStroke && !(element.hasFeather && element.featherRadius > 0f)) {
 
             val scaleSafe = element.scale.takeIf { it > 0f } ?: 1f
             val visualStrokeWidth = (element.shapeStrokeWidth ?: 1f) / scaleSafe
@@ -4366,11 +4445,24 @@ class CanvasView @JvmOverloads constructor(
             } catch (e: Exception) {
                 0f
             }
-            val labelPadding = 16f
-            val left = -maxLineWidth / 2f - labelPadding
-            val top = -totalHeight / 2f - labelPadding
-            val right = maxLineWidth / 2f + labelPadding
-            val bottom = totalHeight / 2f + labelPadding
+
+            // Tailored horizontal & vertical padding per shape geometry to guarantee zero text collision/clipping
+            val labelPaddingY = 18f
+            val labelPaddingX = when (element.labelShape) {
+                LabelShape.TAG_FILL, LabelShape.TAG_STROKE -> 48f
+                LabelShape.RIBBON_FILL, LabelShape.RIBBON_STROKE -> 54f
+                LabelShape.CAPSULE_FILL, LabelShape.CAPSULE_STROKE,
+                LabelShape.OVAL_FILL, LabelShape.OVAL_STROKE -> 36f
+                LabelShape.SLANTED_FILL, LabelShape.SLANTED_STROKE -> 40f
+                LabelShape.BADGE_FILL, LabelShape.BADGE_STROKE -> 32f
+                LabelShape.ROUNDED_RECTANGLE_FILL, LabelShape.ROUNDED_RECTANGLE_STROKE -> 28f
+                else -> 24f
+            }
+
+            val left = -maxLineWidth / 2f - labelPaddingX
+            val top = -totalHeight / 2f - labelPaddingY
+            val right = maxLineWidth / 2f + labelPaddingX
+            val bottom = totalHeight / 2f + labelPaddingY
 
             val labelRect = RectF(left, top, right, bottom)
             val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -4426,13 +4518,143 @@ class CanvasView @JvmOverloads constructor(
                 }
 
                 LabelShape.ROUNDED_RECTANGLE_FILL -> {
-                    canvas.drawRoundRect(labelRect, 20f, 20f, labelPaint)
+                    canvas.drawRoundRect(labelRect, 24f, 24f, labelPaint)
                 }
 
                 LabelShape.ROUNDED_RECTANGLE_STROKE -> {
                     labelPaint.style = Paint.Style.STROKE
                     labelPaint.strokeWidth = 4f
-                    canvas.drawRoundRect(labelRect, 20f, 20f, labelPaint)
+                    canvas.drawRoundRect(labelRect, 24f, 24f, labelPaint)
+                }
+
+                LabelShape.CAPSULE_FILL -> {
+                    val pillRadius = min(labelRect.width(), labelRect.height()) / 2f
+                    canvas.drawRoundRect(labelRect, pillRadius, pillRadius, labelPaint)
+                }
+
+                LabelShape.CAPSULE_STROKE -> {
+                    labelPaint.style = Paint.Style.STROKE
+                    labelPaint.strokeWidth = 4f
+                    val pillRadius = min(labelRect.width(), labelRect.height()) / 2f
+                    canvas.drawRoundRect(labelRect, pillRadius, pillRadius, labelPaint)
+                }
+
+                LabelShape.TAG_FILL -> {
+                    val arrowWidth = labelRect.height() * 0.4f
+                    val tagPath = Path().apply {
+                        moveTo(labelRect.left, labelRect.top)
+                        lineTo(labelRect.right - arrowWidth, labelRect.top)
+                        lineTo(labelRect.right, labelRect.centerY())
+                        lineTo(labelRect.right - arrowWidth, labelRect.bottom)
+                        lineTo(labelRect.left, labelRect.bottom)
+                        close()
+                    }
+                    canvas.drawPath(tagPath, labelPaint)
+                }
+
+                LabelShape.TAG_STROKE -> {
+                    labelPaint.style = Paint.Style.STROKE
+                    labelPaint.strokeWidth = 4f
+                    val arrowWidth = labelRect.height() * 0.4f
+                    val tagPath = Path().apply {
+                        moveTo(labelRect.left, labelRect.top)
+                        lineTo(labelRect.right - arrowWidth, labelRect.top)
+                        lineTo(labelRect.right, labelRect.centerY())
+                        lineTo(labelRect.right - arrowWidth, labelRect.bottom)
+                        lineTo(labelRect.left, labelRect.bottom)
+                        close()
+                    }
+                    canvas.drawPath(tagPath, labelPaint)
+                }
+
+                LabelShape.RIBBON_FILL -> {
+                    val arrowWidth = labelRect.height() * 0.4f
+                    val ribbonPath = Path().apply {
+                        moveTo(labelRect.left, labelRect.top)
+                        lineTo(labelRect.left + arrowWidth, labelRect.centerY())
+                        lineTo(labelRect.left, labelRect.bottom)
+                        lineTo(labelRect.right - arrowWidth, labelRect.bottom)
+                        lineTo(labelRect.right, labelRect.centerY())
+                        lineTo(labelRect.right - arrowWidth, labelRect.top)
+                        close()
+                    }
+                    canvas.drawPath(ribbonPath, labelPaint)
+                }
+
+                LabelShape.RIBBON_STROKE -> {
+                    labelPaint.style = Paint.Style.STROKE
+                    labelPaint.strokeWidth = 4f
+                    val arrowWidth = labelRect.height() * 0.4f
+                    val ribbonPath = Path().apply {
+                        moveTo(labelRect.left, labelRect.top)
+                        lineTo(labelRect.left + arrowWidth, labelRect.centerY())
+                        lineTo(labelRect.left, labelRect.bottom)
+                        lineTo(labelRect.right - arrowWidth, labelRect.bottom)
+                        lineTo(labelRect.right, labelRect.centerY())
+                        lineTo(labelRect.right - arrowWidth, labelRect.top)
+                        close()
+                    }
+                    canvas.drawPath(ribbonPath, labelPaint)
+                }
+
+                LabelShape.SLANTED_FILL -> {
+                    val slant = labelRect.height() * 0.35f
+                    val slantedPath = Path().apply {
+                        moveTo(labelRect.left + slant, labelRect.top)
+                        lineTo(labelRect.right, labelRect.top)
+                        lineTo(labelRect.right - slant, labelRect.bottom)
+                        lineTo(labelRect.left, labelRect.bottom)
+                        close()
+                    }
+                    canvas.drawPath(slantedPath, labelPaint)
+                }
+
+                LabelShape.SLANTED_STROKE -> {
+                    labelPaint.style = Paint.Style.STROKE
+                    labelPaint.strokeWidth = 4f
+                    val slant = labelRect.height() * 0.35f
+                    val slantedPath = Path().apply {
+                        moveTo(labelRect.left + slant, labelRect.top)
+                        lineTo(labelRect.right, labelRect.top)
+                        lineTo(labelRect.right - slant, labelRect.bottom)
+                        lineTo(labelRect.left, labelRect.bottom)
+                        close()
+                    }
+                    canvas.drawPath(slantedPath, labelPaint)
+                }
+
+                LabelShape.BADGE_FILL -> {
+                    val chamfer = min(labelRect.width(), labelRect.height()) * 0.25f
+                    val badgePath = Path().apply {
+                        moveTo(labelRect.left + chamfer, labelRect.top)
+                        lineTo(labelRect.right - chamfer, labelRect.top)
+                        lineTo(labelRect.right, labelRect.top + chamfer)
+                        lineTo(labelRect.right, labelRect.bottom - chamfer)
+                        lineTo(labelRect.right - chamfer, labelRect.bottom)
+                        lineTo(labelRect.left + chamfer, labelRect.bottom)
+                        lineTo(labelRect.left, labelRect.bottom - chamfer)
+                        lineTo(labelRect.left, labelRect.top + chamfer)
+                        close()
+                    }
+                    canvas.drawPath(badgePath, labelPaint)
+                }
+
+                LabelShape.BADGE_STROKE -> {
+                    labelPaint.style = Paint.Style.STROKE
+                    labelPaint.strokeWidth = 4f
+                    val chamfer = min(labelRect.width(), labelRect.height()) * 0.25f
+                    val badgePath = Path().apply {
+                        moveTo(labelRect.left + chamfer, labelRect.top)
+                        lineTo(labelRect.right - chamfer, labelRect.top)
+                        lineTo(labelRect.right, labelRect.top + chamfer)
+                        lineTo(labelRect.right, labelRect.bottom - chamfer)
+                        lineTo(labelRect.right - chamfer, labelRect.bottom)
+                        lineTo(labelRect.left + chamfer, labelRect.bottom)
+                        lineTo(labelRect.left, labelRect.bottom - chamfer)
+                        lineTo(labelRect.left, labelRect.top + chamfer)
+                        close()
+                    }
+                    canvas.drawPath(badgePath, labelPaint)
                 }
             }
 
@@ -4894,6 +5116,18 @@ class CanvasView @JvmOverloads constructor(
         return pt[0] to pt[1]
     }
 
+    private fun canvasToScreen(cx: Float, cy: Float): Pair<Float, Float> {
+        val pt = floatArrayOf(cx, cy)
+        val transform = Matrix().apply {
+            postScale(scale, scale)
+            postTranslate(offsetX, offsetY)
+            postScale(overallScale, overallScale, width / 2f, height / 2f)
+            postTranslate(overallOffsetX, overallOffsetY)
+        }
+        transform.mapPoints(pt)
+        return pt[0] to pt[1]
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         // Only forward single-pointer events to GestureDetector.
@@ -4905,6 +5139,35 @@ class CanvasView @JvmOverloads constructor(
         }
 
         val (x, y) = screenToCanvas(event.x, event.y)
+
+        if (isColorPickerMode) {
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                    pickerX = x.coerceIn(0f, canvasWidth.toFloat())
+                    pickerY = y.coerceIn(0f, canvasHeight.toFloat())
+                    isDraggingPicker = true
+                    invalidate()
+                    return true
+                }
+
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (isDraggingPicker) {
+                        val bmp = colorPickerBitmap
+                        if (bmp != null && !bmp.isRecycled) {
+                            val scaleX = bmp.width.toFloat() / canvasWidth.toFloat()
+                            val scaleY = bmp.height.toFloat() / canvasHeight.toFloat()
+                            val px = (pickerX * scaleX).roundToInt().coerceIn(0, bmp.width - 1)
+                            val py = (pickerY * scaleY).roundToInt().coerceIn(0, bmp.height - 1)
+                            val color = bmp.getPixel(px, py)
+                            onColorPicked?.invoke(color)
+                        }
+                        isDraggingPicker = false
+                        invalidate()
+                    }
+                    return true
+                }
+            }
+        }
 
         if (isDrawing) {
             when (event.action) {
@@ -4980,35 +5243,6 @@ class CanvasView @JvmOverloads constructor(
             }
 
             return true
-        }
-
-        if (isColorPickerMode) {
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
-                    pickerX = x.coerceIn(0f, canvasWidth.toFloat())
-                    pickerY = y.coerceIn(0f, canvasHeight.toFloat())
-                    isDraggingPicker = true
-                    invalidate()
-                    return true
-                }
-
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    if (isDraggingPicker) {
-                        val bmp = colorPickerBitmap
-                        if (bmp != null && !bmp.isRecycled) {
-                            val scaleX = bmp.width.toFloat() / canvasWidth.toFloat()
-                            val scaleY = bmp.height.toFloat() / canvasHeight.toFloat()
-                            val px = (pickerX * scaleX).roundToInt().coerceIn(0, bmp.width - 1)
-                            val py = (pickerY * scaleY).roundToInt().coerceIn(0, bmp.height - 1)
-                            val color = bmp.getPixel(px, py)
-                            onColorPicked?.invoke(color)
-                        }
-                        isDraggingPicker = false
-                        invalidate()
-                    }
-                    return true
-                }
-            }
         }
 
         if (rulerState != com.webscare.urducanvas.common.canvas.enums.RulerState.OFF) {

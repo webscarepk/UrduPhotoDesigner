@@ -34,9 +34,33 @@ class LabelsFragment : androidx.fragment.app.Fragment() {
 
     private val shapesList = listOf(
         com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.ROUNDED_RECTANGLE_FILL, R.drawable.ic_rounded_rect_fill
+        ), com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.ROUNDED_RECTANGLE_STROKE, R.drawable.ic_rounded_rect_stroke
+        ), com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.CAPSULE_FILL, R.drawable.ic_capsule_fill
+        ), com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.CAPSULE_STROKE, R.drawable.ic_capsule_stroke
+        ), com.webscare.urducanvas.data.model.ShapeItem(
             LabelShape.RECTANGLE_FILL, R.drawable.ic_rect_fill
         ), com.webscare.urducanvas.data.model.ShapeItem(
             LabelShape.RECTANGLE_STROKE, R.drawable.ic_rect_stroke
+        ), com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.TAG_FILL, R.drawable.ic_tag_fill
+        ), com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.TAG_STROKE, R.drawable.ic_tag_stroke
+        ), com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.RIBBON_FILL, R.drawable.ic_ribbon_fill
+        ), com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.RIBBON_STROKE, R.drawable.ic_ribbon_stroke
+        ), com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.SLANTED_FILL, R.drawable.ic_slanted_fill
+        ), com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.SLANTED_STROKE, R.drawable.ic_slanted_stroke
+        ), com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.BADGE_FILL, R.drawable.ic_badge_fill
+        ), com.webscare.urducanvas.data.model.ShapeItem(
+            LabelShape.BADGE_STROKE, R.drawable.ic_badge_stroke
         ), com.webscare.urducanvas.data.model.ShapeItem(
             LabelShape.OVAL_FILL, R.drawable.ic_oval_fill
         ), com.webscare.urducanvas.data.model.ShapeItem(
@@ -45,10 +69,6 @@ class LabelsFragment : androidx.fragment.app.Fragment() {
             LabelShape.CIRCLE_FILL, R.drawable.ic_circle_fill
         ), com.webscare.urducanvas.data.model.ShapeItem(
             LabelShape.CIRCLE_STROKE, R.drawable.ic_circle_stroke
-        ), com.webscare.urducanvas.data.model.ShapeItem(
-            LabelShape.ROUNDED_RECTANGLE_FILL, R.drawable.ic_rect_fill
-        ), com.webscare.urducanvas.data.model.ShapeItem(
-            LabelShape.ROUNDED_RECTANGLE_STROKE, R.drawable.ic_rect_stroke
         )
     )
 

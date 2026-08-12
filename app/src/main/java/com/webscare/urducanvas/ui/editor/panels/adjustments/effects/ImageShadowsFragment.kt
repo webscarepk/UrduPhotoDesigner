@@ -71,7 +71,7 @@ class ImageShadowsFragment : Fragment() {
             {
                 viewModel.startPicking(PickerTarget.COLOR_PICKER_SHADOW)
                 childFragmentManager.beginTransaction()
-                    .replace(R.id.shadowsFragment, ColorPickerFragment())
+                    .replace(R.id.imagesShadowsFragment, ColorPickerFragment())
                     .addToBackStack(null)
                     .commit()
             },

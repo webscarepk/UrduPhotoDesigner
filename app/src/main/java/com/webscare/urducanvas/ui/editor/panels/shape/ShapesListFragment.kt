@@ -243,7 +243,9 @@ class ShapesListFragment : Fragment() {
         mainViewModel.clearShapesSelection()
         prevSelectedIds = emptySet()
         prevWasInMode   = false
+        imagesAdapter?.isInMultiSelectMode = false
         imagesAdapter?.clearSelectionShadow()
+        imagesAdapter?.applyModeToAll()
         binding.swipeRefresh?.isEnabled = expanded
 
         val lm = binding.objects.layoutManager as? MorphGridLayoutManager
@@ -262,7 +264,7 @@ class ShapesListFragment : Fragment() {
             bottomPadding
         )
 
-        // Sync item size on final settle state
+        // Sync item size and selection UI on final settle state
         val adapter = imagesAdapter ?: return
         val rvWidth = binding.objects.width
         val rvPadding = binding.objects.paddingLeft + binding.objects.paddingRight
@@ -274,7 +276,14 @@ class ShapesListFragment : Fragment() {
         for (i in 0 until binding.objects.childCount) {
             val child = binding.objects.getChildAt(i)
             val holder = binding.objects.getChildViewHolder(child) as? ImagesAdapter.ImageViewHolder
-            holder?.updateSize(offset, rvWidth, rvPadding)
+            if (holder != null) {
+                holder.updateSize(offset, rvWidth, rvPadding)
+                val pos = holder.bindingAdapterPosition
+                if (pos in 0 until adapter.itemCount) {
+                    val item = adapter.items[pos]
+                    holder.updateSelectionOnly(adapter.isItemSelected(item.id), adapter.isInMultiSelectMode)
+                }
+            }
         }
     }
 
