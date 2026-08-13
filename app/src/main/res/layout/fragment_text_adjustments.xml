@@ -7,6 +7,34 @@
     android:background="@drawable/panel_bg"
     tools:context=".ui.editor.panels.text.TextAdjustmentsFragment">
 
+    <androidx.constraintlayout.widget.Guideline
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.01"
+        android:id="@+id/topGuide"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintGuide_percent="0.99"
+        android:orientation="horizontal"
+        android:id="@+id/bottomGuide"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintGuide_percent="0.02"
+        android:orientation="vertical"
+        android:id="@+id/startGuide"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintGuide_percent="0.98"
+        android:orientation="vertical"
+        android:id="@+id/endGuide"/>
+
     <!-- ── Row 1: back + title ── -->
     <ImageView
         android:id="@+id/back"
@@ -19,7 +47,7 @@
         android:layout_marginTop="10dp"
         android:src="@drawable/ic_back"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
+        app:layout_constraintTop_toBottomOf="@id/topGuide"/>
 
     <TextView
         android:id="@+id/title"
@@ -81,6 +109,7 @@
         app:layout_constraintTop_toBottomOf="@id/back">
 
         <!-- Search icon — visible by default at end of row -->
+
         <ImageView
             android:id="@+id/searchIcon"
             android:layout_width="30dp"
@@ -90,7 +119,7 @@
             android:backgroundTint="@color/contrast"
             android:padding="8dp"
             android:src="@drawable/ic_search"
-            app:tint="@color/gray"/>
+            app:tint="@color/gray" />
 
         <EditText
             android:id="@+id/searchBar"
@@ -113,32 +142,21 @@
             android:textSize="11sp"
             android:visibility="gone"/>
 
-        <!-- Scrollable TabLayout — takes all space except the search widget -->
+        <!-- TabLayout — unified UrduCanvas panel style -->
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tabLayout"
+            style="@style/Widget.UrduCanvas.TabLayout"
             android:layout_width="0dp"
             android:layout_height="38dp"
-            android:layout_weight="1"
-            android:background="@android:color/transparent"
-            app:tabGravity="start"
-            app:tabIndicatorAnimationMode="elastic"
-            app:tabIndicatorColor="@color/appColor"
-            app:tabIndicatorFullWidth="false"
-            app:tabIndicatorHeight="1dp"
-            app:tabMode="scrollable"
-            app:tabPadding="0dp"
-            app:tabRippleColor="@color/contrast"
-            app:tabSelectedTextColor="@color/appColor"
-            app:tabTextColor="@color/black"/>
+            android:layout_weight="1" />
 
     </LinearLayout>
 
-    <!-- ViewPager2 — fills remaining space 100% full width -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="6dp"
         android:saveEnabled="false"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"

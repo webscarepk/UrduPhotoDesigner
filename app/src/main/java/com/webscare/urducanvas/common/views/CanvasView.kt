@@ -4446,18 +4446,8 @@ class CanvasView @JvmOverloads constructor(
                 0f
             }
 
-            // Tailored horizontal & vertical padding per shape geometry to guarantee zero text collision/clipping
-            val labelPaddingY = 18f
-            val labelPaddingX = when (element.labelShape) {
-                LabelShape.TAG_FILL, LabelShape.TAG_STROKE -> 48f
-                LabelShape.RIBBON_FILL, LabelShape.RIBBON_STROKE -> 54f
-                LabelShape.CAPSULE_FILL, LabelShape.CAPSULE_STROKE,
-                LabelShape.OVAL_FILL, LabelShape.OVAL_STROKE -> 36f
-                LabelShape.SLANTED_FILL, LabelShape.SLANTED_STROKE -> 40f
-                LabelShape.BADGE_FILL, LabelShape.BADGE_STROKE -> 32f
-                LabelShape.ROUNDED_RECTANGLE_FILL, LabelShape.ROUNDED_RECTANGLE_STROKE -> 28f
-                else -> 24f
-            }
+            val labelPaddingY = element.getLabelPaddingY()
+            val labelPaddingX = element.getLabelPaddingX()
 
             val left = -maxLineWidth / 2f - labelPaddingX
             val top = -totalHeight / 2f - labelPaddingY
@@ -5570,12 +5560,12 @@ class CanvasView @JvmOverloads constructor(
                                         touchStartX = x; touchStartY = y
                                         selectedElements.forEach { el ->
                                             val startW = if (el.type == ElementType.TEXT) {
-                                                el.boxWidth ?: el.getLocalContentWidth()
+                                                el.boxWidth ?: el.getNaturalUnwrappedWidth()
                                             } else {
                                                 el.logicalContentWidth
                                             }
                                             val startH = if (el.type == ElementType.TEXT) {
-                                                el.boxHeight ?: el.getLocalContentHeight()
+                                                el.boxHeight ?: el.getNaturalContentHeight(startW)
                                             } else {
                                                 el.logicalContentHeight
                                             }
@@ -6362,7 +6352,6 @@ class CanvasView @JvmOverloads constructor(
                                     initialMinWordWidths[element.id] ?: element.getMinWordWidth()
 
                                 val reqW = initialW - localDx
-                                val reqH = initialH + localDy
 
                                 if (reqW > initUnwrappedW && initUnwrappedW > 0f) {
                                     val scaleFactor = reqW / initUnwrappedW
@@ -6390,20 +6379,7 @@ class CanvasView @JvmOverloads constructor(
 
                                     val targetW = reqW.coerceIn(initMinWordW, initUnwrappedW)
                                     element.boxWidth = targetW
-
-                                    val naturalH = element.getNaturalContentHeight(targetW)
-                                    if (reqH < naturalH && naturalH > 0f) {
-                                        val heightRatio = (reqH / naturalH).coerceAtLeast(0.1f)
-                                        element.paintTextSize =
-                                            (initTextSize * heightRatio).coerceIn(12f, 500f)
-                                        element.updatePaintProperties()
-                                        element.boxWidth =
-                                            element.getNaturalUnwrappedWidth().coerceAtMost(targetW)
-                                        element.boxHeight =
-                                            element.getNaturalContentHeight(element.boxWidth)
-                                    } else {
-                                        element.boxHeight = naturalH
-                                    }
+                                    element.boxHeight = element.getNaturalContentHeight(targetW)
                                 }
 
                                 element.logicalContentWidth = element.boxWidth ?: 0f

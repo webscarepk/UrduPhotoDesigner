@@ -5,21 +5,23 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.DashPathEffect
 import android.graphics.Paint
-import android.graphics.RadialGradient
 import android.graphics.RectF
-import android.graphics.Shader
 import android.graphics.Typeface
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import android.util.AttributeSet
 import android.view.HapticFeedbackConstants
-import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.toColorInt
 import com.webscare.urducanvas.R
+import kotlin.math.abs
 import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.roundToInt
+import kotlin.math.sin
 import kotlin.math.sqrt
 
 data class Bias(val x: Float, val y: Float)
@@ -29,6 +31,18 @@ class FeatherBiasPadView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
+
+    enum class Mode { BIAS, OFFSET }
+
+    var mode: Mode = Mode.BIAS
+        set(value) {
+            if (field != value) {
+                field = value
+                invalidate()
+            }
+        }
+
+    var maxDistance: Float = 24f
 
     var bias: Bias = Bias(0f, 0f)
         set(value) {
@@ -42,54 +56,73 @@ class FeatherBiasPadView @JvmOverloads constructor(
             }
         }
 
+    var handleColor: Int? = null
+        set(value) {
+            field = value
+            invalidate()
+        }
+
     var onBiasChanged: ((Bias) -> Unit)? = null
+    var onOffsetChanged: ((angle: Float, distance: Float) -> Unit)? = null
+    var onDragStateChanged: ((isDragging: Boolean) -> Unit)? = null
 
     private var isDragging = false
     private var lastTouchTime = 0L
+    private var lastSnappedAngle: Float? = null
 
     // Paints
+    private val padWellBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = "#F3F3F3".toColorInt()
+    }
+
     private val padBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = Color.parseColor("#E3E9E5")
+        color = "#E3E9E5".toColorInt()
         strokeWidth = dpToPx(1f)
     }
 
     private val crosshairPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = Color.parseColor("#DCE3DE")
+        color = "#E7E7E7".toColorInt()
         strokeWidth = dpToPx(1f)
     }
 
     private val dashedRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = Color.parseColor("#C4CFC8")
+        color = "#DDDDDD".toColorInt()
         strokeWidth = dpToPx(1f)
         pathEffect = DashPathEffect(floatArrayOf(dpToPx(4f), dpToPx(4f)), 0f)
     }
 
     private val tickPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = Color.parseColor("#C4CFC8")
+        color = "#DCDCDC".toColorInt()
     }
 
     private val centerDotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = Color.parseColor("#AFBBB4")
+        color = "#AFBBB4".toColorInt()
+    }
+
+    private val armPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        color = "#CFE1D6".toColorInt()
+        strokeWidth = dpToPx(2f)
     }
 
     private val stemPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = Color.parseColor("#9CC4AB")
+        color = "#9CC4AB".toColorInt()
         strokeWidth = dpToPx(2f)
     }
 
-    private val puckFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private val handleFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = Color.parseColor("#005D28")
-        setShadowLayer(dpToPx(4f), 0f, dpToPx(2f), Color.parseColor("#40000000"))
+        color = "#005D28".toColorInt()
     }
 
-    private val puckBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private val handleBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         color = Color.WHITE
         strokeWidth = dpToPx(2f)
@@ -97,7 +130,7 @@ class FeatherBiasPadView @JvmOverloads constructor(
 
     private val titleTextPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         textSize = spToPx(11f)
-        color = Color.parseColor("#005D28")
+        color = "#005D28".toColorInt()
         try {
             typeface = ResourcesCompat.getFont(context, R.font.bold) ?: Typeface.DEFAULT_BOLD
         } catch (e: Exception) {
@@ -107,7 +140,7 @@ class FeatherBiasPadView @JvmOverloads constructor(
 
     private val hintTextPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         textSize = spToPx(10f)
-        color = Color.parseColor("#8E94A2")
+        color = "#8E94A2".toColorInt()
         try {
             typeface = ResourcesCompat.getFont(context, R.font.regular) ?: Typeface.DEFAULT
         } catch (e: Exception) {
@@ -135,120 +168,127 @@ class FeatherBiasPadView @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val desiredHeight = dpToPx(96f).toInt()
-        val defaultWidth = dpToPx(300f).toInt()
+        val padSize = dpToPx(88f).toInt()
+        val defaultWidth = if (mode == Mode.OFFSET) padSize else dpToPx(300f).toInt()
         val w = resolveSize(defaultWidth, widthMeasureSpec)
-        val h = resolveSize(desiredHeight, heightMeasureSpec)
+        val h = resolveSize(padSize, heightMeasureSpec)
         setMeasuredDimension(w, h)
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val density = resources.displayMetrics.density
-        val padSize = 96f * density
+        val padSize = 88f * density
         val cx = padSize / 2f
         val cy = padSize / 2f
-        val deadzoneRadius = 22f * density // 44dp diameter
-        val maxPuckOffset = cx - 11f * density // 37dp max radius to keep puck inside pad
+
+        val cornerRadius = 18f * density
+        val ringRadius = 26f * density // 52dp diameter guide ring
+        val handleRadius = 13f * density
+        // Max travel allows handle to go farther till pad ends (leaving 3dp margin inside pad well)
+        val maxTravelPx = cx - handleRadius - dpToPx(2.5f)
+
+        val crosshairInset = 12f * density // 12dp inset from edge
 
         padRect.set(0f, 0f, padSize, padSize)
 
-        // 1. Draw Pad Background (Radial Gradient)
-        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.FILL
-            shader = RadialGradient(
-                cx, cy, padSize / 2f,
-                intArrayOf(
-                    Color.parseColor("#FFFFFF"),
-                    Color.parseColor("#F2F5F3"),
-                    Color.parseColor("#E8EDEA")
-                ),
-                floatArrayOf(0.0f, 0.7f, 1.0f),
-                Shader.TileMode.CLAMP
-            )
-        }
-        canvas.drawRoundRect(padRect, 12f * density, 12f * density, bgPaint)
-        canvas.drawRoundRect(padRect, 12f * density, 12f * density, padBorderPaint)
+        // 1. Draw Pad Background (#F3F3F3 well) & Border (#E3E9E5)
+        canvas.drawRoundRect(padRect, cornerRadius, cornerRadius, padWellBgPaint)
+        canvas.drawRoundRect(padRect, cornerRadius, cornerRadius, padBorderPaint)
 
-        // 2. Crosshair (1dp lines)
-        canvas.drawLine(0f, cy, padSize, cy, crosshairPaint)
-        canvas.drawLine(cx, 0f, cx, padSize, crosshairPaint)
+        // 2. Crosshair (1dp #E7E7E7 lines, inset 12dp from edge)
+        canvas.drawLine(crosshairInset, cy, padSize - crosshairInset, cy, crosshairPaint)
+        canvas.drawLine(cx, crosshairInset, cx, padSize - crosshairInset, crosshairPaint)
 
-        // 3. Dashed Ring (44dp diameter = 22dp radius)
-        canvas.drawCircle(cx, cy, deadzoneRadius, dashedRingPaint)
+        // 3. Dashed Guide Ring (52dp diameter = 26dp radius)
+        canvas.drawCircle(cx, cy, ringRadius, dashedRingPaint)
 
-        // 4. Edge Ticks (12 x 3dp, 5dp in from edge)
+        // 4. Edge Ticks (2x8dp ticks)
+        val tickLength = 8f * density
+        val tickThickness = 2f * density
+
         // Top tick
-        tickRect.set(cx - 6f * density, 5f * density, cx + 6f * density, 8f * density)
-        canvas.drawRoundRect(tickRect, 1.5f * density, 1.5f * density, tickPaint)
+        tickRect.set(cx - tickThickness / 2f, crosshairInset / 2f - tickLength / 2f, cx + tickThickness / 2f, crosshairInset / 2f + tickLength / 2f)
+        canvas.drawRoundRect(tickRect, 1f * density, 1f * density, tickPaint)
         // Bottom tick
-        tickRect.set(cx - 6f * density, padSize - 8f * density, cx + 6f * density, padSize - 5f * density)
-        canvas.drawRoundRect(tickRect, 1.5f * density, 1.5f * density, tickPaint)
+        tickRect.set(cx - tickThickness / 2f, padSize - crosshairInset / 2f - tickLength / 2f, cx + tickThickness / 2f, padSize - crosshairInset / 2f + tickLength / 2f)
+        canvas.drawRoundRect(tickRect, 1f * density, 1f * density, tickPaint)
         // Left tick
-        tickRect.set(5f * density, cy - 6f * density, 8f * density, cy + 6f * density)
-        canvas.drawRoundRect(tickRect, 1.5f * density, 1.5f * density, tickPaint)
+        tickRect.set(crosshairInset / 2f - tickLength / 2f, cy - tickThickness / 2f, crosshairInset / 2f + tickLength / 2f, cy + tickThickness / 2f)
+        canvas.drawRoundRect(tickRect, 1f * density, 1f * density, tickPaint)
         // Right tick
-        tickRect.set(padSize - 8f * density, cy - 6f * density, padSize - 5f * density, cy + 6f * density)
-        canvas.drawRoundRect(tickRect, 1.5f * density, 1.5f * density, tickPaint)
+        tickRect.set(padSize - crosshairInset / 2f - tickLength / 2f, cy - tickThickness / 2f, padSize - crosshairInset / 2f + tickLength / 2f, cy + tickThickness / 2f)
+        canvas.drawRoundRect(tickRect, 1f * density, 1f * density, tickPaint)
 
-        // 5. Centre Dot (5dp diameter = 2.5dp radius)
+        // 5. Centre Dot
         canvas.drawCircle(cx, cy, 2.5f * density, centerDotPaint)
 
-        // Calculate Puck Center (x, y mapped from bias)
-        val puckX = cx + (bias.x * maxPuckOffset)
-        val puckY = cy + (bias.y * maxPuckOffset)
+        // Calculate Handle Position
+        val puckX = cx + (bias.x * maxTravelPx)
+        val puckY = cy + (bias.y * maxTravelPx)
 
-        // 6. Stem (Line from center to puck)
+        // 6. Arm / Stem
         if (bias.x != 0f || bias.y != 0f) {
-            canvas.drawLine(cx, cy, puckX, puckY, stemPaint)
+            val linePaint = if (mode == Mode.OFFSET) armPaint else stemPaint
+            canvas.drawLine(cx, cy, puckX, puckY, linePaint)
         }
 
-        // 7. Puck (22dp circle resting, 26dp dragging, 2dp white border)
-        val puckRadius = if (isDragging) 13f * density else 11f * density
-        canvas.drawCircle(puckX, puckY, puckRadius, puckFillPaint)
-        canvas.drawCircle(puckX, puckY, puckRadius, puckBorderPaint)
+        // 7. Handle (26dp painted diameter = 13dp radius)
+        val appColor = androidx.core.content.ContextCompat.getColor(context, R.color.appColor)
+        val fillCol = when {
+            mode == Mode.OFFSET && handleColor != null && handleColor != Color.TRANSPARENT -> handleColor!!
+            mode == Mode.BIAS && isEnabled -> appColor
+            else -> handleColor ?: appColor
+        }
+        handleFillPaint.color = fillCol
 
-        // 8. Text Block (Right of pad, 12dp gap)
-        val textLeft = padSize + 12f * density
-        val availableWidth = (width - textLeft).coerceAtLeast(100f)
+        canvas.drawCircle(puckX, puckY, handleRadius, handleFillPaint)
+        canvas.drawCircle(puckX, puckY, handleRadius, handleBorderPaint)
 
-        // Line 1: Bias Title
-        val titleText = getBiasTitleText(bias)
-        val titleY = 22f * density
-        canvas.drawText(titleText, textLeft, titleY, titleTextPaint)
+        // 8. Text Block beside pad (Only drawn if view width is wide enough in BIAS mode)
+        if (width > padSize + 20f * density) {
+            val textLeft = padSize + 12f * density
+            val availableWidth = (width - textLeft).coerceAtLeast(100f)
 
-        // Line 2: Friendly Hint Text
-        val hintText = "Drag handle to choose\nwhich edges soft-fade.\nDouble-tap to reset."
-        val staticLayout = StaticLayout.Builder.obtain(hintText, 0, hintText.length, hintTextPaint, availableWidth.toInt())
-            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-            .setLineSpacing(0f, 1.1f)
-            .setIncludePad(false)
-            .build()
+            val titleText = getBiasTitleText(bias)
+            val titleY = 22f * density
+            canvas.drawText(titleText, textLeft, titleY, titleTextPaint)
 
-        canvas.save()
-        canvas.translate(textLeft, 36f * density)
-        staticLayout.draw(canvas)
-        canvas.restore()
+            val hintText = "Drag handle to choose\nwhich edges soft-fade.\nDouble-tap to reset."
+            val staticLayout = StaticLayout.Builder.obtain(hintText, 0, hintText.length, hintTextPaint, availableWidth.toInt())
+                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                .setLineSpacing(0f, 1.1f)
+                .setIncludePad(false)
+                .build()
+
+            canvas.save()
+            canvas.translate(textLeft, 36f * density)
+            staticLayout.draw(canvas)
+            canvas.restore()
+        }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (!isEnabled) return false
 
         val density = resources.displayMetrics.density
-        val padSize = 96f * density
+        val padSize = 88f * density
         val cx = padSize / 2f
         val cy = padSize / 2f
-        val deadzoneRadius = 22f * density
-        val maxPuckOffset = cx - 11f * density
+        val handleRadius = 13f * density
+        val maxTravelPx = cx - handleRadius - dpToPx(2.5f)
+        val snapZonePx = 0.12f * maxTravelPx
 
-        val touchX = event.x
-        val touchY = event.y
+        val touchX = event.x.coerceIn(0f, padSize)
+        val touchY = event.y.coerceIn(0f, padSize)
 
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
+                parent?.requestDisallowInterceptTouchEvent(true)
+                onDragStateChanged?.invoke(true)
+
                 val currentTime = System.currentTimeMillis()
-                if (currentTime - lastTouchTime < 300L && touchX <= padSize && touchY <= padSize) {
-                    // Double-tap to recentre
+                if (currentTime - lastTouchTime < 300L && event.x <= padSize && event.y <= padSize) {
                     updateBias(Bias(0f, 0f))
                     performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                     lastTouchTime = 0L
@@ -256,24 +296,28 @@ class FeatherBiasPadView @JvmOverloads constructor(
                 }
                 lastTouchTime = currentTime
 
-                if (touchX <= padSize && touchY <= padSize) {
+                if (event.x <= padSize && event.y <= padSize) {
                     isDragging = true
-                    processTouchPad(touchX, touchY, cx, cy, deadzoneRadius, maxPuckOffset)
+                    processTouchPad(touchX, touchY, cx, cy, snapZonePx, maxTravelPx)
                     invalidate()
                     return true
                 }
             }
             MotionEvent.ACTION_MOVE -> {
                 if (isDragging) {
-                    processTouchPad(touchX, touchY, cx, cy, deadzoneRadius, maxPuckOffset)
+                    parent?.requestDisallowInterceptTouchEvent(true)
+                    processTouchPad(touchX, touchY, cx, cy, snapZonePx, maxTravelPx)
                     invalidate()
                     return true
                 }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                parent?.requestDisallowInterceptTouchEvent(false)
+                onDragStateChanged?.invoke(false)
+
                 if (isDragging) {
                     isDragging = false
-                    processTouchPad(touchX, touchY, cx, cy, deadzoneRadius, maxPuckOffset)
+                    processTouchPad(touchX, touchY, cx, cy, snapZonePx, maxTravelPx)
                     invalidate()
                     return true
                 }
@@ -282,113 +326,106 @@ class FeatherBiasPadView @JvmOverloads constructor(
         return super.onTouchEvent(event)
     }
 
-    private var isSnappedAxis = false
-
     private fun processTouchPad(
         tx: Float, ty: Float,
         cx: Float, cy: Float,
-        deadzoneRadius: Float, maxPuckOffset: Float
+        snapZonePx: Float, maxTravelPx: Float
     ) {
         val dx = tx - cx
         val dy = ty - cy
         val dist = sqrt(dx * dx + dy * dy)
 
-        val isWasDeadzone = isInsideDeadzone(bias)
+        if (mode == Mode.OFFSET) {
+            // Shadow mode: pad controls ONLY angle, handle stays at outer boundary ring
+            var rawAngle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
+            if (rawAngle < 0) rawAngle += 360f
 
-        if (dist <= deadzoneRadius) {
-            // Inside deadzone -> snap to (0,0)
-            if (!isWasDeadzone) {
-                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            val snappedAngle = snapAngleIfNeeded(rawAngle)
+            if (snappedAngle != rawAngle && snappedAngle != lastSnappedAngle) {
+                performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                lastSnappedAngle = snappedAngle
+            } else if (snappedAngle == rawAngle) {
+                lastSnappedAngle = null
             }
-            isSnappedAxis = false
-            updateBias(Bias(0f, 0f))
+
+            val rad = Math.toRadians(snappedAngle.toDouble())
+            val bx = cos(rad).toFloat()
+            val by = sin(rad).toFloat()
+            updateBias(Bias(bx, by))
         } else {
-            // Outside deadzone -> calculate clamped circular bias (-1..1)
-            if (isWasDeadzone) {
-                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            // Feather mode: bias pad control
+            if (dist <= snapZonePx) {
+                updateBias(Bias(0f, 0f))
+            } else {
+                val scale = if (dist > maxTravelPx) maxTravelPx / dist else 1f
+                val clampedDx = dx * scale
+                val clampedDy = dy * scale
+
+                val rawBx = (clampedDx / maxTravelPx).coerceIn(-1f, 1f)
+                val rawBy = (clampedDy / maxTravelPx).coerceIn(-1f, 1f)
+
+                updateBias(Bias(rawBx, rawBy))
             }
-            val scale = if (dist > maxPuckOffset) maxPuckOffset / dist else 1f
-            val clampedDx = dx * scale
-            val clampedDy = dy * scale
-
-            var rawBx = (clampedDx / maxPuckOffset).coerceIn(-1f, 1f)
-            var rawBy = (clampedDy / maxPuckOffset).coerceIn(-1f, 1f)
-
-            val magnitude = sqrt(rawBx * rawBx + rawBy * rawBy).coerceIn(0f, 1f)
-
-            // Calculate angle in degrees: -dy is Up (90°), +dy is Down (-90°), +dx is Right (0°), -dx is Left (180°/-180°)
-            val angleRad = atan2(-rawBy, rawBx)
-            val angleDeg = Math.toDegrees(angleRad.toDouble()).toFloat()
-
-            // 5-degree angular snapping around cardinal axes
-            val isNearTop = kotlin.math.abs(angleDeg - 90f) <= 5f
-            val isNearBottom = kotlin.math.abs(angleDeg - (-90f)) <= 5f
-            val isNearRight = kotlin.math.abs(angleDeg) <= 5f
-            val isNearLeft = kotlin.math.abs(angleDeg - 180f) <= 5f || kotlin.math.abs(angleDeg - (-180f)) <= 5f
-
-            var nowSnapped = false
-
-            if (isNearTop) {
-                rawBx = 0f
-                rawBy = -magnitude
-                nowSnapped = true
-            } else if (isNearBottom) {
-                rawBx = 0f
-                rawBy = magnitude
-                nowSnapped = true
-            } else if (isNearRight) {
-                rawBx = magnitude
-                rawBy = 0f
-                nowSnapped = true
-            } else if (isNearLeft) {
-                rawBx = -magnitude
-                rawBy = 0f
-                nowSnapped = true
-            }
-
-            if (nowSnapped && !isSnappedAxis) {
-                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-            }
-            isSnappedAxis = nowSnapped
-
-            updateBias(Bias(rawBx, rawBy))
         }
     }
 
-    private fun isInsideDeadzone(b: Bias): Boolean {
-        return b.x == 0f && b.y == 0f
+    private fun snapAngleIfNeeded(rawAngle: Float): Float {
+        val snapTargets = floatArrayOf(0f, 45f, 90f, 135f, 180f, 225f, 270f, 315f, 360f)
+        val threshold = 6.0f
+        for (target in snapTargets) {
+            if (abs(rawAngle - target) <= threshold) {
+                return if (target == 360f) 0f else target
+            }
+        }
+        return rawAngle
     }
 
     private fun updateBias(newBias: Bias) {
         if (bias != newBias) {
             bias = newBias
             onBiasChanged?.invoke(bias)
+
+            if (mode == Mode.OFFSET) {
+                val (angle, distance) = computeAngleAndDistance()
+                onOffsetChanged?.invoke(angle, distance)
+            }
+
             invalidate()
             updateAccessibility()
         }
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (!isEnabled) return super.onKeyDown(keyCode, event)
-        val step = 0.05f
-        return when (keyCode) {
-            KeyEvent.KEYCODE_DPAD_UP -> {
-                updateBias(Bias(bias.x, (bias.y - step).coerceIn(-1f, 1f)))
-                true
-            }
-            KeyEvent.KEYCODE_DPAD_DOWN -> {
-                updateBias(Bias(bias.x, (bias.y + step).coerceIn(-1f, 1f)))
-                true
-            }
-            KeyEvent.KEYCODE_DPAD_LEFT -> {
-                updateBias(Bias((bias.x - step).coerceIn(-1f, 1f), bias.y))
-                true
-            }
-            KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                updateBias(Bias((bias.x + step).coerceIn(-1f, 1f), bias.y))
-                true
-            }
-            else -> super.onKeyDown(keyCode, event)
+    fun setOffset(angleDeg: Float, distanceDp: Float) {
+        val snappedAngle = snapAngleIfNeeded(angleDeg)
+        val rad = Math.toRadians(snappedAngle.toDouble())
+        val bx = cos(rad).toFloat().coerceIn(-1f, 1f)
+        val by = sin(rad).toFloat().coerceIn(-1f, 1f)
+        bias = Bias(bx, by)
+    }
+
+    fun computeAngleAndDistance(): Pair<Float, Float> {
+        val bx = bias.x
+        val by = bias.y
+        val rad = atan2(by.toDouble(), bx.toDouble())
+        var angleDeg = Math.toDegrees(rad).toFloat()
+        if (angleDeg < 0) angleDeg += 360f
+
+        return Pair(angleDeg, maxDistance)
+    }
+
+    fun getDirectionTitle(): String {
+        val (angle, _) = computeAngleAndDistance()
+
+        return when {
+            angle >= 337.5f || angle < 22.5f -> "Right"
+            angle in 22.5f..67.5f -> "Down-right"
+            angle in 67.5f..112.5f -> "Down"
+            angle in 112.5f..157.5f -> "Down-left"
+            angle in 157.5f..202.5f -> "Left"
+            angle in 202.5f..247.5f -> "Up-left"
+            angle in 247.5f..292.5f -> "Up"
+            angle in 292.5f..337.5f -> "Up-right"
+            else -> "Right"
         }
     }
 
@@ -399,8 +436,8 @@ class FeatherBiasPadView @JvmOverloads constructor(
         if (r < 0.05f || (x == 0f && y == 0f)) {
             return "Even on all sides"
         }
-        val angleRad = atan2(-y, x)
-        val angleDeg = Math.toDegrees(angleRad.toDouble()).toFloat()
+        val angleRad = atan2(-y.toDouble(), x.toDouble())
+        val angleDeg = Math.toDegrees(angleRad).toFloat()
 
         return when {
             angleDeg in 67.5f..112.5f -> "Biased to top"
@@ -415,6 +452,11 @@ class FeatherBiasPadView @JvmOverloads constructor(
     }
 
     private fun updateAccessibility() {
-        contentDescription = "Feather direction pad: ${getBiasTitleText(bias)}"
+        contentDescription = if (mode == Mode.OFFSET) {
+            val (angle, _) = computeAngleAndDistance()
+            "Shadow angle pad: ${getDirectionTitle()}, angle ${angle.roundToInt()} degrees"
+        } else {
+            "Feather direction pad: ${getBiasTitleText(bias)}"
+        }
     }
 }

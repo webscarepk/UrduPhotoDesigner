@@ -457,12 +457,216 @@
         </LinearLayout>
     </LinearLayout>
 
+    <LinearLayout
+        android:id="@+id/contextToolsRow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toTopOf="@id/centerGuide"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <LinearLayout
+            android:id="@+id/showHideContainer"
+            android:layout_width="32dp"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/alignment_kit_bg"
+            android:backgroundTint="@color/white"
+            android:outlineSpotShadowColor="@color/shadowColor"
+            android:translationZ="5dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/showHide"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:paddingVertical="10dp"
+                android:src="@drawable/ic_back"
+                android:tooltipText="@string/hide"
+                app:tint="@color/black" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/opacityPane"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/button_bg_context_tool"
+            android:backgroundTint="@color/white"
+            android:orientation="horizontal"
+            android:outlineSpotShadowColor="@color/shadowColor"
+            android:translationZ="5dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/opacityValue"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="center_vertical"
+                android:background="@drawable/button_bg_context_tool"
+                android:backgroundTint="@color/white"
+                android:fontFamily="@font/bold"
+                android:gravity="center"
+                android:text="32"
+                android:textColor="@color/black"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
+            <ImageView
+                android:id="@+id/opacityIcon"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:foreground="?selectableItemBackground"
+                android:padding="10dp"
+                android:src="@drawable/ic_opacity"
+                android:tooltipText="@string/opacity"
+                android:visibility="visible"
+                app:tint="@color/black" />
+
+            <SeekBar
+                android:id="@+id/seekBarOpacity"
+                android:layout_width="150dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:indeterminateTint="@color/appColor"
+                android:min="0"
+                android:progressBackgroundTint="@color/light_gray"
+                android:progressTint="@color/appColor"
+                android:splitTrack="false"
+                android:thumb="@drawable/seekbar_thumb_custom"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/blendPane"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/button_bg_context_tool"
+            android:backgroundTint="@color/white"
+            android:orientation="horizontal"
+            android:outlineSpotShadowColor="@color/shadowColor"
+            android:translationZ="5dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/blendIcon"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/button_bg_context_tool"
+                android:backgroundTint="@color/white"
+                android:padding="6dp"
+                android:src="@drawable/ic_blend"
+                android:tooltipText="@string/blend"
+                android:visibility="visible"
+                app:tint="@color/black" />
+
+            <TextView
+                android:id="@+id/blend_spinner"
+                android:layout_width="150dp"
+                android:layout_height="32dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="6dp"
+                android:dropDownWidth="wrap_content"
+                android:fontFamily="@font/regular"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="6dp"
+                android:popupBackground="@color/contrast"
+                android:textColor="@color/black"
+                android:textSize="12sp"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/fontSizePane"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/button_bg_context_tool"
+            android:backgroundTint="@color/white"
+            android:orientation="horizontal"
+            android:outlineSpotShadowColor="@color/shadowColor"
+            android:translationZ="5dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/fontSize"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="center_vertical"
+                android:background="@drawable/button_bg_context_tool"
+                android:backgroundTint="@color/white"
+                android:fontFamily="@font/bold"
+                android:gravity="center"
+                android:text="32"
+                android:textColor="@color/black"
+                android:textSize="14sp"
+                android:visibility="visible" />
+
+            <SeekBar
+                android:id="@+id/seekBarFontSize"
+                android:layout_width="150dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:indeterminateTint="@color/appColor"
+                android:min="0"
+                android:progressBackgroundTint="@color/light_gray"
+                android:progressTint="@color/appColor"
+                android:splitTrack="false"
+                android:thumb="@drawable/seekbar_thumb_custom"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/cutOutIcon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="6dp"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/button_bg_context_tool"
+            android:backgroundTint="@color/white"
+            android:foreground="?selectableItemBackground"
+            android:outlineSpotShadowColor="@color/shadowColor"
+            android:padding="10dp"
+            android:src="@drawable/ic_select_subject"
+            android:tooltipText="@string/remove_bg"
+            android:translationZ="5dp"
+            android:visibility="gone"
+            app:tint="@color/black" />
+
+        <ImageView
+            android:id="@+id/copyIcon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="6dp"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/button_bg_context_tool"
+            android:backgroundTint="@color/white"
+            android:foreground="?selectableItemBackground"
+            android:outlineSpotShadowColor="@color/shadowColor"
+            android:padding="10dp"
+            android:src="@drawable/ic_copy"
+            android:tooltipText="@string/copy"
+            android:translationZ="5dp"
+            android:visibility="gone"
+            app:tint="@color/black" />
+
+    </LinearLayout>
+
     <View
         android:id="@+id/panelTopShadow"
         android:layout_width="match_parent"
         android:layout_height="60dp"
         android:background="@drawable/top_shadow"
         android:importantForAccessibility="no"
+        android:translationZ="10dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/panelNavContainer"
@@ -491,209 +695,6 @@
             app:navGraph="@navigation/panel_nav_graph" />
 
     </com.webscare.urducanvas.common.views.GestureFrameLayout>
-
-    <LinearLayout
-        android:id="@+id/contextToolsRow"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintBottom_toTopOf="@id/centerGuide"
-        app:layout_constraintStart_toStartOf="parent">
-
-            <LinearLayout
-                android:id="@+id/showHideContainer"
-                android:layout_width="32dp"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="6dp"
-                android:background="@drawable/alignment_kit_bg"
-                android:backgroundTint="@color/white"
-                android:outlineSpotShadowColor="@color/shadowColor"
-                android:translationZ="5dp"
-                android:visibility="gone">
-
-                <ImageView
-                    android:id="@+id/showHide"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:paddingVertical="10dp"
-                    android:src="@drawable/ic_back"
-                    android:tooltipText="@string/hide"
-                    app:tint="@color/black" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/opacityPane"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:layout_marginBottom="6dp"
-                android:background="@drawable/button_bg_context_tool"
-                android:backgroundTint="@color/white"
-                android:orientation="horizontal"
-                android:outlineSpotShadowColor="@color/shadowColor"
-                android:translationZ="5dp"
-                android:visibility="gone">
-
-                <TextView
-                    android:id="@+id/opacityValue"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_gravity="center_vertical"
-                    android:background="@drawable/button_bg_context_tool"
-                    android:backgroundTint="@color/white"
-                    android:fontFamily="@font/bold"
-                    android:gravity="center"
-                    android:text="32"
-                    android:textColor="@color/black"
-                    android:textSize="14sp"
-                    android:visibility="gone" />
-
-                <ImageView
-                    android:id="@+id/opacityIcon"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:foreground="?selectableItemBackground"
-                    android:padding="10dp"
-                    android:src="@drawable/ic_opacity"
-                    android:tooltipText="@string/opacity"
-                    android:visibility="visible"
-                    app:tint="@color/black" />
-
-                <SeekBar
-                    android:id="@+id/seekBarOpacity"
-                    android:layout_width="150dp"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
-                    android:indeterminateTint="@color/appColor"
-                    android:min="0"
-                    android:progressBackgroundTint="@color/light_gray"
-                    android:progressTint="@color/appColor"
-                    android:splitTrack="false"
-                    android:thumb="@drawable/seekbar_thumb_custom"
-                    android:visibility="gone" />
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/blendPane"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:layout_marginBottom="6dp"
-                android:background="@drawable/button_bg_context_tool"
-                android:backgroundTint="@color/white"
-                android:orientation="horizontal"
-                android:outlineSpotShadowColor="@color/shadowColor"
-                android:translationZ="5dp"
-                android:visibility="gone">
-
-                <ImageView
-                    android:id="@+id/blendIcon"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/button_bg_context_tool"
-                    android:backgroundTint="@color/white"
-                    android:padding="6dp"
-                    android:src="@drawable/ic_blend"
-                    android:tooltipText="@string/blend"
-                    android:visibility="visible"
-                    app:tint="@color/black" />
-
-                <TextView
-                    android:id="@+id/blend_spinner"
-                    android:layout_width="150dp"
-                    android:layout_height="32dp"
-                    android:layout_gravity="center_vertical"
-                    android:layout_marginStart="6dp"
-                    android:dropDownWidth="wrap_content"
-                    android:fontFamily="@font/regular"
-                    android:gravity="center_vertical"
-                    android:paddingHorizontal="12dp"
-                    android:paddingVertical="6dp"
-                    android:popupBackground="@color/contrast"
-                    android:textColor="@color/black"
-                    android:textSize="12sp"
-                    android:visibility="gone" />
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/fontSizePane"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:layout_marginBottom="6dp"
-                android:background="@drawable/button_bg_context_tool"
-                android:backgroundTint="@color/white"
-                android:orientation="horizontal"
-                android:outlineSpotShadowColor="@color/shadowColor"
-                android:translationZ="5dp"
-                android:visibility="gone">
-
-                <TextView
-                    android:id="@+id/fontSize"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_gravity="center_vertical"
-                    android:background="@drawable/button_bg_context_tool"
-                    android:backgroundTint="@color/white"
-                    android:fontFamily="@font/bold"
-                    android:gravity="center"
-                    android:text="32"
-                    android:textColor="@color/black"
-                    android:textSize="14sp"
-                    android:visibility="visible" />
-
-                <SeekBar
-                    android:id="@+id/seekBarFontSize"
-                    android:layout_width="150dp"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
-                    android:indeterminateTint="@color/appColor"
-                    android:min="0"
-                    android:progressBackgroundTint="@color/light_gray"
-                    android:progressTint="@color/appColor"
-                    android:splitTrack="false"
-                    android:thumb="@drawable/seekbar_thumb_custom"
-                    android:visibility="gone" />
-
-            </LinearLayout>
-
-            <ImageView
-                android:id="@+id/cutOutIcon"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="6dp"
-                android:layout_marginBottom="6dp"
-                android:background="@drawable/button_bg_context_tool"
-                android:backgroundTint="@color/white"
-                android:foreground="?selectableItemBackground"
-                android:outlineSpotShadowColor="@color/shadowColor"
-                android:padding="10dp"
-                android:src="@drawable/ic_select_subject"
-                android:tooltipText="@string/remove_bg"
-                android:translationZ="5dp"
-                android:visibility="gone"
-                app:tint="@color/black" />
-
-            <ImageView
-                android:id="@+id/copyIcon"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="6dp"
-                android:layout_marginBottom="6dp"
-                android:background="@drawable/button_bg_context_tool"
-                android:backgroundTint="@color/white"
-                android:foreground="?selectableItemBackground"
-                android:outlineSpotShadowColor="@color/shadowColor"
-                android:padding="10dp"
-                android:src="@drawable/ic_copy"
-                android:tooltipText="@string/copy"
-                android:translationZ="5dp"
-                android:visibility="gone"
-                app:tint="@color/black" />
-
-    </LinearLayout>
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigation"

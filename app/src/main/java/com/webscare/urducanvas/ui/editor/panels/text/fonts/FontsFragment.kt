@@ -255,14 +255,19 @@ class FontsFragment : Fragment() {
 
         orderedLanguages.forEachIndexed { index, langName ->
             val fontsForLang = byLanguage[langName] ?: return@forEachIndexed
-            val categories = fontsForLang
+            val catNames = fontsForLang
                 .map { it.font_category.trim() }
                 .filter { it.isNotBlank() }
                 .distinct()
                 .sorted()
-                .mapIndexed { catIndex, catName ->
-                    FontCategory(id = catIndex, name = catName, isSelected = false)
+
+            val categories = if (catNames.isNotEmpty()) {
+                (listOf("All") + catNames).mapIndexed { catIndex, catName ->
+                    FontCategory(id = catIndex, name = catName, isSelected = catIndex == 0)
                 }
+            } else {
+                emptyList()
+            }
 
             result.add(
                 FontLanguages(

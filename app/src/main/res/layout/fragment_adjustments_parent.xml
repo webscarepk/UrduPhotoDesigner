@@ -121,20 +121,10 @@
 
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabLayout"
+        style="@style/Widget.UrduCanvas.TabLayout"
         android:layout_width="0dp"
         android:layout_height="38dp"
-        android:background="@android:color/transparent"
-        app:tabIndicatorColor="@color/appColor"
-        app:tabIndicatorHeight="1dp"
-        app:tabPadding="0dp"
-        app:tabMode="scrollable"
         android:layout_marginTop="5dp"
-        app:tabGravity="start"
-        app:tabIndicatorAnimationMode="elastic"
-        app:tabIndicatorFullWidth="false"
-        app:tabSelectedTextColor="@color/appColor"
-        app:tabTextColor="@color/black"
-        app:tabRippleColor="@color/contrast"
         app:layout_constraintStart_toEndOf="@id/replaceImage"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toBottomOf="@id/back"/>

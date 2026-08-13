@@ -72,6 +72,13 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         observeFontData()
         observeDownloadStates()
         observeCurrentFont()
+
+        _binding?.englishRV?.post {
+            if (_binding != null) {
+                applyExpansion(mainViewModel.isPanelExpanded(PanelType.FONTS))
+                fontsAdapter.notifyDataSetChanged()
+            }
+        }
     }
 
     fun applyFilter(language: String, category: String?) {
@@ -230,7 +237,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         }
 
         val byCategory = when (val cat = currentCategory) {
-            null -> byLanguage
+            null, "All" -> byLanguage
             else -> byLanguage.filter { it.font_category.equals(cat, ignoreCase = true) }
         }
 

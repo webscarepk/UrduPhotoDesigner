@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:paddingHorizontal="6dp">
+
+    <TextView
+        android:id="@+id/tabTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:fontFamily="@font/regular"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:singleLine="true"
+        android:textColor="@color/tab_unselected_text"
+        android:textSize="13sp" />
+
+    <View
+        android:id="@+id/tabDot"
+        android:layout_width="5dp"
+        android:layout_height="5dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="10dp"
+        android:background="@drawable/bg_tab_dot"
+        android:importantForAccessibility="no"
+        android:visibility="gone" />
+
+</FrameLayout>

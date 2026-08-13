@@ -187,7 +187,7 @@ class TextFragment : Fragment() {
             tl.removeAllTabs()
             languageList.forEach { lang ->
                 val tab = tl.newTab()
-                val tabView = LayoutInflater.from(context).inflate(R.layout.custom_tab, tl, false)
+                val tabView = LayoutInflater.from(context).inflate(R.layout.view_panel_tab, tl, false)
                 tabView.findViewById<TextView>(R.id.tabTitle).text = lang
                 tab.customView = tabView
                 tl.addTab(tab, false)
@@ -233,7 +233,7 @@ class TextFragment : Fragment() {
 
             // Tab 0 — pinned language label, acts as "you are here" + tap-back
             val pinnedTab = tl.newTab()
-            val pinnedView = LayoutInflater.from(context).inflate(R.layout.custom_tab, tl, false)
+            val pinnedView = LayoutInflater.from(context).inflate(R.layout.view_panel_tab, tl, false)
             pinnedView.findViewById<TextView>(R.id.tabTitle).apply {
                 text = selectedLanguage
                 setTextColor(ContextCompat.getColor(requireContext(), R.color.appColor))
@@ -244,7 +244,7 @@ class TextFragment : Fragment() {
             // Tab 1 = "All", Tab 2+ = individual categories
             allCategories.forEach { cat ->
                 val tab = tl.newTab()
-                val tabView = LayoutInflater.from(context).inflate(R.layout.custom_tab, tl, false)
+                val tabView = LayoutInflater.from(context).inflate(R.layout.view_panel_tab, tl, false)
                 tabView.findViewById<TextView>(R.id.tabTitle).text = cat
                 tab.customView = tabView
                 tl.addTab(tab, false)
@@ -469,7 +469,7 @@ class TextFragment : Fragment() {
         }
 
         val byCategory = when (val cat = selectedCategory) {
-            null -> byLanguage
+            null, "All" -> byLanguage
             else -> byLanguage.filter { it.font_category.equals(cat, ignoreCase = true) }
         }
 
@@ -624,7 +624,7 @@ class TextFragment : Fragment() {
         }
     }
 
-    /** language → sorted distinct category list; "All", "Recents", and "Imported" → empty */
+    /** language → sorted distinct category list with "All" prepended; "All", "Recents", and "Imported" → empty */
     private fun buildLanguageCategoryMap(fonts: List<FontEntity>): Map<String, List<String>> {
         val map = mutableMapOf(
             "All" to emptyList<String>(), "Recents" to emptyList(), "Imported" to emptyList()
@@ -632,9 +632,8 @@ class TextFragment : Fragment() {
         fonts.groupBy { it.font_language.trim() }.filter { (lang, _) ->
             lang.isNotBlank() && !lang.equals("Imported", ignoreCase = true)
         }.forEach { (lang, langFonts) ->
-            map[lang] =
-                langFonts.map { it.font_category.trim() }.filter { it.isNotBlank() }.distinct()
-                    .sorted()
+            val catNames = langFonts.map { it.font_category.trim() }.filter { it.isNotBlank() }.distinct().sorted()
+            map[lang] = if (catNames.isNotEmpty()) listOf("All") + catNames else emptyList()
         }
         return map
     }

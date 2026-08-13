@@ -67,19 +67,9 @@
 
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tabLayout"
+            style="@style/Widget.UrduCanvas.TabLayout"
             android:layout_width="match_parent"
-            android:layout_height="38dp"
-            android:background="@android:color/transparent"
-            app:tabIndicatorColor="@color/appColor"
-            app:tabIndicatorHeight="1dp"
-            app:tabPadding="0dp"
-            app:tabMode="scrollable"
-            app:tabGravity="start"
-            app:tabIndicatorAnimationMode="elastic"
-            app:tabIndicatorFullWidth="false"
-            app:tabSelectedTextColor="@color/appColor"
-            app:tabTextColor="@color/black"
-            app:tabRippleColor="@color/contrast" />
+            android:layout_height="38dp" />
     </LinearLayout>
 
     <!-- ═══ EXPANDED HEADER ════════════════════════════════════════════════ -->
@@ -155,23 +145,13 @@
     <!-- Tab layout for expanded state -->
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabLayoutExpanded"
+        style="@style/Widget.UrduCanvas.TabLayout"
         android:layout_width="0dp"
         android:layout_height="36dp"
         android:visibility="gone"
-        android:background="@android:color/transparent"
-        app:tabIndicatorColor="@color/appColor"
-        app:tabIndicatorHeight="1dp"
-        app:tabPadding="0dp"
-        app:tabMode="scrollable"
-        app:tabGravity="start"
-        app:tabIndicatorAnimationMode="elastic"
-        app:tabIndicatorFullWidth="false"
-        app:tabSelectedTextColor="@color/appColor"
-        app:tabTextColor="@color/black"
-        app:tabRippleColor="@color/contrast"
-        app:layout_constraintTop_toBottomOf="@id/headerExpanded"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintStart_toEndOf="@id/startGuide"
-        app:layout_constraintEnd_toStartOf="@id/endGuide" />
+        app:layout_constraintTop_toBottomOf="@id/headerExpanded" />
 
     <!--
         BARRIER — always at the bottom of whichever header/tab is visible.

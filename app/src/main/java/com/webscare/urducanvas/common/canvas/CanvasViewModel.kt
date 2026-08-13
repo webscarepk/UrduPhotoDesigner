@@ -206,7 +206,7 @@ class CanvasViewModel @Inject constructor(
     // 🔷 Label
     private val _hasLabel = MutableLiveData(false)
 
-    private val _labelColor = MutableLiveData(Color.YELLOW)
+    private val _labelColor = MutableLiveData(Color.parseColor("#30005D28"))
     val labelColor: LiveData<Int> = _labelColor
 
     private val _labelShape = MutableLiveData(LabelShape.RECTANGLE_FILL)
@@ -2335,7 +2335,10 @@ class CanvasViewModel @Inject constructor(
         updateSelectedTextElements { it.copy(labelColor = color, labelShape = shape, hasLabel = enabled) }
     }
 
+    val selectedStylePresetId = androidx.lifecycle.MutableLiveData<String?>(null)
+
     fun applyTextStylePreset(preset: com.webscare.urducanvas.data.model.TextStylePreset) {
+        selectedStylePresetId.value = preset.id
         updateSelectedTextElements { element ->
             element.copy(
                 paintColor = preset.textColor ?: element.paintColor,
@@ -3265,7 +3268,7 @@ class CanvasViewModel @Inject constructor(
 
         // Reset Label
         _hasLabel.value = false
-        _labelColor.value = Color.YELLOW
+        _labelColor.value = Color.parseColor("#30005D28")
         _labelShape.value = LabelShape.RECTANGLE_FILL
 
         // Reset Gradients

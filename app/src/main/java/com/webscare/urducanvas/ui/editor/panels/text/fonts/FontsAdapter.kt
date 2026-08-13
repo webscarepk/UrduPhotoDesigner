@@ -40,6 +40,21 @@ class FontsAdapter(
     var recyclerViewWidth: Int = 0
     var recyclerViewPadding: Int = 0
 
+    var attachedRecyclerView: RecyclerView? = null
+        private set
+
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        super.onAttachedToRecyclerView(recyclerView)
+        attachedRecyclerView = recyclerView
+    }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView)
+        if (attachedRecyclerView == recyclerView) {
+            attachedRecyclerView = null
+        }
+    }
+
     fun addDownloadingId(id: Int) {
         if (downloadingIds.add(id)) {
             val pos = currentList.indexOfFirst { it.id == id }
@@ -85,11 +100,13 @@ class FontsAdapter(
         return if (viewType == TYPE_EXPANDED) {
             Expanded(
                 LayoutFontItemExpandedBinding.inflate(inflater, parent, false),
+                this,
                 onFontSelected
             )
         } else {
             Collapsed(
                 LayoutFontItemBinding.inflate(inflater, parent, false),
+                this,
                 onFontSelected
             )
         }
@@ -105,6 +122,7 @@ class FontsAdapter(
 
     sealed class FontViewHolder(
         itemView: View,
+        private val adapter: FontsAdapter,
         private val onFontSelected: (FontEntity, Boolean) -> Unit
     ) : RecyclerView.ViewHolder(itemView) {
 
@@ -153,36 +171,39 @@ class FontsAdapter(
         }
 
         fun updateSize(slideOffset: Float, rvWidth: Int, rvPadding: Int) {
-            if (rvWidth <= 0) return
             val context = itemView.context
             val density = context.resources.displayMetrics.density
-            val collapsedSize = (44 * density).toInt()
+            val recyclerView = (itemView.parent as? RecyclerView) ?: adapter.attachedRecyclerView
 
-            val marginPx = 18 * density // spacing space (3 columns * 2 sides * 3dp = 18dp)
-            val columnWidth = ((rvWidth - rvPadding - marginPx) / 3).toInt()
+            val marginEndPx = (6 * density).toInt()
+            val marginBottomPx = (6 * density).toInt()
+
+            val lm = recyclerView?.layoutManager as? androidx.recyclerview.widget.GridLayoutManager
+            val spanCount = lm?.spanCount?.coerceAtLeast(1) ?: 2
+
+            val rvHeight = recyclerView?.height ?: 0
+            val rvPaddingY = (recyclerView?.paddingTop ?: 0) + (recyclerView?.paddingBottom ?: 0)
+            val availHeight = rvHeight - rvPaddingY
+
+            val computedCollapsedHeight = if (availHeight > 0) {
+                ((availHeight - (spanCount * marginBottomPx)) / spanCount).coerceAtLeast((24 * density).toInt())
+            } else {
+                (44 * density).toInt()
+            }
+
+            val collapsedSize = computedCollapsedHeight
+
+            val effectiveWidth = if (rvWidth > 0) rvWidth else (recyclerView?.width ?: 0)
+            val columnWidth = if (effectiveWidth > 0) {
+                val totalMarginW = 18 * density
+                ((effectiveWidth - rvPadding - totalMarginW) / 3).toInt()
+            } else collapsedSize
 
             val currentSize = (collapsedSize + (columnWidth - collapsedSize) * slideOffset).toInt()
+            val finalSize = currentSize.coerceAtLeast(1)
 
             val lp = cardRoot.layoutParams as? android.view.ViewGroup.MarginLayoutParams
             if (lp != null) {
-                val marginEndPx = (6 * density).toInt()
-                val marginBottomPx = (6 * density).toInt()
-
-                // Calculate vertical clamping when horizontal orientation to prevent overlapping rows
-                val recyclerView = itemView.parent as? androidx.recyclerview.widget.RecyclerView
-                val lm = recyclerView?.layoutManager as? androidx.recyclerview.widget.GridLayoutManager
-                val finalSize = if (lm != null && lm.orientation == androidx.recyclerview.widget.GridLayoutManager.HORIZONTAL) {
-                    val rvHeight = recyclerView.height
-                    val rvPaddingY = recyclerView.paddingTop + recyclerView.paddingBottom
-                    val availHeight = rvHeight - rvPaddingY
-                    val spanCount = lm.spanCount.coerceAtLeast(1)
-                    val rowHeight = availHeight / spanCount
-                    val maxAllowedHeight = rowHeight - marginBottomPx
-                    minOf(currentSize, maxAllowedHeight).coerceAtLeast((28 * density).toInt())
-                } else {
-                    currentSize
-                }
-
                 if (lp.width != finalSize || lp.height != finalSize || lp.rightMargin != marginEndPx || lp.bottomMargin != marginBottomPx) {
                     lp.width = finalSize
                     lp.height = finalSize
@@ -269,8 +290,9 @@ class FontsAdapter(
 
     class Collapsed(
         private val binding: LayoutFontItemBinding,
+        adapter: FontsAdapter,
         onFontSelected: (FontEntity, Boolean) -> Unit
-    ) : FontViewHolder(binding.root, onFontSelected) {
+    ) : FontViewHolder(binding.root, adapter, onFontSelected) {
         override val cardRoot     get() = binding.root
         override val fontImage    get() = binding.font
         override val shimmer      get() = binding.shimmerLayout
@@ -281,8 +303,9 @@ class FontsAdapter(
 
     class Expanded(
         private val binding: LayoutFontItemExpandedBinding,
+        adapter: FontsAdapter,
         onFontSelected: (FontEntity, Boolean) -> Unit
-    ) : FontViewHolder(binding.root, onFontSelected) {
+    ) : FontViewHolder(binding.root, adapter, onFontSelected) {
         override val cardRoot     get() = binding.root
         override val fontImage    get() = binding.font
         override val shimmer      get() = binding.shimmerLayout

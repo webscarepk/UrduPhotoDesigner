@@ -25,6 +25,8 @@ import com.google.android.material.tabs.TabLayoutMediator
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.common.utils.setupPanelTabs
+import com.webscare.urducanvas.common.utils.setTabEdited
 import com.webscare.urducanvas.databinding.FragmentTextAdjustmentsBinding
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -121,46 +123,14 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
     // ── TabLayout ─────────────────────────────────────────────────────────────
 
     private fun setupTabLayout() {
-        mediator = TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
-            val tabView = LayoutInflater.from(context).inflate(R.layout.custom_tab, null)
-            tabView.findViewById<TextView>(R.id.tabTitle).text = tabs[position]
-            tab.customView = tabView
-        }
-        mediator?.attach()
-
-        binding.tabLayout.doOnLayout {
-            if (isAdded && _binding != null) {
-                for (i in 0 until binding.tabLayout.tabCount) {
-                    val tabView = (binding.tabLayout.getChildAt(0) as? ViewGroup)?.getChildAt(i)
-                    tabView?.scaleX = 0.9f
-                    tabView?.scaleY = 0.9f
-                }
-                binding.tabLayout.getTabAt(binding.tabLayout.selectedTabPosition)?.view?.apply {
-                    scaleX = 1.0f
-                    scaleY = 1.0f
-                }
+        mediator?.detach()
+        binding.tabLayout.setupPanelTabs(binding.viewPager, tabs) { position ->
+            if (position != 0) {
+                mainViewModel.setQuery("")
+                collapseSearch()
+                hideKeyboard()
             }
         }
-
-        binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab?) {
-                tab?.view?.animate()?.scaleX(1.0f)?.scaleY(1.0f)?.setDuration(150)
-                    ?.setInterpolator(android.view.animation.OvershootInterpolator())?.start()
-
-                // Search only makes sense on Font tab
-                if (tab?.position != 0) {
-                    mainViewModel.setQuery("")
-                    collapseSearch()
-                    hideKeyboard()
-                }
-            }
-
-            override fun onTabUnselected(tab: TabLayout.Tab?) {
-                tab?.view?.animate()?.scaleX(0.9f)?.scaleY(0.9f)?.setDuration(150)?.start()
-            }
-
-            override fun onTabReselected(tab: TabLayout.Tab?) {}
-        })
     }
 
     // ── Search — icon at end of TabLayout row, expands to 100dp bar ──────────

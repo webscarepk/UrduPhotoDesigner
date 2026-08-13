@@ -122,7 +122,7 @@ data class CanvasElement(
 
     @SerializedName("hasLabel") var hasLabel: Boolean = false,
 
-    @SerializedName("labelColor") var labelColor: Int = Color.YELLOW,
+    @SerializedName("labelColor") var labelColor: Int = Color.parseColor("#30005D28"),
 
     @SerializedName("labelShape") var labelShape: LabelShape = LabelShape.RECTANGLE_FILL,
 
@@ -260,11 +260,30 @@ data class CanvasElement(
         paint.alpha = paintAlpha
     }
 
+    fun getLabelPaddingX(): Float {
+        if (!hasLabel) return 0f
+        return when (labelShape) {
+            LabelShape.TAG_FILL, LabelShape.TAG_STROKE -> 48f
+            LabelShape.RIBBON_FILL, LabelShape.RIBBON_STROKE -> 54f
+            LabelShape.CAPSULE_FILL, LabelShape.CAPSULE_STROKE,
+            LabelShape.OVAL_FILL, LabelShape.OVAL_STROKE -> 36f
+            LabelShape.SLANTED_FILL, LabelShape.SLANTED_STROKE -> 40f
+            LabelShape.BADGE_FILL, LabelShape.BADGE_STROKE -> 32f
+            LabelShape.ROUNDED_RECTANGLE_FILL, LabelShape.ROUNDED_RECTANGLE_STROKE -> 28f
+            else -> 24f
+        }
+    }
+
+    fun getLabelPaddingY(): Float {
+        if (!hasLabel) return 0f
+        return 18f
+    }
+
     fun getLocalContentWidth(): Float {
         return if (type == ElementType.BACKGROUND || type == ElementType.SHAPE || type == ElementType.TABLE) {
             logicalContentWidth
         } else if (type == ElementType.TEXT) {
-            if (boxWidth != null && boxWidth!! > 0f) {
+            val baseW = if (boxWidth != null && boxWidth!! > 0f) {
                 boxWidth!!
             } else {
                 val lines = getVisualLines()
@@ -274,6 +293,7 @@ data class CanvasElement(
                     0f
                 }
             }
+            baseW + getLabelPaddingX() * 2f
         } else {
             if (svgDrawable != null) {
                 logicalContentWidth.takeIf { it > 0 }
@@ -291,7 +311,7 @@ data class CanvasElement(
         return if (type == ElementType.BACKGROUND || type == ElementType.SHAPE || type == ElementType.TABLE) {
             logicalContentHeight
         } else if (type == ElementType.TEXT) {
-            if (boxHeight != null && boxHeight!! > 0f) {
+            val baseH = if (boxHeight != null && boxHeight!! > 0f) {
                 boxHeight!!
             } else if (::paint.isInitialized) {
                 val fm = paint.fontMetrics
@@ -301,6 +321,7 @@ data class CanvasElement(
             } else {
                 0f
             }
+            baseH + getLabelPaddingY() * 2f
         } else {
             if (svgDrawable != null) {
                 logicalContentHeight.takeIf { it > 0 }
@@ -536,9 +557,14 @@ data class CanvasElement(
                 maxLineWidth = maxOf(maxLineWidth, tempRect.width().toFloat())
             }
 
-            val boxW = boxWidth ?: maxLineWidth
+            var boxW = boxWidth ?: maxLineWidth
             val textContentHeight = lines.size * lineHeight
-            val boxH = if (boxHeight != null && boxHeight!! > 0f) maxOf(boxHeight!!, textContentHeight) else textContentHeight
+            var boxH = if (boxHeight != null && boxHeight!! > 0f) maxOf(boxHeight!!, textContentHeight) else textContentHeight
+
+            if (hasLabel) {
+                boxW += getLabelPaddingX() * 2f
+                boxH += getLabelPaddingY() * 2f
+            }
 
             bounds.set(
                 -boxW / 2f, -boxH / 2f, boxW / 2f, boxH / 2f

@@ -45,8 +45,9 @@ class FontCategoriesAdapter(
             }
             binding.tabTitle.text = displayName
 
-            // Selected = black, unselected = gray
-            val isSelected = row.name.equals(selectedCategory, ignoreCase = true)
+            // Selected = green/appColor, unselected = gray
+            val isSelected = row.name.equals(selectedCategory, ignoreCase = true) ||
+                    (selectedCategory == null && row.name.equals("All", ignoreCase = true))
             binding.tabTitle.setTextColor(
                 ContextCompat.getColor(
                     binding.root.context,

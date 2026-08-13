@@ -12,7 +12,7 @@
     <ImageView
         android:id="@+id/shape"
         android:layout_margin="4dp"
-        app:tint="@color/appColor"
+        app:tint="@color/sub_discount_pill"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@drawable/ic_rect_fill"/>

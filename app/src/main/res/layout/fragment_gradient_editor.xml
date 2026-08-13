@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/white"
-    android:paddingHorizontal="16dp"
+    android:paddingHorizontal="10dp"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/gradientEditor"
     tools:context=".ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment">

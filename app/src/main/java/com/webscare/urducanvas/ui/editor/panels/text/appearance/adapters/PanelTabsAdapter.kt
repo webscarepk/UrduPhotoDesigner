@@ -46,14 +46,52 @@ class PanelTabsAdapter(
             // Clear compound drawable tint so ic_done_small_filled and ic_done_small_stroke render their native vector drawables
             TextViewCompat.setCompoundDrawableTintList(binding.tabTitle, null)
 
-            if (font.is_selected) {
-                binding.tabRoot.setBackgroundColor(selectedBgColor)
+            if (font.id == -100 || font.tab_name.startsWith("+")) {
+                binding.tabRoot.setBackgroundResource(R.drawable.bg_add_style_outline_btn)
+                val density = context.resources.displayMetrics.density
+                val lp = binding.tabRoot.layoutParams as? ViewGroup.MarginLayoutParams
+                if (lp != null) {
+                    lp.setMargins(
+                        (6 * density).toInt(),
+                        (4 * density).toInt(),
+                        (6 * density).toInt(),
+                        (8 * density).toInt()
+                    )
+                    binding.tabRoot.layoutParams = lp
+                }
+                binding.tabTitle.setPadding(
+                    (8 * density).toInt(),
+                    (6 * density).toInt(),
+                    (8 * density).toInt(),
+                    (6 * density).toInt()
+                )
                 binding.tabTitle.setTextColor(appColor)
-                binding.selectedIndicator.isVisible = true
-            } else {
-                binding.tabRoot.setBackgroundColor(Color.TRANSPARENT)
-                binding.tabTitle.setTextColor(ContextCompat.getColor(context, R.color.black))
+                binding.tabTitle.typeface = android.graphics.Typeface.DEFAULT_BOLD
                 binding.selectedIndicator.isVisible = false
+            } else {
+                val density = context.resources.displayMetrics.density
+                val lp = binding.tabRoot.layoutParams as? ViewGroup.MarginLayoutParams
+                if (lp != null) {
+                    lp.setMargins(0, 0, 0, 0)
+                    binding.tabRoot.layoutParams = lp
+                }
+                binding.tabTitle.setPadding(
+                    (12 * density).toInt(),
+                    (4 * density).toInt(),
+                    (8 * density).toInt(),
+                    (4 * density).toInt()
+                )
+                binding.tabTitle.typeface = android.graphics.Typeface.DEFAULT
+
+                if (font.is_selected) {
+                    binding.tabRoot.setBackgroundColor(selectedBgColor)
+                    binding.tabTitle.setTextColor(appColor)
+                    binding.selectedIndicator.isVisible = true
+                } else {
+                    binding.tabRoot.setBackgroundColor(Color.TRANSPARENT)
+                    binding.tabTitle.setTextColor(ContextCompat.getColor(context, R.color.black))
+                    binding.selectedIndicator.isVisible = false
+                }
             }
 
             binding.tabTitle.text = font.tab_name

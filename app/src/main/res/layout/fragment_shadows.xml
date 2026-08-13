@@ -8,145 +8,142 @@
     android:background="@color/white"
     tools:context=".ui.editor.panels.text.appearance.childs.ShadowsFragment">
 
-    <!-- Top Swatches Horizontal Scroll List (Edge-to-edge scrolling, 0 margin) -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/colors"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:clipToPadding="false"
-        android:orientation="horizontal"
-        android:paddingHorizontal="10dp"
-        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-        app:layout_constraintBottom_toTopOf="@id/footer"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:spanCount="2"
-        tools:itemCount="100"
-        tools:listitem="@layout/layout_color_item" />
-
+    <!-- Row 1 Container (Top Section: 88dp Angle Pad + Colors List + Live Readout) -->
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/footer"
+        android:id="@+id/topRowContainer"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginStart="10dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/colors">
+        app:layout_constraintTop_toTopOf="parent">
 
-        <!-- ANGLE (was Shadow X) -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/shadowXCard"
+        <!-- 88dp Angle Pad on Left -->
+        <com.webscare.urducanvas.common.views.FeatherBiasPadView
+            android:id="@+id/shadowPad"
+            android:layout_width="88dp"
+            android:layout_height="88dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Colors List on Right (2-row horizontal grid) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/colors"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="4dp"
-            android:layout_marginBottom="3dp"
-            android:visibility="visible"
-            app:layout_constraintBottom_toTopOf="@id/opacityCard"
-            app:layout_constraintEnd_toStartOf="@id/shadowYCard"
-            app:layout_constraintStart_toStartOf="parent">
-
-            <TextView
-                android:id="@+id/shadowXTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="15dp"
-                android:fontFamily="@font/medium"
-                android:text="@string/angle"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/shadowXSize"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="15dp"
-                android:fontFamily="@font/regular"
-                android:text="135°"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintBottom_toBottomOf="@id/shadowXTitle"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/shadowXTitle" />
-
-            <SeekBar
-                android:id="@+id/shadowX"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:indeterminateTint="@color/appColor"
-                android:max="360"
-                android:progress="135"
-                android:progressBackgroundTint="@color/light_gray"
-                android:progressTint="@color/appColor"
-                android:splitTrack="false"
-                android:thumb="@drawable/seekbar_thumb_custom"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/shadowXSize" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <!-- DISTANCE (was Shadow Y) -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/shadowYCard"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:layout_marginEnd="10dp"
-            android:layout_marginBottom="3dp"
-            android:visibility="visible"
-            app:layout_constraintBottom_toTopOf="@id/opacityCard"
+            android:layout_height="68dp"
+            android:layout_marginStart="8dp"
+            android:clipToPadding="false"
+            android:orientation="horizontal"
+            app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/shadowXCard">
+            app:layout_constraintStart_toEndOf="@id/shadowPad"
+            app:layout_constraintTop_toTopOf="@id/shadowPad"
+            app:spanCount="2"
+            tools:itemCount="20"
+            tools:listitem="@layout/layout_color_item" />
 
+        <!-- Readout Line under Colors List -->
+        <LinearLayout
+            android:id="@+id/readoutContainer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal"
+            app:layout_constraintBottom_toBottomOf="@id/shadowPad"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/shadowPad"
+            app:layout_constraintTop_toBottomOf="@id/colors">
+
+            <!-- Direction Title: bold #005D28 11sp -->
             <TextView
-                android:id="@+id/shadowYTitle"
+                android:id="@+id/directionTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="15dp"
-                android:fontFamily="@font/medium"
-                android:text="@string/distance"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                android:fontFamily="@font/bold"
+                android:text="Down-right"
+                android:textColor="@color/appColor"
+                android:textSize="11sp" />
 
+            <!-- Angle Readout: regular #8E94A2 11sp -->
             <TextView
-                android:id="@+id/shadowYSize"
+                android:id="@+id/readoutText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="15dp"
+                android:layout_marginStart="6dp"
                 android:fontFamily="@font/regular"
-                android:text="21"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintBottom_toBottomOf="@id/shadowYTitle"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/shadowYTitle" />
+                android:text="45°"
+                android:textColor="#8E94A2"
+                android:textSize="11sp" />
+        </LinearLayout>
 
-            <SeekBar
-                android:id="@+id/shadowY"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:indeterminateTint="@color/appColor"
-                android:max="100"
-                android:progress="21"
-                android:progressBackgroundTint="@color/light_gray"
-                android:progressTint="@color/appColor"
-                android:splitTrack="false"
-                android:thumb="@drawable/seekbar_thumb_custom"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/shadowYSize" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!-- OPACITY -->
+    <!-- Row 2: DISTANCE Seekbar Card -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/distanceCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="9dp"
+        android:visibility="visible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/topRowContainer">
+
+        <TextView
+            android:id="@+id/distanceTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="15dp"
+            android:fontFamily="@font/medium"
+            android:text="@string/distance"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/distanceSize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="15dp"
+            android:fontFamily="@font/regular"
+            android:text="21"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@id/distanceTitle"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/distanceTitle" />
+
+        <SeekBar
+            android:id="@+id/distance"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:indeterminateTint="@color/appColor"
+            android:max="100"
+            android:progress="21"
+            android:progressBackgroundTint="@color/light_gray"
+            android:progressTint="@color/appColor"
+            android:splitTrack="false"
+            android:thumb="@drawable/seekbar_thumb_custom"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/distanceSize" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Row 3: 50/50 Side-by-Side Opacity & Radius Seekbars -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/bottomRowContainer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/distanceCard">
+
+        <!-- OPACITY (Left 50%) -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/opacityCard"
             android:layout_width="0dp"
@@ -155,7 +152,8 @@
             android:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/radiusCard"
-            app:layout_constraintStart_toStartOf="parent">
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
             <TextView
                 android:id="@+id/opacityTitle"
@@ -175,7 +173,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="15dp"
                 android:fontFamily="@font/regular"
-                android:text="10"
+                android:text="255"
                 android:textColor="@color/black"
                 android:textSize="12sp"
                 app:layout_constraintBottom_toBottomOf="@id/opacityTitle"
@@ -188,7 +186,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:indeterminateTint="@color/appColor"
-                android:progress="20"
+                android:max="255"
+                android:progress="255"
                 android:progressBackgroundTint="@color/light_gray"
                 android:progressTint="@color/appColor"
                 android:splitTrack="false"
@@ -199,17 +198,17 @@
                 app:layout_constraintTop_toBottomOf="@id/opacitySize" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!-- RADIUS -->
+        <!-- RADIUS (Right 50%) -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/radiusCard"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
-            android:layout_marginEnd="10dp"
             android:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/opacityCard">
+            app:layout_constraintStart_toEndOf="@id/opacityCard"
+            app:layout_constraintTop_toTopOf="parent">
 
             <TextView
                 android:id="@+id/radiusTitle"
@@ -229,7 +228,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="15dp"
                 android:fontFamily="@font/regular"
-                android:text="10"
+                android:text="8"
                 android:textColor="@color/black"
                 android:textSize="12sp"
                 app:layout_constraintBottom_toBottomOf="@id/radiusTitle"
@@ -242,7 +241,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:indeterminateTint="@color/appColor"
-                android:progress="20"
+                android:max="50"
+                android:progress="8"
                 android:progressBackgroundTint="@color/light_gray"
                 android:progressTint="@color/appColor"
                 android:splitTrack="false"

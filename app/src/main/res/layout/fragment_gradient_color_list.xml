@@ -6,7 +6,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/gradientColorFragment"
     android:background="@color/white"
-    android:paddingHorizontal="16dp"
     tools:context=".ui.editor.panels.text.appearance.childs.gradient.GradientColorListFragment">
 
     <ImageView
@@ -15,7 +14,7 @@
         android:src="@drawable/ic_delete"
         android:padding="6dp"
         android:id="@+id/delete"
-        android:layout_marginEnd="6dp"
+        android:layout_marginEnd="10dp"
         app:layout_constraintEnd_toStartOf="@id/done"
         app:layout_constraintTop_toTopOf="parent"/>
 
@@ -25,6 +24,7 @@
         android:src="@drawable/ic_done"
         android:padding="6dp"
         android:id="@+id/done"
+        android:layout_marginEnd="10dp"
         app:tint="@color/black"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"/>
@@ -38,16 +38,14 @@
         app:layout_constraintTop_toTopOf="@id/done"
         app:layout_constraintBottom_toBottomOf="@id/done"
         android:textColor="@color/black"
-        android:paddingHorizontal="6dp"/>
+        android:layout_marginStart="10dp"/>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/colors"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        android:layout_marginStart="-16dp"
-        android:layout_marginEnd="-16dp"
-        android:paddingHorizontal="16dp"
+        android:paddingHorizontal="10dp"
         android:clipToPadding="false"
         android:orientation="horizontal"
         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"

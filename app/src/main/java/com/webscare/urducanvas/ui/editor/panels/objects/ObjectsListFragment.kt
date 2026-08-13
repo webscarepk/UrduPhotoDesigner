@@ -111,6 +111,15 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
         val isExpandedNow = mainViewModel.isPanelExpanded(PanelType.OBJECTS)
         isPanelExpanded = !isExpandedNow
         onPanelExpanded(isExpandedNow)
+
+        binding.objects.post {
+            if (_binding != null) {
+                isPanelExpanded = !isExpandedNow
+                onPanelExpanded(isExpandedNow)
+                imagesAdapter?.notifyDataSetChanged()
+                emojiAdapter?.notifyDataSetChanged()
+            }
+        }
     }
 
     override fun onHiddenChanged(hidden: Boolean) {

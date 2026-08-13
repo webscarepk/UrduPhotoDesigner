@@ -87,20 +87,10 @@
         <!-- Single TabLayout — shows languages OR categories (never both at once) -->
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tabLayout"
+            style="@style/Widget.UrduCanvas.TabLayout"
             android:layout_width="0dp"
             android:layout_height="38dp"
-            android:layout_weight="1"
-            android:background="@android:color/transparent"
-            app:tabGravity="start"
-            app:tabIndicatorAnimationMode="elastic"
-            app:tabIndicatorColor="@color/appColor"
-            app:tabIndicatorFullWidth="false"
-            app:tabIndicatorHeight="1dp"
-            app:tabMode="scrollable"
-            app:tabPadding="0dp"
-            app:tabRippleColor="@color/contrast"
-            app:tabSelectedTextColor="@color/appColor"
-            app:tabTextColor="@color/black" />
+            android:layout_weight="1" />
 
     </LinearLayout>
 
@@ -196,20 +186,10 @@
     <!-- Single TabLayout for expanded state — shows languages OR categories -->
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabLayoutExpanded"
+        style="@style/Widget.UrduCanvas.TabLayout"
         android:layout_width="0dp"
         android:layout_height="36dp"
-        android:background="@android:color/transparent"
         android:visibility="gone"
-        app:tabGravity="start"
-        app:tabIndicatorAnimationMode="elastic"
-        app:tabIndicatorColor="@color/appColor"
-        app:tabIndicatorFullWidth="false"
-        app:tabIndicatorHeight="1dp"
-        app:tabMode="scrollable"
-        app:tabPadding="0dp"
-        app:tabRippleColor="@color/contrast"
-        app:tabSelectedTextColor="@color/appColor"
-        app:tabTextColor="@color/black"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintTop_toBottomOf="@id/headerExpanded" />

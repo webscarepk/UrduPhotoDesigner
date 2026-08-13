@@ -349,4 +349,44 @@ object TextStylesRepository {
             .putString(KEY_CUSTOM_STYLES, json)
             .apply()
     }
+
+    fun hasSameStyleProperties(p1: TextStylePreset, p2: TextStylePreset): Boolean {
+        if (p1.textColor != p2.textColor) return false
+        if (p1.strokeColor != p2.strokeColor) return false
+        if (p1.strokeWidth != p2.strokeWidth) return false
+        if (p1.shadowColor != p2.shadowColor) return false
+        if (p1.shadowRadius != p2.shadowRadius) return false
+        if (p1.shadowDx != p2.shadowDx) return false
+        if (p1.shadowDy != p2.shadowDy) return false
+        if (p1.hasLabel != p2.hasLabel) return false
+        if (p1.hasGlossHighlight != p2.hasGlossHighlight) return false
+        if (p1.hasFoldedRibbonFlaps != p2.hasFoldedRibbonFlaps) return false
+
+        if (p1.hasLabel) {
+            if (p1.labelShape != p2.labelShape) return false
+            if (p1.labelColor != p2.labelColor) return false
+            if (p1.labelSecondaryColor != p2.labelSecondaryColor) return false
+            if (p1.labelStrokeColor != p2.labelStrokeColor) return false
+            if (p1.labelStrokeWidth != p2.labelStrokeWidth) return false
+            if (!isSameGradient(p1.labelGradient, p2.labelGradient)) return false
+        }
+
+        if (!isSameGradient(p1.textGradient, p2.textGradient)) return false
+
+        return true
+    }
+
+    private fun isSameGradient(g1: GradientItem?, g2: GradientItem?): Boolean {
+        if (g1 == null && g2 == null) return true
+        if (g1 == null || g2 == null) return false
+        return g1.colors == g2.colors &&
+               g1.positions == g2.positions &&
+               g1.angle == g2.angle &&
+               g1.scale == g2.scale &&
+               g1.type == g2.type &&
+               g1.radialRadiusFactor == g2.radialRadiusFactor &&
+               g1.sweepStartAngle == g2.sweepStartAngle &&
+               g1.centerX == g2.centerX &&
+               g1.centerY == g2.centerY
+    }
 }

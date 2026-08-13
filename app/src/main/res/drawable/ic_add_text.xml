@@ -3,19 +3,25 @@
     android:height="17dp"
     android:viewportWidth="17"
     android:viewportHeight="17">
+    <!-- Rounded Outer Frame Box -->
     <path
         android:strokeColor="@color/black"
-        android:strokeWidth="1.17"
+        android:strokeWidth="1.2"
         android:strokeLineCap="round"
-        android:pathData="M8.11 13.92H0.58V0.58h15v7.84"/>
+        android:strokeLineJoin="round"
+        android:pathData="M8.5 13.8H3.4A2.2 2.2 0 0 1 1.2 11.6V3.4A2.2 2.2 0 0 1 3.4 1.2h10.2A2.2 2.2 0 0 1 15.8 3.4v5.1" />
+    <!-- Center "T" Symbol -->
     <path
         android:strokeColor="@color/black"
-        android:strokeWidth="1.17"
+        android:strokeWidth="1.2"
         android:strokeLineCap="round"
-        android:pathData="M13.08 10.58v5m-2.5-2.57h5"/>
+        android:strokeLineJoin="round"
+        android:pathData="M5.2 4.8h4.6M7.5 4.8v5.4" />
+    <!-- Plus "+" Badge -->
     <path
-        android:fillColor="@color/black"
         android:strokeColor="@color/black"
-        android:strokeWidth="0.33"
-        android:pathData="M6.62 3.75h2.96 0.78c0.06 0 0.17 0.02 0.25 0.08 0.04 0.02 0.07 0.06 0.07 0.08l0.03 0.05 0.02 0.12 0.02 0.24v0.75c-0.01 0.07-0.04 0.14-0.06 0.17-0.04 0.07-0.1 0.12-0.16 0.14L10.4 5.4h-0.05-0.04c-0.08-0.03-0.15-0.08-0.2-0.14-0.05-0.06-0.08-0.13-0.09-0.2L10.02 4.9V4.74 4.52H8.44v5.35 0.1h0.21l0.23 0.01 0.17 0.06 0.05 0.04 0.05 0.06c0.04 0.06 0.05 0.13 0.06 0.18 0 0.09-0.01 0.2-0.08 0.29-0.1 0.12-0.24 0.12-0.29 0.13-0.28 0.02-0.6 0-0.86 0-0.2 0-0.5 0.02-0.72 0-0.05-0.02-0.13-0.03-0.2-0.1-0.07-0.08-0.1-0.19-0.1-0.27 0-0.08 0.02-0.2 0.09-0.27l0.05-0.05C7.16 10 7.22 9.99 7.26 9.98c0.08-0.02 0.22-0.02 0.33-0.01h0.14V4.52h-1.6v0.25V5c0 0.06-0.01 0.15-0.04 0.2-0.05 0.11-0.14 0.16-0.2 0.18-0.1 0.03-0.2 0.03-0.3-0.04-0.07-0.04-0.14-0.12-0.16-0.22L5.42 4.89V4.54 4.19l0.02-0.13V4l0.03-0.07c0.07-0.12 0.18-0.15 0.25-0.17h0.01 0.02c0.28-0.02 0.6 0 0.87 0Z"/>
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M13.5 11v4.4M11.3 13.2h4.4" />
 </vector>

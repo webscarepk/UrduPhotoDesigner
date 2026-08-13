@@ -7,6 +7,13 @@
     android:background="@drawable/panel_bg"
     tools:context=".ui.editor.panels.table.TableAdjustmentsFragment">
 
+    <androidx.constraintlayout.widget.Guideline
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.01"
+        android:id="@+id/topGuide"/>
+
     <!-- ── Row 1: back + title (Table Properties) ── -->
     <ImageView
         android:id="@+id/back"
@@ -19,7 +26,7 @@
         android:padding="7dp"
         android:src="@drawable/ic_back"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/topGuide" />
 
     <TextView
         android:id="@+id/title"
@@ -81,29 +88,18 @@
 
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tabLayout"
+            style="@style/Widget.UrduCanvas.TabLayout"
             android:layout_width="0dp"
             android:layout_height="38dp"
-            android:layout_weight="1"
-            android:background="@android:color/transparent"
-            app:tabGravity="start"
-            app:tabIndicatorAnimationMode="elastic"
-            app:tabIndicatorColor="@color/appColor"
-            app:tabIndicatorFullWidth="false"
-            app:tabIndicatorHeight="1dp"
-            app:tabMode="scrollable"
-            app:tabPadding="0dp"
-            app:tabRippleColor="@color/contrast"
-            app:tabSelectedTextColor="@color/appColor"
-            app:tabTextColor="@color/black" />
+            android:layout_weight="1" />
 
     </LinearLayout>
 
-    <!-- ViewPager2 spans 100% full width so tabs & options don't clip at right edge -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="6dp"
         android:saveEnabled="false"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

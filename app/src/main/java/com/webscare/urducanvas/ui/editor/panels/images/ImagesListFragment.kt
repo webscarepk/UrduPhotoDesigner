@@ -109,6 +109,14 @@ class ImagesListFragment : Fragment() {
         val isExpandedNow = mainViewModel.isPanelExpanded(PanelType.IMAGES)
         isPanelExpanded = !isExpandedNow
         onPanelExpanded(isExpandedNow)
+
+        binding.backgrounds.post {
+            if (_binding != null) {
+                isPanelExpanded = !isExpandedNow
+                onPanelExpanded(isExpandedNow)
+                imagesAdapter?.notifyDataSetChanged()
+            }
+        }
     }
 
     override fun onHiddenChanged(hidden: Boolean) {

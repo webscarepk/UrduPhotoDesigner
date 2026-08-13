@@ -447,9 +447,10 @@ class ShapesParentFragment : Fragment() {
             if (tabs.isEmpty()) return@forEach
             tabs.forEach { category ->
                 val tab = tl.newTab()
-                val tabView = LayoutInflater.from(context).inflate(R.layout.custom_tab, tl, false)
+                val tabView = LayoutInflater.from(context).inflate(R.layout.view_panel_tab, tl, false)
                 tabView.findViewById<TextView>(R.id.tabTitle).text = category
                 tab.customView = tabView
+                tab.contentDescription = category
                 tl.addTab(tab, false)
             }
             val safe = selectIndex.coerceIn(0, tabs.lastIndex)

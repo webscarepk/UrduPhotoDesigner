@@ -8,12 +8,12 @@ enum class PresetCategory(val displayName: String) {
     MY_STYLES("My Styles"),
     MINIMAL("Minimal"),
     MODERN("Modern"),
-    BADGES_SALE("Badges & Sale"),
-    RIBBONS_BANNERS("Ribbons & Banners"),
-    NEON_GLOW("Neon & Glow"),
-    METALLIC_3D("3D & Metallic"),
+    BADGES_SALE("Badges"),
+    RIBBONS_BANNERS("Ribbons"),
+    NEON_GLOW("Neon"),
+    METALLIC_3D("3D Metal"),
     CALLIGRAPHY("Calligraphy"),
-    DARK_CONTRAST("Dark & High Contrast")
+    DARK_CONTRAST("Contrast")
 }
 
 data class TextStylePreset(

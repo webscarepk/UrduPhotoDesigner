@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@color/white"
-    android:paddingHorizontal="16dp"
+    android:paddingHorizontal="10dp"
     tools:context=".ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment">
 
     <ImageView
