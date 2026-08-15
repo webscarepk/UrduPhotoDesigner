@@ -77,17 +77,17 @@
 
     <!-- Unified Editor Properties Panel TabLayout Style -->
     <style name="Widget.UrduCanvas.TabLayout" parent="Widget.MaterialComponents.TabLayout">
-        <item name="tabMode">scrollable</item>
-        <item name="tabGravity">start</item>
+        <item name="tabMode">fixed</item>
+        <item name="tabGravity">fill</item>
         <item name="tabIndicatorFullWidth">true</item>
-        <item name="tabIndicatorAnimationMode">elastic</item>
-        <item name="tabIndicator">@drawable/bg_tab_indicator</item>
+        <item name="tabIndicatorAnimationMode">linear</item>
         <item name="tabIndicatorColor">@color/tab_selected_text</item>
-        <item name="tabIndicatorHeight">3dp</item>
+        <item name="tabIndicatorHeight">0dp</item>
+        <item name="tabIndicatorGravity">bottom</item>
         <item name="tabRippleColor">@color/tab_ripple</item>
         <item name="android:background">@android:color/transparent</item>
-        <item name="tabPaddingStart">4dp</item>
-        <item name="tabPaddingEnd">4dp</item>
+        <item name="tabPaddingStart">0dp</item>
+        <item name="tabPaddingEnd">0dp</item>
         <item name="tabPaddingTop">0dp</item>
         <item name="tabPaddingBottom">0dp</item>
         <item name="tabTextAppearance">@style/TextAppearance.UrduCanvas.Tab</item>

@@ -41,10 +41,12 @@ object PanelTabHelper {
         }.attach()
 
         // Apply initial selection state
-        val selectedPos = tabLayout.selectedTabPosition.coerceAtLeast(0)
-        for (i in 0 until tabLayout.tabCount) {
-            val tab = tabLayout.getTabAt(i)
-            updateTabStyle(tab, i == selectedPos, boldFont, regularFont)
+        tabLayout.post {
+            val selectedPos = tabLayout.selectedTabPosition.coerceAtLeast(0)
+            for (i in 0 until tabLayout.tabCount) {
+                val tab = tabLayout.getTabAt(i)
+                updateTabStyle(tab, i == selectedPos, boldFont, regularFont)
+            }
         }
 
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
@@ -83,14 +85,17 @@ object PanelTabHelper {
     ) {
         val customView = tab?.customView ?: return
         val titleView = customView.findViewById<TextView>(R.id.tabTitle) ?: return
+        val indicatorView = customView.findViewById<View>(R.id.tabIndicator)
         val context = customView.context
 
         if (isSelected) {
             titleView.setTextColor(ContextCompat.getColor(context, R.color.tab_selected_text))
             titleView.typeface = boldFont
+            indicatorView?.visibility = View.VISIBLE
         } else {
             titleView.setTextColor(ContextCompat.getColor(context, R.color.tab_unselected_text))
             titleView.typeface = regularFont
+            indicatorView?.visibility = View.GONE
         }
     }
 }

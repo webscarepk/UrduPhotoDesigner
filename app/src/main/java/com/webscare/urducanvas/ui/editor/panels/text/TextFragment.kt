@@ -14,7 +14,9 @@ import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
+import android.graphics.Typeface
 import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -194,7 +196,7 @@ class TextFragment : Fragment() {
             }
             val idx = languageList.indexOf(selectedLanguage).coerceAtLeast(0)
             tl.getTabAt(idx)?.select()
-            applyTabScales(tl, idx)
+            updateTextTabStyles(tl, idx)
         }
 
         attachTabListener()
@@ -265,7 +267,7 @@ class TextFragment : Fragment() {
 
             // Select WITHOUT triggering the listener (listener not attached yet)
             tl.getTabAt(selectPos)?.select()
-            applyTabScales(tl, selectPos)
+            updateTextTabStyles(tl, selectPos)
         }
 
         // Attach listener AFTER all tabs are built and selection is set
@@ -318,9 +320,8 @@ class TextFragment : Fragment() {
                     mainViewModel.lastFontsCategory = selectedCategory
                     mainViewModel.lastFontsInCategoryMode = true
 
-                    tab.view.animate().scaleX(1f).scaleY(1f).setDuration(100)
-                        .setInterpolator(OvershootInterpolator(1.2f)).start()
-
+                    updateTextTabStyles(binding.tabLayout, pos)
+                    updateTextTabStyles(binding.tabLayoutExpanded, pos)
                     rebindFonts()
                 } else {
                     // LANGUAGE mode
@@ -330,8 +331,8 @@ class TextFragment : Fragment() {
                     selectedLanguage = lang
                     selectedCategory = null
 
-                    tab.view.animate().scaleX(1f).scaleY(1f).setDuration(100)
-                        .setInterpolator(OvershootInterpolator(1.2f)).start()
+                    updateTextTabStyles(binding.tabLayout, pos)
+                    updateTextTabStyles(binding.tabLayoutExpanded, pos)
 
                     val cats = languageCategoryMap[lang] ?: emptyList()
                     val hasCats =
@@ -348,9 +349,6 @@ class TextFragment : Fragment() {
             }
 
             override fun onTabUnselected(tab: TabLayout.Tab?) {
-                // Pinned language tab (pos 0 in category mode) never shrinks
-                if (inCategoryMode && tab?.position == 0) return
-                tab?.view?.animate()?.scaleX(0.9f)?.scaleY(0.9f)?.setDuration(100)?.start()
             }
 
             override fun onTabReselected(tab: TabLayout.Tab?) {
@@ -421,11 +419,32 @@ class TextFragment : Fragment() {
         }
     }
 
-    private fun applyTabScales(tl: TabLayout, selectedIdx: Int) {
+    private fun updateTextTabStyles(tl: TabLayout, selectedIdx: Int) {
+        val context = tl.context
+        val boldFont = ResourcesCompat.getFont(context, R.font.bold) ?: Typeface.DEFAULT_BOLD
+        val regularFont = ResourcesCompat.getFont(context, R.font.regular) ?: Typeface.DEFAULT
+
         for (i in 0 until tl.tabCount) {
-            tl.getTabAt(i)?.view?.apply {
-                scaleX = if (i == selectedIdx) 1f else 0.9f
-                scaleY = if (i == selectedIdx) 1f else 0.9f
+            val tab = tl.getTabAt(i) ?: continue
+            val customView = tab.customView ?: continue
+            val titleView = customView.findViewById<TextView>(R.id.tabTitle) ?: continue
+            val indicatorView = customView.findViewById<View>(R.id.tabIndicator)
+            val isSelected = i == selectedIdx
+
+            if (isSelected) {
+                titleView.setTextColor(ContextCompat.getColor(context, R.color.tab_selected_text))
+                titleView.typeface = boldFont
+                indicatorView?.visibility = View.VISIBLE
+            } else {
+                if (inCategoryMode && i == 0) {
+                    titleView.setTextColor(ContextCompat.getColor(context, R.color.appColor))
+                    titleView.typeface = boldFont
+                    indicatorView?.visibility = View.GONE
+                } else {
+                    titleView.setTextColor(ContextCompat.getColor(context, R.color.tab_unselected_text))
+                    titleView.typeface = regularFont
+                    indicatorView?.visibility = View.GONE
+                }
             }
         }
     }

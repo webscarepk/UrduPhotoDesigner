@@ -29,7 +29,8 @@
         android:layout_width="@dimen/_100sdp"
         android:layout_height="wrap_content"
         android:importantForAccessibility="no"
-        android:paddingVertical="10dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="2dp"
         android:src="@drawable/drag_handle_bg"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -39,60 +40,76 @@
          COLLAPSED HEADER
          [addText] [addFont] [searchIcon | searchBar─────] [tabLayout→]
          ══════════════════════════════════════════════════════════════════ -->
-    <LinearLayout
+    <RelativeLayout
         android:id="@+id/headerCollapsed"
         android:layout_width="0dp"
-        android:layout_height="38dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
+        android:layout_height="42dp"
         android:visibility="visible"
-        app:layout_constraintEnd_toStartOf="@id/endGuide"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/dragHandle">
 
-        <ImageView
-            android:id="@+id/addText"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:layout_gravity="center_vertical"
-            android:background="@drawable/button_bg_small"
-            android:backgroundTint="#30005D28"
-            android:padding="8dp"
-            android:src="@drawable/ic_add_text" />
+        <LinearLayout
+            android:id="@+id/tabRowContent"
+            android:layout_width="match_parent"
+            android:layout_height="36dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp">
 
-        <ImageView
-            android:id="@+id/addFont"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:layout_gravity="center_vertical"
-            android:layout_marginStart="5dp"
-            android:background="@drawable/button_bg_small"
-            android:backgroundTint="@color/contrast"
-            android:padding="8dp"
-            android:src="@drawable/ic_add_font" />
+            <ImageView
+                android:id="@+id/addText"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_gravity="center_vertical"
+                android:background="@drawable/button_bg_small"
+                android:backgroundTint="#30005D28"
+                android:padding="8dp"
+                android:src="@drawable/ic_add_text" />
 
-        <!-- Search icon — tap to reveal inline searchBar -->
-        <ImageView
-            android:id="@+id/searchIcon"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:layout_gravity="center_vertical"
-            android:layout_marginStart="5dp"
-            android:background="@drawable/button_bg_small"
-            android:backgroundTint="@color/contrast"
-            android:padding="8dp"
-            android:src="@drawable/ic_search"
-            app:tint="@color/gray" />
+            <ImageView
+                android:id="@+id/addFont"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="5dp"
+                android:background="@drawable/button_bg_small"
+                android:backgroundTint="@color/contrast"
+                android:padding="8dp"
+                android:src="@drawable/ic_add_font" />
 
-        <!-- Single TabLayout — shows languages OR categories (never both at once) -->
-        <com.google.android.material.tabs.TabLayout
-            android:id="@+id/tabLayout"
-            style="@style/Widget.UrduCanvas.TabLayout"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_weight="1" />
+            <!-- Search icon — tap to reveal inline searchBar -->
+            <ImageView
+                android:id="@+id/searchIcon"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="5dp"
+                android:background="@drawable/button_bg_small"
+                android:backgroundTint="@color/contrast"
+                android:padding="8dp"
+                android:src="@drawable/ic_search"
+                app:tint="@color/gray" />
 
-    </LinearLayout>
+            <!-- Single TabLayout — shows languages OR categories (never both at once) -->
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/tabLayout"
+                style="@style/Widget.UrduCanvas.TabLayout"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1" />
+
+        </LinearLayout>
+
+        <!-- Full-width 1dp baseline divider -->
+        <View
+            android:id="@+id/tabBaselineDivider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_alignParentBottom="true"
+            android:background="@color/tab_divider" />
+
+    </RelativeLayout>
 
     <!-- ══════════════════════════════════════════════════════════════════
          EXPANDED HEADER  (gone in collapsed state)
@@ -206,7 +223,7 @@
         android:id="@+id/swipeRefresh"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="14dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
