@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/clCategoryRow"
+    android:layout_width="match_parent"
+    android:layout_height="32dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
+
+    <!-- Selected marker bar on right edge -->
+    <View
+        android:id="@+id/vSelectionIndicator"
+        android:layout_width="3dp"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_selected_indicator_bar"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="visible" />
+
+    <!-- Icon Variant View -->
+    <ImageView
+        android:id="@+id/ivIcon"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:contentDescription="@null"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:src="@drawable/ic_fill" />
+
+    <!-- Monogram Variant View -->
+    <TextView
+        android:id="@+id/tvMonogram"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:background="@drawable/bg_monogram_tile"
+        android:gravity="center"
+        android:textColor="#8E94A2"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="UR" />
+
+    <!-- On/Off state 7dp dot indicator -->
+    <ImageView
+        android:id="@+id/ivDotIndicator"
+        android:layout_width="7dp"
+        android:layout_height="7dp"
+        android:contentDescription="@null"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="@id/ivIcon"
+        app:layout_constraintTop_toTopOf="@id/ivIcon"
+        tools:src="@drawable/bg_rail_dot" />
+
+    <!-- Caret for sub-lists in Collapsed State -->
+    <ImageView
+        android:id="@+id/ivCaret"
+        android:layout_width="9dp"
+        android:layout_height="9dp"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_dropdown"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="@id/tvMonogram"
+        app:layout_constraintStart_toStartOf="@id/tvMonogram"
+        app:layout_constraintTop_toBottomOf="@id/tvMonogram" />
+
+    <!-- Category Label -->
+    <TextView
+        android:id="@+id/tvLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="#1E1E1E"
+        android:textSize="12sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/vSelectionIndicator"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="Kasheeda" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

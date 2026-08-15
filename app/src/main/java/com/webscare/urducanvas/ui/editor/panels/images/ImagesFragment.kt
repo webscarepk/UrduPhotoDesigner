@@ -208,8 +208,10 @@ class ImagesFragment : Fragment() {
         if (!isSearchActive) {
             binding.tabLayout.alpha          = collapsedAlpha
             binding.tabLayoutExpanded.alpha  = expandedAlpha
+            binding.tabExpandedContainer.alpha = expandedAlpha
             binding.tabLayout.visibility     = if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
             binding.tabLayoutExpanded.visibility = if (expandedAlpha > 0f) View.VISIBLE else View.GONE
+            binding.tabExpandedContainer.visibility = if (expandedAlpha > 0f) View.VISIBLE else View.GONE
         }
 
         // Forward live offset to child fragments to drive morph transition on every frame
@@ -227,8 +229,10 @@ class ImagesFragment : Fragment() {
         binding.headerExpanded.visibility  = if (expanded)  View.VISIBLE else View.GONE
         binding.tabLayout.alpha            = if (!expanded) 1f else 0f
         binding.tabLayoutExpanded.alpha    = if (expanded)  1f else 0f
+        binding.tabExpandedContainer.alpha = if (expanded)  1f else 0f
         binding.tabLayout.visibility       = if (!expanded) View.VISIBLE else View.GONE
         binding.tabLayoutExpanded.visibility = if (expanded) View.VISIBLE else View.GONE
+        binding.tabExpandedContainer.visibility = if (expanded) View.VISIBLE else View.GONE
 
         // Images-specific: search results header swap
         val isSearchActive = currentQuery.isNotBlank()
@@ -237,6 +241,7 @@ class ImagesFragment : Fragment() {
         binding.searchResultsHeader.isVisible = !expanded && isSearchActive
         if (!expanded && isSearchActive) binding.searchResultsHeader.text = headerText
         binding.tabLayoutExpanded.isVisible = expanded && !isSearchActive
+        binding.tabExpandedContainer.isVisible = expanded && !isSearchActive
         binding.searchResultsHeaderExpanded.isVisible = expanded && isSearchActive
         if (expanded && isSearchActive) binding.searchResultsHeaderExpanded.text = headerText
 
@@ -421,11 +426,10 @@ class ImagesFragment : Fragment() {
             }
             val safe = selectIndex.coerceIn(0, tabs.lastIndex)
             tl.getTabAt(safe)?.select()
-            tl.post {
-                tl.getTabAt(safe)?.view?.let { v ->
-                    tl.scrollTo((v.left - tl.width / 2 + v.width / 2).coerceAtLeast(0), 0)
-                }
+            for (i in 0 until tl.tabCount) {
+                com.webscare.urducanvas.common.utils.PanelTabHelper.updateTabStyle(tl.getTabAt(i), i == safe)
             }
+            com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(tl, safe)
         }
         attachTabListener()
     }
@@ -437,6 +441,11 @@ class ImagesFragment : Fragment() {
         val listener = object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 val pos = tab?.position ?: return
+                listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
+                    for (i in 0 until tl.tabCount) {
+                        com.webscare.urducanvas.common.utils.PanelTabHelper.updateTabStyle(tl.getTabAt(i), i == pos)
+                    }
+                }
                 tab.view.animate().scaleX(1f).scaleY(1f).setDuration(100)
                     .setInterpolator(OvershootInterpolator(1.2f)).start()
                 val other =

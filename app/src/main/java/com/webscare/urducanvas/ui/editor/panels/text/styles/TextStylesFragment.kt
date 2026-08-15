@@ -17,7 +17,7 @@ import com.webscare.urducanvas.data.model.PresetCategory
 import com.webscare.urducanvas.data.model.TextStylePreset
 import com.webscare.urducanvas.data.repository.TextStylesRepository
 import com.webscare.urducanvas.databinding.FragmentTextStylesBinding
-import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter
+import com.webscare.urducanvas.ui.editor.views.RailCategoryItem
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -30,7 +30,6 @@ class TextStylesFragment : Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
 
     private lateinit var tabs: ArrayList<PanelTabs>
-    private lateinit var adapter: PanelTabsAdapter
     private lateinit var pagerAdapter: TextStylesPagerAdapter
 
     override fun onCreateView(
@@ -49,14 +48,19 @@ class TextStylesFragment : Fragment() {
     private fun setupViews() {
         tabs = ArrayList()
 
-        adapter = PanelTabsAdapter { selectedTab ->
-            if (selectedTab.id == -100) {
+        binding.collapsibleRail.bindPanelId("text_styles")
+
+        binding.collapsibleRail.onCategorySelectedListener = { catItem ->
+            val tabId = catItem.id.toIntOrNull() ?: -1
+            if (tabId == -100) {
                 saveCurrentSelectedElementStyle()
             } else {
-                handleTabSelection(selectedTab)
+                val index = tabs.indexOfFirst { it.id == tabId }
+                if (index >= 0) {
+                    handleTabSelection(tabs[index])
+                }
             }
         }
-        binding.categoriesRecyclerView.adapter = adapter
 
         binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
         binding.viewPager.offscreenPageLimit = 1
@@ -67,8 +71,7 @@ class TextStylesFragment : Fragment() {
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 val selectedCategory = tabs.getOrNull(position) ?: return
-                handleTabSelection(selectedCategory, updatePager = false)
-                binding.categoriesRecyclerView.smoothScrollToPosition(position)
+                binding.collapsibleRail.setSelectedCategory(selectedCategory.id.toString())
             }
         })
     }
@@ -102,14 +105,22 @@ class TextStylesFragment : Fragment() {
             tabs.add(PanelTabs(id = cat.ordinal, tab_name = cat.displayName, is_selected = false))
         }
 
-        // Default select first actual page (index 1 if My Styles or Badges & Sale)
         val defaultIndex = if (tabs.size > 1) 1 else 0
         if (tabs.isNotEmpty() && defaultIndex < tabs.size) {
             tabs[defaultIndex] = tabs[defaultIndex].copy(is_selected = true)
         }
 
-        adapter.submitList(ArrayList(tabs))
         pagerAdapter.updateTabs(ArrayList(tabs))
+
+        val railItems = tabs.map { tab ->
+            RailCategoryItem(
+                id = tab.id.toString(),
+                label = tab.tab_name,
+                iconRes = null
+            )
+        }
+        val defaultSelectedId = if (tabs.isNotEmpty() && defaultIndex < tabs.size) tabs[defaultIndex].id.toString() else null
+        binding.collapsibleRail.setCategories(railItems, defaultSelectedId)
 
         if (tabs.isNotEmpty() && defaultIndex < tabs.size) {
             binding.viewPager.setCurrentItem(defaultIndex, false)
@@ -125,7 +136,8 @@ class TextStylesFragment : Fragment() {
         }
         tabs.clear()
         tabs.addAll(updatedTabs)
-        adapter.submitList(ArrayList(tabs))
+
+        binding.collapsibleRail.setSelectedCategory(selectedTab.id.toString())
 
         if (updatePager) {
             binding.viewPager.setCurrentItem(selectedIndex, true)
@@ -179,7 +191,6 @@ class TextStylesFragment : Fragment() {
 
         rebuildTabs()
 
-        // Switch to My Styles tab page
         val myStylesIndex = tabs.indexOfFirst { it.id == PresetCategory.MY_STYLES.ordinal }
         if (myStylesIndex != -1) {
             handleTabSelection(tabs[myStylesIndex], updatePager = true)
@@ -187,7 +198,6 @@ class TextStylesFragment : Fragment() {
     }
 
     override fun onDestroyView() {
-        _binding?.categoriesRecyclerView?.adapter = null
         _binding?.viewPager?.adapter = null
         super.onDestroyView()
         _binding = null

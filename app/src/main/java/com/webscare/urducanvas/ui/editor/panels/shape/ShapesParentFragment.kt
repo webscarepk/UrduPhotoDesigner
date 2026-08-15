@@ -214,9 +214,12 @@ class ShapesParentFragment : Fragment() {
         if (!isSearchActive) {
             binding.tabLayout.alpha         = collapsedAlpha
             binding.tabLayoutExpanded.alpha = expandedAlpha
+            binding.tabExpandedContainer.alpha = expandedAlpha
             binding.tabLayout.visibility =
                 if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
             binding.tabLayoutExpanded.visibility =
+                if (expandedAlpha > 0f) View.VISIBLE else View.GONE
+            binding.tabExpandedContainer.visibility =
                 if (expandedAlpha > 0f) View.VISIBLE else View.GONE
         }
 
@@ -240,8 +243,10 @@ class ShapesParentFragment : Fragment() {
         binding.headerExpanded.visibility  = if (expanded)  View.VISIBLE else View.GONE
         binding.tabLayout.alpha            = if (!expanded) 1f else 0f
         binding.tabLayoutExpanded.alpha    = if (expanded)  1f else 0f
+        binding.tabExpandedContainer.alpha = if (expanded)  1f else 0f
         binding.tabLayout.visibility       = if (!expanded) View.VISIBLE else View.GONE
         binding.tabLayoutExpanded.visibility = if (expanded) View.VISIBLE else View.GONE
+        binding.tabExpandedContainer.visibility = if (expanded) View.VISIBLE else View.GONE
 
 
         if (expanded) {
@@ -455,11 +460,10 @@ class ShapesParentFragment : Fragment() {
             }
             val safe = selectIndex.coerceIn(0, tabs.lastIndex)
             tl.getTabAt(safe)?.select()
-            tl.post {
-                tl.getTabAt(safe)?.view?.let { v ->
-                    tl.scrollTo((v.left - tl.width / 2 + v.width / 2).coerceAtLeast(0), 0)
-                }
+            for (i in 0 until tl.tabCount) {
+                com.webscare.urducanvas.common.utils.PanelTabHelper.updateTabStyle(tl.getTabAt(i), i == safe)
             }
+            com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(tl, safe)
         }
         attachTabListener()
     }
@@ -479,11 +483,17 @@ class ShapesParentFragment : Fragment() {
         val listener = object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 val pos = tab?.position ?: return
+                listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
+                    for (i in 0 until tl.tabCount) {
+                        com.webscare.urducanvas.common.utils.PanelTabHelper.updateTabStyle(tl.getTabAt(i), i == pos)
+                    }
+                }
                 // Keep the other layout visually in sync WITHOUT firing its listener.
                 val other = if (tab.parent === binding.tabLayout)
                     binding.tabLayoutExpanded else binding.tabLayout
                 if (other.selectedTabPosition != pos) {
                     other.setScrollPosition(pos, 0f, true)
+                    com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(other, pos)
                     other.getTabAt(pos)?.let { otherTab ->
                         // select WITHOUT firing listeners: temporarily detach them
                         other.clearOnTabSelectedListeners()

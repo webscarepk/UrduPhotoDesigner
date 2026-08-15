@@ -7,11 +7,12 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.viewpager2.widget.ViewPager2
+import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import com.webscare.urducanvas.data.model.AdjustmentPanelTabs
 import com.webscare.urducanvas.databinding.FragmentEffectsBinding
-import com.webscare.urducanvas.ui.editor.panels.adjustments.AdjustmentPanelTabsAdapter
+import com.webscare.urducanvas.ui.editor.views.RailCategoryItem
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -19,10 +20,17 @@ class EffectsFragment : Fragment() {
     private var _binding: FragmentEffectsBinding? = null
     private val binding get() = _binding!!
     private var tabs = ArrayList<AdjustmentPanelTabs>()
-    private lateinit var adapter: AdjustmentPanelTabsAdapter
     private lateinit var pagerAdapter: EffectsPagerAdapter
 
     private val viewModel: CanvasViewModel by activityViewModels()
+
+    private val effectsCategories = listOf(
+        RailCategoryItem("shadow",  "Shadow",  R.drawable.ic_shadow,  isEnabled = false),
+        RailCategoryItem("color",   "Color",   R.drawable.ic_color,   isEnabled = false),
+        RailCategoryItem("blur",    "Blur",    R.drawable.ic_blur,    isEnabled = false),
+        RailCategoryItem("stroke",  "Stroke",  R.drawable.ic_stroke,  isEnabled = false),
+        RailCategoryItem("feather", "Feather", R.drawable.ic_feather, isEnabled = false)
+    )
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -35,7 +43,7 @@ class EffectsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupData()
-        setupRecyclerViews()
+        setupRailAndPager()
         initObservers()
     }
 
@@ -48,91 +56,56 @@ class EffectsFragment : Fragment() {
         tabs.add(AdjustmentPanelTabs(4, "Feather", is_selected = false))
     }
 
-    private fun setupRecyclerViews() {
-        adapter = AdjustmentPanelTabsAdapter({ tab ->
-            handleTabClick(tab)
-        })
-        binding.categories.adapter = adapter
-        adapter.submitList(tabs)
+    private fun setupRailAndPager() {
+        binding.collapsibleRail.bindPanelId("image_effects")
+        binding.collapsibleRail.setCategories(effectsCategories)
+
+        binding.collapsibleRail.onCategorySelectedListener = { catItem ->
+            val index = effectsCategories.indexOfFirst { it.id == catItem.id }
+            if (index >= 0 && positionInTabs(index)) {
+                binding.viewPager.setCurrentItem(index, true)
+            }
+        }
 
         binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
         binding.viewPager.offscreenPageLimit = 1
 
         pagerAdapter = EffectsPagerAdapter(this, tabs)
         binding.viewPager.adapter = pagerAdapter
-
         binding.viewPager.isUserInputEnabled = false
+    }
+
+    private fun positionInTabs(index: Int): Boolean {
+        return index in 0 until tabs.size
     }
 
     private fun initObservers() {
         viewModel.selectedElements.observe(viewLifecycleOwner) { elements ->
             val element = elements.firstOrNull() ?: return@observe
 
-            if (tabs.isEmpty()) {
-                setupInitialTabs(element)
-                return@observe
-            }
+            val shadowEnabled  = element.hasShadow
+            val colorEnabled   = element.hasOverlay
+            val blurEnabled    = element.hasBlur
+            val strokeEnabled  = element.hasStroke
+            val featherEnabled = element.hasFeather
 
-            var isAnyChange = false
-            tabs.forEachIndexed { index, tab ->
-                val currentState = when (tab.tab_name) {
-                    "Color"   -> element.hasOverlay
-                    "Shadow"  -> element.hasShadow
-                    "Stroke"  -> element.hasStroke
-                    "Blur"    -> element.hasBlur
-                    "Feather" -> element.hasFeather
-                    else      -> false
-                }
-
-                if (tab.is_enabled != currentState) {
-                    tabs[index] = tab.copy(is_enabled = currentState)
-                    isAnyChange = true
-                }
-            }
-
-            if (isAnyChange) {
-                adapter.submitList(ArrayList(tabs))
-            }
-        }
-    }
-
-    private fun setupInitialTabs(element: CanvasElement) {
-        tabs.clear()
-        tabs.add(AdjustmentPanelTabs(0, "Shadow",  is_selected = true,  is_enabled = element.hasShadow))
-        tabs.add(AdjustmentPanelTabs(1, "Color",   is_selected = false, is_enabled = element.hasOverlay))
-        tabs.add(AdjustmentPanelTabs(2, "Blur",    is_selected = false, is_enabled = element.hasBlur))
-        tabs.add(AdjustmentPanelTabs(3, "Stroke",  is_selected = false, is_enabled = element.hasStroke))
-        tabs.add(AdjustmentPanelTabs(4, "Feather", is_selected = false, is_enabled = element.hasFeather))
-        adapter.submitList(ArrayList(tabs))
-    }
-
-    private fun handleTabClick(clickedTab: AdjustmentPanelTabs) {
-        val currentSelectedTab = tabs.find { it.is_selected }
-
-        if (currentSelectedTab?.tab_name == clickedTab.tab_name) {
-            // Tapping the already-selected tab toggles the feature on/off
-            viewModel.toggleFeature(if (clickedTab.tab_name == "Color") "Overlay" else clickedTab.tab_name)
-        } else {
-            val selectedIndex = tabs.indexOfFirst { it.tab_name == clickedTab.tab_name }
-
-            val updatedCategories = tabs.map {
-                it.copy(is_selected = it.tab_name == clickedTab.tab_name)
-            }
-
-            tabs.clear()
-            tabs.addAll(updatedCategories)
-            adapter.submitList(ArrayList(tabs))
-
-            binding.viewPager.setCurrentItem(selectedIndex, true)
+            binding.collapsibleRail.setCategoryEnabled("shadow",  shadowEnabled)
+            binding.collapsibleRail.setCategoryEnabled("color",   colorEnabled)
+            binding.collapsibleRail.setCategoryEnabled("blur",    blurEnabled)
+            binding.collapsibleRail.setCategoryEnabled("stroke",  strokeEnabled)
+            binding.collapsibleRail.setCategoryEnabled("feather", featherEnabled)
         }
     }
 
     override fun onDestroyView() {
+        _binding?.viewPager?.adapter = null
         super.onDestroyView()
         _binding = null
     }
 
     companion object {
-        fun newInstance(): EffectsFragment = EffectsFragment()
+        fun newInstance(): EffectsFragment {
+            return EffectsFragment()
+        }
     }
 }

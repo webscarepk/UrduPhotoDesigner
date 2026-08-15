@@ -19,7 +19,7 @@ import com.webscare.urducanvas.common.utils.BitmapCache
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.AdjustmentPanelTabs
 import com.webscare.urducanvas.databinding.FragmentShapeBinding
-import com.webscare.urducanvas.ui.editor.panels.adjustments.AdjustmentPanelTabsAdapter
+import com.webscare.urducanvas.ui.editor.views.RailCategoryItem
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -32,13 +32,19 @@ class ShapeFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var tabs: ArrayList<AdjustmentPanelTabs>
-    private lateinit var adapter: AdjustmentPanelTabsAdapter
     private lateinit var pagerAdapter: ShapePanelPagerAdapter
     private val viewModel: CanvasViewModel by activityViewModels()
 
     private var isFillEnabled   = true
     private var isStrokeEnabled = true
     private var isCornerEnabled = true
+
+    private val shapeCategories = listOf(
+        RailCategoryItem("fill",   "Fill",   R.drawable.ic_fill,   isEnabled = true),
+        RailCategoryItem("stroke", "Stroke", R.drawable.ic_stroke, isEnabled = true),
+        RailCategoryItem("corner", "Corner", R.drawable.ic_corner, isEnabled = true),
+        RailCategoryItem("mask",   "Mask",   R.drawable.ic_mask,   isEnabled = false)
+    )
 
     // Image picker — add/replace image inside shape
     private val pickImageLauncher =
@@ -49,8 +55,6 @@ class ShapeFragment : Fragment() {
                     val rawBitmap = requireContext().contentResolver
                         .openInputStream(uri)?.use { android.graphics.BitmapFactory.decodeStream(it) }
                     if (rawBitmap != null) {
-                        // Apply GPU hard-limit so we never crash regardless of source resolution.
-                        // CanvasView's display-proxy keeps rendering smooth even at max size.
                         val bitmap = com.webscare.urducanvas.common.utils.ImageProcessor
                             .downsampleIfNeeded(rawBitmap, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX, com.webscare.urducanvas.common.utils.Constants.GPU_SAFE_MAX_PX)
                         withContext(Dispatchers.Main) {
@@ -73,17 +77,38 @@ class ShapeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.title.text = getString(R.string.shape_properties)
-        setupTabs()
+        setupRailAndPager()
         initObservers()
         setEvents()
     }
 
-    // ── Tabs ─────────────────────────────────────────────────────────────────
-
-    private fun setupTabs() {
+    private fun setupRailAndPager() {
         tabs = ArrayList()
-        adapter = AdjustmentPanelTabsAdapter({ tab -> handleUserTap(tab) }, true)
-        binding.categories.adapter = adapter
+
+        binding.collapsibleRail.bindPanelId("shape")
+        binding.collapsibleRail.setCategories(shapeCategories)
+
+        binding.collapsibleRail.onCategorySelectedListener = { catItem ->
+            val index = shapeCategories.indexOfFirst { it.id == catItem.id }
+            if (index >= 0 && index < tabs.size) {
+                binding.viewPager.setCurrentItem(index, true)
+            }
+        }
+
+        binding.collapsibleRail.onCategoryToggleChangedListener = { catItem, _ ->
+            when (catItem.id) {
+                "fill"   -> viewModel.toggleFillEnabled(!isFillEnabled)
+                "stroke" -> viewModel.toggleStrokeEnabled(!isStrokeEnabled)
+                "corner" -> viewModel.toggleCornerEnabled(!isCornerEnabled)
+                "mask"   -> {
+                    val element = viewModel.selectedElements.value?.firstOrNull()
+                    val hasImage = element?.bitmap != null || element?.bitmapData != null
+                    if (!hasImage) {
+                        pickImageLauncher.launch("image/*")
+                    }
+                }
+            }
+        }
 
         binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
         binding.viewPager.offscreenPageLimit = 1
@@ -98,49 +123,13 @@ class ShapeFragment : Fragment() {
         pagerAdapter = ShapePanelPagerAdapter(this, tabs)
         binding.viewPager.adapter = pagerAdapter
 
-        adapter.submitList(ArrayList(tabs))
-
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
-                val selected = tabs.getOrNull(position) ?: return
-                selectTabVisually(selected)
-                binding.categories.smoothScrollToPosition(position)
-            }
-        })
-
-        navigateTo(tabs[0])
-    }
-
-    private fun handleUserTap(selected: AdjustmentPanelTabs) {
-        val currentSelected = tabs.find { it.is_selected }
-        if (currentSelected?.tab_name == selected.tab_name) {
-            when (selected.tab_name) {
-                "Fill"   -> viewModel.toggleFillEnabled(!isFillEnabled)
-                "Stroke" -> viewModel.toggleStrokeEnabled(!isStrokeEnabled)
-                "Corner" -> viewModel.toggleCornerEnabled(!isCornerEnabled)
-                "Mask"   -> {
-                    val element = viewModel.selectedElements.value?.firstOrNull()
-                    val hasImage = element?.bitmap != null || element?.bitmapData != null
-                    if (!hasImage) {
-                        pickImageLauncher.launch("image/*")
-                        return
-                    }
+                if (position in shapeCategories.indices) {
+                    binding.collapsibleRail.setSelectedCategory(shapeCategories[position].id)
                 }
             }
-        } else {
-            navigateTo(selected)
-        }
-    }
-
-    private fun navigateTo(selected: AdjustmentPanelTabs) {
-        selectTabVisually(selected)
-        val index = tabs.indexOfFirst { it.tab_name == selected.tab_name }
-        if (index != -1) binding.viewPager.setCurrentItem(index, true)
-    }
-
-    private fun selectTabVisually(selected: AdjustmentPanelTabs) {
-        tabs = ArrayList(tabs.map { it.copy(is_selected = it.tab_name == selected.tab_name) })
-        adapter.submitList(tabs)
+        })
     }
 
     private fun updateTabsFromState() {
@@ -148,19 +137,13 @@ class ShapeFragment : Fragment() {
             it.bitmap != null || it.bitmapData != null
         } == true
 
-        tabs = arrayListOf(
-            AdjustmentPanelTabs(0, "Fill",   tabs.getOrNull(0)?.is_selected ?: true,  is_enabled = isFillEnabled),
-            AdjustmentPanelTabs(1, "Stroke", tabs.getOrNull(1)?.is_selected ?: false, is_enabled = isStrokeEnabled),
-            AdjustmentPanelTabs(2, "Corner", tabs.getOrNull(2)?.is_selected ?: false, is_enabled = isCornerEnabled),
-            AdjustmentPanelTabs(3, "Mask",   tabs.getOrNull(3)?.is_selected ?: false, is_enabled = hasImage)
-        )
-        adapter.submitList(ArrayList(tabs))
+        binding.collapsibleRail.setCategoryEnabled("fill",   isFillEnabled)
+        binding.collapsibleRail.setCategoryEnabled("stroke", isStrokeEnabled)
+        binding.collapsibleRail.setCategoryEnabled("corner", isCornerEnabled)
+        binding.collapsibleRail.setCategoryEnabled("mask",   hasImage)
     }
 
-    // ── Observers ─────────────────────────────────────────────────────────────
-
     private fun initObservers() {
-
         viewModel.pagingLocked.observe(viewLifecycleOwner) { locked ->
             binding.viewPager.isUserInputEnabled = !locked
         }
@@ -175,8 +158,6 @@ class ShapeFragment : Fragment() {
             isCornerEnabled = it; updateTabsFromState()
         }
 
-        // addImage icon: ic_import (no image) or ic_replace (has image)
-        // editImage: only visible when shape has masked image
         viewModel.selectedElements.observe(viewLifecycleOwner) { selected ->
             val element = selected?.firstOrNull()
             val hasImage = element?.bitmap != null || element?.bitmapData != null
@@ -188,15 +169,11 @@ class ShapeFragment : Fragment() {
         }
     }
 
-    // ── Events ────────────────────────────────────────────────────────────────
-
     private fun setEvents() {
-        // Add / Replace image inside shape
         binding.addImage.addPressEffect {
             pickImageLauncher.launch("image/*")
         }
 
-        // Edit the masked image → navigate to adjustmentsParentFragment
         binding.editImage.addPressEffect {
             val element = viewModel.selectedElements.value?.firstOrNull() ?: return@addPressEffect
             val key = element.id
@@ -208,12 +185,10 @@ class ShapeFragment : Fragment() {
                 .navigate(R.id.adjustmentsParentFragment, bundle, navOptions)
         }
 
-
         binding.back.addPressEffect { findNavController().navigateUp() }
     }
 
     override fun onDestroyView() {
-        _binding?.categories?.adapter = null
         _binding?.viewPager?.adapter = null
         super.onDestroyView()
         _binding = null

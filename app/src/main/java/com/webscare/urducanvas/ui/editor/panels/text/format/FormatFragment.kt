@@ -9,9 +9,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewpager2.widget.ViewPager2
+import com.webscare.urducanvas.R
 import com.webscare.urducanvas.data.model.PanelTabs
 import com.webscare.urducanvas.databinding.FragmentFormatBinding
-import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter
+import com.webscare.urducanvas.ui.editor.views.RailCategoryItem
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -21,8 +22,14 @@ class FormatFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var tabs: ArrayList<PanelTabs>
-    private lateinit var adapter: PanelTabsAdapter
     private lateinit var pagerAdapter: FormatPagerAdapter
+
+    private val formatCategories = listOf(
+        RailCategoryItem("spacing",    "Spacing",    R.drawable.ic_spacing),
+        RailCategoryItem("casing",     "Casing",     R.drawable.ic_all_caps),
+        RailCategoryItem("decoration", "Decoration", R.drawable.ic_under_line),
+        RailCategoryItem("alignment",  "Alignment",  R.drawable.ic_center_align)
+    )
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -35,17 +42,22 @@ class FormatFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        setupRecyclerViews()
+        setupRailAndPager()
         initObservers()
     }
 
-    private fun setupRecyclerViews() {
+    private fun setupRailAndPager() {
         tabs = ArrayList()
-        adapter =
-            PanelTabsAdapter { tab ->
-                handleFontSelection(tab)
+
+        binding.collapsibleRail.bindPanelId("text_format")
+        binding.collapsibleRail.setCategories(formatCategories)
+
+        binding.collapsibleRail.onCategorySelectedListener = { catItem ->
+            val index = formatCategories.indexOfFirst { it.id == catItem.id }
+            if (index >= 0) {
+                binding.viewPager.setCurrentItem(index, true)
             }
-        binding.categories.adapter = adapter
+        }
 
         binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
         binding.viewPager.offscreenPageLimit = 1
@@ -55,48 +67,29 @@ class FormatFragment : Fragment() {
 
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
-                val selectedCategory = tabs[position]
-                handleFontSelection(selectedCategory)
-                binding.categories.smoothScrollToPosition(position)
+                if (position in formatCategories.indices) {
+                    binding.collapsibleRail.setSelectedCategory(formatCategories[position].id)
+                }
             }
         })
-
     }
 
     private fun initObservers() {
-        // CRITICAL: viewLifecycleOwner.lifecycleScope + repeatOnLifecycle(STARTED).
-        // Same reason as AppearanceFragment — bare lifecycleScope survives view
-        // destruction and can call setCurrentItem() / submitList() while
-        // FragmentMaxLifecycleEnforcer is mid-commitNow() → crash.
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                tabs.clear()
                 tabs.add(PanelTabs(0, "Spacing",    true))
                 tabs.add(PanelTabs(1, "Casing",     false))
                 tabs.add(PanelTabs(2, "Decoration", false))
                 tabs.add(PanelTabs(3, "Alignment",  false))
 
-                adapter.submitList(ArrayList(tabs))
-                handleFontSelection(tabs.firstOrNull())
+                pagerAdapter.notifyDataSetChanged()
             }
-        }
-    }
-
-    private fun handleFontSelection(selectedCategory: PanelTabs?) {
-        selectedCategory?.let { tab ->
-            val selectedIndex = tabs.indexOfFirst { it.tab_name == tab.tab_name }
-
-            // Update selected item visuals
-            val updatedCategories = tabs.map {
-                it.copy(is_selected = it.tab_name == tab.tab_name)
-            }
-            adapter.submitList(updatedCategories)
-
-            // Switch ViewPager page
-            binding.viewPager.setCurrentItem(selectedIndex, true)
         }
     }
 
     override fun onDestroyView() {
+        _binding?.viewPager?.adapter = null
         super.onDestroyView()
         _binding = null
     }

@@ -7,36 +7,24 @@
     android:layout_height="match_parent"
     tools:context=".ui.editor.panels.text.styles.TextStylesFragment">
 
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/centerGuide"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.3" />
-
-    <!-- Left Vertical Category Sidebar -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/categoriesRecyclerView"
-        android:layout_width="0dp"
+    <!-- Left Collapsible Category Rail -->
+    <com.webscare.urducanvas.ui.editor.views.CollapsibleRailView
+        android:id="@+id/collapsibleRail"
+        android:layout_width="118dp"
         android:layout_height="0dp"
-        android:clipToPadding="false"
-        android:overScrollMode="never"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/centerGuide"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:listitem="@layout/layout_tabs_item" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <!-- Right Vertical ViewPager2 -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginStart="4dp"
+        android:layout_marginStart="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/centerGuide"
+        app:layout_constraintStart_toEndOf="@id/collapsibleRail"
         app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:paddingHorizontal="14dp">
 
     <TextView
         android:id="@+id/tabTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
+        android:layout_centerInParent="true"
         android:fontFamily="@font/regular"
         android:includeFontPadding="false"
         android:maxLines="1"
@@ -19,19 +20,22 @@
         android:id="@+id/tabDot"
         android:layout_width="5dp"
         android:layout_height="5dp"
-        android:layout_gravity="top|end"
-        android:layout_marginTop="6dp"
-        android:layout_marginEnd="6dp"
+        android:layout_alignTop="@id/tabTitle"
+        android:layout_alignEnd="@id/tabTitle"
+        android:layout_marginTop="-2dp"
+        android:layout_marginEnd="-4dp"
         android:background="@drawable/bg_tab_dot"
         android:importantForAccessibility="no"
         android:visibility="gone" />
 
     <View
         android:id="@+id/tabIndicator"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="3dp"
-        android:layout_gravity="bottom"
-        android:background="@color/tab_selected_text"
+        android:layout_alignParentBottom="true"
+        android:layout_alignStart="@id/tabTitle"
+        android:layout_alignEnd="@id/tabTitle"
+        android:background="@drawable/bg_tab_indicator_rounded"
         android:visibility="gone" />
 
-</FrameLayout>
+</RelativeLayout>

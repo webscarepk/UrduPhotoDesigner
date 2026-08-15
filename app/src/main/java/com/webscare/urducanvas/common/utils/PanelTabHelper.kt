@@ -77,25 +77,46 @@ object PanelTabHelper {
         tab.contentDescription = if (edited) "$baseTitle, has changes" else baseTitle
     }
 
-    private fun updateTabStyle(
+    fun updateTabStyle(
         tab: TabLayout.Tab?,
         isSelected: Boolean,
-        boldFont: Typeface,
-        regularFont: Typeface
+        boldFont: Typeface? = null,
+        regularFont: Typeface? = null
     ) {
         val customView = tab?.customView ?: return
         val titleView = customView.findViewById<TextView>(R.id.tabTitle) ?: return
         val indicatorView = customView.findViewById<View>(R.id.tabIndicator)
         val context = customView.context
+        val bold = boldFont ?: (ResourcesCompat.getFont(context, R.font.bold) ?: Typeface.DEFAULT_BOLD)
+        val regular = regularFont ?: (ResourcesCompat.getFont(context, R.font.regular) ?: Typeface.DEFAULT)
 
         if (isSelected) {
             titleView.setTextColor(ContextCompat.getColor(context, R.color.tab_selected_text))
-            titleView.typeface = boldFont
+            titleView.typeface = bold
             indicatorView?.visibility = View.VISIBLE
         } else {
             titleView.setTextColor(ContextCompat.getColor(context, R.color.tab_unselected_text))
-            titleView.typeface = regularFont
+            titleView.typeface = regular
             indicatorView?.visibility = View.GONE
+        }
+    }
+
+    fun scrollToTabIfOverflows(tabLayout: TabLayout, position: Int) {
+        tabLayout.post {
+            if (tabLayout.tabCount <= 0) return@post
+            val lastTab = tabLayout.getTabAt(tabLayout.tabCount - 1)?.view ?: return@post
+            val totalTabWidth = lastTab.right
+            val layoutWidth = tabLayout.width
+            if (layoutWidth <= 0) return@post
+
+            if (totalTabWidth <= layoutWidth) {
+                tabLayout.scrollTo(0, 0)
+            } else {
+                val targetTab = tabLayout.getTabAt(position)?.view ?: return@post
+                val maxScroll = (totalTabWidth - layoutWidth).coerceAtLeast(0)
+                val targetScroll = (targetTab.left - layoutWidth / 2 + targetTab.width / 2).coerceIn(0, maxScroll)
+                tabLayout.scrollTo(targetScroll, 0)
+            }
         }
     }
 }
@@ -113,4 +134,8 @@ fun TabLayout.setupPanelTabs(
 
 fun TabLayout.setTabEdited(position: Int, edited: Boolean) {
     PanelTabHelper.setTabEdited(this, position, edited)
+}
+
+fun TabLayout.scrollToTabIfOverflows(position: Int) {
+    PanelTabHelper.scrollToTabIfOverflows(this, position)
 }

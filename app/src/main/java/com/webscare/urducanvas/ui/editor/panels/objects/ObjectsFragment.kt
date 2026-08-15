@@ -222,9 +222,12 @@ class ObjectsFragment : Fragment() {
         if (!isSearchActive) {
             binding.tabLayout.alpha         = collapsedAlpha
             binding.tabLayoutExpanded.alpha = expandedAlpha
+            binding.tabExpandedContainer.alpha = expandedAlpha
             binding.tabLayout.visibility =
                 if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
             binding.tabLayoutExpanded.visibility =
+                if (expandedAlpha > 0f) View.VISIBLE else View.GONE
+            binding.tabExpandedContainer.visibility =
                 if (expandedAlpha > 0f) View.VISIBLE else View.GONE
         }
 
@@ -450,11 +453,10 @@ class ObjectsFragment : Fragment() {
             }
             val safe = selectIndex.coerceIn(0, tabs.lastIndex)
             tl.getTabAt(safe)?.select()
-            tl.post {
-                tl.getTabAt(safe)?.view?.let { v ->
-                    tl.scrollTo((v.left - tl.width / 2 + v.width / 2).coerceAtLeast(0), 0)
-                }
+            for (i in 0 until tl.tabCount) {
+                com.webscare.urducanvas.common.utils.PanelTabHelper.updateTabStyle(tl.getTabAt(i), i == safe)
             }
+            com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(tl, safe)
         }
         attachTabListeners()
     }
@@ -469,6 +471,11 @@ class ObjectsFragment : Fragment() {
         val listener = object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 val pos = tab?.position ?: return
+                listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
+                    for (i in 0 until tl.tabCount) {
+                        com.webscare.urducanvas.common.utils.PanelTabHelper.updateTabStyle(tl.getTabAt(i), i == pos)
+                    }
+                }
                 tab.view.animate().scaleX(1f).scaleY(1f).setDuration(100)
                     .setInterpolator(OvershootInterpolator(1.2f)).start()
                 
@@ -476,6 +483,7 @@ class ObjectsFragment : Fragment() {
                     binding.tabLayoutExpanded else binding.tabLayout
                 if (other.selectedTabPosition != pos) {
                     other.setScrollPosition(pos, 0f, true)
+                    com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(other, pos)
                     other.getTabAt(pos)?.let { otherTab ->
                         other.clearOnTabSelectedListeners()
                         otherTab.select()

@@ -197,6 +197,7 @@ class TextFragment : Fragment() {
             val idx = languageList.indexOf(selectedLanguage).coerceAtLeast(0)
             tl.getTabAt(idx)?.select()
             updateTextTabStyles(tl, idx)
+            com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(tl, idx)
         }
 
         attachTabListener()
@@ -220,7 +221,8 @@ class TextFragment : Fragment() {
         // pos 0 = pinned language label (tap-back)
         // pos 1 = "All" (show everything for this language)
         // pos 2+ = individual categories
-        val allCategories = listOf("All") + categories
+        val realCategories = categories.filter { it != "All" }
+        val allCategories = listOf("All") + realCategories
 
         // Resolve which position to select BEFORE touching tabs,
         // so selectedCategory is correct when rebindFonts() runs later.
@@ -268,6 +270,7 @@ class TextFragment : Fragment() {
             // Select WITHOUT triggering the listener (listener not attached yet)
             tl.getTabAt(selectPos)?.select()
             updateTextTabStyles(tl, selectPos)
+            com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(tl, selectPos)
         }
 
         // Attach listener AFTER all tabs are built and selection is set
@@ -413,7 +416,7 @@ class TextFragment : Fragment() {
             listOf(_binding?.tabLayout, _binding?.tabLayoutExpanded).forEach { tl ->
                 tl?.post {
                     tl.getTabAt(idx)?.select()
-                    tl.setScrollPosition(idx, 0f, true)
+                    com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(tl, idx)
                 }
             }
         }
@@ -652,7 +655,7 @@ class TextFragment : Fragment() {
             lang.isNotBlank() && !lang.equals("Imported", ignoreCase = true)
         }.forEach { (lang, langFonts) ->
             val catNames = langFonts.map { it.font_category.trim() }.filter { it.isNotBlank() }.distinct().sorted()
-            map[lang] = if (catNames.isNotEmpty()) listOf("All") + catNames else emptyList()
+            map[lang] = catNames
         }
         return map
     }
@@ -761,8 +764,11 @@ class TextFragment : Fragment() {
         if (!isSearchActive) {
             binding.tabLayout.alpha = collapsedAlpha
             binding.tabLayoutExpanded.alpha = expandedAlpha
+            binding.tabExpandedContainer.alpha = expandedAlpha
             binding.tabLayout.visibility = if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
             binding.tabLayoutExpanded.visibility =
+                if (expandedAlpha > 0f) View.VISIBLE else View.GONE
+            binding.tabExpandedContainer.visibility =
                 if (expandedAlpha > 0f) View.VISIBLE else View.GONE
         }
 
@@ -810,6 +816,7 @@ class TextFragment : Fragment() {
         binding.headerCollapsed.isVisible = !expanded
         binding.headerExpanded.isVisible = expanded
         binding.tabLayoutExpanded.isVisible = expanded
+        binding.tabExpandedContainer.isVisible = expanded
 
         val density = resources.displayMetrics.density
         val finalHeightPx = if (expanded) (104 * density).toInt() else (38 * density).toInt()

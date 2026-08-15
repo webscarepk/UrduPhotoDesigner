@@ -457,11 +457,14 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!-- Context tools overlay bar above bottom sheet -->
     <LinearLayout
         android:id="@+id/contextToolsRow"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:translationZ="20dp"
+        android:elevation="10dp"
         app:layout_constraintBottom_toTopOf="@id/centerGuide"
         app:layout_constraintStart_toStartOf="parent">
 
@@ -471,9 +474,10 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="6dp"
             android:background="@drawable/alignment_kit_bg"
-            android:backgroundTint="@color/white"
+            android:backgroundTint="@android:color/white"
             android:outlineSpotShadowColor="@color/shadowColor"
-            android:translationZ="5dp"
+            android:translationZ="20dp"
+            android:elevation="6dp"
             android:visibility="gone">
 
             <ImageView
@@ -493,10 +497,11 @@
             android:layout_marginStart="6dp"
             android:layout_marginBottom="6dp"
             android:background="@drawable/button_bg_context_tool"
-            android:backgroundTint="@color/white"
+            android:backgroundTint="@android:color/white"
             android:orientation="horizontal"
             android:outlineSpotShadowColor="@color/shadowColor"
-            android:translationZ="5dp"
+            android:translationZ="20dp"
+            android:elevation="6dp"
             android:visibility="gone">
 
             <TextView
@@ -505,7 +510,7 @@
                 android:layout_height="32dp"
                 android:layout_gravity="center_vertical"
                 android:background="@drawable/button_bg_context_tool"
-                android:backgroundTint="@color/white"
+                android:backgroundTint="@android:color/white"
                 android:fontFamily="@font/bold"
                 android:gravity="center"
                 android:text="32"
@@ -518,7 +523,7 @@
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:foreground="?selectableItemBackground"
-                android:padding="10dp"
+                android:padding="8dp"
                 android:src="@drawable/ic_opacity"
                 android:tooltipText="@string/opacity"
                 android:visibility="visible"
@@ -546,10 +551,11 @@
             android:layout_marginStart="6dp"
             android:layout_marginBottom="6dp"
             android:background="@drawable/button_bg_context_tool"
-            android:backgroundTint="@color/white"
+            android:backgroundTint="@android:color/white"
             android:orientation="horizontal"
             android:outlineSpotShadowColor="@color/shadowColor"
-            android:translationZ="5dp"
+            android:translationZ="20dp"
+            android:elevation="6dp"
             android:visibility="gone">
 
             <ImageView
@@ -557,7 +563,7 @@
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:background="@drawable/button_bg_context_tool"
-                android:backgroundTint="@color/white"
+                android:backgroundTint="@android:color/white"
                 android:padding="6dp"
                 android:src="@drawable/ic_blend"
                 android:tooltipText="@string/blend"
@@ -589,10 +595,11 @@
             android:layout_marginStart="6dp"
             android:layout_marginBottom="6dp"
             android:background="@drawable/button_bg_context_tool"
-            android:backgroundTint="@color/white"
+            android:backgroundTint="@android:color/white"
             android:orientation="horizontal"
             android:outlineSpotShadowColor="@color/shadowColor"
-            android:translationZ="5dp"
+            android:translationZ="20dp"
+            android:elevation="6dp"
             android:visibility="gone">
 
             <TextView
@@ -601,7 +608,7 @@
                 android:layout_height="32dp"
                 android:layout_gravity="center_vertical"
                 android:background="@drawable/button_bg_context_tool"
-                android:backgroundTint="@color/white"
+                android:backgroundTint="@android:color/white"
                 android:fontFamily="@font/bold"
                 android:gravity="center"
                 android:text="32"
@@ -631,13 +638,14 @@
             android:layout_marginStart="6dp"
             android:layout_marginBottom="6dp"
             android:background="@drawable/button_bg_context_tool"
-            android:backgroundTint="@color/white"
+            android:backgroundTint="@android:color/white"
             android:foreground="?selectableItemBackground"
             android:outlineSpotShadowColor="@color/shadowColor"
-            android:padding="10dp"
+            android:padding="8dp"
             android:src="@drawable/ic_select_subject"
             android:tooltipText="@string/remove_bg"
-            android:translationZ="5dp"
+            android:translationZ="20dp"
+            android:elevation="6dp"
             android:visibility="gone"
             app:tint="@color/black" />
 
@@ -648,13 +656,14 @@
             android:layout_marginStart="6dp"
             android:layout_marginBottom="6dp"
             android:background="@drawable/button_bg_context_tool"
-            android:backgroundTint="@color/white"
+            android:backgroundTint="@android:color/white"
             android:foreground="?selectableItemBackground"
             android:outlineSpotShadowColor="@color/shadowColor"
-            android:padding="10dp"
+            android:padding="8dp"
             android:src="@drawable/ic_copy"
             android:tooltipText="@string/copy"
-            android:translationZ="5dp"
+            android:translationZ="20dp"
+            android:elevation="6dp"
             android:visibility="gone"
             app:tint="@color/black" />
 

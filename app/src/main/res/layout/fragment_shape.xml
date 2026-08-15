@@ -16,34 +16,27 @@
         app:layout_constraintGuide_percent="0.01"/>
 
     <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/centerGuide"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.3"
-        android:orientation="vertical"/>
-
-    <androidx.constraintlayout.widget.Guideline
         android:id="@+id/bottomGuide"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.99"
-        android:orientation="horizontal"/>
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.99"/>
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/startGuide"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.02"
-        android:orientation="vertical"/>
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.02"/>
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/endGuide"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.98"
-        android:orientation="vertical"/>
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.98"/>
 
-    <!-- Top toolbar: addImage + editImage -->
+    <!-- Top toolbar: back, title, addImage, editImage -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/toolbar"
         android:layout_width="0dp"
@@ -113,30 +106,24 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Left: Fill/Stroke/Corner tab list -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/categories"
-        android:layout_width="0dp"
+    <!-- Left Collapsible Rail (starts under toolbar) -->
+    <com.webscare.urducanvas.ui.editor.views.CollapsibleRailView
+        android:id="@+id/collapsibleRail"
+        android:layout_width="118dp"
         android:layout_height="0dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/toolbar"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/centerGuide"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        android:orientation="vertical"
-        android:layout_marginEnd="0dp"
-        tools:listitem="@layout/layout_tabs_item"
-        tools:itemCount="3"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolbar" />
 
     <!-- Right: ViewPager — hosts ShapePanelFragment pages -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginStart="8dp"
-        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        android:layout_marginStart="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@id/centerGuide"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/collapsibleRail"
+        app:layout_constraintTop_toBottomOf="@id/toolbar" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

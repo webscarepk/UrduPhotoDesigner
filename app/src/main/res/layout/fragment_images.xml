@@ -45,7 +45,7 @@
         <LinearLayout
             android:id="@+id/tabRowContent"
             android:layout_width="match_parent"
-            android:layout_height="36dp"
+            android:layout_height="match_parent"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="10dp">
@@ -90,7 +90,7 @@
                 android:id="@+id/tabLayout"
                 style="@style/Widget.UrduCanvas.TabLayout"
                 android:layout_width="match_parent"
-                android:layout_height="36dp" />
+                android:layout_height="match_parent" />
 
         </LinearLayout>
 
@@ -109,6 +109,7 @@
         android:id="@+id/headerExpanded"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:visibility="gone"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintStart_toEndOf="@id/startGuide"
@@ -175,15 +176,30 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- Tab layout for expanded state -->
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/tabLayoutExpanded"
-        style="@style/Widget.UrduCanvas.TabLayout"
+    <RelativeLayout
+        android:id="@+id/tabExpandedContainer"
         android:layout_width="0dp"
-        android:layout_height="36dp"
+        android:layout_height="42dp"
         android:visibility="gone"
-        app:layout_constraintEnd_toStartOf="@id/endGuide"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
-        app:layout_constraintTop_toBottomOf="@id/headerExpanded" />
+        app:layout_constraintTop_toBottomOf="@id/headerExpanded"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabLayoutExpanded"
+            style="@style/Widget.UrduCanvas.TabLayout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- Full-width 1dp baseline divider -->
+        <View
+            android:id="@+id/tabBaselineDividerExpanded"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_alignParentBottom="true"
+            android:background="@color/tab_divider" />
+
+    </RelativeLayout>
 
     <TextView
         android:id="@+id/searchResultsHeaderExpanded"

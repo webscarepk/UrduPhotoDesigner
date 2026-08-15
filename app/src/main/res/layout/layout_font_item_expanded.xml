@@ -71,8 +71,8 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingHorizontal="5dp"
-            android:paddingVertical="3dp"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="4dp"
             android:background="#DDF7F7F7"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -89,15 +89,17 @@
                 android:singleLine="true"
                 android:maxLines="1"
                 android:ellipsize="end"
-                android:layout_marginEnd="3dp" />
+                android:paddingStart="4dp"
+                android:layout_marginEnd="4dp" />
 
             <com.airbnb.lottie.LottieAnimationView
                 android:id="@+id/loading"
-                android:layout_width="18dp"
-                android:layout_height="18dp"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
                 android:background="@drawable/button_bg_round"
                 android:backgroundTint="@color/white"
-                android:padding="2dp"
+                android:padding="4dp"
+                android:layout_marginEnd="2dp"
                 android:visibility="gone"
                 app:lottie_autoPlay="true"
                 app:lottie_loop="true"
@@ -105,11 +107,12 @@
 
             <ImageView
                 android:id="@+id/download"
-                android:layout_width="18dp"
-                android:layout_height="18dp"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
                 android:background="@drawable/button_bg_round"
                 android:backgroundTint="@color/white"
-                android:padding="2dp"
+                android:padding="4dp"
+                android:layout_marginEnd="2dp"
                 android:src="@drawable/ic_download"
                 android:visibility="gone"
                 app:tint="@color/download_tint" />

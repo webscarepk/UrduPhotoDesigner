@@ -53,7 +53,7 @@ class PanelTabsAdapter(
                 if (lp != null) {
                     lp.setMargins(
                         (6 * density).toInt(),
-                        (4 * density).toInt(),
+                        (6 * density).toInt(),
                         (6 * density).toInt(),
                         (8 * density).toInt()
                     )
@@ -61,14 +61,23 @@ class PanelTabsAdapter(
                 }
                 binding.tabTitle.setPadding(
                     (8 * density).toInt(),
-                    (6 * density).toInt(),
+                    (5 * density).toInt(),
                     (8 * density).toInt(),
-                    (6 * density).toInt()
+                    (5 * density).toInt()
                 )
-                binding.tabTitle.setTextColor(appColor)
-                binding.tabTitle.typeface = android.graphics.Typeface.DEFAULT_BOLD
+                val unselectedColor = ContextCompat.getColor(context, R.color.tab_unselected_text)
+                binding.tabTitle.setTextColor(unselectedColor)
+                binding.tabTitle.typeface = android.graphics.Typeface.DEFAULT
+
+                val addDrawable = ContextCompat.getDrawable(context, R.drawable.ic_add)?.mutate()
+                addDrawable?.setTint(unselectedColor)
+                binding.tabTitle.setCompoundDrawablesWithIntrinsicBounds(addDrawable, null, null, null)
+                binding.tabTitle.compoundDrawablePadding = (4 * density).toInt()
+
+                binding.tabTitle.text = font.tab_name.removePrefix("+").trim()
                 binding.selectedIndicator.isVisible = false
             } else {
+                binding.tabTitle.setCompoundDrawablesWithIntrinsicBounds(null, null, null, null)
                 val density = context.resources.displayMetrics.density
                 val lp = binding.tabRoot.layoutParams as? ViewGroup.MarginLayoutParams
                 if (lp != null) {
@@ -92,9 +101,8 @@ class PanelTabsAdapter(
                     binding.tabTitle.setTextColor(ContextCompat.getColor(context, R.color.black))
                     binding.selectedIndicator.isVisible = false
                 }
+                binding.tabTitle.text = font.tab_name
             }
-
-            binding.tabTitle.text = font.tab_name
 
             binding.root.addPressEffect {
                 onFontSelected.invoke(font)

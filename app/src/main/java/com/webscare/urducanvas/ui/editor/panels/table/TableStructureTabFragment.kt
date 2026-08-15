@@ -10,10 +10,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewpager2.widget.ViewPager2
+import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.data.model.PanelTabs
 import com.webscare.urducanvas.databinding.FragmentFormatBinding
-import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter
+import com.webscare.urducanvas.ui.editor.views.RailCategoryItem
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -24,9 +25,15 @@ class TableStructureTabFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var tabs: ArrayList<PanelTabs>
-    private lateinit var adapter: PanelTabsAdapter
     private lateinit var pagerAdapter: TableStructurePagerAdapter
     private val viewModel: CanvasViewModel by activityViewModels()
+
+    private val tableStructureCategories = listOf(
+        RailCategoryItem("grid",      "Grid",      R.drawable.ic_stroke),
+        RailCategoryItem("header",    "Header",    R.drawable.ic_fill),
+        RailCategoryItem("direction", "Direction", R.drawable.ic_spacing),
+        RailCategoryItem("wrap",      "Wrap",      R.drawable.ic_all_caps)
+    )
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -37,16 +44,22 @@ class TableStructureTabFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        setupRecyclerViews()
+        setupRailAndPager()
         initObservers()
     }
 
-    private fun setupRecyclerViews() {
+    private fun setupRailAndPager() {
         tabs = ArrayList()
-        adapter = PanelTabsAdapter { tab ->
-            handleTabSelection(tab)
+
+        binding.collapsibleRail.bindPanelId("table_structure")
+        binding.collapsibleRail.setCategories(tableStructureCategories)
+
+        binding.collapsibleRail.onCategorySelectedListener = { catItem ->
+            val index = tableStructureCategories.indexOfFirst { it.id == catItem.id }
+            if (index >= 0) {
+                binding.viewPager.setCurrentItem(index, true)
+            }
         }
-        binding.categories.adapter = adapter
 
         binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
         binding.viewPager.offscreenPageLimit = 1
@@ -56,10 +69,8 @@ class TableStructureTabFragment : Fragment() {
 
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
-                if (position in 0 until tabs.size) {
-                    val selectedCategory = tabs[position]
-                    handleTabSelection(selectedCategory)
-                    binding.categories.smoothScrollToPosition(position)
+                if (position in tableStructureCategories.indices) {
+                    binding.collapsibleRail.setSelectedCategory(tableStructureCategories[position].id)
                 }
             }
         })
@@ -74,8 +85,7 @@ class TableStructureTabFragment : Fragment() {
                 tabs.add(PanelTabs(2, "Direction", false))
                 tabs.add(PanelTabs(3, "Wrap", false))
 
-                adapter.submitList(ArrayList(tabs))
-                handleTabSelection(tabs.firstOrNull())
+                pagerAdapter.notifyDataSetChanged()
             }
         }
 
@@ -84,21 +94,7 @@ class TableStructureTabFragment : Fragment() {
         }
     }
 
-    private fun handleTabSelection(selectedCategory: PanelTabs?) {
-        selectedCategory?.let { tab ->
-            val selectedIndex = tabs.indexOfFirst { it.tab_name == tab.tab_name }
-            if (selectedIndex < 0) return
-
-            val updatedCategories = tabs.map {
-                it.copy(is_selected = it.tab_name == tab.tab_name)
-            }
-            adapter.submitList(updatedCategories)
-            binding.viewPager.setCurrentItem(selectedIndex, true)
-        }
-    }
-
     override fun onDestroyView() {
-        _binding?.categories?.adapter = null
         _binding?.viewPager?.adapter = null
         super.onDestroyView()
         _binding = null
