@@ -91,8 +91,8 @@ class TextStylesFragment : Fragment() {
     private fun rebuildTabs() {
         tabs.clear()
 
-        // 1. "+ Add Style" action tab
-        tabs.add(PanelTabs(id = -100, tab_name = "+ Add Style", is_selected = false))
+        // 1. "Add Style" action tab
+        tabs.add(PanelTabs(id = -100, tab_name = "Add Style", is_selected = false))
 
         // 2. "My Styles" if saved custom styles exist
         val savedCount = TextStylesRepository.getCustomUserSavedStyles(requireContext()).size
@@ -116,7 +116,8 @@ class TextStylesFragment : Fragment() {
             RailCategoryItem(
                 id = tab.id.toString(),
                 label = tab.tab_name,
-                iconRes = null
+                iconRes = null,
+                isActionButton = (tab.id == -100)
             )
         }
         val defaultSelectedId = if (tabs.isNotEmpty() && defaultIndex < tabs.size) tabs[defaultIndex].id.toString() else null

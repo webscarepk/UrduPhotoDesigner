@@ -288,7 +288,7 @@
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/darkModeCard"
+                android:id="@+id/defaultFontCard"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:background="@drawable/button_bg"
@@ -296,6 +296,360 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/qualityCard"
+                android:layout_marginTop="10dp">
+                <TextView
+                    android:id="@+id/defaultFontTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/default_urdu_font"
+                    android:textColor="@color/black"
+                    android:fontFamily="@font/medium"
+                    android:textSize="14sp"
+                    android:padding="15dp"
+                    app:layout_constraintEnd_toStartOf="@id/defaultFont"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"/>
+
+                <ImageView
+                    android:id="@+id/defaultFontDropdownIcon"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@drawable/ic_dropdown"
+                    app:tint="@color/gray"
+                    android:layout_marginEnd="15dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/defaultFontTitle"
+                    app:layout_constraintBottom_toBottomOf="@id/defaultFontTitle"/>
+
+                <TextView
+                    android:id="@+id/defaultFont"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/default_font_system"
+                    android:textColor="@color/black"
+                    android:fontFamily="@font/regular"
+                    android:textSize="12sp"
+                    android:paddingVertical="15dp"
+                    android:layout_marginEnd="6dp"
+                    app:layout_constraintEnd_toStartOf="@id/defaultFontDropdownIcon"
+                    app:layout_constraintTop_toTopOf="parent"/>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/defaultFontTitle"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:id="@+id/defaultFontList"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    tools:listitem="@layout/layout_resolutions_item_prefs"
+                    android:layout_marginHorizontal="15dp"
+                    android:layout_marginVertical="10dp"
+                    tools:itemCount="4"/>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/customFontsCard"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:background="@drawable/button_bg"
+                android:backgroundTint="@color/selection"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/defaultFontCard"
+                android:layout_marginTop="10dp">
+                <TextView
+                    android:id="@+id/customFontsTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/custom_fonts"
+                    android:textColor="@color/black"
+                    android:fontFamily="@font/medium"
+                    android:textSize="14sp"
+                    android:paddingTop="15dp"
+                    android:paddingStart="15dp"
+                    android:paddingEnd="15dp"
+                    app:layout_constraintEnd_toStartOf="@id/customFontsCount"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"/>
+
+                <TextView
+                    android:id="@+id/customFontsSubtitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/manage_custom_fonts"
+                    android:textColor="@color/gray"
+                    android:fontFamily="@font/regular"
+                    android:textSize="11.5sp"
+                    android:paddingBottom="15dp"
+                    android:paddingStart="15dp"
+                    android:paddingEnd="15dp"
+                    app:layout_constraintEnd_toStartOf="@id/customFontsCount"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/customFontsTitle"
+                    app:layout_constraintBottom_toBottomOf="parent"/>
+
+                <ImageView
+                    android:id="@+id/customFontsNextIcon"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:src="@drawable/ic_next"
+                    app:tint="@color/gray"
+                    android:layout_marginEnd="15dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"/>
+
+                <TextView
+                    android:id="@+id/customFontsCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="3 imported"
+                    android:textColor="@color/gray"
+                    android:fontFamily="@font/regular"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="6dp"
+                    app:layout_constraintEnd_toStartOf="@id/customFontsNextIcon"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"/>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/cacheCard"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:background="@drawable/button_bg"
+                android:backgroundTint="@color/selection"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/customFontsCard"
+                android:layout_marginTop="10dp">
+                <TextView
+                    android:id="@+id/cacheTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/temporary_cache"
+                    android:textColor="@color/black"
+                    android:fontFamily="@font/medium"
+                    android:textSize="14sp"
+                    android:paddingTop="15dp"
+                    android:paddingStart="15dp"
+                    android:paddingEnd="15dp"
+                    app:layout_constraintEnd_toStartOf="@id/clearCacheBtn"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"/>
+
+                <TextView
+                    android:id="@+id/cacheSizeText"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/calculating"
+                    android:textColor="@color/gray"
+                    android:fontFamily="@font/regular"
+                    android:textSize="11.5sp"
+                    android:paddingBottom="15dp"
+                    android:paddingStart="15dp"
+                    android:paddingEnd="15dp"
+                    app:layout_constraintEnd_toStartOf="@id/clearCacheBtn"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/cacheTitle"
+                    app:layout_constraintBottom_toBottomOf="parent"/>
+
+                <TextView
+                    android:id="@+id/clearCacheBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/button_bg_small"
+                    android:text="@string/clear_cache"
+                    android:textColor="@color/white"
+                    android:paddingVertical="6dp"
+                    android:fontFamily="@font/bold"
+                    android:paddingHorizontal="14dp"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="15dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"/>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/autoSaveCard"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:background="@drawable/button_bg"
+                android:backgroundTint="@color/selection"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/cacheCard"
+                android:layout_marginTop="10dp">
+                <TextView
+                    android:id="@+id/autoSaveTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/auto_save_drafts"
+                    android:textColor="@color/black"
+                    android:fontFamily="@font/medium"
+                    android:textSize="14sp"
+                    android:padding="15dp"
+                    app:layout_constraintEnd_toStartOf="@id/autoSave"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"/>
+
+                <ImageView
+                    android:id="@+id/autoSaveDropdownIcon"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@drawable/ic_dropdown"
+                    app:tint="@color/gray"
+                    android:layout_marginEnd="15dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/autoSaveTitle"
+                    app:layout_constraintBottom_toBottomOf="@id/autoSaveTitle"/>
+
+                <TextView
+                    android:id="@+id/autoSave"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/auto_save_3_min"
+                    android:textColor="@color/black"
+                    android:fontFamily="@font/regular"
+                    android:textSize="12sp"
+                    android:paddingVertical="15dp"
+                    android:layout_marginEnd="6dp"
+                    app:layout_constraintEnd_toStartOf="@id/autoSaveDropdownIcon"
+                    app:layout_constraintTop_toTopOf="parent"/>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/autoSaveTitle"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:id="@+id/autoSaveList"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    tools:listitem="@layout/layout_resolutions_item_prefs"
+                    android:layout_marginHorizontal="15dp"
+                    android:layout_marginVertical="10dp"
+                    tools:itemCount="4"/>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/smartSnappingCard"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:background="@drawable/button_bg"
+                android:backgroundTint="@color/selection"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/autoSaveCard"
+                android:layout_marginTop="10dp">
+                <TextView
+                    android:id="@+id/smartSnappingTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/smart_snapping"
+                    android:textColor="@color/black"
+                    android:fontFamily="@font/medium"
+                    android:textSize="14sp"
+                    android:paddingTop="15dp"
+                    android:paddingStart="15dp"
+                    android:paddingEnd="15dp"
+                    app:layout_constraintEnd_toStartOf="@id/smartSnappingSwitch"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"/>
+
+                <TextView
+                    android:id="@+id/smartSnappingDesc"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/smart_snapping_desc"
+                    android:textColor="@color/gray"
+                    android:fontFamily="@font/regular"
+                    android:textSize="11.5sp"
+                    android:paddingBottom="15dp"
+                    android:paddingStart="15dp"
+                    android:paddingEnd="15dp"
+                    app:layout_constraintEnd_toStartOf="@id/smartSnappingSwitch"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/smartSnappingTitle"
+                    app:layout_constraintBottom_toBottomOf="parent"/>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/smartSnappingSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="15dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/hapticCard"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:background="@drawable/button_bg"
+                android:backgroundTint="@color/selection"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/smartSnappingCard"
+                android:layout_marginTop="10dp">
+                <TextView
+                    android:id="@+id/hapticTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/haptic_feedback"
+                    android:textColor="@color/black"
+                    android:fontFamily="@font/medium"
+                    android:textSize="14sp"
+                    android:paddingTop="15dp"
+                    android:paddingStart="15dp"
+                    android:paddingEnd="15dp"
+                    app:layout_constraintEnd_toStartOf="@id/hapticSwitch"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"/>
+
+                <TextView
+                    android:id="@+id/hapticDesc"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/haptic_feedback_desc"
+                    android:textColor="@color/gray"
+                    android:fontFamily="@font/regular"
+                    android:textSize="11.5sp"
+                    android:paddingBottom="15dp"
+                    android:paddingStart="15dp"
+                    android:paddingEnd="15dp"
+                    app:layout_constraintEnd_toStartOf="@id/hapticSwitch"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/hapticTitle"
+                    app:layout_constraintBottom_toBottomOf="parent"/>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/hapticSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="15dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/darkModeCard"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:background="@drawable/button_bg"
+                android:backgroundTint="@color/selection"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/hapticCard"
                 android:layout_marginTop="10dp">
                 <TextView
                     android:id="@+id/darkModeTitle"

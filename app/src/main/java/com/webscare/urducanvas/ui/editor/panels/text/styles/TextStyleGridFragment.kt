@@ -20,10 +20,12 @@ class TextStyleGridFragment : Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
 
     private var categoryName: String = ""
+    private var isAddMode: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         categoryName = arguments?.getString(ARG_CATEGORY) ?: ""
+        isAddMode = arguments?.getBoolean(ARG_IS_ADD_MODE, false) ?: false
     }
 
     override fun onCreateView(
@@ -42,7 +44,11 @@ class TextStyleGridFragment : Fragment() {
         val category = PresetCategory.values().firstOrNull { it.name == categoryName } ?: PresetCategory.BADGES_SALE
         val presets = TextStylesRepository.getPresetsByCategory(category, requireContext())
         val adapter = TextStylesGridAdapter(presets) { preset ->
-            viewModel.applyTextStylePreset(preset)
+            if (isAddMode) {
+                viewModel.addTextWithStyle("Your Text", preset, requireContext())
+            } else {
+                viewModel.applyTextStylePreset(preset)
+            }
         }
         adapter.selectedPresetId = viewModel.selectedStylePresetId.value
 
@@ -62,11 +68,13 @@ class TextStyleGridFragment : Fragment() {
 
     companion object {
         private const val ARG_CATEGORY = "arg_category"
+        private const val ARG_IS_ADD_MODE = "arg_is_add_mode"
 
-        fun newInstance(category: PresetCategory): TextStyleGridFragment {
+        fun newInstance(category: PresetCategory, isAddMode: Boolean = false): TextStyleGridFragment {
             val fragment = TextStyleGridFragment()
             val args = Bundle().apply {
                 putString(ARG_CATEGORY, category.name)
+                putBoolean(ARG_IS_ADD_MODE, isAddMode)
             }
             fragment.arguments = args
             return fragment

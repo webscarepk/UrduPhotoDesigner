@@ -15,9 +15,9 @@ import com.webscare.urducanvas.data.model.FontCategory
 import com.webscare.urducanvas.data.model.FontLanguages
 import com.webscare.urducanvas.databinding.FragmentFontsBinding
 import com.webscare.urducanvas.ui.editor.views.RailCategoryItem
+import com.webscare.urducanvas.ui.editor.views.RailSubCategoryItem
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -32,6 +32,7 @@ class FontsFragment : Fragment() {
 
     private var standaloneMode: Boolean = false
     private var selectedLanguage: String = "All"
+    private var selectedCategory: String? = null
 
     private var pendingCategory: String? = null
     private var pendingLanguage: String? = null
@@ -58,11 +59,30 @@ class FontsFragment : Fragment() {
 
     private fun setupRailView() {
         binding.collapsibleRail.bindPanelId("text_fonts")
+
         binding.collapsibleRail.onCategorySelectedListener = { catItem ->
             val position = pagerAdapter.categories.indexOfFirst { it.id.toString() == catItem.id }
             if (position >= 0) {
-                selectedLanguage = pagerAdapter.categories[position].name
+                val lang = pagerAdapter.categories[position]
+                selectedLanguage = lang.name
+                selectedCategory = catItem.selectedSubItemId
                 binding.viewPager.setCurrentItem(position, false)
+                val catFilter = if (selectedCategory.equals("All", ignoreCase = true)) null else selectedCategory
+                applyFilterToPage(position, selectedLanguage, catFilter)
+            }
+        }
+
+        binding.collapsibleRail.onSubCategorySelectedListener = { parentItem, subItem ->
+            val position = pagerAdapter.categories.indexOfFirst { it.id.toString() == parentItem.id }
+            if (position >= 0) {
+                val lang = pagerAdapter.categories[position]
+                selectedLanguage = lang.name
+                selectedCategory = subItem.id
+                if (binding.viewPager.currentItem != position) {
+                    binding.viewPager.setCurrentItem(position, false)
+                }
+                val catFilter = if (subItem.id.equals("All", ignoreCase = true)) null else subItem.id
+                applyFilterToPage(position, selectedLanguage, catFilter)
             }
         }
     }
@@ -127,6 +147,7 @@ class FontsFragment : Fragment() {
         val position = categories.indexOfFirst { it.name.equals("Imported", ignoreCase = true) }
         if (position >= 0) {
             selectedLanguage = "Imported"
+            selectedCategory = null
             binding.viewPager.setCurrentItem(position, false)
             val langId = categories[position].id.toString()
             binding.collapsibleRail.setSelectedCategory(langId)
@@ -147,14 +168,26 @@ class FontsFragment : Fragment() {
                         pagerAdapter.updateCategories(languages)
 
                         val railItems = languages.map { lang ->
+                            val subItems = lang.categories.map { cat ->
+                                RailSubCategoryItem(
+                                    id = cat.name,
+                                    label = cat.name
+                                )
+                            }
+                            val isLangSelected = lang.name.equals(selectedLanguage, ignoreCase = true)
                             RailCategoryItem(
                                 id = lang.id.toString(),
                                 label = lang.name,
                                 iconRes = null,
-                                hasSubList = lang.categories.isNotEmpty()
+                                subItems = subItems,
+                                isSubListExpanded = (isLangSelected && subItems.isNotEmpty()),
+                                selectedSubItemId = if (isLangSelected) (selectedCategory ?: "All") else null,
+                                hasSubList = subItems.isNotEmpty()
                             )
                         }
-                        val selectedLang = languages.firstOrNull { it.is_selected } ?: languages.firstOrNull()
+                        val selectedLang = languages.firstOrNull { it.name.equals(selectedLanguage, ignoreCase = true) }
+                            ?: languages.firstOrNull { it.is_selected }
+                            ?: languages.firstOrNull()
                         binding.collapsibleRail.setCategories(railItems, selectedLang?.id?.toString())
 
                         if (pendingSelectImported) {
@@ -162,6 +195,7 @@ class FontsFragment : Fragment() {
                             if (pos >= 0) {
                                 pendingSelectImported = false
                                 selectedLanguage = "Imported"
+                                selectedCategory = null
                                 binding.viewPager.setCurrentItem(pos, false)
                             }
                         }

@@ -49,6 +49,13 @@ sealed class ImageFilter(val name: String, val category: String = "Basic") {
     data object Emboss : ImageFilter("Emboss", "Artistic")
     data object PopArt : ImageFilter("PopArt", "Artistic")
 
+    // Mood & Ambient Filters
+    data object NeonNight : ImageFilter("NeonNight", "Mood")
+    data object SunsetGlow : ImageFilter("SunsetGlow", "Mood")
+    data object OceanBreeze : ImageFilter("OceanBreeze", "Mood")
+    data object CrimsonFade : ImageFilter("CrimsonFade", "Mood")
+    data object ForestMist : ImageFilter("ForestMist", "Mood")
+
     fun createColorFilter(intensity: Float = 1.0f): android.graphics.ColorFilter? {
         return Companion.getColorFilter(this, intensity)
     }
@@ -289,6 +296,36 @@ sealed class ImageFilter(val name: String, val category: String = "Basic") {
                     0f, 0.3f, 1.5f, 0f, 35f,
                     0f, 0f, 0f, 1f, 0f
                 )
+                NeonNight -> floatArrayOf(
+                    1.2f, 0f, 0.3f, 0f, 15f,
+                    0f, 0.9f, 0.2f, 0f, -10f,
+                    0.2f, 0.1f, 1.4f, 0f, 30f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+                SunsetGlow -> floatArrayOf(
+                    1.3f, 0.1f, 0f, 0f, 25f,
+                    0.1f, 1.1f, 0f, 0f, 10f,
+                    0f, 0.1f, 0.8f, 0f, -15f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+                OceanBreeze -> floatArrayOf(
+                    0.85f, 0.1f, 0.1f, 0f, -15f,
+                    0.05f, 1.2f, 0.1f, 0f, 15f,
+                    0.1f, 0.2f, 1.35f, 0f, 25f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+                CrimsonFade -> floatArrayOf(
+                    1.35f, 0.05f, 0f, 0f, 20f,
+                    0f, 0.9f, 0.05f, 0f, -10f,
+                    0.05f, 0f, 0.95f, 0f, 5f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+                ForestMist -> floatArrayOf(
+                    0.9f, 0.1f, 0.05f, 0f, -10f,
+                    0.1f, 1.25f, 0.1f, 0f, 18f,
+                    0.05f, 0.1f, 1.05f, 0f, 5f,
+                    0f, 0f, 0f, 1f, 0f
+                )
                 else -> null
             } ?: return null
 
@@ -352,6 +389,11 @@ sealed class ImageFilter(val name: String, val category: String = "Basic") {
                 "Pixelate" -> Pixelate
                 "Emboss" -> Emboss
                 "PopArt" -> PopArt
+                "NeonNight" -> NeonNight
+                "SunsetGlow" -> SunsetGlow
+                "OceanBreeze" -> OceanBreeze
+                "CrimsonFade" -> CrimsonFade
+                "ForestMist" -> ForestMist
                 else -> None
             }
         }

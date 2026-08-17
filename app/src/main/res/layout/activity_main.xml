@@ -83,24 +83,33 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Center FAB — sits on the TOP edge of the nav (like expense tracker) -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
+    <com.google.android.material.card.MaterialCardView
         android:id="@+id/fabAddImage"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/ic_add"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:clickable="true"
+        android:focusable="true"
         android:visibility="gone"
         android:contentDescription="Add image"
-        app:backgroundTint="@color/appColor"
-        app:tint="@color/white"
-        app:borderWidth="0dp"
-        app:elevation="16dp"
-        app:pressedTranslationZ="6dp"
-        app:fabCustomSize="56dp"
-        app:maxImageSize="24dp"
-        app:ensureMinTouchTargetSize="false"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="8dp"
+        app:cardBackgroundColor="@color/appColor"
+        app:strokeColor="@color/white"
+        app:strokeWidth="3.5dp"
+        app:cardPreventCornerOverlap="false"
+        app:cardUseCompatPadding="false"
         app:layout_constraintTop_toTopOf="@id/bottomNavigation"
         app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
         app:layout_constraintStart_toStartOf="@id/bottomNavigation"
-        app:layout_constraintEnd_toEndOf="@id/bottomNavigation" />
+        app:layout_constraintEnd_toEndOf="@id/bottomNavigation">
+
+        <ImageView
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_fab_plus"
+            android:contentDescription="@null" />
+
+    </com.google.android.material.card.MaterialCardView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

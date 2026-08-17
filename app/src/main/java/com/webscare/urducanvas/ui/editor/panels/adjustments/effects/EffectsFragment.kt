@@ -67,6 +67,22 @@ class EffectsFragment : Fragment() {
             }
         }
 
+        binding.collapsibleRail.onCategoryToggleChangedListener = { catItem, isEnabled ->
+            val featureName = when (catItem.id) {
+                "shadow"  -> "Shadow"
+                "color"   -> "Overlay"
+                "blur"    -> "Blur"
+                "stroke"  -> "Stroke"
+                "feather" -> "Feather"
+                else      -> catItem.label
+            }
+            if (isEnabled) {
+                viewModel.enableFeature(featureName)
+            } else {
+                viewModel.disableFeature(featureName)
+            }
+        }
+
         binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
         binding.viewPager.offscreenPageLimit = 1
 

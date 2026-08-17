@@ -23,8 +23,8 @@ import kotlin.math.roundToInt
  */
 class MorphGridLayoutManager(
     context: Context,
-    private val collapsedSpan: Int = 3,   // rows in horizontal strip
-    private val expandedSpan: Int = 3,    // columns in vertical grid
+    var collapsedSpan: Int = 3,   // rows in horizontal strip
+    var expandedSpan: Int = 3,    // columns in vertical grid
     private val orientationFlipThreshold: Float = 0.95f
 ) : GridLayoutManager(context, collapsedSpan, HORIZONTAL, false) {
 

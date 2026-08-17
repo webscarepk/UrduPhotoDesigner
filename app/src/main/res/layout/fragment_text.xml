@@ -67,6 +67,51 @@
                 android:padding="8dp"
                 android:src="@drawable/ic_add_text" />
 
+            <!-- Segmented Switch: Fonts / Styles -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/modeSwitchToolbar"
+                android:layout_width="116dp"
+                android:layout_height="30dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/button_bg_small"
+                android:backgroundTint="@color/contrast"
+                android:padding="2dp">
+
+                <TextView
+                    android:id="@+id/btnModeFonts"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/white"
+                    android:fontFamily="@font/bold"
+                    android:gravity="center"
+                    android:text="Fonts"
+                    android:textColor="@color/black"
+                    android:textSize="11sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/btnModeStyles"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/btnModeStyles"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/contrast"
+                    android:fontFamily="@font/medium"
+                    android:gravity="center"
+                    android:text="Styles"
+                    android:textColor="@color/black"
+                    android:textSize="11sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/btnModeFonts"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
             <ImageView
                 android:id="@+id/addFont"
                 android:layout_width="30dp"
@@ -113,7 +158,7 @@
 
     <!-- ══════════════════════════════════════════════════════════════════
          EXPANDED HEADER  (gone in collapsed state)
-         Row 1: [Typography] [addTextExpanded] [addFontExpanded] [close]
+         Row 1: [modeSwitchExpanded] [addTextExpanded] [addFontExpanded] [close]
          Row 2: [Search here ──────────────────────────────────────────]
          ══════════════════════════════════════════════════════════════════ -->
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -126,18 +171,51 @@
         app:layout_constraintStart_toEndOf="@id/startGuide"
         app:layout_constraintTop_toBottomOf="@id/dragHandle">
 
-        <TextView
-            android:id="@+id/panelTitle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:fontFamily="@font/bold"
-            android:text="@string/typography"
-            android:textColor="@color/black"
-            android:textSize="16sp"
+        <!-- Mode Switch in Expanded Header -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/modeSwitchToolbarExpanded"
+            android:layout_width="120dp"
+            android:layout_height="28dp"
+            android:background="@drawable/button_bg_small"
+            android:backgroundTint="@color/contrast"
+            android:padding="2dp"
             app:layout_constraintBottom_toBottomOf="@id/closePanel"
-            app:layout_constraintEnd_toStartOf="@id/addTextExpanded"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@id/closePanel" />
+            app:layout_constraintTop_toTopOf="@id/closePanel">
+
+            <TextView
+                android:id="@+id/btnModeFontsExpanded"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/button_bg_small"
+                android:backgroundTint="@color/white"
+                android:fontFamily="@font/bold"
+                android:gravity="center"
+                android:text="Fonts"
+                android:textColor="@color/black"
+                android:textSize="11sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/btnModeStylesExpanded"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/btnModeStylesExpanded"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/button_bg_small"
+                android:backgroundTint="@color/contrast"
+                android:fontFamily="@font/medium"
+                android:gravity="center"
+                android:text="Styles"
+                android:textColor="@color/black"
+                android:textSize="11sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/btnModeFontsExpanded"
+                app:layout_constraintTop_toTopOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
         <ImageView
             android:id="@+id/addTextExpanded"

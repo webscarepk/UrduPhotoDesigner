@@ -484,8 +484,8 @@
                 android:id="@+id/showHide"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:paddingVertical="10dp"
-                android:src="@drawable/ic_back"
+                android:padding="8dp"
+                android:src="@drawable/ic_chevron_double_left"
                 android:tooltipText="@string/hide"
                 app:tint="@color/black" />
         </LinearLayout>

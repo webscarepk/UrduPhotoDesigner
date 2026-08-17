@@ -112,10 +112,10 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
             if (!isAdded || _binding == null) return@observe
             binding.viewPager.post {
                 if (_binding == null) return@post
-                val target = if (openAppearance == true) 1 else 0
+                val target = if (openAppearance == true) 2 else 0
                 binding.viewPager.setCurrentItem(target, false)
                 // Reset search to icon state when landing on non-Font tab
-                if (target != 0) collapseSearch()
+                if (target != 1) collapseSearch()
             }
         }
     }
@@ -125,7 +125,7 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
     private fun setupTabLayout() {
         mediator?.detach()
         binding.tabLayout.setupPanelTabs(binding.viewPager, tabs) { position ->
-            if (position != 0) {
+            if (position != 1) {
                 mainViewModel.setQuery("")
                 collapseSearch()
                 hideKeyboard()

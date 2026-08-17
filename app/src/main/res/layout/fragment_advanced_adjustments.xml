@@ -6,171 +6,163 @@
     android:layout_height="match_parent"
     tools:context=".ui.editor.panels.adjustments.custom.AdvancedAdjustmentsFragment">
 
+    <!-- Row 1: Sharpness (Full width) -->
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/footer"
+        android:id="@+id/sharpnessCard"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_height="wrap_content"
+        android:visibility="visible"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Sharpness -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/sharpnessCard"
+        <TextView
+            android:id="@+id/sharpnessTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="15dp"
+            android:fontFamily="@font/medium"
+            android:text="@string/sharpness"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/sharpnessSize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="15dp"
+            android:fontFamily="@font/regular"
+            android:text="0.0"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@id/sharpnessTitle"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/sharpnessTitle" />
+
+        <SeekBar
+            android:id="@+id/sharpness"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:visibility="visible"
+            android:layout_marginTop="3dp"
+            android:indeterminateTint="@color/appColor"
+            android:progress="0"
+            android:progressBackgroundTint="@color/light_gray"
+            android:progressTint="@color/appColor"
+            android:splitTrack="false"
+            android:thumb="@drawable/seekbar_thumb_custom"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            app:layout_constraintTop_toBottomOf="@id/sharpnessSize" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <TextView
-                android:id="@+id/sharpnessTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:fontFamily="@font/medium"
-                android:text="@string/sharpness"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+    <!-- Row 2: Clarity (Left) & Fade (Right) -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/clarityCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="4dp"
+        android:visibility="visible"
+        app:layout_constraintEnd_toStartOf="@id/fadeCard"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/sharpnessCard">
 
-            <TextView
-                android:id="@+id/sharpnessSize"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
-                android:fontFamily="@font/regular"
-                android:text="0.0"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintBottom_toBottomOf="@id/sharpnessTitle"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/sharpnessTitle" />
-
-            <SeekBar
-                android:id="@+id/sharpness"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:indeterminateTint="@color/appColor"
-                android:progress="0"
-                android:progressBackgroundTint="@color/light_gray"
-                android:progressTint="@color/appColor"
-                android:splitTrack="false"
-                android:thumb="@drawable/seekbar_thumb_custom"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/sharpnessSize" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <!-- Clarity -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/clarityCard"
-            android:layout_width="0dp"
+        <TextView
+            android:id="@+id/clarityTitle"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:visibility="visible"
-            app:layout_constraintEnd_toStartOf="@id/fadeCard"
+            android:layout_marginStart="15dp"
+            android:fontFamily="@font/medium"
+            android:text="@string/clarity"
+            android:textColor="@color/black"
+            android:textSize="12sp"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/sharpnessCard">
+            app:layout_constraintTop_toTopOf="parent" />
 
-            <TextView
-                android:id="@+id/clarityTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:fontFamily="@font/medium"
-                android:text="@string/clarity"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+        <TextView
+            android:id="@+id/claritySize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="15dp"
+            android:fontFamily="@font/regular"
+            android:text="0"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@id/clarityTitle"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/clarityTitle" />
 
-            <TextView
-                android:id="@+id/claritySize"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
-                android:fontFamily="@font/regular"
-                android:text="0"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintBottom_toBottomOf="@id/clarityTitle"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/clarityTitle" />
-
-            <SeekBar
-                android:id="@+id/clarity"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:indeterminateTint="@color/appColor"
-                android:progress="50"
-                android:progressBackgroundTint="@color/light_gray"
-                android:progressTint="@color/appColor"
-                android:splitTrack="false"
-                android:thumb="@drawable/seekbar_thumb_custom"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/claritySize" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <!-- Fade / Vignette -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/fadeCard"
+        <SeekBar
+            android:id="@+id/clarity"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:visibility="visible"
+            android:layout_marginTop="3dp"
+            android:indeterminateTint="@color/appColor"
+            android:progress="50"
+            android:progressBackgroundTint="@color/light_gray"
+            android:progressTint="@color/appColor"
+            android:splitTrack="false"
+            android:thumb="@drawable/seekbar_thumb_custom"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/clarityCard"
-            app:layout_constraintTop_toBottomOf="@id/sharpnessCard">
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/claritySize" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <TextView
-                android:id="@+id/fadeTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:fontFamily="@font/medium"
-                android:text="@string/fade"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/fadeCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:layout_marginStart="4dp"
+        android:visibility="visible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/clarityCard"
+        app:layout_constraintTop_toBottomOf="@id/sharpnessCard">
 
-            <TextView
-                android:id="@+id/fadeSize"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
-                android:fontFamily="@font/regular"
-                android:text="0"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintBottom_toBottomOf="@id/fadeTitle"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/fadeTitle" />
+        <TextView
+            android:id="@+id/fadeTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="15dp"
+            android:fontFamily="@font/medium"
+            android:text="@string/fade"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-            <SeekBar
-                android:id="@+id/fade"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:indeterminateTint="@color/appColor"
-                android:progress="0"
-                android:progressBackgroundTint="@color/light_gray"
-                android:progressTint="@color/appColor"
-                android:splitTrack="false"
-                android:thumb="@drawable/seekbar_thumb_custom"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/fadeSize" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
+        <TextView
+            android:id="@+id/fadeSize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="15dp"
+            android:fontFamily="@font/regular"
+            android:text="0"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@id/fadeTitle"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/fadeTitle" />
 
+        <SeekBar
+            android:id="@+id/fade"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:indeterminateTint="@color/appColor"
+            android:progress="0"
+            android:progressBackgroundTint="@color/light_gray"
+            android:progressTint="@color/appColor"
+            android:splitTrack="false"
+            android:thumb="@drawable/seekbar_thumb_custom"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/fadeSize" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

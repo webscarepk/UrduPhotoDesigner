@@ -15,14 +15,14 @@ object TextStylesRepository {
     private const val KEY_CUSTOM_STYLES = "custom_styles_list"
     private val gson = Gson()
 
-    private val allPresets: MutableList<TextStylePreset> = mutableListOf()
+    private val builtInPresets: MutableList<TextStylePreset> = mutableListOf()
 
     init {
         buildPresetLibrary()
     }
 
     private fun buildPresetLibrary() {
-        allPresets.clear()
+        builtInPresets.clear()
 
         // -------------------------------------------------------------
         // 1. MINIMAL (Pastel pills, subtle outlines, soft highlights)
@@ -31,25 +31,38 @@ object TextStylesRepository {
             0xFFE8F5E9.toInt(), 0xFFFFF3E0.toInt(), 0xFFE1F5FE.toInt(), 0xFFF3E5F5.toInt(),
             0xFFFCE4EC.toInt(), 0xFFFFFDE7.toInt(), 0xFFE0F2F1.toInt(), 0xFFF1F8E9.toInt(),
             0xFFEDE7F6.toInt(), 0xFFEFEBE9.toInt(), 0xFFECEFF1.toInt(), 0xFFFAFAFA.toInt(),
-            0xFFF5F5F5.toInt(), 0xFFE8EAF6.toInt(), 0xFFE0F7FA.toInt()
+            0xFFF5F5F5.toInt(), 0xFFE8EAF6.toInt(), 0xFFE0F7FA.toInt(), 0xFFFBE9E7.toInt(),
+            0xFFE0F2F1.toInt(), 0xFFF9FBE7.toInt(), 0xFFEFEBE9.toInt(), 0xFFE1BEE7.toInt(),
+            0xFFC8E6C9.toInt(), 0xFFFFECB3.toInt(), 0xFFB3E5FC.toInt(), 0xFFFFCDD2.toInt()
         )
         val minimalTextColors = listOf(
             0xFF2E7D32.toInt(), 0xFFE65100.toInt(), 0xFF0277BD.toInt(), 0xFF6A1B9A.toInt(),
             0xFFC2185B.toInt(), 0xFFF57F17.toInt(), 0xFF00695C.toInt(), 0xFF33691E.toInt(),
             0xFF4527A0.toInt(), 0xFF4E342E.toInt(), 0xFF37474F.toInt(), 0xFF212121.toInt(),
-            0xFF424242.toInt(), 0xFF283593.toInt(), 0xFF00838F.toInt()
+            0xFF424242.toInt(), 0xFF283593.toInt(), 0xFF00838F.toInt(), 0xFFD84315.toInt(),
+            0xFF004D40.toInt(), 0xFF827717.toInt(), 0xFF3E2723.toInt(), 0xFF4A148C.toInt(),
+            0xFF1B5E20.toInt(), 0xFFFF6F00.toInt(), 0xFF01579B.toInt(), 0xFFB71C1C.toInt()
         )
 
         for (i in minimalColors.indices) {
-            allPresets.add(
+            val shape = when (i % 4) {
+                0 -> LabelShape.CAPSULE_FILL
+                1 -> LabelShape.ROUNDED_RECTANGLE_FILL
+                2 -> LabelShape.CAPSULE_STROKE
+                else -> LabelShape.ROUNDED_RECTANGLE_STROKE
+            }
+            val isStroke = shape == LabelShape.CAPSULE_STROKE || shape == LabelShape.ROUNDED_RECTANGLE_STROKE
+            builtInPresets.add(
                 TextStylePreset(
                     id = "min_$i",
                     name = "Minimal ${i + 1}",
                     category = PresetCategory.MINIMAL,
                     textColor = minimalTextColors[i],
                     hasLabel = true,
-                    labelShape = if (i % 2 == 0) LabelShape.CAPSULE_FILL else LabelShape.ROUNDED_RECTANGLE_FILL,
-                    labelColor = minimalColors[i]
+                    labelShape = shape,
+                    labelColor = if (isStroke) Color.TRANSPARENT else minimalColors[i],
+                    labelStrokeColor = if (isStroke) minimalTextColors[i] else Color.TRANSPARENT,
+                    labelStrokeWidth = if (isStroke) 1.5f else 0f
                 )
             )
         }
@@ -72,17 +85,27 @@ object TextStylesRepository {
             Pair(0xFF1DE9B6.toInt(), Color.BLACK),
             Pair(0xFFFFC400.toInt(), Color.BLACK),
             Pair(0xFFFF3D00.toInt(), Color.WHITE),
-            Pair(0xFFE040FB.toInt(), Color.WHITE)
+            Pair(0xFFE040FB.toInt(), Color.WHITE),
+            Pair(0xFF76FF03.toInt(), Color.BLACK),
+            Pair(0xFF2979FF.toInt(), Color.WHITE),
+            Pair(0xFFFF1744.toInt(), Color.WHITE),
+            Pair(0xFF00E5FF.toInt(), Color.BLACK),
+            Pair(0xFFD500F9.toInt(), Color.WHITE),
+            Pair(0xFFAEEA00.toInt(), Color.BLACK),
+            Pair(0xFFFF6D00.toInt(), Color.WHITE),
+            Pair(0xFF304FFE.toInt(), Color.WHITE),
+            Pair(0xFF00BFA5.toInt(), Color.WHITE)
         )
 
         val modernShapes = listOf(
             LabelShape.CAPSULE_FILL, LabelShape.SLANTED_FILL, LabelShape.TAG_FILL,
-            LabelShape.REVERSE_TAG_FILL, LabelShape.ROUNDED_RECTANGLE_FILL, LabelShape.BADGE_FILL
+            LabelShape.REVERSE_TAG_FILL, LabelShape.ROUNDED_RECTANGLE_FILL, LabelShape.BADGE_FILL,
+            LabelShape.HEXAGON_BADGE_FILL, LabelShape.DIAMOND_SHIELD_FILL
         )
 
         for (i in modernPalettes.indices) {
             val (bg, txt) = modernPalettes[i]
-            allPresets.add(
+            builtInPresets.add(
                 TextStylePreset(
                     id = "mod_$i",
                     name = "Modern ${i + 1}",
@@ -96,7 +119,7 @@ object TextStylesRepository {
         }
 
         // -------------------------------------------------------------
-        // 3. BADGES & SALE (Glossy 3D commercial buttons with white border - Ref Img 2 & 4)
+        // 3. BADGES & SALE (Glossy 3D commercial buttons with white border)
         // -------------------------------------------------------------
         val badgeGradients = listOf(
             GradientItem(colors = listOf(Color.parseColor("#D50000"), Color.parseColor("#8E0000")), positions = listOf(0f, 1f), angle = 90f),
@@ -113,7 +136,16 @@ object TextStylesRepository {
             GradientItem(colors = listOf(Color.parseColor("#FFAB00"), Color.parseColor("#E65100")), positions = listOf(0f, 1f), angle = 90f),
             GradientItem(colors = listOf(Color.parseColor("#FF6E40"), Color.parseColor("#D84315")), positions = listOf(0f, 1f), angle = 90f),
             GradientItem(colors = listOf(Color.parseColor("#3D5AFE"), Color.parseColor("#1A237E")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#00E676"), Color.parseColor("#004D40")), positions = listOf(0f, 1f), angle = 90f)
+            GradientItem(colors = listOf(Color.parseColor("#00E676"), Color.parseColor("#004D40")), positions = listOf(0f, 1f), angle = 90f),
+            GradientItem(colors = listOf(Color.parseColor("#FF5252"), Color.parseColor("#B71C1C")), positions = listOf(0f, 1f), angle = 90f),
+            GradientItem(colors = listOf(Color.parseColor("#E040FB"), Color.parseColor("#7B1FA2")), positions = listOf(0f, 1f), angle = 90f),
+            GradientItem(colors = listOf(Color.parseColor("#40C4FF"), Color.parseColor("#0288D1")), positions = listOf(0f, 1f), angle = 90f),
+            GradientItem(colors = listOf(Color.parseColor("#69F0AE"), Color.parseColor("#00796B")), positions = listOf(0f, 1f), angle = 90f),
+            GradientItem(colors = listOf(Color.parseColor("#FFD740"), Color.parseColor("#FF8F00")), positions = listOf(0f, 1f), angle = 90f),
+            GradientItem(colors = listOf(Color.parseColor("#FF80AB"), Color.parseColor("#C51162")), positions = listOf(0f, 1f), angle = 90f),
+            GradientItem(colors = listOf(Color.parseColor("#7C4DFF"), Color.parseColor("#304FFE")), positions = listOf(0f, 1f), angle = 90f),
+            GradientItem(colors = listOf(Color.parseColor("#18FFFF"), Color.parseColor("#00B0FF")), positions = listOf(0f, 1f), angle = 90f),
+            GradientItem(colors = listOf(Color.parseColor("#B2FF59"), Color.parseColor("#64DD17")), positions = listOf(0f, 1f), angle = 90f)
         )
 
         val badgeShapes = listOf(
@@ -122,7 +154,7 @@ object TextStylesRepository {
         )
 
         for (i in badgeGradients.indices) {
-            allPresets.add(
+            builtInPresets.add(
                 TextStylePreset(
                     id = "badge_$i",
                     name = "Sale Badge ${i + 1}",
@@ -142,7 +174,7 @@ object TextStylesRepository {
         }
 
         // -------------------------------------------------------------
-        // 4. RIBBONS & BANNERS (Folded paper ribbons with dark tails - Ref Img 3 & 5)
+        // 4. RIBBONS & BANNERS (Folded paper ribbons with dark tails)
         // -------------------------------------------------------------
         val ribbonCombos = listOf(
             Pair(0xFFFFC107.toInt(), 0xFF8D6E63.toInt()), // Yellow main + Dark Brown tail
@@ -159,12 +191,21 @@ object TextStylesRepository {
             Pair(0xFF8BC34A.toInt(), 0xFF33691E.toInt()), // Light Green main + Dark Green tail
             Pair(0xFFFF4081.toInt(), 0xFFC2185B.toInt()), // Hot Pink main + Dark Pink tail
             Pair(0xFF7C4DFF.toInt(), 0xFF311B92.toInt()), // Violet main + Deep Purple tail
-            Pair(0xFFFFAB00.toInt(), 0xFFFF6F00.toInt())  // Gold main + Orange tail
+            Pair(0xFFFFAB00.toInt(), 0xFFFF6F00.toInt()), // Gold main + Orange tail
+            Pair(0xFF26A69A.toInt(), 0xFF004D40.toInt()), // Mint main + Deep Teal tail
+            Pair(0xFFEC407A.toInt(), 0xFF880E4F.toInt()), // Rose main + Wine tail
+            Pair(0xFFAB47BC.toInt(), 0xFF4A148C.toInt()), // Orchid main + Purple tail
+            Pair(0xFF5C6BC0.toInt(), 0xFF1A237E.toInt()), // Denim main + Navy tail
+            Pair(0xFF42A5F5.toInt(), 0xFF0D47A1.toInt()), // Sky main + Cobalt tail
+            Pair(0xFF26C6DA.toInt(), 0xFF006064.toInt()), // Turquoise main + Dark Turquoise tail
+            Pair(0xFF66BB6A.toInt(), 0xFF1B5E20.toInt()), // Emerald main + Forest tail
+            Pair(0xFFFFA726.toInt(), 0xFFE65100.toInt()), // Tangerine main + Russet tail
+            Pair(0xFFFF7043.toInt(), 0xFFBF360C.toInt())  // Coral main + Mahogany tail
         )
 
         for (i in ribbonCombos.indices) {
             val (mainC, secC) = ribbonCombos[i]
-            allPresets.add(
+            builtInPresets.add(
                 TextStylePreset(
                     id = "ribbon_$i",
                     name = "Ribbon Banner ${i + 1}",
@@ -189,11 +230,13 @@ object TextStylesRepository {
             0xFF00E5FF.toInt(), 0xFFFF007F.toInt(), 0xFF39FF14.toInt(), 0xFFFFE600.toInt(),
             0xFFBF00FF.toInt(), 0xFFFF3503.toInt(), 0xFF00FFCC.toInt(), 0xFFFF00D4.toInt(),
             0xFF00FF66.toInt(), 0xFFFFF000.toInt(), 0xFF9D00FF.toInt(), 0xFFFF6600.toInt(),
-            0xFF00F0FF.toInt(), 0xFFFF0055.toInt(), 0xFF66FF00.toInt()
+            0xFF00F0FF.toInt(), 0xFFFF0055.toInt(), 0xFF66FF00.toInt(), 0xFFFF1493.toInt(),
+            0xFF00FFFF.toInt(), 0xFF76FF03.toInt(), 0xFFFF4500.toInt(), 0xFFE040FB.toInt(),
+            0xFF1DE9B6.toInt(), 0xFFFFD700.toInt(), 0xFF651FFF.toInt(), 0xFFFF0033.toInt()
         )
 
         for (i in neonColors.indices) {
-            allPresets.add(
+            builtInPresets.add(
                 TextStylePreset(
                     id = "neon_$i",
                     name = "Neon Glow ${i + 1}",
@@ -228,11 +271,20 @@ object TextStylesRepository {
             GradientItem(colors = listOf(Color.parseColor("#E2E8F0"), Color.parseColor("#94A3B8"), Color.parseColor("#475569")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
             GradientItem(colors = listOf(Color.parseColor("#FFFF00"), Color.parseColor("#FFD700"), Color.parseColor("#FF8C00")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
             GradientItem(colors = listOf(Color.parseColor("#FFD54F"), Color.parseColor("#FF8A65"), Color.parseColor("#E53935")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#80DEEA"), Color.parseColor("#26C6DA"), Color.parseColor("#00838F")), positions = listOf(0f, 0.5f, 1f), angle = 45f)
+            GradientItem(colors = listOf(Color.parseColor("#80DEEA"), Color.parseColor("#26C6DA"), Color.parseColor("#00838F")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
+            GradientItem(colors = listOf(Color.parseColor("#FFF176"), Color.parseColor("#FDD835"), Color.parseColor("#F57F17")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
+            GradientItem(colors = listOf(Color.parseColor("#B388FF"), Color.parseColor("#7C4DFF"), Color.parseColor("#651FFF")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
+            GradientItem(colors = listOf(Color.parseColor("#84FFFF"), Color.parseColor("#18FFFF"), Color.parseColor("#00E5FF")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
+            GradientItem(colors = listOf(Color.parseColor("#CCFF90"), Color.parseColor("#76FF03"), Color.parseColor("#64DD17")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
+            GradientItem(colors = listOf(Color.parseColor("#FF8A80"), Color.parseColor("#FF5252"), Color.parseColor("#FF1744")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
+            GradientItem(colors = listOf(Color.parseColor("#FFD180"), Color.parseColor("#FFA726"), Color.parseColor("#FF6D00")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
+            GradientItem(colors = listOf(Color.parseColor("#EA80FC"), Color.parseColor("#E040FB"), Color.parseColor("#D500F9")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
+            GradientItem(colors = listOf(Color.parseColor("#82B1FF"), Color.parseColor("#448AFF"), Color.parseColor("#2979FF")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
+            GradientItem(colors = listOf(Color.parseColor("#A7FFEB"), Color.parseColor("#64FFDA"), Color.parseColor("#1DE9B6")), positions = listOf(0f, 0.5f, 1f), angle = 45f)
         )
 
         for (i in metallicGradients.indices) {
-            allPresets.add(
+            builtInPresets.add(
                 TextStylePreset(
                     id = "metal_$i",
                     name = "3D Metallic ${i + 1}",
@@ -269,12 +321,21 @@ object TextStylesRepository {
             Pair(0xFF0D47A1.toInt(), 0xFFBBDEFB.toInt()), // Imperial Blue + Soft Blue text
             Pair(0xFF4E342E.toInt(), 0xFFFFF8E1.toInt()), // Chocolate + Ivory text
             Pair(0xFF212121.toInt(), 0xFFFFD700.toInt()), // Obsidian + Gold text
-            Pair(0xFF004D40.toInt(), 0xFFFFD700.toInt())  // Deep Emerald + Gold text
+            Pair(0xFF004D40.toInt(), 0xFFFFD700.toInt()), // Deep Emerald + Gold text
+            Pair(0xFF880E4F.toInt(), 0xFFFFD700.toInt()), // Maroon + Gold text
+            Pair(0xFF37474F.toInt(), 0xFFFFE082.toInt()), // Slate + Gold text
+            Pair(0xFF1B5E20.toInt(), 0xFFE8F5E9.toInt()), // Emerald + Mint text
+            Pair(0xFF4A148C.toInt(), 0xFFE1BEE7.toInt()), // Violet + Lavender text
+            Pair(0xFF3E2723.toInt(), 0xFFFFCC80.toInt()), // Walnut + Apricot text
+            Pair(0xFF004D40.toInt(), 0xFF80CBC4.toInt()), // Teal + Light Teal text
+            Pair(0xFF800000.toInt(), 0xFFFFECB3.toInt()), // Wine + Champagne text
+            Pair(0xFF1A237E.toInt(), 0xFF90CAF9.toInt()), // Navy + Ice Blue text
+            Pair(0xFF212121.toInt(), 0xFF00E676.toInt())  // Obsidian + Neon Green text
         )
 
         for (i in calligraphyBgs.indices) {
             val (bg, txt) = calligraphyBgs[i]
-            allPresets.add(
+            builtInPresets.add(
                 TextStylePreset(
                     id = "cal_$i",
                     name = "Calligraphy ${i + 1}",
@@ -299,18 +360,24 @@ object TextStylesRepository {
             0xFF00FF66.toInt(), 0xFFFFE600.toInt(), 0xFF00E5FF.toInt(), 0xFFFF007F.toInt(),
             0xFF39FF14.toInt(), 0xFFBF00FF.toInt(), 0xFFFF9100.toInt(), 0xFF00B0FF.toInt(),
             0xFFFF3D00.toInt(), 0xFF1DE9B6.toInt(), 0xFFFFC400.toInt(), 0xFFE040FB.toInt(),
-            0xFFFF6E40.toInt(), 0xFF00E676.toInt(), 0xFFFFFF00.toInt()
+            0xFFFF6E40.toInt(), 0xFF00E676.toInt(), 0xFFFFFF00.toInt(), 0xFFFF1744.toInt(),
+            0xFF76FF03.toInt(), 0xFF00E5FF.toInt(), 0xFFFF0055.toInt(), 0xFFAEEA00.toInt(),
+            0xFFD500F9.toInt(), 0xFF00BFA5.toInt(), 0xFFFFAB00.toInt(), 0xFF2979FF.toInt()
         )
 
         for (i in darkTextColors.indices) {
-            allPresets.add(
+            builtInPresets.add(
                 TextStylePreset(
                     id = "dark_$i",
                     name = "Dark Contrast ${i + 1}",
                     category = PresetCategory.DARK_CONTRAST,
                     textColor = darkTextColors[i],
                     hasLabel = true,
-                    labelShape = if (i % 2 == 0) LabelShape.CAPSULE_FILL else LabelShape.SLANTED_FILL,
+                    labelShape = when (i % 3) {
+                        0 -> LabelShape.CAPSULE_FILL
+                        1 -> LabelShape.SLANTED_FILL
+                        else -> LabelShape.HEXAGON_BADGE_FILL
+                    },
                     labelColor = 0xFF121212.toInt(),
                     labelStrokeColor = darkTextColors[i],
                     labelStrokeWidth = 2f
@@ -319,11 +386,16 @@ object TextStylesRepository {
         }
     }
 
+    fun getAllPresets(context: Context): List<TextStylePreset> {
+        val custom = getCustomUserSavedStyles(context)
+        return custom + builtInPresets
+    }
+
     fun getPresetsByCategory(category: PresetCategory, context: Context): List<TextStylePreset> {
         if (category == PresetCategory.MY_STYLES) {
             return getCustomUserSavedStyles(context)
         }
-        return allPresets.filter { it.category == category }
+        return builtInPresets.filter { it.category == category }
     }
 
     // -------------------------------------------------------------

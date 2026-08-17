@@ -7,7 +7,8 @@ import com.webscare.urducanvas.data.model.PresetCategory
 
 class TextStylesPagerAdapter(
     fragment: Fragment,
-    private var tabs: List<PanelTabs>
+    private var tabs: List<PanelTabs>,
+    private val isAddMode: Boolean = false
 ) : FragmentStateAdapter(fragment) {
 
     fun updateTabs(newTabs: List<PanelTabs>) {
@@ -20,7 +21,7 @@ class TextStylesPagerAdapter(
     override fun createFragment(position: Int): Fragment {
         val tab = tabs[position]
         val cat = PresetCategory.values().getOrNull(tab.id) ?: PresetCategory.BADGES_SALE
-        return TextStyleGridFragment.newInstance(cat)
+        return TextStyleGridFragment.newInstance(cat, isAddMode)
     }
 
     override fun getItemId(position: Int): Long {

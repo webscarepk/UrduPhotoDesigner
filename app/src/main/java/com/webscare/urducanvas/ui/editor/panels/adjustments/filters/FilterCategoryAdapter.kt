@@ -1,6 +1,5 @@
 package com.webscare.urducanvas.ui.editor.panels.adjustments.filters
 
-import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,8 +7,8 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.card.MaterialCardView
 import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class FilterCategoryAdapter(
     private val categories: List<String>,
@@ -53,8 +52,8 @@ class FilterCategoryAdapter(
     }
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val cardView: MaterialCardView? = itemView as? MaterialCardView ?: itemView.findViewById(R.id.categoryCard)
-        val textView: TextView = itemView.findViewById(R.id.categoryName) ?: TextView(itemView.context)
+        val textView: TextView = itemView.findViewById(R.id.categoryName)
+        val indicator: View = itemView.findViewById(R.id.selectionIndicator)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -70,26 +69,20 @@ class FilterCategoryAdapter(
         val context = holder.itemView.context
 
         val appColor = ContextCompat.getColor(context, R.color.appColor)
-        val whiteColor = ContextCompat.getColor(context, R.color.white)
-        val blackColor = ContextCompat.getColor(context, R.color.black)
-        val strokeColor = ContextCompat.getColor(context, R.color.light_gray)
-
-        holder.cardView?.setCardBackgroundColor(whiteColor)
+        val mutedColor = ContextCompat.getColor(context, R.color.rail_muted)
 
         val fontRes = if (isSelected) R.font.bold else R.font.medium
         holder.textView.typeface = androidx.core.content.res.ResourcesCompat.getFont(context, fontRes)
 
         if (isSelected) {
-            holder.cardView?.strokeColor = appColor
-            holder.cardView?.strokeWidth = (1.5f * context.resources.displayMetrics.density + 0.5f).toInt()
             holder.textView.setTextColor(appColor)
+            holder.indicator.visibility = View.VISIBLE
         } else {
-            holder.cardView?.strokeColor = strokeColor
-            holder.cardView?.strokeWidth = (1f * context.resources.displayMetrics.density + 0.5f).toInt()
-            holder.textView.setTextColor(blackColor)
+            holder.textView.setTextColor(mutedColor)
+            holder.indicator.visibility = View.INVISIBLE
         }
 
-        holder.itemView.setOnClickListener {
+        holder.itemView.addPressEffect {
             selectedCategory = category
             onCategorySelected(category)
         }

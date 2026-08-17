@@ -73,6 +73,13 @@ class FiltersFragment : Fragment() {
         FilterItem("Noir", ImageFilter.Noir),
         FilterItem("Silver", ImageFilter.Silver),
 
+        // Mood
+        FilterItem("Neon Night", ImageFilter.NeonNight),
+        FilterItem("Sunset Glow", ImageFilter.SunsetGlow),
+        FilterItem("Ocean Breeze", ImageFilter.OceanBreeze),
+        FilterItem("Crimson Fade", ImageFilter.CrimsonFade),
+        FilterItem("Forest Mist", ImageFilter.ForestMist),
+
         // Artistic
         FilterItem("HDR", ImageFilter.HDR),
         FilterItem("Sharpen", ImageFilter.Sharpen),
@@ -89,7 +96,7 @@ class FiltersFragment : Fragment() {
         FilterItem("Pop Art", ImageFilter.PopArt)
     )
 
-    private val categories = listOf("All", "Portrait", "Cinematic", "Vintage", "B&W", "Artistic")
+    private val categories = listOf("All", "Portrait", "Cinematic", "Vintage", "B&W", "Mood", "Artistic")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

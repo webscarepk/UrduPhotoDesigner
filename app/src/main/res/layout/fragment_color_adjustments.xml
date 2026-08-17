@@ -6,291 +6,270 @@
     android:layout_height="match_parent"
     tools:context=".ui.editor.panels.adjustments.custom.ColorAdjustmentsFragment">
 
+    <!-- Row 1: Saturation (Left) & Vibrance (Right) -->
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/footer"
+        android:id="@+id/saturationCard"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="4dp"
+        android:visibility="visible"
+        app:layout_constraintEnd_toStartOf="@id/vibranceCard"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Saturation (Left) -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/saturationCard"
-            android:layout_width="0dp"
+        <TextView
+            android:id="@+id/saturationTitle"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="4dp"
-            android:layout_marginBottom="3dp"
-            android:visibility="visible"
-            app:layout_constraintBottom_toTopOf="@id/temperatureCard"
-            app:layout_constraintEnd_toStartOf="@id/vibranceCard"
+            android:layout_marginStart="15dp"
+            android:fontFamily="@font/medium"
+            android:text="@string/saturation"
+            android:textColor="@color/black"
+            android:textSize="12sp"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            app:layout_constraintTop_toTopOf="parent" />
 
-            <TextView
-                android:id="@+id/saturationTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="15dp"
-                android:fontFamily="@font/medium"
-                android:text="@string/saturation"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/saturationSize"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="15dp"
-                android:fontFamily="@font/regular"
-                android:text="1.0"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintBottom_toBottomOf="@id/saturationTitle"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/saturationTitle" />
-
-            <SeekBar
-                android:id="@+id/saturation"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:indeterminateTint="@color/appColor"
-                android:progress="50"
-                android:progressBackgroundTint="@color/light_gray"
-                android:progressTint="@color/appColor"
-                android:splitTrack="false"
-                android:thumb="@drawable/seekbar_thumb_custom"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/saturationSize" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <!-- Vibrance (Right) -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/vibranceCard"
-            android:layout_width="0dp"
+        <TextView
+            android:id="@+id/saturationSize"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:layout_marginEnd="10dp"
-            android:layout_marginBottom="3dp"
-            android:visibility="visible"
-            app:layout_constraintBottom_toTopOf="@id/temperatureCard"
+            android:layout_marginEnd="15dp"
+            android:fontFamily="@font/regular"
+            android:text="1.0"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@id/saturationTitle"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/saturationCard"
-            app:layout_constraintTop_toTopOf="parent">
+            app:layout_constraintTop_toTopOf="@id/saturationTitle" />
 
-            <TextView
-                android:id="@+id/vibranceTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="15dp"
-                android:fontFamily="@font/medium"
-                android:text="@string/vibrance"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/vibranceSize"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="15dp"
-                android:fontFamily="@font/regular"
-                android:text="1.0"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintBottom_toBottomOf="@id/vibranceTitle"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/vibranceTitle" />
-
-            <SeekBar
-                android:id="@+id/vibrance"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:indeterminateTint="@color/appColor"
-                android:progress="50"
-                android:progressBackgroundTint="@color/light_gray"
-                android:progressTint="@color/appColor"
-                android:splitTrack="false"
-                android:thumb="@drawable/seekbar_thumb_custom"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/vibranceSize" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <!-- Temperature (Left) -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/temperatureCard"
+        <SeekBar
+            android:id="@+id/saturation"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="4dp"
-            android:layout_marginBottom="3dp"
-            android:visibility="visible"
-            app:layout_constraintBottom_toTopOf="@id/hueCard"
-            app:layout_constraintEnd_toStartOf="@id/tintCard"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/saturationCard">
-
-            <TextView
-                android:id="@+id/temperatureTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="15dp"
-                android:fontFamily="@font/medium"
-                android:text="@string/temperature"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/temperatureSize"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="15dp"
-                android:fontFamily="@font/regular"
-                android:text="1.0"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintBottom_toBottomOf="@id/temperatureTitle"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/temperatureTitle" />
-
-            <SeekBar
-                android:id="@+id/temperature"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:indeterminateTint="@color/appColor"
-                android:progress="50"
-                android:progressBackgroundTint="@color/light_gray"
-                android:progressTint="@color/appColor"
-                android:splitTrack="false"
-                android:thumb="@drawable/seekbar_thumb_custom"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/temperatureSize" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <!-- Tint (Right) -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/tintCard"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:layout_marginEnd="10dp"
-            android:layout_marginBottom="3dp"
-            android:visibility="visible"
-            app:layout_constraintBottom_toTopOf="@id/hueCard"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/temperatureCard"
-            app:layout_constraintTop_toBottomOf="@id/saturationCard">
-
-            <TextView
-                android:id="@+id/tintTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="15dp"
-                android:fontFamily="@font/medium"
-                android:text="@string/tint"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/tintSize"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="15dp"
-                android:fontFamily="@font/regular"
-                android:text="1.0"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintBottom_toBottomOf="@id/tintTitle"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/tintTitle" />
-
-            <SeekBar
-                android:id="@+id/tint"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:indeterminateTint="@color/appColor"
-                android:progress="50"
-                android:progressBackgroundTint="@color/light_gray"
-                android:progressTint="@color/appColor"
-                android:splitTrack="false"
-                android:thumb="@drawable/seekbar_thumb_custom"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tintSize" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <!-- Hue (Full width) -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/hueCard"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="10dp"
-            android:visibility="visible"
+            android:layout_marginTop="3dp"
+            android:indeterminateTint="@color/appColor"
+            android:progress="50"
+            android:progressBackgroundTint="@color/light_gray"
+            android:progressTint="@color/appColor"
+            android:splitTrack="false"
+            android:thumb="@drawable/seekbar_thumb_custom"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/temperatureCard">
-
-            <TextView
-                android:id="@+id/hueTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="15dp"
-                android:fontFamily="@font/medium"
-                android:text="Hue"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/hueSize"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="15dp"
-                android:fontFamily="@font/regular"
-                android:text="0"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintBottom_toBottomOf="@id/hueTitle"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/hueTitle" />
-
-            <SeekBar
-                android:id="@+id/hue"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:indeterminateTint="@color/appColor"
-                android:max="360"
-                android:progress="0"
-                android:progressBackgroundTint="@color/light_gray"
-                android:progressTint="@color/appColor"
-                android:splitTrack="false"
-                android:thumb="@drawable/seekbar_thumb_custom"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/hueSize" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
+            app:layout_constraintTop_toBottomOf="@id/saturationSize" />
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/vibranceCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:visibility="visible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/saturationCard"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/vibranceTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="15dp"
+            android:fontFamily="@font/medium"
+            android:text="@string/vibrance"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/vibranceSize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="15dp"
+            android:fontFamily="@font/regular"
+            android:text="1.0"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@id/vibranceTitle"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/vibranceTitle" />
+
+        <SeekBar
+            android:id="@+id/vibrance"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:indeterminateTint="@color/appColor"
+            android:progress="50"
+            android:progressBackgroundTint="@color/light_gray"
+            android:progressTint="@color/appColor"
+            android:splitTrack="false"
+            android:thumb="@drawable/seekbar_thumb_custom"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/vibranceSize" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Row 2: Temperature (Left) & Tint (Right) -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/temperatureCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="4dp"
+        android:visibility="visible"
+        app:layout_constraintEnd_toStartOf="@id/tintCard"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/saturationCard">
+
+        <TextView
+            android:id="@+id/temperatureTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="15dp"
+            android:fontFamily="@font/medium"
+            android:text="@string/temperature"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/temperatureSize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="15dp"
+            android:fontFamily="@font/regular"
+            android:text="1.0"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@id/temperatureTitle"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/temperatureTitle" />
+
+        <SeekBar
+            android:id="@+id/temperature"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:indeterminateTint="@color/appColor"
+            android:progress="50"
+            android:progressBackgroundTint="@color/light_gray"
+            android:progressTint="@color/appColor"
+            android:splitTrack="false"
+            android:thumb="@drawable/seekbar_thumb_custom"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/temperatureSize" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/tintCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:layout_marginStart="4dp"
+        android:visibility="visible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/temperatureCard"
+        app:layout_constraintTop_toBottomOf="@id/vibranceCard">
+
+        <TextView
+            android:id="@+id/tintTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="15dp"
+            android:fontFamily="@font/medium"
+            android:text="@string/tint"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tintSize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="15dp"
+            android:fontFamily="@font/regular"
+            android:text="1.0"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@id/tintTitle"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/tintTitle" />
+
+        <SeekBar
+            android:id="@+id/tint"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:indeterminateTint="@color/appColor"
+            android:progress="50"
+            android:progressBackgroundTint="@color/light_gray"
+            android:progressTint="@color/appColor"
+            android:splitTrack="false"
+            android:thumb="@drawable/seekbar_thumb_custom"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tintSize" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Row 3: Hue (Full width) -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/hueCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:visibility="visible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/temperatureCard">
+
+        <TextView
+            android:id="@+id/hueTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="15dp"
+            android:fontFamily="@font/medium"
+            android:text="Hue"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/hueSize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="15dp"
+            android:fontFamily="@font/regular"
+            android:text="0"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@id/hueTitle"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/hueTitle" />
+
+        <SeekBar
+            android:id="@+id/hue"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:indeterminateTint="@color/appColor"
+            android:max="360"
+            android:progress="0"
+            android:progressBackgroundTint="@color/light_gray"
+            android:progressTint="@color/appColor"
+            android:splitTrack="false"
+            android:thumb="@drawable/seekbar_thumb_custom"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/hueSize" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

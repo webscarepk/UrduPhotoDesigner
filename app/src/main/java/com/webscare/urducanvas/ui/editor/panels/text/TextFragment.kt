@@ -40,6 +40,10 @@ import com.webscare.urducanvas.databinding.FragmentTextBinding
 import com.webscare.urducanvas.ui.editor.EditorFragment
 import com.webscare.urducanvas.ui.editor.panels.text.fonts.FontsAdapter
 import com.webscare.urducanvas.ui.editor.panels.text.fonts.imported.ImportedFontsBottomSheet
+import com.webscare.urducanvas.data.model.PresetCategory
+import com.webscare.urducanvas.data.model.TextStylePreset
+import com.webscare.urducanvas.data.repository.TextStylesRepository
+import com.webscare.urducanvas.ui.editor.panels.text.styles.TextStylesMainAdapter
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.combine
@@ -57,6 +61,11 @@ class TextFragment : Fragment() {
     private val mainViewModel: MainViewModel by activityViewModels()
 
     private lateinit var fontsAdapter: FontsAdapter
+    private lateinit var stylesAdapter: TextStylesMainAdapter
+
+    // ── Styles Mode State ─────────────────────────────────────────────────────
+    private var isStylesMode: Boolean = false
+    private var selectedStyleCategory: String = "All"
 
     // ── Tab state ─────────────────────────────────────────────────────────────
     // Single TabLayout, two visual states:
@@ -110,12 +119,12 @@ class TextFragment : Fragment() {
         restoreTabState()
         setupSwipeRefresh()
         setupEvents()
+        setupModeSwitch()
         attachDragHandleSwipe()
         observePanelExpanded()
         observeFontData()
         observeDownloadStates()
         observeCurrentFont()
-
     }
 
     // Reads persisted tab/scroll state from ViewModel back into local fields.
@@ -144,6 +153,14 @@ class TextFragment : Fragment() {
         fontsAdapter = FontsAdapter { font, isDownloaded ->
             handleFontSelection(font, isDownloaded)
         }
+        stylesAdapter = TextStylesMainAdapter { preset ->
+            viewModel.addTextWithStyle(
+                requireActivity().getString(R.string.dummyText),
+                preset,
+                requireActivity()
+            )
+        }
+
         binding.fontsRV.apply {
             layoutManager = MorphGridLayoutManager(
                 context = requireContext(),
@@ -152,9 +169,10 @@ class TextFragment : Fragment() {
             ).apply {
                 applyFraction(binding.fontsRV, if (isPanelExpanded) 1f else 0f)
             }
-            adapter = fontsAdapter
+            adapter = if (isStylesMode) stylesAdapter else fontsAdapter
         }
         fontsAdapter.isExpanded = isPanelExpanded
+        stylesAdapter.isExpanded = isPanelExpanded
     }
 
     private fun setupSwipeRefresh() {
@@ -165,10 +183,18 @@ class TextFragment : Fragment() {
             androidx.core.content.ContextCompat.getColor(requireContext(), R.color.appColor)
         )
         binding.swipeRefresh.setOnRefreshListener {
-            val shuffled = fontsAdapter.currentList.shuffled()
-            fontsAdapter.submitList(shuffled) {
-                binding.swipeRefresh.isRefreshing = false
-                binding.fontsRV.scrollToPosition(0)
+            if (isStylesMode) {
+                val shuffled = stylesAdapter.currentList.shuffled()
+                stylesAdapter.submitList(shuffled) {
+                    binding.swipeRefresh.isRefreshing = false
+                    binding.fontsRV.scrollToPosition(0)
+                }
+            } else {
+                val shuffled = fontsAdapter.currentList.shuffled()
+                fontsAdapter.submitList(shuffled) {
+                    binding.swipeRefresh.isRefreshing = false
+                    binding.fontsRV.scrollToPosition(0)
+                }
             }
         }
     }
@@ -300,6 +326,15 @@ class TextFragment : Fragment() {
                     isSyncingTabs = false
                 }
 
+                if (isStylesMode) {
+                    val cat = (tab.customView?.findViewById<TextView>(R.id.tabTitle))?.text?.toString() ?: return
+                    selectedStyleCategory = cat
+                    updateTextTabStyles(binding.tabLayout, pos)
+                    updateTextTabStyles(binding.tabLayoutExpanded, pos)
+                    rebindStyles()
+                    return
+                }
+
                 if (inCategoryMode) {
                     // pos 0 = pinned language label — returns to language list
                     if (pos == 0) {
@@ -355,6 +390,8 @@ class TextFragment : Fragment() {
             }
 
             override fun onTabReselected(tab: TabLayout.Tab?) {
+                if (isStylesMode) return
+
                 // In category mode: tapping the pinned language tab (pos 0)
                 // fires onTabReselected if it was already "selected" visually.
                 // We treat it the same as onTabSelected — return to languages.
@@ -785,23 +822,42 @@ class TextFragment : Fragment() {
         if (lm != null) {
             lm.applyFraction(binding.fontsRV, offset)
             val effectiveExpanded = offset >= 0.95f
-            if (fontsAdapter.isExpanded != effectiveExpanded) {
-                binding.fontsRV.recycledViewPool.clear()
-                fontsAdapter.isExpanded = effectiveExpanded
+            if (!isStylesMode) {
+                if (fontsAdapter.isExpanded != effectiveExpanded) {
+                    binding.fontsRV.recycledViewPool.clear()
+                    fontsAdapter.isExpanded = effectiveExpanded
+                }
+            } else {
+                if (stylesAdapter.isExpanded != effectiveExpanded) {
+                    binding.fontsRV.recycledViewPool.clear()
+                    stylesAdapter.isExpanded = effectiveExpanded
+                }
             }
         }
 
         // Smoothly update size of all visible items in 60fps!
         val rvWidth = binding.fontsRV.width
         val rvPadding = binding.fontsRV.paddingLeft + binding.fontsRV.paddingRight
-        fontsAdapter.slideOffset = offset
-        fontsAdapter.recyclerViewWidth = rvWidth
-        fontsAdapter.recyclerViewPadding = rvPadding
+        if (!isStylesMode) {
+            fontsAdapter.slideOffset = offset
+            fontsAdapter.recyclerViewWidth = rvWidth
+            fontsAdapter.recyclerViewPadding = rvPadding
 
-        for (i in 0 until binding.fontsRV.childCount) {
-            val child = binding.fontsRV.getChildAt(i)
-            val holder = binding.fontsRV.getChildViewHolder(child) as? FontsAdapter.FontViewHolder
-            holder?.updateSize(offset, rvWidth, rvPadding)
+            for (i in 0 until binding.fontsRV.childCount) {
+                val child = binding.fontsRV.getChildAt(i)
+                val holder = binding.fontsRV.getChildViewHolder(child) as? FontsAdapter.FontViewHolder
+                holder?.updateSize(offset, rvWidth, rvPadding)
+            }
+        } else {
+            stylesAdapter.slideOffset = offset
+            stylesAdapter.recyclerViewWidth = rvWidth
+            stylesAdapter.recyclerViewPadding = rvPadding
+
+            for (i in 0 until binding.fontsRV.childCount) {
+                val child = binding.fontsRV.getChildAt(i)
+                val holder = binding.fontsRV.getChildViewHolder(child) as? TextStylesMainAdapter.PresetViewHolder
+                holder?.updateSize(offset, rvWidth, rvPadding)
+            }
         }
     }
 
@@ -832,9 +888,16 @@ class TextFragment : Fragment() {
         val lm = binding.fontsRV.layoutManager as? MorphGridLayoutManager
         if (lm != null) {
             lm.applyFraction(binding.fontsRV, if (expanded) 1f else 0f)
-            if (fontsAdapter.isExpanded != expanded) {
-                binding.fontsRV.recycledViewPool.clear()
-                fontsAdapter.isExpanded = expanded
+            if (!isStylesMode) {
+                if (fontsAdapter.isExpanded != expanded) {
+                    binding.fontsRV.recycledViewPool.clear()
+                    fontsAdapter.isExpanded = expanded
+                }
+            } else {
+                if (stylesAdapter.isExpanded != expanded) {
+                    binding.fontsRV.recycledViewPool.clear()
+                    stylesAdapter.isExpanded = expanded
+                }
             }
         }
 
@@ -842,14 +905,26 @@ class TextFragment : Fragment() {
         val rvWidth = binding.fontsRV.width
         val rvPadding = binding.fontsRV.paddingLeft + binding.fontsRV.paddingRight
         val offset = if (expanded) 1f else 0f
-        fontsAdapter.slideOffset = offset
-        fontsAdapter.recyclerViewWidth = rvWidth
-        fontsAdapter.recyclerViewPadding = rvPadding
+        if (!isStylesMode) {
+            fontsAdapter.slideOffset = offset
+            fontsAdapter.recyclerViewWidth = rvWidth
+            fontsAdapter.recyclerViewPadding = rvPadding
 
-        for (i in 0 until binding.fontsRV.childCount) {
-            val child = binding.fontsRV.getChildAt(i)
-            val holder = binding.fontsRV.getChildViewHolder(child) as? FontsAdapter.FontViewHolder
-            holder?.updateSize(offset, rvWidth, rvPadding)
+            for (i in 0 until binding.fontsRV.childCount) {
+                val child = binding.fontsRV.getChildAt(i)
+                val holder = binding.fontsRV.getChildViewHolder(child) as? FontsAdapter.FontViewHolder
+                holder?.updateSize(offset, rvWidth, rvPadding)
+            }
+        } else {
+            stylesAdapter.slideOffset = offset
+            stylesAdapter.recyclerViewWidth = rvWidth
+            stylesAdapter.recyclerViewPadding = rvPadding
+
+            for (i in 0 until binding.fontsRV.childCount) {
+                val child = binding.fontsRV.getChildAt(i)
+                val holder = binding.fontsRV.getChildViewHolder(child) as? TextStylesMainAdapter.PresetViewHolder
+                holder?.updateSize(offset, rvWidth, rvPadding)
+            }
         }
 
         if (expanded) {
@@ -869,9 +944,11 @@ class TextFragment : Fragment() {
 
             // Persist current tab state to ViewModel so it survives
             // any future fragment recreation after collapse
-            mainViewModel.lastFontsLanguage = selectedLanguage
-            mainViewModel.lastFontsCategory = selectedCategory
-            mainViewModel.lastFontsInCategoryMode = inCategoryMode
+            if (!isStylesMode) {
+                mainViewModel.lastFontsLanguage = selectedLanguage
+                mainViewModel.lastFontsCategory = selectedCategory
+                mainViewModel.lastFontsInCategoryMode = inCategoryMode
+            }
         }
     }
 
@@ -986,8 +1063,12 @@ class TextFragment : Fragment() {
 
     private fun applySearch(query: String) {
         currentQuery = query
-        mainViewModel.setQuery(query)
-        rebindFonts()
+        if (!isStylesMode) {
+            mainViewModel.setQuery(query)
+            rebindFonts()
+        } else {
+            rebindStyles()
+        }
     }
 
     private fun updateExpandedSearchCross(text: String) {
@@ -998,6 +1079,157 @@ class TextFragment : Fragment() {
             else null,
             null
         )
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Mode Switch: Fonts vs Styles
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private fun setupModeSwitch() {
+        binding.btnModeFonts.addPressEffect { setMode(false) }
+        binding.btnModeStyles.addPressEffect { setMode(true) }
+        binding.btnModeFontsExpanded.addPressEffect { setMode(false) }
+        binding.btnModeStylesExpanded.addPressEffect { setMode(true) }
+    }
+
+    private fun setMode(stylesMode: Boolean) {
+        if (isStylesMode == stylesMode) return
+        isStylesMode = stylesMode
+
+        val context = requireContext()
+        val white = ContextCompat.getColor(context, R.color.white)
+        val contrast = ContextCompat.getColor(context, R.color.contrast)
+        val black = ContextCompat.getColor(context, R.color.black)
+
+        if (stylesMode) {
+            // Highlight Styles
+            binding.btnModeStyles.backgroundTintList = android.content.res.ColorStateList.valueOf(white)
+            binding.btnModeStyles.typeface = ResourcesCompat.getFont(context, R.font.bold)
+            binding.btnModeStyles.setTextColor(black)
+
+            binding.btnModeFonts.backgroundTintList = android.content.res.ColorStateList.valueOf(contrast)
+            binding.btnModeFonts.typeface = ResourcesCompat.getFont(context, R.font.medium)
+            binding.btnModeFonts.setTextColor(black)
+
+            binding.btnModeStylesExpanded.backgroundTintList = android.content.res.ColorStateList.valueOf(white)
+            binding.btnModeStylesExpanded.typeface = ResourcesCompat.getFont(context, R.font.bold)
+            binding.btnModeStylesExpanded.setTextColor(black)
+
+            binding.btnModeFontsExpanded.backgroundTintList = android.content.res.ColorStateList.valueOf(contrast)
+            binding.btnModeFontsExpanded.typeface = ResourcesCompat.getFont(context, R.font.medium)
+            binding.btnModeFontsExpanded.setTextColor(black)
+
+            // Hide font-specific add button
+            binding.addFont.visibility = View.GONE
+            binding.addFontExpanded.visibility = View.GONE
+
+            // Switch RecyclerView adapter to stylesAdapter
+            val lm = binding.fontsRV.layoutManager as? MorphGridLayoutManager
+            if (lm != null) {
+                lm.expandedSpan = 4
+                lm.applyFraction(binding.fontsRV, if (isPanelExpanded) 1f else 0f)
+            }
+            binding.fontsRV.adapter = stylesAdapter
+            stylesAdapter.isExpanded = isPanelExpanded
+
+            // Show style category tabs in TabLayout
+            showStyleTabs()
+            rebindStyles()
+        } else {
+            // Highlight Fonts
+            binding.btnModeFonts.backgroundTintList = android.content.res.ColorStateList.valueOf(white)
+            binding.btnModeFonts.typeface = ResourcesCompat.getFont(context, R.font.bold)
+            binding.btnModeFonts.setTextColor(black)
+
+            binding.btnModeStyles.backgroundTintList = android.content.res.ColorStateList.valueOf(contrast)
+            binding.btnModeStyles.typeface = ResourcesCompat.getFont(context, R.font.medium)
+            binding.btnModeStyles.setTextColor(black)
+
+            binding.btnModeFontsExpanded.backgroundTintList = android.content.res.ColorStateList.valueOf(white)
+            binding.btnModeFontsExpanded.typeface = ResourcesCompat.getFont(context, R.font.bold)
+            binding.btnModeFontsExpanded.setTextColor(black)
+
+            binding.btnModeStylesExpanded.backgroundTintList = android.content.res.ColorStateList.valueOf(contrast)
+            binding.btnModeStylesExpanded.typeface = ResourcesCompat.getFont(context, R.font.medium)
+            binding.btnModeStylesExpanded.setTextColor(black)
+
+            // Restore font-specific add button
+            binding.addFont.visibility = View.VISIBLE
+            binding.addFontExpanded.visibility = View.VISIBLE
+
+            // Switch RecyclerView adapter to fontsAdapter
+            val lm = binding.fontsRV.layoutManager as? MorphGridLayoutManager
+            if (lm != null) {
+                lm.expandedSpan = 3
+                lm.applyFraction(binding.fontsRV, if (isPanelExpanded) 1f else 0f)
+            }
+            binding.fontsRV.adapter = fontsAdapter
+            fontsAdapter.isExpanded = isPanelExpanded
+
+            // Show font language/category tabs
+            if (inCategoryMode) {
+                val cats = languageCategoryMap[selectedLanguage] ?: emptyList()
+                showCategoryTabs(cats)
+            } else {
+                showLanguageTabs()
+            }
+            rebindFonts()
+        }
+    }
+
+    private fun showStyleTabs() {
+        val categories = mutableListOf("All")
+        val customStyles = TextStylesRepository.getCustomUserSavedStyles(requireContext())
+        if (customStyles.isNotEmpty()) {
+            categories.add(PresetCategory.MY_STYLES.displayName)
+        }
+        PresetCategory.values().filter { it != PresetCategory.MY_STYLES }.forEach {
+            categories.add(it.displayName)
+        }
+
+        clearTabListeners()
+
+        listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
+            tl.removeAllTabs()
+
+            categories.forEach { cat ->
+                val tab = tl.newTab()
+                val tabView = LayoutInflater.from(context).inflate(R.layout.view_panel_tab, tl, false)
+                tabView.findViewById<TextView>(R.id.tabTitle).text = cat
+                tab.customView = tabView
+                tl.addTab(tab, false)
+            }
+
+            val selectPos = categories.indexOf(selectedStyleCategory).takeIf { it >= 0 } ?: 0
+            tl.getTabAt(selectPos)?.select()
+            updateTextTabStyles(tl, selectPos)
+            com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(tl, selectPos)
+        }
+
+        attachTabListener()
+    }
+
+    private fun rebindStyles() {
+        val allPresets = TextStylesRepository.getAllPresets(requireContext())
+        val filteredByCategory = when (selectedStyleCategory) {
+            "All" -> allPresets
+            PresetCategory.MY_STYLES.displayName -> TextStylesRepository.getCustomUserSavedStyles(requireContext())
+            else -> {
+                val cat = PresetCategory.values().firstOrNull { it.displayName.equals(selectedStyleCategory, ignoreCase = true) }
+                if (cat != null) TextStylesRepository.getPresetsByCategory(cat, requireContext())
+                else allPresets
+            }
+        }
+
+        val q = currentQuery.trim().lowercase()
+        val finalFiltered = if (q.isEmpty()) filteredByCategory else {
+            filteredByCategory.filter { p ->
+                p.name.lowercase().contains(q) || p.category.displayName.lowercase().contains(q)
+            }
+        }
+        stylesAdapter.submitList(ArrayList(finalFiltered)) {
+            binding.fontsRV.scrollToPosition(0)
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────

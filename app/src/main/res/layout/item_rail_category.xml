@@ -4,10 +4,48 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/clCategoryRow"
     android:layout_width="match_parent"
-    android:layout_height="32dp"
+    android:layout_height="34dp"
     android:clickable="true"
     android:focusable="true"
     android:foreground="?attr/selectableItemBackground">
+
+    <!-- Action Button Container (for + Add Style) -->
+    <LinearLayout
+        android:id="@+id/llActionButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_rail_action_button"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="3dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="visible">
+
+        <ImageView
+            android:id="@+id/ivActionPlus"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_add"
+            app:tint="@color/rail_muted" />
+
+        <TextView
+            android:id="@+id/tvActionText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:fontFamily="@font/regular"
+            android:text="Add Style"
+            android:textColor="@color/rail_muted"
+            android:textSize="11sp"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </LinearLayout>
 
     <!-- Selected marker bar on right edge -->
     <View
@@ -36,18 +74,20 @@
     <!-- Monogram Variant View -->
     <TextView
         android:id="@+id/tvMonogram"
-        android:layout_width="22dp"
-        android:layout_height="22dp"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
         android:background="@drawable/bg_monogram_tile"
         android:gravity="center"
-        android:textColor="#8E94A2"
-        android:textSize="10sp"
+        android:textColor="@color/rail_muted"
+        android:textSize="11sp"
         android:textStyle="bold"
         android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/ivCaret"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:text="UR" />
+        app:layout_constraintVertical_chainStyle="packed"
+        tools:text="U" />
 
     <!-- On/Off state 7dp dot indicator -->
     <ImageView
@@ -63,14 +103,31 @@
     <!-- Caret for sub-lists in Collapsed State -->
     <ImageView
         android:id="@+id/ivCaret"
-        android:layout_width="9dp"
-        android:layout_height="9dp"
+        android:layout_width="7dp"
+        android:layout_height="7dp"
+        android:layout_marginTop="0.5dp"
         android:contentDescription="@null"
         android:src="@drawable/ic_dropdown"
         android:visibility="gone"
+        app:tint="@color/rail_muted"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="@id/tvMonogram"
         app:layout_constraintStart_toStartOf="@id/tvMonogram"
         app:layout_constraintTop_toBottomOf="@id/tvMonogram" />
+
+    <!-- Expand/Collapse Caret in Expanded State -->
+    <ImageView
+        android:id="@+id/ivExpandChevron"
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        android:layout_marginEnd="6dp"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_dropdown"
+        android:visibility="gone"
+        app:tint="@color/rail_muted"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/vSelectionIndicator"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <!-- Category Label -->
     <TextView
@@ -79,10 +136,10 @@
         android:layout_height="wrap_content"
         android:ellipsize="end"
         android:maxLines="1"
-        android:textColor="#1E1E1E"
+        android:textColor="@color/rail_unselected_text"
         android:textSize="12sp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/vSelectionIndicator"
+        app:layout_constraintEnd_toStartOf="@id/ivExpandChevron"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:text="Kasheeda" />

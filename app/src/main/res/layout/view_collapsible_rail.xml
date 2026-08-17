@@ -5,7 +5,7 @@
     android:id="@+id/clRailRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFFFF">
+    android:background="@color/white">
 
     <!-- Categories List -->
     <androidx.recyclerview.widget.RecyclerView
@@ -38,37 +38,38 @@
             android:id="@+id/vToggleDivider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#EFEFEF"
+            android:background="@color/rail_divider"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <LinearLayout
-            android:id="@+id/llToggleContent"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="12dp"
-            android:paddingEnd="8dp"
+        <TextView
+            android:id="@+id/tvCollapseLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="4dp"
+            android:text="Collapse"
+            android:fontFamily="@font/regular"
+            android:textColor="@color/rail_muted"
+            android:textSize="12sp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/vToggleDivider">
+            app:layout_constraintEnd_toStartOf="@id/ivToggleChevron"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/vToggleDivider" />
 
-            <ImageView
-                android:id="@+id/ivToggleChevron"
-                android:layout_width="14dp"
-                android:layout_height="14dp"
-                android:contentDescription="@null"
-                android:src="@drawable/ic_chevron_left" />
-
-            <TextView
-                android:id="@+id/tvToggleLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:fontFamily="@font/regular"
-                android:text="Collapse"
-                android:textColor="#8E94A2"
-                android:textSize="13sp" />
-        </LinearLayout>
+        <ImageView
+            android:id="@+id/ivToggleChevron"
+            android:layout_width="44dp"
+            android:layout_height="43dp"
+            android:contentDescription="@null"
+            android:scaleType="center"
+            android:src="@drawable/ic_chevron_double_left"
+            app:tint="@color/rail_muted"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/vToggleDivider" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- 1dp Right Rail Divider -->
@@ -76,7 +77,7 @@
         android:id="@+id/vRightDivider"
         android:layout_width="1dp"
         android:layout_height="match_parent"
-        android:background="#EFEFEF"
+        android:background="@color/rail_divider"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

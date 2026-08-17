@@ -57,6 +57,7 @@ import com.webscare.urducanvas.data.model.ExportResult
 import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.data.model.FontPanelState
 import com.webscare.urducanvas.data.model.PremiumAssetItem
+import com.webscare.urducanvas.data.model.TextStylePreset
 import com.webscare.urducanvas.di.BillingManager
 import com.webscare.urducanvas.domain.usecase.GetFontsUseCase
 import com.webscare.urducanvas.viewmodels.FontGate
@@ -1309,6 +1310,19 @@ class CanvasViewModel @Inject constructor(
         _brushHardness.value = 1f
         _currentBrushStyle.value = BrushStyle.BRUSH
         _brushColor.value = Color.BLACK
+    }
+
+    var defaultUrduFontId: String? = null
+        private set
+
+    fun fetchDefaultPreferences() {
+        viewModelScope.launch {
+            val fontId = dataStore.getFirstPreference(
+                PreferenceDataStoreKeysConstants.KEY_DEFAULT_URDU_FONT_ID,
+                ""
+            )
+            defaultUrduFontId = if (fontId.isNotBlank() && fontId != "0") fontId else null
+        }
     }
 
     fun fetchExportOptionsFromDataStore() {
@@ -3357,11 +3371,11 @@ class CanvasViewModel @Inject constructor(
                 when (type) {
                     "Shadow"  -> updated.hasShadow  = false
                     "Stroke"  -> updated.hasStroke  = false
-                    "Blur"    -> updated.hasBlur    = false
+                    "Blur"    -> { updated.hasBlur    = false; updated.isAdjustmentDirty = true }
                     "Overlay" -> updated.hasOverlay = false
-                    "Light"   -> updated.hasLight   = false
-                    "Color"   -> updated.hasColor   = false
-                    "Detail"  -> updated.hasDetail  = false
+                    "Light"   -> { updated.hasLight   = false; updated.isAdjustmentDirty = true }
+                    "Color"   -> { updated.hasColor   = false; updated.isAdjustmentDirty = true }
+                    "Detail"  -> { updated.hasDetail  = false; updated.isAdjustmentDirty = true }
                     "Feather" -> updated.hasFeather = false
                 }
                 updated.context = context
@@ -3404,12 +3418,12 @@ class CanvasViewModel @Inject constructor(
                 when (type) {
                     "Shadow"  -> { updated.hasShadow  = true; applyShadowPresets(updated) }
                     "Stroke"  -> { updated.hasStroke  = true; applyStrokePresets(updated) }
-                    "Blur"    -> { updated.hasBlur    = true; applyBlurPresets(updated) }
+                    "Blur"    -> { updated.hasBlur    = true; applyBlurPresets(updated); updated.isAdjustmentDirty = true }
                     "Overlay" -> { updated.hasOverlay = true; applyOverlayPresets(updated) }
                     "Feather" -> { updated.hasFeather = true; applyFeatherPresets(updated) }
-                    "Light"   -> updated.hasLight   = true
-                    "Color"   -> updated.hasColor   = true
-                    "Detail"  -> updated.hasDetail  = true
+                    "Light"   -> { updated.hasLight   = true; updated.isAdjustmentDirty = true }
+                    "Color"   -> { updated.hasColor   = true; updated.isAdjustmentDirty = true }
+                    "Detail"  -> { updated.hasDetail  = true; updated.isAdjustmentDirty = true }
                 }
                 updated.context = context
                 updated
@@ -3952,7 +3966,7 @@ class CanvasViewModel @Inject constructor(
             paintTextSize = scaledTextSize,
             alignment = TextAlignment.CENTER,
             paintAlpha = 255,
-            fontId = null,
+            fontId = defaultUrduFontId,
             zIndex = newZIndex
         )
 
@@ -4037,6 +4051,62 @@ class CanvasViewModel @Inject constructor(
             _currentFont.value = fontEntity
         }
 
+        notifyUndoRedoChanged()
+    }
+
+    fun addTextWithStyle(text: String, stylePreset: TextStylePreset, context: Context) {
+        val currentList = _canvasElements.value ?: emptyList()
+        val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
+        val canvasW = _canvasSize.value?.width ?: 0f
+        val canvasH = _canvasSize.value?.height ?: 0f
+        val scaledTextSize = (minOf(canvasW, canvasH) * 0.05f).coerceIn(24f, 200f)
+
+        val element = CanvasElement(
+            context = context,
+            type = ElementType.TEXT,
+            text = text,
+            x = canvasW / 2f,
+            y = canvasH / 2f,
+            paintColor = stylePreset.textColor ?: Color.BLACK,
+            fillGradient = stylePreset.textGradient,
+            strokeColor = stylePreset.strokeColor ?: Color.TRANSPARENT,
+            strokeWidth = stylePreset.strokeWidth,
+            shadowColor = stylePreset.shadowColor ?: Color.TRANSPARENT,
+            shadowRadius = stylePreset.shadowRadius,
+            shadowDx = stylePreset.shadowDx,
+            shadowDy = stylePreset.shadowDy,
+            hasLabel = stylePreset.hasLabel,
+            labelShape = stylePreset.labelShape,
+            labelColor = stylePreset.labelColor ?: Color.TRANSPARENT,
+            labelGradient = stylePreset.labelGradient,
+            labelSecondaryColor = stylePreset.labelSecondaryColor ?: Color.TRANSPARENT,
+            labelStrokeColor = stylePreset.labelStrokeColor ?: Color.TRANSPARENT,
+            labelStrokeWidth = stylePreset.labelStrokeWidth ?: 0f,
+            hasGlossHighlight = stylePreset.hasGlossHighlight,
+            hasFoldedRibbonFlaps = stylePreset.hasFoldedRibbonFlaps,
+            paintTextSize = scaledTextSize,
+            alignment = TextAlignment.CENTER,
+            paintAlpha = 255,
+            zIndex = newZIndex
+        )
+
+        element.updatePaintProperties()
+        element.originalTypeface = element.applyTypefaceFromFontList()
+        element.paint.typeface = element.applyTypefaceFromFontList()
+
+        val maxW = if (canvasW > 0f) canvasW * 0.85f else 0f
+        if (maxW > 0f && element.paint.measureText(element.getTextWithKashida()) > maxW) {
+            element.boxWidth = maxW
+        }
+        element.autoFitTextSize(canvasW, canvasH)
+
+        val action = CanvasAction.AddText(
+            text, element.copy(context = null)
+        )
+        _canvasActions.push(action)
+        _redoStack.clear()
+        _canvasElements.value = currentList + element
+        selectedElement = element
         notifyUndoRedoChanged()
     }
 

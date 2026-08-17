@@ -23,6 +23,15 @@
     <color name="tab_ripple">#E4F3E9</color>
     <color name="tab_divider">#EFEFEF</color>
 
+    <!-- Collapsible Rail colors -->
+    <color name="rail_selected_bg">#E4F3E9</color>
+    <color name="rail_selected_text">#005D28</color>
+    <color name="rail_unselected_text">#1E1E1E</color>
+    <color name="rail_muted">#8E94A2</color>
+    <color name="rail_tile_unselected">#F3F3F3</color>
+    <color name="rail_dot_disabled">#C9CFCB</color>
+    <color name="rail_divider">#EFEFEF</color>
+
     <color name="quality_high_light">#81C784</color>   <!-- Green 300 -->
     <color name="quality_medium_light">#FFD180</color> <!-- Orange 200 -->
     <color name="quality_low_light">#FF8A80</color>    <!-- Red 200 -->

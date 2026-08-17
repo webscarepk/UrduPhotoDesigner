@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/clSubCategoryRow"
+    android:layout_width="match_parent"
+    android:layout_height="30dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
+
+    <!-- Subcategory Monogram in Collapsed state (20dp) -->
+    <TextView
+        android:id="@+id/tvSubMonogram"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:background="@drawable/bg_monogram_tile"
+        android:gravity="center"
+        android:textColor="@color/rail_muted"
+        android:textSize="9sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="Ns" />
+
+    <!-- Subcategory Text Label in Expanded state (indented) -->
+    <TextView
+        android:id="@+id/tvSubLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="6dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/rail_muted"
+        android:textSize="11sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="Nastaleeq" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -26,4 +26,10 @@ object PreferenceDataStoreKeysConstants {
     val PREF_CURRENT_PLAN_ID = stringPreferencesKey("current_plan_id")
     val PREF_SUB_STATUS = stringPreferencesKey("sub_status")
     val KEY_DARK_MODE = booleanPreferencesKey("key_dark_mode")
+
+    val KEY_DEFAULT_URDU_FONT_ID = stringPreferencesKey("key_default_urdu_font_id")
+    val KEY_DEFAULT_URDU_FONT_NAME = stringPreferencesKey("key_default_urdu_font_name")
+    val KEY_HAPTIC_FEEDBACK = booleanPreferencesKey("key_haptic_feedback")
+    val KEY_SMART_SNAPPING = booleanPreferencesKey("key_smart_snapping")
+    val KEY_AUTO_SAVE_INTERVAL = stringPreferencesKey("key_auto_save_interval")
 }

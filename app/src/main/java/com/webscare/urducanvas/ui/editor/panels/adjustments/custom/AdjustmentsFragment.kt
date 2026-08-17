@@ -61,8 +61,18 @@ class AdjustmentsFragment : Fragment() {
             }
         }
 
-        binding.collapsibleRail.onCategoryToggleChangedListener = { catItem, _ ->
-            viewModel.toggleFeature(catItem.label)
+        binding.collapsibleRail.onCategoryToggleChangedListener = { catItem, isEnabled ->
+            val featureName = when (catItem.id) {
+                "light"  -> "Light"
+                "color"  -> "Color"
+                "detail" -> "Detail"
+                else     -> catItem.label
+            }
+            if (isEnabled) {
+                viewModel.enableFeature(featureName)
+            } else {
+                viewModel.disableFeature(featureName)
+            }
         }
 
         binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
