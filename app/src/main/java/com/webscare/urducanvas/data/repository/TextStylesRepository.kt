@@ -8,6 +8,7 @@ import com.webscare.urducanvas.common.canvas.enums.LabelShape
 import com.webscare.urducanvas.common.canvas.model.GradientItem
 import com.webscare.urducanvas.data.model.PresetCategory
 import com.webscare.urducanvas.data.model.TextStylePreset
+import java.io.InputStreamReader
 
 object TextStylesRepository {
 
@@ -15,391 +16,236 @@ object TextStylesRepository {
     private const val KEY_CUSTOM_STYLES = "custom_styles_list"
     private val gson = Gson()
 
-    private val builtInPresets: MutableList<TextStylePreset> = mutableListOf()
+    private val cachedPresets: MutableList<TextStylePreset> = mutableListOf()
+    private var isLoadedFromJson = false
 
-    init {
-        buildPresetLibrary()
+    private data class TextStylePresetJson(
+        val id: String = "",
+        val name: String = "",
+        val category: String = "THREE_D",
+        val textColor: String? = null,
+        val textGradientColors: List<String>? = null,
+        val textGradientPositions: List<Float>? = null,
+        val textGradientAngle: Float = 90f,
+        val strokeColor: String? = null,
+        val strokeWidth: Float = 0f,
+        val hasUnderStroke: Boolean = false,
+        val underStrokeColor: String? = null,
+        val underStrokeWidth: Float = 0f,
+        // 3D Extrusion
+        val has3dExtrude: Boolean = false,
+        val extrudeColor: String? = null,
+        val extrudeDepth: Float = 0f,
+        val extrudeDx: Float = 4f,
+        val extrudeDy: Float = 4f,
+        // Double Extrude
+        val hasDoubleExtrude: Boolean = false,
+        val extrudeStep2Color: String? = null,
+        val extrudeStep2Depth: Float = 0f,
+        val extrudeStep2Dx: Float = 8f,
+        val extrudeStep2Dy: Float = 8f,
+        // Anaglyph 3D
+        val hasAnaglyph: Boolean = false,
+        val anaglyphOffset: Float = 4f,
+        val anaglyphColor1: String? = null,
+        val anaglyphColor2: String? = null,
+        // 3D Bevel
+        val hasBevel: Boolean = false,
+        val bevelHighlightColor: String? = null,
+        val bevelShadowColor: String? = null,
+        val bevelDepth: Float = 2.5f,
+        // 3D Emboss
+        val hasEmboss: Boolean = false,
+        val isDebossed: Boolean = false,
+        val embossDepth: Float = 2.0f,
+        val embossHighlightColor: String? = null,
+        val embossShadowColor: String? = null,
+        // Outer & Inner Glow
+        val hasOuterGlow: Boolean = false,
+        val outerGlowColor: String? = null,
+        val outerGlowRadius: Float = 12f,
+        val outerGlowOpacity: Int = 255,
+        val hasInnerGlow: Boolean = false,
+        val innerGlowColor: String? = null,
+        val innerGlowRadius: Float = 6f,
+        val innerGlowOpacity: Int = 255,
+        // Shadow
+        val shadowColor: String? = null,
+        val shadowRadius: Float = 0f,
+        val shadowDx: Float = 0f,
+        val shadowDy: Float = 0f,
+        val shadowOpacity: Int = 255,
+        // Label
+        val hasLabel: Boolean = false,
+        val labelShape: String? = null,
+        val labelColor: String? = null,
+        val labelGradientColors: List<String>? = null,
+        val labelSecondaryColor: String? = null,
+        val labelStrokeColor: String? = null,
+        val labelStrokeWidth: Float = 0f,
+        val hasGlossHighlight: Boolean = false,
+        val hasFoldedRibbonFlaps: Boolean = false
+    )
+
+    @Synchronized
+    private fun ensurePresetsLoaded(context: Context) {
+        if (isLoadedFromJson && cachedPresets.isNotEmpty()) return
+
+        cachedPresets.clear()
+        try {
+            context.assets.open("presets/text_styles.json").use { inputStream ->
+                val reader = InputStreamReader(inputStream)
+                val type = object : TypeToken<List<TextStylePresetJson>>() {}.type
+                val rawList: List<TextStylePresetJson>? = gson.fromJson(reader, type)
+
+                if (!rawList.isNullOrEmpty()) {
+                    val parsedList = rawList.map { item ->
+                        val textGradient = if (!item.textGradientColors.isNullOrEmpty()) {
+                            val colors = item.textGradientColors.mapNotNull { parseColorSafe(it) }
+                            val positions = item.textGradientPositions ?: if (colors.size == 2) listOf(0f, 1f) else listOf(0f, 0.5f, 1f)
+                            GradientItem(
+                                colors = colors,
+                                positions = positions,
+                                angle = item.textGradientAngle
+                            )
+                        } else null
+
+                        val labelGradient = if (!item.labelGradientColors.isNullOrEmpty()) {
+                            val colors = item.labelGradientColors.mapNotNull { parseColorSafe(it) }
+                            val positions = if (colors.size == 2) listOf(0f, 1f) else listOf(0f, 0.5f, 1f)
+                            GradientItem(
+                                colors = colors,
+                                positions = positions,
+                                angle = 90f
+                            )
+                        } else null
+
+                        TextStylePreset(
+                            id = item.id,
+                            name = item.name,
+                            category = parseCategorySafe(item.category),
+                            textColor = parseColorSafe(item.textColor),
+                            textGradient = textGradient,
+                            strokeColor = parseColorSafe(item.strokeColor),
+                            strokeWidth = item.strokeWidth,
+                            hasUnderStroke = item.hasUnderStroke,
+                            underStrokeColor = parseColorSafe(item.underStrokeColor),
+                            underStrokeWidth = item.underStrokeWidth,
+                            has3dExtrude = item.has3dExtrude,
+                            extrudeColor = parseColorSafe(item.extrudeColor),
+                            extrudeDepth = item.extrudeDepth,
+                            extrudeDx = item.extrudeDx,
+                            extrudeDy = item.extrudeDy,
+                            hasDoubleExtrude = item.hasDoubleExtrude,
+                            extrudeStep2Color = parseColorSafe(item.extrudeStep2Color),
+                            extrudeStep2Depth = item.extrudeStep2Depth,
+                            extrudeStep2Dx = item.extrudeStep2Dx,
+                            extrudeStep2Dy = item.extrudeStep2Dy,
+                            hasAnaglyph = item.hasAnaglyph,
+                            anaglyphOffset = item.anaglyphOffset,
+                            anaglyphColor1 = parseColorSafe(item.anaglyphColor1),
+                            anaglyphColor2 = parseColorSafe(item.anaglyphColor2),
+                            hasBevel = item.hasBevel,
+                            bevelHighlightColor = parseColorSafe(item.bevelHighlightColor),
+                            bevelShadowColor = parseColorSafe(item.bevelShadowColor),
+                            bevelDepth = item.bevelDepth,
+                            hasEmboss = item.hasEmboss,
+                            isDebossed = item.isDebossed,
+                            embossDepth = item.embossDepth,
+                            embossHighlightColor = parseColorSafe(item.embossHighlightColor),
+                            embossShadowColor = parseColorSafe(item.embossShadowColor),
+                            hasOuterGlow = item.hasOuterGlow,
+                            outerGlowColor = parseColorSafe(item.outerGlowColor),
+                            outerGlowRadius = item.outerGlowRadius,
+                            outerGlowOpacity = item.outerGlowOpacity,
+                            hasInnerGlow = item.hasInnerGlow,
+                            innerGlowColor = parseColorSafe(item.innerGlowColor),
+                            innerGlowRadius = item.innerGlowRadius,
+                            innerGlowOpacity = item.innerGlowOpacity,
+                            shadowColor = parseColorSafe(item.shadowColor),
+                            shadowRadius = item.shadowRadius,
+                            shadowDx = item.shadowDx,
+                            shadowDy = item.shadowDy,
+                            shadowOpacity = item.shadowOpacity,
+                            hasLabel = item.hasLabel,
+                            labelShape = parseShapeSafe(item.labelShape),
+                            labelColor = parseColorSafe(item.labelColor) ?: Color.TRANSPARENT,
+                            labelGradient = labelGradient,
+                            labelSecondaryColor = parseColorSafe(item.labelSecondaryColor),
+                            labelStrokeColor = parseColorSafe(item.labelStrokeColor),
+                            labelStrokeWidth = item.labelStrokeWidth,
+                            hasGlossHighlight = item.hasGlossHighlight,
+                            hasFoldedRibbonFlaps = item.hasFoldedRibbonFlaps
+                        )
+                    }
+                    cachedPresets.addAll(parsedList)
+                    isLoadedFromJson = true
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
-    private fun buildPresetLibrary() {
-        builtInPresets.clear()
+    private fun parseColorSafe(colorStr: String?): Int? {
+        if (colorStr.isNullOrBlank()) return null
+        return try {
+            Color.parseColor(colorStr.trim())
+        } catch (e: Exception) {
+            null
+        }
+    }
 
-        // -------------------------------------------------------------
-        // 1. MINIMAL (Pastel pills, subtle outlines, soft highlights)
-        // -------------------------------------------------------------
-        val minimalColors = listOf(
-            0xFFE8F5E9.toInt(), 0xFFFFF3E0.toInt(), 0xFFE1F5FE.toInt(), 0xFFF3E5F5.toInt(),
-            0xFFFCE4EC.toInt(), 0xFFFFFDE7.toInt(), 0xFFE0F2F1.toInt(), 0xFFF1F8E9.toInt(),
-            0xFFEDE7F6.toInt(), 0xFFEFEBE9.toInt(), 0xFFECEFF1.toInt(), 0xFFFAFAFA.toInt(),
-            0xFFF5F5F5.toInt(), 0xFFE8EAF6.toInt(), 0xFFE0F7FA.toInt(), 0xFFFBE9E7.toInt(),
-            0xFFE0F2F1.toInt(), 0xFFF9FBE7.toInt(), 0xFFEFEBE9.toInt(), 0xFFE1BEE7.toInt(),
-            0xFFC8E6C9.toInt(), 0xFFFFECB3.toInt(), 0xFFB3E5FC.toInt(), 0xFFFFCDD2.toInt()
-        )
-        val minimalTextColors = listOf(
-            0xFF2E7D32.toInt(), 0xFFE65100.toInt(), 0xFF0277BD.toInt(), 0xFF6A1B9A.toInt(),
-            0xFFC2185B.toInt(), 0xFFF57F17.toInt(), 0xFF00695C.toInt(), 0xFF33691E.toInt(),
-            0xFF4527A0.toInt(), 0xFF4E342E.toInt(), 0xFF37474F.toInt(), 0xFF212121.toInt(),
-            0xFF424242.toInt(), 0xFF283593.toInt(), 0xFF00838F.toInt(), 0xFFD84315.toInt(),
-            0xFF004D40.toInt(), 0xFF827717.toInt(), 0xFF3E2723.toInt(), 0xFF4A148C.toInt(),
-            0xFF1B5E20.toInt(), 0xFFFF6F00.toInt(), 0xFF01579B.toInt(), 0xFFB71C1C.toInt()
-        )
+    private fun parseShapeSafe(shapeStr: String?): LabelShape {
+        if (shapeStr.isNullOrBlank()) return LabelShape.ROUNDED_RECTANGLE_FILL
+        return try {
+            LabelShape.valueOf(shapeStr.trim())
+        } catch (e: Exception) {
+            LabelShape.ROUNDED_RECTANGLE_FILL
+        }
+    }
 
-        for (i in minimalColors.indices) {
-            val shape = when (i % 4) {
-                0 -> LabelShape.CAPSULE_FILL
-                1 -> LabelShape.ROUNDED_RECTANGLE_FILL
-                2 -> LabelShape.CAPSULE_STROKE
-                else -> LabelShape.ROUNDED_RECTANGLE_STROKE
+    private fun parseCategorySafe(catStr: String?): PresetCategory {
+        if (catStr.isNullOrBlank()) return PresetCategory.THREE_D
+        return try {
+            val upper = catStr.trim().uppercase()
+            when (upper) {
+                "3D", "THREE_D" -> PresetCategory.THREE_D
+                "LAYERS", "LAYERED_3D" -> PresetCategory.LAYERS
+                "EMBOSS", "EMBOSSED", "DEBOSSED" -> PresetCategory.EMBOSS
+                "PERSPECTIVE", "ISOMETRIC" -> PresetCategory.PERSPECTIVE
+                "CALLIGRAPHY" -> PresetCategory.CALLIGRAPHY
+                "PAKISTAN", "PATRIOTIC" -> PresetCategory.PATRIOTIC
+                "NEON", "NEON_GLOW" -> PresetCategory.NEON
+                "GOLD", "METALLIC_3D" -> PresetCategory.GOLD
+                "BADGES", "BADGES_SALE" -> PresetCategory.BADGES
+                "RIBBONS", "RIBBONS_BANNERS" -> PresetCategory.RIBBONS
+                "MINIMAL" -> PresetCategory.MINIMAL
+                "MODERN" -> PresetCategory.MODERN
+                "DARK", "DARK_CONTRAST" -> PresetCategory.DARK
+                else -> PresetCategory.valueOf(upper)
             }
-            val isStroke = shape == LabelShape.CAPSULE_STROKE || shape == LabelShape.ROUNDED_RECTANGLE_STROKE
-            builtInPresets.add(
-                TextStylePreset(
-                    id = "min_$i",
-                    name = "Minimal ${i + 1}",
-                    category = PresetCategory.MINIMAL,
-                    textColor = minimalTextColors[i],
-                    hasLabel = true,
-                    labelShape = shape,
-                    labelColor = if (isStroke) Color.TRANSPARENT else minimalColors[i],
-                    labelStrokeColor = if (isStroke) minimalTextColors[i] else Color.TRANSPARENT,
-                    labelStrokeWidth = if (isStroke) 1.5f else 0f
-                )
-            )
-        }
-
-        // -------------------------------------------------------------
-        // 2. MODERN (Vibrant flat pills, slanted parallelograms, bold tags)
-        // -------------------------------------------------------------
-        val modernPalettes = listOf(
-            Pair(0xFFFF5722.toInt(), Color.WHITE),
-            Pair(0xFF00BCD4.toInt(), Color.WHITE),
-            Pair(0xFF8BC34A.toInt(), Color.BLACK),
-            Pair(0xFFFFEB3B.toInt(), Color.BLACK),
-            Pair(0xFF9C27B0.toInt(), Color.WHITE),
-            Pair(0xFF3F51B5.toInt(), Color.WHITE),
-            Pair(0xFFFF4081.toInt(), Color.WHITE),
-            Pair(0xFF00E676.toInt(), Color.BLACK),
-            Pair(0xFFFF9100.toInt(), Color.WHITE),
-            Pair(0xFF651FFF.toInt(), Color.WHITE),
-            Pair(0xFF00B0FF.toInt(), Color.WHITE),
-            Pair(0xFF1DE9B6.toInt(), Color.BLACK),
-            Pair(0xFFFFC400.toInt(), Color.BLACK),
-            Pair(0xFFFF3D00.toInt(), Color.WHITE),
-            Pair(0xFFE040FB.toInt(), Color.WHITE),
-            Pair(0xFF76FF03.toInt(), Color.BLACK),
-            Pair(0xFF2979FF.toInt(), Color.WHITE),
-            Pair(0xFFFF1744.toInt(), Color.WHITE),
-            Pair(0xFF00E5FF.toInt(), Color.BLACK),
-            Pair(0xFFD500F9.toInt(), Color.WHITE),
-            Pair(0xFFAEEA00.toInt(), Color.BLACK),
-            Pair(0xFFFF6D00.toInt(), Color.WHITE),
-            Pair(0xFF304FFE.toInt(), Color.WHITE),
-            Pair(0xFF00BFA5.toInt(), Color.WHITE)
-        )
-
-        val modernShapes = listOf(
-            LabelShape.CAPSULE_FILL, LabelShape.SLANTED_FILL, LabelShape.TAG_FILL,
-            LabelShape.REVERSE_TAG_FILL, LabelShape.ROUNDED_RECTANGLE_FILL, LabelShape.BADGE_FILL,
-            LabelShape.HEXAGON_BADGE_FILL, LabelShape.DIAMOND_SHIELD_FILL
-        )
-
-        for (i in modernPalettes.indices) {
-            val (bg, txt) = modernPalettes[i]
-            builtInPresets.add(
-                TextStylePreset(
-                    id = "mod_$i",
-                    name = "Modern ${i + 1}",
-                    category = PresetCategory.MODERN,
-                    textColor = txt,
-                    hasLabel = true,
-                    labelShape = modernShapes[i % modernShapes.size],
-                    labelColor = bg
-                )
-            )
-        }
-
-        // -------------------------------------------------------------
-        // 3. BADGES & SALE (Glossy 3D commercial buttons with white border)
-        // -------------------------------------------------------------
-        val badgeGradients = listOf(
-            GradientItem(colors = listOf(Color.parseColor("#D50000"), Color.parseColor("#8E0000")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#AA00FF"), Color.parseColor("#4A148C")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#00C853"), Color.parseColor("#1B5E20")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#2979FF"), Color.parseColor("#0D47A1")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#FF6D00"), Color.parseColor("#BF360C")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#FFD600"), Color.parseColor("#FF6F00")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#FF1744"), Color.parseColor("#880E4F")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#00BFA5"), Color.parseColor("#004D40")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#00E5FF"), Color.parseColor("#006064")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#AEEA00"), Color.parseColor("#33691E")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#6200EA"), Color.parseColor("#311B92")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#FFAB00"), Color.parseColor("#E65100")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#FF6E40"), Color.parseColor("#D84315")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#3D5AFE"), Color.parseColor("#1A237E")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#00E676"), Color.parseColor("#004D40")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#FF5252"), Color.parseColor("#B71C1C")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#E040FB"), Color.parseColor("#7B1FA2")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#40C4FF"), Color.parseColor("#0288D1")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#69F0AE"), Color.parseColor("#00796B")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#FFD740"), Color.parseColor("#FF8F00")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#FF80AB"), Color.parseColor("#C51162")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#7C4DFF"), Color.parseColor("#304FFE")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#18FFFF"), Color.parseColor("#00B0FF")), positions = listOf(0f, 1f), angle = 90f),
-            GradientItem(colors = listOf(Color.parseColor("#B2FF59"), Color.parseColor("#64DD17")), positions = listOf(0f, 1f), angle = 90f)
-        )
-
-        val badgeShapes = listOf(
-            LabelShape.CAPSULE_FILL, LabelShape.ROUNDED_RECTANGLE_FILL, LabelShape.TAG_FILL,
-            LabelShape.SLANTED_FILL, LabelShape.BADGE_FILL, LabelShape.HEXAGON_BADGE_FILL
-        )
-
-        for (i in badgeGradients.indices) {
-            builtInPresets.add(
-                TextStylePreset(
-                    id = "badge_$i",
-                    name = "Sale Badge ${i + 1}",
-                    category = PresetCategory.BADGES_SALE,
-                    textColor = Color.WHITE,
-                    shadowColor = Color.argb(120, 0, 0, 0),
-                    shadowRadius = 8f,
-                    shadowDy = 4f,
-                    hasLabel = true,
-                    labelShape = badgeShapes[i % badgeShapes.size],
-                    labelGradient = badgeGradients[i],
-                    labelStrokeColor = Color.WHITE,
-                    labelStrokeWidth = 3f,
-                    hasGlossHighlight = true
-                )
-            )
-        }
-
-        // -------------------------------------------------------------
-        // 4. RIBBONS & BANNERS (Folded paper ribbons with dark tails)
-        // -------------------------------------------------------------
-        val ribbonCombos = listOf(
-            Pair(0xFFFFC107.toInt(), 0xFF8D6E63.toInt()), // Yellow main + Dark Brown tail
-            Pair(0xFF03A9F4.toInt(), 0xFF1565C0.toInt()), // Blue main + Dark Blue tail
-            Pair(0xFFE91E63.toInt(), 0xFF880E4F.toInt()), // Pink main + Dark Crimson tail
-            Pair(0xFF4CAF50.toInt(), 0xFF1B5E20.toInt()), // Green main + Dark Emerald tail
-            Pair(0xFFFF5722.toInt(), 0xFFBF360C.toInt()), // Orange main + Dark Burnt tail
-            Pair(0xFF9C27B0.toInt(), 0xFF4A148C.toInt()), // Purple main + Dark Violet tail
-            Pair(0xFF00BCD4.toInt(), 0xFF006064.toInt()), // Cyan main + Dark Cyan tail
-            Pair(0xFFFF9800.toInt(), 0xFFE65100.toInt()), // Amber main + Dark Amber tail
-            Pair(0xFF673AB7.toInt(), 0xFF311B92.toInt()), // Deep Purple main + Dark Indigo tail
-            Pair(0xFFF44336.toInt(), 0xFFB71C1C.toInt()), // Red main + Dark Red tail
-            Pair(0xFF009688.toInt(), 0xFF004D40.toInt()), // Teal main + Dark Teal tail
-            Pair(0xFF8BC34A.toInt(), 0xFF33691E.toInt()), // Light Green main + Dark Green tail
-            Pair(0xFFFF4081.toInt(), 0xFFC2185B.toInt()), // Hot Pink main + Dark Pink tail
-            Pair(0xFF7C4DFF.toInt(), 0xFF311B92.toInt()), // Violet main + Deep Purple tail
-            Pair(0xFFFFAB00.toInt(), 0xFFFF6F00.toInt()), // Gold main + Orange tail
-            Pair(0xFF26A69A.toInt(), 0xFF004D40.toInt()), // Mint main + Deep Teal tail
-            Pair(0xFFEC407A.toInt(), 0xFF880E4F.toInt()), // Rose main + Wine tail
-            Pair(0xFFAB47BC.toInt(), 0xFF4A148C.toInt()), // Orchid main + Purple tail
-            Pair(0xFF5C6BC0.toInt(), 0xFF1A237E.toInt()), // Denim main + Navy tail
-            Pair(0xFF42A5F5.toInt(), 0xFF0D47A1.toInt()), // Sky main + Cobalt tail
-            Pair(0xFF26C6DA.toInt(), 0xFF006064.toInt()), // Turquoise main + Dark Turquoise tail
-            Pair(0xFF66BB6A.toInt(), 0xFF1B5E20.toInt()), // Emerald main + Forest tail
-            Pair(0xFFFFA726.toInt(), 0xFFE65100.toInt()), // Tangerine main + Russet tail
-            Pair(0xFFFF7043.toInt(), 0xFFBF360C.toInt())  // Coral main + Mahogany tail
-        )
-
-        for (i in ribbonCombos.indices) {
-            val (mainC, secC) = ribbonCombos[i]
-            builtInPresets.add(
-                TextStylePreset(
-                    id = "ribbon_$i",
-                    name = "Ribbon Banner ${i + 1}",
-                    category = PresetCategory.RIBBONS_BANNERS,
-                    textColor = Color.WHITE,
-                    shadowColor = Color.argb(100, 0, 0, 0),
-                    shadowRadius = 6f,
-                    shadowDy = 3f,
-                    hasLabel = true,
-                    labelShape = LabelShape.RIBBON_FILL,
-                    labelColor = mainC,
-                    labelSecondaryColor = secC,
-                    hasFoldedRibbonFlaps = true
-                )
-            )
-        }
-
-        // -------------------------------------------------------------
-        // 5. NEON & GLOW (Electric outlines, glowing text shadows)
-        // -------------------------------------------------------------
-        val neonColors = listOf(
-            0xFF00E5FF.toInt(), 0xFFFF007F.toInt(), 0xFF39FF14.toInt(), 0xFFFFE600.toInt(),
-            0xFFBF00FF.toInt(), 0xFFFF3503.toInt(), 0xFF00FFCC.toInt(), 0xFFFF00D4.toInt(),
-            0xFF00FF66.toInt(), 0xFFFFF000.toInt(), 0xFF9D00FF.toInt(), 0xFFFF6600.toInt(),
-            0xFF00F0FF.toInt(), 0xFFFF0055.toInt(), 0xFF66FF00.toInt(), 0xFFFF1493.toInt(),
-            0xFF00FFFF.toInt(), 0xFF76FF03.toInt(), 0xFFFF4500.toInt(), 0xFFE040FB.toInt(),
-            0xFF1DE9B6.toInt(), 0xFFFFD700.toInt(), 0xFF651FFF.toInt(), 0xFFFF0033.toInt()
-        )
-
-        for (i in neonColors.indices) {
-            builtInPresets.add(
-                TextStylePreset(
-                    id = "neon_$i",
-                    name = "Neon Glow ${i + 1}",
-                    category = PresetCategory.NEON_GLOW,
-                    textColor = Color.WHITE,
-                    strokeColor = neonColors[i],
-                    strokeWidth = 3f,
-                    shadowColor = neonColors[i],
-                    shadowRadius = 20f,
-                    hasLabel = i % 2 == 0,
-                    labelShape = LabelShape.CAPSULE_STROKE,
-                    labelColor = neonColors[i]
-                )
-            )
-        }
-
-        // -------------------------------------------------------------
-        // 6. 3D & METALLIC (Gold/silver fills, extruded 3D shadows)
-        // -------------------------------------------------------------
-        val metallicGradients = listOf(
-            GradientItem(colors = listOf(Color.parseColor("#FFE082"), Color.parseColor("#FFB300"), Color.parseColor("#FF8F00")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#FFFFFF"), Color.parseColor("#B0BEC5"), Color.parseColor("#78909C")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#FFCC80"), Color.parseColor("#FB8C00"), Color.parseColor("#E65100")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#F8BBD0"), Color.parseColor("#F06292"), Color.parseColor("#C2185B")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#ECEFF1"), Color.parseColor("#CFD8DC"), Color.parseColor("#90A4AE")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#A7F3D0"), Color.parseColor("#10B981"), Color.parseColor("#047857")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#FCA5A5"), Color.parseColor("#EF4444"), Color.parseColor("#B91C1C")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#93C5FD"), Color.parseColor("#3B82F6"), Color.parseColor("#1D4ED8")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#D8B4FE"), Color.parseColor("#A855F7"), Color.parseColor("#6B21A8")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#FFD8A8"), Color.parseColor("#FF922B"), Color.parseColor("#D9480F")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#FFF9C4"), Color.parseColor("#FBC02D"), Color.parseColor("#F57F17")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#E2E8F0"), Color.parseColor("#94A3B8"), Color.parseColor("#475569")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#FFFF00"), Color.parseColor("#FFD700"), Color.parseColor("#FF8C00")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#FFD54F"), Color.parseColor("#FF8A65"), Color.parseColor("#E53935")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#80DEEA"), Color.parseColor("#26C6DA"), Color.parseColor("#00838F")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#FFF176"), Color.parseColor("#FDD835"), Color.parseColor("#F57F17")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#B388FF"), Color.parseColor("#7C4DFF"), Color.parseColor("#651FFF")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#84FFFF"), Color.parseColor("#18FFFF"), Color.parseColor("#00E5FF")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#CCFF90"), Color.parseColor("#76FF03"), Color.parseColor("#64DD17")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#FF8A80"), Color.parseColor("#FF5252"), Color.parseColor("#FF1744")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#FFD180"), Color.parseColor("#FFA726"), Color.parseColor("#FF6D00")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#EA80FC"), Color.parseColor("#E040FB"), Color.parseColor("#D500F9")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#82B1FF"), Color.parseColor("#448AFF"), Color.parseColor("#2979FF")), positions = listOf(0f, 0.5f, 1f), angle = 45f),
-            GradientItem(colors = listOf(Color.parseColor("#A7FFEB"), Color.parseColor("#64FFDA"), Color.parseColor("#1DE9B6")), positions = listOf(0f, 0.5f, 1f), angle = 45f)
-        )
-
-        for (i in metallicGradients.indices) {
-            builtInPresets.add(
-                TextStylePreset(
-                    id = "metal_$i",
-                    name = "3D Metallic ${i + 1}",
-                    category = PresetCategory.METALLIC_3D,
-                    textGradient = metallicGradients[i],
-                    strokeColor = Color.BLACK,
-                    strokeWidth = 2f,
-                    shadowColor = Color.argb(180, 0, 0, 0),
-                    shadowRadius = 4f,
-                    shadowDx = 6f,
-                    shadowDy = 6f,
-                    hasLabel = true,
-                    labelShape = LabelShape.ROUNDED_RECTANGLE_FILL,
-                    labelColor = Color.argb(220, 20, 20, 20)
-                )
-            )
-        }
-
-        // -------------------------------------------------------------
-        // 7. CALLIGRAPHY & TRADITIONAL (Urdu poetry quote banners)
-        // -------------------------------------------------------------
-        val calligraphyBgs = listOf(
-            Pair(0xFF800000.toInt(), 0xFFFFD700.toInt()), // Crimson + Gold text
-            Pair(0xFF004D40.toInt(), 0xFFE0F2F1.toInt()), // Deep Emerald + Cream text
-            Pair(0xFF1A237E.toInt(), 0xFFFFD700.toInt()), // Royal Indigo + Gold text
-            Pair(0xFF3E2723.toInt(), 0xFFFFECB3.toInt()), // Dark Walnut + Amber text
-            Pair(0xFF263238.toInt(), 0xFF00E676.toInt()), // Charcoal + Mint Green text
-            Pair(0xFF4A148C.toInt(), 0xFFFFD700.toInt()), // Deep Purple + Gold text
-            Pair(0xFF880E4F.toInt(), 0xFFF8BBD0.toInt()), // Royal Maroon + Rose text
-            Pair(0xFF006064.toInt(), 0xFFE0F7FA.toInt()), // Deep Teal + Soft Cyan text
-            Pair(0xFFBF360C.toInt(), 0xFFFFE0B2.toInt()), // Deep Terracotta + Cream text
-            Pair(0xFF311B92.toInt(), 0xFFD1C4E9.toInt()), // Imperial Violet + Lavender text
-            Pair(0xFF1B5E20.toInt(), 0xFFFFD700.toInt()), // Forest Green + Gold text
-            Pair(0xFF0D47A1.toInt(), 0xFFBBDEFB.toInt()), // Imperial Blue + Soft Blue text
-            Pair(0xFF4E342E.toInt(), 0xFFFFF8E1.toInt()), // Chocolate + Ivory text
-            Pair(0xFF212121.toInt(), 0xFFFFD700.toInt()), // Obsidian + Gold text
-            Pair(0xFF004D40.toInt(), 0xFFFFD700.toInt()), // Deep Emerald + Gold text
-            Pair(0xFF880E4F.toInt(), 0xFFFFD700.toInt()), // Maroon + Gold text
-            Pair(0xFF37474F.toInt(), 0xFFFFE082.toInt()), // Slate + Gold text
-            Pair(0xFF1B5E20.toInt(), 0xFFE8F5E9.toInt()), // Emerald + Mint text
-            Pair(0xFF4A148C.toInt(), 0xFFE1BEE7.toInt()), // Violet + Lavender text
-            Pair(0xFF3E2723.toInt(), 0xFFFFCC80.toInt()), // Walnut + Apricot text
-            Pair(0xFF004D40.toInt(), 0xFF80CBC4.toInt()), // Teal + Light Teal text
-            Pair(0xFF800000.toInt(), 0xFFFFECB3.toInt()), // Wine + Champagne text
-            Pair(0xFF1A237E.toInt(), 0xFF90CAF9.toInt()), // Navy + Ice Blue text
-            Pair(0xFF212121.toInt(), 0xFF00E676.toInt())  // Obsidian + Neon Green text
-        )
-
-        for (i in calligraphyBgs.indices) {
-            val (bg, txt) = calligraphyBgs[i]
-            builtInPresets.add(
-                TextStylePreset(
-                    id = "cal_$i",
-                    name = "Calligraphy ${i + 1}",
-                    category = PresetCategory.CALLIGRAPHY,
-                    textColor = txt,
-                    shadowColor = Color.argb(120, 0, 0, 0),
-                    shadowRadius = 4f,
-                    shadowDy = 2f,
-                    hasLabel = true,
-                    labelShape = if (i % 2 == 0) LabelShape.RIBBON_FILL else LabelShape.ROUNDED_RECTANGLE_FILL,
-                    labelColor = bg,
-                    labelStrokeColor = txt,
-                    labelStrokeWidth = 2f
-                )
-            )
-        }
-
-        // -------------------------------------------------------------
-        // 8. DARK & HIGH CONTRAST (Midnight black pills with neon text)
-        // -------------------------------------------------------------
-        val darkTextColors = listOf(
-            0xFF00FF66.toInt(), 0xFFFFE600.toInt(), 0xFF00E5FF.toInt(), 0xFFFF007F.toInt(),
-            0xFF39FF14.toInt(), 0xFFBF00FF.toInt(), 0xFFFF9100.toInt(), 0xFF00B0FF.toInt(),
-            0xFFFF3D00.toInt(), 0xFF1DE9B6.toInt(), 0xFFFFC400.toInt(), 0xFFE040FB.toInt(),
-            0xFFFF6E40.toInt(), 0xFF00E676.toInt(), 0xFFFFFF00.toInt(), 0xFFFF1744.toInt(),
-            0xFF76FF03.toInt(), 0xFF00E5FF.toInt(), 0xFFFF0055.toInt(), 0xFFAEEA00.toInt(),
-            0xFFD500F9.toInt(), 0xFF00BFA5.toInt(), 0xFFFFAB00.toInt(), 0xFF2979FF.toInt()
-        )
-
-        for (i in darkTextColors.indices) {
-            builtInPresets.add(
-                TextStylePreset(
-                    id = "dark_$i",
-                    name = "Dark Contrast ${i + 1}",
-                    category = PresetCategory.DARK_CONTRAST,
-                    textColor = darkTextColors[i],
-                    hasLabel = true,
-                    labelShape = when (i % 3) {
-                        0 -> LabelShape.CAPSULE_FILL
-                        1 -> LabelShape.SLANTED_FILL
-                        else -> LabelShape.HEXAGON_BADGE_FILL
-                    },
-                    labelColor = 0xFF121212.toInt(),
-                    labelStrokeColor = darkTextColors[i],
-                    labelStrokeWidth = 2f
-                )
-            )
+        } catch (e: Exception) {
+            PresetCategory.THREE_D
         }
     }
 
     fun getAllPresets(context: Context): List<TextStylePreset> {
+        ensurePresetsLoaded(context)
         val custom = getCustomUserSavedStyles(context)
-        return custom + builtInPresets
+        return custom + cachedPresets
     }
 
     fun getPresetsByCategory(category: PresetCategory, context: Context): List<TextStylePreset> {
         if (category == PresetCategory.MY_STYLES) {
             return getCustomUserSavedStyles(context)
         }
-        return builtInPresets.filter { it.category == category }
+        ensurePresetsLoaded(context)
+        return cachedPresets.filter { it.category == category }
     }
 
     // -------------------------------------------------------------
-    // USER CUSTOM STYLES PERSISTENCE (Like custom gradients)
+    // USER CUSTOM STYLES PERSISTENCE
     // -------------------------------------------------------------
     fun getCustomUserSavedStyles(context: Context): List<TextStylePreset> {
         val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -426,6 +272,30 @@ object TextStylesRepository {
         if (p1.textColor != p2.textColor) return false
         if (p1.strokeColor != p2.strokeColor) return false
         if (p1.strokeWidth != p2.strokeWidth) return false
+        if (p1.hasUnderStroke != p2.hasUnderStroke) return false
+        if (p1.underStrokeColor != p2.underStrokeColor) return false
+        if (p1.underStrokeWidth != p2.underStrokeWidth) return false
+        if (p1.has3dExtrude != p2.has3dExtrude) return false
+        if (p1.extrudeColor != p2.extrudeColor) return false
+        if (p1.extrudeDepth != p2.extrudeDepth) return false
+        if (p1.hasDoubleExtrude != p2.hasDoubleExtrude) return false
+        if (p1.extrudeStep2Color != p2.extrudeStep2Color) return false
+        if (p1.extrudeStep2Depth != p2.extrudeStep2Depth) return false
+        if (p1.hasAnaglyph != p2.hasAnaglyph) return false
+        if (p1.anaglyphOffset != p2.anaglyphOffset) return false
+        if (p1.hasBevel != p2.hasBevel) return false
+        if (p1.bevelDepth != p2.bevelDepth) return false
+        if (p1.hasEmboss != p2.hasEmboss) return false
+        if (p1.isDebossed != p2.isDebossed) return false
+        if (p1.embossDepth != p2.embossDepth) return false
+        if (p1.hasOuterGlow != p2.hasOuterGlow) return false
+        if (p1.outerGlowColor != p2.outerGlowColor) return false
+        if (p1.outerGlowRadius != p2.outerGlowRadius) return false
+        if (p1.outerGlowOpacity != p2.outerGlowOpacity) return false
+        if (p1.hasInnerGlow != p2.hasInnerGlow) return false
+        if (p1.innerGlowColor != p2.innerGlowColor) return false
+        if (p1.innerGlowRadius != p2.innerGlowRadius) return false
+        if (p1.innerGlowOpacity != p2.innerGlowOpacity) return false
         if (p1.shadowColor != p2.shadowColor) return false
         if (p1.shadowRadius != p2.shadowRadius) return false
         if (p1.shadowDx != p2.shadowDx) return false
@@ -452,13 +322,13 @@ object TextStylesRepository {
         if (g1 == null && g2 == null) return true
         if (g1 == null || g2 == null) return false
         return g1.colors == g2.colors &&
-               g1.positions == g2.positions &&
-               g1.angle == g2.angle &&
-               g1.scale == g2.scale &&
-               g1.type == g2.type &&
-               g1.radialRadiusFactor == g2.radialRadiusFactor &&
-               g1.sweepStartAngle == g2.sweepStartAngle &&
-               g1.centerX == g2.centerX &&
-               g1.centerY == g2.centerY
+                g1.positions == g2.positions &&
+                g1.angle == g2.angle &&
+                g1.scale == g2.scale &&
+                g1.type == g2.type &&
+                g1.radialRadiusFactor == g2.radialRadiusFactor &&
+                g1.sweepStartAngle == g2.sweepStartAngle &&
+                g1.centerX == g2.centerX &&
+                g1.centerY == g2.centerY
     }
 }

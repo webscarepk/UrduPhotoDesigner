@@ -386,6 +386,7 @@ class CanvasView @JvmOverloads constructor(
         style = Paint.Style.FILL
     }
 
+    var isSmartSnappingEnabled: Boolean = true
     data class SnapLine(val position: Float, val isHorizontal: Boolean)
 
     private val activeSnapLines = mutableListOf<SnapLine>()
@@ -1785,6 +1786,11 @@ class CanvasView @JvmOverloads constructor(
      * and sets the rotation alignment guide flags accordingly.
      */
     private fun checkRotationAlignment(element: CanvasElement) {
+        if (!isSmartSnappingEnabled) {
+            showRotationVerticalGuide = false
+            showRotationHorizontalGuide = false
+            return
+        }
         val rotationThreshold = 5f
         val normalizedRotation = (element.rotation % 360 + 360) % 360
 
@@ -1811,7 +1817,12 @@ class CanvasView @JvmOverloads constructor(
     private data class SnapTarget(val position: Float, val priority: Int)
 
     private fun checkDragSnap() {
-        if (selectedElements.isEmpty()) return
+        if (!isSmartSnappingEnabled || selectedElements.isEmpty()) {
+            activeSnapLines.clear()
+            showVerticalGuide = false
+            showHorizontalGuide = false
+            return
+        }
 
         // 1. Clear previous snapping lines
         activeSnapLines.clear()
@@ -4862,9 +4873,7 @@ class CanvasView @JvmOverloads constructor(
                 TextAlignment.CENTER -> Paint.Align.CENTER
                 TextAlignment.RIGHT -> Paint.Align.RIGHT
                 TextAlignment.JUSTIFY -> Paint.Align.LEFT
-                else -> {
-                    Paint.Align.LEFT
-                }
+                else -> Paint.Align.LEFT
             }
             fillPaint.textAlign = alignment
 
@@ -4887,50 +4896,182 @@ class CanvasView @JvmOverloads constructor(
                 BlurMaskFilter(element.blurValue, BlurMaskFilter.Blur.NORMAL)
             fillPaint.xfermode = drawWithBlend(element)
 
-            // Shadow
+            // ── LAYER 1a: Double Step 2 Extrusion (Style #17) ──
+            if (element.hasDoubleExtrude && element.extrudeStep2Depth > 0f) {
+                val step2Paint = TextPaint(fillPaint).apply {
+                    shader = null
+                    color = element.extrudeStep2Color
+                    xfermode = null
+                    maskFilter = null
+                    style = Paint.Style.FILL
+                }
+                val steps = (element.extrudeStep2Depth.toInt()).coerceIn(1, 16)
+                for (step in 1..steps) {
+                    val stepFrac = step.toFloat() / steps
+                    val ex = xPos + element.extrudeStep2Dx * stepFrac
+                    val ey = yOffset + element.extrudeStep2Dy * stepFrac
+                    canvas.drawText(displayText, ex, ey, step2Paint)
+                }
+            }
+
+            // ── LAYER 1b: 3D Block Extrusion / Hard Offset Layer (as in Image 1 & 3) ──
+            if (element.has3dExtrude) {
+                val extrudePaint = TextPaint(fillPaint).apply {
+                    shader = null
+                    color = element.extrudeColor
+                    xfermode = null
+                    maskFilter = null
+                    style = Paint.Style.FILL
+                }
+                val depth = if (element.extrudeDepth > 0f) element.extrudeDepth else kotlin.math.hypot(element.extrudeDx, element.extrudeDy)
+                val steps = (depth.toInt()).coerceIn(1, 16)
+                for (step in 1..steps) {
+                    val stepFrac = step.toFloat() / steps
+                    val ex = xPos + element.extrudeDx * stepFrac
+                    val ey = yOffset + element.extrudeDy * stepFrac
+                    canvas.drawText(displayText, ex, ey, extrudePaint)
+                }
+            }
+
+            // ── LAYER 2: Shadow / Soft Glow / Hard Stamp Drop ──
             if (element.hasShadow && element.shadowOpacity > 0) {
-                val sc = (element.shadowColor and 0x00FFFFFF) or (element.shadowOpacity shl 24)
+                val baseAlpha = Color.alpha(element.shadowColor).takeIf { it > 0 } ?: 255
+                val effectiveAlpha = ((element.shadowOpacity.coerceIn(0, 255) / 255f) * baseAlpha).toInt()
+                val sc = (element.shadowColor and 0x00FFFFFF) or (effectiveAlpha shl 24)
                 val sp = TextPaint(fillPaint).apply {
                     shader = null
                     color = sc
                     xfermode = null
-                    maskFilter = BlurMaskFilter(element.shadowRadius, BlurMaskFilter.Blur.NORMAL)
+                    maskFilter = if (element.shadowRadius > 0.5f) BlurMaskFilter(element.shadowRadius, BlurMaskFilter.Blur.NORMAL) else null
                 }
-                val sa = sp.alpha
-                sp.alpha = element.shadowOpacity
                 canvas.drawText(
                     displayText, xPos + element.shadowDx, yOffset + element.shadowDy, sp
                 )
-                sp.alpha = sa
             }
 
-            // Handle justified text separately
+            // ── LAYER 2b: Outer Glow ──
+            if (element.hasOuterGlow && element.outerGlowRadius > 0f && element.outerGlowOpacity > 0) {
+                val baseAlpha = Color.alpha(element.outerGlowColor).takeIf { it > 0 } ?: 255
+                val effectiveAlpha = ((element.outerGlowOpacity.coerceIn(0, 255) / 255f) * baseAlpha).toInt()
+                val glowCol = (element.outerGlowColor and 0x00FFFFFF) or (effectiveAlpha shl 24)
+                val glowPaint = TextPaint(fillPaint).apply {
+                    shader = null
+                    color = glowCol
+                    xfermode = null
+                    maskFilter = BlurMaskFilter(element.outerGlowRadius.coerceAtLeast(0.5f), BlurMaskFilter.Blur.OUTER)
+                }
+                canvas.drawText(displayText, xPos, yOffset, glowPaint)
+            }
+
+            // ── LAYER 3: Outer Under-Stroke / Secondary Contour / Gilded Border (Images 1, 3, 4) ──
+            if (element.hasUnderStroke && element.underStrokeWidth > 0f) {
+                val underStrokePaint = TextPaint(fillPaint).apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = element.underStrokeWidth
+                    color = element.underStrokeColor
+                    shader = null
+                    maskFilter = null
+                    xfermode = null
+                }
+                canvas.drawText(displayText, xPos, yOffset, underStrokePaint)
+            }
+
+            // ── LAYER 4: Inner Stroke / Primary Stroke ──
+            if (element.hasStroke && element.strokeWidth > 0f) {
+                val strokePaint = TextPaint(fillPaint).apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = element.strokeWidth
+                    maskFilter = null
+                }
+                if (element.strokeGradient != null) {
+                    val w = fillPaint.measureText(displayText)
+                    strokePaint.shader =
+                        createGradientShader(element.strokeGradient!!, w, fillPaint.textSize)
+                } else {
+                    strokePaint.color = element.strokeColor
+                }
+                val old = strokePaint.alpha
+                strokePaint.alpha = element.paintAlpha
+                canvas.drawText(displayText, xPos, yOffset, strokePaint)
+                strokePaint.alpha = old
+            }
+
+            // ── LAYER 5a: Anaglyph 3D Stereoscopic Red-Cyan Split ──
+            if (element.hasAnaglyph && element.anaglyphOffset > 0f) {
+                val anaglyphPaint1 = TextPaint(fillPaint).apply {
+                    shader = null
+                    color = element.anaglyphColor1
+                    maskFilter = null
+                }
+                val anaglyphPaint2 = TextPaint(fillPaint).apply {
+                    shader = null
+                    color = element.anaglyphColor2
+                    maskFilter = null
+                }
+                canvas.drawText(displayText, xPos - element.anaglyphOffset, yOffset, anaglyphPaint1)
+                canvas.drawText(displayText, xPos + element.anaglyphOffset, yOffset, anaglyphPaint2)
+            }
+
+            // ── LAYER 5b: 3D Chisel Bevel (Highlights & Shadows) ──
+            if (element.hasBevel && element.bevelDepth > 0f) {
+                val bevelShadowPaint = TextPaint(fillPaint).apply {
+                    shader = null
+                    color = element.bevelShadowColor
+                    maskFilter = null
+                }
+                val bevelHighlightPaint = TextPaint(fillPaint).apply {
+                    shader = null
+                    color = element.bevelHighlightColor
+                    maskFilter = null
+                }
+                canvas.drawText(displayText, xPos + element.bevelDepth, yOffset + element.bevelDepth, bevelShadowPaint)
+                canvas.drawText(displayText, xPos - element.bevelDepth, yOffset - element.bevelDepth, bevelHighlightPaint)
+            }
+
+            // ── LAYER 5c: 3D Emboss & Deboss (Letterpress / Carved / Sunken) ──
+            if (element.hasEmboss && element.embossDepth > 0f) {
+                val highlightPaint = TextPaint(fillPaint).apply {
+                    shader = null
+                    color = element.embossHighlightColor
+                    maskFilter = null
+                }
+                val shadowPaint = TextPaint(fillPaint).apply {
+                    shader = null
+                    color = element.embossShadowColor
+                    maskFilter = null
+                }
+                if (element.isDebossed) {
+                    canvas.drawText(displayText, xPos - element.embossDepth, yOffset - element.embossDepth, shadowPaint)
+                    canvas.drawText(displayText, xPos + element.embossDepth, yOffset + element.embossDepth, highlightPaint)
+                } else {
+                    canvas.drawText(displayText, xPos - element.embossDepth, yOffset - element.embossDepth, highlightPaint)
+                    canvas.drawText(displayText, xPos + element.embossDepth, yOffset + element.embossDepth, shadowPaint)
+                }
+            }
+
+            // ── LAYER 5d: Main Fill ──
             if (element.alignment == TextAlignment.JUSTIFY) {
                 element.paint = fillPaint
                 justifyText(canvas, displayText, yOffset, element)
             } else {
-                if (element.hasStroke && element.strokeWidth > 0f) {
-                    val strokePaint = TextPaint(fillPaint).apply {
-                        style = Paint.Style.STROKE
-                        strokeWidth = element.strokeWidth
-                    }
-                    if (element.strokeGradient != null) {
-                        val w = fillPaint.measureText(displayText)
-                        strokePaint.shader =
-                            createGradientShader(element.strokeGradient!!, w, fillPaint.textSize)
-                    } else {
-                        strokePaint.color = element.strokeColor
-                    }
-                    val old = strokePaint.alpha
-                    strokePaint.alpha = element.paintAlpha
-                    canvas.drawText(displayText, xPos, yOffset, strokePaint)
-                    strokePaint.alpha = old
-                }
-
                 val oldFillAlpha = fillPaint.alpha
                 fillPaint.alpha = element.paintAlpha
                 canvas.drawText(displayText, xPos, yOffset, fillPaint)
                 fillPaint.alpha = oldFillAlpha
+            }
+
+            // ── LAYER 5e: Inner Glow ──
+            if (element.hasInnerGlow && element.innerGlowRadius > 0f && element.innerGlowOpacity > 0) {
+                val baseAlpha = Color.alpha(element.innerGlowColor).takeIf { it > 0 } ?: 255
+                val effectiveAlpha = ((element.innerGlowOpacity.coerceIn(0, 255) / 255f) * baseAlpha).toInt()
+                val glowCol = (element.innerGlowColor and 0x00FFFFFF) or (effectiveAlpha shl 24)
+                val innerGlowPaint = TextPaint(fillPaint).apply {
+                    shader = null
+                    color = glowCol
+                    xfermode = null
+                    maskFilter = BlurMaskFilter(element.innerGlowRadius.coerceAtLeast(0.5f), BlurMaskFilter.Blur.INNER)
+                }
+                canvas.drawText(displayText, xPos, yOffset, innerGlowPaint)
             }
 
             yOffset += lineHeight

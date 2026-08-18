@@ -183,6 +183,31 @@ class CanvasViewModel @Inject constructor(
     private val _shadowOpacity = MutableLiveData(64)
     val shadowOpacity: LiveData<Int> = _shadowOpacity
 
+    // 🔷 Glow (Outer & Inner)
+    private val _hasOuterGlow = MutableLiveData(false)
+    val hasOuterGlow: LiveData<Boolean> = _hasOuterGlow
+
+    private val _outerGlowColor = MutableLiveData(Color.parseColor("#00E5FF"))
+    val outerGlowColor: LiveData<Int> = _outerGlowColor
+
+    private val _outerGlowRadius = MutableLiveData(12f)
+    val outerGlowRadius: LiveData<Float> = _outerGlowRadius
+
+    private val _outerGlowOpacity = MutableLiveData(255)
+    val outerGlowOpacity: LiveData<Int> = _outerGlowOpacity
+
+    private val _hasInnerGlow = MutableLiveData(false)
+    val hasInnerGlow: LiveData<Boolean> = _hasInnerGlow
+
+    private val _innerGlowColor = MutableLiveData(Color.parseColor("#FFFFFF"))
+    val innerGlowColor: LiveData<Int> = _innerGlowColor
+
+    private val _innerGlowRadius = MutableLiveData(6f)
+    val innerGlowRadius: LiveData<Float> = _innerGlowRadius
+
+    private val _innerGlowOpacity = MutableLiveData(255)
+    val innerGlowOpacity: LiveData<Int> = _innerGlowOpacity
+
     private val _blurValue = MutableLiveData(10f) // Default blur value
     val blurValue: LiveData<Float> = _blurValue
 
@@ -1315,6 +1340,13 @@ class CanvasViewModel @Inject constructor(
     var defaultUrduFontId: String? = null
         private set
 
+    var isSmartSnappingEnabled: Boolean = true
+        private set
+
+    fun setSmartSnappingEnabled(enabled: Boolean) {
+        isSmartSnappingEnabled = enabled
+    }
+
     fun fetchDefaultPreferences() {
         viewModelScope.launch {
             val fontId = dataStore.getFirstPreference(
@@ -1322,6 +1354,17 @@ class CanvasViewModel @Inject constructor(
                 ""
             )
             defaultUrduFontId = if (fontId.isNotBlank() && fontId != "0") fontId else null
+
+            isSmartSnappingEnabled = dataStore.getFirstPreference(
+                PreferenceDataStoreKeysConstants.KEY_SMART_SNAPPING,
+                true
+            )
+
+            val isHaptic = dataStore.getFirstPreference(
+                PreferenceDataStoreKeysConstants.KEY_HAPTIC_FEEDBACK,
+                true
+            )
+            com.webscare.urducanvas.common.utils.Utils.isHapticFeedbackGloballyEnabled = isHaptic
         }
     }
 
@@ -1922,6 +1965,12 @@ class CanvasViewModel @Inject constructor(
                 true, color, _shadowDx.value!!, _shadowDy.value!!
             )
 
+            PickerTarget.EYE_DROPPER_GLOW -> {
+                val radius = _outerGlowRadius.value ?: 12f
+                val opacity = _outerGlowOpacity.value ?: 255
+                setTextOuterGlow(true, color, radius, opacity)
+            }
+
             PickerTarget.EYE_DROPPER_LABEL -> setTextLabel(true, color, _labelShape.value!!)
             PickerTarget.COLOR_PICKER_BACKGROUND -> setCanvasBackgroundColor(color)
             PickerTarget.COLOR_PICKER_OVERLAY -> setElementOverlay(color)
@@ -1933,6 +1982,12 @@ class CanvasViewModel @Inject constructor(
             PickerTarget.COLOR_PICKER_SHADOW -> setTextShadow(
                 true, color, _shadowDx.value!!, _shadowDy.value!!
             )
+
+            PickerTarget.COLOR_PICKER_GLOW -> {
+                val radius = _outerGlowRadius.value ?: 12f
+                val opacity = _outerGlowOpacity.value ?: 255
+                setTextOuterGlow(true, color, radius, opacity)
+            }
 
             PickerTarget.COLOR_PICKER_IMAGE_SHADOW -> setTextShadow(
                 true, color, _shadowDx.value!!, _shadowDy.value!!
@@ -2354,15 +2409,54 @@ class CanvasViewModel @Inject constructor(
     fun applyTextStylePreset(preset: com.webscare.urducanvas.data.model.TextStylePreset) {
         selectedStylePresetId.value = preset.id
         updateSelectedTextElements { element ->
+            val hasStrokeVal = preset.strokeColor != null && preset.strokeWidth > 0f
+            val hasShadowVal = preset.shadowColor != null && (preset.shadowRadius > 0f || preset.shadowDx != 0f || preset.shadowDy != 0f)
             element.copy(
                 paintColor = preset.textColor ?: element.paintColor,
                 fillGradient = preset.textGradient,
-                strokeColor = preset.strokeColor ?: element.strokeColor,
+                hasStroke = hasStrokeVal,
+                strokeColor = preset.strokeColor ?: Color.TRANSPARENT,
                 strokeWidth = preset.strokeWidth,
-                shadowColor = preset.shadowColor ?: element.shadowColor,
+                hasUnderStroke = preset.hasUnderStroke,
+                underStrokeColor = preset.underStrokeColor ?: Color.TRANSPARENT,
+                underStrokeWidth = preset.underStrokeWidth,
+                has3dExtrude = preset.has3dExtrude,
+                extrudeColor = preset.extrudeColor ?: Color.BLACK,
+                extrudeDepth = preset.extrudeDepth,
+                extrudeDx = preset.extrudeDx,
+                extrudeDy = preset.extrudeDy,
+                hasDoubleExtrude = preset.hasDoubleExtrude,
+                extrudeStep2Color = preset.extrudeStep2Color ?: Color.BLACK,
+                extrudeStep2Depth = preset.extrudeStep2Depth,
+                extrudeStep2Dx = preset.extrudeStep2Dx,
+                extrudeStep2Dy = preset.extrudeStep2Dy,
+                hasAnaglyph = preset.hasAnaglyph,
+                anaglyphOffset = preset.anaglyphOffset,
+                anaglyphColor1 = preset.anaglyphColor1 ?: Color.parseColor("#FF0055"),
+                anaglyphColor2 = preset.anaglyphColor2 ?: Color.parseColor("#00E5FF"),
+                hasBevel = preset.hasBevel,
+                bevelHighlightColor = preset.bevelHighlightColor ?: Color.parseColor("#80FFFFFF"),
+                bevelShadowColor = preset.bevelShadowColor ?: Color.parseColor("#80000000"),
+                bevelDepth = preset.bevelDepth,
+                hasEmboss = preset.hasEmboss,
+                isDebossed = preset.isDebossed,
+                embossDepth = preset.embossDepth,
+                embossHighlightColor = preset.embossHighlightColor ?: Color.parseColor("#80FFFFFF"),
+                embossShadowColor = preset.embossShadowColor ?: Color.parseColor("#80000000"),
+                hasOuterGlow = preset.hasOuterGlow,
+                outerGlowColor = preset.outerGlowColor ?: Color.parseColor("#00E5FF"),
+                outerGlowRadius = preset.outerGlowRadius,
+                outerGlowOpacity = preset.outerGlowOpacity,
+                hasInnerGlow = preset.hasInnerGlow,
+                innerGlowColor = preset.innerGlowColor ?: Color.parseColor("#FFFFFF"),
+                innerGlowRadius = preset.innerGlowRadius,
+                innerGlowOpacity = preset.innerGlowOpacity,
+                hasShadow = hasShadowVal,
+                shadowColor = preset.shadowColor ?: Color.TRANSPARENT,
                 shadowRadius = preset.shadowRadius,
                 shadowDx = preset.shadowDx,
                 shadowDy = preset.shadowDy,
+                shadowOpacity = preset.shadowOpacity,
                 hasLabel = preset.hasLabel,
                 labelShape = preset.labelShape,
                 labelColor = preset.labelColor,
@@ -4061,6 +4155,9 @@ class CanvasViewModel @Inject constructor(
         val canvasH = _canvasSize.value?.height ?: 0f
         val scaledTextSize = (minOf(canvasW, canvasH) * 0.05f).coerceIn(24f, 200f)
 
+        val hasStrokeVal = stylePreset.strokeColor != null && stylePreset.strokeWidth > 0f
+        val hasShadowVal = stylePreset.shadowColor != null && (stylePreset.shadowRadius > 0f || stylePreset.shadowDx != 0f || stylePreset.shadowDy != 0f)
+
         val element = CanvasElement(
             context = context,
             type = ElementType.TEXT,
@@ -4069,12 +4166,49 @@ class CanvasViewModel @Inject constructor(
             y = canvasH / 2f,
             paintColor = stylePreset.textColor ?: Color.BLACK,
             fillGradient = stylePreset.textGradient,
+            hasStroke = hasStrokeVal,
             strokeColor = stylePreset.strokeColor ?: Color.TRANSPARENT,
             strokeWidth = stylePreset.strokeWidth,
+            hasUnderStroke = stylePreset.hasUnderStroke,
+            underStrokeColor = stylePreset.underStrokeColor ?: Color.TRANSPARENT,
+            underStrokeWidth = stylePreset.underStrokeWidth,
+            has3dExtrude = stylePreset.has3dExtrude,
+            extrudeColor = stylePreset.extrudeColor ?: Color.BLACK,
+            extrudeDepth = stylePreset.extrudeDepth,
+            extrudeDx = stylePreset.extrudeDx,
+            extrudeDy = stylePreset.extrudeDy,
+            hasDoubleExtrude = stylePreset.hasDoubleExtrude,
+            extrudeStep2Color = stylePreset.extrudeStep2Color ?: Color.BLACK,
+            extrudeStep2Depth = stylePreset.extrudeStep2Depth,
+            extrudeStep2Dx = stylePreset.extrudeStep2Dx,
+            extrudeStep2Dy = stylePreset.extrudeStep2Dy,
+            hasAnaglyph = stylePreset.hasAnaglyph,
+            anaglyphOffset = stylePreset.anaglyphOffset,
+            anaglyphColor1 = stylePreset.anaglyphColor1 ?: Color.parseColor("#FF0055"),
+            anaglyphColor2 = stylePreset.anaglyphColor2 ?: Color.parseColor("#00E5FF"),
+            hasBevel = stylePreset.hasBevel,
+            bevelHighlightColor = stylePreset.bevelHighlightColor ?: Color.parseColor("#80FFFFFF"),
+            bevelShadowColor = stylePreset.bevelShadowColor ?: Color.parseColor("#80000000"),
+            bevelDepth = stylePreset.bevelDepth,
+            hasEmboss = stylePreset.hasEmboss,
+            isDebossed = stylePreset.isDebossed,
+            embossDepth = stylePreset.embossDepth,
+            embossHighlightColor = stylePreset.embossHighlightColor ?: Color.parseColor("#80FFFFFF"),
+            embossShadowColor = stylePreset.embossShadowColor ?: Color.parseColor("#80000000"),
+            hasOuterGlow = stylePreset.hasOuterGlow,
+            outerGlowColor = stylePreset.outerGlowColor ?: Color.parseColor("#00E5FF"),
+            outerGlowRadius = stylePreset.outerGlowRadius,
+            outerGlowOpacity = stylePreset.outerGlowOpacity,
+            hasInnerGlow = stylePreset.hasInnerGlow,
+            innerGlowColor = stylePreset.innerGlowColor ?: Color.parseColor("#FFFFFF"),
+            innerGlowRadius = stylePreset.innerGlowRadius,
+            innerGlowOpacity = stylePreset.innerGlowOpacity,
+            hasShadow = hasShadowVal,
             shadowColor = stylePreset.shadowColor ?: Color.TRANSPARENT,
             shadowRadius = stylePreset.shadowRadius,
             shadowDx = stylePreset.shadowDx,
             shadowDy = stylePreset.shadowDy,
+            shadowOpacity = stylePreset.shadowOpacity,
             hasLabel = stylePreset.hasLabel,
             labelShape = stylePreset.labelShape,
             labelColor = stylePreset.labelColor ?: Color.TRANSPARENT,
@@ -4441,6 +4575,36 @@ class CanvasViewModel @Inject constructor(
         val radius = _shadowRadius.value ?: 8f
         val enabled = true
         setImageShadow(enabled, color, dx, dy, radius, opacity, pushToUndo = false)
+    }
+
+    fun setTextOuterGlow(enabled: Boolean, color: Int, radius: Float, opacity: Int) {
+        _hasOuterGlow.value = enabled
+        _outerGlowColor.value = color
+        _outerGlowRadius.value = radius
+        _outerGlowOpacity.value = opacity
+        updateSelectedTextElements {
+            it.copy(
+                hasOuterGlow = enabled,
+                outerGlowColor = color,
+                outerGlowRadius = radius,
+                outerGlowOpacity = opacity
+            )
+        }
+    }
+
+    fun setTextInnerGlow(enabled: Boolean, color: Int, radius: Float, opacity: Int) {
+        _hasInnerGlow.value = enabled
+        _innerGlowColor.value = color
+        _innerGlowRadius.value = radius
+        _innerGlowOpacity.value = opacity
+        updateSelectedTextElements {
+            it.copy(
+                hasInnerGlow = enabled,
+                innerGlowColor = color,
+                innerGlowRadius = radius,
+                innerGlowOpacity = opacity
+            )
+        }
     }
 
     fun setTextBorder(enabled: Boolean, color: Int, width: Float) {

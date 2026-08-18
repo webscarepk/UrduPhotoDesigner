@@ -41,7 +41,7 @@ class TextStyleGridFragment : Fragment() {
     }
 
     private fun setupGrid() {
-        val category = PresetCategory.values().firstOrNull { it.name == categoryName } ?: PresetCategory.BADGES_SALE
+        val category = PresetCategory.values().firstOrNull { it.name == categoryName } ?: PresetCategory.THREE_D
         val presets = TextStylesRepository.getPresetsByCategory(category, requireContext())
         val adapter = TextStylesGridAdapter(presets) { preset ->
             if (isAddMode) {

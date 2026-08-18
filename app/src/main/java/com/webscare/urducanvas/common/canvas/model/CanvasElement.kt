@@ -108,6 +108,74 @@ data class CanvasElement(
 
     @SerializedName("strokeWidth") var strokeWidth: Float = 1f,
 
+    @SerializedName("hasUnderStroke") var hasUnderStroke: Boolean = false,
+
+    @SerializedName("underStrokeColor") var underStrokeColor: Int = Color.BLACK,
+
+    @SerializedName("underStrokeWidth") var underStrokeWidth: Float = 0f,
+
+    @SerializedName("has3dExtrude") var has3dExtrude: Boolean = false,
+
+    @SerializedName("extrudeColor") var extrudeColor: Int = Color.BLACK,
+
+    @SerializedName("extrudeDepth") var extrudeDepth: Float = 0f,
+
+    @SerializedName("extrudeDx") var extrudeDx: Float = 4f,
+
+    @SerializedName("extrudeDy") var extrudeDy: Float = 4f,
+
+    @SerializedName("hasDoubleExtrude") var hasDoubleExtrude: Boolean = false,
+
+    @SerializedName("extrudeStep2Color") var extrudeStep2Color: Int = Color.BLACK,
+
+    @SerializedName("extrudeStep2Depth") var extrudeStep2Depth: Float = 0f,
+
+    @SerializedName("extrudeStep2Dx") var extrudeStep2Dx: Float = 8f,
+
+    @SerializedName("extrudeStep2Dy") var extrudeStep2Dy: Float = 8f,
+
+    @SerializedName("hasAnaglyph") var hasAnaglyph: Boolean = false,
+
+    @SerializedName("anaglyphOffset") var anaglyphOffset: Float = 4f,
+
+    @SerializedName("anaglyphColor1") var anaglyphColor1: Int = Color.parseColor("#FF0055"),
+
+    @SerializedName("anaglyphColor2") var anaglyphColor2: Int = Color.parseColor("#00E5FF"),
+
+    @SerializedName("hasBevel") var hasBevel: Boolean = false,
+
+    @SerializedName("bevelHighlightColor") var bevelHighlightColor: Int = Color.parseColor("#80FFFFFF"),
+
+    @SerializedName("bevelShadowColor") var bevelShadowColor: Int = Color.parseColor("#80000000"),
+
+    @SerializedName("bevelDepth") var bevelDepth: Float = 2.5f,
+
+    @SerializedName("hasEmboss") var hasEmboss: Boolean = false,
+
+    @SerializedName("isDebossed") var isDebossed: Boolean = false,
+
+    @SerializedName("embossDepth") var embossDepth: Float = 2.0f,
+
+    @SerializedName("embossHighlightColor") var embossHighlightColor: Int = Color.parseColor("#80FFFFFF"),
+
+    @SerializedName("embossShadowColor") var embossShadowColor: Int = Color.parseColor("#80000000"),
+
+    @SerializedName("hasOuterGlow") var hasOuterGlow: Boolean = false,
+
+    @SerializedName("outerGlowColor") var outerGlowColor: Int = Color.parseColor("#00E5FF"),
+
+    @SerializedName("outerGlowRadius") var outerGlowRadius: Float = 12f,
+
+    @SerializedName("outerGlowOpacity") var outerGlowOpacity: Int = 255,
+
+    @SerializedName("hasInnerGlow") var hasInnerGlow: Boolean = false,
+
+    @SerializedName("innerGlowColor") var innerGlowColor: Int = Color.parseColor("#FFFFFF"),
+
+    @SerializedName("innerGlowRadius") var innerGlowRadius: Float = 6f,
+
+    @SerializedName("innerGlowOpacity") var innerGlowOpacity: Int = 255,
+
     @SerializedName("hasShadow") var hasShadow: Boolean = false,
 
     @SerializedName("shadowColor") var shadowColor: Int = Color.GRAY,
@@ -118,7 +186,7 @@ data class CanvasElement(
 
     @SerializedName("shadowRadius") var shadowRadius: Float = 1f,
 
-    @SerializedName("shadowOpacity") var shadowOpacity: Int = 1,
+    @SerializedName("shadowOpacity") var shadowOpacity: Int = 255,
 
     @SerializedName("hasLabel") var hasLabel: Boolean = false,
 

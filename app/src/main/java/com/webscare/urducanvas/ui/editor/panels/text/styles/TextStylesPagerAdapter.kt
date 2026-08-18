@@ -20,7 +20,7 @@ class TextStylesPagerAdapter(
 
     override fun createFragment(position: Int): Fragment {
         val tab = tabs[position]
-        val cat = PresetCategory.values().getOrNull(tab.id) ?: PresetCategory.BADGES_SALE
+        val cat = PresetCategory.values().getOrNull(tab.id) ?: PresetCategory.THREE_D
         return TextStyleGridFragment.newInstance(cat, isAddMode)
     }
 
