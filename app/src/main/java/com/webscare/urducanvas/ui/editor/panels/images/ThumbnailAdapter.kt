@@ -18,6 +18,7 @@ import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.ShapeRenderUtils.drawShape
 import com.webscare.urducanvas.common.utils.isDarkModeEnabled
 import com.webscare.urducanvas.common.utils.SvgLoader
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 // ── SelectedItem sealed class ─────────────────────────────────────────────────
 import com.webscare.urducanvas.data.model.ImageEntity
@@ -76,7 +77,7 @@ class ThumbnailAdapter(
 
         fun bind(item: SelectedItem) {
             binding.thumbImage.setImageDrawable(null)
-            binding.thumbClose.setOnClickListener { onDeselect(item) }
+            binding.thumbClose.addPressEffect { onDeselect(item) }
 
             when (item) {
                 is SelectedItem.Image -> loadImage(item.entity)

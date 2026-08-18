@@ -155,14 +155,18 @@ class TableStrokeFragment : Fragment() {
             binding.colors.isVisible = true
             binding.gradients.isVisible = false
             binding.btnSolid.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white))
+            binding.btnSolid.typeface = androidx.core.content.res.ResourcesCompat.getFont(requireContext(), R.font.bold)
             binding.btnGradient.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.contrast))
+            binding.btnGradient.typeface = androidx.core.content.res.ResourcesCompat.getFont(requireContext(), R.font.medium)
         }
 
         binding.btnGradient.addPressEffect {
             binding.colors.isVisible = false
             binding.gradients.isVisible = true
             binding.btnSolid.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.contrast))
+            binding.btnSolid.typeface = androidx.core.content.res.ResourcesCompat.getFont(requireContext(), R.font.medium)
             binding.btnGradient.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white))
+            binding.btnGradient.typeface = androidx.core.content.res.ResourcesCompat.getFont(requireContext(), R.font.bold)
         }
     }
 

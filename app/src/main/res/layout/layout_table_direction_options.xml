@@ -24,25 +24,24 @@
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="30dp"
             android:layout_marginHorizontal="10dp"
             android:layout_marginTop="6dp"
             android:background="@drawable/button_bg_small"
             android:backgroundTint="@color/contrast"
-            android:padding="1dp">
+            android:padding="2dp">
 
             <TextView
                 android:id="@+id/btnRTL"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:background="@drawable/button_bg_small"
                 android:backgroundTint="@color/appColor"
-                android:fontFamily="@font/medium"
+                android:fontFamily="@font/bold"
                 android:gravity="center"
-                android:paddingVertical="6dp"
                 android:text="RTL (Right to Left)"
                 android:textColor="@color/white"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/btnLTR"
                 app:layout_constraintStart_toStartOf="parent"
@@ -51,15 +50,14 @@
             <TextView
                 android:id="@+id/btnLTR"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:background="@drawable/button_bg_small"
                 android:backgroundTint="@color/contrast"
                 android:fontFamily="@font/medium"
                 android:gravity="center"
-                android:paddingVertical="6dp"
                 android:text="LTR (Left to Right)"
                 android:textColor="@color/black"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/btnRTL"

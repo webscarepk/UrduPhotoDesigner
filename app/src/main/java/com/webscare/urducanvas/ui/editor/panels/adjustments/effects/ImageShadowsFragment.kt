@@ -18,7 +18,6 @@ import com.webscare.urducanvas.databinding.FragmentImagesShadowBinding
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment
 import dagger.hilt.android.AndroidEntryPoint
-import kotlin.math.roundToInt
 
 @AndroidEntryPoint
 class ImageShadowsFragment : Fragment() {
@@ -29,8 +28,7 @@ class ImageShadowsFragment : Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentImagesShadowBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -55,51 +53,36 @@ class ImageShadowsFragment : Fragment() {
         binding.shadowPad.onOffsetChanged = { angle, _ ->
             viewModel.enableFeature("Shadow")
             viewModel.setShadowAngle(angle)
-            updateReadoutText(angle)
         }
     }
 
-    private fun updateReadoutText(angle: Float) {
-        binding.directionTitle.text = binding.shadowPad.getDirectionTitle()
-        binding.readoutText.text = "${angle.roundToInt()}°"
-    }
-
     private fun setupRecyclerView() {
-        colorsAdapter = ColorsAdapter(
-            Constants.shadowColorList,
-            { color ->
-                val dx = viewModel.shadowDx.value ?: 1f
-                val dy = viewModel.shadowDy.value ?: 1f
-                val radius = viewModel.shadowRadius.value ?: 8f
-                val opacity = viewModel.shadowOpacity.value ?: 64
-                viewModel.setImageShadow(
-                    true, color.colorCode.toColorInt(),
-                    dx, dy, radius, opacity,
-                    pushToUndo = true
-                )
-            },
-            {
-                val shadowColor = viewModel.shadowColor.value ?: Color.GRAY
-                val dx = viewModel.shadowDx.value ?: 1f
-                val dy = viewModel.shadowDy.value ?: 1f
-                val radius = viewModel.shadowRadius.value ?: 8f
-                val opacity = viewModel.shadowOpacity.value ?: 64
-                viewModel.setImageShadow(
-                    false, shadowColor,
-                    dx, dy, radius, opacity,
-                    pushToUndo = true
-                )
-            },
-            {
-                viewModel.startPicking(PickerTarget.COLOR_PICKER_SHADOW)
-                childFragmentManager.beginTransaction()
-                    .replace(R.id.imagesShadowsFragment, ColorPickerFragment())
-                    .addToBackStack(null)
-                    .commit()
-            },
-            { viewModel.startPicking(PickerTarget.EYE_DROPPER_SHADOW) }
+        colorsAdapter = ColorsAdapter(Constants.shadowColorList, { color ->
+            val dx = viewModel.shadowDx.value ?: 1f
+            val dy = viewModel.shadowDy.value ?: 1f
+            val radius = viewModel.shadowRadius.value ?: 8f
+            val opacity = viewModel.shadowOpacity.value ?: 64
+            viewModel.setImageShadow(
+                true, color.colorCode.toColorInt(), dx, dy, radius, opacity, pushToUndo = true
+            )
+        }, {
+            val shadowColor = viewModel.shadowColor.value ?: Color.GRAY
+            val dx = viewModel.shadowDx.value ?: 1f
+            val dy = viewModel.shadowDy.value ?: 1f
+            val radius = viewModel.shadowRadius.value ?: 8f
+            val opacity = viewModel.shadowOpacity.value ?: 64
+            viewModel.setImageShadow(
+                false, shadowColor, dx, dy, radius, opacity, pushToUndo = true
+            )
+        }, {
+            viewModel.startPicking(PickerTarget.COLOR_PICKER_SHADOW)
+            childFragmentManager.beginTransaction()
+                .replace(R.id.imagesShadowsFragment, ColorPickerFragment()).addToBackStack(null)
+                .commit()
+        }, { viewModel.startPicking(PickerTarget.EYE_DROPPER_SHADOW) })
+        binding.colors.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(
+            requireContext(), androidx.recyclerview.widget.LinearLayoutManager.HORIZONTAL, false
         )
-        binding.colors.layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 2, androidx.recyclerview.widget.GridLayoutManager.HORIZONTAL, false)
         binding.colors.adapter = colorsAdapter
     }
 
@@ -148,9 +131,11 @@ class ImageShadowsFragment : Fragment() {
                 if (!fromUser) return
                 onChange(progress, false)
             }
+
             override fun onStopTrackingTouch(seekBar: SeekBar) {
                 onChange(seekBar.progress, true)
             }
+
             override fun onStartTrackingTouch(sb: SeekBar?) {
                 viewModel.enableFeature("Shadow")
             }
@@ -168,7 +153,6 @@ class ImageShadowsFragment : Fragment() {
             val safeAngle = angle ?: 135f
             val safeDist = viewModel.shadowDistance.value ?: 21f
             binding.shadowPad.setOffset(safeAngle, safeDist)
-            updateReadoutText(safeAngle)
         }
 
         viewModel.shadowDistance.observe(viewLifecycleOwner) { dist ->

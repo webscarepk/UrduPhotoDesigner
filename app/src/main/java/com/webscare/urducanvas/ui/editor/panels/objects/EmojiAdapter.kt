@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.model.EmojiMeta
 import com.webscare.urducanvas.common.utils.EmojiBitmapRenderer
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.ItemEmojiBinding
 import com.webscare.urducanvas.databinding.ItemEmojiExpandedBinding
 import kotlinx.coroutines.Dispatchers
@@ -196,7 +197,7 @@ class EmojiAdapter(
         }
 
         private fun wireClicks(emoji: EmojiMeta) {
-            itemView.setOnClickListener {
+            itemView.addPressEffect {
                 val current = boundEmoji ?: emoji
                 if (adapter.isInMultiSelectMode) {
                     onLongPress?.invoke(current)

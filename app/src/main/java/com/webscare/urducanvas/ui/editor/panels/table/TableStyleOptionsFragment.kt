@@ -13,6 +13,7 @@ import androidx.fragment.app.activityViewModels
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.TableBorderMode
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class TableStyleOptionsFragment : Fragment() {
 
@@ -91,7 +92,7 @@ class TableStyleOptionsFragment : Fragment() {
                 setMargins((2 * density).toInt(), 0, (2 * density).toInt(), 0)
             }
             layoutParams = lp
-            setOnClickListener { onClick() }
+            addPressEffect { onClick() }
         }
     }
 }

@@ -128,14 +128,18 @@ class TableHeadingFragment : Fragment() {
             binding.colors.isVisible = true
             binding.gradients.isVisible = false
             binding.btnSolidText.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white))
+            binding.btnSolidText.typeface = androidx.core.content.res.ResourcesCompat.getFont(requireContext(), R.font.bold)
             binding.btnGradientText.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.contrast))
+            binding.btnGradientText.typeface = androidx.core.content.res.ResourcesCompat.getFont(requireContext(), R.font.medium)
         }
 
         binding.btnGradientText.addPressEffect {
             binding.colors.isVisible = false
             binding.gradients.isVisible = true
             binding.btnSolidText.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.contrast))
+            binding.btnSolidText.typeface = androidx.core.content.res.ResourcesCompat.getFont(requireContext(), R.font.medium)
             binding.btnGradientText.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white))
+            binding.btnGradientText.typeface = androidx.core.content.res.ResourcesCompat.getFont(requireContext(), R.font.bold)
         }
     }
 

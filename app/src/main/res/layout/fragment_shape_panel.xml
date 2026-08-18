@@ -47,8 +47,8 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/toolbarColor"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:padding="1dp"
+            android:layout_height="30dp"
+            android:padding="2dp"
             android:background="@drawable/button_bg_small"
             android:layout_marginTop="6dp"
             android:backgroundTint="@color/contrast"
@@ -59,15 +59,14 @@
             <TextView
                 android:id="@+id/solid"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:background="@drawable/button_bg_small"
                 android:backgroundTint="@color/white"
-                android:fontFamily="@font/medium"
+                android:fontFamily="@font/bold"
                 android:gravity="center"
-                android:paddingVertical="3dp"
                 android:text="@string/solid"
                 android:textColor="@color/black"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/gradient"
                 app:layout_constraintStart_toStartOf="parent"
@@ -76,21 +75,20 @@
             <TextView
                 android:id="@+id/gradient"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:background="@drawable/button_bg_small"
                 android:backgroundTint="@color/contrast"
                 android:fontFamily="@font/medium"
                 android:gravity="center"
-                android:paddingVertical="3dp"
                 android:text="@string/gradient"
                 android:textColor="@color/black"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/solid"
                 app:layout_constraintTop_toTopOf="parent" />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/views"

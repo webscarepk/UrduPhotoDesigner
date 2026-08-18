@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.ShapeType
 import com.webscare.urducanvas.common.utils.ShapeRenderUtils.drawShape
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.LayoutImagesItemBinding
 import com.webscare.urducanvas.databinding.LayoutImagesItemExpandedBinding
 import kotlinx.coroutines.CoroutineScope
@@ -184,7 +185,7 @@ class ShapeAdapter(
             bitmap?.let { imageView.setImageBitmap(it) }
             updateSelectionOnly(isSelected)
             updateSize(slideOffset, rvWidth, rvPadding)
-            itemView.setOnClickListener { boundShape?.let { onShapeSelected(it) } }
+            itemView.addPressEffect { boundShape?.let { onShapeSelected(it) } }
         }
 
         fun updateSize(slideOffset: Float, rvWidth: Int, rvPadding: Int) {

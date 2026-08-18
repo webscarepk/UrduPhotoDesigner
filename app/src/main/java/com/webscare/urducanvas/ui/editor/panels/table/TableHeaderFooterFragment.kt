@@ -75,9 +75,11 @@ class TableHeaderFooterFragment : Fragment() {
 
         selected.backgroundTintList = ColorStateList.valueOf(appColor)
         selected.setTextColor(Color.WHITE)
+        selected.typeface = androidx.core.content.res.ResourcesCompat.getFont(context, R.font.bold)
 
         unselected.backgroundTintList = ColorStateList.valueOf(contrastColor)
         unselected.setTextColor(Color.BLACK)
+        unselected.typeface = androidx.core.content.res.ResourcesCompat.getFont(context, R.font.medium)
     }
 
     override fun onDestroyView() {

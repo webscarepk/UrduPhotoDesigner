@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.FontEntity
 import com.webscare.urducanvas.databinding.LayoutImportedFontsGridBinding
 import java.io.File
@@ -49,7 +50,7 @@ class ImportedFontsAdapter(
             binding.assetName.text = font.font_name
             binding.metaData.text = "Font - ${formatSize(font.file_size)}"
 
-            binding.root.setOnClickListener { onFontClick(font) }
+            binding.root.addPressEffect { onFontClick(font) }
         }
     }
 

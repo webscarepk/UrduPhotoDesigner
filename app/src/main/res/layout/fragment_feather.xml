@@ -4,37 +4,146 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/white"
     tools:context=".ui.editor.panels.adjustments.effects.FeatherFragment">
 
+    <!-- Top Section Container: 88dp Feather Bias Pad on Left + Softness & Opacity Stacked Vertically on Right -->
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/featherDirectionCard"
+        android:id="@+id/topRowContainer"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="10dp"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginTop="6dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
+        <!-- 88dp Feather Bias Pad on Left -->
         <com.webscare.urducanvas.common.views.FeatherBiasPadView
             android:id="@+id/biasPad"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_width="88dp"
+            android:layout_height="88dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <!-- SOFTNESS (Top Right, next to Bias Pad) -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/softnessCard"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:visibility="visible"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/biasPad"
+            app:layout_constraintTop_toTopOf="@id/biasPad">
+
+            <TextView
+                android:id="@+id/softnessTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:fontFamily="@font/medium"
+                android:text="Softness"
+                android:textColor="@color/black"
+                android:textSize="12sp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/softnessSize"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="5dp"
+                android:fontFamily="@font/regular"
+                android:text="50"
+                android:textColor="@color/black"
+                android:textSize="12sp"
+                app:layout_constraintBottom_toBottomOf="@id/softnessTitle"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@id/softnessTitle" />
+
+            <SeekBar
+                android:id="@+id/softness"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:indeterminateTint="@color/appColor"
+                android:progress="50"
+                android:progressBackgroundTint="@color/light_gray"
+                android:progressTint="@color/appColor"
+                android:splitTrack="false"
+                android:thumb="@drawable/seekbar_thumb_custom"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/softnessSize" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- OPACITY (Bottom Right, under Softness, next to Bias Pad) -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/opacityCard"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:visibility="visible"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/biasPad"
+            app:layout_constraintTop_toBottomOf="@id/softnessCard">
+
+            <TextView
+                android:id="@+id/opacityTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:fontFamily="@font/medium"
+                android:text="Opacity"
+                android:textColor="@color/black"
+                android:textSize="12sp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/opacitySize"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="5dp"
+                android:fontFamily="@font/regular"
+                android:text="255"
+                android:textColor="@color/black"
+                android:textSize="12sp"
+                app:layout_constraintBottom_toBottomOf="@id/opacityTitle"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@id/opacityTitle" />
+
+            <SeekBar
+                android:id="@+id/opacity"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:indeterminateTint="@color/appColor"
+                android:progress="255"
+                android:progressBackgroundTint="@color/light_gray"
+                android:progressTint="@color/appColor"
+                android:splitTrack="false"
+                android:thumb="@drawable/seekbar_thumb_custom"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/opacitySize" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Feather -->
+    <!-- Row 2: FEATHER Seekbar Card (stays where it is) -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/featherCard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="9dp"
+        android:layout_marginTop="6dp"
         android:visibility="visible"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/featherDirectionCard">
+        app:layout_constraintTop_toBottomOf="@id/topRowContainer">
 
         <TextView
             android:id="@+id/featherTitle"
@@ -76,116 +185,6 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/featherSize" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- Softness -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/softnessCard"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:layout_marginEnd="4dp"
-        android:visibility="visible"
-        app:layout_constraintEnd_toStartOf="@id/opacityCard"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/featherCard">
-
-        <TextView
-            android:id="@+id/softnessTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="15dp"
-            android:fontFamily="@font/medium"
-            android:text="Softness"
-            android:textColor="@color/black"
-            android:textSize="12sp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <TextView
-            android:id="@+id/softnessSize"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="15dp"
-            android:fontFamily="@font/regular"
-            android:text="50"
-            android:textColor="@color/black"
-            android:textSize="12sp"
-            app:layout_constraintBottom_toBottomOf="@id/softnessTitle"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/softnessTitle" />
-
-        <SeekBar
-            android:id="@+id/softness"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
-            android:indeterminateTint="@color/appColor"
-            android:progress="50"
-            android:progressBackgroundTint="@color/light_gray"
-            android:progressTint="@color/appColor"
-            android:splitTrack="false"
-            android:thumb="@drawable/seekbar_thumb_custom"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/softnessSize" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- Opacity -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/opacityCard"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:layout_marginStart="4dp"
-        android:visibility="visible"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/softnessCard"
-        app:layout_constraintTop_toBottomOf="@id/featherCard">
-
-        <TextView
-            android:id="@+id/opacityTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="15dp"
-            android:fontFamily="@font/medium"
-            android:text="Opacity"
-            android:textColor="@color/black"
-            android:textSize="12sp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <TextView
-            android:id="@+id/opacitySize"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="15dp"
-            android:fontFamily="@font/regular"
-            android:text="255"
-            android:textColor="@color/black"
-            android:textSize="12sp"
-            app:layout_constraintBottom_toBottomOf="@id/opacityTitle"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/opacityTitle" />
-
-        <SeekBar
-            android:id="@+id/opacity"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
-            android:indeterminateTint="@color/appColor"
-            android:progress="255"
-            android:progressBackgroundTint="@color/light_gray"
-            android:progressTint="@color/appColor"
-            android:splitTrack="false"
-            android:thumb="@drawable/seekbar_thumb_custom"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/opacitySize" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

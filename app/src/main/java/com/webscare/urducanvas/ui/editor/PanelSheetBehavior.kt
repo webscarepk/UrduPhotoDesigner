@@ -9,6 +9,7 @@ import androidx.constraintlayout.widget.Guideline
 import androidx.dynamicanimation.animation.FloatValueHolder
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import kotlin.math.abs
 
 /**
@@ -181,7 +182,7 @@ class PanelSheetBehavior(
             }
         }
 
-        dimView?.setOnClickListener {
+        dimView?.addPressEffect {
             if (isExpanded) snapTo(expanded = false)
         }
     }
