@@ -31,6 +31,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.webscare.ads.WebsCareAds
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.ActivityMainBinding
 import com.webscare.urducanvas.di.BillingManager
 import com.webscare.urducanvas.di.UpdateManager
@@ -151,6 +152,7 @@ class MainActivity : AppCompatActivity() {
         updateManager.registerListener(this)
         forceImmersiveMode()
         billingManager.checkSubscriptionOnLaunch()
+        viewModel.fetchDefaultPreferences()
         initObservers()
 
         val navHostFragment =
@@ -179,7 +181,7 @@ class MainActivity : AppCompatActivity() {
         ViewCompat.setElevation(binding.fabAddImage, 16f * density)
         binding.fabAddImage.bringToFront()
 
-        binding.fabAddImage.setOnClickListener {
+        binding.fabAddImage.addPressEffect {
             pickImageLauncher.launch("image/*")
         }
 

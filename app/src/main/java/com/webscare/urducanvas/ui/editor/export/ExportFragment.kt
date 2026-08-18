@@ -294,7 +294,7 @@ class ExportFragment : androidx.fragment.app.Fragment() {
             btnWatchAdToExport.setIconResource(R.drawable.ic_video_ad)
             btnWatchAdToExport.backgroundTintList = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.appColor))
             btnWatchAdToExport.setTextColor(ContextCompat.getColor(requireContext(), R.color.white))
-            btnWatchAdToExport.setOnClickListener {
+            btnWatchAdToExport.addPressEffect {
                 attemptExportRewardedAd()
             }
         } else {

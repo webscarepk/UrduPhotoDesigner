@@ -9,15 +9,16 @@ import android.view.LayoutInflater
 import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import com.webscare.urducanvas.databinding.LayoutAnimatedThemeSwitchBinding
+import com.webscare.urducanvas.common.utils.Utils.vibrateSoft
+import com.webscare.urducanvas.databinding.LayoutAnimatedToggleSwitchBinding
 
-class AnimatedThemeSwitch @JvmOverloads constructor(
+class AnimatedToggleSwitch @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
-    private val binding = LayoutAnimatedThemeSwitchBinding.inflate(LayoutInflater.from(context), this, true)
+    private val binding = LayoutAnimatedToggleSwitchBinding.inflate(LayoutInflater.from(context), this, true)
 
     private var isCheckedState = false
     var onCheckedChangeListener: ((Boolean) -> Unit)? = null
@@ -35,7 +36,7 @@ class AnimatedThemeSwitch @JvmOverloads constructor(
         updateState(isCheckedState, animate = false)
 
         addPressEffect {
-            com.webscare.urducanvas.common.utils.Utils.run { vibrateSoft() }
+            vibrateSoft()
             setChecked(!isCheckedState, animate = true)
         }
     }
@@ -62,10 +63,10 @@ class AnimatedThemeSwitch @JvmOverloads constructor(
         val travelDist = 20f * density // 48dp track - 22dp thumb - 6dp margins = 20dp travel
 
         val offTrackColor = Color.parseColor("#DCDCDC")
-        val onTrackColor  = Color.parseColor("#276738")
+        val onTrackColor  = Color.parseColor("#005D28")
 
         val offThumbColor = Color.WHITE
-        val onThumbColor  = Color.parseColor("#52B788")
+        val onThumbColor  = Color.WHITE
 
         val targetTrackColor = if (checked) onTrackColor else offTrackColor
         val targetThumbColor = if (checked) onThumbColor else offThumbColor
@@ -74,7 +75,7 @@ class AnimatedThemeSwitch @JvmOverloads constructor(
         if (animate) {
             val startTransX = binding.thumb.translationX
             val anim = ValueAnimator.ofFloat(0f, 1f).apply {
-                duration = 260
+                duration = 240
                 interpolator = OvershootInterpolator(1.15f)
                 addUpdateListener { va ->
                     val fraction = va.animatedFraction
@@ -85,9 +86,6 @@ class AnimatedThemeSwitch @JvmOverloads constructor(
 
                     trackBg.setColor(curTrackColor)
                     thumbBg.setColor(curThumbColor)
-
-                    binding.iconSun.alpha = if (checked) (1f - fraction) else fraction
-                    binding.iconMoon.alpha = if (checked) fraction else (1f - fraction)
                 }
             }
             anim.start()
@@ -95,8 +93,6 @@ class AnimatedThemeSwitch @JvmOverloads constructor(
             binding.thumb.translationX = targetTranslationX
             trackBg.setColor(targetTrackColor)
             thumbBg.setColor(targetThumbColor)
-            binding.iconSun.alpha  = if (checked) 0f else 1f
-            binding.iconMoon.alpha = if (checked) 1f else 0f
         }
     }
 

@@ -10,6 +10,7 @@ import android.view.View
 import android.view.WindowManager
 import com.webscare.urducanvas.databinding.DialogUpdateAvailableBinding
 import androidx.core.graphics.drawable.toDrawable
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 // UpdateDialog.kt
 class UpdateDialog(
@@ -33,7 +34,7 @@ class UpdateDialog(
             window?.apply {
                 setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
                 setLayout(
-                    (context.resources.displayMetrics.widthPixels * 0.70).toInt(),
+                    (context.resources.displayMetrics.widthPixels * 0.80).toInt(),
                     WindowManager.LayoutParams.WRAP_CONTENT
                 )
                 setGravity(Gravity.CENTER)
@@ -45,13 +46,13 @@ class UpdateDialog(
             binding.subOptionBtn.visibility = View.GONE
         } else {
             binding.subOptionBtn.visibility = View.VISIBLE
-            binding.subOptionBtn.setOnClickListener {
+            binding.subOptionBtn.addPressEffect {
                 dismiss()
                 onRemindLater.invoke()
             }
         }
 
-        binding.continueBtn.setOnClickListener {
+        binding.continueBtn.addPressEffect {
             dismiss()
             onUpdateNow.invoke()
         }

@@ -24,6 +24,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resumeWithException
 
 object Utils {
+    var isHapticFeedbackGloballyEnabled = true
     private var lastVibrateTime = 0L
     private const val VIBRATE_COOL_DOWN = 150L
 
@@ -171,6 +172,7 @@ object Utils {
     }
 
     fun View.vibrateSoft(durationMs: Long = 10L, amplitude: Int = 20) {
+        if (!isHapticFeedbackGloballyEnabled) return
         val now = System.currentTimeMillis()
         if (now - lastVibrateTime < VIBRATE_COOL_DOWN) return
         lastVibrateTime = now

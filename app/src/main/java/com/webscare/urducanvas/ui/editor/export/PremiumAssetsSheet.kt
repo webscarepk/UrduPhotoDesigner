@@ -17,6 +17,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentPremiumAssetsSheetBinding
 import com.webscare.urducanvas.viewmodels.MainViewModel
 
@@ -37,7 +38,7 @@ class PremiumAssetsSheet : BottomSheetDialogFragment() {
 
         binding.assets.adapter = PremiumAssetsAdapter(items, mainViewModel.localFonts.value)
 
-        binding.back.setOnClickListener { dismiss() }
+        binding.back.addPressEffect { dismiss() }
     }
 
     override fun onResume() {

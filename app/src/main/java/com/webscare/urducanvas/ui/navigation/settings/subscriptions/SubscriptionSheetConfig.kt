@@ -16,6 +16,7 @@ import androidx.core.view.isVisible
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.webscare.urducanvas.R
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.FragmentSubscriptionBottomSheetBinding
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -57,7 +58,7 @@ class SubscriptionBottomSheet : BottomSheetDialogFragment() {
             subTitle.text = c.message
             continueBtn.text = c.primaryText
 
-            continueBtn.setOnClickListener {
+            continueBtn.addPressEffect {
                 c.onPrimary()
                 dismiss()
             }
@@ -65,7 +66,7 @@ class SubscriptionBottomSheet : BottomSheetDialogFragment() {
             if (c.secondaryText != null || c.secondaryText == " ") {
                 subOptionBtn.isVisible = true
                 subOptionBtn.text = c.secondaryText
-                subOptionBtn.setOnClickListener {
+                subOptionBtn.addPressEffect {
                     c.onSecondary?.invoke()
                     dismiss()
                 }

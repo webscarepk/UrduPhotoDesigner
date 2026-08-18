@@ -155,13 +155,15 @@ class PreferencesFragment : Fragment() {
                 PreferenceDataStoreKeysConstants.KEY_HAPTIC_FEEDBACK,
                 true
             )
-            binding.hapticSwitch.isChecked = isHapticEnabled
+            binding.hapticSwitch.setCheckedQuietly(isHapticEnabled)
+            com.webscare.urducanvas.common.utils.Utils.isHapticFeedbackGloballyEnabled = isHapticEnabled
 
             val isSnappingEnabled = dataStore.getFirstPreference(
                 PreferenceDataStoreKeysConstants.KEY_SMART_SNAPPING,
                 true
             )
-            binding.smartSnappingSwitch.isChecked = isSnappingEnabled
+            binding.smartSnappingSwitch.setCheckedQuietly(isSnappingEnabled)
+            viewModel.setSmartSnappingEnabled(isSnappingEnabled)
         }
     }
 
@@ -401,14 +403,16 @@ class PreferencesFragment : Fragment() {
         }
 
         // Smart Snapping Switch
-        binding.smartSnappingSwitch.setOnCheckedChangeListener { _, isChecked ->
+        binding.smartSnappingSwitch.onCheckedChangeListener = { isChecked ->
+            viewModel.setSmartSnappingEnabled(isChecked)
             viewLifecycleOwner.lifecycleScope.launch {
                 dataStore.putPreference(PreferenceDataStoreKeysConstants.KEY_SMART_SNAPPING, isChecked)
             }
         }
 
         // Haptic Feedback Switch
-        binding.hapticSwitch.setOnCheckedChangeListener { _, isChecked ->
+        binding.hapticSwitch.onCheckedChangeListener = { isChecked ->
+            com.webscare.urducanvas.common.utils.Utils.isHapticFeedbackGloballyEnabled = isChecked
             viewLifecycleOwner.lifecycleScope.launch {
                 dataStore.putPreference(PreferenceDataStoreKeysConstants.KEY_HAPTIC_FEEDBACK, isChecked)
             }

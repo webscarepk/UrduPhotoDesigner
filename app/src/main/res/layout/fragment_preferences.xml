@@ -580,7 +580,7 @@
                     app:layout_constraintTop_toBottomOf="@id/smartSnappingTitle"
                     app:layout_constraintBottom_toBottomOf="parent"/>
 
-                <com.google.android.material.materialswitch.MaterialSwitch
+                <com.webscare.urducanvas.common.views.AnimatedToggleSwitch
                     android:id="@+id/smartSnappingSwitch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -631,7 +631,7 @@
                     app:layout_constraintTop_toBottomOf="@id/hapticTitle"
                     app:layout_constraintBottom_toBottomOf="parent"/>
 
-                <com.google.android.material.materialswitch.MaterialSwitch
+                <com.webscare.urducanvas.common.views.AnimatedToggleSwitch
                     android:id="@+id/hapticSwitch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

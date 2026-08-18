@@ -124,7 +124,7 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
                     emptyState.errorMessage.text = "Try a different search or clear your filters"
                     emptyState.retryButton.visibility = View.VISIBLE
                     (emptyState.retryButton.getChildAt(0) as? android.widget.TextView)?.text = "Clear filters"
-                    emptyState.retryButton.setOnClickListener {
+                    emptyState.retryButton.addPressEffect {
                         activeQuery = ""; activeSize = null; activePrice = "All"; activeCategory = "All"
                         binding.searchBar.setText("")
                         canvasSizeAdapter.selectedSizeName = ""
@@ -142,7 +142,7 @@ class TemplateCategoriesFragment : androidx.fragment.app.Fragment() {
                     emptyState.errorMessage.text = "Check your connection and try again"
                     emptyState.retryButton.visibility = View.VISIBLE
                     (emptyState.retryButton.getChildAt(0) as? android.widget.TextView)?.text = "Retry"
-                    emptyState.retryButton.setOnClickListener { mainViewModel.retryTemplates() }
+                    emptyState.retryButton.addPressEffect { mainViewModel.retryTemplates() }
                 }
                 CatViewState.Empty -> {
                     loadingState.root.visibility = View.GONE

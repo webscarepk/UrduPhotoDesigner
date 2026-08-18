@@ -5,6 +5,7 @@ import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.View
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.LayoutSubscriptionDialogBinding
 
 object SubscriptionDialogHelper {
@@ -33,7 +34,7 @@ object SubscriptionDialogHelper {
             .create()
             .also { it.window?.setBackgroundDrawableResource(android.R.color.transparent) }
 
-        binding.confirm.setOnClickListener {
+        binding.confirm.addPressEffect {
             dialog.dismiss()
             onConfirm()
         }
@@ -41,7 +42,7 @@ object SubscriptionDialogHelper {
         if (cancelText != null) {
             binding.cancel.visibility = View.VISIBLE
             binding.cancel.text = cancelText
-            binding.cancel.setOnClickListener {
+            binding.cancel.addPressEffect {
                 dialog.dismiss()
                 onCancel?.invoke()
             }
