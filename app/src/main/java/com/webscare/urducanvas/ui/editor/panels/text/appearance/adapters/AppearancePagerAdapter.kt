@@ -21,8 +21,9 @@ class AppearancePagerAdapter(
             0 -> KasheedaFragment.Companion.newInstance()
             1, 2 -> FillStrokeFragment.Companion.newInstance(tabs[position].tab_name)
             3 -> ShadowsFragment.Companion.newInstance()
-            4 -> LabelsFragment.Companion.newInstance()
-            5 -> BlendFragment.Companion.newInstance()
+            4 -> com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.GlowFragment.newInstance()
+            5 -> LabelsFragment.Companion.newInstance()
+            6 -> BlendFragment.Companion.newInstance()
             else -> BlendFragment.Companion.newInstance()
         }
     }

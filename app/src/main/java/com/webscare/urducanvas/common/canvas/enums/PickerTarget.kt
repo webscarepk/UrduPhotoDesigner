@@ -86,5 +86,10 @@ enum class PickerTarget {
   @SerializedName("ColorPickerTableStroke")
   COLOR_PICKER_TABLE_STROKE,
   @SerializedName("ColorPickerTableTextColor")
-  COLOR_PICKER_TABLE_TEXT_COLOR
+  COLOR_PICKER_TABLE_TEXT_COLOR,
+
+  @SerializedName("EyeDropperGlow")
+  EYE_DROPPER_GLOW,
+  @SerializedName("ColorPickerGlow")
+  COLOR_PICKER_GLOW
 }

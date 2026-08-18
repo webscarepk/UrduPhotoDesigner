@@ -8,49 +8,48 @@
     tools:context=".ui.editor.panels.text.appearance.childs.LabelsFragment">
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/toolbar"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="30dp"
         android:layout_marginHorizontal="10dp"
-        android:padding="1dp"
         android:background="@drawable/button_bg_small"
-        android:backgroundTint="@color/selection"
-        app:layout_constraintStart_toStartOf="parent"
+        android:backgroundTint="@color/contrast"
+        android:padding="2dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:id="@+id/toolbar">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
         <TextView
             android:id="@+id/solid"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
+            android:background="@drawable/button_bg_small"
+            android:backgroundTint="@color/white"
+            android:fontFamily="@font/bold"
+            android:gravity="center"
             android:text="@string/solid"
             android:textColor="@color/black"
-            android:textSize="12sp"
-            android:fontFamily="@font/medium"
-            android:gravity="center"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
+            android:textSize="11sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/gradient"
-            android:paddingVertical="3dp"
-            android:background="@drawable/button_bg_small"
-            android:backgroundTint="@color/white"/>
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
             android:id="@+id/gradient"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="@string/gradient"
-            android:textColor="@color/black"
-            android:textSize="12sp"
+            android:layout_height="match_parent"
+            android:background="@drawable/button_bg_small"
+            android:backgroundTint="@color/contrast"
             android:fontFamily="@font/medium"
             android:gravity="center"
-            app:layout_constraintStart_toEndOf="@id/solid"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:text="@string/gradient"
+            android:textColor="@color/black"
+            android:textSize="11sp"
             app:layout_constraintBottom_toBottomOf="parent"
-            android:paddingVertical="3dp"
-            android:background="@drawable/button_bg_small"
-            android:backgroundTint="@color/contrast"/>
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/solid"
+            app:layout_constraintTop_toTopOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

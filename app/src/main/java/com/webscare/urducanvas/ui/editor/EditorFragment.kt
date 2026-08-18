@@ -85,6 +85,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -108,6 +109,8 @@ class EditorFragment : Fragment() {
     private lateinit var canvasSize: CanvasSize
     private var currentUnit = UnitType.PIXELS
     private val viewModel: CanvasViewModel by activityViewModels()
+    @javax.inject.Inject
+    lateinit var dataStore: com.webscare.urducanvas.common.datastore.PreferencesDataStoreHelper
     private var lastSelection: List<CanvasElement>? = null
     private val pendingHideRunnables = HashMap<View, Runnable>()
     private var activePanel: View? = null
@@ -383,7 +386,7 @@ class EditorFragment : Fragment() {
         val fabMenu = binding.fabMenu
         val fabAdd = binding.fabAdd
 
-        fabAdd.setOnClickListener {
+        fabAdd.addPressEffect {
             toggleFabMenu(!isFabMenuOpen)
         }
 
@@ -784,6 +787,11 @@ class EditorFragment : Fragment() {
     }
 
     private fun observeAfterCanvasReady() {
+        if (::sizedCanvasView.isInitialized) {
+            sizedCanvasView.isSmartSnappingEnabled = viewModel.isSmartSnappingEnabled
+        }
+        startPeriodicAutoSave()
+
         viewModel.inSelectionMode.observe(viewLifecycleOwner) { enabled ->
             if (::sizedCanvasView.isInitialized) sizedCanvasView.setSelectionMode(enabled)
         }
@@ -929,7 +937,7 @@ class EditorFragment : Fragment() {
         viewModel.activePicker.observe(viewLifecycleOwner) { slot ->
             if (::sizedCanvasView.isInitialized) {
                 when (slot) {
-                    PickerTarget.EYE_DROPPER_LABEL, PickerTarget.EYE_DROPPER_OVERLAY, PickerTarget.EYE_DROPPER_SHADOW, PickerTarget.EYE_DROPPER_BACKGROUND, PickerTarget.EYE_DROPPER_TEXT_FILL, PickerTarget.EYE_DROPPER_TEXT_STROKE, PickerTarget.EYE_DROPPER_GRADIENT, PickerTarget.EYE_DROPPER_DRAW_STROKE, PickerTarget.EYE_DROPPER_DRAW_FILL, PickerTarget.EYE_DROPPER_IMAGE_STROKE, PickerTarget.EYE_DROPPER_SHAPE_STROKE, PickerTarget.EYE_DROPPER_SHAPE_FILL, PickerTarget.EYE_DROPPER_TABLE_FILL, PickerTarget.EYE_DROPPER_TABLE_STROKE -> {
+                    PickerTarget.EYE_DROPPER_LABEL, PickerTarget.EYE_DROPPER_OVERLAY, PickerTarget.EYE_DROPPER_SHADOW, PickerTarget.EYE_DROPPER_GLOW, PickerTarget.EYE_DROPPER_BACKGROUND, PickerTarget.EYE_DROPPER_TEXT_FILL, PickerTarget.EYE_DROPPER_TEXT_STROKE, PickerTarget.EYE_DROPPER_GRADIENT, PickerTarget.EYE_DROPPER_DRAW_STROKE, PickerTarget.EYE_DROPPER_DRAW_FILL, PickerTarget.EYE_DROPPER_IMAGE_STROKE, PickerTarget.EYE_DROPPER_SHAPE_STROKE, PickerTarget.EYE_DROPPER_SHAPE_FILL, PickerTarget.EYE_DROPPER_TABLE_FILL, PickerTarget.EYE_DROPPER_TABLE_STROKE -> {
                         sizedCanvasView.enableColorPicker()
                     }
 
@@ -1921,6 +1929,27 @@ class EditorFragment : Fragment() {
         } finally {
             exportDialog = null
             exportDialogBinding = null
+        }
+    }
+
+    private fun startPeriodicAutoSave() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                val intervalStr = dataStore.getFirstPreference(
+                    com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants.KEY_AUTO_SAVE_INTERVAL,
+                    "3"
+                )
+                if (intervalStr != "off") {
+                    val minutes = intervalStr.toLongOrNull() ?: 3L
+                    val intervalMs = minutes * 60 * 1000L
+                    while (isActive) {
+                        delay(intervalMs)
+                        if (viewModel.hasChanges.value == true && !isSaving) {
+                            autoSaveSilent()
+                        }
+                    }
+                }
+            }
         }
     }
 

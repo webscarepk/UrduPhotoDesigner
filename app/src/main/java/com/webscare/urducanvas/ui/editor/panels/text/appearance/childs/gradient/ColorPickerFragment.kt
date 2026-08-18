@@ -60,7 +60,7 @@ class ColorPickerFragment : Fragment() {
         updateColor()
 
         // ── tap colorCode to open dialog ───────────────────────────────────
-        binding.colorCode.setOnClickListener {
+        binding.colorCode.addPressEffect {
             ColorPickerDialog(requireContext()) { color ->
                 applyColorFromInt(color)
             }.show()
@@ -93,6 +93,9 @@ class ColorPickerFragment : Fragment() {
             }
             PickerTarget.COLOR_PICKER_SHADOW, PickerTarget.EYE_DROPPER_SHADOW, PickerTarget.COLOR_PICKER_IMAGE_SHADOW -> {
                 viewModel.shadowColor.value ?: Color.GRAY
+            }
+            PickerTarget.COLOR_PICKER_GLOW, PickerTarget.EYE_DROPPER_GLOW -> {
+                viewModel.outerGlowColor.value ?: Color.CYAN
             }
             PickerTarget.COLOR_PICKER_LABEL, PickerTarget.EYE_DROPPER_LABEL -> {
                 viewModel.labelColor.value ?: Color.YELLOW

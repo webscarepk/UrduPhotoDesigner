@@ -34,6 +34,7 @@ class AppearanceFragment : Fragment() {
         RailCategoryItem("fill",     "Fill",     R.drawable.ic_fill),
         RailCategoryItem("stroke",   "Stroke",   R.drawable.ic_stroke),
         RailCategoryItem("shadow",   "Shadow",   R.drawable.ic_shadow),
+        RailCategoryItem("glow",     "Glow",     R.drawable.ic_glow),
         RailCategoryItem("label",    "Label",    R.drawable.ic_label),
         RailCategoryItem("effect",   "Effect",   R.drawable.ic_effect)
     )
@@ -89,8 +90,9 @@ class AppearanceFragment : Fragment() {
                 tabs.add(PanelTabs(1, "Fill",     false))
                 tabs.add(PanelTabs(2, "Stroke",   false))
                 tabs.add(PanelTabs(3, "Shadow",   false))
-                tabs.add(PanelTabs(4, "Label",    false))
-                tabs.add(PanelTabs(5, "Effect",   false))
+                tabs.add(PanelTabs(4, "Glow",     false))
+                tabs.add(PanelTabs(5, "Label",    false))
+                tabs.add(PanelTabs(6, "Effect",   false))
 
                 pagerAdapter.notifyDataSetChanged()
             }

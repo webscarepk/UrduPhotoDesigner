@@ -54,13 +54,7 @@ class ShadowsFragment : Fragment() {
 
         binding.shadowPad.onOffsetChanged = { angle, _ ->
             viewModel.setShadowAngle(angle)
-            updateReadoutText(angle)
         }
-    }
-
-    private fun updateReadoutText(angle: Float) {
-        binding.directionTitle.text = binding.shadowPad.getDirectionTitle()
-        binding.readoutText.text = "${angle.roundToInt()}°"
     }
 
     private fun setupRecyclerView() {
@@ -86,7 +80,7 @@ class ShadowsFragment : Fragment() {
             },
             { viewModel.startPicking(PickerTarget.EYE_DROPPER_SHADOW) }
         )
-        binding.colors.layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 2, androidx.recyclerview.widget.GridLayoutManager.HORIZONTAL, false)
+        binding.colors.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext(), androidx.recyclerview.widget.LinearLayoutManager.HORIZONTAL, false)
         binding.colors.adapter = colorsAdapter
     }
 
@@ -156,7 +150,6 @@ class ShadowsFragment : Fragment() {
             val safeAngle = angle ?: 135f
             val safeDist = viewModel.shadowDistance.value ?: 21f
             binding.shadowPad.setOffset(safeAngle, safeDist)
-            updateReadoutText(safeAngle)
         }
 
         viewModel.shadowDistance.observe(viewLifecycleOwner) { dist ->

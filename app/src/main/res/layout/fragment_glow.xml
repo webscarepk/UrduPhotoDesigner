@@ -2,13 +2,61 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/shadowsFragment"
+    android:id="@+id/glowFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/white"
-    tools:context=".ui.editor.panels.text.appearance.childs.ShadowsFragment">
+    tools:context=".ui.editor.panels.text.appearance.childs.GlowFragment">
 
-    <!-- Top Section Container: 88dp Angle Pad on Left + Opacity & Radius Stacked Vertically on Right -->
+    <!-- Glow Mode Selector (Outer Glow vs Inner Glow) -->
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/glowModeContainer"
+        android:layout_width="0dp"
+        android:layout_height="30dp"
+        android:layout_marginHorizontal="10dp"
+        android:background="@drawable/button_bg_small"
+        android:backgroundTint="@color/contrast"
+        android:padding="2dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/tabOuterGlow"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/button_bg_small"
+            android:backgroundTint="@color/white"
+            android:fontFamily="@font/bold"
+            android:gravity="center"
+            android:text="@string/solid"
+            android:textColor="@color/black"
+            android:textSize="11sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/tabInnerGlow"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tabInnerGlow"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/button_bg_small"
+            android:backgroundTint="@color/contrast"
+            android:fontFamily="@font/medium"
+            android:gravity="center"
+            android:text="@string/gradient"
+            android:textColor="@color/black"
+            android:textSize="11sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/tabOuterGlow"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Top Section: 88dp Glow Pad + Opacity & Radius Stacked Vertically on Right -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/topRowContainer"
         android:layout_width="0dp"
@@ -18,11 +66,11 @@
         android:layout_marginTop="6dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/glowModeContainer">
 
-        <!-- 88dp Angle Pad on Left -->
+        <!-- 88dp Angle / Bias Pad on Left -->
         <com.webscare.urducanvas.common.views.FeatherBiasPadView
-            android:id="@+id/shadowPad"
+            android:id="@+id/glowPad"
             android:layout_width="88dp"
             android:layout_height="88dp"
             app:layout_constraintStart_toStartOf="parent"
@@ -35,8 +83,8 @@
             android:layout_height="wrap_content"
             android:visibility="visible"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/shadowPad"
-            app:layout_constraintTop_toTopOf="@id/shadowPad">
+            app:layout_constraintStart_toEndOf="@id/glowPad"
+            app:layout_constraintTop_toTopOf="@id/glowPad">
 
             <TextView
                 android:id="@+id/opacityTitle"
@@ -89,7 +137,7 @@
             android:layout_marginTop="4dp"
             android:visibility="visible"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/shadowPad"
+            app:layout_constraintStart_toEndOf="@id/glowPad"
             app:layout_constraintTop_toBottomOf="@id/opacityCard">
 
             <TextView
@@ -110,7 +158,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="5dp"
                 android:fontFamily="@font/regular"
-                android:text="8"
+                android:text="12"
                 android:textColor="@color/black"
                 android:textSize="12sp"
                 app:layout_constraintBottom_toBottomOf="@id/radiusTitle"
@@ -123,8 +171,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:indeterminateTint="@color/appColor"
-                android:max="50"
-                android:progress="8"
+                android:max="60"
+                android:progress="12"
                 android:progressBackgroundTint="@color/light_gray"
                 android:progressTint="@color/appColor"
                 android:splitTrack="false"
@@ -135,60 +183,6 @@
                 app:layout_constraintTop_toBottomOf="@id/radiusSize" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- Row 2: DISTANCE Seekbar Card (stays where it is) -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/distanceCard"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:visibility="visible"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/topRowContainer">
-
-        <TextView
-            android:id="@+id/distanceTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="15dp"
-            android:fontFamily="@font/medium"
-            android:text="@string/distance"
-            android:textColor="@color/black"
-            android:textSize="12sp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <TextView
-            android:id="@+id/distanceSize"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="15dp"
-            android:fontFamily="@font/regular"
-            android:text="21"
-            android:textColor="@color/black"
-            android:textSize="12sp"
-            app:layout_constraintBottom_toBottomOf="@id/distanceTitle"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/distanceTitle" />
-
-        <SeekBar
-            android:id="@+id/distance"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
-            android:indeterminateTint="@color/appColor"
-            android:max="100"
-            android:progress="21"
-            android:progressBackgroundTint="@color/light_gray"
-            android:progressTint="@color/appColor"
-            android:splitTrack="false"
-            android:thumb="@drawable/seekbar_thumb_custom"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/distanceSize" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- Row 3: Colors List (Single Linear Horizontal Row below Distance) -->
@@ -203,7 +197,7 @@
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/distanceCard"
+        app:layout_constraintTop_toBottomOf="@id/topRowContainer"
         tools:itemCount="20"
         tools:listitem="@layout/layout_color_item" />
 
