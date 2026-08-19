@@ -294,6 +294,7 @@ class ImagesListFragment : Fragment() {
                 imagesAdapter?.isExpanded = expanded
             }
         }
+        binding.backgrounds.alpha = 1f
         val bottomPadding = if (expanded) (64 * resources.displayMetrics.density).toInt() else 0
         binding.backgrounds.setPadding(
             binding.backgrounds.paddingLeft,
@@ -320,16 +321,18 @@ class ImagesListFragment : Fragment() {
 
     fun onPanelSlide(offset: Float) {
         if (_binding == null) return
-        binding.swipeRefresh.isEnabled = offset >= 0.95f
+        val effectiveExpanded = offset >= MorphGridLayoutManager.DEFAULT_FLIP_THRESHOLD
+        binding.swipeRefresh.isEnabled = effectiveExpanded
         val lm = binding.backgrounds.layoutManager as? MorphGridLayoutManager
         if (lm != null) {
             lm.applyFraction(binding.backgrounds, offset)
-            val effectiveExpanded = offset >= 0.95f
             if (imagesAdapter?.isExpanded != effectiveExpanded) {
                 binding.backgrounds.recycledViewPool.clear()
                 imagesAdapter?.isExpanded = effectiveExpanded
             }
         }
+        
+        binding.backgrounds.alpha = MorphGridLayoutManager.computeMorphAlpha(offset)
         
         // Smoothly animate bottom padding during slide to avoid jerking
         val maxPadding = (64 * resources.displayMetrics.density).toInt()

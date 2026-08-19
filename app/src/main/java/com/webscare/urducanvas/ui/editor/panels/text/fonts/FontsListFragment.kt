@@ -150,12 +150,14 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         val lm = rv.layoutManager as? MorphGridLayoutManager
         if (lm != null) {
             lm.applyFraction(rv, offset)
-            val effectiveExpanded = offset >= 0.95f
+            val effectiveExpanded = offset >= MorphGridLayoutManager.DEFAULT_FLIP_THRESHOLD
             if (fontsAdapter.isExpanded != effectiveExpanded) {
                 rv.recycledViewPool.clear()
                 fontsAdapter.isExpanded = effectiveExpanded
             }
         }
+
+        rv.alpha = MorphGridLayoutManager.computeMorphAlpha(offset)
 
         // Smoothly update size of all visible items in 60fps!
         val rvWidth = rv.width
@@ -187,6 +189,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
                 fontsAdapter.isExpanded = expanded
             }
         }
+        rv.alpha = 1f
 
         // Sync item size on final settle state
         val rvWidth = rv.width

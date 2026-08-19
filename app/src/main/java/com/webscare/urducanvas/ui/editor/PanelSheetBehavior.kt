@@ -183,7 +183,9 @@ class PanelSheetBehavior(
         }
 
         dimView?.addPressEffect {
-            if (isExpanded) snapTo(expanded = false)
+            if (isExpanded || currentGuideBegin < collapsedPx) {
+                snapTo(expanded = false)
+            }
         }
     }
 

@@ -380,6 +380,7 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                 }
             }
         }
+        binding.objects.alpha = 1f
 
         // Sync item size on final settle state
         val rvWidth   = binding.objects.width
@@ -411,11 +412,11 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
 
     fun onPanelSlide(offset: Float) {
         if (_binding == null) return
-        binding.swipeRefresh?.isEnabled = offset >= 0.95f
+        val effectiveExpanded = offset >= MorphGridLayoutManager.DEFAULT_FLIP_THRESHOLD
+        binding.swipeRefresh?.isEnabled = effectiveExpanded
         val lm = binding.objects.layoutManager as? MorphGridLayoutManager
         if (lm != null) {
             lm.applyFraction(binding.objects, offset)
-            val effectiveExpanded = offset >= 0.95f
             if (isBaseTab(category)) {
                 if (emojiAdapter?.isExpanded != effectiveExpanded) {
                     binding.objects.recycledViewPool.clear()
@@ -428,6 +429,8 @@ class ObjectsListFragment : androidx.fragment.app.Fragment() {
                 }
             }
         }
+
+        binding.objects.alpha = MorphGridLayoutManager.computeMorphAlpha(offset)
 
         val rvWidth   = binding.objects.width
         val rvPadding = binding.objects.paddingLeft + binding.objects.paddingRight

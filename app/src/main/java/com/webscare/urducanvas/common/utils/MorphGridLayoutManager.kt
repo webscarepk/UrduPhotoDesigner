@@ -25,7 +25,7 @@ class MorphGridLayoutManager(
     context: Context,
     var collapsedSpan: Int = 3,   // rows in horizontal strip
     var expandedSpan: Int = 3,    // columns in vertical grid
-    private val orientationFlipThreshold: Float = 0.95f
+    val orientationFlipThreshold: Float = DEFAULT_FLIP_THRESHOLD
 ) : GridLayoutManager(context, collapsedSpan, HORIZONTAL, false) {
 
     // Track what we last set so we skip redundant requestLayout() calls
@@ -62,7 +62,10 @@ class MorphGridLayoutManager(
             changed = true
         }
 
-        if (changed) recycler.requestLayout()
+        if (changed) {
+            recycler.scrollToPosition(0)
+            recycler.requestLayout()
+        }
         return changed
     }
 
@@ -70,14 +73,10 @@ class MorphGridLayoutManager(
      * Interpolate span count.
      * Horizontal layout uses collapsedSpan rows.
      * Vertical layout uses expandedSpan columns.
-     * Changes orientation and span count in a single step at the flip threshold.
      */
     private fun computeSpan(f: Float, orientation: Int): Int {
         return if (orientation == HORIZONTAL) collapsedSpan else expandedSpan
     }
-
-    private fun lerp(a: Int, b: Int, t: Float): Int =
-        (a + (b - a) * t).roundToInt().coerceAtLeast(1)
 
     // ── Scroll direction gates ───────────────────────────────────────────────
     // RecyclerView consults these before deciding whether to intercept touch events.
@@ -85,4 +84,24 @@ class MorphGridLayoutManager(
 
     override fun canScrollHorizontally(): Boolean = currentOrientation == HORIZONTAL
     override fun canScrollVertically(): Boolean   = currentOrientation == VERTICAL
+
+    companion object {
+        const val DEFAULT_FLIP_THRESHOLD = 0.90f
+        const val FADE_WINDOW_HALF = 0.08f
+
+        /**
+         * Calculates smooth alpha dip around orientation flip point [0.82f..0.98f].
+         * Prevents jarring visual jumping when GridLayoutManager switches between HORIZONTAL and VERTICAL.
+         */
+        fun computeMorphAlpha(offset: Float, flipThreshold: Float = DEFAULT_FLIP_THRESHOLD): Float {
+            val startFade = flipThreshold - FADE_WINDOW_HALF // 0.82f
+            val endFade = (flipThreshold + FADE_WINDOW_HALF).coerceAtMost(1f) // 0.98f
+            return when {
+                offset <= startFade -> 1f
+                offset < flipThreshold -> ((flipThreshold - offset) / FADE_WINDOW_HALF).coerceIn(0f, 1f)
+                offset < endFade -> ((offset - flipThreshold) / (endFade - flipThreshold)).coerceIn(0f, 1f)
+                else -> 1f
+            }
+        }
+    }
 }
