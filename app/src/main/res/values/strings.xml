@@ -402,6 +402,9 @@
     <string name="project">Project</string>
     <string name="lock_canvas">Lock Canvas</string>
     <string name="unlock_canvas">Unlock Canvas</string>
+    <string name="ruler">Ruler</string>
+    <string name="ruler_two_sides">Ruler (2 Sides)</string>
+    <string name="ruler_four_sides">Ruler (4 Sides)</string>
     <string name="delete_all">Delete All</string>
 
     <array name="hue_colors">
@@ -515,4 +518,6 @@
     <string name="sub_feature_no_ads_title">Ad-Free</string>
     <string name="sub_feature_no_ads_subtitle">No interruptions</string>
     <string name="dark_mode">Dark Mode</string>
+    <string name="styles">Styles</string>
+    <string name="presets">Presets</string>
 </resources>

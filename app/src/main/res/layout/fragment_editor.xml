@@ -165,10 +165,10 @@
         android:id="@+id/dimOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:alpha="0.5"
+        android:alpha="0"
         android:background="#000000"
         android:translationZ="7dp"
-        android:visibility="visible"
+        android:visibility="invisible"
         tools:layout_editor_absoluteX="0dp"
         tools:layout_editor_absoluteY="0dp" />
 
@@ -255,21 +255,7 @@
             android:src="@drawable/ic_grid"
             android:layout_marginStart="5dp"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toEndOf="@id/ruler"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <ImageView
-            android:id="@+id/ruler"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="@drawable/button_bg_round"
-            android:backgroundTint="@color/contrast"
-            app:tint="@color/gray"
-            android:padding="8dp"
-            android:src="@drawable/ic_ruler"
-            android:layout_marginStart="5dp"
             app:layout_constraintStart_toEndOf="@id/back"
-            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
         <ImageView

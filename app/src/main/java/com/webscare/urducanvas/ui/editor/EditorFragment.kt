@@ -58,6 +58,8 @@ import com.webscare.urducanvas.BuildConfig
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasManager
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
+import com.webscare.urducanvas.common.views.CalloutArrowDirection
+import com.webscare.urducanvas.common.views.CalloutBubbleDrawable
 import com.webscare.urducanvas.common.canvas.enums.BlendType
 import com.webscare.urducanvas.common.canvas.enums.ElementType
 import com.webscare.urducanvas.common.canvas.enums.HAlign
@@ -715,13 +717,29 @@ class EditorFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                mainViewModel.expandedPanel.collect { panel ->
-                    val expanded = panel != null
-                    expandPanel(expanded)
-                    // When any panel is expanded full-screen, block touches from
-                    // reaching the canvas behind it. Handled here once for every
-                    // panel type rather than in each panel fragment.
-                    setPanelTouchBlocked(expanded)
+                launch {
+                    mainViewModel.expandedPanel.collect { panel ->
+                        val expanded = panel != null
+                        expandPanel(expanded)
+                        // When any panel is expanded full-screen, block touches from
+                        // reaching the canvas behind it. Handled here once for every
+                        // panel type rather than in each panel fragment.
+                        setPanelTouchBlocked(expanded)
+                    }
+                }
+                launch {
+                    mainViewModel.panelSlideOffset.collect { offset ->
+                        val b = _binding ?: return@collect
+                        val dimAlpha = (offset * PanelSheetBehavior.MAX_DIM_ALPHA).coerceIn(0f, PanelSheetBehavior.MAX_DIM_ALPHA)
+                        b.dimOverlay.alpha = dimAlpha
+                        if (dimAlpha > 0.01f) {
+                            b.dimOverlay.visibility = View.VISIBLE
+                            b.dimOverlay.isClickable = true
+                        } else {
+                            b.dimOverlay.visibility = View.INVISIBLE
+                            b.dimOverlay.isClickable = false
+                        }
+                    }
                 }
             }
         }
@@ -954,8 +972,6 @@ class EditorFragment : Fragment() {
         }
 
         viewModel.rulerState.observe(viewLifecycleOwner) { rulerState ->
-            val isEnabled = rulerState != com.webscare.urducanvas.common.canvas.enums.RulerState.OFF
-            updateToggleButton(binding.ruler, isEnabled)
             sizedCanvasView.setRulerState(rulerState)
         }
 
@@ -1695,10 +1711,6 @@ class EditorFragment : Fragment() {
             viewModel.toggleGrid()
         }
 
-        binding.ruler.addPressEffect {
-            binding.ruler.vibrateSoft()
-            viewModel.toggleRuler()
-        }
 
         binding.pan.addPressEffect {
             viewModel.togglePanMode()
@@ -2310,13 +2322,6 @@ class EditorFragment : Fragment() {
             b.panelNavHost.setOnTouchListener { _, _ -> true }
         } else {
             b.panelNavHost.setOnTouchListener(null)
-            // Safety net: guarantee the dimOverlay is invisible and non-intercepting
-            // whenever the panel collapses, regardless of whether PanelSheetBehavior's
-            // spring endListener already reset it. Rapid expand→collapse gestures can
-            // leave the overlay visible/clickable if the spring settles before the
-            // expandedPanel Flow emits the null (collapsed) state.
-            b.dimOverlay.visibility  = View.INVISIBLE
-            b.dimOverlay.isClickable = false
         }
     }
 
@@ -2325,45 +2330,20 @@ class EditorFragment : Fragment() {
      * art-board element. Anchored at the raw touch coordinates.
      */
 
-    fun View.applySelectionRing(isSelected: Boolean, fillColor: Int) {
-        // The swatch's own color fill — always present.
-        val fill = android.graphics.drawable.GradientDrawable().apply {
-            shape = android.graphics.drawable.GradientDrawable.OVAL
-            setColor(fillColor)
-        }
-
-        background = if (isSelected) {
-            // Ring with a transparent center so the fill shows through it.
-            val ring = android.graphics.drawable.GradientDrawable().apply {
-                shape = android.graphics.drawable.GradientDrawable.OVAL
-                setColor(Color.TRANSPARENT)
-                setStroke(
-                    (2 * resources.displayMetrics.density).toInt(),
-                    ContextCompat.getColor(requireContext(), R.color.appColor)
-                )
-            }
-            // Fill underneath (inset), ring on top.
-            val layerDrawable = android.graphics.drawable.LayerDrawable(arrayOf(fill, ring))
-            val inset = (4 * resources.displayMetrics.density).toInt()
-            layerDrawable.setLayerInset(0, inset, inset, inset, inset)
-            layerDrawable
-        } else {
-            // Not selected — just the fill, no ring.
-            fill
-        }
-    }
-
     private fun showCanvasPopupMenu(touchRawX: Float, touchRawY: Float) {
         if (!isAdded) return
+
+        val density = resources.displayMetrics.density
+        val popupWidthPx = (168 * density).toInt()
 
         val popupBinding = LayoutCanvasPopupBinding.inflate(LayoutInflater.from(requireActivity()))
         val popupWindow = PopupWindow(
             popupBinding.root,
-            (210 * resources.displayMetrics.density).toInt(),
+            popupWidthPx,
             LinearLayout.LayoutParams.WRAP_CONTENT,
             true
         ).apply {
-            elevation = 2f
+            elevation = 4f
             isOutsideTouchable = true
         }
 
@@ -2378,7 +2358,7 @@ class EditorFragment : Fragment() {
             CreateFragment.newResizeInstance().show(parentFragmentManager, "resize_canvas")
         }
 
-        // ── Background color: light / dark ────────────────────────────────
+        // ── Background color: light / dark (ColorsAdapter style swatches) ──
         var lightColor = ContextCompat.getColor(requireContext(), R.color.contrast)
         var darkColor  = ContextCompat.getColor(requireContext(), R.color.black)
 
@@ -2393,48 +2373,166 @@ class EditorFragment : Fragment() {
         val isLightSelected = currentBgColor == lightColor || currentBgColor == Color.WHITE
         val isDarkSelected = currentBgColor == darkColor || currentBgColor == Color.BLACK
 
-        popupBinding.bgLight.backgroundTintList = null
-        popupBinding.bgDark.backgroundTintList = null
+        fun bindColorSwatch(
+            outer: com.google.android.material.card.MaterialCardView,
+            inner: com.google.android.material.card.MaterialCardView,
+            colorView: View,
+            color: Int,
+            isSelected: Boolean
+        ) {
+            colorView.setBackgroundColor(color)
 
-        popupBinding.bgLight.applySelectionRing(isLightSelected, lightColor)
-        popupBinding.bgDark.applySelectionRing(isDarkSelected, darkColor)
+            val r = Color.red(color)
+            val g = Color.green(color)
+            val b = Color.blue(color)
+            val luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
 
-        popupBinding.bgLight.addPressEffect {
+            val strokePx = (1.5f * density + 0.5f).toInt()
+            val marginPx = (2f * density + 0.5f).toInt()
+
+            val lp = inner.layoutParams as ViewGroup.MarginLayoutParams
+
+            if (isSelected) {
+                outer.strokeWidth = strokePx
+                outer.strokeColor = ContextCompat.getColor(requireContext(), R.color.appColor)
+                outer.setCardBackgroundColor(ContextCompat.getColor(requireContext(), R.color.white))
+                lp.setMargins(marginPx, marginPx, marginPx, marginPx)
+            } else {
+                lp.setMargins(0, 0, 0, 0)
+                if (luminance > 0.85) {
+                    outer.strokeWidth = (1f * density + 0.5f).toInt()
+                    outer.strokeColor = ContextCompat.getColor(requireContext(), R.color.light_gray)
+                } else {
+                    outer.strokeWidth = 0
+                    outer.strokeColor = Color.TRANSPARENT
+                }
+            }
+            inner.layoutParams = lp
+        }
+
+        bindColorSwatch(
+            popupBinding.bgLightOuter,
+            popupBinding.bgLightInner,
+            popupBinding.bgLightColor,
+            lightColor,
+            isLightSelected
+        )
+        bindColorSwatch(
+            popupBinding.bgDarkOuter,
+            popupBinding.bgDarkInner,
+            popupBinding.bgDarkColor,
+            darkColor,
+            isDarkSelected
+        )
+
+        popupBinding.bgLightOuter.addPressEffect {
             viewModel.setCanvasBackgroundColor(lightColor)
             popupWindow.dismiss()
         }
-        popupBinding.bgDark.addPressEffect {
+        popupBinding.bgDarkOuter.addPressEffect {
             viewModel.setCanvasBackgroundColor(darkColor)
+            popupWindow.dismiss()
+        }
+
+        // ── Ruler ─────────────────────────────────────────────────────────
+        val currentRulerState = viewModel.rulerState.value ?: com.webscare.urducanvas.common.canvas.enums.RulerState.OFF
+        popupBinding.rulerTitle.text = when (currentRulerState) {
+            com.webscare.urducanvas.common.canvas.enums.RulerState.OFF -> getString(R.string.ruler)
+            com.webscare.urducanvas.common.canvas.enums.RulerState.TWO_SIDES -> getString(R.string.ruler_two_sides)
+            com.webscare.urducanvas.common.canvas.enums.RulerState.FOUR_SIDES -> getString(R.string.ruler_four_sides)
+            else -> getString(R.string.ruler)
+        }
+        val isRulerActive = currentRulerState != com.webscare.urducanvas.common.canvas.enums.RulerState.OFF
+        val rulerIconTint = if (isRulerActive) {
+            ContextCompat.getColor(requireContext(), R.color.appColor)
+        } else {
+            ContextCompat.getColor(requireContext(), R.color.black)
+        }
+        popupBinding.rulerIcon.imageTintList = ColorStateList.valueOf(rulerIconTint)
+        popupBinding.actionRuler.addPressEffect {
+            viewModel.toggleRuler()
             popupWindow.dismiss()
         }
 
         // ── Lock / Unlock ─────────────────────────────────────────────────
         val locked = viewModel.isCanvasPanLocked.value ?: false
-        popupBinding.actionLock.text =
+        popupBinding.lockTitle.text =
             getString(if (locked) R.string.unlock_canvas else R.string.lock_canvas)
-        popupBinding.actionLock.setCompoundDrawablesRelativeWithIntrinsicBounds(
-            0, 0, if (locked) R.drawable.ic_unlock else R.drawable.ic_lock, 0
+        popupBinding.lockIcon.setImageResource(
+            if (locked) R.drawable.ic_unlock else R.drawable.ic_lock
         )
         popupBinding.actionLock.addPressEffect {
             viewModel.toggleCanvasPanLock()
             popupWindow.dismiss()
         }
 
-        // ── Anchor at touch point, flip up if not enough room below ────────
+        // ── Anchor directly at touch point with seamless continuous callout bubble ──
         binding.canvasContainer.post {
+            val screenWidth = resources.displayMetrics.widthPixels
             val screenHeight = resources.displayMetrics.heightPixels
+
+            val arrowWidth = 12f * density
+            val arrowHeight = 6f * density
+            val cornerRadius = 10f * density
+            val strokeWidth = 1f * density
+            val screenMargin = (8 * density).toInt()
+
+            val fillColor = ContextCompat.getColor(requireContext(), R.color.white)
+            val strokeColor = ContextCompat.getColor(requireContext(), R.color.light_gray)
+
+            popupBinding.root.setPadding(0, 0, 0, 0)
             popupBinding.root.measure(
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(popupWidthPx, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
             )
-            val popupHeight = popupBinding.root.measuredHeight
-            val x = touchRawX.toInt()
-            val y = if (screenHeight - touchRawY >= popupHeight) {
+            val cardHeight = popupBinding.root.measuredHeight
+            val totalHeight = (cardHeight + arrowHeight).toInt()
+
+            // Horizontally center card around touchRawX, clamped within screen margins
+            var popupX = (touchRawX - popupWidthPx / 2f).toInt()
+            popupX = popupX.coerceIn(screenMargin, maxOf(screenMargin, screenWidth - popupWidthPx - screenMargin))
+
+            // Horizontally align arrow with touchRawX (relative to popup left)
+            val targetArrowX = touchRawX - popupX
+            val minArrowX = cornerRadius + arrowWidth / 2f
+            val maxArrowX = popupWidthPx - cornerRadius - arrowWidth / 2f
+            val clampedArrowX = targetArrowX.coerceIn(minArrowX, maxArrowX)
+
+            // Check if there is enough space below touch point
+            val spaceBelow = screenHeight - touchRawY
+            val showBelow = spaceBelow >= totalHeight + screenMargin + (20 * density)
+
+            val arrowDirection = if (showBelow) {
+                CalloutArrowDirection.TOP
+            } else {
+                CalloutArrowDirection.BOTTOM
+            }
+
+            if (showBelow) {
+                popupBinding.root.setPadding(0, arrowHeight.toInt(), 0, 0)
+            } else {
+                popupBinding.root.setPadding(0, 0, 0, arrowHeight.toInt())
+            }
+
+            val bubbleDrawable = CalloutBubbleDrawable(
+                fillColor = fillColor,
+                strokeColor = strokeColor,
+                strokeWidth = strokeWidth,
+                cornerRadius = cornerRadius,
+                arrowWidth = arrowWidth,
+                arrowHeight = arrowHeight,
+                arrowDirection = arrowDirection,
+                arrowX = clampedArrowX
+            )
+            popupBinding.root.background = bubbleDrawable
+
+            val popupY = if (showBelow) {
                 touchRawY.toInt()
             } else {
-                (touchRawY - popupHeight).toInt()
+                (touchRawY - totalHeight).toInt()
             }
-            popupWindow.showAtLocation(binding.root, Gravity.NO_GRAVITY, x, y)
+
+            popupWindow.showAtLocation(binding.root, Gravity.NO_GRAVITY, popupX, popupY)
         }
     }
 

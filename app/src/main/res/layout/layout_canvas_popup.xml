@@ -2,27 +2,34 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:orientation="vertical"
-    android:background="@drawable/button_bg"
-    android:backgroundTint="@color/white"
-    android:layout_width="220dp"
-    android:layout_height="wrap_content">
+    android:id="@+id/popupContainer"
+    android:layout_width="168dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
 
     <!-- Canvas size: label + current dimensions inline -->
     <LinearLayout
         android:id="@+id/actionCanvasSize"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="34dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingHorizontal="15dp"
-        android:paddingVertical="10dp">
+        android:background="?android:selectableItemBackground"
+        android:paddingHorizontal="11dp"
+        android:paddingVertical="6dp">
 
         <TextView
             style="@style/PopupItemStyle"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:background="@null"
+            android:singleLine="true"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="11.5sp"
             android:text="@string/canvas_size" />
 
         <TextView
@@ -30,6 +37,11 @@
             style="@style/PopupItemStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:background="@null"
+            android:singleLine="true"
+            android:maxLines="1"
+            android:textSize="11.5sp"
             android:textColor="@color/black"
             tools:text="1080 × 1080" />
 
@@ -38,48 +50,169 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@color/light_gray" />
+        android:background="@color/contrast" />
 
-    <!-- Background color: short label + swatches inline -->
+    <!-- Background color: short label + swatches matching ColorsAdapter -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="34dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingHorizontal="15dp"
-        android:paddingVertical="8dp">
+        android:paddingHorizontal="11dp"
+        android:paddingVertical="6dp">
 
         <TextView
             style="@style/PopupItemStyle"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:background="@null"
+            android:singleLine="true"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="11.5sp"
             android:text="@string/background" />
 
-        <View
-            android:id="@+id/bgLight"
-            android:layout_width="26dp"
-            android:layout_height="26dp"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/button_bg" />
+        <!-- Light swatch -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/bgLightOuter"
+            android:layout_width="17dp"
+            android:layout_height="17dp"
+            android:layout_marginStart="4dp"
+            app:cardCornerRadius="8.5dp"
+            app:cardBackgroundColor="@color/white"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp">
 
-        <View
-            android:id="@+id/bgDark"
-            android:layout_width="26dp"
-            android:layout_height="26dp"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/button_bg" />
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/bgLightInner"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:cardCornerRadius="8.5dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
+
+                <View
+                    android:id="@+id/bgLightColor"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@color/contrast" />
+            </com.google.android.material.card.MaterialCardView>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Dark swatch -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/bgDarkOuter"
+            android:layout_width="17dp"
+            android:layout_height="17dp"
+            android:layout_marginStart="5dp"
+            app:cardCornerRadius="8.5dp"
+            app:cardBackgroundColor="@color/white"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp">
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/bgDarkInner"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:cardCornerRadius="8.5dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
+
+                <View
+                    android:id="@+id/bgDarkColor"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@color/black" />
+            </com.google.android.material.card.MaterialCardView>
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
-    <TextView
-        android:id="@+id/actionLock"
-        android:layout_height="wrap_content"
+
+    <View
         android:layout_width="match_parent"
-        style="@style/PopupItemStyle"
-        android:text="@string/lock_canvas"
-        android:paddingHorizontal="15dp"
-        android:paddingVertical="10dp"
-        app:drawableEndCompat="@drawable/ic_unlock"
-        app:drawableTint="@color/black" />
+        android:layout_height="1dp"
+        android:background="@color/contrast" />
+
+    <!-- Ruler: label + compact icon -->
+    <LinearLayout
+        android:id="@+id/actionRuler"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="34dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="?android:selectableItemBackground"
+        android:paddingHorizontal="11dp"
+        android:paddingVertical="6dp">
+
+        <TextView
+            android:id="@+id/rulerTitle"
+            style="@style/PopupItemStyle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:background="@null"
+            android:singleLine="true"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="11.5sp"
+            android:text="@string/ruler" />
+
+        <ImageView
+            android:id="@+id/rulerIcon"
+            android:layout_width="13dp"
+            android:layout_height="13dp"
+            android:layout_marginStart="4dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_ruler"
+            app:tint="@color/black" />
+
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/contrast" />
+
+    <!-- Lock Canvas: label + compact lock icon -->
+    <LinearLayout
+        android:id="@+id/actionLock"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="34dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="?android:selectableItemBackground"
+        android:paddingHorizontal="11dp"
+        android:paddingVertical="6dp">
+
+        <TextView
+            android:id="@+id/lockTitle"
+            style="@style/PopupItemStyle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:background="@null"
+            android:singleLine="true"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="11.5sp"
+            android:text="@string/lock_canvas" />
+
+        <ImageView
+            android:id="@+id/lockIcon"
+            android:layout_width="13dp"
+            android:layout_height="13dp"
+            android:layout_marginStart="4dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_lock"
+            app:tint="@color/black" />
+
+    </LinearLayout>
 
 </LinearLayout>
