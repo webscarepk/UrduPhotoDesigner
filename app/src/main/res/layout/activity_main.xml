@@ -85,17 +85,17 @@
     <!-- Center FAB — sits on the TOP edge of the nav (like expense tracker) -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/fabAddImage"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
+        android:layout_width="62dp"
+        android:layout_height="62dp"
         android:clickable="true"
         android:focusable="true"
         android:visibility="gone"
         android:contentDescription="Add image"
-        app:cardCornerRadius="28dp"
+        app:cardCornerRadius="31dp"
         app:cardElevation="8dp"
         app:cardBackgroundColor="@color/appColor"
         app:strokeColor="@color/white"
-        app:strokeWidth="3.5dp"
+        app:strokeWidth="4dp"
         app:cardPreventCornerOverlap="false"
         app:cardUseCompatPadding="false"
         app:layout_constraintTop_toTopOf="@id/bottomNavigation"
@@ -104,8 +104,8 @@
         app:layout_constraintEnd_toEndOf="@id/bottomNavigation">
 
         <ImageView
-            android:layout_width="22dp"
-            android:layout_height="22dp"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
             android:layout_gravity="center"
             android:src="@drawable/ic_fab_plus"
             android:contentDescription="@null" />

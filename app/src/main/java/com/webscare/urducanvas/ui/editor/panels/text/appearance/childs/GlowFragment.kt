@@ -65,10 +65,7 @@ class GlowFragment : Fragment() {
 
     private fun updateModeUI() {
         if (isInnerGlowMode) {
-            binding.tabInnerGlow.setBackgroundResource(R.drawable.rounded_toggle_selected)
-            binding.tabInnerGlow.setTextColor(Color.WHITE)
-            binding.tabOuterGlow.setBackgroundColor(Color.TRANSPARENT)
-            binding.tabOuterGlow.setTextColor(Color.BLACK)
+            binding.tabInnerGlow.setBackgroundResource(R.drawable.button_bg_small)
 
             val color = viewModel.innerGlowColor.value ?: Color.WHITE
             val radius = viewModel.innerGlowRadius.value ?: 6f
@@ -83,10 +80,7 @@ class GlowFragment : Fragment() {
             binding.opacity.progress = opacity
             binding.opacitySize.text = "$opacity"
         } else {
-            binding.tabOuterGlow.setBackgroundResource(R.drawable.rounded_toggle_selected)
-            binding.tabOuterGlow.setTextColor(Color.WHITE)
-            binding.tabInnerGlow.setBackgroundColor(Color.TRANSPARENT)
-            binding.tabInnerGlow.setTextColor(Color.BLACK)
+            binding.tabOuterGlow.setBackgroundResource(R.drawable.button_bg_small)
 
             val color = viewModel.outerGlowColor.value ?: "#00E5FF".toColorInt()
             val radius = viewModel.outerGlowRadius.value ?: 12f
@@ -122,7 +116,7 @@ class GlowFragment : Fragment() {
 
     private fun setupRecyclerView() {
         colorsAdapter = ColorsAdapter(
-            Constants.shadowColorList,
+            Constants.colorList,
             { color ->
                 val selectedColor = color.colorCode.toColorInt()
                 applyCurrentGlow(enabled = true, color = selectedColor)

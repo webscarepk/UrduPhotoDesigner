@@ -458,7 +458,7 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
             binding.gradient.typeface = androidx.core.content.res.ResourcesCompat.getFont(requireContext(), R.font.medium)
             binding.solid.backgroundTintList =
                 ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white))
-            binding.solid.typeface = androidx.core.content.res.ResourcesCompat.getFont(requireContext(), R.font.bold)
+            binding.solid.typeface = androidx.core.content.res.ResourcesCompat.getFont(requireContext(), R.font.medium)
         } else {
             // Fade out solid and hide it
             binding.colors.animate().alpha(0f).setDuration(fadeDuration).withEndAction {
@@ -470,7 +470,7 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
                 }.start()
             binding.gradient.backgroundTintList =
                 ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white))
-            binding.gradient.typeface = androidx.core.content.res.ResourcesCompat.getFont(requireContext(), R.font.bold)
+            binding.gradient.typeface = androidx.core.content.res.ResourcesCompat.getFont(requireContext(), R.font.medium)
             binding.solid.backgroundTintList =
                 ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.contrast))
             binding.solid.typeface = androidx.core.content.res.ResourcesCompat.getFont(requireContext(), R.font.medium)

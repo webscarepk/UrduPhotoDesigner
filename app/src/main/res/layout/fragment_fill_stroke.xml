@@ -27,7 +27,7 @@
             android:layout_height="match_parent"
             android:background="@drawable/button_bg_small"
             android:backgroundTint="@color/white"
-            android:fontFamily="@font/bold"
+            android:fontFamily="@font/medium"
             android:gravity="center"
             android:text="@string/solid"
             android:textColor="@color/black"
