@@ -34,6 +34,21 @@ class TextStylesMainAdapter(
     var recyclerViewWidth: Int = 0
     var recyclerViewPadding: Int = 0
 
+    var attachedRecyclerView: RecyclerView? = null
+        private set
+
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        super.onAttachedToRecyclerView(recyclerView)
+        attachedRecyclerView = recyclerView
+    }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView)
+        if (attachedRecyclerView == recyclerView) {
+            attachedRecyclerView = null
+        }
+    }
+
     var isExpanded: Boolean = false
         set(value) {
             if (field == value) return
@@ -101,15 +116,31 @@ class TextStylesMainAdapter(
         fun updateSize(slideOffset: Float, rvWidth: Int, rvPadding: Int) {
             val context = cardRoot.context
             val density = context.resources.displayMetrics.density
-            val collapsedSize = (44 * density + 0.5f).toInt()
-            val marginEndPx = (6 * density + 0.5f).toInt()
-            val marginBottomPx = (6 * density * slideOffset + 0.5f).toInt()
+            val recyclerView = (cardRoot.parent as? RecyclerView) ?: adapter.attachedRecyclerView
 
-            val columnWidth = if (rvWidth > 0) {
-                val usableWidth = rvWidth - rvPadding
-                val spanCount = 4
-                val totalGaps = (spanCount - 1) * marginEndPx
-                ((usableWidth - totalGaps) / spanCount).coerceAtLeast(collapsedSize)
+            val marginEndPx = (6 * density).toInt()
+            val marginBottomPx = (6 * density).toInt()
+
+            val lm = recyclerView?.layoutManager as? androidx.recyclerview.widget.GridLayoutManager
+            val spanCountCollapsed = lm?.spanCount?.coerceAtLeast(1) ?: 3
+
+            val rvHeight = recyclerView?.height ?: 0
+            val rvPaddingY = (recyclerView?.paddingTop ?: 0) + (recyclerView?.paddingBottom ?: 0)
+            val availHeight = rvHeight - rvPaddingY
+
+            val computedCollapsedHeight = if (availHeight > 0) {
+                ((availHeight - (spanCountCollapsed * marginBottomPx)) / spanCountCollapsed).coerceAtLeast((24 * density).toInt())
+            } else {
+                (44 * density).toInt()
+            }
+
+            val collapsedSize = computedCollapsedHeight
+
+            val effectiveWidth = if (rvWidth > 0) rvWidth else (recyclerView?.width ?: 0)
+            val columnWidth = if (effectiveWidth > 0) {
+                val spanCountExpanded = 3 // 3 columns in expanded mode
+                val totalMarginW = (spanCountExpanded - 1) * marginEndPx
+                ((effectiveWidth - rvPadding - totalMarginW) / spanCountExpanded).toInt()
             } else collapsedSize
 
             val currentSize = (collapsedSize + (columnWidth - collapsedSize) * slideOffset).toInt()

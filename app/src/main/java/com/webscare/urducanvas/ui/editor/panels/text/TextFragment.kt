@@ -43,6 +43,7 @@ import com.webscare.urducanvas.ui.editor.panels.text.fonts.imported.ImportedFont
 import com.webscare.urducanvas.data.model.PresetCategory
 import com.webscare.urducanvas.data.model.TextStylePreset
 import com.webscare.urducanvas.data.repository.TextStylesRepository
+import android.content.res.ColorStateList
 import com.webscare.urducanvas.ui.editor.panels.text.styles.TextStylesMainAdapter
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -63,9 +64,11 @@ class TextFragment : Fragment() {
     private lateinit var fontsAdapter: FontsAdapter
     private lateinit var stylesAdapter: TextStylesMainAdapter
 
-    // ── Styles Mode State ─────────────────────────────────────────────────────
+    // ── Styles / Presets Mode State ──────────────────────────────────────────
     private var isStylesMode: Boolean = false
-    private var selectedStyleCategory: String = "All"
+    private var inPresetCategoryMode: Boolean = false
+    private var selectedPresetGroup: String = "All"
+    private var selectedPresetCategory: String? = null
 
     // ── Tab state ─────────────────────────────────────────────────────────────
     // Single TabLayout, two visual states:
@@ -202,109 +205,151 @@ class TextFragment : Fragment() {
 
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Tab Level Animation (Horizontal Slide + Fade Transition)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private fun animateTabTransition(forward: Boolean, onHalfway: () -> Unit) {
+        val tabLayouts = listOfNotNull(_binding?.tabLayout, _binding?.tabLayoutExpanded)
+        if (tabLayouts.isEmpty()) {
+            onHalfway()
+            return
+        }
+
+        val density = resources.displayMetrics.density
+        val outDistance = if (forward) -24f * density else 24f * density
+        val inDistance = if (forward) 24f * density else -24f * density
+        val fadeOutDuration = 90L
+        val fadeInDuration = 140L
+
+        var executed = false
+        tabLayouts.forEach { tl ->
+            tl.animate()
+                .translationX(outDistance)
+                .alpha(0f)
+                .setDuration(fadeOutDuration)
+                .setInterpolator(android.view.animation.AccelerateInterpolator())
+                .withEndAction {
+                    if (!executed) {
+                        executed = true
+                        onHalfway()
+                    }
+                    tl.translationX = inDistance
+                    tl.alpha = 0f
+                    tl.animate()
+                        .translationX(0f)
+                        .alpha(1f)
+                        .setDuration(fadeInDuration)
+                        .setInterpolator(android.view.animation.DecelerateInterpolator())
+                        .start()
+                }
+                .start()
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // LANGUAGE state  →  "All | Urdu | English | Imported"
     // ─────────────────────────────────────────────────────────────────────────
 
-    private fun showLanguageTabs() {
-        inCategoryMode = false
-        tabListenerAttached = false
-        // Remove old listener before rebuilding to prevent double-fire
-        clearTabListeners()
+    private fun showLanguageTabs(animate: Boolean = false) {
+        val rebuildAction = {
+            inCategoryMode = false
+            tabListenerAttached = false
+            clearTabListeners()
 
-        listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
-            tl.removeAllTabs()
-            languageList.forEach { lang ->
-                val tab = tl.newTab()
-                val tabView = LayoutInflater.from(context).inflate(R.layout.view_panel_tab, tl, false)
-                tabView.findViewById<TextView>(R.id.tabTitle).text = lang
-                tab.customView = tabView
-                tl.addTab(tab, false)
+            listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
+                tl.removeAllTabs()
+                languageList.forEach { lang ->
+                    val tab = tl.newTab()
+                    val tabView = LayoutInflater.from(context).inflate(R.layout.view_panel_tab, tl, false)
+                    tabView.findViewById<TextView>(R.id.tabTitle).text = lang
+                    tab.customView = tabView
+                    tl.addTab(tab, false)
+                }
+                val idx = languageList.indexOf(selectedLanguage).coerceAtLeast(0)
+                tl.getTabAt(idx)?.select()
+                updateTextTabStyles(tl, idx)
+                com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(tl, idx)
             }
-            val idx = languageList.indexOf(selectedLanguage).coerceAtLeast(0)
-            tl.getTabAt(idx)?.select()
-            updateTextTabStyles(tl, idx)
-            com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(tl, idx)
+
+            attachTabListener()
         }
 
-        attachTabListener()
+        if (animate) {
+            animateTabTransition(forward = false, onHalfway = rebuildAction)
+        } else {
+            rebuildAction()
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // CATEGORY state  →  "[Urdu]  Bold  Condensed  Decorated …"
+    // CATEGORY state  →  "[← Urdu]  All  Bold  Condensed  Nastaliq …"
     //
-    // The selected language stays as the FIRST tab (pinned label).
-    // It is visually distinct (appColor tint, full scale always).
-    // Tapping it returns to language state — handled in onTabReselected.
+    // Tab 0 = Breadcrumb Back Chip: [← Language] (light green bg, dark green text)
+    // Tab 1 = "All"
+    // Tab 2+ = individual categories
     // ─────────────────────────────────────────────────────────────────────────
 
-    private fun showCategoryTabs(categories: List<String>) {
-        inCategoryMode = true
-        tabListenerAttached = false
-        // Remove old listener before rebuilding to prevent double-fire
-        clearTabListeners()
+    private fun showCategoryTabs(categories: List<String>, animate: Boolean = false) {
+        val rebuildAction = {
+            inCategoryMode = true
+            tabListenerAttached = false
+            clearTabListeners()
 
-        // Full list: "All" always first, then the real categories
-        // pos 0 = pinned language label (tap-back)
-        // pos 1 = "All" (show everything for this language)
-        // pos 2+ = individual categories
-        val realCategories = categories.filter { it != "All" }
-        val allCategories = listOf("All") + realCategories
+            val realCategories = categories.filter { it != "All" }
+            val allCategories = listOf("All") + realCategories
 
-        // Resolve which position to select BEFORE touching tabs,
-        // so selectedCategory is correct when rebindFonts() runs later.
-        val targetCat: String? = when {
-            selectedCategory != null && categories.contains(selectedCategory) -> selectedCategory
-            else -> null  // null = "All"
-        }
-        selectedCategory = targetCat
-
-        listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
-            tl.removeAllTabs()
-
-            // Tab 0 — pinned language label, acts as "you are here" + tap-back
-            val pinnedTab = tl.newTab()
-            val pinnedView = LayoutInflater.from(context).inflate(R.layout.view_panel_tab, tl, false)
-            pinnedView.findViewById<TextView>(R.id.tabTitle).apply {
-                text = selectedLanguage
-                setTextColor(ContextCompat.getColor(requireContext(), R.color.appColor))
+            val targetCat: String? = when {
+                selectedCategory != null && categories.contains(selectedCategory) -> selectedCategory
+                else -> null  // null = "All"
             }
-            pinnedTab.customView = pinnedView
-            tl.addTab(pinnedTab, false)
+            selectedCategory = targetCat
 
-            // Tab 1 = "All", Tab 2+ = individual categories
-            allCategories.forEach { cat ->
-                val tab = tl.newTab()
-                val tabView = LayoutInflater.from(context).inflate(R.layout.view_panel_tab, tl, false)
-                tabView.findViewById<TextView>(R.id.tabTitle).text = cat
-                tab.customView = tabView
-                tl.addTab(tab, false)
-            }
+            listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
+                tl.removeAllTabs()
 
-            // Pinned tab (pos 0) always stays full scale
-            tl.getTabAt(0)?.view?.apply { scaleX = 1f; scaleY = 1f }
+                // Tab 0 — Breadcrumb Back Chip: [← Language]
+                val breadcrumbTab = tl.newTab()
+                val breadcrumbView = LayoutInflater.from(context).inflate(R.layout.view_panel_tab_breadcrumb, tl, false)
+                breadcrumbView.findViewById<TextView>(R.id.tabTitle).text = selectedLanguage
+                breadcrumbTab.customView = breadcrumbView
+                tl.addTab(breadcrumbTab, false)
 
-            // Select correct position:
-            // targetCat == null → "All" → pos 1
-            // targetCat != null → find in allCategories (+1 for pinned tab offset)
-            val selectPos = if (targetCat == null) {
-                1  // "All" tab
-            } else {
-                val idx = allCategories.indexOf(targetCat)
-                if (idx >= 0) idx + 1 else 1
+                // Tab 1 = "All", Tab 2+ = individual categories
+                allCategories.forEach { cat ->
+                    val tab = tl.newTab()
+                    val tabView = LayoutInflater.from(context).inflate(R.layout.view_panel_tab, tl, false)
+                    tabView.findViewById<TextView>(R.id.tabTitle).text = cat
+                    tab.customView = tabView
+                    tl.addTab(tab, false)
+                }
+
+                // Pinned breadcrumb (pos 0) stays full scale
+                tl.getTabAt(0)?.view?.apply { scaleX = 1f; scaleY = 1f }
+
+                val selectPos = if (targetCat == null) {
+                    1  // "All" tab
+                } else {
+                    val idx = allCategories.indexOf(targetCat)
+                    if (idx >= 0) idx + 1 else 1
+                }
+
+                tl.getTabAt(selectPos)?.select()
+                updateTextTabStyles(tl, selectPos)
+                com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(tl, selectPos)
             }
 
-            // Select WITHOUT triggering the listener (listener not attached yet)
-            tl.getTabAt(selectPos)?.select()
-            updateTextTabStyles(tl, selectPos)
-            com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(tl, selectPos)
+            attachTabListener()
         }
 
-        // Attach listener AFTER all tabs are built and selection is set
-        attachTabListener()
+        if (animate) {
+            animateTabTransition(forward = true, onHalfway = rebuildAction)
+        } else {
+            rebuildAction()
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Shared tab listener — handles both language and category mode
+    // Shared tab listener — handles both language/category and preset group/category mode
     // ─────────────────────────────────────────────────────────────────────────
 
     private fun attachTabListener() {
@@ -313,7 +358,6 @@ class TextFragment : Fragment() {
 
         val listener = object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
-                // Skip if this call was triggered by our own sync — avoid double handling
                 if (isSyncingTabs) return
                 val pos = tab?.position ?: return
 
@@ -327,22 +371,55 @@ class TextFragment : Fragment() {
                 }
 
                 if (isStylesMode) {
-                    val cat = (tab.customView?.findViewById<TextView>(R.id.tabTitle))?.text?.toString() ?: return
-                    selectedStyleCategory = cat
-                    updateTextTabStyles(binding.tabLayout, pos)
-                    updateTextTabStyles(binding.tabLayoutExpanded, pos)
-                    rebindStyles()
+                    if (inPresetCategoryMode) {
+                        // pos 0 = [← Styles] breadcrumb chip — returns to preset group list
+                        if (pos == 0) {
+                            selectedPresetCategory = null
+                            inPresetCategoryMode = false
+                            showPresetGroupTabs(animate = true)
+                            rebindStyles()
+                            return
+                        }
+
+                        val cat =
+                            (tab.customView?.findViewById<TextView>(R.id.tabTitle))?.text?.toString()
+                                ?: tab.text?.toString() ?: return
+
+                        selectedPresetCategory = if (cat == "All") null else cat
+
+                        updateTextTabStyles(binding.tabLayout, pos)
+                        updateTextTabStyles(binding.tabLayoutExpanded, pos)
+                        com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(binding.tabLayout, pos)
+                        com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(binding.tabLayoutExpanded, pos)
+                        rebindStyles()
+                    } else {
+                        val grp =
+                            (tab.customView?.findViewById<TextView>(R.id.tabTitle))?.text?.toString()
+                                ?: tab.text?.toString() ?: return
+                        selectedPresetGroup = grp
+                        selectedPresetCategory = null
+
+                        updateTextTabStyles(binding.tabLayout, pos)
+                        updateTextTabStyles(binding.tabLayoutExpanded, pos)
+                        com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(binding.tabLayout, pos)
+                        com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(binding.tabLayoutExpanded, pos)
+
+                        if (grp == "Styles") {
+                            val cats = PresetCategory.values().filter { it != PresetCategory.MY_STYLES }.map { it.displayName }
+                            showPresetCategoryTabs(cats, animate = true)
+                        }
+                        rebindStyles()
+                    }
                     return
                 }
 
                 if (inCategoryMode) {
-                    // pos 0 = pinned language label — returns to language list
+                    // pos 0 = [← Language] breadcrumb chip — returns to language list
                     if (pos == 0) {
                         selectedCategory = null
-                        // Persist: back to language mode
                         mainViewModel.lastFontsCategory = null
                         mainViewModel.lastFontsInCategoryMode = false
-                        showLanguageTabs()
+                        showLanguageTabs(animate = true)
                         rebindFonts()
                         return
                     }
@@ -351,10 +428,7 @@ class TextFragment : Fragment() {
                         (tab.customView?.findViewById<TextView>(R.id.tabTitle))?.text?.toString()
                             ?: return
 
-                    // pos 1 = "All" tab → null means no category filter
                     selectedCategory = if (cat == "All") null else cat
-
-                    // Persist category selection
                     mainViewModel.lastFontsCategory = selectedCategory
                     mainViewModel.lastFontsInCategoryMode = true
 
@@ -362,7 +436,6 @@ class TextFragment : Fragment() {
                     updateTextTabStyles(binding.tabLayoutExpanded, pos)
                     rebindFonts()
                 } else {
-                    // LANGUAGE mode
                     val lang =
                         (tab.customView?.findViewById<TextView>(R.id.tabTitle))?.text?.toString()
                             ?: return
@@ -376,12 +449,13 @@ class TextFragment : Fragment() {
                     val hasCats =
                         cats.isNotEmpty() && lang != "All" && lang != "Recents" && lang != "Imported"
 
-                    // Persist language selection
                     mainViewModel.lastFontsLanguage = lang
                     mainViewModel.lastFontsCategory = null
                     mainViewModel.lastFontsInCategoryMode = hasCats
 
-                    if (hasCats) showCategoryTabs(cats)
+                    if (hasCats) {
+                        showCategoryTabs(cats, animate = true)
+                    }
                     rebindFonts()
                 }
             }
@@ -390,22 +464,35 @@ class TextFragment : Fragment() {
             }
 
             override fun onTabReselected(tab: TabLayout.Tab?) {
-                if (isStylesMode) return
+                if (isStylesMode) {
+                    if (inPresetCategoryMode && tab?.position == 0) {
+                        selectedPresetCategory = null
+                        inPresetCategoryMode = false
+                        showPresetGroupTabs(animate = true)
+                        rebindStyles()
+                        return
+                    }
+                    if (!inPresetCategoryMode) {
+                        val grp =
+                            (tab?.customView?.findViewById<TextView>(R.id.tabTitle))?.text?.toString()
+                                ?: tab?.text?.toString() ?: return
+                        if (grp == "Styles") {
+                            val cats = PresetCategory.values().filter { it != PresetCategory.MY_STYLES }.map { it.displayName }
+                            showPresetCategoryTabs(cats, animate = true)
+                        }
+                    }
+                    return
+                }
 
-                // In category mode: tapping the pinned language tab (pos 0)
-                // fires onTabReselected if it was already "selected" visually.
-                // We treat it the same as onTabSelected — return to languages.
                 if (inCategoryMode && tab?.position == 0) {
                     selectedCategory = null
-                    // Persist: back to language mode
                     mainViewModel.lastFontsCategory = null
                     mainViewModel.lastFontsInCategoryMode = false
-                    showLanguageTabs()
+                    showLanguageTabs(animate = true)
                     rebindFonts()
                     return
                 }
-                // In language mode: reselecting a language that has categories
-                // drops into category mode (user tapped the same language again)
+
                 if (!inCategoryMode) {
                     val lang =
                         (tab?.customView?.findViewById<TextView>(R.id.tabTitle))?.text?.toString()
@@ -413,7 +500,7 @@ class TextFragment : Fragment() {
                     val cats = languageCategoryMap[lang] ?: emptyList()
                     if (cats.isNotEmpty() && lang != "All" && lang != "Recents" && lang != "Imported") {
                         mainViewModel.lastFontsInCategoryMode = true
-                        showCategoryTabs(cats)
+                        showCategoryTabs(cats, animate = true)
                     }
                 }
             }
@@ -445,7 +532,7 @@ class TextFragment : Fragment() {
         languageCategoryMap = buildLanguageCategoryMap(fonts)
         languageList = buildLanguageList(fonts)
 
-        showLanguageTabs()
+        showLanguageTabs(animate = false)
         rebindFonts()
 
         val idx = languageList.indexOf("Imported")
@@ -463,6 +550,7 @@ class TextFragment : Fragment() {
         val context = tl.context
         val boldFont = ResourcesCompat.getFont(context, R.font.bold) ?: Typeface.DEFAULT_BOLD
         val regularFont = ResourcesCompat.getFont(context, R.font.regular) ?: Typeface.DEFAULT
+        val isCatMode = if (isStylesMode) inPresetCategoryMode else inCategoryMode
 
         for (i in 0 until tl.tabCount) {
             val tab = tl.getTabAt(i) ?: continue
@@ -471,20 +559,20 @@ class TextFragment : Fragment() {
             val indicatorView = customView.findViewById<View>(R.id.tabIndicator)
             val isSelected = i == selectedIdx
 
-            if (isSelected) {
+            if (isCatMode && i == 0) {
+                // Breadcrumb Back Chip: [← Language] or [← Styles]
+                // Styled with distinct chip background, dark green bold text, no underline indicator
+                titleView.setTextColor(ContextCompat.getColor(context, R.color.appColor))
+                titleView.typeface = boldFont
+                indicatorView?.visibility = View.GONE
+            } else if (isSelected) {
                 titleView.setTextColor(ContextCompat.getColor(context, R.color.tab_selected_text))
                 titleView.typeface = boldFont
                 indicatorView?.visibility = View.VISIBLE
             } else {
-                if (inCategoryMode && i == 0) {
-                    titleView.setTextColor(ContextCompat.getColor(context, R.color.appColor))
-                    titleView.typeface = boldFont
-                    indicatorView?.visibility = View.GONE
-                } else {
-                    titleView.setTextColor(ContextCompat.getColor(context, R.color.tab_unselected_text))
-                    titleView.typeface = regularFont
-                    indicatorView?.visibility = View.GONE
-                }
+                titleView.setTextColor(ContextCompat.getColor(context, R.color.tab_unselected_text))
+                titleView.typeface = regularFont
+                indicatorView?.visibility = View.GONE
             }
         }
     }
@@ -778,8 +866,8 @@ class TextFragment : Fragment() {
         if (_binding == null) return
 
         val density = resources.displayMetrics.density
-        // Smoothly animate header container space height from 38dp to 104dp
-        val heightPx = (38 * density + (104 * density - 38 * density) * offset).toInt()
+        // Smoothly animate header container space height from 42dp to 126dp
+        val heightPx = (42 * density + (126 * density - 42 * density) * offset).toInt()
         val lp = binding.headerSpace.layoutParams
         if (lp.height != heightPx) {
             lp.height = heightPx
@@ -821,7 +909,7 @@ class TextFragment : Fragment() {
         val lm = binding.fontsRV.layoutManager as? MorphGridLayoutManager
         if (lm != null) {
             lm.applyFraction(binding.fontsRV, offset)
-            val effectiveExpanded = offset >= 0.95f
+            val effectiveExpanded = offset >= MorphGridLayoutManager.DEFAULT_FLIP_THRESHOLD
             if (!isStylesMode) {
                 if (fontsAdapter.isExpanded != effectiveExpanded) {
                     binding.fontsRV.recycledViewPool.clear()
@@ -834,6 +922,9 @@ class TextFragment : Fragment() {
                 }
             }
         }
+
+        // Apply smooth crossfade alpha around orientation flip to eliminate jumping
+        binding.fontsRV.alpha = MorphGridLayoutManager.computeMorphAlpha(offset)
 
         // Smoothly update size of all visible items in 60fps!
         val rvWidth = binding.fontsRV.width
@@ -862,6 +953,7 @@ class TextFragment : Fragment() {
     }
 
     private fun applyExpandedUi(expanded: Boolean) {
+        binding.fontsRV.alpha = 1f
         if (expanded) {
             binding.fontsRV.edgeEffectFactory = RecyclerView.EdgeEffectFactory()
             binding.fontsRV.translationX = 0f
@@ -875,7 +967,7 @@ class TextFragment : Fragment() {
         binding.tabExpandedContainer.isVisible = expanded
 
         val density = resources.displayMetrics.density
-        val finalHeightPx = if (expanded) (104 * density).toInt() else (38 * density).toInt()
+        val finalHeightPx = if (expanded) (126 * density).toInt() else (42 * density).toInt()
         val lp = binding.headerSpace.layoutParams
         if (lp.height != finalHeightPx) {
             lp.height = finalHeightPx
@@ -1082,7 +1174,7 @@ class TextFragment : Fragment() {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Mode Switch: Fonts vs Styles
+    // Mode Switch: Fonts vs Presets (Segmented Chip Switcher)
     // ─────────────────────────────────────────────────────────────────────────
 
     private fun setupModeSwitch() {
@@ -1100,23 +1192,24 @@ class TextFragment : Fragment() {
         val white = ContextCompat.getColor(context, R.color.white)
         val contrast = ContextCompat.getColor(context, R.color.contrast)
         val black = ContextCompat.getColor(context, R.color.black)
+        val mediumFont = ResourcesCompat.getFont(context, R.font.medium)
 
         if (stylesMode) {
-            // Highlight Styles
-            binding.btnModeStyles.backgroundTintList = android.content.res.ColorStateList.valueOf(white)
-            binding.btnModeStyles.typeface = ResourcesCompat.getFont(context, R.font.bold)
+            // Highlight Presets
+            binding.btnModeStyles.backgroundTintList = ColorStateList.valueOf(white)
+            binding.btnModeStyles.typeface = mediumFont
             binding.btnModeStyles.setTextColor(black)
 
-            binding.btnModeFonts.backgroundTintList = android.content.res.ColorStateList.valueOf(contrast)
-            binding.btnModeFonts.typeface = ResourcesCompat.getFont(context, R.font.medium)
+            binding.btnModeFonts.backgroundTintList = ColorStateList.valueOf(contrast)
+            binding.btnModeFonts.typeface = mediumFont
             binding.btnModeFonts.setTextColor(black)
 
-            binding.btnModeStylesExpanded.backgroundTintList = android.content.res.ColorStateList.valueOf(white)
-            binding.btnModeStylesExpanded.typeface = ResourcesCompat.getFont(context, R.font.bold)
+            binding.btnModeStylesExpanded.backgroundTintList = ColorStateList.valueOf(white)
+            binding.btnModeStylesExpanded.typeface = mediumFont
             binding.btnModeStylesExpanded.setTextColor(black)
 
-            binding.btnModeFontsExpanded.backgroundTintList = android.content.res.ColorStateList.valueOf(contrast)
-            binding.btnModeFontsExpanded.typeface = ResourcesCompat.getFont(context, R.font.medium)
+            binding.btnModeFontsExpanded.backgroundTintList = ColorStateList.valueOf(contrast)
+            binding.btnModeFontsExpanded.typeface = mediumFont
             binding.btnModeFontsExpanded.setTextColor(black)
 
             // Hide font-specific add button
@@ -1126,31 +1219,40 @@ class TextFragment : Fragment() {
             // Switch RecyclerView adapter to stylesAdapter
             val lm = binding.fontsRV.layoutManager as? MorphGridLayoutManager
             if (lm != null) {
-                lm.expandedSpan = 4
+                lm.expandedSpan = 3
                 lm.applyFraction(binding.fontsRV, if (isPanelExpanded) 1f else 0f)
             }
-            binding.fontsRV.adapter = stylesAdapter
+            binding.fontsRV.recycledViewPool.clear()
             stylesAdapter.isExpanded = isPanelExpanded
+            stylesAdapter.slideOffset = if (isPanelExpanded) 1f else 0f
+            stylesAdapter.recyclerViewWidth = binding.fontsRV.width
+            stylesAdapter.recyclerViewPadding = binding.fontsRV.paddingLeft + binding.fontsRV.paddingRight
+            binding.fontsRV.adapter = stylesAdapter
 
-            // Show style category tabs in TabLayout
-            showStyleTabs()
+            // Show preset category/group tabs in TabLayout
+            if (inPresetCategoryMode) {
+                val cats = PresetCategory.values().filter { it != PresetCategory.MY_STYLES }.map { it.displayName }
+                showPresetCategoryTabs(cats)
+            } else {
+                showPresetGroupTabs()
+            }
             rebindStyles()
         } else {
             // Highlight Fonts
-            binding.btnModeFonts.backgroundTintList = android.content.res.ColorStateList.valueOf(white)
-            binding.btnModeFonts.typeface = ResourcesCompat.getFont(context, R.font.bold)
+            binding.btnModeFonts.backgroundTintList = ColorStateList.valueOf(white)
+            binding.btnModeFonts.typeface = mediumFont
             binding.btnModeFonts.setTextColor(black)
 
-            binding.btnModeStyles.backgroundTintList = android.content.res.ColorStateList.valueOf(contrast)
-            binding.btnModeStyles.typeface = ResourcesCompat.getFont(context, R.font.medium)
+            binding.btnModeStyles.backgroundTintList = ColorStateList.valueOf(contrast)
+            binding.btnModeStyles.typeface = mediumFont
             binding.btnModeStyles.setTextColor(black)
 
-            binding.btnModeFontsExpanded.backgroundTintList = android.content.res.ColorStateList.valueOf(white)
-            binding.btnModeFontsExpanded.typeface = ResourcesCompat.getFont(context, R.font.bold)
+            binding.btnModeFontsExpanded.backgroundTintList = ColorStateList.valueOf(white)
+            binding.btnModeFontsExpanded.typeface = mediumFont
             binding.btnModeFontsExpanded.setTextColor(black)
 
-            binding.btnModeStylesExpanded.backgroundTintList = android.content.res.ColorStateList.valueOf(contrast)
-            binding.btnModeStylesExpanded.typeface = ResourcesCompat.getFont(context, R.font.medium)
+            binding.btnModeStylesExpanded.backgroundTintList = ColorStateList.valueOf(contrast)
+            binding.btnModeStylesExpanded.typeface = mediumFont
             binding.btnModeStylesExpanded.setTextColor(black)
 
             // Restore font-specific add button
@@ -1163,8 +1265,12 @@ class TextFragment : Fragment() {
                 lm.expandedSpan = 3
                 lm.applyFraction(binding.fontsRV, if (isPanelExpanded) 1f else 0f)
             }
-            binding.fontsRV.adapter = fontsAdapter
+            binding.fontsRV.recycledViewPool.clear()
             fontsAdapter.isExpanded = isPanelExpanded
+            fontsAdapter.slideOffset = if (isPanelExpanded) 1f else 0f
+            fontsAdapter.recyclerViewWidth = binding.fontsRV.width
+            fontsAdapter.recyclerViewPadding = binding.fontsRV.paddingLeft + binding.fontsRV.paddingRight
+            binding.fontsRV.adapter = fontsAdapter
 
             // Show font language/category tabs
             if (inCategoryMode) {
@@ -1177,47 +1283,130 @@ class TextFragment : Fragment() {
         }
     }
 
-    private fun showStyleTabs() {
-        val categories = mutableListOf("All")
-        val customStyles = TextStylesRepository.getCustomUserSavedStyles(requireContext())
-        if (customStyles.isNotEmpty()) {
-            categories.add(PresetCategory.MY_STYLES.displayName)
-        }
-        PresetCategory.values().filter { it != PresetCategory.MY_STYLES }.forEach {
-            categories.add(it.displayName)
-        }
+    // ─────────────────────────────────────────────────────────────────────────
+    // PRESETS GROUP state  →  "All | Styles | My Styles"
+    // ─────────────────────────────────────────────────────────────────────────
 
-        clearTabListeners()
+    private fun showPresetGroupTabs(animate: Boolean = false) {
+        val rebuildAction = {
+            inPresetCategoryMode = false
+            tabListenerAttached = false
+            clearTabListeners()
 
-        listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
-            tl.removeAllTabs()
-
-            categories.forEach { cat ->
-                val tab = tl.newTab()
-                val tabView = LayoutInflater.from(context).inflate(R.layout.view_panel_tab, tl, false)
-                tabView.findViewById<TextView>(R.id.tabTitle).text = cat
-                tab.customView = tabView
-                tl.addTab(tab, false)
+            val groups = mutableListOf("All", "Styles")
+            val customStyles = TextStylesRepository.getCustomUserSavedStyles(requireContext())
+            if (customStyles.isNotEmpty()) {
+                groups.add(PresetCategory.MY_STYLES.displayName)
             }
 
-            val selectPos = categories.indexOf(selectedStyleCategory).takeIf { it >= 0 } ?: 0
-            tl.getTabAt(selectPos)?.select()
-            updateTextTabStyles(tl, selectPos)
-            com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(tl, selectPos)
+            listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
+                tl.removeAllTabs()
+                groups.forEach { grp ->
+                    val tab = tl.newTab()
+                    val tabView = LayoutInflater.from(context).inflate(R.layout.view_panel_tab, tl, false)
+                    tabView.findViewById<TextView>(R.id.tabTitle).text = grp
+                    tab.customView = tabView
+                    tl.addTab(tab, false)
+                }
+                val idx = groups.indexOf(selectedPresetGroup).coerceAtLeast(0)
+                tl.getTabAt(idx)?.select()
+                updateTextTabStyles(tl, idx)
+                com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(tl, idx)
+            }
+
+            attachTabListener()
         }
 
-        attachTabListener()
+        if (animate) {
+            animateTabTransition(forward = false, onHalfway = rebuildAction)
+        } else {
+            rebuildAction()
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PRESETS CATEGORY state  →  "[← Styles]  All  3D  Layers  Emboss …"
+    //
+    // Tab 0 = Breadcrumb Back Chip: [← Styles]
+    // Tab 1 = "All"
+    // Tab 2+ = individual categories
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private fun showPresetCategoryTabs(categories: List<String>, animate: Boolean = false) {
+        val rebuildAction = {
+            inPresetCategoryMode = true
+            tabListenerAttached = false
+            clearTabListeners()
+
+            val realCategories = categories.filter { it != "All" }
+            val allCategories = listOf("All") + realCategories
+
+            val targetCat: String? = when {
+                selectedPresetCategory != null && categories.contains(selectedPresetCategory) -> selectedPresetCategory
+                else -> null  // null = "All"
+            }
+            selectedPresetCategory = targetCat
+
+            listOf(binding.tabLayout, binding.tabLayoutExpanded).forEach { tl ->
+                tl.removeAllTabs()
+
+                // Tab 0 — Breadcrumb Back Chip: [← Styles]
+                val breadcrumbTab = tl.newTab()
+                val breadcrumbView = LayoutInflater.from(context).inflate(R.layout.view_panel_tab_breadcrumb, tl, false)
+                breadcrumbView.findViewById<TextView>(R.id.tabTitle).text = "Styles"
+                breadcrumbTab.customView = breadcrumbView
+                tl.addTab(breadcrumbTab, false)
+
+                // Tab 1 = "All", Tab 2+ = individual preset categories
+                allCategories.forEach { cat ->
+                    val tab = tl.newTab()
+                    val tabView = LayoutInflater.from(context).inflate(R.layout.view_panel_tab, tl, false)
+                    tabView.findViewById<TextView>(R.id.tabTitle).text = cat
+                    tab.customView = tabView
+                    tl.addTab(tab, false)
+                }
+
+                // Pinned breadcrumb (pos 0) stays full scale
+                tl.getTabAt(0)?.view?.apply { scaleX = 1f; scaleY = 1f }
+
+                val selectPos = if (targetCat == null) 1 else {
+                    val idx = allCategories.indexOf(targetCat)
+                    if (idx >= 0) idx + 1 else 1
+                }
+
+                tl.getTabAt(selectPos)?.select()
+                updateTextTabStyles(tl, selectPos)
+                com.webscare.urducanvas.common.utils.PanelTabHelper.scrollToTabIfOverflows(tl, selectPos)
+            }
+
+            attachTabListener()
+        }
+
+        if (animate) {
+            animateTabTransition(forward = true, onHalfway = rebuildAction)
+        } else {
+            rebuildAction()
+        }
     }
 
     private fun rebindStyles() {
         val allPresets = TextStylesRepository.getAllPresets(requireContext())
-        val filteredByCategory = when (selectedStyleCategory) {
-            "All" -> allPresets
-            PresetCategory.MY_STYLES.displayName -> TextStylesRepository.getCustomUserSavedStyles(requireContext())
-            else -> {
-                val cat = PresetCategory.values().firstOrNull { it.displayName.equals(selectedStyleCategory, ignoreCase = true) }
+        val filteredByCategory = if (inPresetCategoryMode) {
+            // In Category mode under "Styles"
+            if (selectedPresetCategory == null || selectedPresetCategory == "All") {
+                allPresets.filter { it.category != PresetCategory.MY_STYLES }
+            } else {
+                val cat = PresetCategory.values().firstOrNull { it.displayName.equals(selectedPresetCategory, ignoreCase = true) }
                 if (cat != null) TextStylesRepository.getPresetsByCategory(cat, requireContext())
                 else allPresets
+            }
+        } else {
+            // In Presets Group mode
+            when (selectedPresetGroup) {
+                "All" -> allPresets
+                PresetCategory.MY_STYLES.displayName -> TextStylesRepository.getCustomUserSavedStyles(requireContext())
+                "Styles" -> allPresets.filter { it.category != PresetCategory.MY_STYLES }
+                else -> allPresets
             }
         }
 
