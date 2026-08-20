@@ -72,4 +72,10 @@
         android:name="com.webscare.urducanvas.ui.editor.panels.table.TableAdjustmentsFragment"
         android:label="fragment_table_adjustments"
         tools:layout="@layout/fragment_table_adjustments" />
+
+    <fragment
+        android:id="@+id/tablesParentFragment"
+        android:name="com.webscare.urducanvas.ui.editor.panels.table.TablesParentFragment"
+        android:label="fragment_tables_parent"
+        tools:layout="@layout/fragment_tables_parent" />
 </navigation>

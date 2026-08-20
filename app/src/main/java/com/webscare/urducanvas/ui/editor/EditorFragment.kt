@@ -175,7 +175,7 @@ class EditorFragment : Fragment() {
             )
         }
 
-        ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavigation) { view, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavContainer) { view, insets ->
             if (MANUFACTURER.equals("realme", ignoreCase = true)) {
                 val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
                 view.updatePadding(bottom = systemBars.bottom)
@@ -218,12 +218,10 @@ class EditorFragment : Fragment() {
         }
         binding.panelNavHost.clipToOutline = true
 
-        binding.bottomNavigation.setupWithNavController(navController)
-
         _navController?.addOnDestinationChangedListener { _, destination, _ ->
 
             // Hide bottom nav for adjustments
-            binding.bottomNavigation.isVisible =
+            binding.bottomNavContainer.isVisible =
                 destination.id != R.id.adjustmentsParentFragment &&
                         destination.id != R.id.shapeFragment &&
                         destination.id != R.id.textAdjustmentsFragment &&
@@ -248,44 +246,50 @@ class EditorFragment : Fragment() {
             }
 
             when (destination.id) {
-
                 R.id.textFragment -> {
-                    binding.bottomNavigation.selectedItemId = R.id.nav_text
+                    updateBottomNavSelection(R.id.nav_text)
                     currentPanelItemId = R.id.nav_text
                     binding.panelNavHost.visibility = View.VISIBLE
                 }
 
-                R.id.objectsFragment -> {
-                    binding.bottomNavigation.selectedItemId = R.id.nav_stickers
-                    currentPanelItemId = R.id.nav_stickers
-                    binding.panelNavHost.visibility = View.VISIBLE
-                }
-
-                R.id.drawFragment -> {
-                    binding.bottomNavigation.selectedItemId = R.id.nav_draw
-                    currentPanelItemId = R.id.nav_draw
-                    binding.panelNavHost.visibility = View.VISIBLE
-                }
-
                 R.id.imagesFragment -> {
-                    binding.bottomNavigation.selectedItemId = R.id.nav_images
+                    updateBottomNavSelection(R.id.nav_images)
                     currentPanelItemId = R.id.nav_images
                     binding.panelNavHost.visibility = View.VISIBLE
                 }
 
-                R.id.layersFragment -> {
-                    binding.bottomNavigation.selectedItemId = R.id.nav_layers
-                    currentPanelItemId = R.id.nav_layers
-                    binding.panelNavHost.visibility = View.VISIBLE
-                }
-
                 R.id.shapesParentFragment -> {
-                    binding.bottomNavigation.selectedItemId = R.id.nav_shapes
+                    updateBottomNavSelection(R.id.nav_shapes)
                     currentPanelItemId = R.id.nav_shapes
                     binding.panelNavHost.visibility = View.VISIBLE
                 }
 
+                R.id.objectsFragment -> {
+                    updateBottomNavSelection(R.id.nav_stickers)
+                    currentPanelItemId = R.id.nav_stickers
+                    binding.panelNavHost.visibility = View.VISIBLE
+                }
+
+                R.id.tablesParentFragment -> {
+                    updateBottomNavSelection(R.id.nav_tables)
+                    currentPanelItemId = R.id.nav_tables
+                    binding.panelNavHost.visibility = View.VISIBLE
+                }
+
+                R.id.drawFragment -> {
+                    updateBottomNavSelection(R.id.nav_draw)
+                    currentPanelItemId = R.id.nav_draw
+                    binding.panelNavHost.visibility = View.VISIBLE
+                }
+
+                R.id.layersFragment -> {
+                    updateBottomNavSelection(R.id.nav_layers)
+                    currentPanelItemId = R.id.nav_layers
+                    binding.panelNavHost.visibility = View.VISIBLE
+                }
+
                 else -> {
+                    updateBottomNavSelection(null)
                     currentPanelItemId = null
                 }
             }
@@ -1493,7 +1497,7 @@ class EditorFragment : Fragment() {
             if (!isAdded || view == null) return@runOnUiThread
             val b = _binding ?: return@runOnUiThread
             viewModel.enterSelectionMode()
-            b.bottomNavigation.selectedItemId = R.id.nav_layers
+            updateBottomNavSelection(R.id.nav_layers)
             navController.navigate(R.id.layersFragment)
             currentPanelItemId = R.id.nav_layers
             b.panelNavHost.visibility = View.VISIBLE
@@ -1502,24 +1506,129 @@ class EditorFragment : Fragment() {
 
     /** Setup bottom navigation with navHost */
     private fun initBottomNavigation() {
-        binding.bottomNavigation.setOnItemSelectedListener { menuItem ->
-            if (currentPanelItemId != menuItem.itemId) {
+        val toolItems = listOf(
+            binding.navText to R.id.nav_text,
+            binding.navImages to R.id.nav_images,
+            binding.navShapes to R.id.nav_shapes,
+            binding.navStickers to R.id.nav_stickers,
+            binding.navTables to R.id.nav_tables,
+            binding.navDraw to R.id.nav_draw,
+            binding.navLayers to R.id.nav_layers
+        )
+
+        for ((view, id) in toolItems) {
+            view.addPressEffect {
+                onBottomToolSelected(id)
+            }
+        }
+
+        binding.bottomNavScrollView.setOnScrollChangeListener { v, scrollX, _, _, _ ->
+            val maxScroll = binding.scrollableToolsContainer.width - v.width
+            val canScrollRight = scrollX < (maxScroll - 4)
+            binding.bottomNavFadeRight.isVisible = canScrollRight
+        }
+
+        binding.bottomNavScrollView.post {
+            val maxScroll = binding.scrollableToolsContainer.width - binding.bottomNavScrollView.width
+            binding.bottomNavFadeRight.isVisible = maxScroll > 4
+        }
+    }
+
+    private fun onBottomToolSelected(itemId: Int) {
+        if (currentPanelItemId != itemId) {
+            val isCurrentlyExpanded = panelSheet?.isCurrentlyExpanded() == true || mainViewModel.expandedPanel.value != null
+            val targetPanel = when (itemId) {
+                R.id.nav_text -> PanelType.FONTS
+                R.id.nav_images -> PanelType.IMAGES
+                R.id.nav_shapes -> PanelType.SHAPES
+                R.id.nav_stickers -> PanelType.OBJECTS
+                R.id.nav_tables -> PanelType.TABLES
+                R.id.nav_draw -> PanelType.DRAW
+                R.id.nav_layers -> PanelType.LAYERS
+                else -> null
+            }
+
+            if (isCurrentlyExpanded && targetPanel != null) {
+                mainViewModel.setPanelExpandedType(targetPanel)
+                mainViewModel.setPanelSlideOffset(1f)
+            } else {
                 mainViewModel.collapsePanel()
-                binding.panelNavHost.visibility = View.VISIBLE
-                currentPanelItemId = menuItem.itemId
-                if (menuItem.itemId != R.id.nav_layers) {
-                    panelSheet?.touchDragZoneEnabled = true
-                }
-                when (menuItem.itemId) {
-                    R.id.nav_shapes -> navController.navigate(R.id.shapesParentFragment)
-                    R.id.nav_stickers -> navController.navigate(R.id.objectsFragment)
-                    R.id.nav_text -> navController.navigate(R.id.textFragment)
-                    R.id.nav_draw -> navController.navigate(R.id.drawFragment)
-                    R.id.nav_images -> navController.navigate(R.id.imagesFragment)
-                    R.id.nav_layers -> navController.navigate(R.id.layersFragment)
+                mainViewModel.setPanelSlideOffset(0f)
+            }
+
+            binding.panelNavHost.visibility = View.VISIBLE
+            currentPanelItemId = itemId
+            updateBottomNavSelection(itemId)
+
+            if (itemId != R.id.nav_layers) {
+                panelSheet?.touchDragZoneEnabled = true
+            }
+
+            when (itemId) {
+                R.id.nav_text -> navController.navigate(R.id.textFragment)
+                R.id.nav_images -> navController.navigate(R.id.imagesFragment)
+                R.id.nav_shapes -> navController.navigate(R.id.shapesParentFragment)
+                R.id.nav_stickers -> navController.navigate(R.id.objectsFragment)
+                R.id.nav_tables -> navController.navigate(R.id.tablesParentFragment)
+                R.id.nav_draw -> navController.navigate(R.id.drawFragment)
+                R.id.nav_layers -> navController.navigate(R.id.layersFragment)
+            }
+        }
+    }
+
+    private fun updateBottomNavSelection(selectedItemId: Int?) {
+        val context = context ?: return
+        val appColor = ContextCompat.getColor(context, R.color.appColor)
+        val grayColor = ContextCompat.getColor(context, R.color.gray)
+        val boldFont = androidx.core.content.res.ResourcesCompat.getFont(context, R.font.bold)
+        val regularFont = androidx.core.content.res.ResourcesCompat.getFont(context, R.font.regular)
+
+        val items = listOf(
+            Triple(R.id.nav_text, Pair(binding.navTextIcon, binding.navTextLabel), Pair(R.drawable.ic_text, R.drawable.ic_text_filled)),
+            Triple(R.id.nav_images, Pair(binding.navImagesIcon, binding.navImagesLabel), Pair(R.drawable.ic_images, R.drawable.ic_images_filled)),
+            Triple(R.id.nav_shapes, Pair(binding.navShapesIcon, binding.navShapesLabel), Pair(R.drawable.ic_shapes, R.drawable.ic_shapes_filled)),
+            Triple(R.id.nav_stickers, Pair(binding.navStickersIcon, binding.navStickersLabel), Pair(R.drawable.ic_stickers, R.drawable.ic_stickers_filled)),
+            Triple(R.id.nav_tables, Pair(binding.navTablesIcon, binding.navTablesLabel), Pair(R.drawable.ic_grid, R.drawable.ic_grid_filled)),
+            Triple(R.id.nav_draw, Pair(binding.navDrawIcon, binding.navDrawLabel), Pair(R.drawable.ic_draw, R.drawable.ic_draw_filled)),
+            Triple(R.id.nav_layers, Pair(binding.navLayersIcon, binding.navLayersLabel), Pair(R.drawable.ic_layer, R.drawable.ic_layer_filled))
+        )
+
+        for ((id, views, drawables) in items) {
+            val isSelected = (id == selectedItemId)
+            val (icon, label) = views
+            val (outlineRes, filledRes) = drawables
+            if (isSelected) {
+                icon.setImageResource(filledRes)
+                icon.setColorFilter(appColor)
+                label.setTextColor(appColor)
+                label.typeface = boldFont
+            } else {
+                icon.setImageResource(outlineRes)
+                icon.setColorFilter(grayColor)
+                label.setTextColor(grayColor)
+                label.typeface = regularFont
+            }
+        }
+
+        if (selectedItemId != null && selectedItemId != R.id.nav_layers) {
+            val selectedView = when (selectedItemId) {
+                R.id.nav_text -> binding.navText
+                R.id.nav_images -> binding.navImages
+                R.id.nav_shapes -> binding.navShapes
+                R.id.nav_stickers -> binding.navStickers
+                R.id.nav_tables -> binding.navTables
+                R.id.nav_draw -> binding.navDraw
+                else -> null
+            }
+            selectedView?.post {
+                val scrollBounds = android.graphics.Rect()
+                binding.bottomNavScrollView.getDrawingRect(scrollBounds)
+                if (selectedView.left < scrollBounds.left) {
+                    binding.bottomNavScrollView.smoothScrollTo(selectedView.left, 0)
+                } else if (selectedView.right > scrollBounds.right) {
+                    binding.bottomNavScrollView.smoothScrollTo(selectedView.right - binding.bottomNavScrollView.width, 0)
                 }
             }
-            true
         }
     }
 
@@ -2240,22 +2349,32 @@ class EditorFragment : Fragment() {
             registeredDragHandles.add(handleView)
             b.panelNavContainer.dragHandles = ArrayList(registeredDragHandles)
 
-            // Cancel any in-flight spring from the previous instance before replacing it.
-            // Also hard-reset the dimOverlay so a stale half-expanded state from the old
-            // PanelSheetBehavior instance never keeps blocking canvas touches.
-            panelSheet?.snapTo(expanded = false, immediate = true)
-            b.dimOverlay.visibility  = View.INVISIBLE
-            b.dimOverlay.isClickable = false
-
+            val shouldBeExpanded = mainViewModel.expandedPanel.value != null || panelSheet?.isCurrentlyExpanded() == true
             val dest = _navController?.currentDestination?.id
             val panelType = when (dest) {
                 R.id.imagesFragment       -> PanelType.IMAGES
                 R.id.objectsFragment      -> PanelType.OBJECTS
                 R.id.shapesParentFragment -> PanelType.SHAPES
+                R.id.tablesParentFragment -> PanelType.TABLES
                 R.id.textFragment         -> PanelType.FONTS
                 R.id.drawFragment         -> PanelType.DRAW
                 R.id.layersFragment       -> PanelType.LAYERS
                 else                      -> null
+            }
+
+            if (shouldBeExpanded && panelType != null) {
+                panelSheet?.snapTo(expanded = true, immediate = true)
+                mainViewModel.setPanelExpandedType(panelType)
+                mainViewModel.setPanelSlideOffset(1f)
+                b.dimOverlay.visibility  = View.VISIBLE
+                b.dimOverlay.isClickable = true
+                b.dimOverlay.alpha       = PanelSheetBehavior.MAX_DIM_ALPHA
+            } else {
+                panelSheet?.snapTo(expanded = false, immediate = true)
+                mainViewModel.setPanelSlideOffset(0f)
+                mainViewModel.collapsePanel()
+                b.dimOverlay.visibility  = View.INVISIBLE
+                b.dimOverlay.isClickable = false
             }
 
             panelSheet = PanelSheetBehavior(
@@ -2284,6 +2403,9 @@ class EditorFragment : Fragment() {
                 }
             }
             panelSheet!!.attach()
+            if (shouldBeExpanded && panelType != null) {
+                panelSheet?.snapTo(expanded = true, immediate = true)
+            }
         }
     }
 

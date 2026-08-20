@@ -1101,11 +1101,13 @@ class MainViewModel @Inject constructor(
     }
     fun collapsePanel() {
         _expandedPanel.value = null
+        _panelSlideOffset.value = 0f
         clearAllSelections()
     }
     fun collapsePanelIfExpanded(panel: PanelType) {
         if (_expandedPanel.value == panel) {
             _expandedPanel.value = null
+            _panelSlideOffset.value = 0f
             clearAllSelections()
         }
     }

@@ -674,7 +674,7 @@
         android:visibility="visible"
         android:translationZ="10dp"
         android:background="@android:color/transparent"
-        app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
+        app:layout_constraintBottom_toTopOf="@id/bottomNavContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/centerExpandableGuide">
@@ -690,25 +690,284 @@
 
     </com.webscare.urducanvas.common.views.GestureFrameLayout>
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottomNavigation"
+    <!-- ═══ BOTTOM NAVIGATION TOOLBAR ═══ -->
+    <LinearLayout
+        android:id="@+id/bottomNavContainer"
         android:layout_width="0dp"
-        android:layout_height="63dp"
-        android:layout_gravity="center_vertical"
-        android:background="@color/white"
+        android:layout_height="64dp"
+        android:orientation="horizontal"
+        android:background="@drawable/bottom_navigation_bg"
+        android:gravity="center_vertical"
         android:translationZ="10dp"
+        android:elevation="8dp"
         android:fitsSystemWindows="true"
-        android:paddingHorizontal="20dp"
         android:paddingBottom="0dp"
-        app:activeIndicatorLabelPadding="0dp"
-        app:itemActiveIndicatorStyle="@null"
-        app:itemBackground="@null"
-        app:itemIconTint="@color/bottom_nav_icon_color"
-        app:labelVisibilityMode="unlabeled"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:menu="@menu/bottom_nav_menu"
-        app:paddingBottomSystemWindowInsets="true" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- 1. Horizontally Scrollable Container for 6 Tools with Spring physics and right edge fade -->
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1">
+
+            <com.webscare.urducanvas.common.views.SpringHorizontalScrollView
+                android:id="@+id/bottomNavScrollView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scrollbars="none"
+                android:overScrollMode="never"
+                android:fillViewport="true">
+
+                <LinearLayout
+                    android:id="@+id/scrollableToolsContainer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="12dp">
+
+                    <!-- 1. Text -->
+                    <LinearLayout
+                        android:id="@+id/nav_text"
+                        android:layout_width="wrap_content"
+                        android:minWidth="66dp"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="6dp"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:id="@+id/nav_text_icon"
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:src="@drawable/ic_text"
+                            app:tint="@color/gray" />
+
+                        <TextView
+                            android:id="@+id/nav_text_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/text"
+                            android:textColor="@color/gray"
+                            android:fontFamily="@font/regular"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <!-- 2. Image -->
+                    <LinearLayout
+                        android:id="@+id/nav_images"
+                        android:layout_width="wrap_content"
+                        android:minWidth="66dp"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="6dp"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:id="@+id/nav_images_icon"
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:src="@drawable/ic_images"
+                            app:tint="@color/gray" />
+
+                        <TextView
+                            android:id="@+id/nav_images_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Image"
+                            android:textColor="@color/gray"
+                            android:fontFamily="@font/regular"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <!-- 3. Shapes -->
+                    <LinearLayout
+                        android:id="@+id/nav_shapes"
+                        android:layout_width="wrap_content"
+                        android:minWidth="66dp"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="6dp"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:id="@+id/nav_shapes_icon"
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:src="@drawable/ic_shapes"
+                            app:tint="@color/gray" />
+
+                        <TextView
+                            android:id="@+id/nav_shapes_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/shapes"
+                            android:textColor="@color/gray"
+                            android:fontFamily="@font/regular"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <!-- 4. Stickers -->
+                    <LinearLayout
+                        android:id="@+id/nav_stickers"
+                        android:layout_width="wrap_content"
+                        android:minWidth="66dp"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="6dp"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:id="@+id/nav_stickers_icon"
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:src="@drawable/ic_stickers"
+                            app:tint="@color/gray" />
+
+                        <TextView
+                            android:id="@+id/nav_stickers_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/stickers"
+                            android:textColor="@color/gray"
+                            android:fontFamily="@font/regular"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <!-- 5. Tables -->
+                    <LinearLayout
+                        android:id="@+id/nav_tables"
+                        android:layout_width="wrap_content"
+                        android:minWidth="66dp"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="6dp"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:id="@+id/nav_tables_icon"
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:src="@drawable/ic_grid"
+                            app:tint="@color/gray" />
+
+                        <TextView
+                            android:id="@+id/nav_tables_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Tables"
+                            android:textColor="@color/gray"
+                            android:fontFamily="@font/regular"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <!-- 6. Brush -->
+                    <LinearLayout
+                        android:id="@+id/nav_draw"
+                        android:layout_width="wrap_content"
+                        android:minWidth="66dp"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="6dp"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:id="@+id/nav_draw_icon"
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:src="@drawable/ic_draw"
+                            app:tint="@color/gray" />
+
+                        <TextView
+                            android:id="@+id/nav_draw_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Brush"
+                            android:textColor="@color/gray"
+                            android:fontFamily="@font/regular"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </com.webscare.urducanvas.common.views.SpringHorizontalScrollView>
+
+            <!-- Edge fade gradient before divider -->
+            <View
+                android:id="@+id/bottomNavFadeRight"
+                android:layout_width="24dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="end"
+                android:background="@drawable/nav_fade_right_gradient"
+                android:clickable="false"
+                android:focusable="false" />
+
+        </FrameLayout>
+
+        <!-- 2. Single Vertical Divider (Full Height) -->
+        <View
+            android:id="@+id/bottomNavDivider"
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#E5E7EB" />
+
+        <!-- 3. Sticky Layers Tool on the Right -->
+        <LinearLayout
+            android:id="@+id/nav_layers"
+            android:layout_width="66dp"
+            android:minWidth="66dp"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="6dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:id="@+id/nav_layers_icon"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_layer"
+                app:tint="@color/gray" />
+
+            <TextView
+                android:id="@+id/nav_layers_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/layers"
+                android:textColor="@color/gray"
+                android:fontFamily="@font/regular"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
