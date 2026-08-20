@@ -86,13 +86,13 @@ class TablesTabFragment : Fragment() {
 
             val parentView = view as? ViewGroup
             val parentH = parentView?.height ?: 0
-            val headerH = (54 * density).toInt()
-            val availableGridH = parentH - headerH - (8 * density).toInt()
+            val headerH = (36 * density).toInt()
+            val availableGridH = parentH - headerH
             val totalSpacingH = (maxRows * 2) * marginPx
             collapsedCellHeightPx = if (availableGridH > 0) {
-                ((availableGridH - totalSpacingH) / maxRows.toFloat()).coerceIn(6f * density, expandedCellHeightPx)
+                ((availableGridH - totalSpacingH) / maxRows.toFloat()).coerceIn(8f * density, expandedCellHeightPx)
             } else {
-                11f * density
+                12f * density
             }
 
             gridContainer.removeAllViews()
