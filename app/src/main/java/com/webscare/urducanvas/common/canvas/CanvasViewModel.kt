@@ -1647,12 +1647,18 @@ class CanvasViewModel @Inject constructor(
     //   - Pure standalones → new group
     //   - Mix of standalones + existing group children → new group absorbs all
     //   - Two group sentinels selected → nested flat merge into one new group
-    fun addTableElement(rows: Int = 3, cols: Int = 3, activity: android.app.Activity) {
+    fun addTableElement(rows: Int = 3, cols: Int = 3, activity: android.app.Activity, presetStyle: com.webscare.urducanvas.data.repository.TablePresetStyle? = null) {
         val size = _canvasSize.value ?: return
-        val tableData = com.webscare.urducanvas.common.canvas.model.TableData.createDefault(rows, cols, withHeader = true)
+        val effectiveRows = presetStyle?.rows ?: rows
+        val effectiveCols = presetStyle?.cols ?: cols
+        val tableData = com.webscare.urducanvas.common.canvas.model.TableData.createDefault(effectiveRows, effectiveCols, withHeader = presetStyle?.hasHeader ?: true)
+        if (presetStyle != null) {
+            com.webscare.urducanvas.data.repository.TablePresetRepository.applyPresetToTable(presetStyle, tableData)
+        }
 
-        val totalW = size.width * 0.8f
-        val totalH = (totalW * 0.6f).coerceAtLeast(200f)
+        val totalW = size.width * 0.85f
+        val ratio = (effectiveRows.toFloat() / effectiveCols.toFloat().coerceAtLeast(1f)) * 0.45f
+        val totalH = (totalW * ratio).coerceIn(160f, (size.height * 0.75f))
         val initialX = size.width / 2f
         val initialY = size.height / 2f
 
