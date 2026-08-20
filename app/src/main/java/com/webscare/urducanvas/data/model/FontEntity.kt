@@ -26,3 +26,29 @@ data class FontEntity(
     var file_path: String? = null,
     var download_progress: Int = 0
 )
+
+fun List<FontEntity>.orderWithUrduFirst(sortAlphabetically: Boolean = true): List<FontEntity> {
+    val urdu = this.filter { it.font_language.trim().equals("Urdu", ignoreCase = true) }
+    val english = this.filter { it.font_language.trim().equals("English", ignoreCase = true) }
+    val others = this.filter {
+        !it.font_language.trim().equals("Urdu", ignoreCase = true) &&
+        !it.font_language.trim().equals("English", ignoreCase = true)
+    }
+
+    val sortedUrdu = if (sortAlphabetically) urdu.sortedBy { it.font_name.lowercase() } else urdu
+    val sortedEnglish = if (sortAlphabetically) english.sortedBy { it.font_name.lowercase() } else english
+    val sortedOthers = if (sortAlphabetically) others.sortedBy { it.font_name.lowercase() } else others
+
+    return sortedUrdu + sortedEnglish + sortedOthers
+}
+
+fun List<FontEntity>.shuffleWithUrduFirst(): List<FontEntity> {
+    val urdu = this.filter { it.font_language.trim().equals("Urdu", ignoreCase = true) }.shuffled()
+    val english = this.filter { it.font_language.trim().equals("English", ignoreCase = true) }.shuffled()
+    val others = this.filter {
+        !it.font_language.trim().equals("Urdu", ignoreCase = true) &&
+        !it.font_language.trim().equals("English", ignoreCase = true)
+    }.shuffled()
+
+    return urdu + english + others
+}

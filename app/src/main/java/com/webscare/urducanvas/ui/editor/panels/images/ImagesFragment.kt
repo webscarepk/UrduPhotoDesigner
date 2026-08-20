@@ -212,6 +212,10 @@ class ImagesFragment : Fragment() {
             binding.tabLayout.visibility     = if (collapsedAlpha > 0f) View.VISIBLE else View.GONE
             binding.tabLayoutExpanded.visibility = if (expandedAlpha > 0f) View.VISIBLE else View.GONE
             binding.tabExpandedContainer.visibility = if (expandedAlpha > 0f) View.VISIBLE else View.GONE
+        } else {
+            binding.tabLayout.visibility = View.GONE
+            binding.tabLayoutExpanded.visibility = View.GONE
+            binding.tabExpandedContainer.visibility = View.GONE
         }
 
         // Forward live offset to child fragments to drive morph transition on every frame
@@ -510,15 +514,17 @@ class ImagesFragment : Fragment() {
         // Search only happens in expanded mode now — collapsed has no search bar
         if (query.isNotBlank()) {
             binding.tabLayoutExpanded.isVisible = false
+            binding.tabExpandedContainer.isVisible = false
             binding.searchResultsHeaderExpanded.isVisible = isExpanded
             if (isExpanded) binding.searchResultsHeaderExpanded.text = headerText
             // Also hide collapsed tab layout so header is consistent
             binding.tabLayout.isVisible = false
             binding.searchResultsHeader.isVisible = false  // not used anymore
         } else {
-            binding.tabLayout.isVisible = true
+            binding.tabLayout.isVisible = !isExpanded
             binding.searchResultsHeader.isVisible = false
             binding.tabLayoutExpanded.isVisible = isExpanded
+            binding.tabExpandedContainer.isVisible = isExpanded
             binding.searchResultsHeaderExpanded.isVisible = false
             showAllTabs()
         }

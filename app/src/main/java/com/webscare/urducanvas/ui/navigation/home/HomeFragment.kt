@@ -32,6 +32,8 @@ import com.webscare.urducanvas.common.canvas.sealed.HomeUiState
 import com.webscare.urducanvas.common.canvas.sealed.TemplateDownloadState
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.utils.showGlobalSuccessSnack
+import com.webscare.urducanvas.data.model.FontEntity
+import com.webscare.urducanvas.data.model.orderWithUrduFirst
 import com.webscare.urducanvas.data.model.ProgressUi
 import com.webscare.urducanvas.data.model.TemplateEntity
 import com.webscare.urducanvas.data.model.toExportResultFinal
@@ -464,7 +466,7 @@ class HomeFragment : androidx.fragment.app.Fragment() {
 
                 mainViewModel.localFonts.collect { fonts ->
                     val filteredFonts = fonts.filter { !it.font_category.equals("Imported", true) }
-                    fontsAdapter.submitList(filteredFonts.reversed())
+                    fontsAdapter.submitList(filteredFonts.orderWithUrduFirst())
                     binding.popularFonts.visibility =
                         if (filteredFonts.isEmpty()) View.GONE else View.VISIBLE
                 }

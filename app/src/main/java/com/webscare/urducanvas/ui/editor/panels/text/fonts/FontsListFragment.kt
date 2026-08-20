@@ -21,6 +21,8 @@ import com.webscare.urducanvas.common.utils.MorphGridLayoutManager
 import com.webscare.urducanvas.databinding.FragmentFontsListBinding
 import com.webscare.urducanvas.ui.editor.EditorFragment
 import com.webscare.urducanvas.ui.editor.PanelSheetBehavior
+import com.webscare.urducanvas.data.model.FontEntity
+import com.webscare.urducanvas.data.model.orderWithUrduFirst
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.combine
@@ -257,21 +259,7 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
             }
         }
 
-        return if (currentCategory == null && currentLanguage == "All") {
-            val urdu    = filtered.filter { it.font_language.equals("Urdu", true) }
-                .sortedBy { it.font_name?.lowercase() }
-            val english = filtered.filter { it.font_language.equals("English", true) }
-                .sortedBy { it.font_name?.lowercase() }
-            val merged  = mutableListOf<com.webscare.urducanvas.data.model.FontEntity>()
-            val maxSize = maxOf(urdu.size, english.size)
-            for (i in 0 until maxSize) {
-                if (i < urdu.size)    merged.add(urdu[i])
-                if (i < english.size) merged.add(english[i])
-            }
-            merged
-        } else {
-            filtered.sortedBy { it.font_name?.lowercase() }
-        }
+        return filtered.orderWithUrduFirst()
     }
 
     private fun submitWithScrollPreservation(

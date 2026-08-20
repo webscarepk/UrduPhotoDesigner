@@ -22,6 +22,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.FontEntity
+import com.webscare.urducanvas.data.model.orderWithUrduFirst
 import com.webscare.urducanvas.data.model.TemplateEntity
 import com.webscare.urducanvas.databinding.FragmentSearchBinding
 import com.webscare.urducanvas.ui.navigation.files.FilesAdapter
@@ -273,8 +274,8 @@ class SearchFragment : Fragment() {
                 }
 
                 val filteredFonts = fonts.filter { f ->
-                    q.isNotEmpty() && f.font_name!!.lowercase().contains(q)
-                }
+                    q.isNotEmpty() && f.font_name.lowercase().contains(q)
+                }.orderWithUrduFirst()
 
                 val filteredFiles = exports.filter { e ->
                     q.isNotEmpty() && e.fileName.lowercase().contains(q)

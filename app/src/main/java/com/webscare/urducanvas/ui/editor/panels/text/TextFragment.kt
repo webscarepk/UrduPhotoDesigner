@@ -33,6 +33,8 @@ import com.webscare.urducanvas.common.canvas.enums.PanelType
 import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.FontEntity
+import com.webscare.urducanvas.data.model.orderWithUrduFirst
+import com.webscare.urducanvas.data.model.shuffleWithUrduFirst
 import com.webscare.urducanvas.common.utils.MorphGridLayoutManager
 import com.webscare.urducanvas.common.utils.HorizontalSpringEdgeEffectFactory
 import androidx.recyclerview.widget.RecyclerView
@@ -193,7 +195,7 @@ class TextFragment : Fragment() {
                     binding.fontsRV.scrollToPosition(0)
                 }
             } else {
-                val shuffled = fontsAdapter.currentList.shuffled()
+                val shuffled = fontsAdapter.currentList.shuffleWithUrduFirst()
                 fontsAdapter.submitList(shuffled) {
                     binding.swipeRefresh.isRefreshing = false
                     binding.fontsRV.scrollToPosition(0)
@@ -633,22 +635,7 @@ class TextFragment : Fragment() {
             }
         }
 
-        // "All" tab — interleave Urdu + English for visual variety
-        return if (selectedLanguage == "All" && selectedCategory == null) {
-            val urdu = filtered.filter { it.font_language.equals("Urdu", true) }
-                .sortedBy { it.font_name?.lowercase() }
-            val english = filtered.filter { it.font_language.equals("English", true) }
-                .sortedBy { it.font_name?.lowercase() }
-            val merged = mutableListOf<FontEntity>()
-            val max = maxOf(urdu.size, english.size)
-            for (i in 0 until max) {
-                if (i < urdu.size) merged.add(urdu[i])
-                if (i < english.size) merged.add(english[i])
-            }
-            merged
-        } else {
-            filtered.sortedBy { it.font_name?.lowercase() }
-        }
+        return filtered.orderWithUrduFirst()
     }
 
     private fun rebindFonts() {
@@ -866,8 +853,10 @@ class TextFragment : Fragment() {
         if (_binding == null) return
 
         val density = resources.displayMetrics.density
-        // Smoothly animate header container space height from 42dp to 126dp
-        val heightPx = (42 * density + (126 * density - 42 * density) * offset).toInt()
+        val isSearchActive = currentQuery.isNotBlank()
+        val targetExpandedHeightDp = if (isSearchActive) 76 else 118
+        // Smoothly animate header container space height from 42dp to expanded header height (118dp with tabs, 76dp with search)
+        val heightPx = (42 * density + (targetExpandedHeightDp * density - 42 * density) * offset).toInt()
         val lp = binding.headerSpace.layoutParams
         if (lp.height != heightPx) {
             lp.height = heightPx
@@ -885,7 +874,6 @@ class TextFragment : Fragment() {
         binding.headerExpanded.visibility = if (expandedAlpha > 0f) View.VISIBLE else View.GONE
 
         // Tab layouts mirror their respective headers
-        val isSearchActive = currentQuery.isNotBlank()
         if (!isSearchActive) {
             binding.tabLayout.alpha = collapsedAlpha
             binding.tabLayoutExpanded.alpha = expandedAlpha
@@ -895,6 +883,10 @@ class TextFragment : Fragment() {
                 if (expandedAlpha > 0f) View.VISIBLE else View.GONE
             binding.tabExpandedContainer.visibility =
                 if (expandedAlpha > 0f) View.VISIBLE else View.GONE
+        } else {
+            binding.tabLayout.visibility = View.GONE
+            binding.tabLayoutExpanded.visibility = View.GONE
+            binding.tabExpandedContainer.visibility = View.GONE
         }
 
         val rv = binding.fontsRV
@@ -961,13 +953,28 @@ class TextFragment : Fragment() {
             binding.fontsRV.edgeEffectFactory = HorizontalSpringEdgeEffectFactory()
         }
 
+        val isSearchActive = currentQuery.isNotBlank()
+        binding.headerCollapsed.alpha = if (!expanded) 1f else 0f
+        binding.headerExpanded.alpha = if (expanded) 1f else 0f
         binding.headerCollapsed.isVisible = !expanded
         binding.headerExpanded.isVisible = expanded
-        binding.tabLayoutExpanded.isVisible = expanded
-        binding.tabExpandedContainer.isVisible = expanded
+
+        if (!isSearchActive) {
+            binding.tabLayout.alpha = if (!expanded) 1f else 0f
+            binding.tabLayoutExpanded.alpha = if (expanded) 1f else 0f
+            binding.tabExpandedContainer.alpha = if (expanded) 1f else 0f
+            binding.tabLayout.isVisible = !expanded
+            binding.tabLayoutExpanded.isVisible = expanded
+            binding.tabExpandedContainer.isVisible = expanded
+        } else {
+            binding.tabLayout.isVisible = false
+            binding.tabLayoutExpanded.isVisible = false
+            binding.tabExpandedContainer.isVisible = false
+        }
 
         val density = resources.displayMetrics.density
-        val finalHeightPx = if (expanded) (126 * density).toInt() else (42 * density).toInt()
+        val targetExpandedHeightDp = if (isSearchActive) 76 else 118
+        val finalHeightPx = if (expanded) (targetExpandedHeightDp * density).toInt() else (42 * density).toInt()
         val lp = binding.headerSpace.layoutParams
         if (lp.height != finalHeightPx) {
             lp.height = finalHeightPx
@@ -1155,6 +1162,19 @@ class TextFragment : Fragment() {
 
     private fun applySearch(query: String) {
         currentQuery = query
+        val isSearchActive = query.isNotBlank()
+        if (isPanelExpanded) {
+            binding.tabLayoutExpanded.isVisible = !isSearchActive
+            binding.tabExpandedContainer.isVisible = !isSearchActive
+            val density = resources.displayMetrics.density
+            val targetExpandedHeightDp = if (isSearchActive) 76 else 118
+            val finalHeightPx = (targetExpandedHeightDp * density).toInt()
+            val lp = binding.headerSpace.layoutParams
+            if (lp.height != finalHeightPx) {
+                lp.height = finalHeightPx
+                binding.headerSpace.layoutParams = lp
+            }
+        }
         if (!isStylesMode) {
             mainViewModel.setQuery(query)
             rebindFonts()

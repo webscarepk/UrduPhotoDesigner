@@ -129,7 +129,7 @@ class TextStylesMainAdapter(
             val availHeight = rvHeight - rvPaddingY
 
             val computedCollapsedHeight = if (availHeight > 0) {
-                ((availHeight - (spanCountCollapsed * marginBottomPx)) / spanCountCollapsed).coerceAtLeast((24 * density).toInt())
+                ((availHeight - ((spanCountCollapsed - 1) * marginBottomPx)) / spanCountCollapsed).coerceAtLeast((24 * density).toInt())
             } else {
                 (44 * density).toInt()
             }
@@ -148,9 +148,11 @@ class TextStylesMainAdapter(
 
             val lp = cardRoot.layoutParams as? ViewGroup.MarginLayoutParams
             if (lp != null) {
-                if (lp.width != finalSize || lp.height != finalSize || lp.rightMargin != marginEndPx || lp.bottomMargin != marginBottomPx) {
+                if (lp.width != finalSize || lp.height != finalSize || lp.leftMargin != 0 || lp.topMargin != 0 || lp.rightMargin != marginEndPx || lp.bottomMargin != marginBottomPx) {
                     lp.width = finalSize
                     lp.height = finalSize
+                    lp.leftMargin = 0
+                    lp.topMargin = 0
                     lp.rightMargin = marginEndPx
                     lp.bottomMargin = marginBottomPx
                     cardRoot.layoutParams = lp

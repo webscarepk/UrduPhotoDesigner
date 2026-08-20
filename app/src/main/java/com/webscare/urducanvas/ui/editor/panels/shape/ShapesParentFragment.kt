@@ -87,9 +87,8 @@ class ShapesParentFragment : Fragment() {
 
         val initial = mainViewModel.shapesData.value
         tabs.clear()
-        tabs.add(TABLES_TAB)
         tabs.add(ShapesListFragment.VECTORS_TAB)
-        tabs.addAll(initial.tabs.filter { it != TABLES_TAB && it != ShapesListFragment.VECTORS_TAB })
+        tabs.addAll(initial.tabs.filter { it != ShapesListFragment.VECTORS_TAB })
 
         val requestedTab = arguments?.getString("TARGET_TAB") ?: mainViewModel.lastShapesTabCategory
         currentTabIndex = requestedTab?.let { saved ->
@@ -528,8 +527,8 @@ class ShapesParentFragment : Fragment() {
         if (lastShapesData === data) return
         lastShapesData = data
 
-        val newApiTabs = data.tabs.filter { it != TABLES_TAB && it != ShapesListFragment.VECTORS_TAB }
-        val newTabs = mutableListOf(TABLES_TAB, ShapesListFragment.VECTORS_TAB) + newApiTabs
+        val newApiTabs = data.tabs.filter { it != ShapesListFragment.VECTORS_TAB }
+        val newTabs = mutableListOf(ShapesListFragment.VECTORS_TAB) + newApiTabs
 
         if (newTabs != tabs) {
             val currentCategory = tabs.getOrNull(currentTabIndex)

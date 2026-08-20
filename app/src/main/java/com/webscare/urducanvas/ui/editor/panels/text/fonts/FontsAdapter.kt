@@ -186,7 +186,7 @@ class FontsAdapter(
             val availHeight = rvHeight - rvPaddingY
 
             val computedCollapsedHeight = if (availHeight > 0) {
-                ((availHeight - (spanCount * marginBottomPx)) / spanCount).coerceAtLeast((24 * density).toInt())
+                ((availHeight - ((spanCount - 1) * marginBottomPx)) / spanCount).coerceAtLeast((24 * density).toInt())
             } else {
                 (44 * density).toInt()
             }
@@ -195,8 +195,9 @@ class FontsAdapter(
 
             val effectiveWidth = if (rvWidth > 0) rvWidth else (recyclerView?.width ?: 0)
             val columnWidth = if (effectiveWidth > 0) {
-                val totalMarginW = 18 * density
-                ((effectiveWidth - rvPadding - totalMarginW) / 3).toInt()
+                val spanCountExpanded = 3
+                val totalMarginW = (spanCountExpanded - 1) * marginEndPx
+                ((effectiveWidth - rvPadding - totalMarginW) / spanCountExpanded).toInt()
             } else collapsedSize
 
             val currentSize = (collapsedSize + (columnWidth - collapsedSize) * slideOffset).toInt()
@@ -204,9 +205,11 @@ class FontsAdapter(
 
             val lp = cardRoot.layoutParams as? android.view.ViewGroup.MarginLayoutParams
             if (lp != null) {
-                if (lp.width != finalSize || lp.height != finalSize || lp.rightMargin != marginEndPx || lp.bottomMargin != marginBottomPx) {
+                if (lp.width != finalSize || lp.height != finalSize || lp.leftMargin != 0 || lp.topMargin != 0 || lp.rightMargin != marginEndPx || lp.bottomMargin != marginBottomPx) {
                     lp.width = finalSize
                     lp.height = finalSize
+                    lp.leftMargin = 0
+                    lp.topMargin = 0
                     lp.rightMargin = marginEndPx
                     lp.bottomMargin = marginBottomPx
                     cardRoot.layoutParams = lp

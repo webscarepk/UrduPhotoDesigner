@@ -22,6 +22,7 @@ import com.webscare.urducanvas.common.datastore.PreferenceDataStoreKeysConstants
 import com.webscare.urducanvas.common.datastore.PreferencesDataStoreHelper
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.data.model.FontEntity
+import com.webscare.urducanvas.data.model.orderWithUrduFirst
 import com.webscare.urducanvas.databinding.FragmentPreferencesBinding
 import com.webscare.urducanvas.databinding.LayoutResolutionsItemPrefsBinding
 import com.webscare.urducanvas.ui.editor.export.ExportOptionAdapter
@@ -179,7 +180,7 @@ class PreferencesFragment : Fragment() {
 
         val localAndImported = fonts.filter {
             it.is_downloaded || it.font_category.equals("Imported", ignoreCase = true) || !it.file_path.isNullOrBlank()
-        }
+        }.orderWithUrduFirst()
 
         localAndImported.forEach { font ->
             list.add(

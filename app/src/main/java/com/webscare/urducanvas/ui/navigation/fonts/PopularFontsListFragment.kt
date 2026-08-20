@@ -20,6 +20,9 @@ import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
 import com.webscare.urducanvas.common.canvas.sealed.FontDownloadState
 import com.webscare.urducanvas.common.utils.showGlobalSuccessSnack
+import com.webscare.urducanvas.data.model.FontEntity
+import com.webscare.urducanvas.data.model.orderWithUrduFirst
+import com.webscare.urducanvas.data.model.shuffleWithUrduFirst
 import com.webscare.urducanvas.databinding.FragmentPopularFontsListBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -114,12 +117,9 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
             R.color.appColor, R.color.black, R.color.gray
         )
         _binding!!.swipeRefresh.setOnRefreshListener {
-            shuffleAfterRefresh = true
             _binding!!.fontsRV.stopScroll()
             _binding!!.fontsRV.scrollToPosition(0)
-
-            _binding!!.fontsRV.suppressLayout(true)
-            mainViewModel.fetchAndStoreFontsFromApi()
+            applyFilters(filtersViewModel.searchQuery.value, forceShuffle = true)
         }
     }
 
@@ -131,16 +131,22 @@ class PopularFontsListFragment : androidx.fragment.app.Fragment() {
         else withoutImported.filter { it.font_category.equals(category, true) }
 
         val q = query.trim().lowercase()
-        return if (q.isBlank()) byCategory else byCategory.filter {
-            it.font_name!!.lowercase().contains(q)
+        val filtered = if (q.isBlank()) byCategory else byCategory.filter {
+            it.font_name.lowercase().contains(q)
         }
+        return filtered.orderWithUrduFirst()
     }
 
-    private fun applyFilters(query: String) {
+    private fun applyFilters(query: String, forceShuffle: Boolean = false) {
         filterJob?.cancel()
         filterJob = viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Default) {
             val filtered = filterFonts(baseFonts, category, query)
-            val fresh = filtered.map { it.copy() } // defensive copy for DiffUtil
+            val resultList = if (forceShuffle) {
+                filtered.shuffleWithUrduFirst()
+            } else {
+                filtered
+            }
+            val fresh = resultList.map { it.copy() } // defensive copy for DiffUtil
 
             withContext(Dispatchers.Main) {
                 val b = _binding ?: return@withContext
