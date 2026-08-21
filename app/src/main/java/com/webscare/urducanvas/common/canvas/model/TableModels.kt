@@ -58,6 +58,8 @@ data class TableData(
     @SerializedName("headerColStyle") var headerColStyle: TableTextStyle = TableTextStyle(),
     @SerializedName("rowStyles") var rowStyles: MutableMap<Int, TableTextStyle> = mutableMapOf(),
     @SerializedName("colStyles") var colStyles: MutableMap<Int, TableTextStyle> = mutableMapOf(),
+    @SerializedName("colWidthRatios") var colWidthRatios: MutableList<Float>? = null,
+    @SerializedName("rowHeightRatios") var rowHeightRatios: MutableList<Float>? = null,
     @SerializedName("cells") var cells: MutableList<MutableList<TableCell>> = mutableListOf(),
     @SerializedName("selectedCells") var selectedCells: MutableSet<Pair<Int, Int>> = mutableSetOf()
 ) {
@@ -83,6 +85,8 @@ data class TableData(
             headerColStyle = headerColStyle.deepCopy(),
             rowStyles = rowStyles.mapValues { it.value.deepCopy() }.toMutableMap(),
             colStyles = colStyles.mapValues { it.value.deepCopy() }.toMutableMap(),
+            colWidthRatios = colWidthRatios?.toMutableList(),
+            rowHeightRatios = rowHeightRatios?.toMutableList(),
             cells = cells.map { row -> row.map { cell -> cell.deepCopy() }.toMutableList() }.toMutableList(),
             selectedCells = selectedCells.toMutableSet()
         )

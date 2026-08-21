@@ -24,5 +24,8 @@ enum class Mode {
     GROUP_EDIT,
 
     @SerializedName("CanvasPan")
-    CANVAS_PAN
+    CANVAS_PAN,
+
+    @SerializedName("TableResize")
+    TABLE_RESIZE
 }
