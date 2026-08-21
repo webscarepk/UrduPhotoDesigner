@@ -6,12 +6,11 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.recyclerview.widget.GridLayoutManager
+import androidx.viewpager2.widget.ViewPager2
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
-import com.webscare.urducanvas.data.model.PanelTabs
 import com.webscare.urducanvas.data.repository.TablePresetRepository
 import com.webscare.urducanvas.databinding.FragmentTableStylesBinding
-import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.PanelTabsAdapter
+import com.webscare.urducanvas.ui.editor.views.RailCategoryItem
 
 class TableStylesFragment : Fragment() {
 
@@ -19,10 +18,8 @@ class TableStylesFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: CanvasViewModel by activityViewModels()
-    private lateinit var categoryAdapter: PanelTabsAdapter
-    private lateinit var gridAdapter: TablePresetsGridAdapter
-
-    private var selectedCategory: String = TablePresetRepository.categories.first()
+    private val categories = mutableListOf<String>()
+    private lateinit var pagerAdapter: TableStylesPagerAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -33,48 +30,51 @@ class TableStylesFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        setupCategories()
-        setupPresetsGrid()
+        setupViews()
     }
 
-    private fun setupCategories() {
-        val categoryTabs = TablePresetRepository.categories.mapIndexed { index, catName ->
-            PanelTabs(index, catName, is_selected = catName.equals(selectedCategory, ignoreCase = true))
+    private fun setupViews() {
+        categories.clear()
+        categories.addAll(TablePresetRepository.categories)
+
+        binding.collapsibleRail.bindPanelId("table_styles")
+
+        val railItems = categories.map { catName ->
+            RailCategoryItem(
+                id = catName,
+                label = catName,
+                iconRes = null
+            )
         }
+        binding.collapsibleRail.setCategories(railItems)
 
-        categoryAdapter = PanelTabsAdapter { clickedTab ->
-            selectedCategory = clickedTab.tab_name
-            val updated = TablePresetRepository.categories.mapIndexed { index, catName ->
-                PanelTabs(index, catName, is_selected = catName.equals(selectedCategory, ignoreCase = true))
-            }
-            categoryAdapter.submitList(updated)
-            loadPresetsForSelectedCategory()
-        }
-
-        binding.categories.adapter = categoryAdapter
-        categoryAdapter.submitList(categoryTabs)
-    }
-
-    private fun setupPresetsGrid() {
-        gridAdapter = TablePresetsGridAdapter { selectedPreset ->
-            viewModel.updateSelectedTableData { data ->
-                TablePresetRepository.applyPresetToTable(selectedPreset, data)
+        binding.collapsibleRail.onCategorySelectedListener = { catItem ->
+            val index = categories.indexOfFirst { it.equals(catItem.id, ignoreCase = true) }
+            if (index >= 0) {
+                binding.viewPager.setCurrentItem(index, true)
             }
         }
-        binding.presetsGrid.layoutManager = GridLayoutManager(requireContext(), 2, androidx.recyclerview.widget.RecyclerView.HORIZONTAL, false)
-        binding.presetsGrid.adapter = gridAdapter
 
-        loadPresetsForSelectedCategory()
-    }
+        binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
+        binding.viewPager.offscreenPageLimit = 1
 
-    private fun loadPresetsForSelectedCategory() {
-        val presets = TablePresetRepository.getPresetsByCategory(selectedCategory)
-        gridAdapter.submitList(presets)
+        pagerAdapter = TableStylesPagerAdapter(this, categories)
+        binding.viewPager.adapter = pagerAdapter
+
+        binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                val selectedCategory = categories.getOrNull(position) ?: return
+                binding.collapsibleRail.setSelectedCategory(selectedCategory)
+            }
+        })
+
+        if (categories.isNotEmpty()) {
+            binding.collapsibleRail.setSelectedCategory(categories.first())
+        }
     }
 
     override fun onDestroyView() {
-        _binding?.categories?.adapter = null
-        _binding?.presetsGrid?.adapter = null
+        _binding?.viewPager?.adapter = null
         super.onDestroyView()
         _binding = null
     }

@@ -2,49 +2,29 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/tableStylesFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white">
+    tools:context=".ui.editor.panels.table.TableStylesFragment">
 
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/centerGuide"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.28" />
+    <!-- Left Collapsible Category Rail -->
+    <com.webscare.urducanvas.ui.editor.views.CollapsibleRailView
+        android:id="@+id/collapsibleRail"
+        android:layout_width="118dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Left: Style Categories RecyclerView with bottom padding so last item is clearly visible -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/categories"
+    <!-- Right Vertical ViewPager2 -->
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/viewPager"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:clipToPadding="false"
-        android:paddingTop="4dp"
-        android:paddingBottom="48dp"
-        android:orientation="vertical"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/centerGuide"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:listitem="@layout/layout_tabs_item" />
-
-    <!-- Right: 2-Row Horizontal Grid for Table Style Presets (wrap_content height to remove excessive row gap) -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/presetsGrid"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:clipToPadding="false"
-        android:paddingEnd="16dp"
-        android:paddingVertical="4dp"
-        android:orientation="horizontal"
-        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-        app:spanCount="2"
+        android:layout_marginStart="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/centerGuide"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:listitem="@layout/item_table_preset" />
+        app:layout_constraintStart_toEndOf="@id/collapsibleRail"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -68,7 +68,16 @@ class TablesParentFragment : Fragment() {
         styleCategories.clear()
         styleCategories.addAll(TablePresetRepository.categories)
 
-        buildStylesTabs(0)
+        val savedCategory = mainViewModel.lastTablesTabCategory
+        val initialIndex = if (savedCategory != null) {
+            styleCategories.indexOf(savedCategory).takeIf { it >= 0 } ?: 0
+        } else 0
+
+        if (mainViewModel.isLastTablesGridMode) {
+            buildGridMode()
+        } else {
+            buildStylesTabs(initialIndex)
+        }
 
         observePanelExpanded()
     }
@@ -262,13 +271,21 @@ class TablesParentFragment : Fragment() {
         if (_binding == null) return
         if (position < 0 || position >= styleCategories.size) return
 
+        val prevPos = currentStylesTabIndex
+        currentStylesTabIndex = position
         val category = styleCategories[position]
+        mainViewModel.lastTablesTabCategory = category
+        mainViewModel.isLastTablesGridMode = false
+
         val target: Fragment = fragmentCache.getOrPut(category) {
             TablesListFragment.newInstance(category, currentQuery)
         }
 
+        val animEnter = if (position >= prevPos) R.anim.slide_in_right else R.anim.slide_in_left
+        val animExit  = if (position >= prevPos) R.anim.slide_out_left else R.anim.slide_out_right
+
         childFragmentManager.beginTransaction()
-            .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
+            .setCustomAnimations(animEnter, animExit)
             .setReorderingAllowed(true).apply {
                 for (f in childFragmentManager.fragments) {
                     if (f !== target && !f.isHidden) hide(f)
@@ -283,13 +300,14 @@ class TablesParentFragment : Fragment() {
 
     private fun showGridTab() {
         if (_binding == null) return
+        mainViewModel.isLastTablesGridMode = true
 
         val target: Fragment = fragmentCache.getOrPut(GRID_TAB_KEY) {
             TablesTabFragment()
         }
 
         childFragmentManager.beginTransaction()
-            .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
+            .setCustomAnimations(R.anim.fade_in_fast, R.anim.fade_out_fast)
             .setReorderingAllowed(true).apply {
                 for (f in childFragmentManager.fragments) {
                     if (f !== target && !f.isHidden) hide(f)

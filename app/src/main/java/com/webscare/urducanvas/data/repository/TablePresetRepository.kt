@@ -44,8 +44,10 @@ data class TablePresetStyle(
 object TablePresetRepository {
 
     val categories = listOf(
-        "Price List", "Schedule", "Data Table", "Comparison", "Contacts",
-        "Tracking", "Islamic", "Card Style", "Business", "Classic"
+        "All", "Price List", "Schedule", "Data Table", "Comparison", "Contacts",
+        "Tracking", "Islamic", "Card Style", "Business", "Classic",
+        "Info Card", "Label Value", "Steps", "Timeline", "Feature Matrix",
+        "Ranking", "Financial", "Before After", "Pros Cons", "Service Packages"
     )
 
     private data class Palette(
@@ -458,6 +460,172 @@ object TablePresetRepository {
         )
         populateCategory(list, "Classic", classicHeaders, classicRowsVariants, null, hasFooter = false)
 
+        // 11. Info Card (50 Presets)
+        val infoCardHeaders = listOf("آئٹم / عنوان", "معلومات و تفصیل")
+        val infoCardVariants = listOf(
+            listOf(
+                listOf("نام و ولدیت", "محمد علی بن احمد رضا"),
+                listOf("شناختی کارڈ", "35201-1234567-1"),
+                listOf("پیشہ و عہدہ", "سینئر سافٹ ویئر انجینئر"),
+                listOf("مقام و رہائش", "ماڈل ٹاؤن، لاہور"),
+                listOf("رابطہ نمبر", "0300-1234567")
+            ),
+            listOf(
+                listOf("سروس کی قسم", "ایکسپریس ڈلیوری"),
+                listOf("دورانیہ", "24 تا 48 گھنٹے"),
+                listOf("چارجز", "500 روپے"),
+                listOf("وزن کی حد", "5 کلوگرام"),
+                listOf("سپورٹ", "24/7 آن لائن")
+            )
+        )
+        populateCategory(list, "Info Card", infoCardHeaders, infoCardVariants, null, hasFooter = false, defaultCornerRadius = 14f)
+
+        // 12. Label Value (50 Presets)
+        val labelValHeaders = listOf("پیرامیٹر", "قدر / ویلیو")
+        val labelValVariants = listOf(
+            listOf(
+                listOf("سسٹم ورژن", "Android 14 (One UI 6.1)"),
+                listOf("انٹرنل اسٹوریج", "256 GB (210 GB فری)"),
+                listOf("بیٹری ہیلتھ", "100% (نارمل)"),
+                listOf("سیکیورٹی پیچ", "اگست 2024 اپڈیٹ"),
+                listOf("وارنٹی اسٹیٹس", "10 ماہ بقایا")
+            ),
+            listOf(
+                listOf("فلائٹ نمبر", "PK-786"),
+                listOf("روٹ", "لاہور تا جدہ"),
+                listOf("روانگی کا وقت", "رات 11:30 بجے"),
+                listOf("ٹرمینل", "ٹرمینل 2 گیٹ 4"),
+                listOf("سیٹ نمبر", "14A (ونڈو)")
+            )
+        )
+        populateCategory(list, "Label Value", labelValHeaders, labelValVariants, null, hasFooter = false, defaultCornerRadius = 8f)
+
+        // 13. Steps (50 Presets)
+        val stepsHeaders = listOf("مرحلہ", "عنوان عمل", "تفصیلی ہدایات")
+        val stepsVariants = listOf(
+            listOf(
+                listOf("مرحلہ ۱", "اکاؤنٹ بنائیں", "اپنا ای میل اور فون نمبر درج کریں"),
+                listOf("مرحلہ ۲", "تصدیق کریں", "موصول شدہ او ٹی پی کوڈ لگائیں"),
+                listOf("مرحلہ ۳", "پروفائل مکمل کریں", "تصویر اور بنیادی معلومات درج کریں"),
+                listOf("مرحلہ ۴", "پلان منتخب کریں", "اپنی ضرورت کے مطابق پیکیج چنیں"),
+                listOf("مرحلہ ۵", "استعمال شروع کریں", "ڈیش بورڈ پر جا کر کام شروع کریں")
+            ),
+            listOf(
+                listOf("گام ۱", "رجسٹریشن", "آن لائن فارم پر کریں"),
+                listOf("گام ۲", "فیس ادائیگی", "چالان بینک میں جمع کروائیں"),
+                listOf("گام ۳", "رول نمبر سلپ", "ویب سائٹ سے سلپ ڈاؤن لوڈ کریں"),
+                listOf("گام ۴", "امتحان", "مقررہ وقت پر سنٹر پہنچیں")
+            )
+        )
+        populateCategory(list, "Steps", stepsHeaders, stepsVariants, null, hasFooter = false, defaultCornerRadius = 6f)
+
+        // 14. Timeline (50 Presets)
+        val timelineHeaders = listOf("سال / تاریخ", "اہم واقعہ", "نتیجہ / اثر")
+        val timelineVariants = listOf(
+            listOf(
+                listOf("2018ء", "کمپنی کا قیام", "پہلے 10 ملازمین سے شروعات"),
+                listOf("2020ء", "پہلا پروڈکٹ لانچ", "100,000 فعال صارفین"),
+                listOf("2022ء", "بین الاقوامی وسعت", "مڈل ایسٹ میں سروس کا آغاز"),
+                listOf("2024ء", "AI فیچرز کی شمولیت", "10 لاکھ صارفین کا سنگ میل")
+            ),
+            listOf(
+                listOf("جنوری", "پلاننگ و ڈیزائن", "تمام ماک اپس مکمل"),
+                listOf("مارچ", "ڈویلپمنٹ فیز", "بیٹا ٹیسٹنگ شروع"),
+                listOf("مئی", "سرکاری لانچ", "پلے اسٹور پر ریلیز"),
+                listOf("جولائی", "مارکیٹنگ مہم", "پہلے 50 ہزار ڈاؤن لوڈز")
+            )
+        )
+        populateCategory(list, "Timeline", timelineHeaders, timelineVariants, null, hasFooter = false)
+
+        // 15. Feature Matrix (50 Presets)
+        val matrixHeaders = listOf("فیچرز", "بیسک", "سٹینڈرڈ", "پرو")
+        val matrixVariants = listOf(
+            listOf(
+                listOf("ایچ ڈی کوالٹی ایکسپورٹ", "✓", "✓", "✓"),
+                listOf("اردو فونٹس کی لامحدود کلیکشن", "✗", "✓", "✓"),
+                listOf("واٹر مارک ہٹائیں", "✗", "✗", "✓"),
+                listOf("پی ایس ڈی سپورٹ", "✗", "✗", "✓"),
+                listOf("24/7 ترجیحی سپورٹ", "✗", "✓", "✓")
+            ),
+            listOf(
+                listOf("کلائوڈ بیک اپ", "5 GB", "50 GB", "لامحدود"),
+                listOf("پروجیکٹ شیئرنگ", "✗", "✓", "✓"),
+                listOf("کسٹم برانڈنگ", "✗", "✗", "✓"),
+                listOf("ٹیم ممبرز", "1 ممبر", "5 ممبرز", "25 ممبرز")
+            )
+        )
+        populateCategory(list, "Feature Matrix", matrixHeaders, matrixVariants, null, hasFooter = false, defaultCornerRadius = 10f)
+
+        // 16. Ranking (50 Presets)
+        val rankingHeaders = listOf("پوزیشن", "ٹیم / کھلاڑی", "میچ", "پوائنٹس")
+        val rankingVariants = listOf(
+            listOf(
+                listOf("🥇 ۱", "لاہور قلندرز", "10", "16"),
+                listOf("🥈 ۲", "ملتان سلطانز", "10", "14"),
+                listOf("🥉 ۳", "اسلام آباد یونائیٹڈ", "10", "12"),
+                listOf("۴", "پشاور زلمی", "10", "10"),
+                listOf("۵", "کراچی کنگز", "10", "6")
+            ),
+            listOf(
+                listOf("۱", "احمد علی (رول نمبر 12)", "500", "485 (97%)"),
+                listOf("۲", "فاطمہ نور (رول نمبر 05)", "500", "478 (95.6%)"),
+                listOf("۳", "حسن رضا (رول نمبر 21)", "500", "470 (94%)"),
+                listOf("۴", "عائشہ خان (رول نمبر 18)", "500", "462 (92.4%)")
+            )
+        )
+        populateCategory(list, "Ranking", rankingHeaders, rankingVariants, null, hasFooter = false)
+
+        // 17. Financial (50 Presets)
+        val finHeaders = listOf("مد / کھاتہ", "آمدن", "اخراجات", "خالص منافع")
+        val finVariants = listOf(
+            listOf(
+                listOf("جنوری 2024", "450,000", "280,000", "170,000"),
+                listOf("فروری 2024", "520,000", "310,000", "210,000"),
+                listOf("مارچ 2024", "610,000", "340,000", "270,000"),
+                listOf("اپریل 2024", "580,000", "325,000", "255,000")
+            )
+        )
+        val finFooter = listOf("کل سالانہ میزان", "2,160,000", "1,255,000", "905,000")
+        populateCategory(list, "Financial", finHeaders, finVariants, finFooter, hasFooter = true, defaultCornerRadius = 8f)
+
+        // 18. Before After (50 Presets)
+        val beforeAfterHeaders = listOf("پہلو / خصوصیت", "پہلے کی حالت", "تبدیلی کے بعد")
+        val beforeAfterVariants = listOf(
+            listOf(
+                listOf("صفحہ لوڈنگ کی رفتار", "4.8 سیکنڈ", "1.2 سیکنڈ (75% تیز)"),
+                listOf("موبائل رسپانسو", "غیر تسلی بخش", "100% ہم آہنگ"),
+                listOf("ایس ای او اسکور", "45/100", "98/100 پرفیکٹ"),
+                listOf("صارفین کی مصروفیت", "1.5 منٹ", "4.8 منٹ اوسط"),
+                listOf("تبدیلی کی شرح (کنورژن)", "1.2%", "3.8% تین گنا اضافہ")
+            )
+        )
+        populateCategory(list, "Before After", beforeAfterHeaders, beforeAfterVariants, null, hasFooter = false, defaultCornerRadius = 10f)
+
+        // 19. Pros Cons (50 Presets)
+        val prosConsHeaders = listOf("نمبر", "فوائد و خوبیاں (Pros)", "نقصانات و چیلنجز (Cons)")
+        val prosConsVariants = listOf(
+            listOf(
+                listOf("۱", "انتہائی تیز رفتار اور آسان انٹرفیس", "انٹرنیٹ کنکشن درکار ہے"),
+                listOf("۲", "بڑے پیمانے پر مفت فونٹس کلیکشن", "اعلیٰ فیچرز کے لیے پرو پلان"),
+                listOf("۳", "اعلیٰ کوالٹی ایکسپورٹ اور اردو سپورٹ", "پرانے موبائل پر لوڈنگ سست"),
+                listOf("۴", "بیک اپ اور کلاؤڈ سنک کی سہولت", "محدود اسٹوریج سائز")
+            )
+        )
+        populateCategory(list, "Pros Cons", prosConsHeaders, prosConsVariants, null, hasFooter = false, defaultCornerRadius = 8f)
+
+        // 20. Service Packages (50 Presets)
+        val serviceHeaders = listOf("پیکیج", "تفصیلات و سروسز", "ماہانہ قیمت")
+        val serviceVariants = listOf(
+            listOf(
+                listOf("سٹارٹر پیک", "بنیادی سوشل میڈیا پوسٹس (15 عدد)", "15,000 روپے"),
+                listOf("بزنس پرو", "مکمل گرافک ڈیزائن + ویڈیوز (30 عدد)", "35,000 روپے"),
+                listOf("انٹرپرائز", "مکمل ڈیجیٹل مارکیٹنگ و مہمات", "75,000 روپے"),
+                listOf("کسٹم پلان", "آپ کی فرمائش و ضرورت کے مطابق", "رابطہ کریں")
+            )
+        )
+        val serviceFooter = listOf("", "خصوصی 20% رعایت سالانہ ادائیگی پر", "")
+        populateCategory(list, "Service Packages", serviceHeaders, serviceVariants, serviceFooter, hasFooter = true, defaultCornerRadius = 12f)
+
         return list
     }
 
@@ -483,7 +651,7 @@ object TablePresetRepository {
             val rowsVariant = rowsVariants[i % rowsVariants.size]
             val bMode = if (categoryName == "Classic") {
                 TableBorderMode.ALL
-            } else if (categoryName == "Card Style") {
+            } else if (categoryName in listOf("Card Style", "Info Card", "Service Packages")) {
                 if (i % 2 == 0) TableBorderMode.OUTER else TableBorderMode.NONE
             } else {
                 borderModes[i % borderModes.size]
@@ -495,13 +663,13 @@ object TablePresetRepository {
                 else -> 2.0f
             }
 
-            val cornerR = if (categoryName == "Card Style" || i % 5 == 0) {
+            val cornerR = if (categoryName in listOf("Card Style", "Info Card", "Service Packages", "Feature Matrix", "Financial") || i % 5 == 0) {
                 if (defaultCornerRadius > 0f) defaultCornerRadius else 10f
             } else {
                 0f
             }
 
-            val isFooterEnabled = hasFooter && (i % 2 == 0 || categoryName in listOf("Price List", "Data Table", "Business"))
+            val isFooterEnabled = hasFooter && (i % 2 == 0 || categoryName in listOf("Price List", "Data Table", "Business", "Financial", "Service Packages"))
             val totalRowCount = 1 + rowsVariant.size + (if (isFooterEnabled) 1 else 0)
 
             outList.add(
@@ -532,6 +700,9 @@ object TablePresetRepository {
     }
 
     fun getPresetsByCategory(cat: String): List<TablePresetStyle> {
+        if (cat.equals("All", ignoreCase = true) || cat.isBlank()) {
+            return presetList
+        }
         return presetList.filter { it.category.equals(cat, ignoreCase = true) }
     }
 
