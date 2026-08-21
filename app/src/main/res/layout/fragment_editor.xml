@@ -244,60 +244,110 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <ImageView
-            android:id="@+id/grid"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="@drawable/button_bg_round"
-            android:backgroundTint="@color/contrast"
-            app:tint="@color/gray"
-            android:padding="8dp"
-            android:src="@drawable/ic_grid"
+        <!-- Normal Left Tools (Grid, Pan, Zoom) -->
+        <LinearLayout
+            android:id="@+id/normalTools"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_marginStart="5dp"
-            app:layout_constraintBottom_toBottomOf="parent"
+            android:orientation="horizontal"
+            app:layout_constraintBottom_toBottomOf="@id/back"
             app:layout_constraintStart_toEndOf="@id/back"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="@id/back">
 
-        <ImageView
-            android:id="@+id/pan"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="@drawable/button_bg_round"
-            android:backgroundTint="@color/contrast"
-            app:tint="@color/gray"
-            android:padding="8dp"
-            android:src="@drawable/ic_hand"
-            android:layout_marginStart="5dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toEndOf="@id/grid"
-            app:layout_constraintTop_toTopOf="parent" />
+            <ImageView
+                android:id="@+id/grid"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/button_bg_round"
+                android:backgroundTint="@color/contrast"
+                android:padding="8dp"
+                android:src="@drawable/ic_grid"
+                app:tint="@color/gray" />
 
-        <ImageView
-            android:id="@+id/zoom"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="@drawable/button_bg_round"
-            android:backgroundTint="@color/contrast"
-            app:tint="@color/black"
-            android:padding="8dp"
-            android:src="@drawable/ic_zoom"
+            <ImageView
+                android:id="@+id/pan"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="5dp"
+                android:background="@drawable/button_bg_round"
+                android:backgroundTint="@color/contrast"
+                android:padding="8dp"
+                android:src="@drawable/ic_hand"
+                app:tint="@color/gray" />
+
+            <ImageView
+                android:id="@+id/zoom"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="5dp"
+                android:background="@drawable/button_bg_round"
+                android:backgroundTint="@color/contrast"
+                android:padding="8dp"
+                android:src="@drawable/ic_zoom"
+                app:tint="@color/black" />
+        </LinearLayout>
+
+        <!-- Table Edit Left Tools (Multi-select, Resize, Edit Text) -->
+        <LinearLayout
+            android:id="@+id/tableTools"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_marginStart="5dp"
-            app:layout_constraintStart_toEndOf="@id/pan"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:orientation="horizontal"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@id/back"
+            app:layout_constraintStart_toEndOf="@id/back"
+            app:layout_constraintTop_toTopOf="@id/back">
+
+            <ImageView
+                android:id="@+id/btnTableMultiSelect"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/button_bg_round"
+                android:backgroundTint="@color/contrast"
+                android:contentDescription="Multi Select"
+                android:padding="7dp"
+                android:src="@drawable/ic_table_multi_select"
+                app:tint="@color/gray" />
+
+            <ImageView
+                android:id="@+id/btnTableResize"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="5dp"
+                android:background="@drawable/button_bg_round"
+                android:backgroundTint="@color/contrast"
+                android:contentDescription="Resize Columns and Rows"
+                android:padding="6dp"
+                android:src="@drawable/ic_table_col_resize"
+                app:tint="@color/gray" />
+
+            <ImageView
+                android:id="@+id/btnTableCellText"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="5dp"
+                android:background="@drawable/button_bg_round"
+                android:backgroundTint="@color/contrast"
+                android:contentDescription="Edit Cell Text"
+                android:padding="7dp"
+                android:src="@drawable/ic_edit"
+                app:tint="@color/black" />
+        </LinearLayout>
 
         <ImageView
             android:id="@+id/done"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:background="@drawable/ic_button_gradient_wrap"
-            app:tint="@color/black"
             android:backgroundTint="#30005D28"
             android:padding="8dp"
             android:src="@drawable/ic_export_canvas"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintBottom_toBottomOf="@id/back"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="@id/back"
+            app:tint="@color/black" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <FrameLayout
@@ -733,11 +783,11 @@
                     <LinearLayout
                         android:id="@+id/nav_text"
                         android:layout_width="wrap_content"
-                        android:minWidth="66dp"
+                        android:minWidth="72dp"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:paddingHorizontal="12dp"
+                        android:paddingHorizontal="16dp"
                         android:paddingVertical="6dp"
                         android:clickable="true"
                         android:focusable="true">
@@ -764,11 +814,11 @@
                     <LinearLayout
                         android:id="@+id/nav_images"
                         android:layout_width="wrap_content"
-                        android:minWidth="66dp"
+                        android:minWidth="72dp"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:paddingHorizontal="12dp"
+                        android:paddingHorizontal="16dp"
                         android:paddingVertical="6dp"
                         android:clickable="true"
                         android:focusable="true">
@@ -795,11 +845,11 @@
                     <LinearLayout
                         android:id="@+id/nav_shapes"
                         android:layout_width="wrap_content"
-                        android:minWidth="66dp"
+                        android:minWidth="72dp"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:paddingHorizontal="12dp"
+                        android:paddingHorizontal="16dp"
                         android:paddingVertical="6dp"
                         android:clickable="true"
                         android:focusable="true">
@@ -826,11 +876,11 @@
                     <LinearLayout
                         android:id="@+id/nav_stickers"
                         android:layout_width="wrap_content"
-                        android:minWidth="66dp"
+                        android:minWidth="72dp"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:paddingHorizontal="12dp"
+                        android:paddingHorizontal="16dp"
                         android:paddingVertical="6dp"
                         android:clickable="true"
                         android:focusable="true">
@@ -857,11 +907,11 @@
                     <LinearLayout
                         android:id="@+id/nav_tables"
                         android:layout_width="wrap_content"
-                        android:minWidth="66dp"
+                        android:minWidth="72dp"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:paddingHorizontal="12dp"
+                        android:paddingHorizontal="16dp"
                         android:paddingVertical="6dp"
                         android:clickable="true"
                         android:focusable="true">
@@ -888,11 +938,11 @@
                     <LinearLayout
                         android:id="@+id/nav_draw"
                         android:layout_width="wrap_content"
-                        android:minWidth="66dp"
+                        android:minWidth="72dp"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:paddingHorizontal="12dp"
+                        android:paddingHorizontal="16dp"
                         android:paddingVertical="6dp"
                         android:clickable="true"
                         android:focusable="true">
@@ -940,13 +990,14 @@
         <!-- 3. Sticky Layers Tool on the Right -->
         <LinearLayout
             android:id="@+id/nav_layers"
-            android:layout_width="66dp"
-            android:minWidth="66dp"
+            android:layout_width="wrap_content"
+            android:minWidth="72dp"
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:gravity="center"
-            android:paddingHorizontal="8dp"
+            android:paddingHorizontal="16dp"
             android:paddingVertical="6dp"
+            android:layout_marginEnd="6dp"
             android:clickable="true"
             android:focusable="true">
 

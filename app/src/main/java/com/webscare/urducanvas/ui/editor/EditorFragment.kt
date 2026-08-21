@@ -1350,7 +1350,15 @@ class EditorFragment : Fragment() {
         cbOnCanvasLongPressed = { sx, sy -> showCanvasPopupMenu(sx, sy) }
         if (::sizedCanvasView.isInitialized) {
             sizedCanvasView.onExitTableEditMode = { viewModel.exitTableEditMode() }
-            sizedCanvasView.onTableCellSelected = { r, c -> viewModel.setTableScope(com.webscare.urducanvas.common.canvas.enums.TableScope.CELL, r, c) }
+            sizedCanvasView.onTableCellSelected = { r, c ->
+                viewModel.setTableScope(com.webscare.urducanvas.common.canvas.enums.TableScope.CELL, r, c)
+            }
+            sizedCanvasView.onTableCellToggleSelected = { r, c ->
+                viewModel.toggleCellSelection(r, c)
+            }
+            sizedCanvasView.onTableMultiSelectChanged = { isMulti ->
+                viewModel.toggleTableMultiSelect(isMulti)
+            }
             sizedCanvasView.onProcessingStateChanged = { isProcessing -> viewModel.setProcessingAdjustments(isProcessing) }
         }
         viewModel.isProcessingAdjustments.observe(viewLifecycleOwner) { isProcessing ->
@@ -1360,7 +1368,73 @@ class EditorFragment : Fragment() {
         viewModel.isTableEditMode.observe(viewLifecycleOwner) { isTableEdit ->
             val canvasView = if (::sizedCanvasView.isInitialized) sizedCanvasView else viewModel.getCanvasView()
             canvasView?.isTableEditMode = (isTableEdit == true)
+            binding.normalTools.isVisible = (isTableEdit != true)
+            binding.tableTools.isVisible = (isTableEdit == true)
+            val ctx = context ?: return@observe
+            if (isTableEdit == true) {
+                // Done button in table edit mode: clean contrast background, black checkmark icon (NO green fill)
+                binding.done.setImageResource(R.drawable.ic_done)
+                binding.done.setBackgroundResource(R.drawable.button_bg_round)
+                binding.done.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.contrast))
+                binding.done.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.black))
+            } else {
+                // Restore standard export done button
+                binding.done.setImageResource(R.drawable.ic_export_canvas)
+                binding.done.setBackgroundResource(R.drawable.ic_button_gradient_wrap)
+                binding.done.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#30005D28"))
+                binding.done.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.black))
+            }
         }
+        viewModel.isTableMultiSelectMode.observe(viewLifecycleOwner) { isMulti ->
+            val canvasView = if (::sizedCanvasView.isInitialized) sizedCanvasView else viewModel.getCanvasView()
+            canvasView?.isTableMultiSelectMode = (isMulti == true)
+            val ctx = context ?: return@observe
+            binding.btnTableMultiSelect.backgroundTintList = ColorStateList.valueOf(
+                if (isMulti == true) ContextCompat.getColor(ctx, R.color.appColor)
+                else ContextCompat.getColor(ctx, R.color.contrast)
+            )
+            binding.btnTableMultiSelect.imageTintList = ColorStateList.valueOf(
+                if (isMulti == true) Color.WHITE
+                else ContextCompat.getColor(ctx, R.color.gray)
+            )
+        }
+        viewModel.isTableResizeMode.observe(viewLifecycleOwner) { isResize ->
+            val canvasView = if (::sizedCanvasView.isInitialized) sizedCanvasView else viewModel.getCanvasView()
+            canvasView?.isTableResizeMode = (isResize == true)
+            val ctx = context ?: return@observe
+            binding.btnTableResize.backgroundTintList = ColorStateList.valueOf(
+                if (isResize == true) ContextCompat.getColor(ctx, R.color.appColor)
+                else ContextCompat.getColor(ctx, R.color.contrast)
+            )
+            binding.btnTableResize.imageTintList = ColorStateList.valueOf(
+                if (isResize == true) Color.WHITE
+                else ContextCompat.getColor(ctx, R.color.gray)
+            )
+        }
+        setupTableEditToolbar()
+    }
+
+    private fun setupTableEditToolbar() {
+        binding.btnTableMultiSelect.addPressEffect {
+            viewModel.toggleTableMultiSelect()
+        }
+        binding.btnTableResize.addPressEffect {
+            viewModel.toggleTableResizeMode()
+        }
+        binding.btnTableCellText.addPressEffect {
+            showCellEditDialog()
+        }
+    }
+
+    private fun showCellEditDialog() {
+        val tableData = viewModel.getSelectedTableData() ?: return
+        if (tableData.selectedCells.isEmpty()) {
+            val r = (viewModel.selectedTableRow.value ?: 0).coerceIn(0, (tableData.rows - 1).coerceAtLeast(0))
+            val c = (viewModel.selectedTableCol.value ?: 0).coerceIn(0, (tableData.cols - 1).coerceAtLeast(0))
+            viewModel.setTableScope(com.webscare.urducanvas.common.canvas.enums.TableScope.CELL, r, c)
+        }
+        val dialog = com.webscare.urducanvas.ui.editor.panels.table.CellTextEditDialog.newInstance()
+        dialog.show(childFragmentManager, "CellTextEditDialog")
     }
 
     /** Attach/restore CanvasView inside container */
@@ -1427,6 +1501,16 @@ class EditorFragment : Fragment() {
                 onStrokeCompleted = { stroke -> viewModel.notifyDrawStrokeAdded(stroke) },
                 onZoomChanged = { zoom -> viewModel.setZoomLevel(zoom) },
                 onCanvasLongPressed = { sx, sy -> cbOnCanvasLongPressed(sx, sy) },
+                onExitTableEditMode = { viewModel.exitTableEditMode() },
+                onTableCellSelected = { r, c ->
+                    viewModel.setTableScope(com.webscare.urducanvas.common.canvas.enums.TableScope.CELL, r, c)
+                },
+                onTableCellToggleSelected = { r, c ->
+                    viewModel.toggleCellSelection(r, c)
+                },
+                onTableMultiSelectChanged = { isMulti ->
+                    viewModel.toggleTableMultiSelect(isMulti)
+                },
                 onProcessingStateChanged = { isProcessing -> viewModel.setProcessingAdjustments(isProcessing) }
             ).apply {
                 binding.canvasContainer.addView(this)
@@ -1472,9 +1556,18 @@ class EditorFragment : Fragment() {
                         }
                     }
                     ElementType.TABLE -> {
-                        viewModel.enterTableEditMode()
-                        val dialog = com.webscare.urducanvas.ui.editor.panels.table.CellTextEditDialog.newInstance()
-                        dialog.show(childFragmentManager, "CellTextEditDialog")
+                        if (viewModel.isTableEditMode.value == true) {
+                            showCellEditDialog()
+                        } else {
+                            viewModel.enterTableEditMode()
+                            try {
+                                val bundle = Bundle().apply { putInt("startPage", 0) }
+                                val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
+                                navController.navigate(R.id.tableAdjustmentsFragment, bundle, navOptions)
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
                     }
                     else -> showTextEditDialog(element)
                 }
@@ -1826,10 +1919,14 @@ class EditorFragment : Fragment() {
         }
 
         binding.done.addPressEffect {
-            viewModel.setCanvasView(sizedCanvasView)
-            sizedCanvasView.clearSelection()
-            view?.post {
-                findNavController().navigate(R.id.exportFragment)
+            if (viewModel.isTableEditMode.value == true) {
+                viewModel.exitTableEditMode()
+            } else {
+                viewModel.setCanvasView(sizedCanvasView)
+                sizedCanvasView.clearSelection()
+                view?.post {
+                    findNavController().navigate(R.id.exportFragment)
+                }
             }
         }
 
@@ -1939,11 +2036,21 @@ class EditorFragment : Fragment() {
         requireActivity().onBackPressedDispatcher.addCallback(
             viewLifecycleOwner, object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    autoSave()
+                    if (viewModel.isTableEditMode.value == true) {
+                        viewModel.exitTableEditMode()
+                    } else {
+                        autoSave()
+                    }
                 }
             })
 
-        binding.back.addPressEffect { autoSave() }
+        binding.back.addPressEffect {
+            if (viewModel.isTableEditMode.value == true) {
+                viewModel.exitTableEditMode()
+            } else {
+                autoSave()
+            }
+        }
     }
 
     private fun toggleBlendPanel() {

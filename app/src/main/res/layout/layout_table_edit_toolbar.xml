@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cardTableEditToolbar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <!-- Subtle divider line between main toolbar and table edit toolbar -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="8dp"
+        android:background="#EBEBEB" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingTop="4dp">
+
+        <!-- Status / Selected Count Label -->
+        <TextView
+            android:id="@+id/tvTableEditStatus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:fontFamily="@font/bold"
+            android:maxLines="1"
+            android:text="Table Edit Mode"
+            android:textColor="@color/black"
+            android:textSize="12sp" />
+
+        <!-- Multi-select toggle button -->
+        <ImageView
+            android:id="@+id/btnTableMultiSelect"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/contrast"
+            android:contentDescription="Multi Select"
+            android:padding="7dp"
+            android:src="@drawable/ic_select"
+            app:tint="@color/gray" />
+
+        <!-- Resize toggle button -->
+        <ImageView
+            android:id="@+id/btnTableResize"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/contrast"
+            android:contentDescription="Resize Columns &amp; Rows"
+            android:padding="7dp"
+            android:src="@drawable/ic_resize"
+            app:tint="@color/gray" />
+
+        <!-- Edit cell text button -->
+        <ImageView
+            android:id="@+id/btnTableCellText"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/contrast"
+            android:contentDescription="Edit Cell Text"
+            android:padding="7dp"
+            android:src="@drawable/ic_edit"
+            app:tint="@color/black" />
+
+        <!-- Done / Exit Table Edit Mode button -->
+        <ImageView
+            android:id="@+id/btnTableEditDone"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/appColor"
+            android:contentDescription="Done"
+            android:padding="7dp"
+            android:src="@drawable/ic_done"
+            app:tint="@color/white" />
+
+    </LinearLayout>
+
+</LinearLayout>
