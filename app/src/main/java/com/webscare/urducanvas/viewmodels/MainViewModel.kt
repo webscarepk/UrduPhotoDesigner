@@ -413,6 +413,8 @@ class MainViewModel @Inject constructor(
     var lastObjectsTabCategory: String? = null
     var lastShapesTabCategory: String? = null
     var lastImagesTabCategory: String? = null
+    var lastTablesTabCategory: String? = null
+    var isLastTablesGridMode: Boolean = false
     var lastFontsLanguage: String = "All"
     var lastFontsCategory: String? = null
     var lastFontsInCategoryMode: Boolean = false

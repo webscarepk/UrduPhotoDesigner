@@ -50,6 +50,16 @@ class TableHeadingFragment : Fragment() {
         setupColorAdapters()
         setupToggle()
         observeViewModel()
+        syncInitialState()
+    }
+
+    private fun syncInitialState() {
+        val currentStyle = viewModel.getTableScopeStyle()
+        val currentSize = (currentStyle?.textSize ?: 16f).toInt()
+        binding.seekFontSize.progress = currentSize.coerceIn(8, 72)
+        binding.tvFontSizeValue.text = "${currentSize}sp"
+        val currentColor = currentStyle?.textColor ?: Color.BLACK
+        colorsAdapter.selectedColor = currentColor
     }
 
     private fun setupFontSizeSeekbar() {
@@ -92,21 +102,32 @@ class TableHeadingFragment : Fragment() {
             gradientList = emptyList(),
             onGradientSelected = { _, item ->
                 viewModel.updateSelectedTableData { data ->
-                    val scope = viewModel.currentTableScope.value
-                    val r = viewModel.selectedTableRow.value
-                    val c = viewModel.selectedTableCol.value
-                    when (scope) {
-                        com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> data.base.textGradient = item
-                        com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> data.headerStyle.textGradient = item
-                        com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> data.footerStyle.textGradient = item
-                        com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> data.headerColStyle.textGradient = item
-                        com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> data.rowStyles.getOrPut(r) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.textGradient = item
-                        com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> data.colStyles.getOrPut(c) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.textGradient = item
-                        com.webscare.urducanvas.common.canvas.enums.TableScope.CELL -> {
+                    val selectedCells = data.selectedCells
+                    if (selectedCells.isNotEmpty()) {
+                        for ((r, c) in selectedCells) {
                             if (r in 0 until data.rows && c in 0 until data.cols) {
                                 val cell = data.cells[r][c]
                                 val cellOverride = cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
                                 cellOverride.textGradient = item
+                            }
+                        }
+                    } else {
+                        val scope = viewModel.currentTableScope.value
+                        val r = viewModel.selectedTableRow.value ?: 0
+                        val c = viewModel.selectedTableCol.value ?: 0
+                        when (scope) {
+                            com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> data.base.textGradient = item
+                            com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> data.headerStyle.textGradient = item
+                            com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> data.footerStyle.textGradient = item
+                            com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> data.headerColStyle.textGradient = item
+                            com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> data.rowStyles.getOrPut(r) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.textGradient = item
+                            com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> data.colStyles.getOrPut(c) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.textGradient = item
+                            com.webscare.urducanvas.common.canvas.enums.TableScope.CELL, null -> {
+                                if (r in 0 until data.rows && c in 0 until data.cols) {
+                                    val cell = data.cells[r][c]
+                                    val cellOverride = cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
+                                    cellOverride.textGradient = item
+                                }
                             }
                         }
                     }

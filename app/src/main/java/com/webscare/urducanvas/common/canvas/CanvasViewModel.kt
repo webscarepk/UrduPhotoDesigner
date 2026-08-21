@@ -2019,6 +2019,13 @@ class CanvasViewModel @Inject constructor(
                             data.footerStyle.bgGradient = null
                             data.headerColStyle.bgColor = null
                             data.headerColStyle.bgGradient = null
+                            data.rowStyles.values.forEach { it.bgColor = null; it.bgGradient = null }
+                            data.colStyles.values.forEach { it.bgColor = null; it.bgGradient = null }
+                            for (row in data.cells) {
+                                for (cell in row) {
+                                    cell.override?.let { it.bgColor = null; it.bgGradient = null }
+                                }
+                            }
                         }
                         com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> data.headerStyle.bgColor = color
                         com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> data.footerStyle.bgColor = color
@@ -4450,12 +4457,41 @@ class CanvasViewModel @Inject constructor(
     private val _isTableEditMode = MutableLiveData<Boolean>(false)
     val isTableEditMode: LiveData<Boolean> get() = _isTableEditMode
 
+    private val _isTableMultiSelectMode = MutableLiveData<Boolean>(false)
+    val isTableMultiSelectMode: LiveData<Boolean> get() = _isTableMultiSelectMode
+
+    private val _isTableResizeMode = MutableLiveData<Boolean>(false)
+    val isTableResizeMode: LiveData<Boolean> get() = _isTableResizeMode
+
     fun enterTableEditMode() {
         _isTableEditMode.value = true
+        _isTableMultiSelectMode.value = false
+        _isTableResizeMode.value = false
+    }
+
+    fun toggleTableMultiSelect(enabled: Boolean? = null) {
+        _isTableMultiSelectMode.value = enabled ?: !(_isTableMultiSelectMode.value ?: false)
+    }
+
+    fun toggleTableResizeMode(enabled: Boolean? = null) {
+        _isTableResizeMode.value = enabled ?: !(_isTableResizeMode.value ?: false)
+    }
+
+    fun toggleCellSelection(row: Int, col: Int) {
+        updateSelectedTableData { data ->
+            val pair = Pair(row, col)
+            if (data.selectedCells.contains(pair)) {
+                data.selectedCells.remove(pair)
+            } else {
+                data.selectedCells.add(pair)
+            }
+        }
     }
 
     fun exitTableEditMode() {
         _isTableEditMode.value = false
+        _isTableMultiSelectMode.value = false
+        _isTableResizeMode.value = false
         _selectedTableRow.value = -1
         _selectedTableCol.value = -1
         updateSelectedTableData { data ->

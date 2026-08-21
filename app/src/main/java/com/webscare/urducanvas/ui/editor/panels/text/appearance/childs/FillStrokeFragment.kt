@@ -78,48 +78,67 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
                             }
                         } else {
                             viewModel.updateSelectedTableData { data ->
-                                val scope = viewModel.currentTableScope.value
-                                val r = viewModel.selectedTableRow.value
-                                val c = viewModel.selectedTableCol.value
-                                when (scope) {
-                                    com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> {
-                                        data.base.bgColor = selectedColor
-                                        data.base.bgGradient = null
-                                        data.headerStyle.bgColor = null
-                                        data.headerStyle.bgGradient = null
-                                        data.footerStyle.bgColor = null
-                                        data.footerStyle.bgGradient = null
-                                        data.headerColStyle.bgColor = null
-                                        data.headerColStyle.bgGradient = null
-                                    }
-                                    com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> {
-                                        data.headerStyle.bgColor = selectedColor
-                                        data.headerStyle.bgGradient = null
-                                    }
-                                    com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> {
-                                        data.footerStyle.bgColor = selectedColor
-                                        data.footerStyle.bgGradient = null
-                                    }
-                                    com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> {
-                                        data.headerColStyle.bgColor = selectedColor
-                                        data.headerColStyle.bgGradient = null
-                                    }
-                                    com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> {
-                                        val s = data.rowStyles.getOrPut(r) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }
-                                        s.bgColor = selectedColor
-                                        s.bgGradient = null
-                                    }
-                                    com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> {
-                                        val s = data.colStyles.getOrPut(c) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }
-                                        s.bgColor = selectedColor
-                                        s.bgGradient = null
-                                    }
-                                    com.webscare.urducanvas.common.canvas.enums.TableScope.CELL -> {
+                                val selectedCells = data.selectedCells
+                                if (selectedCells.isNotEmpty()) {
+                                    for ((r, c) in selectedCells) {
                                         if (r in 0 until data.rows && c in 0 until data.cols) {
                                             val cell = data.cells[r][c]
                                             val cellOverride = cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
                                             cellOverride.bgColor = selectedColor
                                             cellOverride.bgGradient = null
+                                        }
+                                    }
+                                } else {
+                                    val scope = viewModel.currentTableScope.value
+                                    val r = viewModel.selectedTableRow.value ?: 0
+                                    val c = viewModel.selectedTableCol.value ?: 0
+                                    when (scope) {
+                                        com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> {
+                                            data.base.bgColor = selectedColor
+                                            data.base.bgGradient = null
+                                            data.headerStyle.bgColor = null
+                                            data.headerStyle.bgGradient = null
+                                            data.footerStyle.bgColor = null
+                                            data.footerStyle.bgGradient = null
+                                            data.headerColStyle.bgColor = null
+                                            data.headerColStyle.bgGradient = null
+                                            data.rowStyles.values.forEach { it.bgColor = null; it.bgGradient = null }
+                                            data.colStyles.values.forEach { it.bgColor = null; it.bgGradient = null }
+                                            for (row in data.cells) {
+                                                for (cell in row) {
+                                                    cell.override?.let { it.bgColor = null; it.bgGradient = null }
+                                                }
+                                            }
+                                        }
+                                        com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> {
+                                            data.headerStyle.bgColor = selectedColor
+                                            data.headerStyle.bgGradient = null
+                                        }
+                                        com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> {
+                                            data.footerStyle.bgColor = selectedColor
+                                            data.footerStyle.bgGradient = null
+                                        }
+                                        com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> {
+                                            data.headerColStyle.bgColor = selectedColor
+                                            data.headerColStyle.bgGradient = null
+                                        }
+                                        com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> {
+                                            val s = data.rowStyles.getOrPut(r) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }
+                                            s.bgColor = selectedColor
+                                            s.bgGradient = null
+                                        }
+                                        com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> {
+                                            val s = data.colStyles.getOrPut(c) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }
+                                            s.bgColor = selectedColor
+                                            s.bgGradient = null
+                                        }
+                                        com.webscare.urducanvas.common.canvas.enums.TableScope.CELL, null -> {
+                                            if (r in 0 until data.rows && c in 0 until data.cols) {
+                                                val cell = data.cells[r][c]
+                                                val cellOverride = cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
+                                                cellOverride.bgColor = selectedColor
+                                                cellOverride.bgGradient = null
+                                            }
                                         }
                                     }
                                 }
@@ -152,35 +171,47 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
                             }
                             else -> {
                                 viewModel.updateSelectedTableData { data ->
-                                    val scope = viewModel.currentTableScope.value
-                                    val r = viewModel.selectedTableRow.value
-                                    val c = viewModel.selectedTableCol.value
-                                    when (scope) {
-                                        com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> {
-                                            data.base.bgColor = null
-                                            data.base.bgGradient = null
-                                        }
-                                        com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> {
-                                            data.headerStyle.bgColor = null
-                                            data.headerStyle.bgGradient = null
-                                        }
-                                        com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> {
-                                            data.footerStyle.bgColor = null
-                                            data.footerStyle.bgGradient = null
-                                        }
-                                        com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> {
-                                            data.headerColStyle.bgColor = null
-                                            data.headerColStyle.bgGradient = null
-                                        }
-                                        com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> {
-                                            data.rowStyles[r]?.let { it.bgColor = null; it.bgGradient = null }
-                                        }
-                                        com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> {
-                                            data.colStyles[c]?.let { it.bgColor = null; it.bgGradient = null }
-                                        }
-                                        com.webscare.urducanvas.common.canvas.enums.TableScope.CELL -> {
+                                    val selectedCells = data.selectedCells
+                                    if (selectedCells.isNotEmpty()) {
+                                        for ((r, c) in selectedCells) {
                                             if (r in 0 until data.rows && c in 0 until data.cols) {
-                                                data.cells[r][c].override?.let { it.bgColor = null; it.bgGradient = null }
+                                                data.cells[r][c].override?.let {
+                                                    it.bgColor = null
+                                                    it.bgGradient = null
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        val scope = viewModel.currentTableScope.value
+                                        val r = viewModel.selectedTableRow.value ?: 0
+                                        val c = viewModel.selectedTableCol.value ?: 0
+                                        when (scope) {
+                                            com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> {
+                                                data.base.bgColor = null
+                                                data.base.bgGradient = null
+                                            }
+                                            com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> {
+                                                data.headerStyle.bgColor = null
+                                                data.headerStyle.bgGradient = null
+                                            }
+                                            com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> {
+                                                data.footerStyle.bgColor = null
+                                                data.footerStyle.bgGradient = null
+                                            }
+                                            com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> {
+                                                data.headerColStyle.bgColor = null
+                                                data.headerColStyle.bgGradient = null
+                                            }
+                                            com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> {
+                                                data.rowStyles[r]?.let { it.bgColor = null; it.bgGradient = null }
+                                            }
+                                            com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> {
+                                                data.colStyles[c]?.let { it.bgColor = null; it.bgGradient = null }
+                                            }
+                                            com.webscare.urducanvas.common.canvas.enums.TableScope.CELL, null -> {
+                                                if (r in 0 until data.rows && c in 0 until data.cols) {
+                                                    data.cells[r][c].override?.let { it.bgColor = null; it.bgGradient = null }
+                                                }
                                             }
                                         }
                                     }
@@ -244,32 +275,73 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
                     val isTable = viewModel.selectedElements.value?.any { it.isSelected && it.type == com.webscare.urducanvas.common.canvas.enums.ElementType.TABLE } == true
                     if (isTable) {
                         if (currentTab?.lowercase() == "stroke") {
-                            viewModel.updateSelectedTableData { data -> data.borderGradient = item }
+                            viewModel.updateSelectedTableData { data ->
+                                data.borderGradient = item
+                                data.borderColor = android.graphics.Color.TRANSPARENT
+                            }
                         } else {
                             viewModel.updateSelectedTableData { data ->
-                                val scope = viewModel.currentTableScope.value
-                                val r = viewModel.selectedTableRow.value
-                                val c = viewModel.selectedTableCol.value
-                                when (scope) {
-                                    com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> {
-                                        data.base.bgGradient = item
-                                        data.headerStyle.bgColor = null
-                                        data.headerStyle.bgGradient = null
-                                        data.footerStyle.bgColor = null
-                                        data.footerStyle.bgGradient = null
-                                        data.headerColStyle.bgColor = null
-                                        data.headerColStyle.bgGradient = null
-                                    }
-                                    com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> data.headerStyle.bgGradient = item
-                                    com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> data.footerStyle.bgGradient = item
-                                    com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> data.headerColStyle.bgGradient = item
-                                    com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> data.rowStyles.getOrPut(r) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.bgGradient = item
-                                    com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> data.colStyles.getOrPut(c) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.bgGradient = item
-                                    com.webscare.urducanvas.common.canvas.enums.TableScope.CELL -> {
+                                val selectedCells = data.selectedCells
+                                if (selectedCells.isNotEmpty()) {
+                                    for ((r, c) in selectedCells) {
                                         if (r in 0 until data.rows && c in 0 until data.cols) {
                                             val cell = data.cells[r][c]
                                             val cellOverride = cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
                                             cellOverride.bgGradient = item
+                                            cellOverride.bgColor = null
+                                        }
+                                    }
+                                } else {
+                                    val scope = viewModel.currentTableScope.value
+                                    val r = viewModel.selectedTableRow.value ?: 0
+                                    val c = viewModel.selectedTableCol.value ?: 0
+                                    when (scope) {
+                                        com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> {
+                                            data.base.bgGradient = item
+                                            data.base.bgColor = null
+                                            data.headerStyle.bgColor = null
+                                            data.headerStyle.bgGradient = null
+                                            data.footerStyle.bgColor = null
+                                            data.footerStyle.bgGradient = null
+                                            data.headerColStyle.bgColor = null
+                                            data.headerColStyle.bgGradient = null
+                                            data.rowStyles.values.forEach { it.bgColor = null; it.bgGradient = null }
+                                            data.colStyles.values.forEach { it.bgColor = null; it.bgGradient = null }
+                                            for (row in data.cells) {
+                                                for (cell in row) {
+                                                    cell.override?.let { it.bgColor = null; it.bgGradient = null }
+                                                }
+                                            }
+                                        }
+                                        com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> {
+                                            data.headerStyle.bgGradient = item
+                                            data.headerStyle.bgColor = null
+                                        }
+                                        com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> {
+                                            data.footerStyle.bgGradient = item
+                                            data.footerStyle.bgColor = null
+                                        }
+                                        com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> {
+                                            data.headerColStyle.bgGradient = item
+                                            data.headerColStyle.bgColor = null
+                                        }
+                                        com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> {
+                                            val s = data.rowStyles.getOrPut(r) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }
+                                            s.bgGradient = item
+                                            s.bgColor = null
+                                        }
+                                        com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> {
+                                            val s = data.colStyles.getOrPut(c) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }
+                                            s.bgGradient = item
+                                            s.bgColor = null
+                                        }
+                                        com.webscare.urducanvas.common.canvas.enums.TableScope.CELL, null -> {
+                                            if (r in 0 until data.rows && c in 0 until data.cols) {
+                                                val cell = data.cells[r][c]
+                                                val cellOverride = cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
+                                                cellOverride.bgGradient = item
+                                                cellOverride.bgColor = null
+                                            }
                                         }
                                     }
                                 }

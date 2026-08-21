@@ -116,7 +116,7 @@ class TableGridFragment : Fragment() {
         if (data.hasHeader) {
             binding.btnToggleHeaderRow.strokeColor = appColor
             binding.btnToggleHeaderRow.strokeWidth = strokePx
-            binding.btnToggleHeaderRow.setCardBackgroundColor(contrast)
+            binding.btnToggleHeaderRow.setCardBackgroundColor(white)
             binding.tvHeaderRowText.setTextColor(black)
         } else {
             binding.btnToggleHeaderRow.strokeWidth = 0
@@ -127,7 +127,7 @@ class TableGridFragment : Fragment() {
         if (data.hasFooter) {
             binding.btnToggleFooterRow.strokeColor = appColor
             binding.btnToggleFooterRow.strokeWidth = strokePx
-            binding.btnToggleFooterRow.setCardBackgroundColor(contrast)
+            binding.btnToggleFooterRow.setCardBackgroundColor(white)
             binding.tvFooterRowText.setTextColor(black)
         } else {
             binding.btnToggleFooterRow.strokeWidth = 0
@@ -138,7 +138,7 @@ class TableGridFragment : Fragment() {
         if (data.hasHeaderCol) {
             binding.btnToggleHeaderCol.strokeColor = appColor
             binding.btnToggleHeaderCol.strokeWidth = strokePx
-            binding.btnToggleHeaderCol.setCardBackgroundColor(contrast)
+            binding.btnToggleHeaderCol.setCardBackgroundColor(white)
             binding.tvHeaderColText.setTextColor(black)
         } else {
             binding.btnToggleHeaderCol.strokeWidth = 0

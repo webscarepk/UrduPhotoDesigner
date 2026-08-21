@@ -52,6 +52,26 @@ class TableStrokeFragment : Fragment() {
         setupAdapters()
         setupToggle()
         observeViewModel()
+        syncInitialState()
+    }
+
+    private fun syncInitialState() {
+        val data = viewModel.getSelectedTableData() ?: return
+        val tiles = listOf(
+            binding.tileAll to TableBorderMode.ALL,
+            binding.tileOuter to TableBorderMode.OUTER,
+            binding.tileInner to TableBorderMode.INNER,
+            binding.tileHoriz to TableBorderMode.HORIZONTAL,
+            binding.tileVert to TableBorderMode.VERTICAL,
+            binding.tileNone to TableBorderMode.NONE
+        )
+        val selectedTile = tiles.firstOrNull { it.second == data.borderMode }?.first ?: binding.tileAll
+        updateTileSelection(selectedTile, tiles.map { it.first })
+
+        val width = data.borderWidth.toInt()
+        binding.seekBorderWidth.progress = width.coerceIn(0, 10)
+        binding.tvBorderWidth.text = "${width}dp"
+        colorsAdapter.selectedColor = data.borderColor
     }
 
     private fun setupBorderModeTiles() {
@@ -76,16 +96,17 @@ class TableStrokeFragment : Fragment() {
 
     private fun updateTileSelection(selectedTile: TextView, allTiles: List<TextView>) {
         val context = context ?: return
-        val appColor = ContextCompat.getColor(context, R.color.appColor)
         val contrastColor = ContextCompat.getColor(context, R.color.contrast)
 
         allTiles.forEach { tile ->
             if (tile == selectedTile) {
-                tile.backgroundTintList = ColorStateList.valueOf(appColor)
-                tile.setTextColor(Color.WHITE)
+                tile.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
+                tile.setTextColor(Color.BLACK)
+                tile.typeface = androidx.core.content.res.ResourcesCompat.getFont(context, R.font.bold)
             } else {
                 tile.backgroundTintList = ColorStateList.valueOf(contrastColor)
                 tile.setTextColor(Color.BLACK)
+                tile.typeface = androidx.core.content.res.ResourcesCompat.getFont(context, R.font.medium)
             }
         }
     }

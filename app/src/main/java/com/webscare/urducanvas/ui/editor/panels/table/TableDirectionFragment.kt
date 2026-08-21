@@ -55,11 +55,10 @@ class TableDirectionFragment : Fragment() {
 
     private fun updatePillSelection(selected: TextView, unselected: TextView) {
         val context = context ?: return
-        val appColor = ContextCompat.getColor(context, R.color.appColor)
         val contrastColor = ContextCompat.getColor(context, R.color.contrast)
 
-        selected.backgroundTintList = ColorStateList.valueOf(appColor)
-        selected.setTextColor(Color.WHITE)
+        selected.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
+        selected.setTextColor(Color.BLACK)
         selected.typeface = androidx.core.content.res.ResourcesCompat.getFont(context, R.font.bold)
 
         unselected.backgroundTintList = ColorStateList.valueOf(contrastColor)

@@ -27,11 +27,19 @@ class TableSpacingFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val currentStyle = viewModel.getTableScopeStyle()
+        val initLetter = currentStyle?.letterSpacing ?: 0f
+        val initLine = currentStyle?.lineSpacing ?: 1.0f
+
+        val initLetterProgress = (((initLetter - (-0.5f)) / 2.5f) * 100f).toInt().coerceIn(0, 100)
         binding.seekLetterSpacing.max = 100
+        binding.seekLetterSpacing.progress = initLetterProgress
+        binding.tvLetterSpacingValue.text = "%.2f".format(initLetter)
+
         binding.seekLetterSpacing.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    val mappedLetterSpacing = -0.5f + (progress / 100.0f) * 2.0f
+                    val mappedLetterSpacing = -0.5f + (progress / 100.0f) * 2.5f
                     binding.tvLetterSpacingValue.text = "%.2f".format(mappedLetterSpacing)
                     viewModel.setTableLetterSpacing(mappedLetterSpacing)
                 }
@@ -41,11 +49,15 @@ class TableSpacingFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
+        val initLineProgress = (((initLine - 0.5f) / 2.5f) * 100f).toInt().coerceIn(0, 100)
         binding.seekLineSpacing.max = 100
+        binding.seekLineSpacing.progress = initLineProgress
+        binding.tvLineSpacingValue.text = "%.2f".format(initLine)
+
         binding.seekLineSpacing.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    val mappedLineSpacing = -0.5f + (progress / 100.0f) * (3.0f + 0.5f)
+                    val mappedLineSpacing = 0.5f + (progress / 100.0f) * 2.5f
                     binding.tvLineSpacingValue.text = "%.2f".format(mappedLineSpacing)
                     viewModel.setTableLineSpacing(mappedLineSpacing)
                 }
