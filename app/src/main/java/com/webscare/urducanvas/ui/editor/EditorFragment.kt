@@ -1354,7 +1354,7 @@ class EditorFragment : Fragment() {
                 viewModel.setTableScope(com.webscare.urducanvas.common.canvas.enums.TableScope.CELL, r, c)
             }
             sizedCanvasView.onTableCellToggleSelected = { r, c ->
-                viewModel.toggleCellSelection(r, c)
+                viewModel.setTableScope(com.webscare.urducanvas.common.canvas.enums.TableScope.CELL, r, c)
             }
             sizedCanvasView.onTableMultiSelectChanged = { isMulti ->
                 viewModel.toggleTableMultiSelect(isMulti)
@@ -1388,15 +1388,6 @@ class EditorFragment : Fragment() {
         viewModel.isTableMultiSelectMode.observe(viewLifecycleOwner) { isMulti ->
             val canvasView = if (::sizedCanvasView.isInitialized) sizedCanvasView else viewModel.getCanvasView()
             canvasView?.isTableMultiSelectMode = (isMulti == true)
-            val ctx = context ?: return@observe
-            binding.btnTableMultiSelect.backgroundTintList = ColorStateList.valueOf(
-                if (isMulti == true) ContextCompat.getColor(ctx, R.color.appColor)
-                else ContextCompat.getColor(ctx, R.color.contrast)
-            )
-            binding.btnTableMultiSelect.imageTintList = ColorStateList.valueOf(
-                if (isMulti == true) Color.WHITE
-                else ContextCompat.getColor(ctx, R.color.gray)
-            )
         }
         viewModel.isTableResizeMode.observe(viewLifecycleOwner) { isResize ->
             val canvasView = if (::sizedCanvasView.isInitialized) sizedCanvasView else viewModel.getCanvasView()
@@ -1415,9 +1406,6 @@ class EditorFragment : Fragment() {
     }
 
     private fun setupTableEditToolbar() {
-        binding.btnTableMultiSelect.addPressEffect {
-            viewModel.toggleTableMultiSelect()
-        }
         binding.btnTableResize.addPressEffect {
             viewModel.toggleTableResizeMode()
         }
@@ -1506,7 +1494,7 @@ class EditorFragment : Fragment() {
                     viewModel.setTableScope(com.webscare.urducanvas.common.canvas.enums.TableScope.CELL, r, c)
                 },
                 onTableCellToggleSelected = { r, c ->
-                    viewModel.toggleCellSelection(r, c)
+                    viewModel.setTableScope(com.webscare.urducanvas.common.canvas.enums.TableScope.CELL, r, c)
                 },
                 onTableMultiSelectChanged = { isMulti ->
                     viewModel.toggleTableMultiSelect(isMulti)

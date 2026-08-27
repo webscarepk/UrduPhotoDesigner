@@ -109,6 +109,26 @@ data class TableData(
     }
 
     fun applyFontToScope(fontId: String, scope: TableScope, row: Int = 0, col: Int = 0) {
+        if (selectedCells.isNotEmpty()) {
+            for (cellPair in selectedCells) {
+                val r = cellPair.first
+                val c = cellPair.second
+                if (r in 0 until rows && c in 0 until cols) {
+                    val cell = cells[r][c]
+                    val cellOverride = cell.override ?: TableTextStyle().also { cell.override = it }
+                    cellOverride.fontId = fontId
+                }
+            }
+            return
+        }
+        if (scope == TableScope.CELL || (row in 0 until rows && col in 0 until cols)) {
+            val validR = row.coerceIn(0, rows - 1)
+            val validC = col.coerceIn(0, cols - 1)
+            val cell = cells[validR][validC]
+            val cellOverride = cell.override ?: TableTextStyle().also { cell.override = it }
+            cellOverride.fontId = fontId
+            return
+        }
         when (scope) {
             TableScope.WHOLE_TABLE -> base.fontId = fontId
             TableScope.HEADER_ROW -> headerStyle.fontId = fontId

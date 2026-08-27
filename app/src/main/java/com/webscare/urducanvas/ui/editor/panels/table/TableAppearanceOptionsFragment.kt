@@ -52,9 +52,7 @@ class TableAppearanceOptionsFragment : Fragment() {
             onColorPicked = { hexColor ->
                 try {
                     val colorInt = Color.parseColor(hexColor)
-                    viewModel.updateSelectedTableData { data ->
-                        data.base.bgColor = colorInt
-                    }
+                    viewModel.setTableBgColor(colorInt)
                 } catch (e: Exception) { }
             }
         }

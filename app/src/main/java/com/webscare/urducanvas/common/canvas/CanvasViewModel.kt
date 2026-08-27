@@ -552,25 +552,36 @@ class CanvasViewModel @Inject constructor(
     val selectedTableCol: StateFlow<Int> = _selectedTableCol.asStateFlow()
 
     fun setSelectedTableCells(cells: Set<Pair<Int, Int>>) {
-        updateSelectedTableData { data ->
-            data.selectedCells = cells.toMutableSet()
+        val current = _canvasElements.value ?: return
+        current.forEach { element ->
+            if (element.isSelected && element.type == ElementType.TABLE) {
+                element.tableData?.selectedCells = cells.toMutableSet()
+            }
         }
     }
 
     fun toggleTableCellSelected(r: Int, c: Int) {
-        updateSelectedTableData { data ->
-            val pair = Pair(r, c)
-            if (data.selectedCells.contains(pair)) {
-                data.selectedCells.remove(pair)
-            } else {
-                data.selectedCells.add(pair)
+        val current = _canvasElements.value ?: return
+        val pair = Pair(r, c)
+        current.forEach { element ->
+            if (element.isSelected && element.type == ElementType.TABLE) {
+                element.tableData?.let { data ->
+                    if (data.selectedCells.contains(pair)) {
+                        data.selectedCells.remove(pair)
+                    } else {
+                        data.selectedCells.add(pair)
+                    }
+                }
             }
         }
     }
 
     fun clearTableCellSelection() {
-        updateSelectedTableData { data ->
-            data.selectedCells.clear()
+        val current = _canvasElements.value ?: return
+        current.forEach { element ->
+            if (element.isSelected && element.type == ElementType.TABLE) {
+                element.tableData?.selectedCells?.clear()
+            }
         }
     }
 
@@ -4478,14 +4489,7 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun toggleCellSelection(row: Int, col: Int) {
-        updateSelectedTableData { data ->
-            val pair = Pair(row, col)
-            if (data.selectedCells.contains(pair)) {
-                data.selectedCells.remove(pair)
-            } else {
-                data.selectedCells.add(pair)
-            }
-        }
+        toggleTableCellSelected(row, col)
     }
 
     fun exitTableEditMode() {
@@ -4494,9 +4498,7 @@ class CanvasViewModel @Inject constructor(
         _isTableResizeMode.value = false
         _selectedTableRow.value = -1
         _selectedTableCol.value = -1
-        updateSelectedTableData { data ->
-            data.selectedCells.clear()
-        }
+        clearTableCellSelection()
     }
 
     fun setTableHeader(enabled: Boolean) {
@@ -4532,7 +4534,12 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun setTableContentWrap(wrap: Boolean) {
-        updateSelectedTableData { data -> data.contentWrap = wrap }
+        updateSelectedTableData { data ->
+            data.contentWrap = wrap
+            if (wrap) {
+                data.colWidthRatios = null
+            }
+        }
     }
 
     fun applyTablePreset(preset: com.webscare.urducanvas.common.canvas.enums.TablePreset) {

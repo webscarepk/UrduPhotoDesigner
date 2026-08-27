@@ -3274,17 +3274,35 @@ class CanvasView @JvmOverloads constructor(
             }
         }
 
-        // Pass 4: Cell Selection Highlights (Clean fill only, no hard stroke)
-        if (tableData.selectedCells.isNotEmpty() && element.isSelected) {
+        // Pass 4: Cell Selection Highlights (Adaptive dark/light overlay)
+        if (tableData.selectedCells.isNotEmpty() && (element.isSelected || isTableEditMode)) {
             val fillHighlight = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.FILL
-                color = Color.argb(80, 0, 168, 150)
             }
             for (cellPair in tableData.selectedCells) {
                 val sr = cellPair.first
                 val sc = cellPair.second
                 if (sr in 0 until cache.rows && sc in 0 until cache.cols) {
-                    val cellRect = cache.cellLayouts[sr][sc].rect
+                    val cellLayout = cache.cellLayouts[sr][sc]
+                    val cellRect = cellLayout.rect
+
+                    val isDark = when {
+                        cellLayout.style.bgGradient != null && cellLayout.style.bgGradient!!.colors.isNotEmpty() -> {
+                            val colors = cellLayout.style.bgGradient!!.colors
+                            val avgLuminance = colors.map { androidx.core.graphics.ColorUtils.calculateLuminance(it) }.average()
+                            avgLuminance < 0.5
+                        }
+                        cellLayout.style.bgColor != null && cellLayout.style.bgColor != Color.TRANSPARENT -> {
+                            androidx.core.graphics.ColorUtils.calculateLuminance(cellLayout.style.bgColor!!) < 0.5
+                        }
+                        else -> false // Default table cell background is light (white)
+                    }
+
+                    fillHighlight.color = if (isDark) {
+                        Color.argb(70, 255, 255, 255) // White overlay with lower opacity for dark cells
+                    } else {
+                        Color.argb(50, 0, 0, 0)       // Black overlay with lower opacity for light cells
+                    }
                     canvas.drawRect(cellRect, fillHighlight)
                 }
             }
@@ -3348,13 +3366,19 @@ class CanvasView @JvmOverloads constructor(
                 fontLookup = { null }
             )
 
-        val matrix = Matrix().apply {
-            postTranslate(-element.x, -element.y)
-            postRotate(-element.rotation)
-            postScale(1f / element.scale, 1f / element.scale)
+        val forwardMatrix = Matrix().apply {
+            val fx = if (element.isFlippedX) -1f else 1f
+            val fy = if (element.isFlippedY) -1f else 1f
+            postScale(element.scale * fx, element.scale * fy)
+            postRotate(element.rotation)
+            postTranslate(element.x, element.y)
+        }
+        val inverseMatrix = Matrix()
+        if (!forwardMatrix.invert(inverseMatrix)) {
+            return null
         }
         val pts = floatArrayOf(canvasX, canvasY)
-        matrix.mapPoints(pts)
+        inverseMatrix.mapPoints(pts)
         val lx = pts[0]
         val ly = pts[1]
 
@@ -3382,13 +3406,19 @@ class CanvasView @JvmOverloads constructor(
                 fontLookup = { null }
             )
 
-        val matrix = Matrix().apply {
-            postTranslate(-element.x, -element.y)
-            postRotate(-element.rotation)
-            postScale(1f / element.scale, 1f / element.scale)
+        val forwardMatrix = Matrix().apply {
+            val fx = if (element.isFlippedX) -1f else 1f
+            val fy = if (element.isFlippedY) -1f else 1f
+            postScale(element.scale * fx, element.scale * fy)
+            postRotate(element.rotation)
+            postTranslate(element.x, element.y)
+        }
+        val inverseMatrix = Matrix()
+        if (!forwardMatrix.invert(inverseMatrix)) {
+            return null
         }
         val pts = floatArrayOf(canvasX, canvasY)
-        matrix.mapPoints(pts)
+        inverseMatrix.mapPoints(pts)
         val lx = pts[0]
         val ly = pts[1]
 
@@ -3398,8 +3428,27 @@ class CanvasView @JvmOverloads constructor(
         val bottom = totalH / 2f
 
         val hitThreshold = 32f * resources.displayMetrics.density
+        val centerY = (top + bottom) / 2f
+        val centerX = (left + right) / 2f
+        val badgeHitRadius = 24f * resources.displayMetrics.density
 
-        // Check column dividers
+        // 1. Check direct badge taps first
+        for (c in 1 until cache.cols) {
+            val divX = left + cache.colWidthsPx.take(c).sum()
+            val dist = kotlin.math.hypot((lx - divX).toDouble(), (ly - centerY).toDouble()).toFloat()
+            if (dist <= badgeHitRadius) {
+                return Pair(true, c)
+            }
+        }
+        for (r in 1 until cache.rows) {
+            val divY = top + cache.rowHeightsPx.take(r).sum()
+            val dist = kotlin.math.hypot((lx - centerX).toDouble(), (ly - divY).toDouble()).toFloat()
+            if (dist <= badgeHitRadius) {
+                return Pair(false, r)
+            }
+        }
+
+        // 2. Check full line divider borders
         for (c in 1 until cache.cols) {
             val divX = left + cache.colWidthsPx.take(c).sum()
             if (Math.abs(lx - divX) <= hitThreshold && ly >= top - hitThreshold && ly <= bottom + hitThreshold) {
@@ -3407,7 +3456,6 @@ class CanvasView @JvmOverloads constructor(
             }
         }
 
-        // Check row dividers
         for (r in 1 until cache.rows) {
             val divY = top + cache.rowHeightsPx.take(r).sum()
             if (Math.abs(ly - divY) <= hitThreshold && lx >= left - hitThreshold && lx <= right + hitThreshold) {
@@ -5430,29 +5478,51 @@ class CanvasView @JvmOverloads constructor(
         override fun onLongPress(e: MotionEvent) {
             val (x, y) = screenToCanvas(e.x, e.y)
 
+            // 1. In Table Edit Mode: Long press on a cell triggers Table Selection Mode
+            if (isTableEditMode) {
+                val activeTable = selectedElements.firstOrNull { it.type == ElementType.TABLE }
+                    ?: canvasElements.firstOrNull { it.isSelected && it.type == ElementType.TABLE }
+                    ?: canvasElements.firstOrNull { it.type == ElementType.TABLE }
+                if (activeTable != null) {
+                    val cellPair = getTableCellAt(activeTable, x, y)
+                    if (cellPair != null) {
+                        val (r, c) = cellPair
+                        val pair = Pair(r, c)
+                        val data = activeTable.tableData
+                        if (data != null) {
+                            if (!isTableMultiSelectMode) {
+                                data.selectedCells.clear()
+                                data.selectedCells.add(pair)
+                                isTableMultiSelectMode = true
+                                performHapticFeedback(
+                                    android.view.HapticFeedbackConstants.LONG_PRESS,
+                                    android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                                )
+                                onTableMultiSelectChanged?.invoke(true)
+                                onTableCellSelected?.invoke(r, c)
+                            } else {
+                                if (data.selectedCells.contains(pair)) {
+                                    data.selectedCells.remove(pair)
+                                    if (data.selectedCells.isEmpty()) {
+                                        isTableMultiSelectMode = false
+                                        onTableMultiSelectChanged?.invoke(false)
+                                    }
+                                } else {
+                                    data.selectedCells.add(pair)
+                                }
+                                onTableCellToggleSelected?.invoke(r, c)
+                            }
+                        }
+                        vibrateSoft()
+                        invalidate()
+                        return
+                    }
+                }
+                return
+            }
+
             val touchedElement = canvasElements.filter { !it.isLocked } // ignore locked
                 .sortedByDescending { it.zIndex }.firstOrNull { it.containsPoint(x, y) }
-
-            if (isTableEditMode && touchedElement != null && touchedElement.type == ElementType.TABLE) {
-                val cellPair = getTableCellAt(touchedElement, x, y)
-                if (cellPair != null) {
-                    val (r, c) = cellPair
-                    val pair = Pair(r, c)
-                    touchedElement.tableData?.let { data ->
-                        if (data.selectedCells.contains(pair)) {
-                            data.selectedCells.remove(pair)
-                        } else {
-                            data.selectedCells.add(pair)
-                        }
-                    }
-                    isTableMultiSelectMode = true
-                    onTableMultiSelectChanged?.invoke(true)
-                    onTableCellToggleSelected?.invoke(r, c)
-                    vibrateSoft()
-                    invalidate()
-                    return
-                }
-            }
 
             if (touchedElement != null && touchedElement.type != ElementType.BACKGROUND) {
                 // Resolve grouped child -> its children for canvas bounds,
@@ -6082,6 +6152,10 @@ class CanvasView @JvmOverloads constructor(
                                 if (isTableMultiSelectMode) {
                                     if (data.selectedCells.contains(pair)) {
                                         data.selectedCells.remove(pair)
+                                        if (data.selectedCells.isEmpty()) {
+                                            isTableMultiSelectMode = false
+                                            onTableMultiSelectChanged?.invoke(false)
+                                        }
                                     } else {
                                         data.selectedCells.add(pair)
                                     }
@@ -6095,6 +6169,15 @@ class CanvasView @JvmOverloads constructor(
                             vibrateSoft()
                             invalidate()
                             return true
+                        } else {
+                            if (isTableMultiSelectMode) {
+                                activeTable.tableData?.selectedCells?.clear()
+                                isTableMultiSelectMode = false
+                                onTableMultiSelectChanged?.invoke(false)
+                                vibrateSoft()
+                                invalidate()
+                                return true
+                            }
                         }
                     }
                     // Canvas is completely frozen for non-table actions in edit mode
@@ -6207,6 +6290,10 @@ class CanvasView @JvmOverloads constructor(
                                             if (isTableMultiSelectMode) {
                                                 if (data.selectedCells.contains(pair)) {
                                                     data.selectedCells.remove(pair)
+                                                    if (data.selectedCells.isEmpty()) {
+                                                        isTableMultiSelectMode = false
+                                                        onTableMultiSelectChanged?.invoke(false)
+                                                    }
                                                 } else {
                                                     data.selectedCells.add(pair)
                                                 }
@@ -6642,39 +6729,63 @@ class CanvasView @JvmOverloads constructor(
                             if (draggedColDividerIndex in 1 until data.cols) {
                                 val cCount = data.cols
                                 if (data.colWidthRatios == null || data.colWidthRatios?.size != cCount) {
-                                    data.colWidthRatios = MutableList(cCount) { 1f / cCount }
+                                    val currentCache = activeTable.tableLayoutCache as? com.webscare.urducanvas.common.canvas.cache.TableLayoutCache
+                                    if (currentCache != null && currentCache.colWidthsPx.size == cCount) {
+                                        val sum = currentCache.colWidthsPx.sum().takeIf { it > 0f } ?: totalW
+                                        data.colWidthRatios = currentCache.colWidthsPx.map { it / sum }.toMutableList()
+                                    } else {
+                                        data.colWidthRatios = MutableList(cCount) { 1f / cCount }
+                                    }
                                 }
+                                data.contentWrap = false
                                 val ratios = data.colWidthRatios!!
-                                val deltaRatio = localDx / totalW
+                                val rawDelta = localDx / totalW
                                 val leftIdx = draggedColDividerIndex - 1
                                 val rightIdx = draggedColDividerIndex
-                                val minRatio = 0.08f
-                                if (ratios[leftIdx] + deltaRatio >= minRatio && ratios[rightIdx] - deltaRatio >= minRatio) {
-                                    ratios[leftIdx] += deltaRatio
-                                    ratios[rightIdx] -= deltaRatio
-                                    touchStartX = x
-                                    touchStartY = y
+                                val minRatio = 0.05f
+
+                                val maxNegativeDelta = -(ratios[leftIdx] - minRatio)
+                                val maxPositiveDelta = ratios[rightIdx] - minRatio
+                                val clampedDelta = rawDelta.coerceIn(maxNegativeDelta, maxPositiveDelta)
+
+                                if (clampedDelta != 0f) {
+                                    ratios[leftIdx] += clampedDelta
+                                    ratios[rightIdx] -= clampedDelta
                                     activeTable.tableLayoutCache = null
                                     invalidate()
                                 }
+                                touchStartX = x
+                                touchStartY = y
                             } else if (draggedRowDividerIndex in 1 until data.rows) {
                                 val rCount = data.rows
                                 if (data.rowHeightRatios == null || data.rowHeightRatios?.size != rCount) {
-                                    data.rowHeightRatios = MutableList(rCount) { 1f / rCount }
+                                    val currentCache = activeTable.tableLayoutCache as? com.webscare.urducanvas.common.canvas.cache.TableLayoutCache
+                                    if (currentCache != null && currentCache.rowHeightsPx.size == rCount) {
+                                        val sum = currentCache.rowHeightsPx.sum().takeIf { it > 0f } ?: totalH
+                                        data.rowHeightRatios = currentCache.rowHeightsPx.map { it / sum }.toMutableList()
+                                    } else {
+                                        data.rowHeightRatios = MutableList(rCount) { 1f / rCount }
+                                    }
                                 }
+                                data.contentWrap = false
                                 val ratios = data.rowHeightRatios!!
-                                val deltaRatio = localDy / totalH
+                                val rawDelta = localDy / totalH
                                 val topIdx = draggedRowDividerIndex - 1
                                 val botIdx = draggedRowDividerIndex
-                                val minRatio = 0.08f
-                                if (ratios[topIdx] + deltaRatio >= minRatio && ratios[botIdx] - deltaRatio >= minRatio) {
-                                    ratios[topIdx] += deltaRatio
-                                    ratios[botIdx] -= deltaRatio
-                                    touchStartX = x
-                                    touchStartY = y
+                                val minRatio = 0.05f
+
+                                val maxNegativeDelta = -(ratios[topIdx] - minRatio)
+                                val maxPositiveDelta = ratios[botIdx] - minRatio
+                                val clampedDelta = rawDelta.coerceIn(maxNegativeDelta, maxPositiveDelta)
+
+                                if (clampedDelta != 0f) {
+                                    ratios[topIdx] += clampedDelta
+                                    ratios[botIdx] -= clampedDelta
                                     activeTable.tableLayoutCache = null
                                     invalidate()
                                 }
+                                touchStartX = x
+                                touchStartY = y
                             }
                         }
                     }

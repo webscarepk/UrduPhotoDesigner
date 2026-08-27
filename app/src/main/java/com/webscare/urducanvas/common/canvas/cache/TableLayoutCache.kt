@@ -39,6 +39,39 @@ class TableLayoutCache(
             val colSum = colRatios?.sum()?.takeIf { it > 0f } ?: cCount.toFloat()
             val colWidths = if (colRatios != null) {
                 colRatios.map { (it / colSum) * totalW }
+            } else if (data.contentWrap) {
+                // Auto Expand: measure content width of each column
+                val autoWidths = (0 until cCount).map { c ->
+                    var maxW = 40f
+                    for (r in 0 until rCount) {
+                        val cellObj = if (r < data.cells.size && c < data.cells[r].size) data.cells[r][c] else null
+                        val mergedStyle = mergeStyle(data, r, c, cellObj?.override)
+                        val text = cellObj?.text ?: ""
+                        if (text.isNotBlank()) {
+                            val tf = fontLookup(mergedStyle.fontId)
+                            val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+                                textSize = mergedStyle.textSize ?: 16f
+                                if (mergedStyle.letterSpacing != null) {
+                                    letterSpacing = (mergedStyle.letterSpacing ?: 0f) / 50f
+                                }
+                                val styleInt = when {
+                                    mergedStyle.isBold == true && mergedStyle.isItalic == true -> Typeface.BOLD_ITALIC
+                                    mergedStyle.isBold == true -> Typeface.BOLD
+                                    mergedStyle.isItalic == true -> Typeface.ITALIC
+                                    else -> Typeface.NORMAL
+                                }
+                                typeface = if (tf != null) Typeface.create(tf, styleInt) else Typeface.create(Typeface.DEFAULT, styleInt)
+                            }
+                            for (line in text.split("\n")) {
+                                val w = paint.measureText(line) + (data.paddingH * 2) + 16f
+                                if (w > maxW) maxW = w
+                            }
+                        }
+                    }
+                    maxW
+                }
+                val autoSum = autoWidths.sum().coerceAtLeast(100f)
+                autoWidths.map { (it / autoSum) * totalW }
             } else {
                 List(cCount) { totalW / cCount }
             }
@@ -96,12 +129,49 @@ class TableLayoutCache(
                         }
                         typeface = if (tf != null) Typeface.create(tf, styleInt) else Typeface.create(Typeface.DEFAULT, styleInt)
                     }
-                    val lines = if (text.isNotBlank()) text.split("\n") else emptyList()
+                    val availableTextWidth = (colWidths[visualCol] - (data.paddingH * 2)).coerceAtLeast(10f)
+                    val lines = if (data.contentWrap) {
+                        if (text.isNotBlank()) text.split("\n") else emptyList()
+                    } else {
+                        wrapTextToLines(text, paint, availableTextWidth)
+                    }
                     CellLayout(cellRect, mergedStyle, lines, paint)
                 }
             }
 
             return TableLayoutCache(totalW, totalH, rCount, cCount, rowHeights, colWidths, layouts)
+        }
+
+        private fun wrapTextToLines(text: String, paint: TextPaint, maxAvailableWidth: Float): List<String> {
+            if (text.isBlank()) return emptyList()
+            if (maxAvailableWidth <= 0f) return text.split("\n")
+            val result = mutableListOf<String>()
+            val rawParagraphs = text.split("\n")
+            for (paragraph in rawParagraphs) {
+                if (paragraph.isBlank()) {
+                    result.add("")
+                    continue
+                }
+                val words = paragraph.split(" ")
+                var currentLine = StringBuilder()
+                for (word in words) {
+                    val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
+                    if (paint.measureText(testLine) <= maxAvailableWidth) {
+                        currentLine = StringBuilder(testLine)
+                    } else {
+                        if (currentLine.isNotEmpty()) {
+                            result.add(currentLine.toString())
+                            currentLine = StringBuilder(word)
+                        } else {
+                            result.add(word)
+                        }
+                    }
+                }
+                if (currentLine.isNotEmpty()) {
+                    result.add(currentLine.toString())
+                }
+            }
+            return result
         }
 
         private fun mergeStyle(data: TableData, r: Int, c: Int, override: TableTextStyle?): TableTextStyle {

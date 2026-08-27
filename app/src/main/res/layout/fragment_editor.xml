@@ -288,7 +288,7 @@
                 app:tint="@color/black" />
         </LinearLayout>
 
-        <!-- Table Edit Left Tools (Multi-select, Resize, Edit Text) -->
+        <!-- Table Edit Left Tools (Resize, Edit Text) -->
         <LinearLayout
             android:id="@+id/tableTools"
             android:layout_width="wrap_content"
@@ -301,26 +301,14 @@
             app:layout_constraintTop_toTopOf="@id/back">
 
             <ImageView
-                android:id="@+id/btnTableMultiSelect"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:background="@drawable/button_bg_round"
-                android:backgroundTint="@color/contrast"
-                android:contentDescription="Multi Select"
-                android:padding="7dp"
-                android:src="@drawable/ic_table_multi_select"
-                app:tint="@color/gray" />
-
-            <ImageView
                 android:id="@+id/btnTableResize"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:layout_marginStart="5dp"
                 android:background="@drawable/button_bg_round"
                 android:backgroundTint="@color/contrast"
                 android:contentDescription="Resize Columns and Rows"
                 android:padding="6dp"
-                android:src="@drawable/ic_table_col_resize"
+                android:src="@drawable/ic_table_resize_tool"
                 app:tint="@color/gray" />
 
             <ImageView
