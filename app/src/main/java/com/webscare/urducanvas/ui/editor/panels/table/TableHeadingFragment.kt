@@ -109,24 +109,25 @@ class TableHeadingFragment : Fragment() {
                                 val cell = data.cells[r][c]
                                 val cellOverride = cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
                                 cellOverride.textGradient = item
+                                cellOverride.textColor = null
                             }
                         }
                     } else {
-                        val scope = viewModel.currentTableScope.value
-                        val r = viewModel.selectedTableRow.value ?: 0
-                        val c = viewModel.selectedTableCol.value ?: 0
-                        when (scope) {
-                            com.webscare.urducanvas.common.canvas.enums.TableScope.WHOLE_TABLE -> data.base.textGradient = item
-                            com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_ROW -> data.headerStyle.textGradient = item
-                            com.webscare.urducanvas.common.canvas.enums.TableScope.FOOTER_ROW -> data.footerStyle.textGradient = item
-                            com.webscare.urducanvas.common.canvas.enums.TableScope.HEADER_COL -> data.headerColStyle.textGradient = item
-                            com.webscare.urducanvas.common.canvas.enums.TableScope.ROW -> data.rowStyles.getOrPut(r) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.textGradient = item
-                            com.webscare.urducanvas.common.canvas.enums.TableScope.COLUMN -> data.colStyles.getOrPut(c) { com.webscare.urducanvas.common.canvas.model.TableTextStyle() }.textGradient = item
-                            com.webscare.urducanvas.common.canvas.enums.TableScope.CELL, null -> {
-                                if (r in 0 until data.rows && c in 0 until data.cols) {
-                                    val cell = data.cells[r][c]
-                                    val cellOverride = cell.override ?: com.webscare.urducanvas.common.canvas.model.TableTextStyle().also { cell.override = it }
-                                    cellOverride.textGradient = item
+                        data.base.textGradient = item
+                        data.base.textColor = null
+                        data.headerStyle.textGradient = item
+                        data.headerStyle.textColor = null
+                        data.footerStyle.textGradient = item
+                        data.footerStyle.textColor = null
+                        data.headerColStyle.textGradient = item
+                        data.headerColStyle.textColor = null
+                        data.rowStyles.values.forEach { it.textGradient = item; it.textColor = null }
+                        data.colStyles.values.forEach { it.textGradient = item; it.textColor = null }
+                        for (row in data.cells) {
+                            for (cell in row) {
+                                cell.override?.let {
+                                    it.textGradient = item
+                                    it.textColor = null
                                 }
                             }
                         }
@@ -136,7 +137,26 @@ class TableHeadingFragment : Fragment() {
             onGradientEditSelected = { _, _ -> },
             onNoneSelected = {
                 viewModel.updateSelectedTableData { data ->
-                    data.base.textGradient = null
+                    val selectedCells = data.selectedCells
+                    if (selectedCells.isNotEmpty()) {
+                        for ((r, c) in selectedCells) {
+                            if (r in 0 until data.rows && c in 0 until data.cols) {
+                                data.cells[r][c].override?.let { it.textGradient = null }
+                            }
+                        }
+                    } else {
+                        data.base.textGradient = null
+                        data.headerStyle.textGradient = null
+                        data.footerStyle.textGradient = null
+                        data.headerColStyle.textGradient = null
+                        data.rowStyles.values.forEach { it.textGradient = null }
+                        data.colStyles.values.forEach { it.textGradient = null }
+                        for (row in data.cells) {
+                            for (cell in row) {
+                                cell.override?.let { it.textGradient = null }
+                            }
+                        }
+                    }
                 }
             },
             onGradientPickerClicked = {}

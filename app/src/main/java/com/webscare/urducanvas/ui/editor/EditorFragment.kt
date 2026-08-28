@@ -1212,6 +1212,21 @@ class EditorFragment : Fragment() {
     }
 
     private fun updateToolbarVisibility(selected: List<CanvasElement>, animate: Boolean = true) {
+        val isTableEdit = viewModel.isTableEditMode.value == true
+        if (isTableEdit) {
+            // Hide "more options" toggle button, side tools, and alignment kit in table edit mode
+            binding.showHideContainer.visibility = View.GONE
+            resetPanelsOnSelectionChange()
+            updateIconVisibility(binding.opacityPane, false, animate = animate, animHide = R.anim.slide_out_left)
+            updateIconVisibility(binding.blendPane, false, animate = animate, animHide = R.anim.slide_out_left)
+            updateIconVisibility(binding.fontSizePane, false, animate = animate, animHide = R.anim.slide_out_left)
+            updateIconVisibility(binding.copyIcon, false, animate = animate, animHide = R.anim.slide_out_left)
+            updateIconVisibility(binding.cutOutIcon, false, animate = animate, animHide = R.anim.slide_out_left)
+            updateIconVisibility(binding.alignmentKit, false, animate = animate, animHide = R.anim.slide_out)
+            updateIconVisibility(binding.selection, false, animate = animate)
+            return
+        }
+
         // Toggle button stays on screen instantly — no slide animation
         binding.showHideContainer.visibility =
             if (selected.isNotEmpty()) View.VISIBLE else View.GONE
@@ -1349,15 +1364,38 @@ class EditorFragment : Fragment() {
         cbOnRequestOpenLayers = { handleRequestOpenLayers() }
         cbOnCanvasLongPressed = { sx, sy -> showCanvasPopupMenu(sx, sy) }
         if (::sizedCanvasView.isInitialized) {
-            sizedCanvasView.onExitTableEditMode = { viewModel.exitTableEditMode() }
+            sizedCanvasView.onExitTableEditMode = {
+                viewModel.exitTableEditMode()
+                updateTableSelectionBar()
+            }
             sizedCanvasView.onTableCellSelected = { r, c ->
-                viewModel.setTableScope(com.webscare.urducanvas.common.canvas.enums.TableScope.CELL, r, c)
+                if (r >= 0 && c >= 0) {
+                    viewModel.setTableScope(com.webscare.urducanvas.common.canvas.enums.TableScope.CELL, r, c)
+                } else {
+                    viewModel.clearTableCellSelection()
+                }
+                updateTableSelectionBar()
             }
             sizedCanvasView.onTableCellToggleSelected = { r, c ->
-                viewModel.setTableScope(com.webscare.urducanvas.common.canvas.enums.TableScope.CELL, r, c)
+                val tableData = viewModel.getSelectedTableData()
+                if (tableData != null && tableData.selectedCells.isNotEmpty()) {
+                    viewModel.setSelectedTableCells(tableData.selectedCells)
+                } else {
+                    viewModel.clearTableCellSelection()
+                    viewModel.toggleTableMultiSelect(false)
+                }
+                updateTableSelectionBar()
             }
             sizedCanvasView.onTableMultiSelectChanged = { isMulti ->
                 viewModel.toggleTableMultiSelect(isMulti)
+                if (!isMulti) {
+                    val tableData = viewModel.getSelectedTableData()
+                    if (tableData?.selectedCells?.isEmpty() == true) {
+                        viewModel.clearTableCellSelection()
+                    }
+                }
+                updateTableSelectionBar()
+                updateToolbarVisibility(viewModel.selectedElements.value ?: emptyList(), animate = false)
             }
             sizedCanvasView.onProcessingStateChanged = { isProcessing -> viewModel.setProcessingAdjustments(isProcessing) }
         }
@@ -1370,6 +1408,8 @@ class EditorFragment : Fragment() {
             canvasView?.isTableEditMode = (isTableEdit == true)
             binding.normalTools.isVisible = (isTableEdit != true)
             binding.tableTools.isVisible = (isTableEdit == true)
+            updateTableSelectionBar()
+            updateToolbarVisibility(viewModel.selectedElements.value ?: emptyList(), animate = false)
             val ctx = context ?: return@observe
             if (isTableEdit == true) {
                 // Done button in table edit mode: clean contrast background, black checkmark icon (NO green fill)
@@ -1388,6 +1428,11 @@ class EditorFragment : Fragment() {
         viewModel.isTableMultiSelectMode.observe(viewLifecycleOwner) { isMulti ->
             val canvasView = if (::sizedCanvasView.isInitialized) sizedCanvasView else viewModel.getCanvasView()
             canvasView?.isTableMultiSelectMode = (isMulti == true)
+            updateTableSelectionBar()
+            updateToolbarVisibility(viewModel.selectedElements.value ?: emptyList(), animate = false)
+        }
+        viewModel.selectedTableCellCount.observe(viewLifecycleOwner) {
+            updateTableSelectionBar()
         }
         viewModel.isTableResizeMode.observe(viewLifecycleOwner) { isResize ->
             val canvasView = if (::sizedCanvasView.isInitialized) sizedCanvasView else viewModel.getCanvasView()
@@ -1411,6 +1456,42 @@ class EditorFragment : Fragment() {
         }
         binding.btnTableCellText.addPressEffect {
             showCellEditDialog()
+        }
+        binding.btnTableZoom.addPressEffect {
+            showZoomPopup(binding.btnTableZoom)
+        }
+        binding.btnDismissTableSelection.addPressEffect {
+            viewModel.clearTableCellSelection()
+            viewModel.toggleTableMultiSelect(false)
+            val canvasView = if (::sizedCanvasView.isInitialized) sizedCanvasView else viewModel.getCanvasView()
+            canvasView?.let { cv ->
+                cv.clearTableCellSelection()
+                cv.performHapticFeedback(
+                    android.view.HapticFeedbackConstants.VIRTUAL_KEY,
+                    android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                )
+            }
+            updateTableSelectionBar()
+        }
+    }
+
+    private fun updateTableSelectionBar() {
+        val isTableEdit = viewModel.isTableEditMode.value == true
+        if (!isTableEdit) {
+            binding.tableSelectionBar.visibility = View.GONE
+            return
+        }
+        val isMulti = viewModel.isTableMultiSelectMode.value == true
+        val count = viewModel.selectedTableCellCount.value ?: 0
+        if (isMulti && count > 0) {
+            binding.tableSelectionBar.visibility = View.VISIBLE
+            binding.tvTableSelectionCount.text = when {
+                count == 1 -> "1 cell selected"
+                count > 1 -> "$count cells selected"
+                else -> "Select cells"
+            }
+        } else {
+            binding.tableSelectionBar.visibility = View.GONE
         }
     }
 

@@ -526,6 +526,17 @@ class CanvasView @JvmOverloads constructor(
         invalidate()
     }
 
+    fun getSelectedTableElement(): CanvasElement? =
+        selectedElements.firstOrNull { it.type == ElementType.TABLE }
+            ?: canvasElements.firstOrNull { it.isSelected && it.type == ElementType.TABLE }
+            ?: canvasElements.firstOrNull { it.type == ElementType.TABLE }
+
+    fun clearTableCellSelection() {
+        getSelectedTableElement()?.tableData?.selectedCells?.clear()
+        isTableMultiSelectMode = false
+        invalidate()
+    }
+
     fun setDrawingMode(enabled: Boolean, sessionElement: CanvasElement? = null) {
         isDrawing = enabled
         activeSessionElement = sessionElement
@@ -5458,6 +5469,11 @@ class CanvasView @JvmOverloads constructor(
                             data.selectedCells.clear()
                             data.selectedCells.add(pair)
                         }
+                        performHapticFeedback(
+                            android.view.HapticFeedbackConstants.VIRTUAL_KEY,
+                            android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                        )
+                        vibrateSoft()
                         onTableCellSelected?.invoke(r, c)
                     }
                 }
@@ -6155,6 +6171,7 @@ class CanvasView @JvmOverloads constructor(
                                         if (data.selectedCells.isEmpty()) {
                                             isTableMultiSelectMode = false
                                             onTableMultiSelectChanged?.invoke(false)
+                                            onTableCellSelected?.invoke(-1, -1)
                                         }
                                     } else {
                                         data.selectedCells.add(pair)
@@ -6166,18 +6183,32 @@ class CanvasView @JvmOverloads constructor(
                                     onTableCellSelected?.invoke(r, c)
                                 }
                             }
+                            performHapticFeedback(
+                                android.view.HapticFeedbackConstants.VIRTUAL_KEY,
+                                android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                            )
                             vibrateSoft()
                             invalidate()
                             return true
                         } else {
-                            if (isTableMultiSelectMode) {
-                                activeTable.tableData?.selectedCells?.clear()
-                                isTableMultiSelectMode = false
+                            // Tapped outside table in edit mode -> clear selection, exit selection state, reset scope to whole table
+                            val hadCells = activeTable.tableData?.selectedCells?.isNotEmpty() == true
+                            val wasMulti = isTableMultiSelectMode
+                            activeTable.tableData?.selectedCells?.clear()
+                            isTableMultiSelectMode = false
+                            if (wasMulti) {
                                 onTableMultiSelectChanged?.invoke(false)
-                                vibrateSoft()
-                                invalidate()
-                                return true
                             }
+                            if (hadCells || wasMulti) {
+                                onTableCellSelected?.invoke(-1, -1)
+                                performHapticFeedback(
+                                    android.view.HapticFeedbackConstants.VIRTUAL_KEY,
+                                    android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                                )
+                                vibrateSoft()
+                            }
+                            invalidate()
+                            return true
                         }
                     }
                     // Canvas is completely frozen for non-table actions in edit mode
@@ -6303,10 +6334,16 @@ class CanvasView @JvmOverloads constructor(
                                                 data.selectedCells.add(pair)
                                                 onTableCellSelected?.invoke(r, c)
                                             }
+                                            performHapticFeedback(
+                                                android.view.HapticFeedbackConstants.VIRTUAL_KEY,
+                                                android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                                            )
+                                            vibrateSoft()
                                         }
                                     }
                                     currentMode = Mode.NONE
                                 } else {
+                                    touchedElement.tableData?.selectedCells?.clear()
                                     lastTouchedElement = touchedElement
                                     currentMode = Mode.DRAG
                                     touchStartX = x

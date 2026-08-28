@@ -108,7 +108,7 @@ data class TableData(
         return list.distinct()
     }
 
-    fun applyFontToScope(fontId: String, scope: TableScope, row: Int = 0, col: Int = 0) {
+    fun applyFontToScope(fontId: String, scope: TableScope = TableScope.WHOLE_TABLE, row: Int = 0, col: Int = 0) {
         if (selectedCells.isNotEmpty()) {
             for (cellPair in selectedCells) {
                 val r = cellPair.first
@@ -121,30 +121,20 @@ data class TableData(
             }
             return
         }
-        if (scope == TableScope.CELL || (row in 0 until rows && col in 0 until cols)) {
-            val validR = row.coerceIn(0, rows - 1)
-            val validC = col.coerceIn(0, cols - 1)
-            val cell = cells[validR][validC]
-            val cellOverride = cell.override ?: TableTextStyle().also { cell.override = it }
-            cellOverride.fontId = fontId
-            return
-        }
-        when (scope) {
-            TableScope.WHOLE_TABLE -> base.fontId = fontId
-            TableScope.HEADER_ROW -> headerStyle.fontId = fontId
-            TableScope.FOOTER_ROW -> footerStyle.fontId = fontId
-            TableScope.HEADER_COL -> headerColStyle.fontId = fontId
-            TableScope.ROW -> rowStyles.getOrPut(row) { TableTextStyle() }.fontId = fontId
-            TableScope.COLUMN -> colStyles.getOrPut(col) { TableTextStyle() }.fontId = fontId
-            TableScope.CELL -> {
-                if (row in 0 until rows && col in 0 until cols) {
-                    val cell = cells[row][col]
-                    val cellOverride = cell.override ?: TableTextStyle().also { cell.override = it }
-                    cellOverride.fontId = fontId
-                }
+        // When no cells are selected, apply font to the entire table
+        base.fontId = fontId
+        headerStyle.fontId = fontId
+        footerStyle.fontId = fontId
+        headerColStyle.fontId = fontId
+        rowStyles.values.forEach { it.fontId = fontId }
+        colStyles.values.forEach { it.fontId = fontId }
+        cells.forEach { rowList ->
+            rowList.forEach { cell ->
+                cell.override?.fontId = fontId
             }
         }
     }
+
 
     companion object {
         fun createDefault(r: Int = 3, c: Int = 3, withHeader: Boolean = true): TableData {

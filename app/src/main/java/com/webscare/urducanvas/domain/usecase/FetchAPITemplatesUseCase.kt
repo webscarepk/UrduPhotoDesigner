@@ -8,8 +8,8 @@ import com.webscare.urducanvas.domain.repo.FetchTemplatesRepo
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
-class FetchAPITemplatesUseCase @Inject constructor(private val fetchTemplatesRepo: com.webscare.urducanvas.domain.repo.FetchTemplatesRepo) {
-    operator fun invoke(): Flow<com.webscare.urducanvas.common.sealed.Response<com.webscare.urducanvas.data.model.TemplatesResponse>> {
+class FetchAPITemplatesUseCase @Inject constructor(private val fetchTemplatesRepo: FetchTemplatesRepo) {
+    operator fun invoke(): Flow<Response<TemplatesResponse>> {
         return fetchTemplatesRepo.fetchTemplates()
     }
 }

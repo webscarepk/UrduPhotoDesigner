@@ -176,7 +176,8 @@
         android:id="@+id/header"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:paddingVertical="10dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
         android:paddingHorizontal="20dp"
         android:backgroundTint="@color/white"
         android:translationZ="6dp"
@@ -240,7 +241,6 @@
             app:tint="@color/black"
             android:padding="8dp"
             android:src="@drawable/ic_back"
-            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -288,7 +288,7 @@
                 app:tint="@color/black" />
         </LinearLayout>
 
-        <!-- Table Edit Left Tools (Resize, Edit Text) -->
+        <!-- Table Edit Left Tools (Resize, Edit Text, Zoom) -->
         <LinearLayout
             android:id="@+id/tableTools"
             android:layout_width="wrap_content"
@@ -322,6 +322,18 @@
                 android:padding="7dp"
                 android:src="@drawable/ic_edit"
                 app:tint="@color/black" />
+
+            <ImageView
+                android:id="@+id/btnTableZoom"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="5dp"
+                android:background="@drawable/button_bg_round"
+                android:backgroundTint="@color/contrast"
+                android:contentDescription="Zoom Canvas"
+                android:padding="8dp"
+                android:src="@drawable/ic_zoom"
+                app:tint="@color/black" />
         </LinearLayout>
 
         <ImageView
@@ -336,6 +348,47 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@id/back"
             app:tint="@color/black" />
+
+        <!-- Table Selection Sub-bar (appears right below current toolbar when cells are selected) -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/tableSelectionBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="2dp"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/back"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <TextView
+                android:id="@+id/tvTableSelectionCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1 cell selected"
+                android:textSize="13sp"
+                android:textColor="@color/black"
+                android:fontFamily="@font/medium"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
+            <ImageView
+                android:id="@+id/btnDismissTableSelection"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/button_bg_round"
+                android:backgroundTint="@color/contrast"
+                android:contentDescription="Clear Selection"
+                android:padding="7dp"
+                android:src="@drawable/ic_close"
+                app:tint="@color/black"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <FrameLayout
@@ -345,7 +398,8 @@
         app:layout_constraintBottom_toTopOf="@id/centerGuide"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/header" />
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginTop="54dp" />
 
     <LinearLayout
         android:id="@+id/alignmentKit"

@@ -52,6 +52,7 @@ class TableLayoutOptionsFragment : Fragment() {
             viewModel.updateSelectedTableData { data ->
                 if (data.rows < 15) {
                     data.rows += 1
+                    data.cells.add(0, MutableList(data.cols) { com.webscare.urducanvas.common.canvas.model.TableCell() })
                 }
             }
         }
@@ -59,6 +60,7 @@ class TableLayoutOptionsFragment : Fragment() {
             viewModel.updateSelectedTableData { data ->
                 if (data.rows < 15) {
                     data.rows += 1
+                    data.cells.add(MutableList(data.cols) { com.webscare.urducanvas.common.canvas.model.TableCell() })
                 }
             }
         }
@@ -66,6 +68,9 @@ class TableLayoutOptionsFragment : Fragment() {
             viewModel.updateSelectedTableData { data ->
                 if (data.rows > 1) {
                     data.rows -= 1
+                    if (data.cells.size > data.rows) {
+                        data.cells.removeAt(data.cells.size - 1)
+                    }
                 }
             }
         }
@@ -92,6 +97,9 @@ class TableLayoutOptionsFragment : Fragment() {
             viewModel.updateSelectedTableData { data ->
                 if (data.cols < 15) {
                     data.cols += 1
+                    data.cells.forEach { row ->
+                        row.add(0, com.webscare.urducanvas.common.canvas.model.TableCell())
+                    }
                 }
             }
         }
@@ -99,6 +107,9 @@ class TableLayoutOptionsFragment : Fragment() {
             viewModel.updateSelectedTableData { data ->
                 if (data.cols < 15) {
                     data.cols += 1
+                    data.cells.forEach { row ->
+                        row.add(com.webscare.urducanvas.common.canvas.model.TableCell())
+                    }
                 }
             }
         }
@@ -106,6 +117,11 @@ class TableLayoutOptionsFragment : Fragment() {
             viewModel.updateSelectedTableData { data ->
                 if (data.cols > 1) {
                     data.cols -= 1
+                    data.cells.forEach { row ->
+                        if (row.size > data.cols) {
+                            row.removeAt(row.size - 1)
+                        }
+                    }
                 }
             }
         }
