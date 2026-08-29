@@ -84,7 +84,6 @@ class TableAdjustmentsFragment : Fragment() {
         setupSearchBar()
 
         binding.back.addPressEffect {
-            hideKeyboard()
             findNavController().navigateUp()
         }
     }
@@ -94,88 +93,29 @@ class TableAdjustmentsFragment : Fragment() {
         binding.tabLayout.setupPanelTabs(binding.viewPager, tabs) { position ->
             if (position != 0) {
                 mainViewModel.setQuery("")
-                collapseSearch()
-                hideKeyboard()
             }
         }
     }
 
-    @SuppressLint("ClickableViewAccessibility")
     private fun setupSearchBar() {
         binding.searchIcon.addPressEffect {
-            binding.searchIcon.isVisible = false
-            binding.searchBar.isVisible = true
-            binding.searchBar.requestFocus()
-            binding.searchBar.setSelection(binding.searchBar.text?.length ?: 0)
-            showKeyboard(binding.searchBar)
+            com.webscare.urducanvas.ui.editor.panels.adjustments.PanelSearchDialogFragment.newInstance()
+                .show(childFragmentManager, "panel_search_dialog")
         }
 
-        binding.searchBar.imeOptions = EditorInfo.IME_ACTION_SEARCH
-        binding.searchBar.setRawInputType(InputType.TYPE_CLASS_TEXT)
-
-        binding.searchBar.setOnEditorActionListener { _, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                mainViewModel.setQuery(binding.searchBar.text.toString())
-                hideKeyboard()
-                collapseSearch()
-                true
-            } else false
-        }
-
-        binding.searchBar.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun afterTextChanged(s: Editable?) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                binding.searchBar.setCompoundDrawablesWithIntrinsicBounds(
-                    null, null,
-                    if (!s.isNullOrEmpty())
-                        ContextCompat.getDrawable(requireContext(), R.drawable.ic_close)
-                    else null, null
-                )
-                mainViewModel.setQuery(s?.toString().orEmpty())
-            }
-        })
-
-        binding.searchBar.setOnTouchListener { _, event ->
-            if (event.action == MotionEvent.ACTION_UP) {
-                val dr = binding.searchBar.compoundDrawables[2]
-                if (dr != null && event.x >= binding.searchBar.width -
-                    binding.searchBar.paddingRight - dr.bounds.width()
-                ) {
-                    binding.searchBar.text.clear()
-                    mainViewModel.setQuery("")
-                    hideKeyboard()
-                    binding.searchBar.clearFocus()
-                    collapseSearch()
-                    return@setOnTouchListener true
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                mainViewModel.searchQuery.collect { query ->
+                    val hasQuery = query.isNotEmpty()
+                    binding.searchIcon.imageTintList = android.content.res.ColorStateList.valueOf(
+                        androidx.core.content.ContextCompat.getColor(
+                            requireContext(),
+                            if (hasQuery) R.color.appColor else R.color.gray
+                        )
+                    )
                 }
             }
-            false
         }
-
-        binding.searchBar.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus && binding.searchBar.text.isNullOrEmpty()) {
-                collapseSearch()
-            }
-        }
-    }
-
-    private fun collapseSearch() {
-        if (_binding == null) return
-        binding.searchBar.isVisible = false
-        binding.searchIcon.isVisible = true
-    }
-
-    private fun showKeyboard(v: View) {
-        (requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
-            .showSoftInput(v, InputMethodManager.SHOW_IMPLICIT)
-    }
-
-    private fun hideKeyboard() {
-        val b = _binding ?: return
-        requireContext().getSystemService(InputMethodManager::class.java)
-            ?.hideSoftInputFromWindow(b.root.windowToken, 0)
-        b.searchBar.clearFocus()
     }
 
     override fun onDestroyView() {

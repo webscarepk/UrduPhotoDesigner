@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.enums.TablePreset
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
+import com.webscare.urducanvas.data.repository.TablePresetStyle
 import com.webscare.urducanvas.databinding.ItemTablePresetBinding
 import androidx.core.graphics.toColorInt
 
@@ -33,64 +34,24 @@ class TablePresetsAdapter(
         val context = holder.itemView.context
         val isSelected = selectedPreset == item
         val strokePx = (1.5f * context.resources.displayMetrics.density + 0.5f).toInt()
-        holder.binding.cardPreset.strokeColor = context.getColor(R.color.appColor)
+        holder.binding.cardPreset.strokeColor = ContextCompat.getColor(context, R.color.appColor)
         holder.binding.cardPreset.strokeWidth = if (isSelected) strokePx else 0
 
-        // Custom visual thumbnail styling for each preset
-        when (item) {
-            TablePreset.PLAIN -> {
-                holder.binding.headerPreview.setBackgroundColor(Color.WHITE)
-                holder.binding.row1Preview.setBackgroundColor(Color.WHITE)
-                holder.binding.row2Preview.setBackgroundColor(Color.WHITE)
-                setFrameBorder(holder.binding.previewFrame, "#CCCCCC".toColorInt(), 2)
-            }
-            TablePreset.BORDERED -> {
-                holder.binding.headerPreview.setBackgroundColor("#EFEFEF".toColorInt())
-                holder.binding.row1Preview.setBackgroundColor(Color.WHITE)
-                holder.binding.row2Preview.setBackgroundColor(Color.WHITE)
-                setFrameBorder(holder.binding.previewFrame, "#333333".toColorInt(), 4)
-            }
-            TablePreset.STRIPED -> {
-                holder.binding.headerPreview.setBackgroundColor("#E4F3E9".toColorInt())
-                holder.binding.row1Preview.setBackgroundColor(Color.WHITE)
-                holder.binding.row2Preview.setBackgroundColor("#EFEFEF".toColorInt())
-                setFrameBorder(holder.binding.previewFrame, "#CCCCCC".toColorInt(), 2)
-            }
-            TablePreset.HEADER_HIGHLIGHT -> {
-                holder.binding.headerPreview.setBackgroundColor("#005D28".toColorInt())
-                holder.binding.row1Preview.setBackgroundColor(Color.WHITE)
-                holder.binding.row2Preview.setBackgroundColor(Color.WHITE)
-                setFrameBorder(holder.binding.previewFrame, "#005D28".toColorInt(), 3)
-            }
-            TablePreset.MINIMAL -> {
-                holder.binding.headerPreview.setBackgroundColor("#F8F9FA".toColorInt())
-                holder.binding.row1Preview.setBackgroundColor(Color.WHITE)
-                holder.binding.row2Preview.setBackgroundColor(Color.WHITE)
-                setFrameBorder(holder.binding.previewFrame, "#E0E0E0".toColorInt(), 1)
-            }
-            TablePreset.BOXED -> {
-                holder.binding.headerPreview.setBackgroundColor(Color.WHITE)
-                holder.binding.row1Preview.setBackgroundColor(Color.WHITE)
-                holder.binding.row2Preview.setBackgroundColor(Color.WHITE)
-                setFrameBorder(holder.binding.previewFrame, "#444444".toColorInt(), 4)
-            }
+        val presetStyle = when (item) {
+            TablePreset.PLAIN -> TablePresetStyle("plain", "Plain", "General", Color.WHITE, Color.BLACK, Color.WHITE, Color.WHITE, Color.BLACK, "#CCCCCC".toColorInt(), 1f, com.webscare.urducanvas.common.canvas.enums.TableBorderMode.ALL)
+            TablePreset.BORDERED -> TablePresetStyle("bordered", "Bordered", "General", "#EFEFEF".toColorInt(), Color.BLACK, Color.WHITE, Color.WHITE, Color.BLACK, "#333333".toColorInt(), 2f, com.webscare.urducanvas.common.canvas.enums.TableBorderMode.ALL)
+            TablePreset.STRIPED -> TablePresetStyle("striped", "Striped", "General", "#E4F3E9".toColorInt(), Color.BLACK, Color.WHITE, "#EFEFEF".toColorInt(), Color.BLACK, "#CCCCCC".toColorInt(), 1f, com.webscare.urducanvas.common.canvas.enums.TableBorderMode.ALL)
+            TablePreset.HEADER_HIGHLIGHT -> TablePresetStyle("header_highlight", "Header", "General", "#005D28".toColorInt(), Color.WHITE, Color.WHITE, Color.WHITE, Color.BLACK, "#005D28".toColorInt(), 1.5f, com.webscare.urducanvas.common.canvas.enums.TableBorderMode.ALL)
+            TablePreset.MINIMAL -> TablePresetStyle("minimal", "Minimal", "General", "#F8F9FA".toColorInt(), Color.BLACK, Color.WHITE, Color.WHITE, Color.BLACK, "#E0E0E0".toColorInt(), 1f, com.webscare.urducanvas.common.canvas.enums.TableBorderMode.HORIZONTAL)
+            TablePreset.BOXED -> TablePresetStyle("boxed", "Boxed", "General", Color.WHITE, Color.BLACK, Color.WHITE, Color.WHITE, Color.BLACK, "#444444".toColorInt(), 2f, com.webscare.urducanvas.common.canvas.enums.TableBorderMode.OUTER)
         }
+        holder.binding.tablePreviewView.setPreset(presetStyle)
 
         holder.itemView.addPressEffect {
             selectedPreset = item
             notifyDataSetChanged()
             onPresetSelected(item)
         }
-    }
-
-    private fun setFrameBorder(view: View, borderColor: Int, borderWidthDp: Int) {
-        val density = view.resources.displayMetrics.density
-        val drawable = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            setCornerRadius(4f * density)
-            setStroke((borderWidthDp * density).toInt(), borderColor)
-        }
-        view.background = drawable
     }
 
     override fun getItemCount(): Int = presets.size

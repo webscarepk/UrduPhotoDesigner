@@ -1,0 +1,32 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="30dp"
+    android:height="29dp"
+    android:viewportWidth="30"
+    android:viewportHeight="29">
+
+    <!-- Table Grid Outline -->
+    <path
+        android:strokeColor="#FFA0A0A0"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 12.5,24.5 H 4.5 C 2.8,24.5 1.5,23.2 1.5,21.5 V 5.5 C 1.5,3.8 2.8,2.5 4.5,2.5 H 20.5 C 22.2,2.5 23.5,3.8 23.5,5.5 V 12.5" />
+
+    <!-- Table Grid Dividers -->
+    <path
+        android:strokeColor="#FFA0A0A0"
+        android:strokeWidth="1.3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 1.5,9.5 H 23.5 M 1.5,16.5 H 12.5 M 9.5,2.5 V 24.5 M 16.5,2.5 V 12.5" />
+
+    <!-- White circle behind plus badge to mask overlapping lines -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M28.6 20.42c0 4.04-3.27 7.32-7.31 7.32-4.05 0-7.32-3.28-7.32-7.32 0-4.04 3.27-7.32 7.32-7.32 4.04 0 7.31 3.28 7.31 7.32Z"/>
+
+    <!-- Plus Badge -->
+    <path
+        android:fillColor="#FFA0A0A0"
+        android:pathData="M21.28 28.46c-4.43 0-7.95-3.57-7.95-8.04 0-4.46 3.57-7.97 8.09-7.96 4.4 0.01 7.92 3.6 7.91 8.07-0.01 4.42-3.58 7.94-8.05 7.93Zm-1.1-5.57l0.01 0.91c0.02 0.73 0.5 1.23 1.15 1.23 0.65 0 1.12-0.5 1.13-1.24 0.01-0.57 0.03-1.14 0-1.7-0.04-0.43 0.12-0.52 0.5-0.5 0.55 0.04 1.1 0.02 1.66 0.01 0.76 0 1.28-0.48 1.27-1.16-0.01-0.65-0.52-1.1-1.25-1.12h-1.83c-0.28 0.01-0.36-0.06-0.35-0.34 0.02-0.63 0.01-1.26 0-1.89-0.02-0.7-0.48-1.18-1.12-1.2-0.65 0-1.15 0.5-1.16 1.21-0.01 0.57-0.04 1.15 0 1.72 0.05 0.45-0.13 0.53-0.53 0.5-0.59-0.02-1.18-0.02-1.77 0-0.65 0.03-1.12 0.52-1.13 1.13 0 0.61 0.47 1.11 1.11 1.15 0.34 0.02 0.69 0 1.03 0 1.29 0 1.29 0 1.29 1.29Z"/>
+</vector>

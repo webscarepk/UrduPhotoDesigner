@@ -90,6 +90,20 @@ class CellTextEditDialog : DialogFragment() {
         val headerText = tableData.cells.getOrNull(0)?.getOrNull(col)?.text.orEmpty()
         binding.tvHeaderName.text = if (headerText.isNotEmpty()) "\"$headerText\"" else ""
 
+        val totalCells = tableData.rows * tableData.cols
+        val currentIndex = row * tableData.cols + col
+        val hasPrev = currentIndex > 0
+        val hasNext = currentIndex < totalCells - 1
+
+        val activeColor = androidx.core.content.ContextCompat.getColor(requireContext(), com.webscare.urducanvas.R.color.black)
+        val inactiveColor = android.graphics.Color.parseColor("#BDBDBD")
+
+        binding.btnPrevCell.isEnabled = hasPrev
+        binding.btnPrevCell.imageTintList = android.content.res.ColorStateList.valueOf(if (hasPrev) activeColor else inactiveColor)
+
+        binding.btnNextCell.isEnabled = hasNext
+        binding.btnNextCell.imageTintList = android.content.res.ColorStateList.valueOf(if (hasNext) activeColor else inactiveColor)
+
         val currentText = tableData.cells.getOrNull(row)?.getOrNull(col)?.text.orEmpty()
         binding.editCellInput.setText(currentText)
         binding.editCellInput.setSelection(currentText.length)

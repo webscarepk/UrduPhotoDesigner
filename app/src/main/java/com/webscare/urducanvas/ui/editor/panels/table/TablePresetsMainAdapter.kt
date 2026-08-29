@@ -116,9 +116,9 @@ class TablePresetsMainAdapter(
             val availHeight = rvHeight - rvPaddingY
 
             val computedCollapsedHeight = if (availHeight > 0) {
-                ((availHeight - ((spanCount - 1) * marginBottomPx)) / spanCount).coerceAtLeast((24 * density).toInt())
+                ((availHeight - (spanCount * marginBottomPx)) / spanCount).coerceAtLeast((24 * density).toInt())
             } else {
-                (50 * density).toInt()
+                (70 * density).toInt()
             }
 
             val collapsedSize = computedCollapsedHeight

@@ -48,6 +48,12 @@ class TableStyleGridFragment : Fragment() {
         binding.presetsGrid.layoutManager = GridLayoutManager(requireContext(), 3, RecyclerView.HORIZONTAL, false)
         binding.presetsGrid.adapter = adapter
         adapter.submitList(presets)
+
+        binding.presetsGrid.post {
+            if (_binding != null) {
+                adapter.notifyDataSetChanged()
+            }
+        }
     }
 
     override fun onDestroyView() {

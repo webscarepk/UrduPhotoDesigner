@@ -8,12 +8,10 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/presetsGrid"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top"
+        android:layout_height="match_parent"
         android:clipToPadding="false"
         android:paddingStart="12dp"
         android:paddingEnd="6dp"
-        android:paddingVertical="4dp"
         android:orientation="horizontal"
         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
         app:spanCount="3"
