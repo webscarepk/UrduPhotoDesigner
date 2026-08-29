@@ -26,23 +26,32 @@ object TextStyleThumbnailRenderer {
         thumbnailCache.evictAll()
     }
 
-    fun getCachedOrGenerateThumbnail(context: Context, preset: TextStylePreset): Bitmap {
-        val key = preset.id
+    fun getCachedOrGenerateThumbnail(
+        context: Context,
+        preset: TextStylePreset,
+        customTypeface: Typeface? = null,
+        fontKey: String? = null
+    ): Bitmap {
+        val key = "${preset.id}_${fontKey ?: "default"}"
         thumbnailCache.get(key)?.let { return it }
 
-        val bmp = generatePresetThumbnail(context, preset)
+        val bmp = generatePresetThumbnail(context, preset, customTypeface)
         thumbnailCache.put(key, bmp)
         return bmp
     }
 
-    private fun generatePresetThumbnail(context: Context, preset: TextStylePreset): Bitmap {
+    private fun generatePresetThumbnail(
+        context: Context,
+        preset: TextStylePreset,
+        customTypeface: Typeface? = null
+    ): Bitmap {
         val width = 180
         val height = 180
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
-        // Authentic Urdu font
-        val urduTypeface = try {
+        // Authentic font (use selected custom typeface or fallback to default canvas font)
+        val urduTypeface = customTypeface ?: try {
             ResourcesCompat.getFont(context, R.font.default_canvas) ?: Typeface.DEFAULT_BOLD
         } catch (e: Exception) {
             Typeface.DEFAULT_BOLD

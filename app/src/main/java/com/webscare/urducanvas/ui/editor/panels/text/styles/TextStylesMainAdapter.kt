@@ -129,9 +129,9 @@ class TextStylesMainAdapter(
             val availHeight = rvHeight - rvPaddingY
 
             val computedCollapsedHeight = if (availHeight > 0) {
-                ((availHeight - ((spanCountCollapsed - 1) * marginBottomPx)) / spanCountCollapsed).coerceAtLeast((24 * density).toInt())
+                ((availHeight - (spanCountCollapsed * marginBottomPx)) / spanCountCollapsed).coerceAtLeast((24 * density).toInt())
             } else {
-                (44 * density).toInt()
+                (70 * density).toInt()
             }
 
             val collapsedSize = computedCollapsedHeight

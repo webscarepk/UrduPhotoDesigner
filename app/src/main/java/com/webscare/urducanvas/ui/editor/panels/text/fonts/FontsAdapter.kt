@@ -178,7 +178,20 @@ class FontsAdapter(
             val marginEndPx = (6 * density).toInt()
             val marginBottomPx = (6 * density).toInt()
 
-            val collapsedSize = (44 * density).toInt()
+            val lm = recyclerView?.layoutManager as? androidx.recyclerview.widget.GridLayoutManager
+            val spanCount = lm?.spanCount?.coerceAtLeast(1) ?: 3
+
+            val rvHeight = recyclerView?.height ?: 0
+            val rvPaddingY = (recyclerView?.paddingTop ?: 0) + (recyclerView?.paddingBottom ?: 0)
+            val availHeight = rvHeight - rvPaddingY
+
+            val computedCollapsedHeight = if (availHeight > 0) {
+                ((availHeight - (spanCount * marginBottomPx)) / spanCount).coerceAtLeast((24 * density).toInt())
+            } else {
+                (70 * density).toInt()
+            }
+
+            val collapsedSize = computedCollapsedHeight
 
             val effectiveWidth = if (rvWidth > 0) rvWidth else (recyclerView?.width ?: 0)
             val columnWidth = if (effectiveWidth > 0) {

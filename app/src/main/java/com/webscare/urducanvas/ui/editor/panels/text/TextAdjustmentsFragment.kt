@@ -27,6 +27,9 @@ import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.common.utils.setupPanelTabs
 import com.webscare.urducanvas.common.utils.setTabEdited
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.launch
 import com.webscare.urducanvas.databinding.FragmentTextAdjustmentsBinding
 import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -79,16 +82,6 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
             binding.btnNextGroupTab.addPressEffect { toggleAction() }
         }
 
-        setEvents()
-    }
-
-    private fun setEvents() {
-        // childFragmentManager so FontsFragment can find FontsListFragment
-        // via childFragmentManager tag lookup inside notifyVisiblePageFilter()
-        // viewLifecycleOwner.lifecycle — NOT bare fragment lifecycle. The bare lifecycle
-        // outlives the view; passing it to FragmentStateAdapter means
-        // FragmentMaxLifecycleEnforcer can fire commitNow() during Activity.onStart
-        // while the FM is already executing → "FragmentManager already executing transactions".
         adapter = TextAdjustmentsPagerAdapter(
             childFragmentManager,
             viewLifecycleOwner.lifecycle,
@@ -104,18 +97,16 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
         setupSearchBar()
 
         binding.back.addPressEffect {
-            hideKeyboard()
             findNavController().navigateUp()
         }
 
         viewModel.openAppearanceTab.observe(viewLifecycleOwner) { openAppearance ->
             if (!isAdded || _binding == null) return@observe
-            binding.viewPager.post {
-                if (_binding == null) return@post
-                val target = if (openAppearance == true) 2 else 0
-                binding.viewPager.setCurrentItem(target, false)
-                // Reset search to icon state when landing on non-Font tab
-                if (target != 1) collapseSearch()
+            if (openAppearance == true) {
+                binding.viewPager.post {
+                    if (_binding == null) return@post
+                    binding.viewPager.setCurrentItem(2, false)
+                }
             }
         }
     }
@@ -127,95 +118,29 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
         binding.tabLayout.setupPanelTabs(binding.viewPager, tabs) { position ->
             if (position != 1) {
                 mainViewModel.setQuery("")
-                collapseSearch()
-                hideKeyboard()
             }
         }
     }
 
-    // ── Search — icon at end of TabLayout row, expands to 100dp bar ──────────
-
-    @SuppressLint("ClickableViewAccessibility")
     private fun setupSearchBar() {
         binding.searchIcon.addPressEffect {
-            binding.searchIcon.isVisible = false
-            binding.searchBar.isVisible  = true
-            binding.searchBar.requestFocus()
-            binding.searchBar.setSelection(binding.searchBar.text?.length ?: 0)
-            showKeyboard(binding.searchBar)
+            com.webscare.urducanvas.ui.editor.panels.adjustments.PanelSearchDialogFragment.newInstance()
+                .show(childFragmentManager, "panel_search_dialog")
         }
 
-        binding.searchBar.imeOptions = EditorInfo.IME_ACTION_SEARCH
-        binding.searchBar.setRawInputType(InputType.TYPE_CLASS_TEXT)
-
-        binding.searchBar.setOnEditorActionListener { _, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                mainViewModel.setQuery(binding.searchBar.text.toString())
-                hideKeyboard()
-                collapseSearch()
-                true
-            } else false
-        }
-
-        binding.searchBar.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun afterTextChanged(s: Editable?) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                binding.searchBar.setCompoundDrawablesWithIntrinsicBounds(
-                    null, null,
-                    if (!s.isNullOrEmpty())
-                        ContextCompat.getDrawable(requireContext(), R.drawable.ic_close)
-                    else null, null
-                )
-                mainViewModel.setQuery(s?.toString().orEmpty())
-            }
-        })
-
-        // Tap X drawable to clear and collapse
-        binding.searchBar.setOnTouchListener { _, event ->
-            if (event.action == MotionEvent.ACTION_UP) {
-                val dr = binding.searchBar.compoundDrawables[2]
-                if (dr != null && event.x >= binding.searchBar.width -
-                    binding.searchBar.paddingRight - dr.bounds.width()
-                ) {
-                    binding.searchBar.text.clear()
-                    mainViewModel.setQuery("")
-                    hideKeyboard()
-                    binding.searchBar.clearFocus()
-                    collapseSearch()
-                    return@setOnTouchListener true
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                mainViewModel.searchQuery.collect { query ->
+                    val hasQuery = query.isNotEmpty()
+                    binding.searchIcon.imageTintList = android.content.res.ColorStateList.valueOf(
+                        androidx.core.content.ContextCompat.getColor(
+                            requireContext(),
+                            if (hasQuery) R.color.appColor else R.color.gray
+                        )
+                    )
                 }
             }
-            false
         }
-
-        // Collapse on focus lost if bar is empty
-        binding.searchBar.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus && binding.searchBar.text.isNullOrEmpty()) {
-                collapseSearch()
-            }
-        }
-    }
-
-    /** Hide search bar, restore search icon */
-    private fun collapseSearch() {
-        if (_binding == null) return
-        binding.searchBar.isVisible  = false
-        binding.searchIcon.isVisible = true
-    }
-
-    // ── Keyboard ──────────────────────────────────────────────────────────────
-
-    private fun showKeyboard(v: View) {
-        (requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
-            .showSoftInput(v, InputMethodManager.SHOW_IMPLICIT)
-    }
-
-    private fun hideKeyboard() {
-        val b = _binding ?: return
-        requireContext().getSystemService(InputMethodManager::class.java)
-            ?.hideSoftInputFromWindow(b.root.windowToken, 0)
-        b.searchBar.clearFocus()
     }
 
     override fun onDestroyView() {

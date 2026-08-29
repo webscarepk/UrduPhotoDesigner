@@ -126,27 +126,6 @@
                 android:src="@drawable/ic_search"
                 app:tint="@color/gray" />
 
-            <EditText
-                android:id="@+id/searchBar"
-                android:layout_width="100dp"
-                android:layout_height="30dp"
-                android:layout_gravity="center_vertical"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/button_bg_small"
-                android:backgroundTint="@color/contrast"
-                android:drawablePadding="4dp"
-                android:fontFamily="@font/regular"
-                android:hint="@string/search_here"
-                android:imeOptions="actionSearch"
-                android:inputType="text"
-                android:maxLines="1"
-                android:paddingHorizontal="8dp"
-                android:singleLine="true"
-                android:textColor="@color/black"
-                android:textColorHint="@android:color/darker_gray"
-                android:textSize="11sp"
-                android:visibility="gone"/>
-
             <!-- TabLayout — unified UrduCanvas panel style -->
             <com.google.android.material.tabs.TabLayout
                 android:id="@+id/tabLayout"
@@ -172,12 +151,11 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="14dp"
+        android:layout_marginBottom="14dp"
         android:saveEnabled="false"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/toolbarRow"
-        app:layout_constraintVertical_bias="1.0" />
+        app:layout_constraintTop_toBottomOf="@id/toolbarRow" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

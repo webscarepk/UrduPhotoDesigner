@@ -56,8 +56,21 @@ class TextStyleGridFragment : Fragment() {
             adapter.selectedPresetId = selectedId
         }
 
+        viewModel.selectedElements.observe(viewLifecycleOwner) { elements ->
+            val firstTextElement = elements?.firstOrNull { it.type == com.webscare.urducanvas.common.canvas.enums.ElementType.TEXT }
+            val customTypeface = firstTextElement?.paint?.typeface
+            val fontKey = firstTextElement?.fontId ?: firstTextElement?.fontUrl ?: customTypeface?.hashCode()?.toString()
+            adapter.updateTypeface(customTypeface, fontKey)
+        }
+
         binding.presetsGrid.layoutManager = GridLayoutManager(requireContext(), 3, RecyclerView.HORIZONTAL, false)
         binding.presetsGrid.adapter = adapter
+
+        binding.presetsGrid.post {
+            if (_binding != null) {
+                adapter.notifyDataSetChanged()
+            }
+        }
     }
 
     override fun onDestroyView() {

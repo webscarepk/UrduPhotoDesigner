@@ -301,9 +301,10 @@ class FontsListFragment : androidx.fragment.app.Fragment() {
         }
         val isExpanded = mainViewModel.isPanelExpanded(PanelType.FONTS)
         val rv = _binding!!.englishRV
+        val collapsedSpanCount = 3
         rv.layoutManager = MorphGridLayoutManager(
             context = requireContext(),
-            collapsedSpan = 3,
+            collapsedSpan = collapsedSpanCount,
             expandedSpan = 3
         ).apply {
             applyFraction(rv, if (isExpanded) 1f else 0f)

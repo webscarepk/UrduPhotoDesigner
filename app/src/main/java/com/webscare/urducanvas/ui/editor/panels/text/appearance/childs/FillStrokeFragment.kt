@@ -478,9 +478,9 @@ class FillStrokeFragment : androidx.fragment.app.Fragment() {
 
             else -> {
                 binding.gradients.layoutManager =
-                    GridLayoutManager(requireContext(), 5, GridLayoutManager.HORIZONTAL, false)
+                    GridLayoutManager(requireContext(), 4, GridLayoutManager.HORIZONTAL, false)
                 binding.colors.layoutManager =
-                    GridLayoutManager(requireContext(), 5, GridLayoutManager.HORIZONTAL, false)
+                    GridLayoutManager(requireContext(), 4, GridLayoutManager.HORIZONTAL, false)
             }
         }
     }
