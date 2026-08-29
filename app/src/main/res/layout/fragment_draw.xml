@@ -1,190 +1,251 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".ui.editor.panels.draw.DrawFragment"
-    android:background="@drawable/panel_bg">
+    android:background="@drawable/panel_bg"
+    tools:context=".ui.editor.panels.draw.DrawFragment">
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/startGuide"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.04"
-        android:orientation="vertical" />
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.04" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/endGuide"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.96"
-        android:orientation="vertical" />
-
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/centerGuide"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.30"
-        android:orientation="vertical" />
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.96" />
 
     <!-- Drag handle -->
     <ImageView
         android:id="@+id/dragHandle"
         android:layout_width="@dimen/_100sdp"
         android:layout_height="wrap_content"
-        android:paddingVertical="12dp"
-        android:src="@drawable/drag_handle_bg"
         android:importantForAccessibility="no"
-        app:layout_constraintTop_toTopOf="parent"
+        android:paddingVertical="10dp"
+        android:src="@drawable/drag_handle_bg"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- ═══ COLLAPSED HEADER: reset + done on right ══════════════════════ -->
-    <LinearLayout
+    <!-- ═══ COLLAPSED HEADER: [addBrush] [TabLayout] [reset] [done] ══════════ -->
+    <RelativeLayout
         android:id="@+id/headerCollapsed"
         android:layout_width="0dp"
-        android:layout_height="36dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical|end"
+        android:layout_height="42dp"
         android:visibility="visible"
-        app:layout_constraintTop_toBottomOf="@id/dragHandle"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
-        app:layout_constraintEnd_toStartOf="@id/endGuide">
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dragHandle">
 
-        <TextView
-            android:id="@+id/panelTitleCollapsed"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/brush"
-            android:fontFamily="@font/bold"
-            android:textSize="16sp"
-            android:textColor="@color/black" />
+        <LinearLayout
+            android:id="@+id/tabRowContent"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp">
 
-        <ImageView
-            android:id="@+id/reset"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:padding="6dp"
-            android:layout_marginEnd="6dp"
-            android:background="@drawable/button_bg_round"
-            android:backgroundTint="@color/contrast"
-            app:tint="@color/black"
-            android:src="@drawable/ic_refresh" />
+            <!-- Add / Draw Button (styled like addText on TextFragment) -->
+            <ImageView
+                android:id="@+id/addBrush"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_gravity="center_vertical"
+                android:background="@drawable/button_bg_small"
+                android:backgroundTint="#30005D28"
+                android:padding="7dp"
+                android:src="@drawable/ic_draw"
+                app:tint="@color/appColor" />
 
-        <ImageView
-            android:id="@+id/done"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:padding="6dp"
-            android:background="@drawable/button_bg_round"
-            android:backgroundTint="@color/contrast"
-            app:tint="@color/black"
-            android:src="@drawable/ic_done" />
+            <!-- Horizontal TabLayout: Style, Size, Color -->
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/tabLayout"
+                style="@style/Widget.UrduCanvas.TabLayout"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                app:tabIndicatorHeight="0dp" />
 
-    </LinearLayout>
+            <ImageView
+                android:id="@+id/reset"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/button_bg_round"
+                android:backgroundTint="@color/contrast"
+                android:padding="6dp"
+                android:src="@drawable/ic_refresh"
+                app:tint="@color/black" />
 
-    <!-- ═══ EXPANDED HEADER: title left · reset + done + close right ═════ -->
-    <LinearLayout
+            <ImageView
+                android:id="@+id/done"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/button_bg_round"
+                android:backgroundTint="@color/contrast"
+                android:padding="6dp"
+                android:src="@drawable/ic_done"
+                app:tint="@color/black" />
+
+        </LinearLayout>
+
+        <!-- Full-width 1dp baseline divider -->
+        <View
+            android:id="@+id/tabBaselineDivider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_alignParentBottom="true"
+            android:background="@color/tab_divider" />
+
+    </RelativeLayout>
+
+    <!-- ═══ EXPANDED HEADER: [addBrushExpanded] [TabLayoutExpanded] [resetExpanded] [doneExpanded] [closePanel] ═════ -->
+    <RelativeLayout
         android:id="@+id/headerExpanded"
         android:layout_width="0dp"
-        android:layout_height="36dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:layout_height="42dp"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/dragHandle"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
-        app:layout_constraintEnd_toStartOf="@id/endGuide">
-
-        <TextView
-            android:id="@+id/panelTitle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/brush"
-            android:fontFamily="@font/bold"
-            android:textSize="16sp"
-            android:textColor="@color/black" />
-
-        <ImageView
-            android:id="@+id/resetExpanded"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:padding="6dp"
-            android:layout_marginEnd="6dp"
-            android:background="@drawable/button_bg_round"
-            android:backgroundTint="@color/contrast"
-            app:tint="@color/black"
-            android:src="@drawable/ic_refresh" />
-
-        <ImageView
-            android:id="@+id/doneExpanded"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:padding="6dp"
-            android:layout_marginEnd="6dp"
-            android:background="@drawable/button_bg_round"
-            android:backgroundTint="@color/contrast"
-            app:tint="@color/black"
-            android:src="@drawable/ic_done" />
-
-        <ImageView
-            android:id="@+id/closePanel"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:padding="8dp"
-            android:background="@drawable/button_bg_round"
-            android:backgroundTint="@color/contrast"
-            app:tint="@color/black"
-            android:src="@drawable/ic_close" />
-
-    </LinearLayout>
-
-    <!-- Barrier tracks whichever header is visible -->
-    <androidx.constraintlayout.widget.Barrier
-        android:id="@+id/headerBarrier"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:barrierDirection="bottom"
-        app:constraint_referenced_ids="headerCollapsed,headerExpanded" />
-
-    <!-- Divider anchored to barrier, not headerCollapsed -->
-    <View
-        android:id="@+id/headerDivider"
-        android:layout_width="0dp"
-        android:layout_height="1dp"
-        android:layout_marginTop="4dp"
-        app:layout_constraintTop_toBottomOf="@id/headerBarrier"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
-        app:layout_constraintEnd_toStartOf="@id/endGuide" />
-
-    <!-- Left: brush sub-tab categories -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/categories"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:clipToPadding="false"
-        android:paddingBottom="32dp"
-        android:orientation="vertical"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        app:layout_constraintTop_toBottomOf="@id/headerDivider"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/centerGuide"
-        android:layout_marginEnd="0dp"
-        tools:listitem="@layout/layout_tabs_item"
-        tools:itemCount="3" />
+        app:layout_constraintTop_toBottomOf="@id/dragHandle">
 
-    <!-- Right: brush sub-tab content -->
+        <LinearLayout
+            android:id="@+id/tabRowContentExpanded"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp">
+
+            <ImageView
+                android:id="@+id/addBrushExpanded"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_gravity="center_vertical"
+                android:background="@drawable/button_bg_small"
+                android:backgroundTint="#30005D28"
+                android:padding="7dp"
+                android:src="@drawable/ic_draw"
+                app:tint="@color/appColor" />
+
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/tabLayoutExpanded"
+                style="@style/Widget.UrduCanvas.TabLayout"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                app:tabIndicatorHeight="0dp" />
+
+            <ImageView
+                android:id="@+id/resetExpanded"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/button_bg_round"
+                android:backgroundTint="@color/contrast"
+                android:padding="6dp"
+                android:src="@drawable/ic_refresh"
+                app:tint="@color/black" />
+
+            <ImageView
+                android:id="@+id/doneExpanded"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/button_bg_round"
+                android:backgroundTint="@color/contrast"
+                android:padding="6dp"
+                android:src="@drawable/ic_done"
+                app:tint="@color/black" />
+
+            <ImageView
+                android:id="@+id/closePanel"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/button_bg_round"
+                android:backgroundTint="@color/contrast"
+                android:padding="8dp"
+                android:src="@drawable/ic_close"
+                app:tint="@color/black" />
+
+        </LinearLayout>
+
+        <View
+            android:id="@+id/tabBaselineDividerExpanded"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_alignParentBottom="true"
+            android:background="@color/tab_divider" />
+
+    </RelativeLayout>
+
+    <!-- Helper space that smoothly tracks header height -->
+    <View
+        android:id="@+id/headerSpace"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        app:layout_constraintTop_toBottomOf="@id/dragHandle" />
+
+    <!-- Fixed Bottom Preview Section (Consistent Across All 3 Tabs) -->
+    <!-- Horizontal ViewPager2 for Style / Size / Color tabs -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginStart="8dp"
-        app:layout_constraintTop_toBottomOf="@id/headerDivider"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp"
+        android:saveEnabled="false"
+        app:layout_constraintBottom_toTopOf="@id/brushPreviewContainer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/headerSpace" />
+
+    <!-- Fixed Bottom Preview Section (Consistent Across All 3 Tabs) -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/brushPreviewContainer"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="14dp"
+        android:layout_marginEnd="14dp"
+        android:layout_marginBottom="12dp"
+        app:cardBackgroundColor="@color/contrast"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/tab_divider"
+        app:strokeWidth="1dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@id/centerGuide"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <ImageView
+            android:id="@+id/brushPreview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="Brush Stroke Live Preview"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp"
+            android:scaleType="fitCenter" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Child Fragment Container (ColorPicker / GradientEditor overlay) -->
+    <FrameLayout
+        android:id="@+id/drawChildContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

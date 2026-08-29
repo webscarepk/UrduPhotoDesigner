@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingHorizontal="14dp"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp"
+    tools:context=".ui.editor.panels.draw.brush.BrushColorFragment">
+
+    <!-- Segmented Toggle: Solid / Gradient -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/modeSwitch"
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:background="@drawable/button_bg_small"
+        android:backgroundTint="@color/contrast"
+        android:padding="2dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/solid"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/button_bg_small"
+            android:backgroundTint="@color/white"
+            android:fontFamily="@font/bold"
+            android:gravity="center"
+            android:text="@string/solid"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/gradient"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/gradient"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/button_bg_small"
+            android:backgroundTint="@color/contrast"
+            android:fontFamily="@font/medium"
+            android:gravity="center"
+            android:text="@string/gradient"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/solid"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Colors Container -->
+    <FrameLayout
+        android:id="@+id/paletteContainer"
+        android:layout_width="match_parent"
+        android:layout_height="38dp"
+        android:layout_marginTop="6dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/modeSwitch">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/colors"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:orientation="horizontal"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:listitem="@layout/item_color_picker" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/gradients"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:listitem="@layout/item_gradient" />
+
+    </FrameLayout>
+
+    <!-- Opacity Label & Value -->
+    <TextView
+        android:id="@+id/opacityLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:fontFamily="@font/medium"
+        android:text="@string/opacity"
+        android:textColor="@color/black"
+        android:textSize="12sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/paletteContainer" />
+
+    <TextView
+        android:id="@+id/opacityValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/bold"
+        android:textColor="@color/appColor"
+        android:textSize="12sp"
+        app:layout_constraintBottom_toBottomOf="@id/opacityLabel"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/opacityLabel"
+        tools:text="100%" />
+
+    <SeekBar
+        android:id="@+id/opacityBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:max="100"
+        android:progress="100"
+        android:progressBackgroundTint="@color/light_gray"
+        android:progressTint="@color/appColor"
+        android:splitTrack="false"
+        android:thumb="@drawable/seekbar_thumb_custom"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/opacityLabel" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

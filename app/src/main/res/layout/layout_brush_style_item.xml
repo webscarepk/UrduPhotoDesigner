@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/brushCard"
+    android:layout_width="44dp"
+    android:layout_height="44dp"
+    android:layout_marginEnd="6dp"
+    android:layout_marginBottom="6dp"
+    app:cardBackgroundColor="@color/selection"
+    app:cardCornerRadius="6dp"
+    app:cardElevation="0dp"
+    app:strokeColor="@color/appColor"
+    app:strokeWidth="0dp">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ImageView
+            android:id="@+id/brushPreviewImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/contrast"
+            android:contentDescription="Brush Style Preview"
+            android:padding="4dp"
+            android:scaleType="fitCenter" />
+
+        <TextView
+            android:id="@+id/brushTitleText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:background="#80FFFFFF"
+            android:fontFamily="@font/regular"
+            android:gravity="center"
+            android:paddingVertical="1dp"
+            android:textColor="@color/black"
+            android:textSize="8sp"
+            tools:text="Round Brush" />
+
+        <ImageView
+            android:id="@+id/selectionBadge"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_gravity="end|bottom"
+            android:layout_margin="3dp"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/appColor"
+            android:padding="2dp"
+            android:src="@drawable/ic_done"
+            app:tint="@color/white"
+            android:visibility="gone" />
+
+    </FrameLayout>
+
+</com.google.android.material.card.MaterialCardView>

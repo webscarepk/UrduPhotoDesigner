@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="8dp"
+    tools:context=".ui.editor.panels.draw.brush.BrushSizeFragment">
+
+    <!-- Size Label & Value -->
+    <TextView
+        android:id="@+id/sizeLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/medium"
+        android:text="@string/size"
+        android:textColor="@color/black"
+        android:textSize="13sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/sizeValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/bold"
+        android:textColor="@color/appColor"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="20 px" />
+
+    <!-- Preset Size Dots Row -->
+    <LinearLayout
+        android:id="@+id/presetSizesContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:weightSum="8"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/sizeLabel">
+
+        <!-- 2 px -->
+        <LinearLayout
+            android:id="@+id/sizePreset2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <FrameLayout
+                android:id="@+id/sizeDotRing2"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/button_bg_round">
+                <View
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/button_bg_round"
+                    android:backgroundTint="@color/black" />
+            </FrameLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/regular"
+                android:text="2"
+                android:textColor="@color/gray"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- 4 px -->
+        <LinearLayout
+            android:id="@+id/sizePreset4"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <FrameLayout
+                android:id="@+id/sizeDotRing4"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/button_bg_round">
+                <View
+                    android:layout_width="5dp"
+                    android:layout_height="5dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/button_bg_round"
+                    android:backgroundTint="@color/black" />
+            </FrameLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/regular"
+                android:text="4"
+                android:textColor="@color/gray"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- 8 px -->
+        <LinearLayout
+            android:id="@+id/sizePreset8"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <FrameLayout
+                android:id="@+id/sizeDotRing8"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/button_bg_round">
+                <View
+                    android:layout_width="7dp"
+                    android:layout_height="7dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/button_bg_round"
+                    android:backgroundTint="@color/black" />
+            </FrameLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/regular"
+                android:text="8"
+                android:textColor="@color/gray"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- 16 px -->
+        <LinearLayout
+            android:id="@+id/sizePreset16"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <FrameLayout
+                android:id="@+id/sizeDotRing16"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/button_bg_round">
+                <View
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/button_bg_round"
+                    android:backgroundTint="@color/black" />
+            </FrameLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/regular"
+                android:text="16"
+                android:textColor="@color/gray"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- 32 px -->
+        <LinearLayout
+            android:id="@+id/sizePreset32"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <FrameLayout
+                android:id="@+id/sizeDotRing32"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/button_bg_round">
+                <View
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/button_bg_round"
+                    android:backgroundTint="@color/black" />
+            </FrameLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/regular"
+                android:text="32"
+                android:textColor="@color/gray"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- 48 px -->
+        <LinearLayout
+            android:id="@+id/sizePreset48"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <FrameLayout
+                android:id="@+id/sizeDotRing48"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/button_bg_round">
+                <View
+                    android:layout_width="17dp"
+                    android:layout_height="17dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/button_bg_round"
+                    android:backgroundTint="@color/black" />
+            </FrameLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/regular"
+                android:text="48"
+                android:textColor="@color/gray"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- 64 px -->
+        <LinearLayout
+            android:id="@+id/sizePreset64"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <FrameLayout
+                android:id="@+id/sizeDotRing64"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/button_bg_round">
+                <View
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/button_bg_round"
+                    android:backgroundTint="@color/black" />
+            </FrameLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/regular"
+                android:text="64"
+                android:textColor="@color/gray"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- 80 px -->
+        <LinearLayout
+            android:id="@+id/sizePreset80"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <FrameLayout
+                android:id="@+id/sizeDotRing80"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/button_bg_round">
+                <View
+                    android:layout_width="23dp"
+                    android:layout_height="23dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/button_bg_round"
+                    android:backgroundTint="@color/black" />
+            </FrameLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/regular"
+                android:text="80"
+                android:textColor="@color/gray"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Min & Max Labels + Slider -->
+    <TextView
+        android:id="@+id/minLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/regular"
+        android:text="1 px"
+        android:textColor="@color/gray"
+        android:textSize="11sp"
+        app:layout_constraintBottom_toBottomOf="@id/thicknessBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/thicknessBar" />
+
+    <SeekBar
+        android:id="@+id/thicknessBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:max="99"
+        android:progress="19"
+        android:progressBackgroundTint="@color/light_gray"
+        android:progressTint="@color/appColor"
+        android:splitTrack="false"
+        android:thumb="@drawable/seekbar_thumb_custom"
+        app:layout_constraintEnd_toStartOf="@id/maxLabel"
+        app:layout_constraintStart_toEndOf="@id/minLabel"
+        app:layout_constraintTop_toBottomOf="@id/presetSizesContainer" />
+
+    <TextView
+        android:id="@+id/maxLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/regular"
+        android:text="100 px"
+        android:textColor="@color/gray"
+        android:textSize="11sp"
+        app:layout_constraintBottom_toBottomOf="@id/thicknessBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/thicknessBar" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
