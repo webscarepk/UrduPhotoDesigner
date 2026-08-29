@@ -217,9 +217,9 @@ class ImageStrokeFragment : Fragment() {
         binding.borderSize.text = "${viewModel.borderWidth.value!!}"
         binding.border.progress = viewModel.borderWidth.value?.toInt()!!
         binding.gradients.layoutManager =
-            GridLayoutManager(requireContext(), 3, GridLayoutManager.HORIZONTAL, false)
+            GridLayoutManager(requireContext(), 4, GridLayoutManager.HORIZONTAL, false)
         binding.colors.layoutManager =
-            GridLayoutManager(requireContext(), 3, GridLayoutManager.HORIZONTAL, false)
+            GridLayoutManager(requireContext(), 4, GridLayoutManager.HORIZONTAL, false)
     }
 
     override fun onDestroyView() {

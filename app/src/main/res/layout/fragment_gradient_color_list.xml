@@ -53,7 +53,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/done"
         tools:itemCount="100"
-        app:spanCount="3"
+        app:spanCount="4"
         tools:listitem="@layout/layout_color_item" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

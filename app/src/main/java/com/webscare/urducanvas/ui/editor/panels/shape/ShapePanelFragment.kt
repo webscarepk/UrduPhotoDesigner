@@ -299,7 +299,7 @@ class ShapePanelFragment : Fragment() {
         }
 
         binding.colors.apply {
-            layoutManager = GridLayoutManager(requireActivity(), 3,
+            layoutManager = GridLayoutManager(requireActivity(), 4,
                 GridLayoutManager.HORIZONTAL, false)
 
             setHasFixedSize(true)
@@ -307,7 +307,7 @@ class ShapePanelFragment : Fragment() {
         }
 
         binding.gradients.apply {
-            layoutManager = GridLayoutManager(requireActivity(), 3,
+            layoutManager = GridLayoutManager(requireActivity(), 4,
                 GridLayoutManager.HORIZONTAL, false)
 
             setHasFixedSize(true)

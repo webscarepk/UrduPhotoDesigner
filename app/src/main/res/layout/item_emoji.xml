@@ -1,39 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="50dp"
-    android:layout_height="50dp"
+    android:id="@+id/emojiCard"
+    android:layout_width="42dp"
+    android:layout_height="42dp"
     android:layout_marginEnd="6dp"
     android:layout_marginBottom="6dp"
-    android:background="@drawable/edit_bg_stroke"
-    app:cardBackgroundColor="@color/white"
+    app:cardBackgroundColor="@color/selection"
     app:cardCornerRadius="6dp"
     app:cardElevation="0dp"
+    app:strokeColor="@color/appColor"
     app:strokeWidth="0dp">
 
-    <!-- UNCHANGED from working version — fontFamily, textSize and textColor kept as before -->
-    <androidx.appcompat.widget.AppCompatTextView
-        android:id="@+id/emojiText"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:textSize="24dp"
-        android:textColor="@color/black"
-        android:background="@color/contrast"
-        android:fontFamily="@font/symbols" />
+        android:layout_height="match_parent">
 
-    <com.airbnb.lottie.LottieAnimationView
-        android:id="@+id/loading"
-        android:layout_width="14dp"
-        android:layout_height="14dp"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="3dp"
-        android:background="@drawable/button_bg_round"
-        android:backgroundTint="@color/white"
-        android:padding="3dp"
-        android:visibility="gone"
-        app:lottie_autoPlay="true"
-        app:lottie_loop="true"
-        app:lottie_rawRes="@raw/loading_gray" />
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/emojiText"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textSize="22dp"
+            android:textColor="@color/black"
+            android:background="@color/contrast"
+            android:fontFamily="@font/symbols" />
+
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/loading"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="4dp"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/white"
+            android:padding="3dp"
+            android:visibility="gone"
+            app:lottie_autoPlay="true"
+            app:lottie_loop="true"
+            app:lottie_rawRes="@raw/loading_gray" />
+    </FrameLayout>
 
 </com.google.android.material.card.MaterialCardView>

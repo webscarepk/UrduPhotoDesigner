@@ -246,7 +246,7 @@ class ImagesAdapter(
         ) {
             boundImage = image
             premiumBadge.isVisible = image.is_premium && !image.is_subscribed
-            cardRoot.setCardBackgroundColor(ContextCompat.getColor(itemView.context, R.color.white))
+            cardRoot.setCardBackgroundColor(ContextCompat.getColor(itemView.context, R.color.selection))
             updateSelectionOnly(isSelected, inMultiSelectMode)
             updateSize(slideOffset, rvWidth, rvPadding)
             loadForDisplay(image)
@@ -262,14 +262,14 @@ class ImagesAdapter(
             val marginBottomPx = (6 * density).toInt()
 
             val lm = recyclerView?.layoutManager as? androidx.recyclerview.widget.GridLayoutManager
-            val spanCount = lm?.spanCount?.coerceAtLeast(1) ?: 2
+            val spanCount = lm?.spanCount?.coerceAtLeast(1) ?: 3
 
             val rvHeight = recyclerView?.height ?: 0
             val rvPaddingY = (recyclerView?.paddingTop ?: 0) + (recyclerView?.paddingBottom ?: 0)
             val availHeight = rvHeight - rvPaddingY
 
             val computedCollapsedHeight = if (availHeight > 0) {
-                ((availHeight - ((spanCount - 1) * marginBottomPx)) / spanCount).coerceAtLeast((24 * density).toInt())
+                ((availHeight - (spanCount * marginBottomPx)) / spanCount).coerceAtLeast((24 * density).toInt())
             } else {
                 (44 * density).toInt()
             }

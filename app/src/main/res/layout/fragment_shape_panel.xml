@@ -29,7 +29,7 @@
             tools:listitem="@layout/layout_color_item"
             tools:itemCount="100"
             app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-            app:spanCount="3"
+            app:spanCount="4"
             android:orientation="horizontal"/>
     </androidx.constraintlayout.widget.ConstraintLayout>
 

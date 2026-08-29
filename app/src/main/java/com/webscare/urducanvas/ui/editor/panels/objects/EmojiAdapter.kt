@@ -176,7 +176,9 @@ class EmojiAdapter(
             boundEmoji = emoji
             emojiText.text = emoji.char
             loadingAnim.isVisible = false   // reset on rebind
+            cardRoot?.setCardBackgroundColor(ContextCompat.getColor(itemView.context, R.color.selection))
             updateSelectionOnly(isSelected, inMultiSelectMode)
+            updateSize(adapter.slideOffset, adapter.recyclerViewWidth, adapter.recyclerViewPadding)
             wireClicks(emoji)
         }
 
@@ -223,7 +225,7 @@ class EmojiAdapter(
             val marginBottomPx = (6 * density).toInt()
 
             val lm = recyclerView?.layoutManager as? androidx.recyclerview.widget.GridLayoutManager
-            val spanCount = lm?.spanCount?.coerceAtLeast(1) ?: 2
+            val spanCount = lm?.spanCount?.coerceAtLeast(1) ?: 3
 
             val rvHeight = recyclerView?.height ?: 0
             val rvPaddingY = (recyclerView?.paddingTop ?: 0) + (recyclerView?.paddingBottom ?: 0)
