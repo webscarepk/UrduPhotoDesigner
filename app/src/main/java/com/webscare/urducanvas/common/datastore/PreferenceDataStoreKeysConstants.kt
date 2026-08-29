@@ -1,6 +1,7 @@
 package com.webscare.urducanvas.common.datastore
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 
@@ -32,4 +33,7 @@ object PreferenceDataStoreKeysConstants {
     val KEY_HAPTIC_FEEDBACK = booleanPreferencesKey("key_haptic_feedback")
     val KEY_SMART_SNAPPING = booleanPreferencesKey("key_smart_snapping")
     val KEY_AUTO_SAVE_INTERVAL = stringPreferencesKey("key_auto_save_interval")
+
+    val KEY_EXPORT_COUNT_FOR_REVIEW = intPreferencesKey("key_export_count_for_review")
+    val KEY_LAST_REVIEW_REQUEST_TIMESTAMP = longPreferencesKey("key_last_review_request_timestamp")
 }

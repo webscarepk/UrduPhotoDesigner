@@ -20,6 +20,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.webscare.urducanvas.MainActivity
 import com.webscare.urducanvas.BuildConfig
+import com.webscare.urducanvas.di.AppReviewManager
 import com.webscare.urducanvas.di.BillingManager
 import com.webscare.urducanvas.di.BillingManager.SubscriptionStatus
 import kotlinx.coroutines.launch
@@ -35,6 +36,9 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
 
     @Inject
     lateinit var billingManager: BillingManager
+
+    @Inject
+    lateinit var appReviewManager: AppReviewManager
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -179,7 +183,9 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.rate.addPressEffect {
-            openUrl("https://play.google.com/store/apps/details?id=${requireContext().packageName}")
+            appReviewManager.launchExplicitReview(requireActivity()) {
+                openUrl("https://play.google.com/store/apps/details?id=${requireContext().packageName}")
+            }
         }
 
         binding.whatsappChannel.addPressEffect {

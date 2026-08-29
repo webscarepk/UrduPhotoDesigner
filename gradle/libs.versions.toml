@@ -19,6 +19,7 @@ material = "1.14.0"
 activity = "1.13.0"
 constraintlayout = "2.2.2"
 navigationFragmentKtx = "2.9.8"
+playReview = "2.0.2"
 playServicesMlkitSubjectSegmentation = "16.0.0-beta1"
 roomRuntime = "2.8.4"
 sdpAndroid = "1.1.1"
@@ -45,6 +46,7 @@ androidx-dynamicanimation-ktx = { module = "androidx.dynamicanimation:dynamicani
 androidx-swiperefreshlayout = { module = "androidx.swiperefreshlayout:swiperefreshlayout", version.ref = "swiperefreshlayout" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workRuntimeKtx" }
 app-update-ktx = { module = "com.google.android.play:app-update-ktx", version.ref = "appUpdateKtx" }
+play-review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "playReview" }
 billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billingKtx" }
 circleimageview = { module = "de.hdodenhof:circleimageview", version.ref = "circleimageview" }
 firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics", version.ref = "firebaseCrashlytics" }

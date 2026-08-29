@@ -25,11 +25,16 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import androidx.core.graphics.scale
 import com.google.android.material.snackbar.Snackbar
+import com.webscare.urducanvas.di.AppReviewManager
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class FinishExportFragment : androidx.fragment.app.Fragment() {
     private var _binding: FragmentFinishExportBinding? = null
     private val binding get() = _binding!!
+
+    @Inject
+    lateinit var appReviewManager: AppReviewManager
 
     val viewModel: CanvasViewModel by activityViewModels()
 
@@ -50,6 +55,8 @@ class FinishExportFragment : androidx.fragment.app.Fragment() {
         view.animate().alpha(1f).translationY(0f).setDuration(350).start()
         setEvents()
         initObservers()
+
+        appReviewManager.requestReviewIfEligible(requireActivity())
     }
 
     private fun formatFileSize(sizeMB: Double?): String {

@@ -229,6 +229,9 @@ dependencies {
     //In-App Updates
     implementation(libs.app.update.ktx)
 
+    //In-App Review
+    implementation(libs.play.review.ktx)
+
     //LeakCanary (Memory Leak Detection)
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")
 }
