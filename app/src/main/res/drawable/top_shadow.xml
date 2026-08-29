@@ -1,15 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     res/drawable/top_shadow.xml
-    A gradient that goes transparent → dark top to bottom.
-    Apply this as the background of a thin View placed
-    just above panelNavHost. It mimics a top-only elevation shadow.
+    A clean, subtle gradient that goes transparent → soft dark top to bottom.
 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <gradient
         android:angle="270"
         android:startColor="@android:color/transparent"
-        android:endColor="#20000000"
+        android:endColor="#18000000"
         android:type="linear" />
 </shape>

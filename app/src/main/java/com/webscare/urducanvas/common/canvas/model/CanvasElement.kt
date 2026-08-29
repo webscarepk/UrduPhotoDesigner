@@ -604,8 +604,33 @@ data class CanvasElement(
             boxHeight = boxHeight!!.coerceIn(lineHeight, getNaturalContentHeight(boxWidth))
         }
 
-        logicalContentWidth = boxWidth ?: maxW
-        logicalContentHeight = boxHeight ?: totalH
+        logicalContentWidth = (boxWidth ?: maxW) + getLabelPaddingX() * 2f
+        logicalContentHeight = (boxHeight ?: totalH) + getLabelPaddingY() * 2f
+    }
+
+    fun recalculateTextBounds(canvasWidth: Float? = null, canvasHeight: Float? = null) {
+        if (type != ElementType.TEXT) return
+        if (!::paint.isInitialized) updatePaintProperties()
+
+        cachedRawTextForTokens = null
+        cachedExplicitLinesTokens = null
+
+        val lines = getVisualLines(boxWidth, canvasWidth)
+        val fm = paint.fontMetrics
+        val lineHeight = (fm.descent - fm.ascent) * lineSpacing
+        val totalH = lines.size * lineHeight
+        val maxW = lines.maxOfOrNull { paint.measureText(it) } ?: 0f
+
+        val naturalMaxW = getNaturalUnwrappedWidth()
+        if (boxWidth != null) {
+            boxWidth = boxWidth!!.coerceIn(getMinWordWidth(), naturalMaxW)
+        }
+        if (boxHeight != null) {
+            boxHeight = boxHeight!!.coerceIn(lineHeight, getNaturalContentHeight(boxWidth))
+        }
+
+        logicalContentWidth = (boxWidth ?: maxW) + getLabelPaddingX() * 2f
+        logicalContentHeight = (boxHeight ?: totalH) + getLabelPaddingY() * 2f
     }
 
     fun getTightTextBounds(): RectF {
@@ -622,7 +647,7 @@ data class CanvasElement(
             for (line in lines) {
                 if (line.isEmpty()) continue
                 paint.getTextBounds(line, 0, line.length, tempRect)
-                maxLineWidth = maxOf(maxLineWidth, tempRect.width().toFloat())
+                maxLineWidth = maxOf(maxLineWidth, tempRect.width().toFloat(), paint.measureText(line))
             }
 
             var boxW = boxWidth ?: maxLineWidth

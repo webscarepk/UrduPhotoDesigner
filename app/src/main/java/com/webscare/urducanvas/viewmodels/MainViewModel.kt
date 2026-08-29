@@ -387,6 +387,7 @@ class MainViewModel @Inject constructor(
 
     private val _rawQuery = MutableStateFlow("")
     val rawQuery: StateFlow<String> = _rawQuery.asStateFlow()
+    val searchQuery: StateFlow<String> get() = rawQuery
 
     // ── Recent fonts — in-memory ordered list (most-recent first, max 20) ─────
     private val _recentFontIds = MutableStateFlow<List<Int>>(emptyList())

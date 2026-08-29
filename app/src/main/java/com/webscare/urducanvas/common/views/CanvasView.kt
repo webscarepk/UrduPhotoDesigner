@@ -68,6 +68,7 @@ import com.webscare.urducanvas.common.canvas.model.ExportOptions
 import com.webscare.urducanvas.common.canvas.model.GradientItem
 import com.webscare.urducanvas.common.canvas.model.StrokeData
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
+import com.webscare.urducanvas.common.utils.BrushRenderUtils
 import com.webscare.urducanvas.common.utils.BrushRenderUtils.createBackgroundGradientShader
 import com.webscare.urducanvas.common.utils.ImageAdjustmentHelper
 import com.webscare.urducanvas.common.utils.ImageProcessor
@@ -984,6 +985,13 @@ class CanvasView @JvmOverloads constructor(
         val viewContext = context
         canvasElements.forEach { el ->
             if (el.context == null) el.context = viewContext
+            if (el.type == ElementType.TEXT) {
+                el.updatePaintProperties()
+                if (el.originalTypeface != null) {
+                    el.paint.typeface = el.originalTypeface
+                }
+                el.recalculateTextBounds(canvasWidth.toFloat(), canvasHeight.toFloat())
+            }
         }
 
         selectedElements.clear()
@@ -1194,28 +1202,22 @@ class CanvasView @JvmOverloads constructor(
     fun setFont(fontEntity: com.webscare.urducanvas.data.model.FontEntity) {
         selectedElements.filter { it.type == ElementType.TEXT }.forEach { element ->
             element.fontId = fontEntity.id.toString()
+            element.fontUrl = fontEntity.file_url
+            element.isPremium = fontEntity.is_premium
 
-            // Check if the file_path is not blank before attempting to create a typeface
-            if (fontEntity.file_path?.isNotBlank()!!) {
+            if (!fontEntity.file_path.isNullOrBlank()) {
                 try {
                     val tf = Typeface.createFromFile(fontEntity.file_path)
                     element.originalTypeface = tf
                     element.paint.typeface = tf
                 } catch (e: Exception) {
-                    // Handle potential errors if the file path is valid but the file itself is corrupt or unreadable
-                    // You might log the error or set a default typeface here if needed
                     println("Error loading typeface from file: ${fontEntity.file_path}. Error: ${e.message}")
-
-                    element.paint.typeface = Typeface.DEFAULT
+                    val fallback = element.context?.let { androidx.core.content.res.ResourcesCompat.getFont(it, R.font.default_canvas) } ?: Typeface.DEFAULT
+                    element.originalTypeface = fallback
+                    element.paint.typeface = fallback
                 }
-            } else {
-                // If file_path is blank, do not set the typeface.
-                // The existing typeface on the element will remain, or you could explicitly
-                // set it to a default system typeface if that's desired when no custom font is selected.
-                // For example:
-                // element.paint.typeface = Typeface.DEFAULT
             }
-
+            element.recalculateTextBounds(canvasWidth.toFloat(), canvasHeight.toFloat())
             onElementChanged?.invoke(element)
         }
         invalidate()
@@ -5699,30 +5701,16 @@ class CanvasView @JvmOverloads constructor(
                     currentStrokePoints.clear()
                     currentStrokePoints.add(x to y)
 
-                    // Paint for live preview (scaled thickness)
-                    currentStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                        color = currentBrushColor
-                        strokeWidth = currentBrushThickness   // ✅ scale-aware preview
-                        style = Paint.Style.STROKE
-                        strokeCap = Paint.Cap.ROUND
-                        strokeJoin = Paint.Join.ROUND
-                        alpha = (currentBrushHardness * 255).toInt()
-
-                        if (currentBrushStyle == BrushStyle.BRUSH) {
-                            val blurRadius = max(0.1f, (1f - currentBrushHardness) * 25f)
-                            maskFilter = try {
-                                BlurMaskFilter(blurRadius, BlurMaskFilter.Blur.NORMAL)
-                            } catch (e: Exception) {
-                                null
-                            }
-                        }
-
-                        currentBrushGradient?.let {
-                            shader = createBackgroundGradientShader(
-                                it, width.toFloat(), height.toFloat()
-                            )
-                        }
-                    }
+                    // Paint for live preview (scale-aware)
+                    val tempStroke = StrokeData(
+                        path = currentStrokePath,
+                        color = currentBrushColor,
+                        thickness = currentBrushThickness,
+                        hardness = currentBrushHardness,
+                        style = currentBrushStyle,
+                        gradient = currentBrushGradient
+                    )
+                    currentStrokePaint = BrushRenderUtils.makeStrokePaint(tempStroke, width, height)
 
                     invalidate()
                 }

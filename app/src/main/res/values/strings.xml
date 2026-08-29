@@ -24,6 +24,7 @@
     <string name="verify">Verify</string>
     <string name="create">Create</string>
     <string name="resize">Resize</string>
+    <string name="size">Size</string>
     <string name="canvas_size">Canvas Size</string>
     <string name="background">Background</string>
     <string name="canvas_size_value">%1$d × %2$d</string>

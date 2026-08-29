@@ -392,10 +392,6 @@ class EditorFragment : Fragment() {
         val fabMenu = binding.fabMenu
         val fabAdd = binding.fabAdd
 
-        fabAdd.addPressEffect {
-            toggleFabMenu(!isFabMenuOpen)
-        }
-
         binding.addText.addPressEffect {
             viewModel.addText(requireActivity().getString(R.string.dummyText), requireActivity())
             navController.navigate(R.id.textFragment)
@@ -422,12 +418,24 @@ class EditorFragment : Fragment() {
             toggleFabMenu(false)
         }
 
+        binding.addTable.addPressEffect {
+            val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
+            navController.navigate(R.id.tablesParentFragment, null, navOptions)
+            toggleFabMenu(false)
+        }
+
         binding.addDraw.addPressEffect {
             viewModel.enterDrawingMode(requireActivity())
             val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
             navController.navigate(R.id.drawFragment, null, navOptions)
             toggleFabMenu(false)
         }
+
+        val highFabZ = 50f * resources.displayMetrics.density
+        binding.fabContainer.translationZ = highFabZ
+        binding.fabContainer.bringToFront()
+        fabAdd.translationZ = 0f
+        fabMenu.translationZ = 0f
 
         fabAdd.setOnTouchListener { v, event ->
             val parent = binding.fabContainer
@@ -440,12 +448,16 @@ class EditorFragment : Fragment() {
                     fabInitialY = v.y
                     fabInitialTouchX = event.rawX
                     fabInitialTouchY = event.rawY
-                    v.translationZ = 11f
+                    v.animate().scaleX(0.92f).scaleY(0.92f).setDuration(60).start()
                 }
 
                 MotionEvent.ACTION_MOVE -> {
                     val dx = event.rawX - fabInitialTouchX
                     val dy = event.rawY - fabInitialTouchY
+                    val distance = kotlin.math.sqrt(dx * dx + dy * dy)
+                    if (distance > 10) {
+                        v.animate().scaleX(1f).scaleY(1f).setDuration(80).start()
+                    }
 
                     var newX = fabInitialX + dx
                     var newY = fabInitialY + dy
@@ -466,7 +478,8 @@ class EditorFragment : Fragment() {
                 }
 
                 MotionEvent.ACTION_UP -> {
-                    v.translationZ = 10f
+                    v.translationZ = highFabZ
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(80).start()
 
                     if (isFabMenuOpen) {
                         updateFabMenuPosition(fabAdd, fabMenu)
@@ -477,8 +490,13 @@ class EditorFragment : Fragment() {
                     val distance = kotlin.math.sqrt(deltaX * deltaX + deltaY * deltaY)
 
                     if (distance < 10) {
-                        v.performClick()
+                        toggleFabMenu(!isFabMenuOpen)
                     }
+                }
+
+                MotionEvent.ACTION_CANCEL -> {
+                    v.translationZ = highFabZ
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(80).start()
                 }
             }
             true
@@ -1163,8 +1181,8 @@ class EditorFragment : Fragment() {
                         val bmp = Bitmap.createBitmap(512, 512, Bitmap.Config.ARGB_8888)
                         BitmapCache.put(element.id, bmp)
                     }
-                } else if (targetDestination == R.id.textAdjustmentsFragment || targetDestination == R.id.shapesParentFragment) {
-                    if (!(targetDestination == R.id.shapesParentFragment && shapeJustAdded)) {
+                } else if (targetDestination == R.id.shapesParentFragment) {
+                    if (!shapeJustAdded) {
                         viewModel.openAppearanceTab()
                     }
                 }

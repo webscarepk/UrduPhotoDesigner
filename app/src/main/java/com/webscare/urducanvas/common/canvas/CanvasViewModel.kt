@@ -4364,6 +4364,7 @@ class CanvasViewModel @Inject constructor(
                 ).apply {
                     originalTypeface = tf
                     paint.typeface = tf
+                    recalculateTextBounds(_canvasSize.value?.width, _canvasSize.value?.height)
                 }
             } else if (isTargeted && element.type == ElementType.TABLE) {
                 modified = true

@@ -50,116 +50,7 @@
         android:orientation="horizontal"
         app:layout_constraintGuide_percent="0.65" />
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/fabContainer"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:translationZ="10dp"
-        app:layout_constraintBottom_toTopOf="@id/centerGuide"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
 
-        <ImageView
-            android:id="@+id/fabAdd"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="8dp"
-            android:background="@drawable/button_bg_round"
-            android:contentDescription="@string/add_elements"
-            android:outlineSpotShadowColor="@color/shadowColor"
-            android:padding="15dp"
-            android:src="@drawable/ic_add"
-            android:translationZ="6dp"
-            app:backgroundTint="@color/white"
-            app:fabSize="normal"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:tint="@color/black" />
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/fabMenu"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/button_bg_round"
-            android:backgroundTint="@color/white"
-            android:padding="8dp"
-            android:translationZ="2dp"
-            android:visibility="gone"
-            app:layout_constraintBottom_toTopOf="@id/fabAdd"
-            app:layout_constraintEnd_toEndOf="@id/fabAdd"
-            app:layout_constraintStart_toStartOf="@id/fabAdd">
-
-            <ImageView
-                android:id="@+id/addText"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_marginTop="10dp"
-                android:contentDescription="@string/add_text"
-                android:padding="5dp"
-                android:src="@drawable/ic_add_text_fab"
-                app:layout_constraintBottom_toTopOf="@id/addShapes"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <ImageView
-                android:id="@+id/addShapes"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_marginTop="8dp"
-                android:contentDescription="@string/add_shape"
-                android:padding="5dp"
-                android:src="@drawable/ic_add_shapes_fab"
-                app:layout_constraintBottom_toTopOf="@id/addImage"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/addText" />
-
-            <ImageView
-                android:id="@+id/addImage"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_marginTop="8dp"
-                android:contentDescription="@string/add_image"
-                android:padding="5dp"
-                android:src="@drawable/ic_add_image_fab"
-                app:layout_constraintBottom_toTopOf="@id/addObject"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/addShapes" />
-
-            <ImageView
-                android:id="@+id/addObject"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_marginTop="8dp"
-                android:contentDescription="@string/add_object"
-                android:padding="5dp"
-                android:src="@drawable/ic_add_objects_fab"
-                app:layout_constraintBottom_toTopOf="@id/addDraw"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/addImage"
-                app:tint="@color/gray" />
-
-            <ImageView
-                android:id="@+id/addDraw"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_marginTop="8dp"
-                android:contentDescription="@string/draw"
-                android:padding="4dp"
-                android:src="@drawable/ic_add_draw_fab"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/addObject" />
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <View
         android:id="@+id/dimOverlay"
@@ -406,11 +297,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/alignment_kit_bg"
-        android:backgroundTint="@color/white"
         android:orientation="vertical"
-        android:outlineSpotShadowColor="@color/shadowColor"
         android:padding="6dp"
-        android:translationZ="7dp"
+        android:translationZ="25dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@id/canvasContainer"
         app:layout_constraintStart_toStartOf="parent"
@@ -541,8 +430,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:translationZ="20dp"
-        android:elevation="10dp"
+        android:translationZ="25dp"
         app:layout_constraintBottom_toTopOf="@id/centerGuide"
         app:layout_constraintStart_toStartOf="parent">
 
@@ -551,11 +439,7 @@
             android:layout_width="32dp"
             android:layout_height="wrap_content"
             android:layout_marginBottom="6dp"
-            android:background="@drawable/alignment_kit_bg"
-            android:backgroundTint="@android:color/white"
-            android:outlineSpotShadowColor="@color/shadowColor"
-            android:translationZ="20dp"
-            android:elevation="6dp"
+            android:background="@drawable/button_bg_context_tool_docked_left"
             android:visibility="gone">
 
             <ImageView
@@ -575,11 +459,7 @@
             android:layout_marginStart="6dp"
             android:layout_marginBottom="6dp"
             android:background="@drawable/button_bg_context_tool"
-            android:backgroundTint="@android:color/white"
             android:orientation="horizontal"
-            android:outlineSpotShadowColor="@color/shadowColor"
-            android:translationZ="20dp"
-            android:elevation="6dp"
             android:visibility="gone">
 
             <TextView
@@ -588,7 +468,6 @@
                 android:layout_height="32dp"
                 android:layout_gravity="center_vertical"
                 android:background="@drawable/button_bg_context_tool"
-                android:backgroundTint="@android:color/white"
                 android:fontFamily="@font/bold"
                 android:gravity="center"
                 android:text="32"
@@ -629,11 +508,7 @@
             android:layout_marginStart="6dp"
             android:layout_marginBottom="6dp"
             android:background="@drawable/button_bg_context_tool"
-            android:backgroundTint="@android:color/white"
             android:orientation="horizontal"
-            android:outlineSpotShadowColor="@color/shadowColor"
-            android:translationZ="20dp"
-            android:elevation="6dp"
             android:visibility="gone">
 
             <ImageView
@@ -641,7 +516,6 @@
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:background="@drawable/button_bg_context_tool"
-                android:backgroundTint="@android:color/white"
                 android:padding="6dp"
                 android:src="@drawable/ic_blend"
                 android:tooltipText="@string/blend"
@@ -673,11 +547,7 @@
             android:layout_marginStart="6dp"
             android:layout_marginBottom="6dp"
             android:background="@drawable/button_bg_context_tool"
-            android:backgroundTint="@android:color/white"
             android:orientation="horizontal"
-            android:outlineSpotShadowColor="@color/shadowColor"
-            android:translationZ="20dp"
-            android:elevation="6dp"
             android:visibility="gone">
 
             <TextView
@@ -686,7 +556,6 @@
                 android:layout_height="32dp"
                 android:layout_gravity="center_vertical"
                 android:background="@drawable/button_bg_context_tool"
-                android:backgroundTint="@android:color/white"
                 android:fontFamily="@font/bold"
                 android:gravity="center"
                 android:text="32"
@@ -716,14 +585,10 @@
             android:layout_marginStart="6dp"
             android:layout_marginBottom="6dp"
             android:background="@drawable/button_bg_context_tool"
-            android:backgroundTint="@android:color/white"
             android:foreground="?selectableItemBackground"
-            android:outlineSpotShadowColor="@color/shadowColor"
             android:padding="8dp"
             android:src="@drawable/ic_select_subject"
             android:tooltipText="@string/remove_bg"
-            android:translationZ="20dp"
-            android:elevation="6dp"
             android:visibility="gone"
             app:tint="@color/black" />
 
@@ -734,14 +599,10 @@
             android:layout_marginStart="6dp"
             android:layout_marginBottom="6dp"
             android:background="@drawable/button_bg_context_tool"
-            android:backgroundTint="@android:color/white"
             android:foreground="?selectableItemBackground"
-            android:outlineSpotShadowColor="@color/shadowColor"
             android:padding="8dp"
             android:src="@drawable/ic_copy"
             android:tooltipText="@string/copy"
-            android:translationZ="20dp"
-            android:elevation="6dp"
             android:visibility="gone"
             app:tint="@color/black" />
 
@@ -752,6 +613,8 @@
         android:layout_width="match_parent"
         android:layout_height="60dp"
         android:background="@drawable/top_shadow"
+        android:elevation="0dp"
+        android:translationZ="0dp"
         android:importantForAccessibility="no"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -1062,5 +925,129 @@
         </LinearLayout>
 
     </LinearLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/fabContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:translationZ="50dp"
+        android:elevation="0dp"
+        app:layout_constraintBottom_toTopOf="@id/centerGuide"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:id="@+id/fabAdd"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:background="@drawable/button_bg_round"
+            android:contentDescription="@string/add_elements"
+            android:outlineSpotShadowColor="@color/shadowColor"
+            android:padding="15dp"
+            android:src="@drawable/ic_add"
+            android:elevation="6dp"
+            android:translationZ="10dp"
+            app:tint="@color/black"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/fabMenu"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:background="@drawable/button_bg_round"
+            android:outlineSpotShadowColor="@color/shadowColor"
+            android:padding="8dp"
+            android:elevation="6dp"
+            android:visibility="gone"
+            app:layout_constraintBottom_toTopOf="@id/fabAdd"
+            app:layout_constraintEnd_toEndOf="@id/fabAdd"
+            app:layout_constraintStart_toStartOf="@id/fabAdd">
+
+            <ImageView
+                android:id="@+id/addText"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginTop="10dp"
+                android:contentDescription="@string/add_text"
+                android:padding="5dp"
+                android:src="@drawable/ic_add_text_fab"
+                app:layout_constraintBottom_toTopOf="@id/addShapes"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <ImageView
+                android:id="@+id/addShapes"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginTop="8dp"
+                android:contentDescription="@string/add_shape"
+                android:padding="5dp"
+                android:src="@drawable/ic_add_shapes_fab"
+                app:layout_constraintBottom_toTopOf="@id/addImage"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/addText" />
+
+            <ImageView
+                android:id="@+id/addImage"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginTop="8dp"
+                android:contentDescription="@string/add_image"
+                android:padding="5dp"
+                android:src="@drawable/ic_add_image_fab"
+                app:layout_constraintBottom_toTopOf="@id/addObject"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/addShapes" />
+
+            <ImageView
+                android:id="@+id/addObject"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginTop="8dp"
+                android:contentDescription="@string/add_object"
+                android:padding="5dp"
+                android:src="@drawable/ic_add_objects_fab"
+                app:layout_constraintBottom_toTopOf="@id/addTable"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/addImage"
+                app:tint="@color/gray" />
+
+            <ImageView
+                android:id="@+id/addTable"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginTop="8dp"
+                android:contentDescription="Add Table"
+                android:padding="4dp"
+                android:src="@drawable/ic_add_table_fab"
+                app:layout_constraintBottom_toTopOf="@id/addDraw"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/addObject" />
+
+            <ImageView
+                android:id="@+id/addDraw"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginTop="8dp"
+                android:contentDescription="@string/draw"
+                android:padding="4dp"
+                android:src="@drawable/ic_add_draw_fab"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/addTable" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
