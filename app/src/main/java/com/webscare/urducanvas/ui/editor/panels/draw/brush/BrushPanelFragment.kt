@@ -251,7 +251,7 @@ class BrushPanelFragment : Fragment() {
 
     }
 
-    private fun updateBrushStyleUI(style: BrushStyle) {
+    private fun updateBrushStyleUI(style: BrushStyle?) {
         val appColor = ContextCompat.getColor(requireContext(), R.color.appColor)
         val contrastColor = ContextCompat.getColor(requireContext(), R.color.contrast)
         val whiteTint = ContextCompat.getColor(requireContext(), R.color.white)

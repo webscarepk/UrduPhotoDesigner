@@ -6,12 +6,12 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.SeekBar
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColorInt
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.recyclerview.widget.GridLayoutManager
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.GradientPickerTarget
@@ -49,7 +49,6 @@ class BrushColorFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setupToggle()
         setupAdapters()
-        setupOpacitySeekBar()
         observeViewModel()
     }
 
@@ -107,6 +106,7 @@ class BrushColorFragment : Fragment() {
                 val selectedColor = color.colorCode.toColorInt()
                 viewModel.setBrushColor(selectedColor)
                 viewModel.setBrushGradient(null)
+                viewModel.enterDrawingMode(requireActivity())
             },
             onNoneSelected = {
                 viewModel.setBrushColor(android.R.color.transparent)
@@ -130,6 +130,7 @@ class BrushColorFragment : Fragment() {
             gradientList = emptyList(),
             onGradientSelected = { _, item ->
                 viewModel.setBrushGradient(item)
+                viewModel.enterDrawingMode(requireActivity())
             },
             onGradientEditSelected = { _, item ->
                 viewModel.startPickingGradient(GradientPickerTarget.DRAW_STROKE)
@@ -160,31 +161,15 @@ class BrushColorFragment : Fragment() {
         )
 
         binding.colors.apply {
+            layoutManager = GridLayoutManager(requireContext(), 4, GridLayoutManager.HORIZONTAL, false)
             setHasFixedSize(true)
             adapter = colorsAdapter
         }
 
         binding.gradients.apply {
+            layoutManager = GridLayoutManager(requireContext(), 4, GridLayoutManager.HORIZONTAL, false)
             setHasFixedSize(true)
             adapter = gradientsAdapter
-        }
-    }
-
-    private fun setupOpacitySeekBar() {
-        binding.opacityBar.apply {
-            max = 100
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                    binding.opacityValue.text = "$progress%"
-                    if (fromUser) {
-                        val hardness = progress.toFloat() / 100f
-                        viewModel.setBrushHardness(hardness)
-                    }
-                }
-
-                override fun onStartTrackingTouch(sb: SeekBar) {}
-                override fun onStopTrackingTouch(sb: SeekBar) {}
-            })
         }
     }
 
@@ -199,12 +184,6 @@ class BrushColorFragment : Fragment() {
 
         viewModel.brushGradient.observe(viewLifecycleOwner) { gradient ->
             gradientsAdapter.selectedItem = gradient
-        }
-
-        viewModel.brushHardness.observe(viewLifecycleOwner) { hardness ->
-            val progress = (hardness * 100).toInt()
-            binding.opacityBar.progress = progress
-            binding.opacityValue.text = "$progress%"
         }
     }
 

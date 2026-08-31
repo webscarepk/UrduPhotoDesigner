@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:paddingHorizontal="14dp"
     android:paddingVertical="4dp"
-    tools:context=".ui.editor.panels.draw.brush.BrushSizeFragment">
+    tools:context=".ui.editor.panels.draw.eraser.EraserSizeFragment">
 
     <!-- Preset Size Dots Row -->
     <LinearLayout
@@ -19,74 +19,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
-
-        <!-- 2 px -->
-        <LinearLayout
-            android:id="@+id/sizePreset2"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:orientation="vertical">
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/sizeDotRing2"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                app:cardBackgroundColor="@color/contrast"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/appColor"
-                app:strokeWidth="0dp">
-                <View
-                    android:layout_width="3dp"
-                    android:layout_height="3dp"
-                    android:layout_gravity="center"
-                    android:background="@drawable/button_bg_round"
-                    android:backgroundTint="@color/black" />
-            </com.google.android.material.card.MaterialCardView>
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:fontFamily="@font/regular"
-                android:text="2"
-                android:textColor="@color/gray"
-                android:textSize="10sp" />
-        </LinearLayout>
-
-        <!-- 4 px -->
-        <LinearLayout
-            android:id="@+id/sizePreset4"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:orientation="vertical">
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/sizeDotRing4"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                app:cardBackgroundColor="@color/contrast"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/appColor"
-                app:strokeWidth="0dp">
-                <View
-                    android:layout_width="5dp"
-                    android:layout_height="5dp"
-                    android:layout_gravity="center"
-                    android:background="@drawable/button_bg_round"
-                    android:backgroundTint="@color/black" />
-            </com.google.android.material.card.MaterialCardView>
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:fontFamily="@font/regular"
-                android:text="4"
-                android:textColor="@color/gray"
-                android:textSize="10sp" />
-        </LinearLayout>
 
         <!-- 8 px -->
         <LinearLayout
@@ -106,8 +38,8 @@
                 app:strokeColor="@color/appColor"
                 app:strokeWidth="0dp">
                 <View
-                    android:layout_width="7dp"
-                    android:layout_height="7dp"
+                    android:layout_width="6dp"
+                    android:layout_height="6dp"
                     android:layout_gravity="center"
                     android:background="@drawable/button_bg_round"
                     android:backgroundTint="@color/black" />
@@ -140,8 +72,8 @@
                 app:strokeColor="@color/appColor"
                 app:strokeWidth="0dp">
                 <View
-                    android:layout_width="10dp"
-                    android:layout_height="10dp"
+                    android:layout_width="9dp"
+                    android:layout_height="9dp"
                     android:layout_gravity="center"
                     android:background="@drawable/button_bg_round"
                     android:backgroundTint="@color/black" />
@@ -152,6 +84,40 @@
                 android:layout_marginTop="2dp"
                 android:fontFamily="@font/regular"
                 android:text="16"
+                android:textColor="@color/gray"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- 24 px -->
+        <LinearLayout
+            android:id="@+id/sizePreset24"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/sizeDotRing24"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                app:cardBackgroundColor="@color/contrast"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/appColor"
+                app:strokeWidth="0dp">
+                <View
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/button_bg_round"
+                    android:backgroundTint="@color/black" />
+            </com.google.android.material.card.MaterialCardView>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/regular"
+                android:text="24"
                 android:textColor="@color/gray"
                 android:textSize="10sp" />
         </LinearLayout>
@@ -174,8 +140,8 @@
                 app:strokeColor="@color/appColor"
                 app:strokeWidth="0dp">
                 <View
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
+                    android:layout_width="15dp"
+                    android:layout_height="15dp"
                     android:layout_gravity="center"
                     android:background="@drawable/button_bg_round"
                     android:backgroundTint="@color/black" />
@@ -208,8 +174,8 @@
                 app:strokeColor="@color/appColor"
                 app:strokeWidth="0dp">
                 <View
-                    android:layout_width="17dp"
-                    android:layout_height="17dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:layout_gravity="center"
                     android:background="@drawable/button_bg_round"
                     android:backgroundTint="@color/black" />
@@ -276,8 +242,8 @@
                 app:strokeColor="@color/appColor"
                 app:strokeWidth="0dp">
                 <View
-                    android:layout_width="23dp"
-                    android:layout_height="23dp"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
                     android:layout_gravity="center"
                     android:background="@drawable/button_bg_round"
                     android:backgroundTint="@color/black" />
@@ -288,6 +254,40 @@
                 android:layout_marginTop="2dp"
                 android:fontFamily="@font/regular"
                 android:text="80"
+                android:textColor="@color/gray"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- 100 px -->
+        <LinearLayout
+            android:id="@+id/sizePreset100"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/sizeDotRing100"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                app:cardBackgroundColor="@color/contrast"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/appColor"
+                app:strokeWidth="0dp">
+                <View
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/button_bg_round"
+                    android:backgroundTint="@color/black" />
+            </com.google.android.material.card.MaterialCardView>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/regular"
+                android:text="100"
                 android:textColor="@color/gray"
                 android:textSize="10sp" />
         </LinearLayout>
@@ -310,7 +310,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="15dp"
             android:fontFamily="@font/medium"
-            android:text="@string/size"
+            android:text="Eraser Size"
             android:textColor="@color/black"
             android:textSize="12sp"
             app:layout_constraintStart_toStartOf="parent"
@@ -327,15 +327,15 @@
             app:layout_constraintBottom_toBottomOf="@id/sizeLabel"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@id/sizeLabel"
-            tools:text="20" />
+            tools:text="24" />
 
         <SeekBar
             android:id="@+id/thicknessBar"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="3dp"
-            android:max="99"
-            android:progress="19"
+            android:max="149"
+            android:progress="23"
             android:progressBackgroundTint="@color/light_gray"
             android:progressTint="@color/appColor"
             android:indeterminateTint="@color/appColor"
@@ -392,7 +392,7 @@
                 app:layout_constraintBottom_toBottomOf="@id/hardnessLabel"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@id/hardnessLabel"
-                tools:text="100%" />
+                tools:text="0%" />
 
             <SeekBar
                 android:id="@+id/hardnessBar"
@@ -400,7 +400,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:max="100"
-                android:progress="100"
+                android:progress="0"
                 android:progressBackgroundTint="@color/light_gray"
                 android:progressTint="@color/appColor"
                 android:indeterminateTint="@color/appColor"
@@ -430,7 +430,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="15dp"
                 android:fontFamily="@font/medium"
-                android:text="@string/opacity"
+                android:text="Erase Opacity"
                 android:textColor="@color/black"
                 android:textSize="12sp"
                 app:layout_constraintStart_toStartOf="parent"
@@ -490,7 +490,7 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="10dp"
             android:fontFamily="@font/medium"
-            android:text="Auto Smooth Edges"
+            android:text="Auto Smooth Eraser"
             android:textColor="@color/black"
             android:textSize="13sp"
             app:layout_constraintBottom_toBottomOf="parent"

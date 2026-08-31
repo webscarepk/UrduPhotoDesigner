@@ -27,7 +27,8 @@
         android:layout_width="@dimen/_100sdp"
         android:layout_height="wrap_content"
         android:importantForAccessibility="no"
-        android:paddingVertical="10dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="2dp"
         android:src="@drawable/drag_handle_bg"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -51,49 +52,69 @@
             android:orientation="horizontal"
             android:paddingHorizontal="10dp">
 
-            <!-- Add / Draw Button (styled like addText on TextFragment) -->
+            <!-- Add / Draw Button -->
             <ImageView
                 android:id="@+id/addBrush"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
                 android:layout_gravity="center_vertical"
                 android:background="@drawable/button_bg_small"
-                android:backgroundTint="#30005D28"
-                android:padding="7dp"
-                android:src="@drawable/ic_draw"
-                app:tint="@color/appColor" />
+                android:backgroundTint="@color/contrast"
+                android:padding="6dp"
+                android:layout_marginEnd="6dp"
+                android:src="@drawable/ic_add_draw_fab" />
 
-            <!-- Horizontal TabLayout: Style, Size, Color -->
+            <!-- Segmented Switch: Brush / Eraser -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/modeSwitchToolbar"
+                android:layout_width="128dp"
+                android:layout_height="30dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/button_bg_small"
+                android:backgroundTint="@color/contrast"
+                android:padding="2dp">
+
+                <TextView
+                    android:id="@+id/btnModeBrush"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/white"
+                    android:fontFamily="@font/medium"
+                    android:gravity="center"
+                    android:text="Brush"
+                    android:textColor="@color/black"
+                    android:textSize="11sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/btnModeEraser"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/btnModeEraser"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/button_bg_small"
+                    android:backgroundTint="@color/contrast"
+                    android:fontFamily="@font/medium"
+                    android:gravity="center"
+                    android:text="Eraser"
+                    android:textColor="@color/black"
+                    android:textSize="11sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/btnModeBrush"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- Horizontal TabLayout: Style, Settings, Color -->
             <com.google.android.material.tabs.TabLayout
                 android:id="@+id/tabLayout"
                 style="@style/Widget.UrduCanvas.TabLayout"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                app:tabIndicatorHeight="0dp" />
-
-            <ImageView
-                android:id="@+id/reset"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:layout_marginEnd="6dp"
-                android:background="@drawable/button_bg_round"
-                android:backgroundTint="@color/contrast"
-                android:padding="6dp"
-                android:src="@drawable/ic_refresh"
-                app:tint="@color/black" />
-
-            <ImageView
-                android:id="@+id/done"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:background="@drawable/button_bg_round"
-                android:backgroundTint="@color/contrast"
-                android:padding="6dp"
-                android:src="@drawable/ic_done"
-                app:tint="@color/black" />
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
 
         </LinearLayout>
 
@@ -107,97 +128,7 @@
 
     </RelativeLayout>
 
-    <!-- ═══ EXPANDED HEADER: [addBrushExpanded] [TabLayoutExpanded] [resetExpanded] [doneExpanded] [closePanel] ═════ -->
-    <RelativeLayout
-        android:id="@+id/headerExpanded"
-        android:layout_width="0dp"
-        android:layout_height="42dp"
-        android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/dragHandle">
-
-        <LinearLayout
-            android:id="@+id/tabRowContentExpanded"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="10dp">
-
-            <ImageView
-                android:id="@+id/addBrushExpanded"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_gravity="center_vertical"
-                android:background="@drawable/button_bg_small"
-                android:backgroundTint="#30005D28"
-                android:padding="7dp"
-                android:src="@drawable/ic_draw"
-                app:tint="@color/appColor" />
-
-            <com.google.android.material.tabs.TabLayout
-                android:id="@+id/tabLayoutExpanded"
-                style="@style/Widget.UrduCanvas.TabLayout"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                app:tabIndicatorHeight="0dp" />
-
-            <ImageView
-                android:id="@+id/resetExpanded"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:layout_marginEnd="6dp"
-                android:background="@drawable/button_bg_round"
-                android:backgroundTint="@color/contrast"
-                android:padding="6dp"
-                android:src="@drawable/ic_refresh"
-                app:tint="@color/black" />
-
-            <ImageView
-                android:id="@+id/doneExpanded"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:layout_marginEnd="6dp"
-                android:background="@drawable/button_bg_round"
-                android:backgroundTint="@color/contrast"
-                android:padding="6dp"
-                android:src="@drawable/ic_done"
-                app:tint="@color/black" />
-
-            <ImageView
-                android:id="@+id/closePanel"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:background="@drawable/button_bg_round"
-                android:backgroundTint="@color/contrast"
-                android:padding="8dp"
-                android:src="@drawable/ic_close"
-                app:tint="@color/black" />
-
-        </LinearLayout>
-
-        <View
-            android:id="@+id/tabBaselineDividerExpanded"
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_alignParentBottom="true"
-            android:background="@color/tab_divider" />
-
-    </RelativeLayout>
-
-    <!-- Helper space that smoothly tracks header height -->
-    <View
-        android:id="@+id/headerSpace"
-        android:layout_width="match_parent"
-        android:layout_height="42dp"
-        app:layout_constraintTop_toBottomOf="@id/dragHandle" />
-
-    <!-- Fixed Bottom Preview Section (Consistent Across All 3 Tabs) -->
-    <!-- Horizontal ViewPager2 for Style / Size / Color tabs -->
+    <!-- Horizontal ViewPager2 for Style / Settings / Color tabs -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"
         android:layout_width="0dp"
@@ -205,38 +136,23 @@
         android:layout_marginTop="6dp"
         android:layout_marginBottom="6dp"
         android:saveEnabled="false"
-        app:layout_constraintBottom_toTopOf="@id/brushPreviewContainer"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/headerSpace" />
-
-    <!-- Fixed Bottom Preview Section (Consistent Across All 3 Tabs) -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/brushPreviewContainer"
-        android:layout_width="0dp"
-        android:layout_height="48dp"
-        android:layout_marginStart="14dp"
-        android:layout_marginEnd="14dp"
-        android:layout_marginBottom="12dp"
-        app:cardBackgroundColor="@color/contrast"
-        app:cardCornerRadius="8dp"
-        app:cardElevation="0dp"
-        app:strokeColor="@color/tab_divider"
-        app:strokeWidth="1dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/headerCollapsed" />
 
-        <ImageView
-            android:id="@+id/brushPreview"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:contentDescription="Brush Stroke Live Preview"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="4dp"
-            android:scaleType="fitCenter" />
-
-    </com.google.android.material.card.MaterialCardView>
+    <!-- Eraser Panel Container (shown when Eraser is active) -->
+    <FrameLayout
+        android:id="@+id/eraserContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/headerCollapsed" />
 
     <!-- Child Fragment Container (ColorPicker / GradientEditor overlay) -->
     <FrameLayout

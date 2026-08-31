@@ -6,11 +6,16 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.BrushStyle
 import com.webscare.urducanvas.databinding.FragmentBrushStyleGridBinding
+import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class BrushStyleFragment : Fragment() {
@@ -19,6 +24,7 @@ class BrushStyleFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: CanvasViewModel by activityViewModels()
+    private val mainViewModel: MainViewModel by activityViewModels()
     private lateinit var styleAdapter: BrushStyleAdapter
 
     private val allBrushStyles = listOf(
@@ -36,7 +42,17 @@ class BrushStyleFragment : Fragment() {
         BrushStyle.BRUSH_PEN,
         BrushStyle.FLAT_BRUSH,
         BrushStyle.SPLATTER,
-        BrushStyle.GLITTER
+        BrushStyle.GLITTER,
+        BrushStyle.NEON_GLOW,
+        BrushStyle.CRAYON,
+        BrushStyle.SPRAY,
+        BrushStyle.RIBBON,
+        BrushStyle.DASHED,
+        BrushStyle.DOTTED,
+        BrushStyle.SOFT_AIR,
+        BrushStyle.PASTEL,
+        BrushStyle.OIL_PAINT,
+        BrushStyle.PIXEL
     )
 
     override fun onCreateView(
@@ -59,7 +75,7 @@ class BrushStyleFragment : Fragment() {
         }
 
         binding.brushStylesRV.apply {
-            layoutManager = GridLayoutManager(requireContext(), 2, GridLayoutManager.HORIZONTAL, false)
+            layoutManager = GridLayoutManager(requireContext(), 3, GridLayoutManager.HORIZONTAL, false)
             adapter = styleAdapter
             post {
                 styleAdapter.notifyDataSetChanged()
@@ -69,9 +85,7 @@ class BrushStyleFragment : Fragment() {
 
     private fun observeViewModel() {
         viewModel.currentBrushStyle.observe(viewLifecycleOwner) { currentStyle ->
-            currentStyle?.let {
-                styleAdapter.selectedStyle = it
-            }
+            styleAdapter.selectedStyle = currentStyle
         }
     }
 

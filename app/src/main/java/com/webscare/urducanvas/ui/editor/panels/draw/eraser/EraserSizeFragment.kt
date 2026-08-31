@@ -1,4 +1,4 @@
-package com.webscare.urducanvas.ui.editor.panels.draw.brush
+package com.webscare.urducanvas.ui.editor.panels.draw.eraser
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -11,23 +11,21 @@ import androidx.fragment.app.activityViewModels
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
-import com.webscare.urducanvas.databinding.FragmentBrushSizeBinding
+import com.webscare.urducanvas.databinding.FragmentEraserSizeBinding
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class BrushSizeFragment : Fragment() {
+class EraserSizeFragment : Fragment() {
 
-    private var _binding: FragmentBrushSizeBinding? = null
+    private var _binding: FragmentEraserSizeBinding? = null
     private val binding get() = _binding!!
 
     private val viewModel: CanvasViewModel by activityViewModels()
 
-    private val presetSizes = listOf(2, 4, 8, 16, 32, 48, 64, 80)
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentBrushSizeBinding.inflate(inflater, container, false)
+        _binding = FragmentEraserSizeBinding.inflate(inflater, container, false)
         return binding.root
     }
 
@@ -41,21 +39,21 @@ class BrushSizeFragment : Fragment() {
 
     private fun setupSmoothingToggle() {
         binding.smoothEdgesSwitch.onCheckedChangeListener = { isChecked ->
-            viewModel.setBrushSmoothingEnabled(isChecked)
+            viewModel.setEraserSmoothingEnabled(isChecked)
             viewModel.enterDrawingMode(requireActivity())
         }
     }
 
     private fun setupSeekBars() {
-        // Size / Thickness SeekBar (1..100)
+        // Thickness / Size SeekBar (1..150)
         binding.thicknessBar.apply {
-            max = 99 // 0..99 corresponds to 1..100
+            max = 149 // 0..149 -> 1..150
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                     val thickness = (progress + 1).toFloat()
                     binding.sizeValue.text = "${progress + 1}"
                     if (fromUser) {
-                        viewModel.setBrushThickness(thickness)
+                        viewModel.setEraserThickness(thickness)
                         viewModel.enterDrawingMode(requireActivity())
                     }
                     updatePresetSelection(thickness.toInt())
@@ -66,16 +64,16 @@ class BrushSizeFragment : Fragment() {
             })
         }
 
-        // Softness SeekBar (0..100% Softness)
+        // Softness SeekBar (0..100%)
         binding.hardnessBar.apply {
             max = 100
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                     binding.hardnessValue.text = "$progress%"
                     if (fromUser) {
-                        // 0% softness = 1.0 hardness (crisp), 100% softness = 0.0 hardness (fully soft/feathered/tapered)
+                        // 0% softness = 1.0 hardness (crisp), 100% softness = 0.0 hardness (fully feathered)
                         val hardness = 1f - (progress / 100f)
-                        viewModel.setBrushHardness(hardness)
+                        viewModel.setEraserHardness(hardness)
                         viewModel.enterDrawingMode(requireActivity())
                     }
                 }
@@ -92,7 +90,7 @@ class BrushSizeFragment : Fragment() {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                     binding.opacityValue.text = "$progress%"
                     if (fromUser) {
-                        viewModel.setBrushOpacity(progress / 100f)
+                        viewModel.setEraserOpacity(progress / 100f)
                         viewModel.enterDrawingMode(requireActivity())
                     }
                 }
@@ -105,19 +103,19 @@ class BrushSizeFragment : Fragment() {
 
     private fun setupPresets() {
         val presetViews = listOf(
-            binding.sizePreset2 to 2,
-            binding.sizePreset4 to 4,
             binding.sizePreset8 to 8,
             binding.sizePreset16 to 16,
+            binding.sizePreset24 to 24,
             binding.sizePreset32 to 32,
             binding.sizePreset48 to 48,
             binding.sizePreset64 to 64,
-            binding.sizePreset80 to 80
+            binding.sizePreset80 to 80,
+            binding.sizePreset100 to 100
         )
 
         presetViews.forEach { (view, size) ->
             view.addPressEffect {
-                viewModel.setBrushThickness(size.toFloat())
+                viewModel.setEraserThickness(size.toFloat())
                 viewModel.enterDrawingMode(requireActivity())
             }
         }
@@ -130,14 +128,14 @@ class BrushSizeFragment : Fragment() {
         val contrastColor = ContextCompat.getColor(requireContext(), R.color.contrast)
 
         val rings = mapOf(
-            2 to binding.sizeDotRing2,
-            4 to binding.sizeDotRing4,
             8 to binding.sizeDotRing8,
             16 to binding.sizeDotRing16,
+            24 to binding.sizeDotRing24,
             32 to binding.sizeDotRing32,
             48 to binding.sizeDotRing48,
             64 to binding.sizeDotRing64,
-            80 to binding.sizeDotRing80
+            80 to binding.sizeDotRing80,
+            100 to binding.sizeDotRing100
         )
 
         rings.forEach { (size, ring) ->
@@ -149,39 +147,42 @@ class BrushSizeFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        viewModel.brushThickness.observe(viewLifecycleOwner) { thickness ->
-            val sizeInt = thickness.toInt()
-            val progress = (sizeInt - 1).coerceIn(0, 99)
-            binding.thicknessBar.progress = progress
-            binding.sizeValue.text = "$sizeInt"
-            updatePresetSelection(sizeInt)
+        viewModel.eraserThickness.observe(viewLifecycleOwner) { thickness ->
+            val t = (thickness ?: 24f).toInt()
+            val progress = (t - 1).coerceIn(0, 149)
+            if (binding.thicknessBar.progress != progress) {
+                binding.thicknessBar.progress = progress
+            }
+            binding.sizeValue.text = "$t"
+            updatePresetSelection(t)
         }
 
-        viewModel.brushHardness.observe(viewLifecycleOwner) { hardness ->
-            // Convert hardness back to softness percentage (1f hardness = 0% soft, 0f hardness = 100% soft)
-            val softness = (1f - hardness).coerceIn(0f, 1f)
-            val progress = (softness * 100).toInt().coerceIn(0, 100)
-            binding.hardnessBar.progress = progress
-            binding.hardnessValue.text = "$progress%"
+        viewModel.eraserHardness.observe(viewLifecycleOwner) { hardness ->
+            val h = hardness ?: 1f
+            // 0% softness = 1.0 hardness, 100% softness = 0.0 hardness
+            val softnessPercent = ((1f - h) * 100f).toInt().coerceIn(0, 100)
+            if (binding.hardnessBar.progress != softnessPercent) {
+                binding.hardnessBar.progress = softnessPercent
+            }
+            binding.hardnessValue.text = "$softnessPercent%"
         }
 
-        viewModel.brushOpacity.observe(viewLifecycleOwner) { opacity ->
-            val progress = (opacity * 100).toInt().coerceIn(0, 100)
-            binding.opacityBar.progress = progress
-            binding.opacityValue.text = "$progress%"
+        viewModel.eraserOpacity.observe(viewLifecycleOwner) { opacity ->
+            val o = opacity ?: 1f
+            val opacityPercent = (o * 100f).toInt().coerceIn(0, 100)
+            if (binding.opacityBar.progress != opacityPercent) {
+                binding.opacityBar.progress = opacityPercent
+            }
+            binding.opacityValue.text = "$opacityPercent%"
         }
 
-        viewModel.isBrushSmoothingEnabled.observe(viewLifecycleOwner) { isEnabled ->
-            binding.smoothEdgesSwitch.setCheckedQuietly(isEnabled == true)
+        viewModel.isEraserSmoothingEnabled.observe(viewLifecycleOwner) { isSmoothing ->
+            binding.smoothEdgesSwitch.setChecked(isSmoothing == true, animate = false)
         }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-    }
-
-    companion object {
-        fun newInstance(): BrushSizeFragment = BrushSizeFragment()
     }
 }

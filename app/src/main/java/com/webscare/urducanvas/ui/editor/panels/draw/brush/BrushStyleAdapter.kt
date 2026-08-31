@@ -33,7 +33,15 @@ class BrushStyleAdapter(
         }
     }
 
-    var selectedStyle: BrushStyle = BrushStyle.ROUND_BRUSH
+    var slideOffset: Float = 0f
+        set(value) {
+            if (field != value) {
+                field = value
+                notifyItemRangeChanged(0, itemCount, "size_change")
+            }
+        }
+
+    var selectedStyle: BrushStyle? = null
         set(value) {
             val old = field
             field = value
@@ -45,17 +53,17 @@ class BrushStyleAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): StyleViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.layout_brush_style_item, parent, false)
-        return StyleViewHolder(view)
+        return StyleViewHolder(view, this)
     }
 
     override fun onBindViewHolder(holder: StyleViewHolder, position: Int) {
         val style = styles[position]
-        holder.titleTxt.text = style.displayName
-        holder.titleTxt.visibility = View.VISIBLE
 
-        val isSelected = style == selectedStyle ||
+        val isSelected = selectedStyle != null && (
+                style == selectedStyle ||
                 (selectedStyle == BrushStyle.BRUSH && style == BrushStyle.ROUND_BRUSH) ||
                 (selectedStyle == BrushStyle.PEN && style == BrushStyle.INK_PEN)
+        )
 
         val cardView = holder.itemView as? MaterialCardView
         if (cardView != null) {
@@ -64,15 +72,13 @@ class BrushStyleAdapter(
             cardView.strokeColor = ContextCompat.getColor(cardView.context, R.color.appColor)
         }
 
-        holder.selectionBadge.visibility = if (isSelected) View.VISIBLE else View.GONE
-
         val bmp = BrushStyleThumbnailRenderer.getCachedOrGenerateThumbnail(
             holder.itemView.context,
             style
         )
         holder.previewImg.setImageBitmap(bmp)
 
-        holder.updateSize(attachedRecyclerView)
+        holder.updateSize(slideOffset)
 
         holder.itemView.addPressEffect {
             selectedStyle = style
@@ -82,22 +88,20 @@ class BrushStyleAdapter(
 
     override fun getItemCount(): Int = styles.size
 
-    class StyleViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    class StyleViewHolder(view: View, private val adapter: BrushStyleAdapter) : RecyclerView.ViewHolder(view) {
         val previewImg: ImageView = view.findViewById(R.id.brushPreviewImage)
-        val titleTxt: TextView = view.findViewById(R.id.brushTitleText)
-        val selectionBadge: ImageView = view.findViewById(R.id.selectionBadge)
 
-        fun updateSize(attachedRecyclerView: RecyclerView?) {
+        fun updateSize(slideOffset: Float) {
             val cardRoot = itemView as? MaterialCardView ?: return
             val context = cardRoot.context
             val density = context.resources.displayMetrics.density
-            val recyclerView = (cardRoot.parent as? RecyclerView) ?: attachedRecyclerView
+            val recyclerView = (cardRoot.parent as? RecyclerView) ?: adapter.attachedRecyclerView
 
             val marginEndPx = (6 * density).toInt()
             val marginBottomPx = (6 * density).toInt()
 
             val lm = recyclerView?.layoutManager as? GridLayoutManager
-            val spanCountCollapsed = lm?.spanCount?.coerceAtLeast(1) ?: 2
+            val spanCountCollapsed = lm?.spanCount?.coerceAtLeast(1) ?: 3
 
             val rvHeight = recyclerView?.height ?: 0
             val rvPaddingY = (recyclerView?.paddingTop ?: 0) + (recyclerView?.paddingBottom ?: 0)
@@ -109,7 +113,18 @@ class BrushStyleAdapter(
                 (70 * density).toInt()
             }
 
-            val finalSize = computedCollapsedHeight.coerceAtLeast(1)
+            val collapsedSize = computedCollapsedHeight
+
+            val rvWidth = recyclerView?.width ?: 0
+            val rvPaddingX = (recyclerView?.paddingStart ?: 0) + (recyclerView?.paddingEnd ?: 0)
+            val spanCountExpanded = 4
+            val totalMarginW = (spanCountExpanded - 1) * marginEndPx
+            val columnWidth = if (rvWidth > 0) {
+                ((rvWidth - rvPaddingX - totalMarginW) / spanCountExpanded).toInt()
+            } else collapsedSize
+
+            val currentSize = (collapsedSize + (columnWidth - collapsedSize) * slideOffset).toInt()
+            val finalSize = currentSize.coerceAtLeast(1)
 
             val lp = cardRoot.layoutParams as? ViewGroup.MarginLayoutParams
             if (lp != null) {
