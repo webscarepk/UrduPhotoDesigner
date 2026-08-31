@@ -3,7 +3,39 @@
     android:height="27dp"
     android:viewportWidth="26"
     android:viewportHeight="27">
+    <!-- Large Star Top Left -->
     <path
-        android:fillColor="#FF89B59C"
-        android:pathData="M8.05 5.27L4.95 7 6.7 3.9 4.95 0.81l3.1 1.73 3.1-1.73-1.74 3.1L11.14 7 8.05 5.27ZM22.91 17.4L26 15.67l-1.73 3.09 1.73 3.1-3.1-1.74-3.09 1.73 1.73-3.09-1.73-3.1 3.1 1.74ZM26 0.8l-1.73 3.1L26 7l-3.1-1.73L19.82 7l1.73-3.1-1.73-3.09 3.1 1.73L26 0.81ZM15.28 14.15l3.02-3.02-2.62-2.62-3.03 3.02 2.63 2.62Zm1.27-6.8l2.9 2.9c0.48 0.46 0.48 1.27 0 1.75L5 26.45c-0.48 0.48-1.28 0.48-1.74 0l-2.9-2.9c-0.48-0.46-0.48-1.26 0-1.74L14.81 7.36c0.48-0.48 1.29-0.48 1.74 0Z"/>
+        android:strokeColor="#FF89B59C"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M8,1 C8,4 5,6 2,6 C5,6 8,8 8,11 C8,8 11,6 14,6 C11,6 8,4 8,1 Z" />
+    <!-- Medium Star Top Right -->
+    <path
+        android:strokeColor="#FF89B59C"
+        android:strokeWidth="1.3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M22,1 C22,3 20.5,4.5 18.5,4.5 C20.5,4.5 22,6 22,8 C22,6 23.5,4.5 25.5,4.5 C23.5,4.5 22,3 22,1 Z" />
+    <!-- Small Star Middle Right -->
+    <path
+        android:strokeColor="#FF89B59C"
+        android:strokeWidth="1.3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M21,16 C21,17.5 19.5,19 18,19 C19.5,19 21,20.5 21,22 C21,20.5 22.5,19 24,19 C22.5,19 21,17.5 21,16 Z" />
+    <!-- Magic Wand Body -->
+    <path
+        android:strokeColor="#FF89B59C"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M16.5,7.5 L19.5,10.5 L6,24 C5.17,24.83 3.83,24.83 3,24 C2.17,23.17 2.17,21.83 3,21 L16.5,7.5 Z" />
+    <!-- Wand Tip Collar Line -->
+    <path
+        android:strokeColor="#FF89B59C"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M13.5,10.5 L16.5,13.5" />
 </vector>

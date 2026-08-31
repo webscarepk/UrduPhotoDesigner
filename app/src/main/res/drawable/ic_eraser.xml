@@ -1,0 +1,26 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Eraser body: angled pill/block with cap -->
+    <path
+        android:strokeColor="@color/black"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M16.24,3.56 L20.44,7.76 C21.18,8.5 21.18,9.7 20.44,10.44 L11.04,19.84 C10.3,20.58 9.1,20.58 8.36,19.84 L4.16,15.64 C3.42,14.9 3.42,13.7 4.16,12.96 L13.56,3.56 C14.3,2.82 15.5,2.82 16.24,3.56 Z" />
+    <!-- Divider band -->
+    <path
+        android:strokeColor="@color/black"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M7.7,12.1 L14.7,19.1" />
+    <!-- Baseline swipe -->
+    <path
+        android:strokeColor="@color/black"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:pathData="M2,21 L22,21" />
+</vector>
