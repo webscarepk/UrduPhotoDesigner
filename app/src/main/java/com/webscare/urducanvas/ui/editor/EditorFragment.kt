@@ -148,7 +148,10 @@ class EditorFragment : Fragment() {
     private val nonExpandableDestinations = setOf(
         R.id.adjustmentsParentFragment,
         R.id.shapeFragment,
-        R.id.textAdjustmentsFragment
+        R.id.textAdjustmentsFragment,
+        R.id.tableAdjustmentsFragment,
+        R.id.universalEraserFragment,
+        R.id.drawFragment
     )
     private var isPanelExpandable = true
     private var currentDragHandle: View? = null  // stored so we can block/restore touch
@@ -225,7 +228,10 @@ class EditorFragment : Fragment() {
                 destination.id != R.id.adjustmentsParentFragment &&
                         destination.id != R.id.shapeFragment &&
                         destination.id != R.id.textAdjustmentsFragment &&
-                        destination.id != R.id.tableAdjustmentsFragment
+                        destination.id != R.id.tableAdjustmentsFragment &&
+                        destination.id != R.id.universalEraserFragment
+
+            updateToolbarMode(animate = true)
 
             // Lock the panel sheet collapsed for adjustment panels (non-expandable).
             // When the user navigates back to an expandable panel, attachDragHandle()
@@ -425,7 +431,6 @@ class EditorFragment : Fragment() {
         }
 
         binding.addDraw.addPressEffect {
-            viewModel.enterDrawingMode(requireActivity())
             val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
             navController.navigate(R.id.drawFragment, null, navOptions)
             toggleFabMenu(false)
@@ -950,8 +955,9 @@ class EditorFragment : Fragment() {
 
         viewModel.isDrawingMode.observe(viewLifecycleOwner) { isDrawing ->
             if (::sizedCanvasView.isInitialized) {
-                sizedCanvasView.setDrawingMode(isDrawing)
+                sizedCanvasView.setDrawingMode(isDrawing, viewModel.getActiveDrawSession())
             }
+            updateToolbarMode(animate = true)
         }
 
         viewModel.brushColor.observe(viewLifecycleOwner) {
@@ -966,12 +972,52 @@ class EditorFragment : Fragment() {
             sizedCanvasView.updateBrushSettings(hardness = it)
         }
 
+        viewModel.brushOpacity.observe(viewLifecycleOwner) {
+            sizedCanvasView.updateBrushSettings(opacity = it)
+        }
+
         viewModel.currentBrushStyle.observe(viewLifecycleOwner) {
             sizedCanvasView.updateBrushSettings(style = it)
         }
 
         viewModel.brushGradient.observe(viewLifecycleOwner) {
             sizedCanvasView.updateBrushSettings(gradient = it)
+        }
+
+        viewModel.isBrushSmoothingEnabled.observe(viewLifecycleOwner) { enabled ->
+            if (::sizedCanvasView.isInitialized) {
+                sizedCanvasView.isBrushSmoothingEnabled = (enabled == true)
+            }
+        }
+
+        viewModel.isEraserActive.observe(viewLifecycleOwner) { isEraser ->
+            if (::sizedCanvasView.isInitialized) {
+                sizedCanvasView.isEraserActive = (isEraser == true)
+            }
+        }
+
+        viewModel.eraserThickness.observe(viewLifecycleOwner) { thickness ->
+            if (::sizedCanvasView.isInitialized) {
+                sizedCanvasView.currentEraserThickness = thickness ?: 24f
+            }
+        }
+
+        viewModel.eraserHardness.observe(viewLifecycleOwner) { hardness ->
+            if (::sizedCanvasView.isInitialized) {
+                sizedCanvasView.currentEraserHardness = hardness ?: 1f
+            }
+        }
+
+        viewModel.eraserOpacity.observe(viewLifecycleOwner) { opacity ->
+            if (::sizedCanvasView.isInitialized) {
+                sizedCanvasView.currentEraserOpacity = opacity ?: 1f
+            }
+        }
+
+        viewModel.isEraserSmoothingEnabled.observe(viewLifecycleOwner) { enabled ->
+            if (::sizedCanvasView.isInitialized) {
+                sizedCanvasView.isEraserSmoothingEnabled = (enabled == true)
+            }
         }
 
         viewModel.activePicker.observe(viewLifecycleOwner) { slot ->
@@ -1240,6 +1286,7 @@ class EditorFragment : Fragment() {
             updateIconVisibility(binding.fontSizePane, false, animate = animate, animHide = R.anim.slide_out_left)
             updateIconVisibility(binding.copyIcon, false, animate = animate, animHide = R.anim.slide_out_left)
             updateIconVisibility(binding.cutOutIcon, false, animate = animate, animHide = R.anim.slide_out_left)
+            updateIconVisibility(binding.eraserIcon, false, animate = animate, animHide = R.anim.slide_out_left)
             updateIconVisibility(binding.alignmentKit, false, animate = animate, animHide = R.anim.slide_out)
             updateIconVisibility(binding.selection, false, animate = animate)
             return
@@ -1260,6 +1307,8 @@ class EditorFragment : Fragment() {
             updateIconVisibility(binding.copyIcon, false, animate = animate,
                 animHide = R.anim.slide_out_left)
             updateIconVisibility(binding.cutOutIcon, false, animate = animate,
+                animHide = R.anim.slide_out_left)
+            updateIconVisibility(binding.eraserIcon, false, animate = animate,
                 animHide = R.anim.slide_out_left)
             updateIconVisibility(binding.alignmentKit, false, animate = animate,
                 animHide = R.anim.slide_out)
@@ -1301,6 +1350,10 @@ class EditorFragment : Fragment() {
         )
         updateIconVisibility(
             binding.cutOutIcon, showRemoveBg, animate = animate,
+            animShow = R.anim.slide_in_left, animHide = R.anim.slide_out_left
+        )
+        updateIconVisibility(
+            binding.eraserIcon, showRemoveBg, animate = animate,
             animShow = R.anim.slide_in_left, animHide = R.anim.slide_out_left
         )
         updateIconVisibility(
@@ -1424,24 +1477,9 @@ class EditorFragment : Fragment() {
         viewModel.isTableEditMode.observe(viewLifecycleOwner) { isTableEdit ->
             val canvasView = if (::sizedCanvasView.isInitialized) sizedCanvasView else viewModel.getCanvasView()
             canvasView?.isTableEditMode = (isTableEdit == true)
-            binding.normalTools.isVisible = (isTableEdit != true)
-            binding.tableTools.isVisible = (isTableEdit == true)
+            updateToolbarMode(animate = true)
             updateTableSelectionBar()
             updateToolbarVisibility(viewModel.selectedElements.value ?: emptyList(), animate = false)
-            val ctx = context ?: return@observe
-            if (isTableEdit == true) {
-                // Done button in table edit mode: clean contrast background, black checkmark icon (NO green fill)
-                binding.done.setImageResource(R.drawable.ic_done)
-                binding.done.setBackgroundResource(R.drawable.button_bg_round)
-                binding.done.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.contrast))
-                binding.done.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.black))
-            } else {
-                // Restore standard export done button
-                binding.done.setImageResource(R.drawable.ic_export_canvas)
-                binding.done.setBackgroundResource(R.drawable.ic_button_gradient_wrap)
-                binding.done.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#30005D28"))
-                binding.done.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.black))
-            }
         }
         viewModel.isTableMultiSelectMode.observe(viewLifecycleOwner) { isMulti ->
             val canvasView = if (::sizedCanvasView.isInitialized) sizedCanvasView else viewModel.getCanvasView()
@@ -1452,26 +1490,10 @@ class EditorFragment : Fragment() {
         viewModel.selectedTableCellCount.observe(viewLifecycleOwner) {
             updateTableSelectionBar()
         }
-        viewModel.isTableResizeMode.observe(viewLifecycleOwner) { isResize ->
-            val canvasView = if (::sizedCanvasView.isInitialized) sizedCanvasView else viewModel.getCanvasView()
-            canvasView?.isTableResizeMode = (isResize == true)
-            val ctx = context ?: return@observe
-            binding.btnTableResize.backgroundTintList = ColorStateList.valueOf(
-                if (isResize == true) ContextCompat.getColor(ctx, R.color.appColor)
-                else ContextCompat.getColor(ctx, R.color.contrast)
-            )
-            binding.btnTableResize.imageTintList = ColorStateList.valueOf(
-                if (isResize == true) Color.WHITE
-                else ContextCompat.getColor(ctx, R.color.gray)
-            )
-        }
         setupTableEditToolbar()
     }
 
     private fun setupTableEditToolbar() {
-        binding.btnTableResize.addPressEffect {
-            viewModel.toggleTableResizeMode()
-        }
         binding.btnTableCellText.addPressEffect {
             showCellEditDialog()
         }
@@ -1494,22 +1516,63 @@ class EditorFragment : Fragment() {
     }
 
     private fun updateTableSelectionBar() {
+        val b = _binding ?: return
         val isTableEdit = viewModel.isTableEditMode.value == true
-        if (!isTableEdit) {
-            binding.tableSelectionBar.visibility = View.GONE
-            return
-        }
         val isMulti = viewModel.isTableMultiSelectMode.value == true
         val count = viewModel.selectedTableCellCount.value ?: 0
-        if (isMulti && count > 0) {
-            binding.tableSelectionBar.visibility = View.VISIBLE
-            binding.tvTableSelectionCount.text = when {
+        val shouldShow = isTableEdit && isMulti && count > 0
+
+        val isCurrentlyVisible = (b.tableSelectionBar.visibility == View.VISIBLE)
+
+        if (shouldShow) {
+            b.tvTableSelectionCount.text = when {
                 count == 1 -> "1 cell selected"
                 count > 1 -> "$count cells selected"
                 else -> "Select cells"
             }
+            if (!isCurrentlyVisible) {
+                b.tableSelectionBar.animate().cancel()
+                androidx.transition.TransitionManager.beginDelayedTransition(
+                    b.header,
+                    androidx.transition.AutoTransition().apply {
+                        duration = 220L
+                        interpolator = android.view.animation.DecelerateInterpolator()
+                    }
+                )
+                b.tableSelectionBar.visibility = View.VISIBLE
+                b.tableSelectionBar.alpha = 0f
+                b.tableSelectionBar.translationY = -12f * resources.displayMetrics.density
+                b.tableSelectionBar.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(220L)
+                    .setInterpolator(android.view.animation.DecelerateInterpolator())
+                    .start()
+            }
         } else {
-            binding.tableSelectionBar.visibility = View.GONE
+            if (isCurrentlyVisible) {
+                b.tableSelectionBar.animate().cancel()
+                b.tableSelectionBar.animate()
+                    .alpha(0f)
+                    .translationY(-12f * resources.displayMetrics.density)
+                    .setDuration(180L)
+                    .setInterpolator(android.view.animation.DecelerateInterpolator())
+                    .withEndAction {
+                        val endB = _binding ?: return@withEndAction
+                        androidx.transition.TransitionManager.beginDelayedTransition(
+                            endB.header,
+                            androidx.transition.AutoTransition().apply {
+                                duration = 180L
+                                interpolator = android.view.animation.DecelerateInterpolator()
+                            }
+                        )
+                        endB.tableSelectionBar.visibility = View.GONE
+                        endB.tableSelectionBar.translationY = 0f
+                    }
+                    .start()
+            } else {
+                b.tableSelectionBar.visibility = View.GONE
+            }
         }
     }
 
@@ -1723,7 +1786,6 @@ class EditorFragment : Fragment() {
                 R.id.nav_shapes -> PanelType.SHAPES
                 R.id.nav_stickers -> PanelType.OBJECTS
                 R.id.nav_tables -> PanelType.TABLES
-                R.id.nav_draw -> PanelType.DRAW
                 R.id.nav_layers -> PanelType.LAYERS
                 else -> null
             }
@@ -1980,6 +2042,15 @@ class EditorFragment : Fragment() {
             })
         }
 
+        binding.back.addPressEffect {
+            if (_navController?.currentDestination?.id == R.id.universalEraserFragment || currentToolbarMode == EditorToolbarMode.ERASER) {
+                viewModel.exitDrawingMode(commit = false)
+                _navController?.popBackStack()
+            } else {
+                findNavController().popBackStack()
+            }
+        }
+
         binding.copyIcon.addPressEffect { viewModel.copySelectedElementsGroup() }
 
         binding.cutOutIcon.addPressEffect {
@@ -1987,6 +2058,16 @@ class EditorFragment : Fragment() {
                 val selected = viewModel.selectedElements.value?.firstOrNull()
                 if (selected?.bitmap != null && selected.bitmapData != null) {
                     findNavController().navigate(R.id.bgRemovalFragment)
+                }
+            }
+        }
+
+        binding.eraserIcon.addPressEffect {
+            view?.post {
+                val selected = viewModel.selectedElements.value?.firstOrNull()
+                if (selected != null) {
+                    val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
+                    _navController?.navigate(R.id.universalEraserFragment, null, navOptions)
                 }
             }
         }
@@ -2006,7 +2087,17 @@ class EditorFragment : Fragment() {
         }
 
         binding.done.addPressEffect {
-            if (viewModel.isTableEditMode.value == true) {
+            binding.done.performHapticFeedback(
+                android.view.HapticFeedbackConstants.VIRTUAL_KEY,
+                android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+            )
+            binding.done.vibrateSoft()
+            if (_navController?.currentDestination?.id == R.id.universalEraserFragment || currentToolbarMode == EditorToolbarMode.ERASER) {
+                viewModel.exitDrawingMode(commit = true)
+                _navController?.popBackStack()
+            } else if (viewModel.isDrawingMode.value == true) {
+                viewModel.exitDrawingMode(commit = true)
+            } else if (viewModel.isTableEditMode.value == true) {
                 viewModel.exitTableEditMode()
             } else {
                 viewModel.setCanvasView(sizedCanvasView)
@@ -2017,7 +2108,271 @@ class EditorFragment : Fragment() {
             }
         }
 
+        binding.btnClearDrawing.addPressEffect {
+            viewModel.clearDrawingSession()
+        }
+
+        binding.btnResetBrushDefaults.addPressEffect {
+            viewModel.resetBrushSettings()
+        }
+
         initPanelSheet()
+    }
+
+    private enum class EditorToolbarMode {
+        NORMAL,
+        DRAW,
+        TABLE_EDIT,
+        ERASER
+    }
+
+    private var currentToolbarMode: EditorToolbarMode? = null
+
+    private fun updateToolbarMode(animate: Boolean = true) {
+        val b = _binding ?: return
+        val ctx = context ?: return
+        val isEraser = _navController?.currentDestination?.id == R.id.universalEraserFragment
+        val isDrawing = viewModel.isDrawingMode.value == true && !isEraser
+        val isTableEdit = viewModel.isTableEditMode.value == true
+
+        val targetMode = when {
+            isEraser -> EditorToolbarMode.ERASER
+            isDrawing -> EditorToolbarMode.DRAW
+            isTableEdit -> EditorToolbarMode.TABLE_EDIT
+            else -> EditorToolbarMode.NORMAL
+        }
+
+        if (currentToolbarMode == targetMode) return
+        val previousMode = currentToolbarMode
+        currentToolbarMode = targetMode
+
+        val slideOffset = 60f * resources.displayMetrics.density
+        val animDuration = 260L
+        val interpolator = android.view.animation.DecelerateInterpolator()
+
+        fun applyDoneButtonState(isDoneCheckmark: Boolean) {
+            if (isDoneCheckmark) {
+                b.done.setImageResource(R.drawable.ic_done)
+                b.done.setBackgroundResource(R.drawable.button_bg_round)
+                b.done.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.contrast))
+                b.done.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.black))
+            } else {
+                b.done.setImageResource(R.drawable.ic_export_canvas)
+                b.done.setBackgroundResource(R.drawable.ic_button_gradient_wrap)
+                b.done.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#30005D28"))
+                b.done.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.black))
+            }
+        }
+
+        if (targetMode == EditorToolbarMode.ERASER) {
+            b.back.setImageResource(R.drawable.ic_close)
+            b.grid.visibility = View.GONE
+        } else {
+            b.back.setImageResource(R.drawable.ic_back)
+            b.grid.visibility = View.VISIBLE
+        }
+
+        if (!animate || previousMode == null) {
+            // Instant configuration without animation on first load / fragment recreation
+            b.back.visibility = if (targetMode == EditorToolbarMode.NORMAL || targetMode == EditorToolbarMode.ERASER) View.VISIBLE else View.GONE
+            b.normalTools.visibility = if (targetMode == EditorToolbarMode.NORMAL || targetMode == EditorToolbarMode.ERASER) View.VISIBLE else View.GONE
+            b.drawTools.visibility = if (targetMode == EditorToolbarMode.DRAW) View.VISIBLE else View.GONE
+            b.tableTools.visibility = if (targetMode == EditorToolbarMode.TABLE_EDIT) View.VISIBLE else View.GONE
+
+            b.back.translationX = 0f
+            b.back.alpha = 1f
+            b.normalTools.translationX = 0f
+            b.normalTools.alpha = 1f
+            b.drawTools.translationX = 0f
+            b.drawTools.alpha = 1f
+            b.tableTools.translationX = 0f
+            b.tableTools.alpha = 1f
+
+            applyDoneButtonState(targetMode != EditorToolbarMode.NORMAL)
+            return
+        }
+
+        // Animate Undo/Redo container with a visible pulse
+        b.redoUndo.animate().cancel()
+        b.redoUndo.animate()
+            .scaleX(0.88f)
+            .scaleY(0.88f)
+            .alpha(0.6f)
+            .setDuration(120L)
+            .withEndAction {
+                val endB = _binding ?: return@withEndAction
+                endB.redoUndo.animate()
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .alpha(1f)
+                    .setDuration(160L)
+                    .setInterpolator(android.view.animation.OvershootInterpolator(1.5f))
+                    .start()
+            }
+            .start()
+
+        // Left tools transition (back button + tool groups)
+        when {
+            targetMode == EditorToolbarMode.ERASER && previousMode == EditorToolbarMode.NORMAL -> {
+                // Keep back & normalTools visible, only grid hides
+                b.back.visibility = View.VISIBLE
+                b.normalTools.visibility = View.VISIBLE
+                b.drawTools.visibility = View.GONE
+                b.tableTools.visibility = View.GONE
+            }
+
+            previousMode == EditorToolbarMode.ERASER && targetMode == EditorToolbarMode.NORMAL -> {
+                // Keep back & normalTools visible, grid restores
+                b.back.visibility = View.VISIBLE
+                b.normalTools.visibility = View.VISIBLE
+                b.drawTools.visibility = View.GONE
+                b.tableTools.visibility = View.GONE
+            }
+
+            // Entering DRAW or TABLE_EDIT from NORMAL or ERASER: slide back & normalTools out to left, slide drawTools/tableTools in
+            previousMode == EditorToolbarMode.NORMAL || previousMode == EditorToolbarMode.ERASER -> {
+                b.back.animate().cancel()
+                b.back.animate()
+                    .translationX(-slideOffset)
+                    .alpha(0f)
+                    .setDuration(animDuration)
+                    .setInterpolator(interpolator)
+                    .withEndAction {
+                        val endB = _binding ?: return@withEndAction
+                        endB.back.visibility = View.GONE
+                    }
+                    .start()
+
+                b.normalTools.animate().cancel()
+                b.normalTools.animate()
+                    .translationX(-slideOffset)
+                    .alpha(0f)
+                    .setDuration(animDuration)
+                    .setInterpolator(interpolator)
+                    .withEndAction {
+                        val endB = _binding ?: return@withEndAction
+                        endB.normalTools.visibility = View.GONE
+                    }
+                    .start()
+
+                val enteringLeft = if (targetMode == EditorToolbarMode.DRAW) b.drawTools else b.tableTools
+                enteringLeft.animate().cancel()
+                enteringLeft.visibility = View.VISIBLE
+                enteringLeft.translationX = -slideOffset
+                enteringLeft.alpha = 0f
+                enteringLeft.animate()
+                    .translationX(0f)
+                    .alpha(1f)
+                    .setDuration(animDuration)
+                    .setInterpolator(interpolator)
+                    .start()
+            }
+
+            // Exiting DRAW or TABLE_EDIT to NORMAL or ERASER: slide drawTools/tableTools out, slide back & normalTools in
+            targetMode == EditorToolbarMode.NORMAL || targetMode == EditorToolbarMode.ERASER -> {
+                val exitingLeft = if (previousMode == EditorToolbarMode.DRAW) b.drawTools else b.tableTools
+                exitingLeft.animate().cancel()
+                exitingLeft.animate()
+                    .translationX(-slideOffset)
+                    .alpha(0f)
+                    .setDuration(animDuration)
+                    .setInterpolator(interpolator)
+                    .withEndAction {
+                        val endB = _binding ?: return@withEndAction
+                        endB.drawTools.visibility = View.GONE
+                        endB.tableTools.visibility = View.GONE
+                    }
+                    .start()
+
+                b.back.animate().cancel()
+                b.back.visibility = View.VISIBLE
+                b.back.translationX = -slideOffset
+                b.back.alpha = 0f
+                b.back.animate()
+                    .translationX(0f)
+                    .alpha(1f)
+                    .setDuration(animDuration)
+                    .setInterpolator(interpolator)
+                    .start()
+
+                b.normalTools.animate().cancel()
+                b.normalTools.visibility = View.VISIBLE
+                b.normalTools.translationX = -slideOffset
+                b.normalTools.alpha = 0f
+                b.normalTools.animate()
+                    .translationX(0f)
+                    .alpha(1f)
+                    .setDuration(animDuration)
+                    .setInterpolator(interpolator)
+                    .start()
+            }
+
+            // Switching between DRAW and TABLE_EDIT
+            else -> {
+                val exitingLeft = if (previousMode == EditorToolbarMode.DRAW) b.drawTools else b.tableTools
+                val enteringLeft = if (targetMode == EditorToolbarMode.DRAW) b.drawTools else b.tableTools
+
+                if (exitingLeft !== enteringLeft) {
+                    exitingLeft.animate().cancel()
+                    exitingLeft.animate()
+                        .translationX(-slideOffset)
+                        .alpha(0f)
+                        .setDuration(animDuration)
+                        .setInterpolator(interpolator)
+                        .withEndAction {
+                            exitingLeft.visibility = View.GONE
+                        }
+                        .start()
+
+                    enteringLeft.animate().cancel()
+                    enteringLeft.visibility = View.VISIBLE
+                    enteringLeft.translationX = -slideOffset
+                    enteringLeft.alpha = 0f
+                    enteringLeft.animate()
+                        .translationX(0f)
+                        .alpha(1f)
+                        .setDuration(animDuration)
+                        .setInterpolator(interpolator)
+                        .start()
+                }
+            }
+        }
+
+        // Right done button transition: if changing between checkmark (DRAW / TABLE_EDIT) and export (NORMAL)
+        val wasCheckmark = (previousMode != EditorToolbarMode.NORMAL)
+        val isNowCheckmark = (targetMode != EditorToolbarMode.NORMAL)
+
+        if (wasCheckmark != isNowCheckmark) {
+            b.done.animate().cancel()
+            b.done.animate()
+                .translationX(slideOffset)
+                .alpha(0f)
+                .setDuration(animDuration / 2)
+                .setInterpolator(interpolator)
+                .withEndAction {
+                    val endB = _binding ?: return@withEndAction
+                    val safeCtx = context ?: return@withEndAction
+                    if (isNowCheckmark) {
+                        endB.done.setImageResource(R.drawable.ic_done)
+                        endB.done.setBackgroundResource(R.drawable.button_bg_round)
+                        endB.done.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(safeCtx, R.color.contrast))
+                        endB.done.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(safeCtx, R.color.black))
+                    } else {
+                        endB.done.setImageResource(R.drawable.ic_export_canvas)
+                        endB.done.setBackgroundResource(R.drawable.ic_button_gradient_wrap)
+                        endB.done.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#30005D28"))
+                        endB.done.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(safeCtx, R.color.black))
+                    }
+                    endB.done.translationX = slideOffset
+                    endB.done.animate()
+                        .translationX(0f)
+                        .alpha(1f)
+                        .setDuration(animDuration / 2)
+                        .setInterpolator(interpolator)
+                        .start()
+                }
+                .start()
+        }
     }
 
     private fun colorOf(@ColorRes colorRes: Int): Int {
@@ -2551,7 +2906,6 @@ class EditorFragment : Fragment() {
                 R.id.shapesParentFragment -> PanelType.SHAPES
                 R.id.tablesParentFragment -> PanelType.TABLES
                 R.id.textFragment         -> PanelType.FONTS
-                R.id.drawFragment         -> PanelType.DRAW
                 R.id.layersFragment       -> PanelType.LAYERS
                 else                      -> null
             }
@@ -2859,9 +3213,16 @@ class EditorFragment : Fragment() {
         registeredDragHandles.clear()
         saveJsonJob?.cancel()
         viewModel.clearLoading()
-        // Cancel the spring animation before nulling binding — its onSlide/onStateSettled
-        // lambdas capture binding, and Choreographer can deliver one more frame after
-        // onDestroyView, causing NPE on _binding!!.
+        _binding?.let { b ->
+            b.back.animate().cancel()
+            b.redoUndo.animate().cancel()
+            b.normalTools.animate().cancel()
+            b.tableTools.animate().cancel()
+            b.drawTools.animate().cancel()
+            b.done.animate().cancel()
+            b.tableSelectionBar.animate().cancel()
+        }
+        currentToolbarMode = null
         panelSheet?.snapTo(expanded = false, immediate = true)
         panelSheet = null
         _binding?.canvasContainer?.removeAllViews()

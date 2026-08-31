@@ -1,0 +1,586 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/panel_bg"
+    tools:context=".ui.editor.panels.eraser.UniversalEraserFragment">
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/topGuide"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.01" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/bottomGuide"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.99" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/startGuide"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.02" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/endGuide"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.98" />
+
+    <!-- Top toolbar: back button + title (matches properties panels) -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/toolbar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingBottom="5dp"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintTop_toBottomOf="@id/topGuide">
+
+        <ImageView
+            android:id="@+id/back"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/button_bg_round"
+            android:backgroundTint="@color/white"
+            android:padding="7dp"
+            android:src="@drawable/ic_back"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:fontFamily="@font/bold"
+            android:text="Eraser"
+            android:textColor="@color/black"
+            android:textSize="16sp"
+            app:layout_constraintBottom_toBottomOf="@id/back"
+            app:layout_constraintStart_toEndOf="@id/back"
+            app:layout_constraintTop_toTopOf="@id/back" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Scrollable or Fixed Content Area -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        android:overScrollMode="never"
+        android:paddingHorizontal="6dp"
+        android:paddingTop="4dp"
+        app:layout_constraintBottom_toTopOf="@id/bottomGuide"
+        app:layout_constraintEnd_toStartOf="@id/endGuide"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintTop_toBottomOf="@id/toolbar">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Preset Size Dots Row -->
+            <LinearLayout
+                android:id="@+id/presetSizesContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:weightSum="8">
+
+                <!-- 8 px -->
+                <LinearLayout
+                    android:id="@+id/sizePreset8"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/sizeDotRing8"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        app:cardBackgroundColor="@color/contrast"
+                        app:cardCornerRadius="14dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/appColor"
+                        app:strokeWidth="0dp">
+                        <View
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:layout_gravity="center"
+                            android:background="@drawable/button_bg_round"
+                            android:backgroundTint="@color/black" />
+                    </com.google.android.material.card.MaterialCardView>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="@font/regular"
+                        android:text="8"
+                        android:textColor="@color/gray"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <!-- 16 px -->
+                <LinearLayout
+                    android:id="@+id/sizePreset16"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/sizeDotRing16"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        app:cardBackgroundColor="@color/contrast"
+                        app:cardCornerRadius="14dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/appColor"
+                        app:strokeWidth="0dp">
+                        <View
+                            android:layout_width="9dp"
+                            android:layout_height="9dp"
+                            android:layout_gravity="center"
+                            android:background="@drawable/button_bg_round"
+                            android:backgroundTint="@color/black" />
+                    </com.google.android.material.card.MaterialCardView>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="@font/regular"
+                        android:text="16"
+                        android:textColor="@color/gray"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <!-- 24 px -->
+                <LinearLayout
+                    android:id="@+id/sizePreset24"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/sizeDotRing24"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        app:cardBackgroundColor="@color/contrast"
+                        app:cardCornerRadius="14dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/appColor"
+                        app:strokeWidth="0dp">
+                        <View
+                            android:layout_width="12dp"
+                            android:layout_height="12dp"
+                            android:layout_gravity="center"
+                            android:background="@drawable/button_bg_round"
+                            android:backgroundTint="@color/black" />
+                    </com.google.android.material.card.MaterialCardView>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="@font/regular"
+                        android:text="24"
+                        android:textColor="@color/gray"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <!-- 32 px -->
+                <LinearLayout
+                    android:id="@+id/sizePreset32"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/sizeDotRing32"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        app:cardBackgroundColor="@color/contrast"
+                        app:cardCornerRadius="14dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/appColor"
+                        app:strokeWidth="0dp">
+                        <View
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_gravity="center"
+                            android:background="@drawable/button_bg_round"
+                            android:backgroundTint="@color/black" />
+                    </com.google.android.material.card.MaterialCardView>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="@font/regular"
+                        android:text="32"
+                        android:textColor="@color/gray"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <!-- 48 px -->
+                <LinearLayout
+                    android:id="@+id/sizePreset48"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/sizeDotRing48"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        app:cardBackgroundColor="@color/contrast"
+                        app:cardCornerRadius="14dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/appColor"
+                        app:strokeWidth="0dp">
+                        <View
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:background="@drawable/button_bg_round"
+                            android:backgroundTint="@color/black" />
+                    </com.google.android.material.card.MaterialCardView>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="@font/regular"
+                        android:text="48"
+                        android:textColor="@color/gray"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <!-- 64 px -->
+                <LinearLayout
+                    android:id="@+id/sizePreset64"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/sizeDotRing64"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        app:cardBackgroundColor="@color/contrast"
+                        app:cardCornerRadius="14dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/appColor"
+                        app:strokeWidth="0dp">
+                        <View
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_gravity="center"
+                            android:background="@drawable/button_bg_round"
+                            android:backgroundTint="@color/black" />
+                    </com.google.android.material.card.MaterialCardView>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="@font/regular"
+                        android:text="64"
+                        android:textColor="@color/gray"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <!-- 80 px -->
+                <LinearLayout
+                    android:id="@+id/sizePreset80"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/sizeDotRing80"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        app:cardBackgroundColor="@color/contrast"
+                        app:cardCornerRadius="14dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/appColor"
+                        app:strokeWidth="0dp">
+                        <View
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:background="@drawable/button_bg_round"
+                            android:backgroundTint="@color/black" />
+                    </com.google.android.material.card.MaterialCardView>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="@font/regular"
+                        android:text="80"
+                        android:textColor="@color/gray"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <!-- 100 px -->
+                <LinearLayout
+                    android:id="@+id/sizePreset100"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/sizeDotRing100"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        app:cardBackgroundColor="@color/contrast"
+                        app:cardCornerRadius="14dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/appColor"
+                        app:strokeWidth="0dp">
+                        <View
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="center"
+                            android:background="@drawable/button_bg_round"
+                            android:backgroundTint="@color/black" />
+                    </com.google.android.material.card.MaterialCardView>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="@font/regular"
+                        android:text="100"
+                        android:textColor="@color/gray"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Size / Thickness Seekbar -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/sizeCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp">
+
+                <TextView
+                    android:id="@+id/sizeLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:fontFamily="@font/medium"
+                    android:text="Eraser Size"
+                    android:textColor="@color/black"
+                    android:textSize="12sp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/sizeValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:fontFamily="@font/regular"
+                    android:textColor="@color/black"
+                    android:textSize="12sp"
+                    app:layout_constraintBottom_toBottomOf="@id/sizeLabel"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/sizeLabel"
+                    tools:text="24" />
+
+                <SeekBar
+                    android:id="@+id/thicknessBar"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:indeterminateTint="@color/appColor"
+                    android:max="149"
+                    android:progress="23"
+                    android:progressBackgroundTint="@color/light_gray"
+                    android:progressTint="@color/appColor"
+                    android:splitTrack="false"
+                    android:thumb="@drawable/seekbar_thumb_custom"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/sizeLabel" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- Sub-row: Softness (Left) & Opacity (Right) -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/subControlsRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp">
+
+                <!-- Softness (Left) -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/hardnessCard"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="4dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/opacityCard"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <TextView
+                        android:id="@+id/hardnessLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:fontFamily="@font/medium"
+                        android:text="Softness"
+                        android:textColor="@color/black"
+                        android:textSize="12sp"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:id="@+id/hardnessValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:fontFamily="@font/regular"
+                        android:textColor="@color/black"
+                        android:textSize="12sp"
+                        app:layout_constraintBottom_toBottomOf="@id/hardnessLabel"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="@id/hardnessLabel"
+                        tools:text="0%" />
+
+                    <SeekBar
+                        android:id="@+id/hardnessBar"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:indeterminateTint="@color/appColor"
+                        android:max="100"
+                        android:progress="0"
+                        android:progressBackgroundTint="@color/light_gray"
+                        android:progressTint="@color/appColor"
+                        android:splitTrack="false"
+                        android:thumb="@drawable/seekbar_thumb_custom"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/hardnessLabel" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <!-- Opacity (Right) -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/opacityCard"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/hardnessCard"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <TextView
+                        android:id="@+id/opacityLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:fontFamily="@font/medium"
+                        android:text="Erase Opacity"
+                        android:textColor="@color/black"
+                        android:textSize="12sp"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:id="@+id/opacityValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:fontFamily="@font/regular"
+                        android:textColor="@color/black"
+                        android:textSize="12sp"
+                        app:layout_constraintBottom_toBottomOf="@id/opacityLabel"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="@id/opacityLabel"
+                        tools:text="100%" />
+
+                    <SeekBar
+                        android:id="@+id/opacityBar"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:indeterminateTint="@color/appColor"
+                        android:max="100"
+                        android:progress="100"
+                        android:progressBackgroundTint="@color/light_gray"
+                        android:progressTint="@color/appColor"
+                        android:splitTrack="false"
+                        android:thumb="@drawable/seekbar_thumb_custom"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/opacityLabel" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- Auto Smooth Edges Toggle Row -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/smoothEdgesRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:background="@drawable/button_bg"
+                android:backgroundTint="@color/contrast"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="8dp">
+
+                <TextView
+                    android:id="@+id/smoothEdgesLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="10dp"
+                    android:fontFamily="@font/medium"
+                    android:text="Auto Smooth Eraser"
+                    android:textColor="@color/black"
+                    android:textSize="13sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/smoothEdgesSwitch"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <com.webscare.urducanvas.common.views.AnimatedToggleSwitch
+                    android:id="@+id/smoothEdgesSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

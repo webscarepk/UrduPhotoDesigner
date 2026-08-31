@@ -78,4 +78,10 @@
         android:name="com.webscare.urducanvas.ui.editor.panels.table.TablesParentFragment"
         android:label="fragment_tables_parent"
         tools:layout="@layout/fragment_tables_parent" />
+
+    <fragment
+        android:id="@+id/universalEraserFragment"
+        android:name="com.webscare.urducanvas.ui.editor.panels.eraser.UniversalEraserFragment"
+        android:label="fragment_universal_eraser"
+        tools:layout="@layout/fragment_universal_eraser" />
 </navigation>
