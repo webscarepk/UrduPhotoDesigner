@@ -86,65 +86,108 @@ object BrushRenderUtils {
             } ?: run { color = stroke.color }
 
             val hardness = stroke.hardness.coerceIn(0f, 1f)
+            val softness = (1f - hardness).coerceIn(0f, 1f)
+            val opacityFactor = stroke.opacity.coerceIn(0f, 1f)
+
             // 🖌️ Style-dependent look
             when (stroke.style) {
                 BrushStyle.PENCIL -> {
                     alpha = (140 + 100 * hardness).toInt()
                     pathEffect = DashPathEffect(floatArrayOf(3f, 3f, 1f, 2f), 0f)
-                    maskFilter = null
+                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.25f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
                 }
 
                 BrushStyle.MARKER -> {
                     strokeCap = Paint.Cap.SQUARE
                     alpha = (100 + 140 * hardness).toInt()
-                    maskFilter = null
+                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.2f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
                 }
 
                 BrushStyle.HIGHLIGHTER -> {
                     strokeCap = Paint.Cap.BUTT
-                    alpha = (60 + 100 * hardness).toInt()
-                    maskFilter = null
+                    alpha = (80 + 80 * hardness).toInt()
+                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.2f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
                 }
 
-                BrushStyle.AIRBRUSH -> {
-                    val blurRadius = (stroke.thickness * 0.45f).coerceAtLeast(1f)
+                BrushStyle.AIRBRUSH, BrushStyle.SOFT_AIR -> {
+                    val blurRadius = (stroke.thickness * (0.35f + 0.35f * softness)).coerceAtLeast(1f)
                     maskFilter = BlurMaskFilter(blurRadius, BlurMaskFilter.Blur.NORMAL)
-                    alpha = (100 + 120 * hardness).toInt()
+                    alpha = (90 + 120 * hardness).toInt()
                 }
 
                 BrushStyle.CHALK -> {
                     alpha = (160 + 80 * hardness).toInt()
                     pathEffect = DashPathEffect(floatArrayOf(2f, 3f, 4f, 2f, 1f, 3f), 0f)
-                    maskFilter = null
+                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.2f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
                 }
 
-                BrushStyle.CHARCOAL -> {
+                BrushStyle.CHARCOAL, BrushStyle.PASTEL -> {
                     alpha = (180 + 75 * hardness).toInt()
                     pathEffect = DashPathEffect(floatArrayOf(4f, 2f, 6f, 3f, 2f, 1f), 0f)
-                    maskFilter = null
+                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.3f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
                 }
 
                 BrushStyle.WATERCOLOR -> {
                     alpha = (70 + 90 * hardness).toInt()
-                    maskFilter = BlurMaskFilter((stroke.thickness * 0.15f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL)
+                    val blurRadius = (stroke.thickness * (0.15f + 0.3f * softness)).coerceAtLeast(0.5f)
+                    maskFilter = BlurMaskFilter(blurRadius, BlurMaskFilter.Blur.NORMAL)
                 }
 
                 BrushStyle.FINE_LINER -> {
                     strokeWidth = (stroke.thickness * 0.4f).coerceAtLeast(1.5f)
                     alpha = (200 + 55 * hardness).toInt()
+                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.15f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
+                }
+
+                BrushStyle.DASHED -> {
+                    alpha = 255
+                    val dashLen = (stroke.thickness * 2.5f).coerceAtLeast(6f)
+                    pathEffect = DashPathEffect(floatArrayOf(dashLen, dashLen * 0.8f), 0f)
+                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.25f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
+                }
+
+                BrushStyle.DOTTED -> {
+                    alpha = 255
+                    strokeCap = Paint.Cap.ROUND
+                    val dotSpacing = (stroke.thickness * 1.8f).coerceAtLeast(6f)
+                    pathEffect = DashPathEffect(floatArrayOf(1f, dotSpacing), 0f)
+                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.25f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
+                }
+
+                BrushStyle.CRAYON -> {
+                    alpha = (190 + 60 * hardness).toInt()
+                    pathEffect = DashPathEffect(floatArrayOf(2f, 2f, 4f, 2f), 0f)
+                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.25f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
+                }
+
+                BrushStyle.NEON_GLOW -> {
+                    alpha = 255
+                    val glowRadius = (stroke.thickness * (0.5f + 0.4f * softness)).coerceAtLeast(4f)
+                    maskFilter = BlurMaskFilter(glowRadius, BlurMaskFilter.Blur.SOLID)
+                }
+
+                BrushStyle.PIXEL -> {
+                    strokeCap = Paint.Cap.SQUARE
+                    strokeJoin = Paint.Join.MITER
+                    alpha = 255
                     maskFilter = null
                 }
 
+                BrushStyle.OIL_PAINT, BrushStyle.TEXTURE -> {
+                    alpha = 240
+                    maskFilter = if (softness > 0.05f) BlurMaskFilter(softness * stroke.thickness * 0.35f, BlurMaskFilter.Blur.NORMAL) else null
+                }
+
                 BrushStyle.ROUND_BRUSH, BrushStyle.BRUSH -> {
-                    maskFilter = if (hardness < 0.9f)
-                        BlurMaskFilter((1f - hardness) * 25f, BlurMaskFilter.Blur.NORMAL)
+                    maskFilter = if (softness > 0.05f)
+                        BlurMaskFilter((softness * stroke.thickness * 0.4f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL)
                     else null
-                    alpha = (200 + 55 * hardness).toInt()
+                    alpha = (180 + 75 * hardness).toInt()
                 }
 
                 BrushStyle.INK_PEN, BrushStyle.PEN, BrushStyle.BRUSH_PEN -> {
                     alpha = (140 + 115 * hardness).toInt()
-                    maskFilter = null
+                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.2f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
                 }
 
                 BrushStyle.ERASER -> {
@@ -154,9 +197,11 @@ object BrushRenderUtils {
 
                 else -> {
                     alpha = (180 + 75 * hardness).toInt()
-                    maskFilter = null
+                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.35f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
                 }
             }
+
+            alpha = (alpha * opacityFactor).toInt().coerceIn(0, 255)
         }
     }
 
@@ -167,9 +212,12 @@ object BrushRenderUtils {
     ) {
         val pathMeasure = PathMeasure(stroke.path, false)
         val length = pathMeasure.length
+        if (length <= 0f) return
         val pos = FloatArray(2)
         val tan = FloatArray(2)
+        val softness = (1f - stroke.hardness).coerceIn(0f, 1f)
         val smoothness = 80
+        val origAlpha = paint.alpha
 
         val path = Path()
         pathMeasure.getPosTan(0f, pos, tan)
@@ -177,19 +225,25 @@ object BrushRenderUtils {
 
         for (i in 1..smoothness) {
             val t = i / smoothness.toFloat()
-            val baseFactor = 1f - 0.45f * t
-            val endEase = (1f - t).pow(0.6f)
-            val factor = (baseFactor * endEase).coerceIn(0.3f, 1f)
+            // Soft start and end feathering
+            val startTaper = if (t < 0.2f) (t / 0.2f).pow(0.5f) else 1f
+            val endTaper = if (t > 0.75f) ((1f - t) / 0.25f).pow(0.5f) else 1f
+            val taperFactor = startTaper * endTaper
 
-            val width = stroke.thickness * factor
+            // Taper width and alpha dynamically based on softness
+            val widthFactor = (1f - softness) * 1f + softness * taperFactor
+            val width = stroke.thickness * widthFactor.coerceIn(0.12f, 1f)
+            val alphaFactor = (1f - softness) * 1f + softness * taperFactor
 
             pathMeasure.getPosTan(length * t, pos, tan)
             paint.strokeWidth = width
+            paint.alpha = (origAlpha * alphaFactor).toInt().coerceIn(0, 255)
             path.lineTo(pos[0], pos[1])
             canvas.drawPath(path, paint)
             path.reset()
             path.moveTo(pos[0], pos[1])
         }
+        paint.alpha = origAlpha
     }
 
     fun drawBrushStroke(canvas: Canvas, stroke: StrokeData, paintAlpha: Int) {
@@ -200,7 +254,6 @@ object BrushRenderUtils {
             strokeJoin = Paint.Join.ROUND
             strokeCap = Paint.Cap.ROUND
             isAntiAlias = true
-            maskFilter = null
             alpha = paintAlpha
             setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
         }
@@ -433,9 +486,9 @@ object BrushRenderUtils {
         when (stroke.style) {
             BrushStyle.ROUND_BRUSH, BrushStyle.BRUSH -> drawBrush(canvas, stroke, paintAlpha)
             BrushStyle.INK_PEN, BrushStyle.PEN, BrushStyle.BRUSH_PEN -> drawPen(canvas, stroke, paintAlpha)
-            BrushStyle.CALLIGRAPHY -> drawCalligraphyStroke(canvas, stroke, paintAlpha)
+            BrushStyle.CALLIGRAPHY, BrushStyle.RIBBON -> drawCalligraphyStroke(canvas, stroke, paintAlpha)
             BrushStyle.FLAT_BRUSH -> drawFlatBrushStroke(canvas, stroke, paintAlpha)
-            BrushStyle.SPLATTER -> drawSplatterStroke(canvas, stroke, paintAlpha)
+            BrushStyle.SPLATTER, BrushStyle.SPRAY -> drawSplatterStroke(canvas, stroke, paintAlpha)
             BrushStyle.GLITTER -> drawGlitterStroke(canvas, stroke, paintAlpha)
             BrushStyle.WATERCOLOR -> drawWatercolorStroke(canvas, stroke, paintAlpha)
             BrushStyle.HIGHLIGHTER -> {
@@ -515,19 +568,25 @@ object BrushRenderUtils {
         paintAlpha: Int
     ) {
         val path = stroke.path ?: return
+        val finalAlpha = (paintAlpha * stroke.opacity.coerceIn(0f, 1f)).toInt().coerceIn(0, 255)
         when (stroke.style) {
-            BrushStyle.ROUND_BRUSH, BrushStyle.BRUSH -> drawBrushStroke(canvas, stroke, paintAlpha)
-            BrushStyle.INK_PEN, BrushStyle.PEN, BrushStyle.BRUSH_PEN -> drawTaperedPenStroke(canvas, stroke, paintAlpha)
-            BrushStyle.CALLIGRAPHY -> drawCalligraphyStroke(canvas, stroke, paintAlpha)
-            BrushStyle.FLAT_BRUSH -> drawFlatBrushStroke(canvas, stroke, paintAlpha)
-            BrushStyle.SPLATTER -> drawSplatterStroke(canvas, stroke, paintAlpha)
-            BrushStyle.GLITTER -> drawGlitterStroke(canvas, stroke, paintAlpha)
-            BrushStyle.WATERCOLOR -> drawWatercolorStroke(canvas, stroke, paintAlpha)
+            BrushStyle.ROUND_BRUSH, BrushStyle.BRUSH -> drawBrushStroke(canvas, stroke, finalAlpha)
+            BrushStyle.INK_PEN, BrushStyle.PEN, BrushStyle.BRUSH_PEN -> drawTaperedPenStroke(canvas, stroke, finalAlpha)
+            BrushStyle.CALLIGRAPHY, BrushStyle.RIBBON -> drawCalligraphyStroke(canvas, stroke, finalAlpha)
+            BrushStyle.FLAT_BRUSH -> drawFlatBrushStroke(canvas, stroke, finalAlpha)
+            BrushStyle.SPLATTER, BrushStyle.SPRAY -> drawSplatterStroke(canvas, stroke, finalAlpha)
+            BrushStyle.GLITTER -> drawGlitterStroke(canvas, stroke, finalAlpha)
+            BrushStyle.WATERCOLOR -> drawWatercolorStroke(canvas, stroke, finalAlpha)
             else -> {
+                val softness = (1f - stroke.hardness).coerceIn(0f, 1f)
                 val paint = makeStrokePaint(stroke, canvas.width, canvas.height).apply {
-                    alpha = paintAlpha
+                    alpha = finalAlpha
                 }
-                canvas.drawPath(path, paint)
+                if (softness > 0.05f) {
+                    drawTaperedStroke(canvas, stroke, paint)
+                } else {
+                    canvas.drawPath(path, paint)
+                }
             }
         }
     }

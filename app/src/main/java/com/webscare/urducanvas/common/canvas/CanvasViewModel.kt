@@ -329,17 +329,38 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
-    private val _currentBrushStyle = MutableLiveData(BrushStyle.BRUSH)
-    val currentBrushStyle: LiveData<BrushStyle> = _currentBrushStyle
+    private val _currentBrushStyle = MutableLiveData<BrushStyle?>(null)
+    val currentBrushStyle: LiveData<BrushStyle?> = _currentBrushStyle
 
     private val _brushHardness = MutableLiveData(1f)   // softness vs hardness
     val brushHardness: LiveData<Float> = _brushHardness
+
+    private val _brushOpacity = MutableLiveData(1f)   // 0f..1f
+    val brushOpacity: LiveData<Float> = _brushOpacity
 
     private val _brushThickness = MutableLiveData(10f)
     val brushThickness: LiveData<Float> = _brushThickness
 
     private val _brushColor = MutableLiveData(Color.BLACK)
     val brushColor: LiveData<Int> = _brushColor
+
+    private val _isBrushSmoothingEnabled = MutableLiveData(true)
+    val isBrushSmoothingEnabled: LiveData<Boolean> = _isBrushSmoothingEnabled
+
+    private val _isEraserActive = MutableLiveData(false)
+    val isEraserActive: LiveData<Boolean> = _isEraserActive
+
+    private val _eraserThickness = MutableLiveData(24f)
+    val eraserThickness: LiveData<Float> = _eraserThickness
+
+    private val _eraserHardness = MutableLiveData(1f)
+    val eraserHardness: LiveData<Float> = _eraserHardness
+
+    private val _eraserOpacity = MutableLiveData(1f)
+    val eraserOpacity: LiveData<Float> = _eraserOpacity
+
+    private val _isEraserSmoothingEnabled = MutableLiveData(true)
+    val isEraserSmoothingEnabled: LiveData<Boolean> = _isEraserSmoothingEnabled
 
     private val _currentShapeType = MutableLiveData(ShapeType.RECTANGLE)
     val currentShapeType: LiveData<ShapeType> = _currentShapeType
@@ -856,6 +877,9 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun startDrawSession(context: Context) {
+        if (_activeDrawSession != null) {
+            return
+        }
         val currentList = _canvasElements.value.orEmpty()
         val newZIndex = currentList.maxOfOrNull { it.zIndex }?.plus(1) ?: 1
         val canvasW = _canvasSize.value?.width ?: 0f
@@ -877,10 +901,8 @@ class CanvasViewModel @Inject constructor(
 
     fun commitDrawSession() {
         val session = _activeDrawSession ?: return
-        if (session.drawStrokes.isNullOrEmpty()) {
-            _activeDrawSession = null
-            return
-        }
+        val canvasView = getCanvasView()
+        val sessionBmp = canvasView?.getDrawingSessionBitmap()
 
         _canvasActions.removeAll { it is CanvasAction.DrawSessionStroke }
 
@@ -888,78 +910,80 @@ class CanvasViewModel @Inject constructor(
             val canvasW = _canvasSize.value?.width?.toInt() ?: 0
             val canvasH = _canvasSize.value?.height?.toInt() ?: 0
 
-            val rasterized: CanvasElement = if (canvasW > 0 && canvasH > 0) {
-
-                // --- Step 1: Compute tight bounds across all strokes ---
-                var minX = Float.MAX_VALUE
-                var minY = Float.MAX_VALUE
-                var maxX = -Float.MAX_VALUE
-                var maxY = -Float.MAX_VALUE
-
-                session.drawStrokes?.forEach { stroke ->
-                    val path = stroke.path ?: return@forEach
-                    val pathBounds = android.graphics.RectF()
-                    path.computeBounds(pathBounds, true)
-                    val expand = (stroke.thickness.takeIf { it.isFinite() } ?: 0f) * 0.5f
-                    pathBounds.inset(-expand, -expand)
-                    minX = minOf(minX, pathBounds.left)
-                    minY = minOf(minY, pathBounds.top)
-                    maxX = maxOf(maxX, pathBounds.right)
-                    maxY = maxOf(maxY, pathBounds.bottom)
-                }
-
-                // Clamp to canvas bounds
-                minX = minX.coerceAtLeast(0f)
-                minY = minY.coerceAtLeast(0f)
-                maxX = maxX.coerceAtMost(canvasW.toFloat())
-                maxY = maxY.coerceAtMost(canvasH.toFloat())
-
-                val strokesWidth = (maxX - minX).coerceAtLeast(1f)
-                val strokesHeight = (maxY - minY).coerceAtLeast(1f)
-
-                // --- Step 2: Render strokes onto a full-canvas bitmap ---
-                val fullBitmap = createBitmap(canvasW, canvasH)
-                val fullCanvas = android.graphics.Canvas(fullBitmap)
-
+            val fullBitmap: Bitmap? = if (sessionBmp != null && !sessionBmp.isRecycled) {
+                sessionBmp.copy(Bitmap.Config.ARGB_8888, false)
+            } else if (!session.drawStrokes.isNullOrEmpty() && canvasW > 0 && canvasH > 0) {
+                val bmp = createBitmap(canvasW, canvasH)
+                val c = android.graphics.Canvas(bmp)
                 session.drawStrokes?.forEach { stroke ->
                     com.webscare.urducanvas.common.utils.BrushRenderUtils.drawSingleStroke(
-                        fullCanvas, stroke, 255
+                        c, stroke, 255
                     )
                 }
+                bmp
+            } else null
 
-                // --- Step 3: Crop to tight bounds ---
-                val cropX = minX.toInt().coerceIn(0, fullBitmap.width - 1)
-                val cropY = minY.toInt().coerceIn(0, fullBitmap.height - 1)
-                val cropW = strokesWidth.toInt().coerceIn(1, fullBitmap.width - cropX)
-                val cropH = strokesHeight.toInt().coerceIn(1, fullBitmap.height - cropY)
-                val croppedBitmap = Bitmap.createBitmap(
-                    fullBitmap,
-                    cropX,
-                    cropY,
-                    cropW,
-                    cropH
-                )
-                fullBitmap.recycle()
-
-                val bitmapData = ImageProcessor.bitmapToBase64Lossless(croppedBitmap)
-
-                // --- Step 4: Position element at center of stroke bounds ---
-                val centerX = minX + strokesWidth / 2f
-                val centerY = minY + strokesHeight / 2f
-
-                session.copy(
-                    bitmap = croppedBitmap,
-                    bitmapData = bitmapData,
-                    drawStrokes = null,
-                    x = centerX,
-                    y = centerY,
-                    logicalContentWidth = strokesWidth,
-                    logicalContentHeight = strokesHeight,
-                    isSelected = true
-                )
-            } else {
-                session.copy(isSelected = false)
+            if (fullBitmap == null) {
+                withContext(Dispatchers.Main) {
+                    _activeDrawSession = null
+                    getCanvasView()?.clearDrawingSessionState()
+                }
+                return@launch
             }
+
+            // Find tight non-transparent bounds
+            val bw = fullBitmap.width
+            val bh = fullBitmap.height
+            val pixels = IntArray(bw * bh)
+            fullBitmap.getPixels(pixels, 0, bw, 0, 0, bw, bh)
+
+            var minX = bw
+            var minY = bh
+            var maxX = -1
+            var maxY = -1
+
+            for (y in 0 until bh) {
+                val row = y * bw
+                for (x in 0 until bw) {
+                    val alpha = (pixels[row + x] ushr 24) and 0xFF
+                    if (alpha > 0) {
+                        if (x < minX) minX = x
+                        if (x > maxX) maxX = x
+                        if (y < minY) minY = y
+                        if (y > maxY) maxY = y
+                    }
+                }
+            }
+
+            if (maxX < minX || maxY < minY) {
+                fullBitmap.recycle()
+                withContext(Dispatchers.Main) {
+                    _activeDrawSession = null
+                    getCanvasView()?.clearDrawingSessionState()
+                }
+                return@launch
+            }
+
+            val cropW = (maxX - minX + 1).coerceIn(1, bw - minX)
+            val cropH = (maxY - minY + 1).coerceIn(1, bh - minY)
+
+            val croppedBitmap = Bitmap.createBitmap(fullBitmap, minX, minY, cropW, cropH)
+            fullBitmap.recycle()
+
+            val bitmapData = ImageProcessor.bitmapToBase64Lossless(croppedBitmap)
+            val centerX = minX + cropW / 2f
+            val centerY = minY + cropH / 2f
+
+            val rasterized = session.copy(
+                bitmap = croppedBitmap,
+                bitmapData = bitmapData,
+                drawStrokes = null,
+                x = centerX,
+                y = centerY,
+                logicalContentWidth = cropW.toFloat(),
+                logicalContentHeight = cropH.toFloat(),
+                isSelected = true
+            )
 
             withContext(Dispatchers.Main) {
                 val currentList = _canvasElements.value.orEmpty().toMutableList()
@@ -971,6 +995,7 @@ class CanvasViewModel @Inject constructor(
                 _redoStack.clear()
                 notifyUndoRedoChanged()
                 _activeDrawSession = null
+                getCanvasView()?.clearDrawingSessionState()
             }
         }
     }
@@ -979,7 +1004,17 @@ class CanvasViewModel @Inject constructor(
         _canvasActions.removeAll { it is CanvasAction.DrawSessionStroke }
         _redoStack.removeAll { it is CanvasAction.DrawSessionStroke }
         _activeDrawSession = null
+        getCanvasView()?.clearDrawingSessionState()
         notifyUndoRedoChanged()
+    }
+
+    fun clearDrawingSession() {
+        getCanvasView()?.clearDrawingSessionBitmap()
+        _activeDrawSession?.drawStrokes?.clear()
+        _canvasActions.removeAll { it is CanvasAction.DrawSessionStroke }
+        _redoStack.removeAll { it is CanvasAction.DrawSessionStroke }
+        notifyUndoRedoChanged()
+        getCanvasView()?.invalidate()
     }
 
     fun getActiveDrawSession(): CanvasElement? = _activeDrawSession
@@ -988,16 +1023,18 @@ class CanvasViewModel @Inject constructor(
         color: Int? = null,
         thickness: Float? = null,
         hardness: Float? = null,
+        opacity: Float? = null,
         style: BrushStyle? = null,
         gradient: GradientItem? = null
     ) {
-        val currentList = _canvasElements.value?.toMutableList() ?: mutableListOf()
-        val selected = currentList.firstOrNull { it.isSelected && it.type == ElementType.DRAW }
+        val selected = _canvasElements.value?.firstOrNull { it.isSelected && it.type == ElementType.DRAW }
+        val currentList = _canvasElements.value ?: return
 
         // --- Step 1: Always update LiveData ---
         color?.let { _brushColor.value = it }
         thickness?.let { _brushThickness.value = it }
         hardness?.let { _brushHardness.value = it }
+        opacity?.let { _brushOpacity.value = it }
         style?.let { _currentBrushStyle.value = it }
         gradient?.let { _brushGradient.value = it }
 
@@ -1008,6 +1045,7 @@ class CanvasViewModel @Inject constructor(
                     color = color ?: stroke.color,
                     thickness = thickness ?: stroke.thickness,
                     hardness = hardness ?: stroke.hardness,
+                    opacity = opacity ?: stroke.opacity,
                     style = style ?: stroke.style,
                     gradient = gradient ?: stroke.gradient
                 )
@@ -1041,8 +1079,16 @@ class CanvasViewModel @Inject constructor(
         _brushColor.value = Color.BLACK
         _brushThickness.value = 10f
         _brushHardness.value = 1f
-        _currentBrushStyle.value = BrushStyle.BRUSH
+        _brushOpacity.value = 1f
+        _currentBrushStyle.value = null
         _brushGradient.value = null
+        _isBrushSmoothingEnabled.value = true
+        getCanvasView()?.isBrushSmoothingEnabled = true
+    }
+
+    fun setBrushSmoothingEnabled(enabled: Boolean) {
+        _isBrushSmoothingEnabled.value = enabled
+        getCanvasView()?.isBrushSmoothingEnabled = enabled
     }
 
     fun setBrushColor(color: Int) {
@@ -1061,6 +1107,12 @@ class CanvasViewModel @Inject constructor(
         updateBrushProperties(hardness = value)
     }
 
+    fun setBrushOpacity(value: Float) {
+        val clamped = value.coerceIn(0f, 1f)
+        _brushOpacity.value = clamped
+        updateBrushProperties(opacity = clamped)
+    }
+
     fun setBrushStyle(style: BrushStyle) {
         _currentBrushStyle.value = style
         updateBrushProperties(style = style)
@@ -1069,6 +1121,37 @@ class CanvasViewModel @Inject constructor(
     fun setBrushGradient(gradient: GradientItem?) {
         _brushGradient.value = gradient
         updateBrushProperties(gradient = gradient)
+    }
+
+    fun setEraserActive(enabled: Boolean) {
+        _isEraserActive.value = enabled
+        getCanvasView()?.isEraserActive = enabled
+    }
+
+    fun setEraserThickness(value: Float) {
+        _eraserThickness.value = value
+        getCanvasView()?.currentEraserThickness = value
+    }
+
+    fun setEraserHardness(value: Float) {
+        _eraserHardness.value = value
+        getCanvasView()?.currentEraserHardness = value
+    }
+
+    fun setEraserOpacity(value: Float) {
+        val clamped = value.coerceIn(0f, 1f)
+        _eraserOpacity.value = clamped
+        getCanvasView()?.currentEraserOpacity = clamped
+    }
+
+    fun setEraserSmoothingEnabled(enabled: Boolean) {
+        _isEraserSmoothingEnabled.value = enabled
+        getCanvasView()?.isEraserSmoothingEnabled = enabled
+    }
+
+    fun clearDrawSession() {
+        getCanvasView()?.clearDrawingSessionBitmap()
+        _activeDrawSession?.drawStrokes?.clear()
     }
 
     // 🎨 ADJUSTMENT UPDATERS
@@ -1378,7 +1461,7 @@ class CanvasViewModel @Inject constructor(
         }
         _brushThickness.value = 50f
         _brushHardness.value = 1f
-        _currentBrushStyle.value = BrushStyle.BRUSH
+        _currentBrushStyle.value = null
         _brushColor.value = Color.BLACK
     }
 
@@ -3348,7 +3431,7 @@ class CanvasViewModel @Inject constructor(
                 _brushThickness.value = firstDraw.drawStrokes?.lastOrNull()?.thickness ?: 10f
                 _brushHardness.value = firstDraw.drawStrokes?.lastOrNull()?.hardness ?: 1f
                 _currentBrushStyle.value =
-                    firstDraw.drawStrokes?.lastOrNull()?.style ?: BrushStyle.BRUSH
+                    firstDraw.drawStrokes?.lastOrNull()?.style
                 _brushGradient.value = firstDraw.drawStrokes?.lastOrNull()?.gradient
             }
 
@@ -3366,7 +3449,7 @@ class CanvasViewModel @Inject constructor(
                 _brushColor.value = Color.BLACK
                 _brushThickness.value = 10f
                 _brushHardness.value = 1f
-                _currentBrushStyle.value = BrushStyle.BRUSH
+                _currentBrushStyle.value = null
                 _brushGradient.value = null
             }
         }
@@ -5664,19 +5747,13 @@ class CanvasViewModel @Inject constructor(
             }
 
             is CanvasAction.DrawSessionStroke -> {
-                val session = _activeDrawSession ?: return
+                val canvasView = getCanvasView()
                 if (isRedo) {
-                    // Re-append the stroke (deep copy so redo record stays clean)
-                    val restored = action.strokeData.copy(
-                        path = action.strokeData.path?.let { Path(it) }
-                    )
-                    session.drawStrokes?.add(restored)
+                    canvasView?.redoDrawingSession()
                 } else {
-                    // Undo: remove the last stroke from the session
-                    session.drawStrokes?.removeLastOrNull()
+                    canvasView?.undoDrawingSession()
                 }
-                // Trigger a canvas redraw so the live preview updates immediately
-                _canvasView.value?.invalidate()
+                canvasView?.invalidate()
             }
 
             is CanvasAction.TransformCanvas -> {

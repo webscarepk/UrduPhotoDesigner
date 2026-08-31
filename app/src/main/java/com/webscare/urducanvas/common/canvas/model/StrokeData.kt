@@ -10,6 +10,7 @@ data class StrokeData(
     var color: Int = 0,
     var thickness: Float = 0f,
     var hardness: Float = 1f,
+    var opacity: Float = 1f,
     var style: BrushStyle,
     var gradient: GradientItem? = null,
     var pathData: List<Float>? = null // Serialized path points

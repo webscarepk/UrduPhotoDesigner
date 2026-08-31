@@ -143,6 +143,20 @@ class CanvasView @JvmOverloads constructor(
 
     private var draggedColDividerIndex: Int = -1
     private var draggedRowDividerIndex: Int = -1
+    private var draggedColIndex: Int = -1
+    private var draggedRowIndex: Int = -1
+
+    private enum class TableHandleType {
+        NONE,
+        COL_RESIZE,
+        ROW_RESIZE
+    }
+
+    private data class TableHandleHit(
+        val type: TableHandleType,
+        val colIndex: Int = -1,
+        val rowIndex: Int = -1
+    )
 
     private val gson: Gson by lazy {
         EntryPointAccessors.fromApplication(
@@ -159,12 +173,32 @@ class CanvasView @JvmOverloads constructor(
     private var currentStrokePath: Path? = null
     private var currentStrokePaint: Paint? = null
     private var currentStrokePoints = mutableListOf<Pair<Float, Float>>()
+    private var lastTouchX = 0f
+    private var lastTouchY = 0f
+    var isBrushSmoothingEnabled: Boolean = true
     private var isDrawing = false
     private var currentBrushColor: Int = Color.BLACK
     private var currentBrushThickness: Float = 20f
     private var currentBrushHardness: Float = 1f
+    private var currentBrushOpacity: Float = 1f
     private var currentBrushStyle: BrushStyle = BrushStyle.PEN
     private var currentBrushGradient: GradientItem? = null
+
+    var isEraserActive: Boolean = false
+    var currentEraserThickness: Float = 24f
+    var currentEraserHardness: Float = 1f
+    var currentEraserOpacity: Float = 1f
+    var isEraserSmoothingEnabled: Boolean = true
+
+    private var drawingSessionBitmap: Bitmap? = null
+    private var drawingSessionCanvas: Canvas? = null
+    private val drawingSessionUndoStack = ArrayDeque<Bitmap>()
+    private val drawingSessionRedoStack = ArrayDeque<Bitmap>()
+    private val maxDrawingUndoSteps = 15
+
+    private var eraserCursorX: Float = -1f
+    private var eraserCursorY: Float = -1f
+    private var showEraserCursor: Boolean = false
 
     private var pickerX = 0f
     private var pickerY = 0f
@@ -538,9 +572,114 @@ class CanvasView @JvmOverloads constructor(
         invalidate()
     }
 
+    fun getDrawingSessionBitmap(): Bitmap? {
+        return drawingSessionBitmap?.takeIf { !it.isRecycled }
+    }
+
+    fun ensureDrawingSessionBitmap(): Canvas {
+        val w = canvasWidth.coerceAtLeast(1)
+        val h = canvasHeight.coerceAtLeast(1)
+        var bmp = drawingSessionBitmap
+        if (bmp == null || bmp.isRecycled || bmp.width != w || bmp.height != h) {
+            bmp?.recycle()
+            bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            drawingSessionBitmap = bmp
+            drawingSessionCanvas = Canvas(bmp)
+
+            // If activeSessionElement has bitmap or existing strokes, draw them into the session bitmap
+            activeSessionElement?.let { session ->
+                session.bitmap?.let { existingBmp ->
+                    if (!existingBmp.isRecycled) {
+                        val left = session.x - session.logicalContentWidth / 2f
+                        val top = session.y - session.logicalContentHeight / 2f
+                        val destRect = RectF(left, top, left + session.logicalContentWidth, top + session.logicalContentHeight)
+                        drawingSessionCanvas?.drawBitmap(existingBmp, null, destRect, null)
+                    }
+                }
+                session.drawStrokes?.forEach { s ->
+                    com.webscare.urducanvas.common.utils.BrushRenderUtils.drawSingleStroke(drawingSessionCanvas!!, s, 255)
+                }
+            }
+        }
+        return drawingSessionCanvas!!
+    }
+
+    fun pushDrawingSessionSnapshot() {
+        val currentBmp = drawingSessionBitmap ?: return
+        if (currentBmp.isRecycled) return
+        if (drawingSessionUndoStack.size >= maxDrawingUndoSteps) {
+            val oldest = drawingSessionUndoStack.removeFirst()
+            if (!oldest.isRecycled) oldest.recycle()
+        }
+        drawingSessionUndoStack.addLast(currentBmp.copy(Bitmap.Config.ARGB_8888, true))
+        while (drawingSessionRedoStack.isNotEmpty()) {
+            val redoBmp = drawingSessionRedoStack.removeLast()
+            if (!redoBmp.isRecycled) redoBmp.recycle()
+        }
+    }
+
+    fun undoDrawingSession(): Boolean {
+        if (drawingSessionUndoStack.isEmpty()) return false
+        val currentBmp = drawingSessionBitmap ?: return false
+        drawingSessionRedoStack.addLast(currentBmp.copy(Bitmap.Config.ARGB_8888, true))
+        val prev = drawingSessionUndoStack.removeLast()
+        val canvas = ensureDrawingSessionBitmap()
+        val clearPaint = Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR) }
+        canvas.drawRect(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat(), clearPaint)
+        canvas.drawBitmap(prev, 0f, 0f, null)
+        prev.recycle()
+        invalidate()
+        return true
+    }
+
+    fun redoDrawingSession(): Boolean {
+        if (drawingSessionRedoStack.isEmpty()) return false
+        val next = drawingSessionRedoStack.removeLast()
+        pushDrawingSessionSnapshot()
+        val canvas = ensureDrawingSessionBitmap()
+        val clearPaint = Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR) }
+        canvas.drawRect(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat(), clearPaint)
+        canvas.drawBitmap(next, 0f, 0f, null)
+        next.recycle()
+        invalidate()
+        return true
+    }
+
+    fun clearDrawingSessionBitmap() {
+        pushDrawingSessionSnapshot()
+        val canvas = ensureDrawingSessionBitmap()
+        val clearPaint = Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR) }
+        canvas.drawRect(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat(), clearPaint)
+        activeSessionElement?.drawStrokes?.clear()
+        invalidate()
+    }
+
+    fun clearDrawingSessionState() {
+        drawingSessionBitmap?.recycle()
+        drawingSessionBitmap = null
+        drawingSessionCanvas = null
+        while (drawingSessionUndoStack.isNotEmpty()) {
+            val bmp = drawingSessionUndoStack.removeLast()
+            if (!bmp.isRecycled) bmp.recycle()
+        }
+        while (drawingSessionRedoStack.isNotEmpty()) {
+            val bmp = drawingSessionRedoStack.removeLast()
+            if (!bmp.isRecycled) bmp.recycle()
+        }
+        currentStrokePath = null
+        currentStrokePaint = null
+        currentStrokePoints.clear()
+        showEraserCursor = false
+    }
+
     fun setDrawingMode(enabled: Boolean, sessionElement: CanvasElement? = null) {
         isDrawing = enabled
         activeSessionElement = sessionElement
+        if (enabled) {
+            ensureDrawingSessionBitmap()
+        } else {
+            clearDrawingSessionState()
+        }
         invalidate()
     }
 
@@ -548,14 +687,91 @@ class CanvasView @JvmOverloads constructor(
         color: Int? = null,
         thickness: Float? = null,
         hardness: Float? = null,
+        opacity: Float? = null,
         style: BrushStyle? = null,
         gradient: GradientItem? = null
     ) {
         color?.let { currentBrushColor = it }
         thickness?.let { currentBrushThickness = it }
         hardness?.let { currentBrushHardness = it }
+        opacity?.let { currentBrushOpacity = it }
         style?.let { currentBrushStyle = it }
         gradient?.let { currentBrushGradient = it }
+    }
+
+    private fun filterJitterPoints(points: List<Pair<Float, Float>>, minDistance: Float = 3.5f): List<Pair<Float, Float>> {
+        if (points.size <= 2) return points
+        val result = mutableListOf<Pair<Float, Float>>()
+        result.add(points.first())
+        var last = points.first()
+        for (i in 1 until points.size - 1) {
+            val p = points[i]
+            val dist = kotlin.math.hypot(p.first - last.first, p.second - last.second)
+            if (dist >= minDistance) {
+                result.add(p)
+                last = p
+            }
+        }
+        result.add(points.last())
+        return result
+    }
+
+    private fun buildSmoothPath(points: List<Pair<Float, Float>>): Path {
+        val path = Path()
+        if (points.isEmpty()) return path
+        if (points.size == 1) {
+            path.moveTo(points[0].first, points[0].second)
+            path.lineTo(points[0].first + 0.1f, points[0].second + 0.1f)
+            return path
+        }
+        if (points.size == 2) {
+            path.moveTo(points[0].first, points[0].second)
+            path.lineTo(points[1].first, points[1].second)
+            return path
+        }
+
+        // 1. Filter out high-frequency micro tremor points
+        val filtered = filterJitterPoints(points, minDistance = 3.5f)
+
+        // 2. Chaikin corner cutting (3 iterations) to eliminate sharp corners & hand jerks
+        val smoothedPoints = smoothStrokePoints(filtered, iterations = 3)
+
+        path.moveTo(smoothedPoints[0].first, smoothedPoints[0].second)
+        for (i in 1 until smoothedPoints.size) {
+            val p0 = smoothedPoints[i - 1]
+            val p1 = smoothedPoints[i]
+            val midX = (p0.first + p1.first) / 2f
+            val midY = (p0.second + p1.second) / 2f
+            if (i == 1) {
+                path.lineTo(midX, midY)
+            } else {
+                path.quadTo(p0.first, p0.second, midX, midY)
+            }
+        }
+        path.lineTo(smoothedPoints.last().first, smoothedPoints.last().second)
+        return path
+    }
+
+    private fun smoothStrokePoints(points: List<Pair<Float, Float>>, iterations: Int = 2): List<Pair<Float, Float>> {
+        var current = points
+        for (iter in 0 until iterations) {
+            if (current.size <= 2) break
+            val smoothed = ArrayList<Pair<Float, Float>>(current.size * 2)
+            smoothed.add(current.first())
+            for (i in 0 until current.size - 1) {
+                val p0 = current[i]
+                val p1 = current[i + 1]
+                val qX = 0.75f * p0.first + 0.25f * p1.first
+                val qY = 0.75f * p0.second + 0.25f * p1.second
+                val rX = 0.25f * p0.first + 0.75f * p1.first
+                val rY = 0.25f * p0.second + 0.75f * p1.second
+                smoothed.add(qX to qY)
+                smoothed.add(rX to rY)
+            }
+            smoothed.add(current.last())
+            current = smoothed
+        }
+        return current
     }
 
     fun enableColorPicker() {
@@ -2101,6 +2317,7 @@ class CanvasView @JvmOverloads constructor(
             color = currentBrushColor,
             thickness = currentBrushThickness,
             hardness = currentBrushHardness,
+            opacity = currentBrushOpacity,
             style = currentBrushStyle,
             gradient = currentBrushGradient
         )
@@ -2144,16 +2361,33 @@ class CanvasView @JvmOverloads constructor(
                         drawingModeOverlayPaint
                     )
 
-                    // Draw all committed session strokes ABOVE the overlay
-                    activeSessionElement?.let { session ->
-                        if (!session.drawStrokes.isNullOrEmpty()) {
-                            drawDrawElement(this, session)
+                    // Draw the session bitmap directly ABOVE the overlay
+                    drawingSessionBitmap?.let { bmp ->
+                        if (!bmp.isRecycled) {
+                            drawBitmap(bmp, 0f, 0f, null)
                         }
                     }
 
-                    // Draw the current live in-progress stroke ABOVE everything
+                    // Draw the current live in-progress brush stroke ABOVE everything
                     if (currentStrokePath != null && currentStrokePaint != null) {
                         drawLivePreviewStroke(this)
+                    }
+
+                    // Draw the live eraser cursor if eraser is active and dragging
+                    if (isEraserActive && showEraserCursor && eraserCursorX >= 0f) {
+                        val density = resources.displayMetrics.density
+                        val cursorPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                            style = Paint.Style.STROKE
+                            strokeWidth = 1.5f * density
+                            color = androidx.core.content.ContextCompat.getColor(context, com.webscare.urducanvas.R.color.appColor)
+                        }
+                        val radius = currentEraserThickness / 2f
+                        drawCircle(eraserCursorX, eraserCursorY, radius, cursorPaint)
+                        val innerFill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                            style = Paint.Style.FILL
+                            color = Color.argb(40, 0, 93, 40)
+                        }
+                        drawCircle(eraserCursorX, eraserCursorY, radius, innerFill)
                     }
                 } else if (isTableEditMode) {
                     drawCanvasShadow(this)
@@ -3287,10 +3521,16 @@ class CanvasView @JvmOverloads constructor(
             }
         }
 
-        // Pass 4: Cell Selection Highlights (Adaptive dark/light overlay)
+        // Pass 4: Cell Selection Highlights (Single or Multi Selection)
         if (tableData.selectedCells.isNotEmpty() && (element.isSelected || isTableEditMode)) {
+            val appColor = androidx.core.content.ContextCompat.getColor(context, com.webscare.urducanvas.R.color.appColor)
             val fillHighlight = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.FILL
+            }
+            val cellStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                color = appColor
+                strokeWidth = 2.0f * density
             }
             for (cellPair in tableData.selectedCells) {
                 val sr = cellPair.first
@@ -3317,51 +3557,104 @@ class CanvasView @JvmOverloads constructor(
                         Color.argb(50, 0, 0, 0)       // Black overlay with lower opacity for light cells
                     }
                     canvas.drawRect(cellRect, fillHighlight)
-                }
-            }
-        }
-
-        // Pass 5: Resize Handles (when in table resize mode)
-        if (isTableResizeMode && isTableEditMode && element.isSelected) {
-            val badgeBg = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.FILL
-                color = Color.WHITE
-            }
-            val badgeStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
-                color = Color.parseColor("#CCCCCC")
-                strokeWidth = 1f * density
-            }
-            val badgeRadius = (desiredIconSizeDp / 2f) * density
-            val iconSize = (14f * density).toInt()
-
-            // Col divider handles at center of vertical stroke
-            val centerY = (top + bottom) / 2f
-            for (c in 1 until cache.cols) {
-                val x = left + cache.colWidthsPx.take(c).sum()
-                canvas.drawCircle(x, centerY, badgeRadius, badgeBg)
-                canvas.drawCircle(x, centerY, badgeRadius, badgeStroke)
-                tableColResizeDrawable?.let { d ->
-                    d.setBounds((x - iconSize / 2).toInt(), (centerY - iconSize / 2).toInt(), (x + iconSize / 2).toInt(), (centerY + iconSize / 2).toInt())
-                    d.draw(canvas)
-                }
-            }
-
-            // Row divider handles at center of horizontal stroke
-            val centerX = (left + right) / 2f
-            for (r in 1 until cache.rows) {
-                val y = top + cache.rowHeightsPx.take(r).sum()
-                canvas.drawCircle(centerX, y, badgeRadius, badgeBg)
-                canvas.drawCircle(centerX, y, badgeRadius, badgeStroke)
-                tableRowResizeDrawable?.let { d ->
-                    d.setBounds((centerX - iconSize / 2).toInt(), (y - iconSize / 2).toInt(), (centerX + iconSize / 2).toInt(), (y + iconSize / 2).toInt())
-                    d.draw(canvas)
+                    canvas.drawRoundRect(cellRect, 3f * density, 3f * density, cellStrokePaint)
                 }
             }
         }
 
         if (clipSave >= 0) {
             canvas.restoreToCount(clipSave)
+        }
+
+        // Pass 5: Dynamic Border Resize Handles for Single Selected Cell (hidden in multi-selection mode)
+        if (isTableEditMode && element.isSelected && !isTableMultiSelectMode && tableData.selectedCells.size == 1) {
+            val (sr, sc) = tableData.selectedCells.first()
+            if (sr in 0 until cache.rows && sc in 0 until cache.cols) {
+                val cellLayout = cache.cellLayouts[sr][sc]
+                val cellRect = cellLayout.rect
+                val appColor = androidx.core.content.ContextCompat.getColor(context, com.webscare.urducanvas.R.color.appColor)
+
+                val edgeLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.STROKE
+                    color = appColor
+                    strokeWidth = 1.8f * density
+                    strokeCap = Paint.Cap.ROUND
+                }
+
+                val badgeBg = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.FILL
+                    color = Color.WHITE
+                }
+                val badgeBorder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.STROKE
+                    color = appColor
+                    strokeWidth = 1.4f * density
+                }
+
+                val offset = 6f * density // Gap away from the table border
+
+                // 1. Top Column Highlight Line & Horizontal Capsule Handle
+                val colLeft = cellRect.left
+                val colRight = cellRect.right
+                val colCenterX = cellRect.centerX()
+                val topEdgeY = top - offset
+
+                // App color line slightly above top border across selected column
+                canvas.drawLine(colLeft, topEdgeY, colRight, topEdgeY, edgeLinePaint)
+
+                // Top capsule handle badge (< >)
+                val pillW = 28f * density
+                val pillH = 15f * density
+                val colPillRect = RectF(
+                    colCenterX - pillW / 2f,
+                    topEdgeY - pillH / 2f,
+                    colCenterX + pillW / 2f,
+                    topEdgeY + pillH / 2f
+                )
+                canvas.drawRoundRect(colPillRect, pillH / 2f, pillH / 2f, badgeBg)
+                canvas.drawRoundRect(colPillRect, pillH / 2f, pillH / 2f, badgeBorder)
+                tableColResizeDrawable?.let { d ->
+                    val iconSize = (16f * density).toInt()
+                    d.setTint(appColor)
+                    d.setBounds(
+                        (colCenterX - iconSize / 2f).toInt(),
+                        (topEdgeY - iconSize / 2f).toInt(),
+                        (colCenterX + iconSize / 2f).toInt(),
+                        (topEdgeY + iconSize / 2f).toInt()
+                    )
+                    d.draw(canvas)
+                }
+
+                // 2. Right Row Highlight Line & Vertical Capsule Handle
+                val rowTop = cellRect.top
+                val rowBottom = cellRect.bottom
+                val rowCenterY = cellRect.centerY()
+                val rightEdgeX = right + offset
+
+                // App color line slightly to right of right border across selected row
+                canvas.drawLine(rightEdgeX, rowTop, rightEdgeX, rowBottom, edgeLinePaint)
+
+                // Right vertical capsule handle badge (^ v)
+                val rowPillRect = RectF(
+                    rightEdgeX - pillH / 2f,
+                    rowCenterY - pillW / 2f,
+                    rightEdgeX + pillH / 2f,
+                    rowCenterY + pillW / 2f
+                )
+                canvas.drawRoundRect(rowPillRect, pillH / 2f, pillH / 2f, badgeBg)
+                canvas.drawRoundRect(rowPillRect, pillH / 2f, pillH / 2f, badgeBorder)
+                tableRowResizeDrawable?.let { d ->
+                    val iconSize = (16f * density).toInt()
+                    d.setTint(appColor)
+                    d.setBounds(
+                        (rightEdgeX - iconSize / 2f).toInt(),
+                        (rowCenterY - iconSize / 2f).toInt(),
+                        (rightEdgeX + iconSize / 2f).toInt(),
+                        (rowCenterY + iconSize / 2f).toInt()
+                    )
+                    d.draw(canvas)
+                }
+            }
         }
     }
 
@@ -3405,8 +3698,11 @@ class CanvasView @JvmOverloads constructor(
         return null
     }
 
-    private fun getTableDividerAt(element: CanvasElement, canvasX: Float, canvasY: Float): Pair<Boolean, Int>? {
-        val tableData = element.tableData ?: return null
+    private fun getTableHandleAt(element: CanvasElement, canvasX: Float, canvasY: Float): TableHandleHit {
+        val tableData = element.tableData ?: return TableHandleHit(TableHandleType.NONE)
+        if (tableData.selectedCells.size != 1 || isTableMultiSelectMode) return TableHandleHit(TableHandleType.NONE)
+
+        val (sr, sc) = tableData.selectedCells.first()
         val totalW = element.logicalContentWidth.takeIf { it > 0f } ?: (canvasWidth * 0.8f)
         val totalH = element.logicalContentHeight.takeIf { it > 0f } ?: 300f
 
@@ -3428,55 +3724,53 @@ class CanvasView @JvmOverloads constructor(
         }
         val inverseMatrix = Matrix()
         if (!forwardMatrix.invert(inverseMatrix)) {
-            return null
+            return TableHandleHit(TableHandleType.NONE)
         }
         val pts = floatArrayOf(canvasX, canvasY)
         inverseMatrix.mapPoints(pts)
         val lx = pts[0]
         val ly = pts[1]
 
-        val left = -totalW / 2f
         val top = -totalH / 2f
         val right = totalW / 2f
-        val bottom = totalH / 2f
+        val density = resources.displayMetrics.density
+        val offset = 6f * density
 
-        val hitThreshold = 32f * resources.displayMetrics.density
-        val centerY = (top + bottom) / 2f
-        val centerX = (left + right) / 2f
-        val badgeHitRadius = 24f * resources.displayMetrics.density
+        val cellLayout = cache.cellLayouts.getOrNull(sr)?.getOrNull(sc)
+        if (cellLayout != null) {
+            val cellRect = cellLayout.rect
+            val colCenterX = cellRect.centerX()
+            val topEdgeY = top - offset
 
-        // 1. Check direct badge taps first
-        for (c in 1 until cache.cols) {
-            val divX = left + cache.colWidthsPx.take(c).sum()
-            val dist = kotlin.math.hypot((lx - divX).toDouble(), (ly - centerY).toDouble()).toFloat()
-            if (dist <= badgeHitRadius) {
-                return Pair(true, c)
+            // Visual column index accounting for RTL
+            val visualCol = if (tableData.isRTL) (tableData.cols - 1 - sc) else sc
+
+            // 1. Check Top Column Resize Handle
+            val topHitRect = RectF(
+                colCenterX - 22f * density,
+                topEdgeY - 18f * density,
+                colCenterX + 22f * density,
+                topEdgeY + 18f * density
+            )
+            if (topHitRect.contains(lx, ly)) {
+                return TableHandleHit(TableHandleType.COL_RESIZE, colIndex = visualCol)
+            }
+
+            // 2. Check Right Row Resize Handle
+            val rowCenterY = cellRect.centerY()
+            val rightEdgeX = right + offset
+            val rightHitRect = RectF(
+                rightEdgeX - 18f * density,
+                rowCenterY - 22f * density,
+                rightEdgeX + 18f * density,
+                rowCenterY + 22f * density
+            )
+            if (rightHitRect.contains(lx, ly)) {
+                return TableHandleHit(TableHandleType.ROW_RESIZE, rowIndex = sr)
             }
         }
-        for (r in 1 until cache.rows) {
-            val divY = top + cache.rowHeightsPx.take(r).sum()
-            val dist = kotlin.math.hypot((lx - centerX).toDouble(), (ly - divY).toDouble()).toFloat()
-            if (dist <= badgeHitRadius) {
-                return Pair(false, r)
-            }
-        }
 
-        // 2. Check full line divider borders
-        for (c in 1 until cache.cols) {
-            val divX = left + cache.colWidthsPx.take(c).sum()
-            if (Math.abs(lx - divX) <= hitThreshold && ly >= top - hitThreshold && ly <= bottom + hitThreshold) {
-                return Pair(true, c)
-            }
-        }
-
-        for (r in 1 until cache.rows) {
-            val divY = top + cache.rowHeightsPx.take(r).sum()
-            if (Math.abs(ly - divY) <= hitThreshold && lx >= left - hitThreshold && lx <= right + hitThreshold) {
-                return Pair(false, r)
-            }
-        }
-
-        return null
+        return TableHandleHit(TableHandleType.NONE)
     }
 
     private fun drawColorPickerOverlay(canvas: Canvas) {
@@ -5521,9 +5815,15 @@ class CanvasView @JvmOverloads constructor(
                             } else {
                                 if (data.selectedCells.contains(pair)) {
                                     data.selectedCells.remove(pair)
-                                    if (data.selectedCells.isEmpty()) {
+                                    if (data.selectedCells.size <= 1) {
                                         isTableMultiSelectMode = false
                                         onTableMultiSelectChanged?.invoke(false)
+                                        if (data.selectedCells.isEmpty()) {
+                                            onTableCellSelected?.invoke(-1, -1)
+                                        } else {
+                                            val last = data.selectedCells.first()
+                                            onTableCellSelected?.invoke(last.first, last.second)
+                                        }
                                     }
                                 } else {
                                     data.selectedCells.add(pair)
@@ -5691,62 +5991,166 @@ class CanvasView @JvmOverloads constructor(
             }
         }
 
+    fun createEraserPaint(): Paint {
+        return Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+            strokeWidth = currentEraserThickness
+            xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+            val softness = (1f - currentEraserHardness).coerceIn(0f, 1f)
+            if (softness > 0.02f) {
+                // Photoshop model: blur radius calibrated strictly to falloff margin without bleeding outside brush radius
+                val sigma = (softness * currentEraserThickness * 0.28f).coerceAtLeast(0.5f)
+                maskFilter = BlurMaskFilter(sigma, BlurMaskFilter.Blur.NORMAL)
+            }
+            alpha = (currentEraserOpacity.coerceIn(0f, 1f) * 255).toInt()
+        }
+    }
+
         if (isDrawing) {
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    currentStrokePath = Path().apply {
-                        moveTo(x, y)
-                        lineTo(x + 0.01f, y + 0.01f)
+            val clampedX = x.coerceIn(0f, canvasWidth.toFloat())
+            val clampedY = y.coerceIn(0f, canvasHeight.toFloat())
+
+            if (isEraserActive) {
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        pushDrawingSessionSnapshot()
+                        val canvas = ensureDrawingSessionBitmap()
+                        showEraserCursor = true
+                        eraserCursorX = clampedX
+                        eraserCursorY = clampedY
+                        lastTouchX = clampedX
+                        lastTouchY = clampedY
+
+                        val erasePaint = createEraserPaint()
+                        canvas.drawLine(clampedX, clampedY, clampedX + 0.05f, clampedY + 0.05f, erasePaint)
+                        invalidate()
                     }
-                    currentStrokePoints.clear()
-                    currentStrokePoints.add(x to y)
 
-                    // Paint for live preview (scale-aware)
-                    val tempStroke = StrokeData(
-                        path = currentStrokePath,
-                        color = currentBrushColor,
-                        thickness = currentBrushThickness,
-                        hardness = currentBrushHardness,
-                        style = currentBrushStyle,
-                        gradient = currentBrushGradient
-                    )
-                    currentStrokePaint = BrushRenderUtils.makeStrokePaint(tempStroke, width, height)
+                    MotionEvent.ACTION_MOVE -> {
+                        val canvas = ensureDrawingSessionBitmap()
+                        showEraserCursor = true
+                        eraserCursorX = clampedX
+                        eraserCursorY = clampedY
 
-                    invalidate()
+                        val erasePaint = createEraserPaint()
+
+                        if (isEraserSmoothingEnabled) {
+                            val dx = clampedX - lastTouchX
+                            val dy = clampedY - lastTouchY
+                            if (kotlin.math.hypot(dx, dy) >= 2.0f) {
+                                val smoothX = lastTouchX + dx * 0.65f
+                                val smoothY = lastTouchY + dy * 0.65f
+                                val midX = (lastTouchX + smoothX) / 2f
+                                val midY = (lastTouchY + smoothY) / 2f
+                                val erasePath = Path().apply {
+                                    moveTo(lastTouchX, lastTouchY)
+                                    quadTo(lastTouchX, lastTouchY, midX, midY)
+                                }
+                                canvas.drawPath(erasePath, erasePaint)
+                                lastTouchX = smoothX
+                                lastTouchY = smoothY
+                                invalidate()
+                            }
+                        } else {
+                            canvas.drawLine(lastTouchX, lastTouchY, clampedX, clampedY, erasePaint)
+                            lastTouchX = clampedX
+                            lastTouchY = clampedY
+                            invalidate()
+                        }
+                    }
+
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        showEraserCursor = false
+                        invalidate()
+                    }
                 }
+            } else {
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        lastTouchX = clampedX
+                        lastTouchY = clampedY
+                        currentStrokePath = Path().apply {
+                            moveTo(clampedX, clampedY)
+                            lineTo(clampedX + 0.01f, clampedY + 0.01f)
+                        }
+                        currentStrokePoints.clear()
+                        currentStrokePoints.add(clampedX to clampedY)
 
-                MotionEvent.ACTION_MOVE -> {
-                    val clampedX = x.coerceIn(0f, canvasWidth.toFloat())
-                    val clampedY = y.coerceIn(0f, canvasHeight.toFloat())
-
-                    currentStrokePath?.lineTo(clampedX, clampedY)
-                    currentStrokePoints.add(clampedX to clampedY)
-                    invalidate()
-                }
-
-                MotionEvent.ACTION_UP -> {
-                    currentStrokePath?.lineTo(x, y)
-
-                    val path = currentStrokePath
-                    if (path != null && activeSessionElement != null) {
-                        // Store path in ABSOLUTE canvas coordinates — no normalization
-                        val strokeData = StrokeData(
-                            path = Path(path),
+                        val tempStroke = StrokeData(
+                            path = currentStrokePath,
                             color = currentBrushColor,
                             thickness = currentBrushThickness,
                             hardness = currentBrushHardness,
+                            opacity = currentBrushOpacity,
                             style = currentBrushStyle,
                             gradient = currentBrushGradient
                         )
-                        activeSessionElement!!.drawStrokes?.add(strokeData)
-                        onStrokeCompleted?.invoke(strokeData)
+                        currentStrokePaint = BrushRenderUtils.makeStrokePaint(tempStroke, width, height)
+                        invalidate()
                     }
 
-                    // Cleanup live preview
-                    currentStrokePath = null
-                    currentStrokePaint = null
-                    currentStrokePoints.clear()
-                    invalidate()
+                    MotionEvent.ACTION_MOVE -> {
+                        if (isBrushSmoothingEnabled) {
+                            val dx = clampedX - lastTouchX
+                            val dy = clampedY - lastTouchY
+                            if (kotlin.math.hypot(dx, dy) >= 2.5f) {
+                                // Filter real-time tremor with moving average
+                                val smoothX = lastTouchX + dx * 0.65f
+                                val smoothY = lastTouchY + dy * 0.65f
+                                val midX = (lastTouchX + smoothX) / 2f
+                                val midY = (lastTouchY + smoothY) / 2f
+                                currentStrokePath?.quadTo(lastTouchX, lastTouchY, midX, midY)
+                                lastTouchX = smoothX
+                                lastTouchY = smoothY
+                                currentStrokePoints.add(smoothX to smoothY)
+                                invalidate()
+                            }
+                        } else {
+                            currentStrokePath?.lineTo(clampedX, clampedY)
+                            lastTouchX = clampedX
+                            lastTouchY = clampedY
+                            currentStrokePoints.add(clampedX to clampedY)
+                            invalidate()
+                        }
+                    }
+
+                    MotionEvent.ACTION_UP -> {
+                        currentStrokePoints.add(clampedX to clampedY)
+
+                        val finalPath = if (isBrushSmoothingEnabled && currentStrokePoints.size > 2) {
+                            buildSmoothPath(currentStrokePoints)
+                        } else {
+                            currentStrokePath?.apply { lineTo(clampedX, clampedY) } ?: Path()
+                        }
+
+                        pushDrawingSessionSnapshot()
+                        val canvas = ensureDrawingSessionBitmap()
+
+                        val strokeData = StrokeData(
+                            path = finalPath,
+                            color = currentBrushColor,
+                            thickness = currentBrushThickness,
+                            hardness = currentBrushHardness,
+                            opacity = currentBrushOpacity,
+                            style = currentBrushStyle,
+                            gradient = currentBrushGradient
+                        )
+
+                        com.webscare.urducanvas.common.utils.BrushRenderUtils.drawSingleStroke(canvas, strokeData, 255)
+
+                        if (activeSessionElement != null) {
+                            activeSessionElement!!.drawStrokes?.add(strokeData)
+                            onStrokeCompleted?.invoke(strokeData)
+                        }
+
+                        // Cleanup live preview
+                        currentStrokePath = null
+                        currentStrokePaint = null
+                        currentStrokePoints.clear()
+                        invalidate()
+                    }
                 }
             }
 
@@ -6128,22 +6532,38 @@ class CanvasView @JvmOverloads constructor(
                         ?: canvasElements.firstOrNull { it.isSelected && it.type == ElementType.TABLE }
                         ?: canvasElements.firstOrNull { it.type == ElementType.TABLE }
                     if (activeTable != null) {
-                        if (isTableResizeMode) {
-                            val div = getTableDividerAt(activeTable, x, y)
-                            if (div != null) {
-                                val (isCol, idx) = div
-                                if (isCol) {
-                                    draggedColDividerIndex = idx
-                                    draggedRowDividerIndex = -1
-                                } else {
-                                    draggedRowDividerIndex = idx
-                                    draggedColDividerIndex = -1
-                                }
+                        val handleHit = getTableHandleAt(activeTable, x, y)
+                        when (handleHit.type) {
+                            TableHandleType.COL_RESIZE -> {
+                                draggedColIndex = handleHit.colIndex
+                                draggedRowIndex = -1
                                 currentMode = Mode.TABLE_RESIZE
                                 touchStartX = x
                                 touchStartY = y
+                                performHapticFeedback(
+                                    android.view.HapticFeedbackConstants.VIRTUAL_KEY,
+                                    android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                                )
+                                vibrateSoft()
                                 invalidate()
                                 return true
+                            }
+                            TableHandleType.ROW_RESIZE -> {
+                                draggedRowIndex = handleHit.rowIndex
+                                draggedColIndex = -1
+                                currentMode = Mode.TABLE_RESIZE
+                                touchStartX = x
+                                touchStartY = y
+                                performHapticFeedback(
+                                    android.view.HapticFeedbackConstants.VIRTUAL_KEY,
+                                    android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                                )
+                                vibrateSoft()
+                                invalidate()
+                                return true
+                            }
+                            TableHandleType.NONE -> {
+                                // Fall through to cell hit testing
                             }
                         }
 
@@ -6156,10 +6576,15 @@ class CanvasView @JvmOverloads constructor(
                                 if (isTableMultiSelectMode) {
                                     if (data.selectedCells.contains(pair)) {
                                         data.selectedCells.remove(pair)
-                                        if (data.selectedCells.isEmpty()) {
+                                        if (data.selectedCells.size <= 1) {
                                             isTableMultiSelectMode = false
                                             onTableMultiSelectChanged?.invoke(false)
-                                            onTableCellSelected?.invoke(-1, -1)
+                                            if (data.selectedCells.isEmpty()) {
+                                                onTableCellSelected?.invoke(-1, -1)
+                                            } else {
+                                                val last = data.selectedCells.first()
+                                                onTableCellSelected?.invoke(last.first, last.second)
+                                            }
                                         }
                                     } else {
                                         data.selectedCells.add(pair)
@@ -6278,65 +6703,11 @@ class CanvasView @JvmOverloads constructor(
                                 selectedElements.clear()
                                 touchedElement.isSelected = true
                                 selectedElements.add(touchedElement)
+                                touchedElement.tableData?.selectedCells?.clear()
                                 lastTouchedElement = touchedElement
-
-                                if (isTableEditMode) {
-                                    if (isTableResizeMode) {
-                                        val div = getTableDividerAt(touchedElement, x, y)
-                                        if (div != null) {
-                                            val (isCol, idx) = div
-                                            if (isCol) {
-                                                draggedColDividerIndex = idx
-                                                draggedRowDividerIndex = -1
-                                            } else {
-                                                draggedRowDividerIndex = idx
-                                                draggedColDividerIndex = -1
-                                            }
-                                            currentMode = Mode.TABLE_RESIZE
-                                            touchStartX = x
-                                            touchStartY = y
-                                            invalidate()
-                                            return true
-                                        }
-                                    }
-
-                                    val cellPair = getTableCellAt(touchedElement, x, y)
-                                    if (cellPair != null) {
-                                        val (r, c) = cellPair
-                                        val pair = Pair(r, c)
-                                        val data = touchedElement.tableData
-                                        if (data != null) {
-                                            if (isTableMultiSelectMode) {
-                                                if (data.selectedCells.contains(pair)) {
-                                                    data.selectedCells.remove(pair)
-                                                    if (data.selectedCells.isEmpty()) {
-                                                        isTableMultiSelectMode = false
-                                                        onTableMultiSelectChanged?.invoke(false)
-                                                    }
-                                                } else {
-                                                    data.selectedCells.add(pair)
-                                                }
-                                                onTableCellToggleSelected?.invoke(r, c)
-                                            } else {
-                                                data.selectedCells.clear()
-                                                data.selectedCells.add(pair)
-                                                onTableCellSelected?.invoke(r, c)
-                                            }
-                                            performHapticFeedback(
-                                                android.view.HapticFeedbackConstants.VIRTUAL_KEY,
-                                                android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
-                                            )
-                                            vibrateSoft()
-                                        }
-                                    }
-                                    currentMode = Mode.NONE
-                                } else {
-                                    touchedElement.tableData?.selectedCells?.clear()
-                                    lastTouchedElement = touchedElement
-                                    currentMode = Mode.DRAG
-                                    touchStartX = x
-                                    touchStartY = y
-                                }
+                                currentMode = Mode.DRAG
+                                touchStartX = x
+                                touchStartY = y
                             } else if (touchedElement.isSelected) {
                                 lastTouchedElement = touchedElement
                                 currentMode = Mode.DRAG
@@ -6738,6 +7109,8 @@ class CanvasView @JvmOverloads constructor(
 
                     Mode.TABLE_RESIZE -> {
                         val activeTable = selectedElements.firstOrNull { it.type == ElementType.TABLE }
+                            ?: canvasElements.firstOrNull { it.isSelected && it.type == ElementType.TABLE }
+                            ?: canvasElements.firstOrNull { it.type == ElementType.TABLE }
                         val data = activeTable?.tableData
                         if (activeTable != null && data != null) {
                             val totalW = activeTable.logicalContentWidth.takeIf { it > 0f } ?: (canvasWidth * 0.8f)
@@ -6751,7 +7124,7 @@ class CanvasView @JvmOverloads constructor(
                             val localDx = (dxRaw * cosA - dyRaw * sinA)
                             val localDy = (dxRaw * sinA + dyRaw * cosA)
 
-                            if (draggedColDividerIndex in 1 until data.cols) {
+                            if (draggedColIndex in 0 until data.cols && data.cols > 1) {
                                 val cCount = data.cols
                                 if (data.colWidthRatios == null || data.colWidthRatios?.size != cCount) {
                                     val currentCache = activeTable.tableLayoutCache as? com.webscare.urducanvas.common.canvas.cache.TableLayoutCache
@@ -6764,24 +7137,37 @@ class CanvasView @JvmOverloads constructor(
                                 }
                                 data.contentWrap = false
                                 val ratios = data.colWidthRatios!!
-                                val rawDelta = localDx / totalW
-                                val leftIdx = draggedColDividerIndex - 1
-                                val rightIdx = draggedColDividerIndex
+                                val targetCol = draggedColIndex
                                 val minRatio = 0.05f
 
-                                val maxNegativeDelta = -(ratios[leftIdx] - minRatio)
-                                val maxPositiveDelta = ratios[rightIdx] - minRatio
-                                val clampedDelta = rawDelta.coerceIn(maxNegativeDelta, maxPositiveDelta)
-
-                                if (clampedDelta != 0f) {
-                                    ratios[leftIdx] += clampedDelta
-                                    ratios[rightIdx] -= clampedDelta
-                                    activeTable.tableLayoutCache = null
-                                    invalidate()
+                                if (targetCol < cCount - 1) {
+                                    val partnerCol = targetCol + 1
+                                    val rawDelta = localDx / totalW
+                                    val maxNegativeDelta = -(ratios[targetCol] - minRatio)
+                                    val maxPositiveDelta = ratios[partnerCol] - minRatio
+                                    val clampedDelta = rawDelta.coerceIn(maxNegativeDelta, maxPositiveDelta)
+                                    if (clampedDelta != 0f) {
+                                        ratios[targetCol] += clampedDelta
+                                        ratios[partnerCol] -= clampedDelta
+                                        activeTable.tableLayoutCache = null
+                                        invalidate()
+                                    }
+                                } else {
+                                    val partnerCol = targetCol - 1
+                                    val rawDelta = -localDx / totalW
+                                    val maxNegativeDelta = -(ratios[targetCol] - minRatio)
+                                    val maxPositiveDelta = ratios[partnerCol] - minRatio
+                                    val clampedDelta = rawDelta.coerceIn(maxNegativeDelta, maxPositiveDelta)
+                                    if (clampedDelta != 0f) {
+                                        ratios[targetCol] += clampedDelta
+                                        ratios[partnerCol] -= clampedDelta
+                                        activeTable.tableLayoutCache = null
+                                        invalidate()
+                                    }
                                 }
                                 touchStartX = x
                                 touchStartY = y
-                            } else if (draggedRowDividerIndex in 1 until data.rows) {
+                            } else if (draggedRowIndex in 0 until data.rows && data.rows > 1) {
                                 val rCount = data.rows
                                 if (data.rowHeightRatios == null || data.rowHeightRatios?.size != rCount) {
                                     val currentCache = activeTable.tableLayoutCache as? com.webscare.urducanvas.common.canvas.cache.TableLayoutCache
@@ -6794,20 +7180,33 @@ class CanvasView @JvmOverloads constructor(
                                 }
                                 data.contentWrap = false
                                 val ratios = data.rowHeightRatios!!
-                                val rawDelta = localDy / totalH
-                                val topIdx = draggedRowDividerIndex - 1
-                                val botIdx = draggedRowDividerIndex
+                                val targetRow = draggedRowIndex
                                 val minRatio = 0.05f
 
-                                val maxNegativeDelta = -(ratios[topIdx] - minRatio)
-                                val maxPositiveDelta = ratios[botIdx] - minRatio
-                                val clampedDelta = rawDelta.coerceIn(maxNegativeDelta, maxPositiveDelta)
-
-                                if (clampedDelta != 0f) {
-                                    ratios[topIdx] += clampedDelta
-                                    ratios[botIdx] -= clampedDelta
-                                    activeTable.tableLayoutCache = null
-                                    invalidate()
+                                if (targetRow < rCount - 1) {
+                                    val partnerRow = targetRow + 1
+                                    val rawDelta = localDy / totalH
+                                    val maxNegativeDelta = -(ratios[targetRow] - minRatio)
+                                    val maxPositiveDelta = ratios[partnerRow] - minRatio
+                                    val clampedDelta = rawDelta.coerceIn(maxNegativeDelta, maxPositiveDelta)
+                                    if (clampedDelta != 0f) {
+                                        ratios[targetRow] += clampedDelta
+                                        ratios[partnerRow] -= clampedDelta
+                                        activeTable.tableLayoutCache = null
+                                        invalidate()
+                                    }
+                                } else {
+                                    val partnerRow = targetRow - 1
+                                    val rawDelta = -localDy / totalH
+                                    val maxNegativeDelta = -(ratios[targetRow] - minRatio)
+                                    val maxPositiveDelta = ratios[partnerRow] - minRatio
+                                    val clampedDelta = rawDelta.coerceIn(maxNegativeDelta, maxPositiveDelta)
+                                    if (clampedDelta != 0f) {
+                                        ratios[targetRow] += clampedDelta
+                                        ratios[partnerRow] -= clampedDelta
+                                        activeTable.tableLayoutCache = null
+                                        invalidate()
+                                    }
                                 }
                                 touchStartX = x
                                 touchStartY = y
@@ -7025,6 +7424,8 @@ class CanvasView @JvmOverloads constructor(
                     }
                     draggedColDividerIndex = -1
                     draggedRowDividerIndex = -1
+                    draggedColIndex = -1
+                    draggedRowIndex = -1
                 }
                 if (isDragCandidate && touchedDownElement != null) {
                     val element = touchedDownElement!!
