@@ -278,16 +278,16 @@ class HomeFragment : androidx.fragment.app.Fragment() {
             view?.post { findNavController().navigate(R.id.templateCategoriesFragment) }
         }
 
-        binding.popularFonts.addPressEffect {
+        binding.popularFontsSeeAllBtn.addPressEffect {
             view?.post { findNavController().navigate(R.id.popularFontsFragment) }
         }
 
-        binding.popularTemplate.addPressEffect {
+        binding.popularTemplateSeeAllBtn.addPressEffect {
             val args = Bundle().apply { putString("FILTER_TYPE", "popular") }
             view?.post { findNavController().navigate(R.id.templatesListFragment, args) }
         }
 
-        binding.recentProjects.addPressEffect {
+        binding.recentSeeAllBtn.addPressEffect {
             val bundle = Bundle().apply {
                 putInt("targetPage", 1)  // 1 = "Projects"
             }

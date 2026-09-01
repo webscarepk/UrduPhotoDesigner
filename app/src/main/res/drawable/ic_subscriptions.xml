@@ -3,11 +3,16 @@
     android:height="40dp"
     android:viewportWidth="40"
     android:viewportHeight="40">
+  <!-- Solid Brand Green Circular Badge with White Border -->
   <path
-      android:fillColor="#1AFFFFFF"
-      android:pathData="M0 20c0-11.05 8.95-20 20-20h0c11.05 0 20 8.95 20 20v0c0 11.05-8.95 20-20 20h0c-11.05 0-20-8.95-20-20z"/>
+      android:fillColor="@color/selection"
+      android:strokeColor="@color/appColor"
+      android:strokeWidth="1"
+      android:pathData="M 20,2 A 18,18 0 1,1 19.99,2 Z" />
+
+  <!-- White Diamond Icon -->
   <path
-      android:strokeColor="#FFFFFFFF"
+      android:strokeColor="@color/appColor"
       android:strokeWidth="1.5"
       android:strokeLineCap="round"
       android:strokeLineJoin="round"

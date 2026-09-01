@@ -313,7 +313,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
                 android:background="@drawable/button_bg"
-                android:backgroundTint="@color/selection"
+                android:backgroundTint="@color/white"
                 android:orientation="vertical">
 
                 <TextView
@@ -426,7 +426,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
                 android:background="@drawable/button_bg"
-                android:backgroundTint="@color/selection"
+                android:backgroundTint="@color/white"
                 android:orientation="vertical">
 
                 <TextView

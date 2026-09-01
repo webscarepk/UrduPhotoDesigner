@@ -21,7 +21,7 @@ class RippleView @JvmOverloads constructor(
     // Pure fill only — no stroke at all
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = 0x1AFFFFFF.toInt()  // exactly 0x1A alpha (~10%) white
+        color = 0x66D8D8D8.toInt()  // selection contrast color
     }
 
     private val startTimes = LongArray(RIPPLE_COUNT) { index ->
@@ -54,8 +54,8 @@ class RippleView @JvmOverloads constructor(
                 else -> 1f - (progress - 0.6f) / 0.4f
             }
 
-            // Scale the color's own 0x1A alpha by the fade envelope
-            fillPaint.alpha = (0x1A * fade).toInt().coerceIn(0, 0x1A)
+            // Scale the color's own alpha by the fade envelope
+            fillPaint.alpha = (0x66 * fade).toInt().coerceIn(0, 0x66)
             canvas.drawCircle(cx, cy, radius, fillPaint)
         }
 

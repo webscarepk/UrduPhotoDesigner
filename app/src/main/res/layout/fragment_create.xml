@@ -37,10 +37,13 @@
 
     <ImageView
         android:id="@+id/back"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="@drawable/button_bg_round"
+        android:backgroundTint="@color/contrast"
         android:src="@drawable/ic_close"
-        android:padding="12dp"
+        android:padding="8dp"
+        app:tint="@color/black"
         app:layout_constraintBottom_toBottomOf="@id/title"
         app:layout_constraintEnd_toStartOf="@id/endGuide"
         app:layout_constraintTop_toTopOf="@id/title"/>

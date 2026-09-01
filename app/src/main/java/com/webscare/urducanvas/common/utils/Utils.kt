@@ -50,11 +50,13 @@ object Utils {
         var isInside = false
 
         setOnTouchListener { v, event ->
+            v.drawableHotspotChanged(event.x, event.y)
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     isInside = true
+                    v.isPressed = true
                     v.vibrateSoft()
-                    v.animate().scaleX(0.92f).scaleY(0.92f).setDuration(60).start()
+                    v.animate().scaleX(0.95f).scaleY(0.95f).setDuration(60).start()
                     true
                 }
 
@@ -63,15 +65,18 @@ object Utils {
                         event.x >= 0 && event.x <= v.width && event.y >= 0 && event.y <= v.height
                     if (isInside && !insideNow) {
                         isInside = false
+                        v.isPressed = false
                         v.animate().scaleX(1f).scaleY(1f).setDuration(80).start()
                     } else if (!isInside && insideNow) {
                         isInside = true
-                        v.animate().scaleX(0.92f).scaleY(0.92f).setDuration(60).start()
+                        v.isPressed = true
+                        v.animate().scaleX(0.95f).scaleY(0.95f).setDuration(60).start()
                     }
                     true
                 }
 
                 MotionEvent.ACTION_UP -> {
+                    v.isPressed = false
                     v.animate().scaleX(1f).scaleY(1f).setDuration(80).start()
                     if (isInside && v.isAttachedToWindow) {
                         onClick?.invoke() ?: v.performClick()
@@ -81,6 +86,7 @@ object Utils {
 
                 MotionEvent.ACTION_CANCEL -> {
                     isInside = false
+                    v.isPressed = false
                     v.animate().scaleX(1f).scaleY(1f).setDuration(80).start()
                     true
                 }

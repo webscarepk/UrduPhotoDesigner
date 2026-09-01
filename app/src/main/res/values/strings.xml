@@ -205,10 +205,14 @@
     <string name="auto_saving_changes">Saving changes …</string>
     <string name="loading_project">Loading project …</string>
     <string name="upload_photo">Add Photo</string>
+    <string name="upload_and_edit">Upload &amp; edit</string>
     <string name="blank_canvas">New Canvas</string>
+    <string name="start_designing">Start designing</string>
     <string name="browse_templates">Templates</string>
-    <string name="manage_custom_fonts_assets_and_imports_in_files_tab">Manage custom fonts, assets and imports in </string>
-    <string name="filesTab"><u>Files tab</u></string>
+    <string name="explore_ready_made">Explore ready made</string>
+    <string name="create_beautiful_in_urdu">Create beautiful in Urdu</string>
+    <string name="manage_custom_fonts_assets_and_imports_in_files_tab">Manage custom fonts, assets and imports in</string>
+    <string name="filesTab">Files tab</string>
     <string name="see_all">See all</string>
     <string name="duplicate">Duplicate</string>
     <string name="rename">Rename</string>

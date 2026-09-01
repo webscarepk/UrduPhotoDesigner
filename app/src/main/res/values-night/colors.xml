@@ -7,7 +7,7 @@
     <color name="whiteText">#FFFFFF</color>
     <color name="contrast">#121214</color>
     <color name="appColor">#005D28</color>
-    <color name="appColorLow">#40005D28</color>
+    <color name="appColorLow">#30005D28</color>
     <color name="download_tint">@color/black</color>
     <color name="selection">#2E2E34</color>
     <color name="gray">#9AA0AC</color>
