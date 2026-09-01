@@ -327,7 +327,7 @@
             app:layout_constraintBottom_toBottomOf="@id/sizeLabel"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@id/sizeLabel"
-            tools:text="24" />
+            tools:text="48" />
 
         <SeekBar
             android:id="@+id/thicknessBar"
@@ -335,7 +335,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="3dp"
             android:max="149"
-            android:progress="23"
+            android:progress="47"
             android:progressBackgroundTint="@color/light_gray"
             android:progressTint="@color/appColor"
             android:indeterminateTint="@color/appColor"

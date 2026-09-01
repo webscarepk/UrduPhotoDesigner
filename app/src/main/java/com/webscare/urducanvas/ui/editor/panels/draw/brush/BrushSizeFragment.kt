@@ -56,13 +56,19 @@ class BrushSizeFragment : Fragment() {
                     binding.sizeValue.text = "${progress + 1}"
                     if (fromUser) {
                         viewModel.setBrushThickness(thickness)
+                        viewModel.updateSizePreview(thickness)
                         viewModel.enterDrawingMode(requireActivity())
                     }
                     updatePresetSelection(thickness.toInt())
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar) {}
-                override fun onStopTrackingTouch(sb: SeekBar) {}
+                override fun onStartTrackingTouch(sb: SeekBar) {
+                    viewModel.showSizePreview((sb.progress + 1).toFloat(), isEraser = false)
+                }
+
+                override fun onStopTrackingTouch(sb: SeekBar) {
+                    viewModel.hideSizePreview()
+                }
             })
         }
 
@@ -76,12 +82,19 @@ class BrushSizeFragment : Fragment() {
                         // 0% softness = 1.0 hardness (crisp), 100% softness = 0.0 hardness (fully soft/feathered/tapered)
                         val hardness = 1f - (progress / 100f)
                         viewModel.setBrushHardness(hardness)
+                        viewModel.updateSizePreview(hardness = hardness, isEraser = false)
                         viewModel.enterDrawingMode(requireActivity())
                     }
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar) {}
-                override fun onStopTrackingTouch(sb: SeekBar) {}
+                override fun onStartTrackingTouch(sb: SeekBar) {
+                    val hardness = 1f - (sb.progress / 100f)
+                    viewModel.showSizePreview(hardness = hardness, isEraser = false)
+                }
+
+                override fun onStopTrackingTouch(sb: SeekBar) {
+                    viewModel.hideSizePreview()
+                }
             })
         }
 
@@ -92,13 +105,21 @@ class BrushSizeFragment : Fragment() {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                     binding.opacityValue.text = "$progress%"
                     if (fromUser) {
-                        viewModel.setBrushOpacity(progress / 100f)
+                        val opacity = progress / 100f
+                        viewModel.setBrushOpacity(opacity)
+                        viewModel.updateSizePreview(opacity = opacity, isEraser = false)
                         viewModel.enterDrawingMode(requireActivity())
                     }
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar) {}
-                override fun onStopTrackingTouch(sb: SeekBar) {}
+                override fun onStartTrackingTouch(sb: SeekBar) {
+                    val opacity = sb.progress / 100f
+                    viewModel.showSizePreview(opacity = opacity, isEraser = false)
+                }
+
+                override fun onStopTrackingTouch(sb: SeekBar) {
+                    viewModel.hideSizePreview()
+                }
             })
         }
     }

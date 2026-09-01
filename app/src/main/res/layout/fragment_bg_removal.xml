@@ -89,7 +89,7 @@
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:background="@drawable/ic_button_gradient_wrap"
-            android:backgroundTint="#30005D28"
+            android:backgroundTint="@color/selection"
             android:padding="8dp"
             android:src="@drawable/ic_done"
             app:layout_constraintEnd_toEndOf="parent"

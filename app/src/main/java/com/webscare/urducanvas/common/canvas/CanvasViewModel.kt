@@ -80,6 +80,15 @@ import java.util.Stack
 import java.util.UUID
 import javax.inject.Inject
 
+data class SizePreviewState(
+    val isVisible: Boolean,
+    val size: Float,
+    val hardness: Float = 1f,
+    val opacity: Float = 1f,
+    val color: Int = Color.WHITE,
+    val isEraser: Boolean = false
+)
+
 @HiltViewModel
 class CanvasViewModel @Inject constructor(
     private val getFontsUseCase: GetFontsUseCase,
@@ -338,7 +347,7 @@ class CanvasViewModel @Inject constructor(
     private val _brushOpacity = MutableLiveData(1f)   // 0f..1f
     val brushOpacity: LiveData<Float> = _brushOpacity
 
-    private val _brushThickness = MutableLiveData(10f)
+    private val _brushThickness = MutableLiveData(48f)
     val brushThickness: LiveData<Float> = _brushThickness
 
     private val _brushColor = MutableLiveData(Color.BLACK)
@@ -350,7 +359,7 @@ class CanvasViewModel @Inject constructor(
     private val _isEraserActive = MutableLiveData(false)
     val isEraserActive: LiveData<Boolean> = _isEraserActive
 
-    private val _eraserThickness = MutableLiveData(24f)
+    private val _eraserThickness = MutableLiveData(48f)
     val eraserThickness: LiveData<Float> = _eraserThickness
 
     private val _eraserHardness = MutableLiveData(1f)
@@ -361,6 +370,59 @@ class CanvasViewModel @Inject constructor(
 
     private val _isEraserSmoothingEnabled = MutableLiveData(true)
     val isEraserSmoothingEnabled: LiveData<Boolean> = _isEraserSmoothingEnabled
+
+    private val _sizePreviewState = MutableLiveData<SizePreviewState?>(null)
+    val sizePreviewState: LiveData<SizePreviewState?> = _sizePreviewState
+
+    fun showSizePreview(
+        size: Float? = null,
+        hardness: Float? = null,
+        opacity: Float? = null,
+        isEraser: Boolean = false
+    ) {
+        val effectiveEraser = isEraser || (_isEraserActive.value == true)
+        val s = size ?: if (effectiveEraser) (_eraserThickness.value ?: 48f) else (_brushThickness.value ?: 48f)
+        val h = hardness ?: if (effectiveEraser) (_eraserHardness.value ?: 1f) else (_brushHardness.value ?: 1f)
+        val o = opacity ?: if (effectiveEraser) (_eraserOpacity.value ?: 1f) else (_brushOpacity.value ?: 1f)
+        val c = if (effectiveEraser) Color.WHITE else (_brushColor.value ?: Color.BLACK)
+        _sizePreviewState.value = SizePreviewState(
+            isVisible = true,
+            size = s,
+            hardness = h,
+            opacity = o,
+            color = c,
+            isEraser = effectiveEraser
+        )
+        getCanvasView()?.showSizePreview(s, h, o, c, effectiveEraser)
+    }
+
+    fun updateSizePreview(
+        size: Float? = null,
+        hardness: Float? = null,
+        opacity: Float? = null,
+        isEraser: Boolean = false
+    ) {
+        val current = _sizePreviewState.value
+        val effectiveEraser = isEraser || (current?.isEraser == true) || (_isEraserActive.value == true)
+        val s = size ?: current?.size ?: if (effectiveEraser) (_eraserThickness.value ?: 48f) else (_brushThickness.value ?: 48f)
+        val h = hardness ?: current?.hardness ?: if (effectiveEraser) (_eraserHardness.value ?: 1f) else (_brushHardness.value ?: 1f)
+        val o = opacity ?: current?.opacity ?: if (effectiveEraser) (_eraserOpacity.value ?: 1f) else (_brushOpacity.value ?: 1f)
+        val c = if (effectiveEraser) Color.WHITE else (_brushColor.value ?: Color.BLACK)
+        _sizePreviewState.value = SizePreviewState(
+            isVisible = true,
+            size = s,
+            hardness = h,
+            opacity = o,
+            color = c,
+            isEraser = effectiveEraser
+        )
+        getCanvasView()?.updateSizePreview(s, h, o, c, effectiveEraser)
+    }
+
+    fun hideSizePreview() {
+        _sizePreviewState.value = SizePreviewState(isVisible = false, size = 0f)
+        getCanvasView()?.hideSizePreview()
+    }
 
     private val _currentShapeType = MutableLiveData(ShapeType.RECTANGLE)
     val currentShapeType: LiveData<ShapeType> = _currentShapeType
@@ -876,8 +938,12 @@ class CanvasViewModel @Inject constructor(
         _isMaskingMode.value = false
     }
 
-    fun startDrawSession(context: Context) {
+    fun startDrawSession(context: Context, targetElement: CanvasElement? = null) {
         if (_activeDrawSession != null) {
+            return
+        }
+        if (targetElement != null) {
+            _activeDrawSession = targetElement.copy()
             return
         }
         val currentList = _canvasElements.value.orEmpty()
@@ -958,6 +1024,14 @@ class CanvasViewModel @Inject constructor(
             if (maxX < minX || maxY < minY) {
                 fullBitmap.recycle()
                 withContext(Dispatchers.Main) {
+                    val originalElement = _canvasElements.value?.firstOrNull { it.id == session.id }
+                    if (originalElement != null) {
+                        val currentList = _canvasElements.value.orEmpty().filter { it.id != session.id }
+                        _canvasElements.value = currentList
+                        _canvasActions.push(CanvasAction.RemoveElement(originalElement))
+                        _redoStack.clear()
+                        notifyUndoRedoChanged()
+                    }
                     _activeDrawSession = null
                     getCanvasView()?.clearDrawingSessionState()
                 }
@@ -986,14 +1060,28 @@ class CanvasViewModel @Inject constructor(
             )
 
             withContext(Dispatchers.Main) {
-                val currentList = _canvasElements.value.orEmpty().toMutableList()
-                currentList.add(rasterized)
-                _canvasElements.postValue(currentList)
-                _canvasActions.push(
-                    CanvasAction.AddDrawStroke(rasterized.copy(context = null))
-                )
-                _redoStack.clear()
-                notifyUndoRedoChanged()
+                val isExistingElement = _canvasElements.value?.any { it.id == session.id } == true
+                val originalElement = _canvasElements.value?.firstOrNull { it.id == session.id }
+
+                if (isExistingElement && originalElement != null) {
+                    val updatedElement = rasterized.copy(
+                        type = originalElement.type,
+                        scale = 1f,
+                        rotation = 0f,
+                        isFlippedX = false,
+                        isFlippedY = false
+                    )
+                    updateCanvasElement(updatedElement)
+                } else {
+                    val currentList = _canvasElements.value.orEmpty().toMutableList()
+                    currentList.add(rasterized)
+                    _canvasElements.postValue(currentList)
+                    _canvasActions.push(
+                        CanvasAction.AddDrawStroke(rasterized.copy(context = null))
+                    )
+                    _redoStack.clear()
+                    notifyUndoRedoChanged()
+                }
                 _activeDrawSession = null
                 getCanvasView()?.clearDrawingSessionState()
             }
@@ -1077,7 +1165,7 @@ class CanvasViewModel @Inject constructor(
     fun resetBrushSettings() {
         // 🔹 Reset all brush-related LiveData values to default
         _brushColor.value = Color.BLACK
-        _brushThickness.value = 10f
+        _brushThickness.value = 48f
         _brushHardness.value = 1f
         _brushOpacity.value = 1f
         _currentBrushStyle.value = null
@@ -2055,14 +2143,16 @@ class CanvasViewModel @Inject constructor(
         _isMaskingMode.value = true
     }
 
-    fun enterDrawingMode(context: Context) {
-        startDrawSession(context)
+    fun enterDrawingMode(context: Context, targetElement: CanvasElement? = null) {
+        startDrawSession(context, targetElement)
         _isDrawingMode.value = true
     }
 
     fun exitDrawingMode(commit: Boolean = false) {
         if (commit) commitDrawSession() else discardDrawSession()
         _isDrawingMode.value = false
+        _isEraserActive.value = false
+        getCanvasView()?.isEraserActive = false
     }
 
     fun startPicking(slot: PickerTarget) {

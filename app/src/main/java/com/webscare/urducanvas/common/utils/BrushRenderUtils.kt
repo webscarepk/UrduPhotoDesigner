@@ -210,18 +210,20 @@ object BrushRenderUtils {
         stroke: StrokeData,
         paint: Paint
     ) {
-        val pathMeasure = PathMeasure(stroke.path, false)
+        val path = stroke.path ?: return
+        val pathMeasure = PathMeasure(path, false)
         val length = pathMeasure.length
         if (length <= 0f) return
         val pos = FloatArray(2)
         val tan = FloatArray(2)
         val softness = (1f - stroke.hardness).coerceIn(0f, 1f)
-        val smoothness = 80
+        val smoothness = 30
         val origAlpha = paint.alpha
+        val origWidth = stroke.thickness
 
-        val path = Path()
+        val segmentPath = Path()
         pathMeasure.getPosTan(0f, pos, tan)
-        path.moveTo(pos[0], pos[1])
+        segmentPath.moveTo(pos[0], pos[1])
 
         for (i in 1..smoothness) {
             val t = i / smoothness.toFloat()
@@ -230,97 +232,44 @@ object BrushRenderUtils {
             val endTaper = if (t > 0.75f) ((1f - t) / 0.25f).pow(0.5f) else 1f
             val taperFactor = startTaper * endTaper
 
-            // Taper width and alpha dynamically based on softness
             val widthFactor = (1f - softness) * 1f + softness * taperFactor
-            val width = stroke.thickness * widthFactor.coerceIn(0.12f, 1f)
+            val width = origWidth * widthFactor.coerceIn(0.2f, 1f)
             val alphaFactor = (1f - softness) * 1f + softness * taperFactor
 
             pathMeasure.getPosTan(length * t, pos, tan)
             paint.strokeWidth = width
             paint.alpha = (origAlpha * alphaFactor).toInt().coerceIn(0, 255)
-            path.lineTo(pos[0], pos[1])
-            canvas.drawPath(path, paint)
-            path.reset()
-            path.moveTo(pos[0], pos[1])
+            segmentPath.lineTo(pos[0], pos[1])
+            canvas.drawPath(segmentPath, paint)
+            segmentPath.reset()
+            segmentPath.moveTo(pos[0], pos[1])
         }
         paint.alpha = origAlpha
+        paint.strokeWidth = origWidth
     }
 
     fun drawBrushStroke(canvas: Canvas, stroke: StrokeData, paintAlpha: Int) {
-        canvas.saveLayer(null, null)
-
         val paint = makeStrokePaint(stroke, canvas.width, canvas.height).apply {
             style = Paint.Style.STROKE
             strokeJoin = Paint.Join.ROUND
             strokeCap = Paint.Cap.ROUND
             isAntiAlias = true
             alpha = paintAlpha
-            setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
         }
-
-        drawTaperedStroke(canvas, stroke, paint)
-
-        val erasePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeCap = Paint.Cap.ROUND
-            color = Color.TRANSPARENT
-            xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
-            maskFilter = null
-            setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
-        }
-
-        val random = Random(42)
-        val pathMeasure = PathMeasure(stroke.path, false)
-        val pathLength = pathMeasure.length
-        val pos = FloatArray(2)
-        val tan = FloatArray(2)
 
         val softness = (1f - stroke.hardness).coerceIn(0f, 1f)
-        val totalBristles = (10 + softness * 60).toInt()
-        val baseSpacing = stroke.thickness * 0.22f
-
-        var dist = 0f
-        while (dist < pathLength) {
-            val t = dist / pathLength
-            val taperFactor = (1f - 0.45f * t).coerceAtLeast(0.3f)
-            val localThickness = stroke.thickness * taperFactor
-            val densityFactor = t.pow(1.3f)
-            val localBristles = (totalBristles * densityFactor).toInt().coerceAtLeast(1)
-            val scatter = 0.05f + softness * 0.08f
-            erasePaint.strokeWidth = localThickness * (0.012f + 0.025f * softness)
-
-            pathMeasure.getPosTan(dist, pos, tan)
-            val len = hypot(tan[0], tan[1])
-            val dirX = if (len != 0f) tan[0] / len else 0f
-            val dirY = if (len != 0f) tan[1] / len else 0f
-            val perpX = -dirY
-            val perpY = dirX
-
-            repeat(localBristles) {
-                val spreadOffset = (random.nextFloat() - 0.5f) * stroke.thickness
-                val baseX = pos[0] + perpX * spreadOffset
-                val baseY = pos[1] + perpY * spreadOffset
-
-                val forwardJitter = (random.nextFloat() - 0.3f) * stroke.thickness * 0.15f
-                val lenFactor = stroke.thickness * (0.25f + 0.9f * t)
-                val bx = baseX + dirX * (lenFactor + forwardJitter)
-                val by = baseY + dirY * (lenFactor + forwardJitter)
-
-                val jx = (random.nextFloat() - 0.5f) * stroke.thickness * scatter
-                val jy = (random.nextFloat() - 0.5f) * stroke.thickness * scatter
-
-                canvas.drawLine(baseX + jx, baseY + jy, bx + jx, by + jy, erasePaint)
-            }
-
-            dist += baseSpacing
+        if (softness > 0.05f) {
+            drawTaperedStroke(canvas, stroke, paint)
+        } else {
+            stroke.path?.let { canvas.drawPath(it, paint) }
         }
-
-        canvas.restore()
     }
 
     fun drawCalligraphyStroke(canvas: Canvas, stroke: StrokeData, paintAlpha: Int) {
-        val pathMeasure = PathMeasure(stroke.path, false)
+        val path = stroke.path ?: return
+        val pathMeasure = PathMeasure(path, false)
         val pathLength = pathMeasure.length
+        if (pathLength <= 0f) return
         val pos = FloatArray(2)
         val tan = FloatArray(2)
         val paint = makeStrokePaint(stroke, canvas.width, canvas.height).apply {
@@ -334,7 +283,7 @@ object BrushRenderUtils {
         val nibCos = cos(angle).toFloat()
         val nibSin = sin(angle).toFloat()
 
-        val steps = 120
+        val steps = 30
         for (i in 0..steps) {
             val t = i / steps.toFloat()
             pathMeasure.getPosTan(pathLength * t, pos, tan)
@@ -352,8 +301,10 @@ object BrushRenderUtils {
     }
 
     fun drawFlatBrushStroke(canvas: Canvas, stroke: StrokeData, paintAlpha: Int) {
-        val pathMeasure = PathMeasure(stroke.path, false)
+        val path = stroke.path ?: return
+        val pathMeasure = PathMeasure(path, false)
         val pathLength = pathMeasure.length
+        if (pathLength <= 0f) return
         val pos = FloatArray(2)
         val tan = FloatArray(2)
         val paint = makeStrokePaint(stroke, canvas.width, canvas.height).apply {
@@ -363,7 +314,7 @@ object BrushRenderUtils {
             alpha = paintAlpha
         }
 
-        val bristles = 7
+        val bristles = 5
         for (b in 0 until bristles) {
             val offsetFactor = (b - bristles / 2f) / (bristles / 2f)
             val bristleOffset = offsetFactor * (stroke.thickness * 0.45f)
@@ -371,7 +322,7 @@ object BrushRenderUtils {
                 strokeWidth = (stroke.thickness / bristles).coerceAtLeast(1.5f)
             }
             val bristlePath = Path()
-            val steps = 80
+            val steps = 24
             for (i in 0..steps) {
                 val t = i / steps.toFloat()
                 pathMeasure.getPosTan(pathLength * t, pos, tan)
@@ -511,8 +462,10 @@ object BrushRenderUtils {
     }
 
     fun drawTaperedPenStroke(canvas: Canvas, stroke: StrokeData, paintAlpha: Int) {
-        val pathMeasure = PathMeasure(stroke.path, false)
+        val path = stroke.path ?: return
+        val pathMeasure = PathMeasure(path, false)
         val pathLength = pathMeasure.length
+        if (pathLength <= 0f) return
         val position = FloatArray(2)
         val tangent = FloatArray(2)
         val prevPos = FloatArray(2)
@@ -525,17 +478,17 @@ object BrushRenderUtils {
             alpha = paintAlpha
         }
 
-        val path = Path()
-        val samples = 100
+        val segmentPath = Path()
+        val samples = 30
         var prevWidth = stroke.thickness
 
-        for (i in 0 until samples) {
+        for (i in 0..samples) {
             val t = i / samples.toFloat()
             val dist = pathLength * t
             pathMeasure.getPosTan(dist, position, tangent)
 
             if (i == 0) {
-                path.moveTo(position[0], position[1])
+                segmentPath.moveTo(position[0], position[1])
                 prevPos[0] = position[0]
                 prevPos[1] = position[1]
                 continue
@@ -551,14 +504,14 @@ object BrushRenderUtils {
             val smoothWidth = (prevWidth * 0.7f + width * 0.3f)
             paint.strokeWidth = smoothWidth
 
-            path.lineTo(position[0], position[1])
-            canvas.drawPath(path, paint)
+            segmentPath.lineTo(position[0], position[1])
+            canvas.drawPath(segmentPath, paint)
 
             prevWidth = smoothWidth
             prevPos[0] = position[0]
             prevPos[1] = position[1]
-            path.reset()
-            path.moveTo(position[0], position[1])
+            segmentPath.reset()
+            segmentPath.moveTo(position[0], position[1])
         }
     }
 

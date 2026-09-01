@@ -66,11 +66,6 @@ class BrushPanelFragment : Fragment() {
     }
 
     private fun setEvents() {
-        binding.brushPreview.post {
-            if (_binding == null) return@post
-            animatePreview()
-        }
-
         binding.sizePane.isVisible = tabName == "Size"
         binding.stylePane.isVisible = tabName == "Style"
         binding.colorPane.isVisible = tabName == "Color"
@@ -168,53 +163,6 @@ class BrushPanelFragment : Fragment() {
         }
     }
 
-    private fun animatePreview() {
-        val preview = _binding?.brushPreview ?: return
-        val width = preview.width.takeIf { it > 0 } ?: return
-        val height = preview.height.takeIf { it > 0 } ?: return
-
-        // Capture values before leaving main thread
-        val color = viewModel.brushColor.value ?: Color.BLACK
-        val thickness = viewModel.brushThickness.value ?: 20f
-        val hardness = viewModel.brushHardness.value ?: 1f
-        val style = viewModel.currentBrushStyle.value ?: BrushStyle.PEN
-        val gradient = viewModel.brushGradient.value
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            val bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
-                val bmp = createBitmap(width, height)
-                val canvas = Canvas(bmp)
-                canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
-
-                val path = Path().apply {
-                    moveTo(width * 0.1f, height * 0.5f)
-                    cubicTo(width * 0.3f, height * 0.3f, width * 0.7f, height * 0.7f, width * 0.9f, height * 0.5f)
-                }
-                val stroke = com.webscare.urducanvas.common.canvas.model.StrokeData(
-                    path = path, color = color, thickness = thickness,
-                    hardness = hardness, style = style, gradient = gradient
-                )
-                BrushRenderUtils.drawStrokePreview(
-                    canvas = canvas, stroke = stroke, paintAlpha = 255,
-                    width = width, height = height,
-                    makePaint = BrushRenderUtils::makeStrokePaint,
-                    drawBrush = BrushRenderUtils::drawBrushStroke,
-                    drawPen = BrushRenderUtils::drawTaperedPenStroke
-                )
-                bmp
-            }
-
-            // Back on main thread — update UI and animate
-            val b = _binding ?: return@launch
-            b.brushPreview.setImageBitmap(bitmap)
-            b.brushPreview.animate()
-                .setDuration(120L)
-                .setInterpolator(android.view.animation.LinearInterpolator())
-                .alpha(1f)
-                .start()
-        }
-    }
-
     private fun initObservers() {
         mainViewModel.gradients.observe(viewLifecycleOwner) { gradients ->
             gradientsAdapter.updateList(gradients)
@@ -222,31 +170,26 @@ class BrushPanelFragment : Fragment() {
 
         viewModel.currentBrushStyle.observe(viewLifecycleOwner) { style ->
             updateBrushStyleUI(style)
-            animatePreview()
         }
 
         viewModel.brushHardness.observe(viewLifecycleOwner) { hardness ->
             val progressValue = (hardness * 100).toInt()
             binding.hardnessBar.progress = progressValue
             binding.hardness.text = "$progressValue%"
-            animatePreview()
         }
 
         viewModel.brushThickness.observe(viewLifecycleOwner) { thickness ->
             val progressValue = (thickness.toInt() - 1).coerceIn(0, 99)  // reverse the +1 offset
             binding.thicknessBar.progress = progressValue
             binding.thickness.text = thickness.toInt().toString()
-            animatePreview()
         }
 
         viewModel.brushColor.observe(viewLifecycleOwner) { color ->
             colorsAdapter.selectedColor = color ?: Color.BLACK
-            animatePreview()
         }
 
         viewModel.brushGradient.observe(viewLifecycleOwner) { gradient ->
             gradientsAdapter.selectedItem = gradient
-            animatePreview()
         }
 
     }

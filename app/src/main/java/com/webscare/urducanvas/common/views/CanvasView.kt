@@ -178,14 +178,14 @@ class CanvasView @JvmOverloads constructor(
     var isBrushSmoothingEnabled: Boolean = true
     private var isDrawing = false
     private var currentBrushColor: Int = Color.BLACK
-    private var currentBrushThickness: Float = 20f
+    private var currentBrushThickness: Float = 48f
     private var currentBrushHardness: Float = 1f
     private var currentBrushOpacity: Float = 1f
     private var currentBrushStyle: BrushStyle = BrushStyle.PEN
     private var currentBrushGradient: GradientItem? = null
 
     var isEraserActive: Boolean = false
-    var currentEraserThickness: Float = 24f
+    var currentEraserThickness: Float = 48f
     var currentEraserHardness: Float = 1f
     var currentEraserOpacity: Float = 1f
     var isEraserSmoothingEnabled: Boolean = true
@@ -199,6 +199,51 @@ class CanvasView @JvmOverloads constructor(
     private var eraserCursorX: Float = -1f
     private var eraserCursorY: Float = -1f
     private var showEraserCursor: Boolean = false
+
+    var isSizePreviewVisible: Boolean = false
+    var sizePreviewSize: Float = 48f
+    var sizePreviewHardness: Float = 1f
+    var sizePreviewOpacity: Float = 1f
+    var sizePreviewColor: Int = Color.WHITE
+    var isSizePreviewEraser: Boolean = false
+
+    fun showSizePreview(
+        size: Float,
+        hardness: Float = 1f,
+        opacity: Float = 1f,
+        color: Int = Color.WHITE,
+        isEraser: Boolean = false
+    ) {
+        isSizePreviewVisible = true
+        sizePreviewSize = size
+        sizePreviewHardness = hardness
+        sizePreviewOpacity = opacity
+        sizePreviewColor = color
+        isSizePreviewEraser = isEraser
+        invalidate()
+    }
+
+    fun updateSizePreview(
+        size: Float,
+        hardness: Float = 1f,
+        opacity: Float = 1f,
+        color: Int = Color.WHITE,
+        isEraser: Boolean = false
+    ) {
+        sizePreviewSize = size
+        sizePreviewHardness = hardness
+        sizePreviewOpacity = opacity
+        sizePreviewColor = color
+        isSizePreviewEraser = isEraser
+        invalidate()
+    }
+
+    fun hideSizePreview() {
+        if (isSizePreviewVisible) {
+            isSizePreviewVisible = false
+            invalidate()
+        }
+    }
 
     private var pickerX = 0f
     private var pickerY = 0f
@@ -590,10 +635,22 @@ class CanvasView @JvmOverloads constructor(
             activeSessionElement?.let { session ->
                 session.bitmap?.let { existingBmp ->
                     if (!existingBmp.isRecycled) {
-                        val left = session.x - session.logicalContentWidth / 2f
-                        val top = session.y - session.logicalContentHeight / 2f
-                        val destRect = RectF(left, top, left + session.logicalContentWidth, top + session.logicalContentHeight)
-                        drawingSessionCanvas?.drawBitmap(existingBmp, null, destRect, null)
+                        val sessionCanvas = drawingSessionCanvas
+                        if (sessionCanvas != null) {
+                            sessionCanvas.save()
+                            sessionCanvas.translate(session.x, session.y)
+                            sessionCanvas.rotate(session.rotation)
+                            val fx = if (session.isFlippedX) -1f else 1f
+                            val fy = if (session.isFlippedY) -1f else 1f
+                            sessionCanvas.scale(session.scale * fx, session.scale * fy)
+
+                            val drawW = existingBmp.width.toFloat()
+                            val drawH = existingBmp.height.toFloat()
+                            val dstRect = RectF(-drawW / 2f, -drawH / 2f, drawW / 2f, drawH / 2f)
+                            val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { isFilterBitmap = true }
+                            sessionCanvas.drawBitmap(existingBmp, null, dstRect, p)
+                            sessionCanvas.restore()
+                        }
                     }
                 }
                 session.drawStrokes?.forEach { s ->
@@ -699,23 +756,6 @@ class CanvasView @JvmOverloads constructor(
         gradient?.let { currentBrushGradient = it }
     }
 
-    private fun filterJitterPoints(points: List<Pair<Float, Float>>, minDistance: Float = 3.5f): List<Pair<Float, Float>> {
-        if (points.size <= 2) return points
-        val result = mutableListOf<Pair<Float, Float>>()
-        result.add(points.first())
-        var last = points.first()
-        for (i in 1 until points.size - 1) {
-            val p = points[i]
-            val dist = kotlin.math.hypot(p.first - last.first, p.second - last.second)
-            if (dist >= minDistance) {
-                result.add(p)
-                last = p
-            }
-        }
-        result.add(points.last())
-        return result
-    }
-
     private fun buildSmoothPath(points: List<Pair<Float, Float>>): Path {
         val path = Path()
         if (points.isEmpty()) return path
@@ -730,16 +770,10 @@ class CanvasView @JvmOverloads constructor(
             return path
         }
 
-        // 1. Filter out high-frequency micro tremor points
-        val filtered = filterJitterPoints(points, minDistance = 3.5f)
-
-        // 2. Chaikin corner cutting (3 iterations) to eliminate sharp corners & hand jerks
-        val smoothedPoints = smoothStrokePoints(filtered, iterations = 3)
-
-        path.moveTo(smoothedPoints[0].first, smoothedPoints[0].second)
-        for (i in 1 until smoothedPoints.size) {
-            val p0 = smoothedPoints[i - 1]
-            val p1 = smoothedPoints[i]
+        path.moveTo(points[0].first, points[0].second)
+        for (i in 1 until points.size) {
+            val p0 = points[i - 1]
+            val p1 = points[i]
             val midX = (p0.first + p1.first) / 2f
             val midY = (p0.second + p1.second) / 2f
             if (i == 1) {
@@ -748,30 +782,8 @@ class CanvasView @JvmOverloads constructor(
                 path.quadTo(p0.first, p0.second, midX, midY)
             }
         }
-        path.lineTo(smoothedPoints.last().first, smoothedPoints.last().second)
+        path.lineTo(points.last().first, points.last().second)
         return path
-    }
-
-    private fun smoothStrokePoints(points: List<Pair<Float, Float>>, iterations: Int = 2): List<Pair<Float, Float>> {
-        var current = points
-        for (iter in 0 until iterations) {
-            if (current.size <= 2) break
-            val smoothed = ArrayList<Pair<Float, Float>>(current.size * 2)
-            smoothed.add(current.first())
-            for (i in 0 until current.size - 1) {
-                val p0 = current[i]
-                val p1 = current[i + 1]
-                val qX = 0.75f * p0.first + 0.25f * p1.first
-                val qY = 0.75f * p0.second + 0.25f * p1.second
-                val rX = 0.25f * p0.first + 0.75f * p1.first
-                val rY = 0.25f * p0.second + 0.75f * p1.second
-                smoothed.add(qX to qY)
-                smoothed.add(rX to rY)
-            }
-            smoothed.add(current.last())
-            current = smoothed
-        }
-        return current
     }
 
     fun enableColorPicker() {
@@ -2311,20 +2323,21 @@ class CanvasView @JvmOverloads constructor(
 
     private fun drawLivePreviewStroke(canvas: Canvas) {
         val path = currentStrokePath ?: return
-
-        val tempStroke = StrokeData(
-            path = path,
-            color = currentBrushColor,
-            thickness = currentBrushThickness,
-            hardness = currentBrushHardness,
-            opacity = currentBrushOpacity,
-            style = currentBrushStyle,
-            gradient = currentBrushGradient
-        )
-
-        com.webscare.urducanvas.common.utils.BrushRenderUtils.drawSingleStroke(
-            canvas, tempStroke, 255
-        )
+        val paint = currentStrokePaint ?: run {
+            val tempStroke = StrokeData(
+                path = path,
+                color = currentBrushColor,
+                thickness = currentBrushThickness,
+                hardness = currentBrushHardness,
+                opacity = currentBrushOpacity,
+                style = currentBrushStyle,
+                gradient = currentBrushGradient
+            )
+            val p = com.webscare.urducanvas.common.utils.BrushRenderUtils.makeStrokePaint(tempStroke, width, height)
+            currentStrokePaint = p
+            p
+        }
+        canvas.drawPath(path, paint)
     }
 
     @SuppressLint("DrawAllocation")
@@ -2349,8 +2362,12 @@ class CanvasView @JvmOverloads constructor(
                 scale(scale, scale)
                 if (isDrawing) {
                     drawCanvasShadow(this)
+                    val activeId = activeSessionElement?.id
+                    val isolated = if (activeId != null) {
+                        canvasElements.filter { it.id != activeId }.map { it.id }.toSet()
+                    } else null
                     // Draw canvas elements normally (dimmed by overlay on top — no saveLayer needed)
-                    drawCanvasElements(this, showOverlays = false, showCheckerboard = false)
+                    drawCanvasElements(this, showOverlays = false, showCheckerboard = false, isolatedIds = isolated)
 
                     // Draw semi-transparent overlay on top — no offscreen bitmap, just a rect
                     drawRect(
@@ -2469,6 +2486,96 @@ class CanvasView @JvmOverloads constructor(
         // showOverlays=false, or any canvas elements / dim overlays.
         if (isColorPickerMode) {
             drawColorPickerOverlay(canvas)
+        }
+
+        // ── SIZE PREVIEW OVERLAY (Photoshop Express Style) ─────────
+        if (isSizePreviewVisible && sizePreviewSize > 0f) {
+            val cx = width / 2f
+            val cy = height / 2f
+            val radiusPx = (sizePreviewSize * overallScale * scale) / 2f
+
+            val density = resources.displayMetrics.density
+
+            // 0. Render the inner brush spot with actual softness & opacity (Photoshop Express style)
+            val baseColor = if (isSizePreviewEraser) Color.WHITE else sizePreviewColor
+            val alphaInt = (sizePreviewOpacity.coerceIn(0f, 1f) * 255).toInt().coerceIn(0, 255)
+            val colorWithAlpha = Color.argb(
+                alphaInt,
+                Color.red(baseColor),
+                Color.green(baseColor),
+                Color.blue(baseColor)
+            )
+            val transparentColor = Color.argb(
+                0,
+                Color.red(baseColor),
+                Color.green(baseColor),
+                Color.blue(baseColor)
+            )
+
+            val hardness = sizePreviewHardness.coerceIn(0f, 1f)
+            if (hardness >= 0.98f) {
+                // Hard crisp brush/eraser
+                val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.FILL
+                    color = colorWithAlpha
+                }
+                canvas.drawCircle(cx, cy, radiusPx, fillPaint)
+            } else {
+                // Soft / Feathered radial gradient fade
+                val stopCore = hardness.coerceIn(0f, 0.95f)
+                val radialShader = RadialGradient(
+                    cx,
+                    cy,
+                    radiusPx.coerceAtLeast(1f),
+                    intArrayOf(colorWithAlpha, colorWithAlpha, transparentColor),
+                    floatArrayOf(0f, stopCore, 1f),
+                    Shader.TileMode.CLAMP
+                )
+                val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.FILL
+                    shader = radialShader
+                }
+                canvas.drawCircle(cx, cy, radiusPx, fillPaint)
+            }
+
+            // 1. Subtle dark outer outline for contrast across all backgrounds
+            val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = 2.5f * density
+                color = Color.argb(130, 0, 0, 0)
+            }
+            canvas.drawCircle(cx, cy, radiusPx, shadowPaint)
+
+            // 2. Crisp white primary circle stroke
+            val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = 1.5f * density
+                color = Color.WHITE
+            }
+            canvas.drawCircle(cx, cy, radiusPx, ringPaint)
+
+            // 3. Center crosshair (+)
+            val armLength = 7f * density
+            val crossShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = 2.5f * density
+                color = Color.argb(130, 0, 0, 0)
+                strokeCap = Paint.Cap.ROUND
+            }
+            val crossPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = 1.5f * density
+                color = Color.WHITE
+                strokeCap = Paint.Cap.ROUND
+            }
+
+            // Draw horizontal shadow & cross
+            canvas.drawLine(cx - armLength, cy, cx + armLength, cy, crossShadowPaint)
+            canvas.drawLine(cx - armLength, cy, cx + armLength, cy, crossPaint)
+
+            // Draw vertical shadow & cross
+            canvas.drawLine(cx, cy - armLength, cx, cy + armLength, crossShadowPaint)
+            canvas.drawLine(cx, cy - armLength, cx, cy + armLength, crossPaint)
         }
     }
 
@@ -5997,14 +6104,14 @@ class CanvasView @JvmOverloads constructor(
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
             strokeWidth = currentEraserThickness
-            xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+            xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
+            val alphaInt = (currentEraserOpacity.coerceIn(0f, 1f) * 255).toInt().coerceIn(0, 255)
+            color = Color.argb(alphaInt, 0, 0, 0)
             val softness = (1f - currentEraserHardness).coerceIn(0f, 1f)
-            if (softness > 0.02f) {
-                // Photoshop model: blur radius calibrated strictly to falloff margin without bleeding outside brush radius
-                val sigma = (softness * currentEraserThickness * 0.28f).coerceAtLeast(0.5f)
+            if (softness > 0.01f) {
+                val sigma = (softness * currentEraserThickness * 0.45f).coerceAtLeast(0.5f)
                 maskFilter = BlurMaskFilter(sigma, BlurMaskFilter.Blur.NORMAL)
             }
-            alpha = (currentEraserOpacity.coerceIn(0f, 1f) * 255).toInt()
         }
     }
 
@@ -6039,18 +6146,16 @@ class CanvasView @JvmOverloads constructor(
                         if (isEraserSmoothingEnabled) {
                             val dx = clampedX - lastTouchX
                             val dy = clampedY - lastTouchY
-                            if (kotlin.math.hypot(dx, dy) >= 2.0f) {
-                                val smoothX = lastTouchX + dx * 0.65f
-                                val smoothY = lastTouchY + dy * 0.65f
-                                val midX = (lastTouchX + smoothX) / 2f
-                                val midY = (lastTouchY + smoothY) / 2f
+                            if (kotlin.math.hypot(dx, dy) >= 1.0f) {
+                                val midX = (lastTouchX + clampedX) / 2f
+                                val midY = (lastTouchY + clampedY) / 2f
                                 val erasePath = Path().apply {
                                     moveTo(lastTouchX, lastTouchY)
                                     quadTo(lastTouchX, lastTouchY, midX, midY)
                                 }
                                 canvas.drawPath(erasePath, erasePaint)
-                                lastTouchX = smoothX
-                                lastTouchY = smoothY
+                                lastTouchX = clampedX
+                                lastTouchY = clampedY
                                 invalidate()
                             }
                         } else {
@@ -6095,16 +6200,13 @@ class CanvasView @JvmOverloads constructor(
                         if (isBrushSmoothingEnabled) {
                             val dx = clampedX - lastTouchX
                             val dy = clampedY - lastTouchY
-                            if (kotlin.math.hypot(dx, dy) >= 2.5f) {
-                                // Filter real-time tremor with moving average
-                                val smoothX = lastTouchX + dx * 0.65f
-                                val smoothY = lastTouchY + dy * 0.65f
-                                val midX = (lastTouchX + smoothX) / 2f
-                                val midY = (lastTouchY + smoothY) / 2f
+                            if (kotlin.math.hypot(dx, dy) >= 1.0f) {
+                                val midX = (lastTouchX + clampedX) / 2f
+                                val midY = (lastTouchY + clampedY) / 2f
                                 currentStrokePath?.quadTo(lastTouchX, lastTouchY, midX, midY)
-                                lastTouchX = smoothX
-                                lastTouchY = smoothY
-                                currentStrokePoints.add(smoothX to smoothY)
+                                lastTouchX = clampedX
+                                lastTouchY = clampedY
+                                currentStrokePoints.add(clampedX to clampedY)
                                 invalidate()
                             }
                         } else {
