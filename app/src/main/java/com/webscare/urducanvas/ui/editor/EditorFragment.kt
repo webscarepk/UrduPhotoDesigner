@@ -232,6 +232,7 @@ class EditorFragment : Fragment() {
                         destination.id != R.id.universalEraserFragment
 
             updateToolbarMode(animate = true)
+            updateToolbarVisibility(viewModel.selectedElements.value.orEmpty(), animate = false)
 
             // Lock the panel sheet collapsed for adjustment panels (non-expandable).
             // When the user navigates back to an expandable panel, attachDragHandle()
@@ -994,11 +995,16 @@ class EditorFragment : Fragment() {
             if (::sizedCanvasView.isInitialized) {
                 sizedCanvasView.isEraserActive = (isEraser == true)
             }
+            updateToolbarVisibility(viewModel.selectedElements.value.orEmpty(), animate = false)
+        }
+
+        viewModel.isDrawingMode.observe(viewLifecycleOwner) {
+            updateToolbarVisibility(viewModel.selectedElements.value.orEmpty(), animate = false)
         }
 
         viewModel.eraserThickness.observe(viewLifecycleOwner) { thickness ->
             if (::sizedCanvasView.isInitialized) {
-                sizedCanvasView.currentEraserThickness = thickness ?: 24f
+                sizedCanvasView.currentEraserThickness = thickness ?: 50f
             }
         }
 
@@ -1017,6 +1023,22 @@ class EditorFragment : Fragment() {
         viewModel.isEraserSmoothingEnabled.observe(viewLifecycleOwner) { enabled ->
             if (::sizedCanvasView.isInitialized) {
                 sizedCanvasView.isEraserSmoothingEnabled = (enabled == true)
+            }
+        }
+
+        viewModel.sizePreviewState.observe(viewLifecycleOwner) { state ->
+            if (::sizedCanvasView.isInitialized) {
+                if (state != null && state.isVisible) {
+                    sizedCanvasView.showSizePreview(
+                        size = state.size,
+                        hardness = state.hardness,
+                        opacity = state.opacity,
+                        color = state.color,
+                        isEraser = state.isEraser
+                    )
+                } else {
+                    sizedCanvasView.hideSizePreview()
+                }
             }
         }
 
@@ -1276,6 +1298,27 @@ class EditorFragment : Fragment() {
     }
 
     private fun updateToolbarVisibility(selected: List<CanvasElement>, animate: Boolean = true) {
+        val isEraserOrDrawingMode = viewModel.isEraserActive.value == true ||
+                viewModel.isDrawingMode.value == true ||
+                _navController?.currentDestination?.id == R.id.universalEraserFragment ||
+                _navController?.currentDestination?.id == R.id.drawFragment
+
+        if (isEraserOrDrawingMode) {
+            // Hide "more options" toggle button, side tools, alignment kit, and FAB in eraser/drawing mode
+            binding.showHideContainer.visibility = View.GONE
+            binding.fabContainer.visibility = View.GONE
+            resetPanelsOnSelectionChange()
+            updateIconVisibility(binding.opacityPane, false, animate = animate, animHide = R.anim.slide_out_left)
+            updateIconVisibility(binding.blendPane, false, animate = animate, animHide = R.anim.slide_out_left)
+            updateIconVisibility(binding.fontSizePane, false, animate = animate, animHide = R.anim.slide_out_left)
+            updateIconVisibility(binding.copyIcon, false, animate = animate, animHide = R.anim.slide_out_left)
+            updateIconVisibility(binding.cutOutIcon, false, animate = animate, animHide = R.anim.slide_out_left)
+            updateIconVisibility(binding.eraserIcon, false, animate = animate, animHide = R.anim.slide_out_left)
+            updateIconVisibility(binding.alignmentKit, false, animate = animate, animHide = R.anim.slide_out)
+            updateIconVisibility(binding.selection, false, animate = animate)
+            return
+        }
+
         val isTableEdit = viewModel.isTableEditMode.value == true
         if (isTableEdit) {
             // Hide "more options" toggle button, side tools, and alignment kit in table edit mode
@@ -1291,6 +1334,8 @@ class EditorFragment : Fragment() {
             updateIconVisibility(binding.selection, false, animate = animate)
             return
         }
+
+        binding.fabContainer.visibility = View.VISIBLE
 
         // Toggle button stays on screen instantly — no slide animation
         binding.showHideContainer.visibility =
@@ -2043,8 +2088,15 @@ class EditorFragment : Fragment() {
         }
 
         binding.back.addPressEffect {
-            if (_navController?.currentDestination?.id == R.id.universalEraserFragment || currentToolbarMode == EditorToolbarMode.ERASER) {
+            val destId = _navController?.currentDestination?.id
+            val isAdjustment = destId == R.id.adjustmentsParentFragment ||
+                    destId == R.id.shapeFragment ||
+                    destId == R.id.textAdjustmentsFragment ||
+                    destId == R.id.tableAdjustmentsFragment
+            if (destId == R.id.universalEraserFragment || currentToolbarMode == EditorToolbarMode.ERASER) {
                 viewModel.exitDrawingMode(commit = false)
+                _navController?.popBackStack()
+            } else if (isAdjustment || currentToolbarMode == EditorToolbarMode.ADJUSTMENT) {
                 _navController?.popBackStack()
             } else {
                 findNavController().popBackStack()
@@ -2066,6 +2118,8 @@ class EditorFragment : Fragment() {
             view?.post {
                 val selected = viewModel.selectedElements.value?.firstOrNull()
                 if (selected != null) {
+                    viewModel.setEraserActive(true)
+                    viewModel.enterDrawingMode(requireActivity(), selected)
                     val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
                     _navController?.navigate(R.id.universalEraserFragment, null, navOptions)
                 }
@@ -2092,13 +2146,20 @@ class EditorFragment : Fragment() {
                 android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
             )
             binding.done.vibrateSoft()
-            if (_navController?.currentDestination?.id == R.id.universalEraserFragment || currentToolbarMode == EditorToolbarMode.ERASER) {
+            val destId = _navController?.currentDestination?.id
+            val isAdjustment = destId == R.id.adjustmentsParentFragment ||
+                    destId == R.id.shapeFragment ||
+                    destId == R.id.textAdjustmentsFragment ||
+                    destId == R.id.tableAdjustmentsFragment
+            if (destId == R.id.universalEraserFragment || currentToolbarMode == EditorToolbarMode.ERASER) {
                 viewModel.exitDrawingMode(commit = true)
                 _navController?.popBackStack()
             } else if (viewModel.isDrawingMode.value == true) {
                 viewModel.exitDrawingMode(commit = true)
             } else if (viewModel.isTableEditMode.value == true) {
                 viewModel.exitTableEditMode()
+            } else if (isAdjustment || currentToolbarMode == EditorToolbarMode.ADJUSTMENT) {
+                _navController?.popBackStack()
             } else {
                 viewModel.setCanvasView(sizedCanvasView)
                 sizedCanvasView.clearSelection()
@@ -2123,7 +2184,8 @@ class EditorFragment : Fragment() {
         NORMAL,
         DRAW,
         TABLE_EDIT,
-        ERASER
+        ERASER,
+        ADJUSTMENT
     }
 
     private var currentToolbarMode: EditorToolbarMode? = null
@@ -2131,7 +2193,12 @@ class EditorFragment : Fragment() {
     private fun updateToolbarMode(animate: Boolean = true) {
         val b = _binding ?: return
         val ctx = context ?: return
-        val isEraser = _navController?.currentDestination?.id == R.id.universalEraserFragment
+        val destId = _navController?.currentDestination?.id
+        val isEraser = destId == R.id.universalEraserFragment
+        val isAdjustment = destId == R.id.adjustmentsParentFragment ||
+                destId == R.id.shapeFragment ||
+                destId == R.id.textAdjustmentsFragment ||
+                destId == R.id.tableAdjustmentsFragment
         val isDrawing = viewModel.isDrawingMode.value == true && !isEraser
         val isTableEdit = viewModel.isTableEditMode.value == true
 
@@ -2139,6 +2206,7 @@ class EditorFragment : Fragment() {
             isEraser -> EditorToolbarMode.ERASER
             isDrawing -> EditorToolbarMode.DRAW
             isTableEdit -> EditorToolbarMode.TABLE_EDIT
+            isAdjustment -> EditorToolbarMode.ADJUSTMENT
             else -> EditorToolbarMode.NORMAL
         }
 
@@ -2146,199 +2214,226 @@ class EditorFragment : Fragment() {
         val previousMode = currentToolbarMode
         currentToolbarMode = targetMode
 
-        val slideOffset = 60f * resources.displayMetrics.density
-        val animDuration = 260L
-        val interpolator = android.view.animation.DecelerateInterpolator()
+        val slideOffset = 70f * resources.displayMetrics.density
+        val animDuration = 320L
+        val overshootInterpolator = android.view.animation.OvershootInterpolator(2.2f)
+        val accelerateInterpolator = android.view.animation.AccelerateInterpolator()
+
+        val whiteColor = ContextCompat.getColor(ctx, R.color.white)
+        val blackColor = ContextCompat.getColor(ctx, R.color.black)
+
+        // Ensure all toolbar pill backgrounds stay white
+        val whiteTint = ColorStateList.valueOf(whiteColor)
+        b.back.backgroundTintList = whiteTint
+        b.normalTools.backgroundTintList = whiteTint
+        b.redoUndo.backgroundTintList = whiteTint
+        b.drawTools.backgroundTintList = whiteTint
+        b.tableTools.backgroundTintList = whiteTint
+        b.btnClearDrawing.backgroundTintList = whiteTint
+        b.btnResetBrushDefaults.backgroundTintList = whiteTint
+        b.btnTableCellText.backgroundTintList = whiteTint
+        b.btnTableZoom.backgroundTintList = whiteTint
+        if (viewModel.isGridEnabled.value != true) b.grid.backgroundTintList = whiteTint
+        if (viewModel.isPanMode.value != true) b.pan.backgroundTintList = whiteTint
+        b.zoom.backgroundTintList = whiteTint
 
         fun applyDoneButtonState(isDoneCheckmark: Boolean) {
             if (isDoneCheckmark) {
                 b.done.setImageResource(R.drawable.ic_done)
                 b.done.setBackgroundResource(R.drawable.button_bg_round)
-                b.done.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.contrast))
-                b.done.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.black))
+                b.done.backgroundTintList = ColorStateList.valueOf(whiteColor)
+                b.done.imageTintList = ColorStateList.valueOf(blackColor)
             } else {
                 b.done.setImageResource(R.drawable.ic_export_canvas)
                 b.done.setBackgroundResource(R.drawable.ic_button_gradient_wrap)
                 b.done.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#30005D28"))
-                b.done.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.black))
+                b.done.imageTintList = ColorStateList.valueOf(blackColor)
             }
         }
 
-        if (targetMode == EditorToolbarMode.ERASER) {
-            b.back.setImageResource(R.drawable.ic_close)
-            b.grid.visibility = View.GONE
+        val targetBackIcon = if (targetMode == EditorToolbarMode.ADJUSTMENT || targetMode == EditorToolbarMode.ERASER) {
+            R.drawable.ic_close
         } else {
-            b.back.setImageResource(R.drawable.ic_back)
-            b.grid.visibility = View.VISIBLE
+            R.drawable.ic_back
         }
 
-        if (!animate || previousMode == null) {
-            // Instant configuration without animation on first load / fragment recreation
-            b.back.visibility = if (targetMode == EditorToolbarMode.NORMAL || targetMode == EditorToolbarMode.ERASER) View.VISIBLE else View.GONE
-            b.normalTools.visibility = if (targetMode == EditorToolbarMode.NORMAL || targetMode == EditorToolbarMode.ERASER) View.VISIBLE else View.GONE
-            b.drawTools.visibility = if (targetMode == EditorToolbarMode.DRAW) View.VISIBLE else View.GONE
-            b.tableTools.visibility = if (targetMode == EditorToolbarMode.TABLE_EDIT) View.VISIBLE else View.GONE
+        val targetLeftTools = when (targetMode) {
+            EditorToolbarMode.DRAW -> b.drawTools
+            EditorToolbarMode.TABLE_EDIT -> b.tableTools
+            else -> b.normalTools
+        }
 
+        val showBack = targetMode == EditorToolbarMode.NORMAL ||
+                targetMode == EditorToolbarMode.ERASER ||
+                targetMode == EditorToolbarMode.ADJUSTMENT
+
+        val showGrid = targetMode == EditorToolbarMode.NORMAL
+
+        if (!animate || previousMode == null) {
+            b.back.setImageResource(targetBackIcon)
+            b.back.visibility = if (showBack) View.VISIBLE else View.GONE
             b.back.translationX = 0f
+            b.back.scaleX = 1f
+            b.back.scaleY = 1f
+            b.back.rotation = 0f
             b.back.alpha = 1f
+
+            b.normalTools.visibility = if (targetLeftTools === b.normalTools) View.VISIBLE else View.GONE
+            b.drawTools.visibility = if (targetLeftTools === b.drawTools) View.VISIBLE else View.GONE
+            b.tableTools.visibility = if (targetLeftTools === b.tableTools) View.VISIBLE else View.GONE
+            b.grid.visibility = if (showGrid) View.VISIBLE else View.GONE
+
             b.normalTools.translationX = 0f
+            b.normalTools.scaleX = 1f
+            b.normalTools.scaleY = 1f
             b.normalTools.alpha = 1f
+
             b.drawTools.translationX = 0f
+            b.drawTools.scaleX = 1f
+            b.drawTools.scaleY = 1f
             b.drawTools.alpha = 1f
+
             b.tableTools.translationX = 0f
+            b.tableTools.scaleX = 1f
+            b.tableTools.scaleY = 1f
             b.tableTools.alpha = 1f
 
             applyDoneButtonState(targetMode != EditorToolbarMode.NORMAL)
             return
         }
 
-        // Animate Undo/Redo container with a visible pulse
+        // 1. Prominent jump-settle on the entire top toolbar row
+        b.topToolbarRow.animate().cancel()
+        b.topToolbarRow.translationY = -6f * resources.displayMetrics.density
+        b.topToolbarRow.animate()
+            .translationY(0f)
+            .setDuration(animDuration)
+            .setInterpolator(overshootInterpolator)
+            .start()
+
+        // 2. Pulse Undo/Redo container
         b.redoUndo.animate().cancel()
         b.redoUndo.animate()
-            .scaleX(0.88f)
-            .scaleY(0.88f)
-            .alpha(0.6f)
+            .scaleX(1.16f)
+            .scaleY(1.16f)
             .setDuration(120L)
             .withEndAction {
                 val endB = _binding ?: return@withEndAction
                 endB.redoUndo.animate()
                     .scaleX(1f)
                     .scaleY(1f)
-                    .alpha(1f)
-                    .setDuration(160L)
-                    .setInterpolator(android.view.animation.OvershootInterpolator(1.5f))
+                    .setDuration(220L)
+                    .setInterpolator(overshootInterpolator)
                     .start()
             }
             .start()
 
-        // Left tools transition (back button + tool groups)
-        when {
-            targetMode == EditorToolbarMode.ERASER && previousMode == EditorToolbarMode.NORMAL -> {
-                // Keep back & normalTools visible, only grid hides
-                b.back.visibility = View.VISIBLE
-                b.normalTools.visibility = View.VISIBLE
-                b.drawTools.visibility = View.GONE
-                b.tableTools.visibility = View.GONE
-            }
-
-            previousMode == EditorToolbarMode.ERASER && targetMode == EditorToolbarMode.NORMAL -> {
-                // Keep back & normalTools visible, grid restores
-                b.back.visibility = View.VISIBLE
-                b.normalTools.visibility = View.VISIBLE
-                b.drawTools.visibility = View.GONE
-                b.tableTools.visibility = View.GONE
-            }
-
-            // Entering DRAW or TABLE_EDIT from NORMAL or ERASER: slide back & normalTools out to left, slide drawTools/tableTools in
-            previousMode == EditorToolbarMode.NORMAL || previousMode == EditorToolbarMode.ERASER -> {
+        // 3. Back button icon flip with 3D rotation and bounce
+        val isBackVisibleBefore = (previousMode == EditorToolbarMode.NORMAL || previousMode == EditorToolbarMode.ERASER || previousMode == EditorToolbarMode.ADJUSTMENT)
+        if (showBack && isBackVisibleBefore) {
+            // Back stays visible, animate icon change if different
+            val prevBackIcon = if (previousMode == EditorToolbarMode.ADJUSTMENT || previousMode == EditorToolbarMode.ERASER) R.drawable.ic_close else R.drawable.ic_back
+            if (prevBackIcon != targetBackIcon) {
                 b.back.animate().cancel()
                 b.back.animate()
-                    .translationX(-slideOffset)
-                    .alpha(0f)
-                    .setDuration(animDuration)
-                    .setInterpolator(interpolator)
+                    .rotation(if (targetBackIcon == R.drawable.ic_close) 90f else -90f)
+                    .scaleX(0.5f)
+                    .scaleY(0.5f)
+                    .setDuration(130L)
+                    .setInterpolator(accelerateInterpolator)
                     .withEndAction {
                         val endB = _binding ?: return@withEndAction
-                        endB.back.visibility = View.GONE
+                        endB.back.setImageResource(targetBackIcon)
+                        endB.back.rotation = if (targetBackIcon == R.drawable.ic_close) -90f else 90f
+                        endB.back.animate()
+                            .rotation(0f)
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .setDuration(220L)
+                            .setInterpolator(overshootInterpolator)
+                            .start()
                     }
-                    .start()
-
-                b.normalTools.animate().cancel()
-                b.normalTools.animate()
-                    .translationX(-slideOffset)
-                    .alpha(0f)
-                    .setDuration(animDuration)
-                    .setInterpolator(interpolator)
-                    .withEndAction {
-                        val endB = _binding ?: return@withEndAction
-                        endB.normalTools.visibility = View.GONE
-                    }
-                    .start()
-
-                val enteringLeft = if (targetMode == EditorToolbarMode.DRAW) b.drawTools else b.tableTools
-                enteringLeft.animate().cancel()
-                enteringLeft.visibility = View.VISIBLE
-                enteringLeft.translationX = -slideOffset
-                enteringLeft.alpha = 0f
-                enteringLeft.animate()
-                    .translationX(0f)
-                    .alpha(1f)
-                    .setDuration(animDuration)
-                    .setInterpolator(interpolator)
                     .start()
             }
-
-            // Exiting DRAW or TABLE_EDIT to NORMAL or ERASER: slide drawTools/tableTools out, slide back & normalTools in
-            targetMode == EditorToolbarMode.NORMAL || targetMode == EditorToolbarMode.ERASER -> {
-                val exitingLeft = if (previousMode == EditorToolbarMode.DRAW) b.drawTools else b.tableTools
-                exitingLeft.animate().cancel()
-                exitingLeft.animate()
-                    .translationX(-slideOffset)
-                    .alpha(0f)
-                    .setDuration(animDuration)
-                    .setInterpolator(interpolator)
-                    .withEndAction {
-                        val endB = _binding ?: return@withEndAction
-                        endB.drawTools.visibility = View.GONE
-                        endB.tableTools.visibility = View.GONE
-                    }
-                    .start()
-
-                b.back.animate().cancel()
-                b.back.visibility = View.VISIBLE
-                b.back.translationX = -slideOffset
-                b.back.alpha = 0f
-                b.back.animate()
-                    .translationX(0f)
-                    .alpha(1f)
-                    .setDuration(animDuration)
-                    .setInterpolator(interpolator)
-                    .start()
-
-                b.normalTools.animate().cancel()
-                b.normalTools.visibility = View.VISIBLE
-                b.normalTools.translationX = -slideOffset
-                b.normalTools.alpha = 0f
-                b.normalTools.animate()
-                    .translationX(0f)
-                    .alpha(1f)
-                    .setDuration(animDuration)
-                    .setInterpolator(interpolator)
-                    .start()
-            }
-
-            // Switching between DRAW and TABLE_EDIT
-            else -> {
-                val exitingLeft = if (previousMode == EditorToolbarMode.DRAW) b.drawTools else b.tableTools
-                val enteringLeft = if (targetMode == EditorToolbarMode.DRAW) b.drawTools else b.tableTools
-
-                if (exitingLeft !== enteringLeft) {
-                    exitingLeft.animate().cancel()
-                    exitingLeft.animate()
-                        .translationX(-slideOffset)
-                        .alpha(0f)
-                        .setDuration(animDuration)
-                        .setInterpolator(interpolator)
-                        .withEndAction {
-                            exitingLeft.visibility = View.GONE
-                        }
-                        .start()
-
-                    enteringLeft.animate().cancel()
-                    enteringLeft.visibility = View.VISIBLE
-                    enteringLeft.translationX = -slideOffset
-                    enteringLeft.alpha = 0f
-                    enteringLeft.animate()
-                        .translationX(0f)
-                        .alpha(1f)
-                        .setDuration(animDuration)
-                        .setInterpolator(interpolator)
-                        .start()
+        } else if (showBack && !isBackVisibleBefore) {
+            // Slide + jump in back button
+            b.back.setImageResource(targetBackIcon)
+            b.back.animate().cancel()
+            b.back.visibility = View.VISIBLE
+            b.back.translationX = -slideOffset
+            b.back.scaleX = 0.5f
+            b.back.scaleY = 0.5f
+            b.back.alpha = 0f
+            b.back.animate()
+                .translationX(0f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .alpha(1f)
+                .setDuration(animDuration)
+                .setInterpolator(overshootInterpolator)
+                .start()
+        } else if (!showBack && isBackVisibleBefore) {
+            // Slide out back button
+            b.back.animate().cancel()
+            b.back.animate()
+                .translationX(-slideOffset)
+                .scaleX(0.5f)
+                .scaleY(0.5f)
+                .alpha(0f)
+                .setDuration(160L)
+                .setInterpolator(accelerateInterpolator)
+                .withEndAction {
+                    val endB = _binding ?: return@withEndAction
+                    endB.back.visibility = View.GONE
                 }
-            }
+                .start()
         }
 
-        // Right done button transition: if changing between checkmark (DRAW / TABLE_EDIT) and export (NORMAL)
+        // 4. Grid visibility transition
+        if (targetLeftTools === b.normalTools) {
+            b.grid.visibility = if (showGrid) View.VISIBLE else View.GONE
+        }
+
+        // 5. Left tool groups sliding / jump-settle transition
+        val previousLeftTools = when (previousMode) {
+            EditorToolbarMode.DRAW -> b.drawTools
+            EditorToolbarMode.TABLE_EDIT -> b.tableTools
+            else -> b.normalTools
+        }
+
+        if (previousLeftTools !== targetLeftTools) {
+            // Slide out previous tool group
+            previousLeftTools.animate().cancel()
+            previousLeftTools.animate()
+                .translationX(-slideOffset)
+                .scaleX(0.7f)
+                .scaleY(0.7f)
+                .alpha(0f)
+                .setDuration(160L)
+                .setInterpolator(accelerateInterpolator)
+                .withEndAction {
+                    previousLeftTools.visibility = View.GONE
+                }
+                .start()
+
+            // Slide in new tool group with jump-settle overshoot
+            targetLeftTools.animate().cancel()
+            targetLeftTools.visibility = View.VISIBLE
+            targetLeftTools.translationX = -slideOffset * 1.2f
+            targetLeftTools.scaleX = 0.65f
+            targetLeftTools.scaleY = 0.65f
+            targetLeftTools.alpha = 0f
+            targetLeftTools.animate()
+                .translationX(0f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .alpha(1f)
+                .setDuration(animDuration)
+                .setInterpolator(overshootInterpolator)
+                .start()
+        }
+
+        // 6. Right Done / Export button flip transition
         val wasCheckmark = (previousMode != EditorToolbarMode.NORMAL)
         val isNowCheckmark = (targetMode != EditorToolbarMode.NORMAL)
 
@@ -2346,29 +2441,22 @@ class EditorFragment : Fragment() {
             b.done.animate().cancel()
             b.done.animate()
                 .translationX(slideOffset)
+                .scaleX(0.5f)
+                .scaleY(0.5f)
                 .alpha(0f)
-                .setDuration(animDuration / 2)
-                .setInterpolator(interpolator)
+                .setDuration(140L)
+                .setInterpolator(accelerateInterpolator)
                 .withEndAction {
                     val endB = _binding ?: return@withEndAction
-                    val safeCtx = context ?: return@withEndAction
-                    if (isNowCheckmark) {
-                        endB.done.setImageResource(R.drawable.ic_done)
-                        endB.done.setBackgroundResource(R.drawable.button_bg_round)
-                        endB.done.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(safeCtx, R.color.contrast))
-                        endB.done.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(safeCtx, R.color.black))
-                    } else {
-                        endB.done.setImageResource(R.drawable.ic_export_canvas)
-                        endB.done.setBackgroundResource(R.drawable.ic_button_gradient_wrap)
-                        endB.done.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#30005D28"))
-                        endB.done.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(safeCtx, R.color.black))
-                    }
+                    applyDoneButtonState(isNowCheckmark)
                     endB.done.translationX = slideOffset
                     endB.done.animate()
                         .translationX(0f)
+                        .scaleX(1f)
+                        .scaleY(1f)
                         .alpha(1f)
-                        .setDuration(animDuration / 2)
-                        .setInterpolator(interpolator)
+                        .setDuration(animDuration)
+                        .setInterpolator(overshootInterpolator)
                         .start()
                 }
                 .start()

@@ -96,10 +96,6 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
         setupTabLayout()
         setupSearchBar()
 
-        binding.back.addPressEffect {
-            findNavController().navigateUp()
-        }
-
         viewModel.openAppearanceTab.observe(viewLifecycleOwner) { openAppearance ->
             if (!isAdded || _binding == null) return@observe
             if (openAppearance == true) {

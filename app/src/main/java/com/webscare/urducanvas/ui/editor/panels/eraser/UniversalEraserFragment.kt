@@ -33,10 +33,6 @@ class UniversalEraserFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.back.addPressEffect {
-            findNavController().popBackStack()
-        }
-
         setupSeekBars()
         setupPresets()
         setupSmoothingToggle()
@@ -65,13 +61,19 @@ class UniversalEraserFragment : Fragment() {
                     binding.sizeValue.text = "${progress + 1}"
                     if (fromUser) {
                         viewModel.setEraserThickness(thickness)
+                        viewModel.updateSizePreview(thickness)
                         ensureEraserSessionActive()
                     }
                     updatePresetSelection(thickness.toInt())
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar) {}
-                override fun onStopTrackingTouch(sb: SeekBar) {}
+                override fun onStartTrackingTouch(sb: SeekBar) {
+                    viewModel.showSizePreview((sb.progress + 1).toFloat(), isEraser = true)
+                }
+
+                override fun onStopTrackingTouch(sb: SeekBar) {
+                    viewModel.hideSizePreview()
+                }
             })
         }
 
@@ -85,12 +87,19 @@ class UniversalEraserFragment : Fragment() {
                         // 0% softness = 1.0 hardness (crisp), 100% softness = 0.0 hardness (fully feathered)
                         val hardness = 1f - (progress / 100f)
                         viewModel.setEraserHardness(hardness)
+                        viewModel.updateSizePreview(hardness = hardness, isEraser = true)
                         ensureEraserSessionActive()
                     }
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar) {}
-                override fun onStopTrackingTouch(sb: SeekBar) {}
+                override fun onStartTrackingTouch(sb: SeekBar) {
+                    val hardness = 1f - (sb.progress / 100f)
+                    viewModel.showSizePreview(hardness = hardness, isEraser = true)
+                }
+
+                override fun onStopTrackingTouch(sb: SeekBar) {
+                    viewModel.hideSizePreview()
+                }
             })
         }
 
@@ -101,13 +110,21 @@ class UniversalEraserFragment : Fragment() {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                     binding.opacityValue.text = "$progress%"
                     if (fromUser) {
-                        viewModel.setEraserOpacity(progress / 100f)
+                        val opacity = progress / 100f
+                        viewModel.setEraserOpacity(opacity)
+                        viewModel.updateSizePreview(opacity = opacity, isEraser = true)
                         ensureEraserSessionActive()
                     }
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar) {}
-                override fun onStopTrackingTouch(sb: SeekBar) {}
+                override fun onStartTrackingTouch(sb: SeekBar) {
+                    val opacity = sb.progress / 100f
+                    viewModel.showSizePreview(opacity = opacity, isEraser = true)
+                }
+
+                override fun onStopTrackingTouch(sb: SeekBar) {
+                    viewModel.hideSizePreview()
+                }
             })
         }
     }
