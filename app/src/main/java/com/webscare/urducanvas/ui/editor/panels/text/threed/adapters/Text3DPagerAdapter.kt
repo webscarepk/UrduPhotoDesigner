@@ -7,7 +7,6 @@ import com.webscare.urducanvas.ui.editor.panels.text.threed.childs.Extrusion3DFr
 import com.webscare.urducanvas.ui.editor.panels.text.threed.childs.Lighting3DFragment
 import com.webscare.urducanvas.ui.editor.panels.text.threed.childs.Material3DFragment
 import com.webscare.urducanvas.ui.editor.panels.text.threed.childs.Presets3DFragment
-import com.webscare.urducanvas.ui.editor.panels.text.threed.childs.Shadow3DFragment
 import com.webscare.urducanvas.ui.editor.panels.text.threed.childs.Transform3DFragment
 
 class Text3DPagerAdapter(
@@ -24,7 +23,6 @@ class Text3DPagerAdapter(
             2 -> Extrusion3DFragment.newInstance()
             3 -> Material3DFragment.newInstance()
             4 -> Lighting3DFragment.newInstance()
-            5 -> Shadow3DFragment.newInstance()
             else -> Presets3DFragment.newInstance()
         }
     }

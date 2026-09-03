@@ -41,6 +41,7 @@ import android.view.animation.DecelerateInterpolator
 import androidx.annotation.ColorInt
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.toColorInt
 import androidx.core.graphics.withRotation
@@ -68,6 +69,9 @@ import com.webscare.urducanvas.common.canvas.model.CanvasElement
 import com.webscare.urducanvas.common.canvas.model.ExportOptions
 import com.webscare.urducanvas.common.canvas.model.GradientItem
 import com.webscare.urducanvas.common.canvas.model.StrokeData
+import com.webscare.urducanvas.common.canvas.model.Text3DData
+import com.webscare.urducanvas.common.canvas.model.Text3DSurface
+import com.webscare.urducanvas.common.canvas.model.Text3DSurfaceShading
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
 import com.webscare.urducanvas.common.utils.BrushRenderUtils
 import com.webscare.urducanvas.common.utils.BrushRenderUtils.createBackgroundGradientShader
@@ -872,8 +876,7 @@ class CanvasView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
 
-        updateBackgroundToCanvas()
-
+        // Note: Do NOT call updateBackgroundToCanvas() here as it resets user-dragged background coordinates
         if (canvasElements.isEmpty()) {
             ensureBackgroundElement()
         }
@@ -1661,6 +1664,8 @@ class CanvasView @JvmOverloads constructor(
         val bitmap = createBitmap(outputWidth, outputHeight)
         val canvas = Canvas(bitmap)
 
+        // JPEG has no alpha, so it needs an opaque base. PNG/WebP must stay clear or a
+        // deliberately transparent artboard exports as a white rectangle.
         if (options.format.format == Bitmap.CompressFormat.JPEG) {
             canvas.drawColor(Color.WHITE)
         } else {
@@ -2622,6 +2627,9 @@ class CanvasView @JvmOverloads constructor(
         if (showCheckerboard) {
             canvas.drawRect(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat(), checkerPaint)
         }
+        // Nothing is painted under the elements when exporting: the BACKGROUND element is
+        // the artboard fill, so flooding white here would both hide it and destroy
+        // transparent PNG exports.
 
         // Draw all elements
         canvasElements.forEach { element ->
@@ -2845,6 +2853,7 @@ class CanvasView @JvmOverloads constructor(
                                             ).also { shadowBitmapCache[element.id] = it }
                                         }
 
+                                    val sScale = (element.shadowScale / 100f).coerceIn(0.1f, 3f)
                                     val shadowColor = Color.argb(
                                         element.shadowOpacity.coerceIn(0, 255),
                                         Color.red(element.shadowColor),
@@ -2858,10 +2867,10 @@ class CanvasView @JvmOverloads constructor(
                                         )
                                     }
 
-                                    val dstLeft = bl + entry.offsetX + element.shadowDx
-                                    val dstTop = bt + entry.offsetY + element.shadowDy
-                                    val dstRight = dstLeft + entry.bitmap.width * entry.scaleX
-                                    val dstBottom = dstTop + entry.bitmap.height * entry.scaleY
+                                    val dstLeft = bl + entry.offsetX + element.shadowDx * sScale
+                                    val dstTop = bt + entry.offsetY + element.shadowDy * sScale
+                                    val dstRight = dstLeft + entry.bitmap.width * entry.scaleX * sScale
+                                    val dstBottom = dstTop + entry.bitmap.height * entry.scaleY * sScale
 
                                     canvas.save()
                                     if (!entry.bitmap.isRecycled) canvas.drawBitmap(
@@ -3184,13 +3193,14 @@ class CanvasView @JvmOverloads constructor(
                                             shadowColor, PorterDuff.Mode.SRC_IN
                                         )
 
-                                    val dstLeft = left + entry.offsetX + element.shadowDx
-                                    val dstTop = top + entry.offsetY + element.shadowDy
+                                    val sScale = (element.shadowScale / 100f).coerceIn(0.1f, 3f)
+                                    val dstLeft = left + entry.offsetX + element.shadowDx * sScale
+                                    val dstTop = top + entry.offsetY + element.shadowDy * sScale
                                     reusableRectF.set(
                                         dstLeft,
                                         dstTop,
-                                        dstLeft + entry.bitmap.width,
-                                        dstTop + entry.bitmap.height
+                                        dstLeft + entry.bitmap.width * sScale,
+                                        dstTop + entry.bitmap.height * sScale
                                     )
 
                                     canvas.save()
@@ -5047,9 +5057,12 @@ class CanvasView @JvmOverloads constructor(
                 camera.setLocation(0f, 0f, dist / 72f)
             }
 
-            camera.rotateX(-t3d.rotation.x)
-            camera.rotateY(t3d.rotation.y)
-            camera.rotateZ(-t3d.rotation.z)
+            val rotX = if (t3d.rotation.enabled) -t3d.rotation.x else 0f
+            val rotY = if (t3d.rotation.enabled) t3d.rotation.y else 0f
+            val rotZ = if (t3d.rotation.enabled) -t3d.rotation.z else 0f
+            camera.rotateX(rotX)
+            camera.rotateY(rotY)
+            camera.rotateZ(rotZ)
             camera.translate(0f, 0f, t3d.position.z * 0.5f)
 
             camera.getMatrix(matrix3d)
@@ -5510,57 +5523,158 @@ class CanvasView @JvmOverloads constructor(
                 BlurMaskFilter(element.blurValue, BlurMaskFilter.Blur.NORMAL)
             fillPaint.xfermode = drawWithBlend(element)
 
+            // Glyph box + resolved surface for this line, filled in by the 3D pipeline and
+            // read again after the main fill to lay the sheen and pattern on top.
+            var faceLeft = 0f
+            var faceRight = 0f
+            var faceTop = 0f
+            var faceBottom = 0f
+            var activeSurface: Text3DSurface? = null
+            // Face colour and the four material sliders, resolved once by the 3D block and
+            // read again by the highlight passes that run after the main fill.
+            var faceColor3D: Int = Color.BLACK
+            var roughNorm = 0.3f
+            var specNorm = 0.5f
+            var metalNorm = 0f
+            var reflectNorm = 0.1f
+
             // ── 3D TEXT RENDERING PIPELINE ────────────────────────────────────────
             if (is3D && t3d != null) {
-                try {
-                    fillPaint.color = Color.parseColor(t3d.material.frontColor)
-                } catch (e: Exception) {
-                    fillPaint.color = element.paintColor
+                val extEnabled = t3d.extrusion.enabled
+                val lightEnabled = t3d.lighting.enabled
+                val matEnabled = t3d.material.enabled
+
+                val faceColor = if (matEnabled) {
+                    try {
+                        Color.parseColor(t3d.material.frontColor)
+                    } catch (e: Exception) {
+                        element.paintColor
+                    }
+                } else element.paintColor
+                fillPaint.color = faceColor
+                faceColor3D = faceColor
+
+                if (matEnabled) {
+                    roughNorm = (t3d.material.roughness / 100f).coerceIn(0f, 1f)
+                    specNorm = (t3d.material.specular / 100f).coerceIn(0f, 1f)
+                    metalNorm = (t3d.material.metallic / 100f).coerceIn(0f, 1f)
+                    reflectNorm = (t3d.material.reflection / 100f).coerceIn(0f, 1f)
                 }
 
-                val bright = 0.72f + (t3d.lighting.intensity / 250f) + (t3d.lighting.ambient / 500f)
-                val contrast = 1f + (100f - t3d.material.roughness) / 400f
-                val tVal = (1f - contrast) * 128f + (bright - 1f) * 255f
-                val cm = ColorMatrix(floatArrayOf(
-                    contrast, 0f, 0f, 0f, tVal,
-                    0f, contrast, 0f, 0f, tVal,
-                    0f, 0f, contrast, 0f, tVal,
-                    0f, 0f, 0f, 1f, 0f
-                ))
-                fillPaint.colorFilter = ColorMatrixColorFilter(cm)
-                if (t3d.material.surface == "glass") {
-                    fillPaint.alpha = (element.paintAlpha * 0.86f).toInt()
+                // Glyph box for this line — the surface shader, sheen band and pattern all
+                // need it, and it has to be measured before any shader is installed.
+                val faceWidth = fillPaint.measureText(displayText)
+                faceLeft = when (alignment) {
+                    Paint.Align.LEFT -> xPos
+                    Paint.Align.CENTER -> xPos - faceWidth / 2f
+                    Paint.Align.RIGHT -> xPos - faceWidth
+                }
+                faceRight = faceLeft + faceWidth
+                faceTop = yOffset + fm.ascent
+                faceBottom = yOffset + fm.descent
+
+                activeSurface =
+                    if (matEnabled) Text3DData.surfaceById(t3d.material.surface) else null
+
+                // An explicit fill gradient is the user's own choice, so it outranks the
+                // surface's own shading; the surface still contributes sheen and pattern.
+                // The shading axis follows the lighting pad's bearing — that pad aims the
+                // light source, it never moves the glyphs.
+                val lightBearing = if (lightEnabled) t3d.lighting.angle else 0f
+                activeSurface?.let { surface ->
+                    if (element.fillGradient == null) {
+                        Text3DSurfaceShading.buildShader(
+                            surface, faceColor, faceLeft, faceTop, faceRight, faceBottom,
+                            lightBearing
+                        )?.let { fillPaint.shader = it }
+                    }
+                }
+
+                if (lightEnabled) {
+                    // Wider brightness and contrast spans than before so moving these
+                    // sliders is actually visible on the glyphs.
+                    val bright = 0.45f + (t3d.lighting.intensity / 90f) + (t3d.lighting.ambient / 200f)
+                    // Metal pushes the tonal range apart — that hard light-to-dark falloff
+                    // is most of what separates a metal face from a painted one.
+                    val contrast = 1f + (100f - t3d.material.roughness) / 110f + metalNorm * 0.4f
+                    val tVal = (1f - contrast) * 128f + (bright - 1f) * 255f
+                    val cm = ColorMatrix(floatArrayOf(
+                        contrast, 0f, 0f, 0f, tVal,
+                        0f, contrast, 0f, 0f, tVal,
+                        0f, 0f, contrast, 0f, tVal,
+                        0f, 0f, 0f, 1f, 0f
+                    ))
+                    fillPaint.colorFilter = ColorMatrixColorFilter(cm)
+
+                    if (t3d.lighting.softness > 2f) {
+                        val blurRadius = (t3d.lighting.softness / 9f).coerceIn(0.5f, 14f)
+                        fillPaint.maskFilter = BlurMaskFilter(blurRadius, BlurMaskFilter.Blur.SOLID)
+                    }
+                } else {
+                    fillPaint.colorFilter = null
+                    fillPaint.maskFilter = null
+                }
+
+                activeSurface?.let { surface ->
+                    if (surface.alpha < 1f) {
+                        fillPaint.alpha =
+                            (element.paintAlpha * surface.alpha).toInt().coerceIn(0, 255)
+                    }
                 }
 
                 // ── 3D Extrusion ──
-                val dirVec = when (t3d.extrusion.direction) {
-                    "top-left" -> Pair(-0.7f, -0.7f)
-                    "top" -> Pair(0f, -1f)
-                    "top-right" -> Pair(0.7f, -0.7f)
-                    "left" -> Pair(-1f, 0f)
-                    "center" -> Pair(0f, 0f)
-                    "right" -> Pair(1f, 0f)
-                    "bottom-left" -> Pair(-0.7f, 0.7f)
-                    "bottom" -> Pair(0f, 1f)
-                    "bottom-right" -> Pair(0.7f, 0.7f)
-                    else -> Pair(0.7f, 0.7f)
-                }
-                val effDepth = t3d.extrusion.depth * (t3d.extrusion.scale / 100f)
-                val steps = minOf(48, effDepth.toInt())
-                if (steps > 0) {
-                    val extColor = try { Color.parseColor(t3d.material.extrusionColor) } catch (e: Exception) { Color.DKGRAY }
-                    val extPaint = TextPaint(fillPaint).apply {
-                        colorFilter = null
-                        shader = null
-                        color = extColor
-                        xfermode = null
-                        maskFilter = null
-                        style = Paint.Style.FILL
+                if (extEnabled && t3d.extrusion.depth > 0f) {
+                    val dirVec = when (t3d.extrusion.direction) {
+                        "top-left" -> Pair(-0.7f, -0.7f)
+                        "top" -> Pair(0f, -1f)
+                        "top-right" -> Pair(0.7f, -0.7f)
+                        "left" -> Pair(-1f, 0f)
+                        "center" -> Pair(0f, 0f)
+                        "right" -> Pair(1f, 0f)
+                        "bottom-left" -> Pair(-0.7f, 0.7f)
+                        "bottom" -> Pair(0f, 1f)
+                        "bottom-right" -> Pair(0.7f, 0.7f)
+                        else -> Pair(0.7f, 0.7f)
                     }
-                    for (step in 1..steps) {
-                        val ex = xPos + dirVec.first * step
-                        val ey = yOffset + dirVec.second * step
-                        canvas.drawText(displayText, ex, ey, extPaint)
+                    val effDepth = t3d.extrusion.depth * (t3d.extrusion.scale / 100f)
+                    val steps = minOf(48, effDepth.toInt())
+                    if (steps > 0) {
+                        val extColor = try { Color.parseColor(t3d.material.extrusionColor) } catch (e: Exception) { Color.DKGRAY }
+                        val extPaint = TextPaint(fillPaint).apply {
+                            colorFilter = null
+                            shader = null
+                            color = extColor
+                            xfermode = null
+                            maskFilter = null
+                            style = Paint.Style.FILL
+                        }
+
+                        // The side wall is a ramp, not one flat colour: it stays near the
+                        // side colour where it meets the face and falls away towards the
+                        // back, which is the difference between a solid and a stack of
+                        // copies. How brightly it starts depends on whether the wall is
+                        // turned towards the light or away from it.
+                        val lightRad = Math.toRadians((lightBearing - 90.0)).toFloat()
+                        val lightDot = if (lightEnabled) {
+                            -(dirVec.first * kotlin.math.cos(lightRad) +
+                                    dirVec.second * kotlin.math.sin(lightRad))
+                        } else 0f
+                        val nearShade = 1.05f + lightDot.coerceIn(-1f, 1f) * 0.28f
+                        val farShade = 0.5f + metalNorm * 0.12f
+
+                        // Far end first so the near end lands on top — that is the right
+                        // occlusion order for a wall coming towards the viewer, and it is
+                        // what makes the ramp visible instead of the back colour winning
+                        // every overlapping pixel.
+                        for (step in steps downTo 1) {
+                            val f = step.toFloat() / steps
+                            extPaint.color = Text3DSurfaceShading.shade(
+                                extColor, nearShade + (farShade - nearShade) * f
+                            )
+                            val ex = xPos + dirVec.first * step
+                            val ey = yOffset + dirVec.second * step
+                            canvas.drawText(displayText, ex, ey, extPaint)
+                        }
                     }
                 }
 
@@ -5578,37 +5692,58 @@ class CanvasView @JvmOverloads constructor(
                     }
                 }
 
-                // ── 3D Cast Shadow ──
-                if (t3d.shadow.enabled && t3d.shadow.opacity > 0) {
-                    val sAngleRad = Math.toRadians((t3d.shadow.angle - 90.0)).toFloat()
-                    val sDist = t3d.shadow.distance * (t3d.shadow.scale / 100f)
-                    val sdx = kotlin.math.cos(sAngleRad) * sDist
-                    val sdy = kotlin.math.sin(sAngleRad) * sDist
-                    val baseShadowColor = try { Color.parseColor(t3d.shadow.color) } catch (e: Exception) { Color.BLACK }
-                    val effectiveShadowColor = (baseShadowColor and 0x00FFFFFF) or (t3d.shadow.opacity.coerceIn(0, 255) shl 24)
-                    val shadowRadius = (t3d.shadow.blur + maxOf(0f, t3d.shadow.spread)).coerceAtLeast(0.5f)
-                    val sp = TextPaint(fillPaint).apply {
-                        colorFilter = null
-                        shader = null
-                        color = effectiveShadowColor
-                        xfermode = null
-                        maskFilter = BlurMaskFilter(shadowRadius, BlurMaskFilter.Blur.NORMAL)
-                    }
-                    canvas.drawText(displayText, xPos + sdx, yOffset + sdy, sp)
-                }
+                // No cast shadow here — the layer shadow in the element's own shadow panel
+                // is the single source for that, and 3D presets now drive it directly.
 
-                // ── 3D Bevel Highlight Stroke ──
-                if (t3d.extrusion.bevel > 0f) {
-                    val bevelStrokeWidth = (t3d.extrusion.bevel / 14f).coerceAtLeast(0.5f)
-                    val highlightAlpha = (0.15f + t3d.lighting.highlight / 180f).coerceIn(0f, 1f)
+                // ── 3D Bevel Rim ──
+                // The rim is drawn under the face fill, so only its outer half survives.
+                // Width scales with the glyph size (a fixed pixel width vanished on large
+                // text) and half the slider now does what the whole slider used to.
+                if (extEnabled && t3d.extrusion.bevel > 0f) {
+                    val bevelNorm = (t3d.extrusion.bevel / 20f).coerceIn(0f, 1f)
+                    val bevelStrokeWidth =
+                        (bevelNorm * fillPaint.textSize * 0.34f).coerceAtLeast(1.2f)
+                    val highlightAlpha = if (lightEnabled) {
+                        (0.3f + t3d.lighting.highlight / 85f).coerceIn(0f, 1f)
+                    } else 0.45f
                     val bevelColor = Color.argb((highlightAlpha * 255).toInt(), 255, 255, 255)
+
+                    // Smoothness is the rim's own softness — it used to be inert, and the
+                    // lighting softness stood in for it.
+                    val smoothNorm = (t3d.extrusion.smoothness / 100f).coerceIn(0f, 1f)
+                    val bevelBlur = smoothNorm * bevelStrokeWidth * 0.9f
+
                     val bevelPaint = TextPaint(fillPaint).apply {
                         colorFilter = null
-                        shader = null
                         style = Paint.Style.STROKE
                         strokeWidth = bevelStrokeWidth
                         color = bevelColor
-                        maskFilter = null
+                        maskFilter = if (bevelBlur > 0.4f) {
+                            BlurMaskFilter(bevelBlur, BlurMaskFilter.Blur.NORMAL)
+                        } else null
+                        // The rim is lit on the light's side and shaded on the far side.
+                        // It is a gradient across the glyph box rather than a second copy
+                        // of the text nudged sideways, so aiming the light never shifts the
+                        // letters — only which edge catches it.
+                        shader = if (lightEnabled && faceRight > faceLeft) {
+                            val rimRad = Math.toRadians((t3d.lighting.angle - 90.0)).toFloat()
+                            val rimReach = kotlin.math.hypot(
+                                faceRight - faceLeft, faceBottom - faceTop
+                            ) / 2f
+                            val rcx = (faceLeft + faceRight) / 2f
+                            val rcy = (faceTop + faceBottom) / 2f
+                            val lit = Color.argb((highlightAlpha * 255).toInt().coerceIn(0, 255), 255, 255, 255)
+                            val shade = Color.argb((highlightAlpha * 150).toInt().coerceIn(0, 255), 0, 0, 0)
+                            LinearGradient(
+                                rcx + kotlin.math.cos(rimRad) * rimReach,
+                                rcy + kotlin.math.sin(rimRad) * rimReach,
+                                rcx - kotlin.math.cos(rimRad) * rimReach,
+                                rcy - kotlin.math.sin(rimRad) * rimReach,
+                                intArrayOf(lit, Color.TRANSPARENT, shade),
+                                floatArrayOf(0f, 0.5f, 1f),
+                                Shader.TileMode.CLAMP
+                            )
+                        } else null
                     }
                     canvas.drawText(displayText, xPos, yOffset, bevelPaint)
                 }
@@ -5656,14 +5791,16 @@ class CanvasView @JvmOverloads constructor(
                 val baseAlpha = Color.alpha(element.shadowColor).takeIf { it > 0 } ?: 255
                 val effectiveAlpha = ((element.shadowOpacity.coerceIn(0, 255) / 255f) * baseAlpha).toInt()
                 val sc = (element.shadowColor and 0x00FFFFFF) or (effectiveAlpha shl 24)
+                val sScale = (element.shadowScale / 100f).coerceIn(0.1f, 3f)
+                val scaledRadius = (element.shadowRadius * sScale).coerceAtLeast(0.1f)
                 val sp = TextPaint(fillPaint).apply {
                     shader = null
                     color = sc
                     xfermode = null
-                    maskFilter = if (element.shadowRadius > 0.5f) BlurMaskFilter(element.shadowRadius, BlurMaskFilter.Blur.NORMAL) else null
+                    maskFilter = if (scaledRadius > 0.5f) BlurMaskFilter(scaledRadius, BlurMaskFilter.Blur.NORMAL) else null
                 }
                 canvas.drawText(
-                    displayText, xPos + element.shadowDx, yOffset + element.shadowDy, sp
+                    displayText, xPos + element.shadowDx * sScale, yOffset + element.shadowDy * sScale, sp
                 )
             }
 
@@ -5776,6 +5913,99 @@ class CanvasView @JvmOverloads constructor(
                 fillPaint.alpha = element.paintAlpha
                 canvas.drawText(displayText, xPos, yOffset, fillPaint)
                 fillPaint.alpha = oldFillAlpha
+            }
+
+            // ── LAYER 5d-ii: 3D surface sheen + texture ──
+            // Drawn over the face because both are properties of the surface finish, not of
+            // the fill. Both are painted through the glyphs themselves, so they never spill.
+            activeSurface?.let { surface ->
+                // The surface finish sets the baseline, the material sliders shape it:
+                // Specular sets how strong the highlight is, Roughness broadens and dims
+                // it, Metallic tints it with the face colour instead of white (a metal
+                // reflects its own colour, paint reflects the light's), and Reflection
+                // lays a hard environment horizon over the top.
+                val effSheen = ((surface.sheen + specNorm * 0.55f) * (1f - roughNorm * 0.65f))
+                    .coerceIn(0f, 1f)
+
+                val sheenRad = Math.toRadians(((t3d?.lighting?.angle ?: 0f) - 90f).toDouble())
+                val sheenReach =
+                    kotlin.math.hypot(faceRight - faceLeft, faceBottom - faceTop) / 2f
+                val scx = (faceLeft + faceRight) / 2f
+                val scy = (faceTop + faceBottom) / 2f
+                val sdx = kotlin.math.cos(sheenRad).toFloat() * sheenReach
+                val sdy = kotlin.math.sin(sheenRad).toFloat() * sheenReach
+
+                if (effSheen > 0.02f && faceRight > faceLeft) {
+                    val sheenAlpha = (effSheen * 255f).toInt().coerceIn(0, 255)
+                    val highlightHue = if (metalNorm > 0f) {
+                        ColorUtils.blendARGB(
+                            Color.WHITE,
+                            Text3DSurfaceShading.shade(faceColor3D, 1.45f),
+                            metalNorm * 0.8f
+                        )
+                    } else Color.WHITE
+                    val hr = Color.red(highlightHue)
+                    val hg = Color.green(highlightHue)
+                    val hb = Color.blue(highlightHue)
+                    // A rough surface scatters the highlight over a wider band.
+                    val bandEdge = 0.45f + roughNorm * 0.35f
+                    val sheenPaint = TextPaint(fillPaint).apply {
+                        colorFilter = null
+                        maskFilter = null
+                        style = Paint.Style.FILL
+                        alpha = 255
+                        shader = LinearGradient(
+                            scx + sdx, scy + sdy, scx - sdx, scy - sdy,
+                            intArrayOf(
+                                Color.argb(sheenAlpha, hr, hg, hb),
+                                Color.argb((sheenAlpha * 0.15f).toInt(), hr, hg, hb),
+                                Color.TRANSPARENT
+                            ),
+                            floatArrayOf(0f, bandEdge, (bandEdge + 0.3f).coerceAtMost(1f)),
+                            Shader.TileMode.CLAMP
+                        )
+                    }
+                    canvas.drawText(displayText, xPos, yOffset, sheenPaint)
+                }
+
+                // Reflection is an environment, not a light: a bright sky over a dark
+                // ground with a hard seam between them. The seam is what reads as a
+                // mirror finish, so it stays sharp however rough the surface is.
+                if (reflectNorm > 0.02f && faceRight > faceLeft) {
+                    val a = (reflectNorm * 200f).toInt().coerceIn(0, 255)
+                    val reflectPaint = TextPaint(fillPaint).apply {
+                        colorFilter = null
+                        maskFilter = null
+                        style = Paint.Style.FILL
+                        alpha = 255
+                        shader = LinearGradient(
+                            scx + sdx, scy + sdy, scx - sdx, scy - sdy,
+                            intArrayOf(
+                                Color.argb(a, 255, 255, 255),
+                                Color.argb((a * 0.3f).toInt(), 255, 255, 255),
+                                Color.argb((a * 0.25f).toInt(), 0, 0, 0),
+                                Color.argb((a * 0.55f).toInt(), 0, 0, 0)
+                            ),
+                            floatArrayOf(0f, 0.42f, 0.46f, 1f),
+                            Shader.TileMode.CLAMP
+                        )
+                    }
+                    canvas.drawText(displayText, xPos, yOffset, reflectPaint)
+                }
+
+                val patternKind = surface.pattern
+                if (patternKind != null && surface.patternAlpha > 0f) {
+                    Text3DSurfaceShading.patternShader(patternKind)?.let { patternShader ->
+                        val patternPaint = TextPaint(fillPaint).apply {
+                            colorFilter = null
+                            maskFilter = null
+                            style = Paint.Style.FILL
+                            shader = patternShader
+                            alpha = (surface.patternAlpha * 255f).toInt().coerceIn(0, 255)
+                        }
+                        canvas.drawText(displayText, xPos, yOffset, patternPaint)
+                    }
+                }
             }
 
             // ── LAYER 5e: Inner Glow ──

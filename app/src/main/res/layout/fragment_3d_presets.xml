@@ -7,105 +7,24 @@
     android:background="@color/white"
     android:paddingStart="12dp"
     android:paddingTop="8dp"
-    android:paddingEnd="12dp"
+    android:paddingEnd="6dp"
     android:paddingBottom="8dp">
 
-    <!-- Header with Action -->
-    <TextView
-        android:id="@+id/tvHeaderTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:fontFamily="@font/bold"
-        android:text="3D Presets"
-        android:textColor="#2B2B2B"
-        android:textSize="12sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-        android:id="@+id/btnSeeAll"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:fontFamily="@font/bold"
-        android:text="See All"
-        android:textColor="#005D28"
-        android:textSize="12sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <!-- Presets Horizontal List -->
+    <!-- No header title / toggle: the rail row owns the on-off state for this section.
+         Three rows of thumbnails, the same grid the Styles panel uses, because this list
+         is now the whole 3D family of styles rather than a handful of built-ins. -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvPresets"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_height="0dp"
         android:clipToPadding="false"
         android:orientation="horizontal"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+        app:spanCount="3"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvHeaderTitle"
-        tools:listitem="@layout/item_3d_preset" />
-
-    <!-- Active Preset Action Card -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/presetActionCard"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:background="@drawable/bg_3d_action_card"
-        android:paddingStart="10dp"
-        android:paddingTop="7dp"
-        android:paddingEnd="8dp"
-        android:paddingBottom="7dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/rvPresets">
-
-        <ImageView
-            android:id="@+id/ivSparkle"
-            android:layout_width="18dp"
-            android:layout_height="18dp"
-            android:src="@drawable/ic_magic_wand"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:tint="#005D28" />
-
-        <TextView
-            android:id="@+id/tvActivePresetTitle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:ellipsize="end"
-            android:fontFamily="@font/bold"
-            android:lines="1"
-            android:textColor="#2B2B2B"
-            android:textSize="12sp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/btnApplyPreset"
-            app:layout_constraintStart_toEndOf="@id/ivSparkle"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:text="Bold 3D" />
-
-        <TextView
-            android:id="@+id/btnApplyPreset"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_3d_apply_pill"
-            android:fontFamily="@font/bold"
-            android:paddingStart="10dp"
-            android:paddingTop="4dp"
-            android:paddingEnd="10dp"
-            android:paddingBottom="4dp"
-            android:text="Apply"
-            android:textColor="#005D28"
-            android:textSize="11sp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
+        app:layout_constraintTop_toTopOf="parent"
+        tools:listitem="@layout/layout_text_style_preset_item" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

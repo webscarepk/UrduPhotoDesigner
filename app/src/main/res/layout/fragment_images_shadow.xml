@@ -191,19 +191,73 @@
             app:layout_constraintTop_toBottomOf="@id/distanceSize" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Row 3: Colors List (Single Linear Horizontal Row below Distance) -->
+    <!-- Row 2b: SHADOW SCALE Seekbar Card -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/scaleCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:visibility="visible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/distanceCard">
+
+        <TextView
+            android:id="@+id/scaleTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="15dp"
+            android:fontFamily="@font/medium"
+            android:text="Shadow Scale"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/scaleSize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="15dp"
+            android:fontFamily="@font/regular"
+            android:text="100%"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@id/scaleTitle"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/scaleTitle" />
+
+        <SeekBar
+            android:id="@+id/shadowScale"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:indeterminateTint="@color/appColor"
+            android:max="200"
+            android:progress="100"
+            android:progressBackgroundTint="@color/light_gray"
+            android:progressTint="@color/appColor"
+            android:splitTrack="false"
+            android:thumb="@drawable/seekbar_thumb_custom"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/scaleSize" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Row 3: Colors List (Single Linear Horizontal Row below Shadow Scale) -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/colors"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:paddingHorizontal="12dp"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="8dp"
         android:clipToPadding="false"
         android:orientation="horizontal"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/distanceCard"
+        app:layout_constraintTop_toBottomOf="@id/scaleCard"
         tools:itemCount="20"
         tools:listitem="@layout/layout_color_item" />
 

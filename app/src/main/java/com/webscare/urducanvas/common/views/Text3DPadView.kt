@@ -100,9 +100,14 @@ class Text3DPadView @JvmOverloads constructor(
         strokeWidth = dp(1f)
     }
 
-    private val angleHandlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private val sunPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = "#9A9A9A".toColorInt()
+    }
+
+    private val sunRimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        color = "#40000000".toColorInt()
+        strokeWidth = dp(1f)
     }
 
     // Snap mode paints
@@ -190,10 +195,18 @@ class Text3DPadView @JvmOverloads constructor(
         // 1dp ray behind handle from centre to handle
         canvas.drawLine(cx, cy, hx, hy, rayPaint)
 
-        // 26dp grey circle handle with soft inner shadow
+        // The handle is the light source, so it is drawn as a small sun — a warm core
+        // fading outwards. Dragging it aims the light; it never moves the glyphs.
         val handleRadius = dp(13f)
         canvas.drawCircle(hx, hy + dp(1f), handleRadius, shadowPaint)
-        canvas.drawCircle(hx, hy, handleRadius, angleHandlePaint)
+        sunPaint.shader = RadialGradient(
+            hx - handleRadius * 0.25f, hy - handleRadius * 0.25f, handleRadius * 1.15f,
+            intArrayOf("#FFFDF3".toColorInt(), "#FFD24A".toColorInt(), "#E8A317".toColorInt()),
+            floatArrayOf(0f, 0.55f, 1f),
+            Shader.TileMode.CLAMP
+        )
+        canvas.drawCircle(hx, hy, handleRadius, sunPaint)
+        canvas.drawCircle(hx, hy, handleRadius, sunRimPaint)
     }
 
     private fun drawSnapMode(canvas: Canvas, w: Float, h: Float) {
@@ -220,6 +233,23 @@ class Text3DPadView @JvmOverloads constructor(
         val hx = (currentGridX + 0.5f) * stepX
         val hy = (currentGridY + 0.5f) * stepY
         val handleRadius = dp(8.5f)
+
+        // Tether the handle back to the centre dot, the same ray the angle pad draws, so the
+        // offset reads as a direction from the glyph rather than a dot floating in a grid.
+        val cx = w / 2f
+        val cy = h / 2f
+        val dx = hx - cx
+        val dy = hy - cy
+        val dist = kotlin.math.hypot(dx, dy)
+        if (dist > handleRadius) {
+            val ux = dx / dist
+            val uy = dy / dist
+            canvas.drawLine(
+                cx + ux * dp(3f), cy + uy * dp(3f),
+                hx - ux * handleRadius, hy - uy * handleRadius,
+                rayPaint
+            )
+        }
 
         canvas.drawCircle(hx, hy + dp(1f), handleRadius, shadowPaint)
         canvas.drawCircle(hx, hy, handleRadius, snapHandleFillPaint)

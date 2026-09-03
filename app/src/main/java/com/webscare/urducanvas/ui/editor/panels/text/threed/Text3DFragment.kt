@@ -6,9 +6,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewpager2.widget.ViewPager2
 import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
@@ -17,7 +14,6 @@ import com.webscare.urducanvas.databinding.FragmentText3dBinding
 import com.webscare.urducanvas.ui.editor.panels.text.threed.adapters.Text3DPagerAdapter
 import com.webscare.urducanvas.ui.editor.views.RailCategoryItem
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class Text3DFragment : Fragment() {
@@ -25,18 +21,21 @@ class Text3DFragment : Fragment() {
     private var _binding: FragmentText3dBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var tabs: ArrayList<PanelTabs>
-    private lateinit var pagerAdapter: Text3DPagerAdapter
     private val viewModel: CanvasViewModel by activityViewModels()
 
+    // isEnabled is non-null on every row so the rail renders its on/off dot and a tap on the
+    // already-selected row flips it — the same enable/disable affordance the image adjustment
+    // panel uses. This replaces the per-subpanel toggle switches.
     private val threedCategories = listOf(
-        RailCategoryItem("presets", "Presets", R.drawable.ic_magic_wand),
-        RailCategoryItem("transform", "Transform", R.drawable.ic_transform),
-        RailCategoryItem("extrusion", "Extrusion", R.drawable.ic_layer),
-        RailCategoryItem("material", "Material", R.drawable.ic_fill),
-        RailCategoryItem("lighting", "Lighting", R.drawable.ic_sun),
-        RailCategoryItem("shadow", "Shadow", R.drawable.ic_shadow)
+        RailCategoryItem("presets", "Presets", R.drawable.ic_magic_wand, isEnabled = true),
+        RailCategoryItem("transform", "Basic 3D", R.drawable.ic_3d_cube, isEnabled = true),
+        RailCategoryItem("extrusion", "Extrusion", R.drawable.ic_layer, isEnabled = true),
+        RailCategoryItem("material", "Material", R.drawable.ic_fill, isEnabled = true),
+        RailCategoryItem("lighting", "Lighting", R.drawable.ic_sun, isEnabled = true)
     )
+
+    private lateinit var pagerAdapter: Text3DPagerAdapter
+    private lateinit var tabs: ArrayList<PanelTabs>
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -54,7 +53,13 @@ class Text3DFragment : Fragment() {
     }
 
     private fun setupRailAndPager() {
-        tabs = ArrayList()
+        tabs = arrayListOf(
+            PanelTabs(0, "Presets", true),
+            PanelTabs(1, "Basic 3D", false),
+            PanelTabs(2, "Extrusion", false),
+            PanelTabs(3, "Material", false),
+            PanelTabs(4, "Lighting", false)
+        )
 
         binding.collapsibleRail.bindPanelId("text_3d")
         binding.collapsibleRail.setCategories(threedCategories)
@@ -66,8 +71,20 @@ class Text3DFragment : Fragment() {
             }
         }
 
+        binding.collapsibleRail.onCategoryToggleChangedListener = { catItem, isEnabled ->
+            viewModel.updateText3D(pushToUndo = true) { data ->
+                when (catItem.id) {
+                    "presets" -> data.enabled = isEnabled
+                    "transform" -> data.rotation.enabled = isEnabled
+                    "extrusion" -> data.extrusion.enabled = isEnabled
+                    "material" -> data.material.enabled = isEnabled
+                    "lighting" -> data.lighting.enabled = isEnabled
+                }
+            }
+        }
+
         binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
-        binding.viewPager.offscreenPageLimit = 1
+        binding.viewPager.offscreenPageLimit = 4
 
         pagerAdapter = Text3DPagerAdapter(this, tabs)
         binding.viewPager.adapter = pagerAdapter
@@ -82,22 +99,24 @@ class Text3DFragment : Fragment() {
     }
 
     private fun initObservers() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                tabs.clear()
-                tabs.add(PanelTabs(0, "Presets", true))
-                tabs.add(PanelTabs(1, "Transform", false))
-                tabs.add(PanelTabs(2, "Extrusion", false))
-                tabs.add(PanelTabs(3, "Material", false))
-                tabs.add(PanelTabs(4, "Lighting", false))
-                tabs.add(PanelTabs(5, "Shadow", false))
+        viewModel.pagingLocked.observe(viewLifecycleOwner) { lock ->
+            binding.viewPager.isUserInputEnabled = !lock
+        }
 
-                pagerAdapter.notifyDataSetChanged()
-            }
+        // Keep the rail dots in sync with the model — presets, undo/redo and element
+        // reselection all change these flags without going through the rail.
+        viewModel.text3dData.observe(viewLifecycleOwner) { data ->
+            val rail = _binding?.collapsibleRail ?: return@observe
+            rail.setCategoryEnabled("presets", data?.enabled ?: false)
+            rail.setCategoryEnabled("transform", data?.rotation?.enabled ?: false)
+            rail.setCategoryEnabled("extrusion", data?.extrusion?.enabled ?: false)
+            rail.setCategoryEnabled("material", data?.material?.enabled ?: false)
+            rail.setCategoryEnabled("lighting", data?.lighting?.enabled ?: false)
         }
     }
 
     override fun onDestroyView() {
+        _binding?.viewPager?.adapter = null
         _binding = null
         super.onDestroyView()
     }

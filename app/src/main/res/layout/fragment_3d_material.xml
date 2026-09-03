@@ -10,139 +10,282 @@
     android:paddingEnd="10dp"
     android:paddingBottom="6dp">
 
-    <!-- Top Segmented Control -->
-    <com.webscare.urducanvas.common.views.SegmentedControlView
-        android:id="@+id/segmentedControl"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+    <!-- SCREEN 1: surfaces only, three rows deep. No title or toggle here - the rail row
+         owns the on-off state, the same way the image adjustment tabs do. -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvSurfaces"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:orientation="horizontal"
+        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+        app:spanCount="3"
+        tools:listitem="@layout/item_material_surface" />
 
-    <!-- ── Subscreen 1: SURFACE ── -->
+    <!-- SCREEN 2: Material Adjustments - the same colour + gradient setup as FillStrokeFragment -->
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/layoutSurface"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/segmentedControl">
+        android:id="@+id/layoutAdjustments"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/white"
+        android:visibility="gone">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvSurfaces"
+        <TextView
+            android:id="@+id/tvAdjustmentsTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:clipToPadding="false"
-            android:orientation="horizontal"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginEnd="8dp"
+            android:ellipsize="end"
+            android:fontFamily="@font/medium"
+            android:maxLines="1"
+            android:text="Material Adjustments"
+            android:textColor="@color/black"
+            android:textSize="13sp"
+            app:layout_constraintBottom_toBottomOf="@id/btnDone"
+            app:layout_constraintEnd_toStartOf="@id/btnSettings"
             app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@id/btnDone" />
+
+        <ImageView
+            android:id="@+id/btnSettings"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginEnd="4dp"
+            android:contentDescription="@null"
+            android:padding="4dp"
+            android:src="@drawable/ic_setting"
+            app:layout_constraintBottom_toBottomOf="@id/btnDone"
+            app:layout_constraintEnd_toStartOf="@id/btnDone"
+            app:layout_constraintTop_toTopOf="@id/btnDone"
+            app:tint="@color/black" />
+
+        <!-- Bare glyph, no filled pill: the tick is a quiet way back, not the loudest
+             thing on the screen. -->
+        <ImageView
+            android:id="@+id/btnDone"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:contentDescription="@null"
+            android:padding="3dp"
+            android:src="@drawable/ic_done_stroke"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            tools:listitem="@layout/item_material_surface" />
+            app:tint="@color/black" />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- ── Subscreen 2: COLOURS ── -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/layoutColours"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="6dp"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/segmentedControl">
-
-        <!-- Row 1: FRONT -->
-        <TextView
-            android:id="@+id/tvFrontTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:fontFamily="@font/bold"
-            android:text="Front"
-            android:textColor="#2B2B2B"
-            android:textSize="11sp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvFrontColors"
+        <!-- Which face the swatch list below is editing. Same segmented pill as
+             Solid / Gradient underneath, so the two rows read as one control set. -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/faceToolbar"
             android:layout_width="0dp"
             android:layout_height="28dp"
-            android:layout_marginTop="4dp"
-            android:clipToPadding="false"
-            android:orientation="horizontal"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tvFrontTitle"
-            tools:listitem="@layout/item_3d_color_swatch" />
-
-        <!-- Row 2: DEPTH -->
-        <TextView
-            android:id="@+id/tvDepthTitle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:fontFamily="@font/bold"
-            android:text="Depth"
-            android:textColor="#2B2B2B"
-            android:textSize="11sp"
-            app:layout_constraintEnd_toStartOf="@id/btnSameAsFront"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/button_bg_small"
+            android:backgroundTint="@color/contrast"
+            android:padding="2dp"
+            app:layout_constraintEnd_toStartOf="@id/cbSameAsFront"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/rvFrontColors" />
+            app:layout_constraintTop_toBottomOf="@id/btnDone"
+            app:layout_constraintWidth_percent="0.42">
 
-        <TextView
-            android:id="@+id/btnSameAsFront"
+            <TextView
+                android:id="@+id/tabFront"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/button_bg_small"
+                android:backgroundTint="@color/white"
+                android:fontFamily="@font/medium"
+                android:gravity="center"
+                android:text="Front"
+                android:textColor="@color/black"
+                android:textSize="11sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/tabSide"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/tabSide"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/button_bg_small"
+                android:backgroundTint="@color/contrast"
+                android:fontFamily="@font/medium"
+                android:gravity="center"
+                android:text="Side"
+                android:textColor="@color/black"
+                android:textSize="11sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/tabFront"
+                app:layout_constraintTop_toTopOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- A small round tick instead of a boxy checkbox, and grey rather than app green
+             so it does not compete with the swatches. -->
+        <LinearLayout
+            android:id="@+id/cbSameAsFront"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/bold"
-            android:text="Same as Front"
-            android:textColor="#005D28"
-            android:textSize="11sp"
-            app:layout_constraintBottom_toBottomOf="@id/tvDepthTitle"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            app:layout_constraintBottom_toBottomOf="@id/faceToolbar"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/tvDepthTitle" />
+            app:layout_constraintTop_toTopOf="@id/faceToolbar">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvDepthColors"
+            <ImageView
+                android:id="@+id/ivSameAsFrontTick"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:background="@drawable/bg_round_check_on"
+                android:contentDescription="@null"
+                android:padding="2dp"
+                android:src="@drawable/ic_done"
+                app:tint="@color/white" />
+
+            <TextView
+                android:id="@+id/tvSameAsFront"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:fontFamily="@font/regular"
+                android:text="Same as front"
+                android:textColor="@color/black"
+                android:textSize="11sp" />
+
+        </LinearLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/toolbar"
             android:layout_width="0dp"
             android:layout_height="28dp"
-            android:layout_marginTop="4dp"
-            android:clipToPadding="false"
-            android:orientation="horizontal"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/button_bg_small"
+            android:backgroundTint="@color/contrast"
+            android:padding="2dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tvDepthTitle"
-            tools:listitem="@layout/item_3d_color_swatch" />
+            app:layout_constraintTop_toBottomOf="@id/faceToolbar">
+
+            <TextView
+                android:id="@+id/solid"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/button_bg_small"
+                android:backgroundTint="@color/white"
+                android:fontFamily="@font/medium"
+                android:gravity="center"
+                android:text="@string/solid"
+                android:textColor="@color/black"
+                android:textSize="11sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/gradient"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/gradient"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/button_bg_small"
+                android:backgroundTint="@color/contrast"
+                android:fontFamily="@font/medium"
+                android:gravity="center"
+                android:text="@string/gradient"
+                android:textColor="@color/black"
+                android:textSize="11sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/solid"
+                app:layout_constraintTop_toTopOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- Both swatch lists run three rows deep, so a colour is two flicks away
+             instead of ten. -->
+        <FrameLayout
+            android:id="@+id/views"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginTop="8dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/toolbar">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/colors"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:orientation="horizontal"
+                app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                app:spanCount="3"
+                tools:itemCount="20"
+                tools:listitem="@layout/layout_color_item" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/gradients"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:orientation="horizontal"
+                android:visibility="gone"
+                app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                app:spanCount="3"
+                tools:itemCount="20"
+                tools:listitem="@layout/layout_color_item" />
+
+        </FrameLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- ── Subscreen 3: MORE ── -->
+    <!-- SCREEN 3: surface properties, one level deeper behind the settings icon -->
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/layoutMore"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/segmentedControl">
+        android:id="@+id/layoutProperties"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/white"
+        android:visibility="gone">
 
+        <TextView
+            android:id="@+id/tvPropertiesTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:ellipsize="end"
+            android:fontFamily="@font/medium"
+            android:maxLines="1"
+            android:text="Surface Properties"
+            android:textColor="@color/black"
+            android:textSize="13sp"
+            app:layout_constraintBottom_toBottomOf="@id/btnPropertiesDone"
+            app:layout_constraintEnd_toStartOf="@id/btnPropertiesDone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@id/btnPropertiesDone" />
+
+        <ImageView
+            android:id="@+id/btnPropertiesDone"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:contentDescription="@null"
+            android:padding="3dp"
+            android:src="@drawable/ic_done_stroke"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/black" />
+
+        <!-- Two per row, matching the paired seekbar cards used across the other panels -->
         <com.webscare.urducanvas.common.views.Custom3DSliderView
             android:id="@+id/sliderRoughness"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
             android:layout_marginEnd="6dp"
             app:layout_constraintEnd_toStartOf="@id/sliderMetallic"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toBottomOf="@id/btnPropertiesDone" />
 
         <com.webscare.urducanvas.common.views.Custom3DSliderView
             android:id="@+id/sliderMetallic"
@@ -151,13 +294,13 @@
             android:layout_marginStart="6dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/sliderRoughness"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="@id/sliderRoughness" />
 
         <com.webscare.urducanvas.common.views.Custom3DSliderView
             android:id="@+id/sliderSpecular"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="10dp"
             android:layout_marginEnd="6dp"
             app:layout_constraintEnd_toStartOf="@id/sliderReflection"
             app:layout_constraintStart_toStartOf="parent"
@@ -168,10 +311,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
-            android:layout_marginTop="8dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/sliderSpecular"
-            app:layout_constraintTop_toBottomOf="@id/sliderMetallic" />
+            app:layout_constraintTop_toTopOf="@id/sliderSpecular" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

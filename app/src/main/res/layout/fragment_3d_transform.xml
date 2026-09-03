@@ -1,50 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/white"
-    android:paddingStart="10dp"
-    android:paddingTop="6dp"
-    android:paddingEnd="10dp"
-    android:paddingBottom="6dp">
+    android:fillViewport="true">
 
-    <!-- Top Segmented Control & Reset Action -->
-    <com.webscare.urducanvas.common.views.SegmentedControlView
-        android:id="@+id/segmentedControl"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        app:layout_constraintEnd_toStartOf="@id/btnReset"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-        android:id="@+id/btnReset"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:fontFamily="@font/bold"
-        android:text="Reset"
-        android:textColor="#005D28"
-        android:textSize="12sp"
-        app:layout_constraintBottom_toBottomOf="@id/segmentedControl"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/segmentedControl" />
-
-    <!-- ── Subscreen 1: ROTATION ── -->
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/layoutRotation"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/segmentedControl">
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="10dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="10dp">
 
-        <!-- Row 1: X Tilt & Y Rotate -->
+        <!-- No title, no toggle and no reset icon: the rail row owns the on-off state, and
+             the sliders pair off the way the seekbar cards do elsewhere. -->
         <com.webscare.urducanvas.common.views.Custom3DSliderView
             android:id="@+id/sliderXTilt"
             android:layout_width="0dp"
@@ -61,154 +32,37 @@
             android:layout_marginStart="6dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/sliderXTilt"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="@id/sliderXTilt" />
 
-        <!-- Row 2: Z Spin (Full Width) -->
         <com.webscare.urducanvas.common.views.Custom3DSliderView
             android:id="@+id/sliderZSpin"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="6dp"
+            app:layout_constraintEnd_toStartOf="@id/sliderPerspective"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/sliderXTilt" />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- ── Subscreen 2: PERSPECTIVE ── -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/layoutPerspective"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/segmentedControl">
-
-        <!-- Row 1: Perspective & Field of View -->
+        <!-- Perspective and Distance drive the camera that was already in the renderer
+             but had no controls at all. -->
         <com.webscare.urducanvas.common.views.Custom3DSliderView
             android:id="@+id/sliderPerspective"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="6dp"
-            app:layout_constraintEnd_toStartOf="@id/sliderFov"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <com.webscare.urducanvas.common.views.Custom3DSliderView
-            android:id="@+id/sliderFov"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/sliderPerspective"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintStart_toEndOf="@id/sliderZSpin"
+            app:layout_constraintTop_toTopOf="@id/sliderZSpin" />
 
-        <!-- Row 2: Projection Pills (Perspective / Orthographic) -->
-        <TextView
-            android:id="@+id/tvProjectionLabel"
-            android:layout_width="wrap_content"
+        <com.webscare.urducanvas.common.views.Custom3DSliderView
+            android:id="@+id/sliderDistance"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:fontFamily="@font/regular"
-            android:text="Projection"
-            android:textColor="#5F6368"
-            android:textSize="10.5sp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/sliderPerspective" />
-
-        <LinearLayout
-            android:id="@+id/projectionPillsContainer"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:orientation="horizontal"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tvProjectionLabel">
-
-            <TextView
-                android:id="@+id/btnProjectionPerspective"
-                android:layout_width="0dp"
-                android:layout_height="28dp"
-                android:layout_marginEnd="6dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_3d_preset_selected"
-                android:fontFamily="@font/bold"
-                android:gravity="center"
-                android:text="Perspective"
-                android:textColor="#005D28"
-                android:textSize="11sp" />
-
-            <TextView
-                android:id="@+id/btnProjectionOrthographic"
-                android:layout_width="0dp"
-                android:layout_height="28dp"
-                android:layout_marginStart="6dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_3d_preset_unselected"
-                android:fontFamily="@font/regular"
-                android:gravity="center"
-                android:text="Orthographic"
-                android:textColor="#5F6368"
-                android:textSize="11sp" />
-        </LinearLayout>
+            app:layout_constraintTop_toBottomOf="@id/sliderZSpin" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- ── Subscreen 3: MORE (Pivot & Z Position) ── -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/layoutMore"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/segmentedControl">
-
-        <!-- 2x2 Grid -->
-        <com.webscare.urducanvas.common.views.Custom3DSliderView
-            android:id="@+id/sliderPivotX"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="6dp"
-            app:layout_constraintEnd_toStartOf="@id/sliderPivotY"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <com.webscare.urducanvas.common.views.Custom3DSliderView
-            android:id="@+id/sliderPivotY"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/sliderPivotX"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <com.webscare.urducanvas.common.views.Custom3DSliderView
-            android:id="@+id/sliderPivotZ"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="6dp"
-            app:layout_constraintEnd_toStartOf="@id/sliderPosZ"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/sliderPivotX" />
-
-        <com.webscare.urducanvas.common.views.Custom3DSliderView
-            android:id="@+id/sliderPosZ"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:layout_marginTop="8dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/sliderPivotZ"
-            app:layout_constraintTop_toBottomOf="@id/sliderPivotY" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.core.widget.NestedScrollView>

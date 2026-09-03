@@ -54,6 +54,7 @@ import com.webscare.urducanvas.common.canvas.model.Text3DExtrusion
 import com.webscare.urducanvas.common.canvas.model.Text3DMaterial
 import com.webscare.urducanvas.common.canvas.model.Text3DLighting
 import com.webscare.urducanvas.common.canvas.model.Text3DShadow
+import com.webscare.urducanvas.common.canvas.model.Text3DPreset
 import com.webscare.urducanvas.common.canvas.sealed.BatchedCanvasAction
 import com.webscare.urducanvas.common.canvas.sealed.CanvasAction
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
@@ -194,6 +195,9 @@ class CanvasViewModel @Inject constructor(
 
     private val _shadowDistance = MutableLiveData(21f) // pixels, 0–100
     val shadowDistance: LiveData<Float> = _shadowDistance
+
+    private val _shadowScale = MutableLiveData(100f) // percent, 10–200%
+    val shadowScale: LiveData<Float> = _shadowScale
 
     private val _shadowRadius = MutableLiveData(8f)
     val shadowRadius: LiveData<Float> = _shadowRadius
@@ -3086,9 +3090,11 @@ class CanvasViewModel @Inject constructor(
         val bgIndex = current.indexOfFirst { it.type == ElementType.BACKGROUND }
         if (bgIndex == -1) return
         val bg = current[bgIndex]
+        val targetX = if (bg.x == 0f && bg.y == 0f) size.width / 2f else bg.x
+        val targetY = if (bg.x == 0f && bg.y == 0f) size.height / 2f else bg.y
         current[bgIndex] = bg.copy(
-            x = size.width / 2f,
-            y = size.height / 2f,
+            x = targetX,
+            y = targetY,
             logicalContentWidth = size.width,
             logicalContentHeight = size.height
         ).also {
@@ -3585,6 +3591,7 @@ class CanvasViewModel @Inject constructor(
             val (angle, dist) = dxDyToAngleDistance(textElement.shadowDx, textElement.shadowDy)
             _shadowAngle.value = angle
             _shadowDistance.value = dist
+            _shadowScale.value = textElement.shadowScale.takeIf { it > 0f } ?: 100f
 
             // 🟡 Border
             _hasBorder.value = textElement.hasStroke
@@ -3712,6 +3719,7 @@ class CanvasViewModel @Inject constructor(
         val (angle, distance) = dxDyToAngleDistance(sourceElement.shadowDx, sourceElement.shadowDy)
         _shadowAngle.value = angle
         _shadowDistance.value = distance
+        _shadowScale.value = sourceElement.shadowScale.takeIf { it > 0f } ?: 100f
     }
 
     // Convert UI angle (0–360°) + distance (0–100px) → shadowDx / shadowDy.
@@ -3943,7 +3951,8 @@ class CanvasViewModel @Inject constructor(
                     shadowDx = dx,
                     shadowDy = dy,
                     shadowRadius = radius.coerceAtLeast(0.1f),
-                    shadowOpacity = opacity.coerceIn(0, 255)
+                    shadowOpacity = opacity.coerceIn(0, 255),
+                    shadowScale = _shadowScale.value ?: element.shadowScale
                 )
                 if (updated.type == ElementType.TEXT) {
                     if (updated.blendType == BlendType.SRC) {
@@ -4301,8 +4310,10 @@ class CanvasViewModel @Inject constructor(
         // from the editor). In that case there is no canvas to add a background to - bail out.
         val size = _canvasSize.value ?: return
 
-        val isNightMode = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-        val defaultBgColor = if (isNightMode) Color.BLACK else ResourcesCompat.getColor(context.resources, R.color.contrast, null)
+        // The artboard is document content, not app chrome, so it starts as real white
+        // regardless of the app theme. It used to default to @color/contrast (and to black
+        // at night), which is exactly what then showed up in exports and thumbnails.
+        val defaultBgColor = Color.WHITE
 
         // otherwise create and insert one - artboard always remains WHITE
         val bg = CanvasElement(
@@ -4885,6 +4896,31 @@ class CanvasViewModel @Inject constructor(
         setImageShadow(enabled, color, dx, dy, radius, opacity, pushToUndo = false)
     }
 
+    fun setShadowScale(scale: Float) {
+        _shadowScale.value = scale
+        val currentList = _canvasElements.value?.toMutableList() ?: return
+        val context = currentList.firstOrNull()?.context
+        val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
+        var modifiedAny = false
+        val updatedList = currentList.map { element ->
+            val isTargeted = element.isSelected || (element.groupId != null && element.groupId in selectedGroupIds)
+            if (isTargeted && element.type != ElementType.GROUP) {
+                modifiedAny = true
+                val updated = element.copy(shadowScale = scale)
+                if (updated.type == ElementType.TEXT) {
+                    val tf = element.originalTypeface ?: element.paint.typeface ?: element.applyTypefaceFromFontList(context)
+                    updated.originalTypeface = tf
+                    updated.paint.typeface = tf
+                    updated.context = context
+                }
+                updated
+            } else element
+        }
+        if (modifiedAny) {
+            _canvasElements.value = updatedList
+        }
+    }
+
     // ── 3D Text Manipulation Methods ──────────────────────────────────────────
     fun updateText3D(pushToUndo: Boolean = false, transform: (Text3DData) -> Unit) {
         val currentList = _canvasElements.value?.toMutableList() ?: return
@@ -4928,10 +4964,127 @@ class CanvasViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Applies a Styles-library 3D preset through the 3D pipeline instead of the flat
+     * block-extrusion layers.
+     *
+     * The library entry describes its depth with [TextStylePreset.extrudeDepth] and friends,
+     * which [applyTextStylePreset] would draw as stacked copies of the glyph. Inside the 3D
+     * panel that would sit on top of whatever the Extrusion, Material and Lighting tabs are
+     * already drawing, so those fields are stripped from the style and folded into
+     * [Text3DData] — one preset, one extrusion, and the other tabs come up showing what was
+     * just applied.
+     */
+    fun apply3DStylePreset(preset: com.webscare.urducanvas.data.model.TextStylePreset) {
+        applyTextStylePreset(
+            preset.copy(
+                has3dExtrude = false,
+                hasDoubleExtrude = false,
+                hasAnaglyph = false,
+                hasBevel = false,
+                hasEmboss = false
+            )
+        )
+
+        val front = preset.textColor ?: preset.textGradient?.colors?.firstOrNull()
+        val side = preset.extrudeColor ?: preset.bevelShadowColor
+
+        updateText3D(pushToUndo = true) { d ->
+            d.enabled = true
+            d.selectedPreset = preset.id
+
+            d.extrusion.enabled = true
+            d.extrusion.depth = preset.extrudeDepth.coerceIn(0f, 80f)
+            d.extrusion.direction = directionFor(preset.extrudeDx, preset.extrudeDy)
+            d.extrusion.bevel = if (preset.hasBevel) preset.bevelDepth.coerceIn(0f, 20f) else 0f
+
+            d.material.enabled = true
+            front?.let { d.material.frontColor = hexOf(it) }
+            if (side != null) {
+                d.material.extrusionColor = hexOf(side)
+                d.material.sameAsFront = false
+            } else if (front != null) {
+                d.material.extrusionColor = hexOf(front)
+                d.material.sameAsFront = true
+            }
+            d.material.surface = surfaceFor(preset)
+
+            // The style keeps its own outer glow and cast shadow — they already render, and
+            // they read better than the 3D section's own approximations of the same thing.
+            d.glow = null
+        }
+    }
+
+    /** Nearest of the nine extrusion offsets to the style's own dx / dy. */
+    private fun directionFor(dx: Float, dy: Float): String {
+        val h = when {
+            dx > 1f -> "right"
+            dx < -1f -> "left"
+            else -> ""
+        }
+        val v = when {
+            dy > 1f -> "bottom"
+            dy < -1f -> "top"
+            else -> ""
+        }
+        return when {
+            v.isNotEmpty() && h.isNotEmpty() -> "$v-$h"
+            v.isNotEmpty() -> v
+            h.isNotEmpty() -> h
+            else -> "center"
+        }
+    }
+
+    /** Picks the finish that matches how the style paints its face. */
+    private fun surfaceFor(preset: com.webscare.urducanvas.data.model.TextStylePreset): String = when {
+        preset.hasEmboss -> "satin"
+        preset.hasOuterGlow -> "neon"
+        preset.hasBevel && preset.textGradient != null -> "chrome"
+        preset.textGradient != null -> "glossy"
+        preset.hasBevel -> "metal"
+        else -> "matte"
+    }
+
+    private fun hexOf(color: Int): String = String.format("#%06X", 0xFFFFFF and color)
+
     fun apply3DPreset(presetId: String, pushToUndo: Boolean = true) {
         val preset = Text3DData.PRESETS.find { it.id == presetId } ?: return
         updateText3D(pushToUndo = pushToUndo) { d ->
             d.applyPreset(preset)
+        }
+        // The 3D section has no shadow of its own any more — presets drive the element's
+        // layer shadow so there is a single shadow the user can then go on and tune.
+        applyPresetLayerShadow(preset)
+    }
+
+    private fun applyPresetLayerShadow(preset: Text3DPreset) {
+        val wantsShadow = preset.shadowOpacityPercent > 0f
+        val opacity = (preset.shadowOpacityPercent * 2.55f).toInt().coerceIn(0, 255)
+        val dist = (preset.depth * 0.5f).coerceIn(2f, 24f)
+        val angleRad = Math.toRadians(135.0 - 90.0).toFloat()
+        val dx = kotlin.math.cos(angleRad) * dist
+        val dy = kotlin.math.sin(angleRad) * dist
+
+        _hasShadow.value = wantsShadow
+        if (wantsShadow) {
+            _shadowOpacity.value = opacity
+            _shadowAngle.value = 135f
+            _shadowDistance.value = dist
+        }
+
+        updateSelectedTextElements { element ->
+            if (wantsShadow) {
+                element.copy(
+                    hasShadow = true,
+                    shadowColor = Color.BLACK,
+                    shadowOpacity = opacity,
+                    shadowDx = dx,
+                    shadowDy = dy,
+                    shadowRadius = (preset.depth * 0.45f).coerceIn(4f, 26f)
+                )
+            } else {
+                element.copy(hasShadow = false)
+            }
         }
     }
 

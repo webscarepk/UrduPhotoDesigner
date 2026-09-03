@@ -240,13 +240,8 @@ class EditorFragment : Fragment() {
 
         _navController?.addOnDestinationChangedListener { _, destination, _ ->
 
-            // Hide bottom nav for adjustments
-            binding.bottomNavContainer.isVisible =
-                destination.id != R.id.adjustmentsParentFragment &&
-                        destination.id != R.id.shapeFragment &&
-                        destination.id != R.id.textAdjustmentsFragment &&
-                        destination.id != R.id.tableAdjustmentsFragment &&
-                        destination.id != R.id.universalEraserFragment
+            val isAdjustment = destination.id in nonExpandableDestinations
+            animateBottomNav(show = !isAdjustment)
 
             updateToolbarMode(animate = true)
             updateToolbarVisibility(viewModel.selectedElements.value.orEmpty(), animate = false)
@@ -523,6 +518,56 @@ class EditorFragment : Fragment() {
                 }
             }
             true
+        }
+    }
+
+    private var bottomNavAnimator: android.animation.ValueAnimator? = null
+    private var bottomNavExpandedHeight: Int = 0
+    private var bottomNavShown: Boolean? = null
+
+    /**
+     * Slides the bottom nav out of the way for adjustment panels.
+     *
+     * The height is animated rather than the view being translated and then flipped to GONE:
+     * the panel container is constrained to this view's top, so a GONE flip collapsed 64dp of
+     * layout in a single frame and the whole panel snapped upward at the end of the slide.
+     * Driving the height keeps that growth continuous, so nothing jumps.
+     */
+    private fun animateBottomNav(show: Boolean) {
+        val b = _binding ?: return
+        val nav = b.bottomNavContainer
+
+        if (bottomNavExpandedHeight <= 0) {
+            bottomNavExpandedHeight = nav.height.takeIf { it > 0 }
+                ?: (64f * resources.displayMetrics.density).toInt()
+        }
+        if (bottomNavShown == show) return
+        bottomNavShown = show
+
+        bottomNavAnimator?.cancel()
+
+        val from = nav.layoutParams.height.takeIf { it >= 0 } ?: bottomNavExpandedHeight
+        val to = if (show) bottomNavExpandedHeight else 0
+        if (show) nav.visibility = View.VISIBLE
+
+        bottomNavAnimator = android.animation.ValueAnimator.ofInt(from, to).apply {
+            duration = 260
+            interpolator = android.view.animation.DecelerateInterpolator()
+            addUpdateListener { anim ->
+                val binding = _binding ?: return@addUpdateListener
+                val h = anim.animatedValue as Int
+                binding.bottomNavContainer.layoutParams =
+                    binding.bottomNavContainer.layoutParams.also { it.height = h }
+                binding.bottomNavContainer.alpha =
+                    (h.toFloat() / bottomNavExpandedHeight.coerceAtLeast(1)).coerceIn(0f, 1f)
+            }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    val binding = _binding ?: return
+                    if (!show) binding.bottomNavContainer.visibility = View.INVISIBLE
+                }
+            })
+            start()
         }
     }
 
@@ -859,19 +904,16 @@ class EditorFragment : Fragment() {
             if (::sizedCanvasView.isInitialized) sizedCanvasView.setSelectionMode(enabled)
         }
 
-        // Set default background color based on app mode for new designs/projects (black or contrast)
-        val defaultContrastColor = ContextCompat.getColor(requireContext(), R.color.contrast)
-        if (exportModel == null && (viewModel.backgroundColor.value == null || viewModel.backgroundColor.value == Color.WHITE)) {
-            val isNightMode = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-            val defaultColor = if (isNightMode) Color.BLACK else defaultContrastColor
-            viewModel.setCanvasBackgroundColor(defaultColor)
-        }
+        // No theme-derived default here any more: the artboard starts white from
+        // CanvasViewModel.ensureBackgroundElement, and the chrome keeps its own theme colour
+        // so the artboard colour is the only thing that reaches the exported image.
+        val chromeColor = ContextCompat.getColor(requireContext(), R.color.contrast)
+        binding.editorRoot.setBackgroundColor(chromeColor)
+        binding.canvasContainer.setBackgroundColor(chromeColor)
 
         viewModel.backgroundColor.observe(viewLifecycleOwner) { color ->
             if (isAdded) {
                 color?.let {
-                    binding.canvasContainer.setBackgroundColor(it)
-                    binding.editorRoot.setBackgroundColor(it)
                     scheduleJsonSave()
                 }
             }
@@ -1283,6 +1325,10 @@ class EditorFragment : Fragment() {
 
                 val navOptions = NavOptions.Builder()
                     .setLaunchSingleTop(true)
+                    .setEnterAnim(R.anim.slide_in_up)
+                    .setExitAnim(R.anim.slide_out_down)
+                    .setPopEnterAnim(R.anim.slide_in_up)
+                    .setPopExitAnim(R.anim.slide_out_down)
                     .build()
 
                 if (targetDestination == R.id.shapesParentFragment) {
@@ -1548,6 +1594,8 @@ class EditorFragment : Fragment() {
         viewModel.isTableMultiSelectMode.observe(viewLifecycleOwner) { isMulti ->
             val canvasView = if (::sizedCanvasView.isInitialized) sizedCanvasView else viewModel.getCanvasView()
             canvasView?.isTableMultiSelectMode = (isMulti == true)
+            // Selection mode swaps the back arrow for a cross, so the toolbar has to rerun.
+            updateToolbarMode(animate = true)
             updateTableSelectionBar()
             updateToolbarVisibility(viewModel.selectedElements.value ?: emptyList(), animate = false)
         }
@@ -1755,13 +1803,23 @@ class EditorFragment : Fragment() {
                             val navOptions = NavOptions.Builder()
                                 .setLaunchSingleTop(true)
                                 .setPopUpTo(R.id.adjustmentsParentFragment, inclusive = true)
+                                .setEnterAnim(R.anim.slide_in_up)
+                                .setExitAnim(R.anim.slide_out_down)
+                                .setPopEnterAnim(R.anim.slide_in_up)
+                                .setPopExitAnim(R.anim.slide_out_down)
                                 .build()
                             navController.navigate(R.id.adjustmentsParentFragment, bundle, navOptions)
                         }
                     }
                     ElementType.DRAW, ElementType.SHAPE -> {
                         if (element.type == ElementType.SHAPE) {
-                            val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
+                            val navOptions = NavOptions.Builder()
+                                .setLaunchSingleTop(true)
+                                .setEnterAnim(R.anim.slide_in_up)
+                                .setExitAnim(R.anim.slide_out_down)
+                                .setPopEnterAnim(R.anim.slide_in_up)
+                                .setPopExitAnim(R.anim.slide_out_down)
+                                .build()
                             navController.navigate(R.id.shapeFragment, null, navOptions)
                         } else {
                             val bundle = Bundle().apply { putInt("startPage", 0) }
@@ -1776,7 +1834,13 @@ class EditorFragment : Fragment() {
                             viewModel.enterTableEditMode()
                             try {
                                 val bundle = Bundle().apply { putInt("startPage", 0) }
-                                val navOptions = NavOptions.Builder().setLaunchSingleTop(true).build()
+                                val navOptions = NavOptions.Builder()
+                                    .setLaunchSingleTop(true)
+                                    .setEnterAnim(R.anim.slide_in_up)
+                                    .setExitAnim(R.anim.slide_out_down)
+                                    .setPopEnterAnim(R.anim.slide_in_up)
+                                    .setPopExitAnim(R.anim.slide_out_down)
+                                    .build()
                                 navController.navigate(R.id.tableAdjustmentsFragment, bundle, navOptions)
                             } catch (e: Exception) {
                                 e.printStackTrace()
@@ -2115,6 +2179,11 @@ class EditorFragment : Fragment() {
             if (destId == R.id.universalEraserFragment || currentToolbarMode == EditorToolbarMode.ERASER) {
                 viewModel.exitDrawingMode(commit = false)
                 _navController?.popBackStack()
+            } else if (viewModel.isTableMultiSelectMode.value == true) {
+                // The cross in table selection mode drops the selection, not the screen.
+                viewModel.toggleTableMultiSelect(false)
+            } else if (viewModel.isTableEditMode.value == true) {
+                viewModel.exitTableEditMode()
             } else if (isAdjustment || currentToolbarMode == EditorToolbarMode.ADJUSTMENT) {
                 _navController?.popBackStack()
             } else {
@@ -2208,6 +2277,7 @@ class EditorFragment : Fragment() {
     }
 
     private var currentToolbarMode: EditorToolbarMode? = null
+    private var currentBackIsCross: Boolean? = null
 
     private fun updateToolbarMode(animate: Boolean = true) {
         val b = _binding ?: return
@@ -2229,9 +2299,13 @@ class EditorFragment : Fragment() {
             else -> EditorToolbarMode.NORMAL
         }
 
-        if (currentToolbarMode == targetMode) return
+        // Table multi-select flips the back glyph without changing the toolbar mode, so it
+        // has to be part of the "nothing to do" test or the cross never appears.
+        val wantsCross = isTableEdit || viewModel.isTableMultiSelectMode.value == true
+        if (currentToolbarMode == targetMode && currentBackIsCross == wantsCross) return
         val previousMode = currentToolbarMode
         currentToolbarMode = targetMode
+        currentBackIsCross = wantsCross
 
         val slideOffset = 70f * resources.displayMetrics.density
         val animDuration = 320L
@@ -2254,11 +2328,15 @@ class EditorFragment : Fragment() {
             }
         }
 
-        val targetBackIcon = if (targetMode == EditorToolbarMode.ADJUSTMENT || targetMode == EditorToolbarMode.ERASER) {
-            R.drawable.ic_close
-        } else {
-            R.drawable.ic_back
-        }
+        // The cross belongs to the table modes only. Opening an adjustment panel keeps the
+        // plain back arrow — the slide animation already signals the transition.
+        val useCrossIcon = wantsCross
+        val targetBackIcon = if (useCrossIcon) R.drawable.ic_close else R.drawable.ic_back
+        // The cross glyph reads heavier than the arrow at the same box size, so pad it in.
+        val backPadding = (if (useCrossIcon) 10f else 8f) * resources.displayMetrics.density
+        b.back.setPadding(
+            backPadding.toInt(), backPadding.toInt(), backPadding.toInt(), backPadding.toInt()
+        )
 
         val targetLeftTools = when (targetMode) {
             EditorToolbarMode.DRAW -> b.drawTools
@@ -2268,7 +2346,8 @@ class EditorFragment : Fragment() {
 
         val showBack = targetMode == EditorToolbarMode.NORMAL ||
                 targetMode == EditorToolbarMode.ERASER ||
-                targetMode == EditorToolbarMode.ADJUSTMENT
+                targetMode == EditorToolbarMode.ADJUSTMENT ||
+                targetMode == EditorToolbarMode.TABLE_EDIT
 
         val showGrid = targetMode == EditorToolbarMode.NORMAL
 

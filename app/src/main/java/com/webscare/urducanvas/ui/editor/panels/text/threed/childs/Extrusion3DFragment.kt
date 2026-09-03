@@ -31,19 +31,9 @@ class Extrusion3DFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        setupSegmentedControl()
         setupPad()
         initSliders()
         initObservers()
-    }
-
-    private fun setupSegmentedControl() {
-        binding.segmentedControl.setItems(listOf("Depth", "Direction", "Bevel"), defaultIndex = 0)
-        binding.segmentedControl.onSegmentSelected = { index ->
-            binding.layoutDepth.visibility = if (index == 0) View.VISIBLE else View.GONE
-            binding.layoutDirection.visibility = if (index == 1) View.VISIBLE else View.GONE
-            binding.layoutBevel.visibility = if (index == 2) View.VISIBLE else View.GONE
-        }
     }
 
     private fun setupPad() {
@@ -58,30 +48,6 @@ class Extrusion3DFragment : Fragment() {
     }
 
     private fun initSliders() {
-        // ── DEPTH SCREEN SLIDERS ──────────────────────────────────────────────
-        binding.sliderDepthOnly.apply {
-            label = "Depth"
-            unit = ""
-            minValue = 0
-            maxValue = 80
-            onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) { it.extrusion.depth = v.toFloat() }
-            }
-            onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
-        }
-
-        binding.sliderDepthScaleOnly.apply {
-            label = "Depth Scale"
-            unit = "%"
-            minValue = 40
-            maxValue = 160
-            onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) { it.extrusion.scale = v.toFloat() }
-            }
-            onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
-        }
-
-        // ── DIRECTION SCREEN SLIDERS ──────────────────────────────────────────
         binding.sliderDirectionDepth.apply {
             label = "Depth"
             unit = ""
@@ -93,18 +59,6 @@ class Extrusion3DFragment : Fragment() {
             onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
         }
 
-        binding.sliderDirectionScale.apply {
-            label = "Depth Scale"
-            unit = "%"
-            minValue = 40
-            maxValue = 160
-            onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) { it.extrusion.scale = v.toFloat() }
-            }
-            onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
-        }
-
-        // ── BEVEL SCREEN SLIDERS ──────────────────────────────────────────────
         binding.sliderBevelAmount.apply {
             label = "Bevel Amount"
             unit = ""
@@ -138,12 +92,7 @@ class Extrusion3DFragment : Fragment() {
         viewModel.text3dData.observe(viewLifecycleOwner) { data ->
             val ext = data?.extrusion
             if (ext != null) {
-                val depthInt = ext.depth.toInt()
-                val scaleInt = ext.scale.toInt()
-                binding.sliderDepthOnly.value = depthInt
-                binding.sliderDepthScaleOnly.value = scaleInt
-                binding.sliderDirectionDepth.value = depthInt
-                binding.sliderDirectionScale.value = scaleInt
+                binding.sliderDirectionDepth.value = ext.depth.toInt()
                 binding.directionPad.direction = ext.direction
                 updateDirectionHelp(ext.direction)
 

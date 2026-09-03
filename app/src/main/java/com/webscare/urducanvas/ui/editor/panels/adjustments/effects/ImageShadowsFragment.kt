@@ -100,6 +100,16 @@ class ImageShadowsFragment : Fragment() {
             )
         })
 
+        // ── SHADOW SCALE ───────────────────────────────────────────────────────
+        binding.shadowScale.apply {
+            min = 10
+            max = 200
+            setOnSeekBarChangeListener(createSeekListener { progress, push ->
+                binding.scaleSize.text = "$progress%"
+                viewModel.setShadowScale(progress.toFloat())
+            })
+        }
+
         // ── OPACITY ───────────────────────────────────────────────────────────
         binding.opacity.setOnSeekBarChangeListener(createSeekListener { progress, push ->
             val color = viewModel.shadowColor.value ?: Color.GRAY
@@ -159,6 +169,12 @@ class ImageShadowsFragment : Fragment() {
             val safeDist = dist?.toInt() ?: 21
             if (binding.distance.progress != safeDist) binding.distance.progress = safeDist
             binding.distanceSize.text = "$safeDist"
+        }
+
+        viewModel.shadowScale.observe(viewLifecycleOwner) { scale ->
+            val safeScale = scale?.toInt() ?: 100
+            if (binding.shadowScale.progress != safeScale) binding.shadowScale.progress = safeScale
+            binding.scaleSize.text = "$safeScale%"
         }
 
         viewModel.shadowOpacity.observe(viewLifecycleOwner) { opacity ->

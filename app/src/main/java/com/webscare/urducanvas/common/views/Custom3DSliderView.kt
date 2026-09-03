@@ -55,6 +55,9 @@ class Custom3DSliderView @JvmOverloads constructor(
             }
         }
 
+    var snapInterval: Int = 0
+    var snapThreshold: Int = 3
+
     var onValueChanged: ((Int) -> Unit)? = null
     var onDragStateChanged: ((Boolean) -> Unit)? = null
 
@@ -62,7 +65,13 @@ class Custom3DSliderView @JvmOverloads constructor(
         updateProgressBounds()
         binding.seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val realVal = (minValue + progress).coerceIn(minValue, maxValue)
+                var realVal = (minValue + progress).coerceIn(minValue, maxValue)
+                if (fromUser && snapInterval > 0) {
+                    val nearest = Math.round(realVal.toFloat() / snapInterval) * snapInterval
+                    if (Math.abs(realVal - nearest) <= snapThreshold) {
+                        realVal = nearest.coerceIn(minValue, maxValue)
+                    }
+                }
                 _value = realVal
                 updateValueDisplay()
                 if (fromUser) {

@@ -5,10 +5,13 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
+    <!-- 12dp start / 5dp end margins mirror the seekbar cards in fragment_shadows.xml so
+         the title sits over the track start instead of flush against the panel edge. -->
     <TextView
         android:id="@+id/tvSliderLabel"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
         android:ellipsize="end"
         android:fontFamily="@font/medium"
         android:lines="1"
@@ -23,6 +26,7 @@
         android:id="@+id/tvSliderValue"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="5dp"
         android:fontFamily="@font/regular"
         android:textColor="@color/black"
         android:textSize="12sp"

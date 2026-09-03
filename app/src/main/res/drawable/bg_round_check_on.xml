@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Round "on" state for the small same-as-front tick. Neutral graphite rather than the
+     app green, so it sits quietly next to the swatches it is describing. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="#3C4149" />
+</shape>

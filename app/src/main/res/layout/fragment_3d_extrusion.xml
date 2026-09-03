@@ -10,135 +10,68 @@
     android:paddingEnd="10dp"
     android:paddingBottom="6dp">
 
-    <!-- Top Segmented Control -->
-    <com.webscare.urducanvas.common.views.SegmentedControlView
-        android:id="@+id/segmentedControl"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        app:layout_constraintEnd_toEndOf="parent"
+    <!-- No segmented pill, no separate Depth screen and no toggle switch: the direction pad
+         sits openly with Depth beside it, and the two bevel sliders share one row below.
+         Depth Scale is gone - it multiplied Depth and did nothing Depth could not do. -->
+
+    <com.webscare.urducanvas.common.views.Text3DPadView
+        android:id="@+id/directionPad"
+        android:layout_width="88dp"
+        android:layout_height="88dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- ── Subscreen 1: DEPTH ── -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/layoutDepth"
+    <LinearLayout
+        android:id="@+id/directionSlidersContainer"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="@id/directionPad"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/directionPad"
+        app:layout_constraintTop_toTopOf="@id/directionPad">
+
+        <com.webscare.urducanvas.common.views.Custom3DSliderView
+            android:id="@+id/sliderDirectionDepth"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvDirectionHelp"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:fontFamily="@font/regular"
+        android:lineSpacingExtra="2dp"
+        android:textColor="#8E94A2"
+        android:textSize="11sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/segmentedControl">
+        app:layout_constraintTop_toBottomOf="@id/directionPad"
+        tools:text="Bottom-right — drag the pad to change extrusion angle." />
 
-        <com.webscare.urducanvas.common.views.Custom3DSliderView
-            android:id="@+id/sliderDepthOnly"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="6dp"
-            app:layout_constraintEnd_toStartOf="@id/sliderDepthScaleOnly"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <com.webscare.urducanvas.common.views.Custom3DSliderView
-            android:id="@+id/sliderDepthScaleOnly"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/sliderDepthOnly"
-            app:layout_constraintTop_toTopOf="parent" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- ── Subscreen 2: DIRECTION (Snap Pad) ── -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/layoutDirection"
+    <!-- Bevel pair, side by side, matching the two-in-a-row seekbar cards used elsewhere -->
+    <com.webscare.urducanvas.common.views.Custom3DSliderView
+        android:id="@+id/sliderBevelAmount"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="6dp"
+        app:layout_constraintEnd_toStartOf="@id/sliderBevelSmoothness"
+        app:layout_constraintHorizontal_chainStyle="spread"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/segmentedControl">
+        app:layout_constraintTop_toBottomOf="@id/tvDirectionHelp" />
 
-        <com.webscare.urducanvas.common.views.Text3DPadView
-            android:id="@+id/directionPad"
-            android:layout_width="84dp"
-            android:layout_height="84dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <LinearLayout
-            android:id="@+id/directionSlidersContainer"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:orientation="vertical"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/directionPad"
-            app:layout_constraintTop_toTopOf="@id/directionPad">
-
-            <com.webscare.urducanvas.common.views.Custom3DSliderView
-                android:id="@+id/sliderDirectionDepth"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-
-            <com.webscare.urducanvas.common.views.Custom3DSliderView
-                android:id="@+id/sliderDirectionScale"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" />
-
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/tvDirectionHelp"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:fontFamily="@font/regular"
-            android:lineSpacingExtra="2dp"
-            android:textColor="#8E94A2"
-            android:textSize="10.5sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/directionPad"
-            tools:text="Bottom-right — drag the pad, it snaps to the nine offsets. Centre casts depth straight back with none." />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- ── Subscreen 3: BEVEL ── -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/layoutBevel"
+    <com.webscare.urducanvas.common.views.Custom3DSliderView
+        android:id="@+id/sliderBevelSmoothness"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/segmentedControl">
-
-        <com.webscare.urducanvas.common.views.Custom3DSliderView
-            android:id="@+id/sliderBevelAmount"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="6dp"
-            app:layout_constraintEnd_toStartOf="@id/sliderBevelSmoothness"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <com.webscare.urducanvas.common.views.Custom3DSliderView
-            android:id="@+id/sliderBevelSmoothness"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/sliderBevelAmount"
-            app:layout_constraintTop_toTopOf="parent" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
+        app:layout_constraintStart_toEndOf="@id/sliderBevelAmount"
+        app:layout_constraintTop_toTopOf="@id/sliderBevelAmount" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

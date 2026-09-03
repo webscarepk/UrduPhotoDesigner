@@ -22,13 +22,34 @@ class TextStylesGridAdapter(
     var attachedRecyclerView: RecyclerView? = null
         private set
 
+    /** Height the item sizes were last computed against, so we only re-lay out on a change. */
+    private var lastMeasuredHeight: Int = 0
+
+    /**
+     * The first bind happens before the RecyclerView has been measured, so [updateSize] falls
+     * back to its fixed default and the cards come out small — which is why the panel only
+     * looked right after being reopened. Re-run the size pass as soon as a real height lands.
+     */
+    private val sizeOnLayout = View.OnLayoutChangeListener { v, _, top, _, bottom, _, oldTop, _, oldBottom ->
+        val height = bottom - top
+        if (height > 0 && height != lastMeasuredHeight && (bottom - top) != (oldBottom - oldTop)) {
+            lastMeasuredHeight = height
+            v.post {
+                if (itemCount > 0) notifyDataSetChanged()
+            }
+        }
+    }
+
     override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
         super.onAttachedToRecyclerView(recyclerView)
         attachedRecyclerView = recyclerView
+        lastMeasuredHeight = recyclerView.height
+        recyclerView.addOnLayoutChangeListener(sizeOnLayout)
     }
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
         super.onDetachedFromRecyclerView(recyclerView)
+        recyclerView.removeOnLayoutChangeListener(sizeOnLayout)
         if (attachedRecyclerView == recyclerView) {
             attachedRecyclerView = null
         }

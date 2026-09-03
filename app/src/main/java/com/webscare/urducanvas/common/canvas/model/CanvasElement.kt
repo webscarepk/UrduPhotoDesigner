@@ -188,6 +188,8 @@ data class CanvasElement(
 
     @SerializedName("shadowOpacity") var shadowOpacity: Int = 255,
 
+    @SerializedName("shadowScale") var shadowScale: Float = 100f,
+
     @SerializedName("hasLabel") var hasLabel: Boolean = false,
 
     @SerializedName("labelColor") var labelColor: Int = Color.parseColor("#30005D28"),
